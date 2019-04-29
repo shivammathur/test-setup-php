@@ -1,0 +1,7 @@
+ARG_WITH('xz', 'xz support', 'no');
+
+if (PHP_XZ != 'no') {
+	AC_DEFINE('HAVE_XZ', 1, 'xz support enabled');
+
+	EXTENSION('xz', 'xz.c', null, '/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1');
+}
