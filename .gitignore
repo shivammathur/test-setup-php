@@ -1,31 +1,35 @@
-# Object files
-.deps
+*.lo
+*.la
 .libs
-*.o
-Makefile*
+acinclude.m4
+aclocal.m4
 autom4te.cache
-ac*.m4
 build
-config*
+config.guess
+config.h
+config.h.in
+config.log
+config.nice
+config.status
+config.sub
+configure
+configure.ac
+configure.in
+include
 install-sh
 libtool
 ltmain.sh
+Makefile
+Makefile.fragments
+Makefile.global
+Makefile.objects
 missing
 mkinstalldirs
+modules
 run-tests.php
-*.la
-*.lo
-# Libraries
-*.lib
-*.a
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
+tests/*/*.diff
+tests/*/*.out
+tests/*/*.php
+tests/*/*.exp
+tests/*/*.log
+tests/*/*.sh
