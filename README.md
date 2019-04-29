@@ -1,7 +1,7 @@
 php-xz
 ======
 
-[![Build Status](https://travis-ci.org/udan11/php-xz.svg?branch=master)](https://travis-ci.org/udan11/php-xz)
+[![Build Status](https://travis-ci.org/codemasher/php-xz/php-xz.svg?branch=master)](https://travis-ci.org/codemasher/php-xz)
 
 PHP Extension providing XZ (LZMA2) compression/decompression functions.
 
@@ -10,7 +10,7 @@ PHP Extension providing XZ (LZMA2) compression/decompression functions.
 To install as module, perform the following steps:
 
 ```bash
-git clone https://github.com/udan11/php-xz
+git clone https://github.com/codemasher/php-xz
 cd php-xz && phpize && ./configure && make && sudo make install
 ```
 
