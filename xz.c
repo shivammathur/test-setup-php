@@ -1,7 +1,7 @@
 /* xz extension for PHP */
 
-//#include <lzma.h>
-#include "./xz-5.2.4/src/liblzma/api/lzma.h"
+#include <lzma.h>
+//#include "./xz-5.2.4/src/liblzma/api/lzma.h"
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
