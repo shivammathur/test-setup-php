@@ -1,23 +1,9 @@
-dnl +----------------------------------------------------------------------+
-dnl | PHP Version 5                                                        |
-dnl +----------------------------------------------------------------------+
-dnl | Copyright (c) 1997-2015 The PHP Group                                |
-dnl +----------------------------------------------------------------------+
-dnl | This source file is subject to version 3.01 of the PHP license,      |
-dnl | that is bundled with this package in the file LICENSE, and is        |
-dnl | available through the world-wide-web at the following url:           |
-dnl | http://www.php.net/license/3_01.txt                                  |
-dnl | If you did not receive a copy of the PHP license and are unable to   |
-dnl | obtain it through the world-wide-web, please send a note to          |
-dnl | license@php.net so we can mail you a copy immediately.               |
-dnl +----------------------------------------------------------------------+
-dnl | Authors: Payden Sutherland <payden@paydensutherland.com>             |
-dnl |          Dan Ungureanu <udan1107@gmail.com>                          |
-dnl |          authors of the `zlib` extension (for guidance)              |
-dnl +----------------------------------------------------------------------+
+dnl config.m4 for extension xz
 
-PHP_ARG_WITH(xz, for xz support,
-[  --with-xz             Include xz support])
+PHP_ARG_WITH([xz],
+  [for xz support],
+  [AS_HELP_STRING([--with-xz],
+    [Include xz support])])
 
 if test "$PHP_XZ" != "no"; then
 

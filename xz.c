@@ -1,38 +1,25 @@
-/*
-	+----------------------------------------------------------------------+
-	| PHP Version 5                                                        |
-	+----------------------------------------------------------------------+
-	| Copyright (c) 1997-2015 The PHP Group                                |
-	+----------------------------------------------------------------------+
-	| This source file is subject to version 3.01 of the PHP license,      |
-	| that is bundled with this package in the file LICENSE, and is        |
-	| available through the world-wide-web at the following url:           |
-	| http://www.php.net/license/3_01.txt                                  |
-	| If you did not receive a copy of the PHP license and are unable to   |
-	| obtain it through the world-wide-web, please send a note to          |
-	| license@php.net so we can mail you a copy immediately.               |
-	+----------------------------------------------------------------------+
-	| Authors: Payden Sutherland <payden@paydensutherland.com>             |
-	|          Dan Ungureanu <udan1107@gmail.com>                          |
-	|          authors of the `zlib` extension (for guidance)              |
-	+----------------------------------------------------------------------+
-*/
+/* xz extension for PHP */
 
-#include <lzma.h>
+//#include <lzma.h>
+#include "./xz-5.2.4/src/liblzma/api/lzma.h"
 
 #ifdef HAVE_CONFIG_H
-#	include "config.h"
+# include "config.h"
 #endif
 
 #include "php.h"
 #include "php_ini.h"
-
 #include "ext/standard/file.h"
 #include "ext/standard/info.h"
-
 #include "utils.h"
-
 #include "php_xz.h"
+
+/* For compatibility with older PHP versions */
+#ifndef ZEND_PARSE_PARAMETERS_NONE
+#define ZEND_PARSE_PARAMETERS_NONE() \
+	ZEND_PARSE_PARAMETERS_START(0, 0) \
+	ZEND_PARSE_PARAMETERS_END()
+#endif
 
 /* {{{ arginfo */
 ZEND_BEGIN_ARG_INFO(arginfo_xzread, 0)
@@ -63,9 +50,8 @@ ZEND_BEGIN_ARG_INFO(arginfo_xzdecode, 0)
 ZEND_END_ARG_INFO()
 /* }}} */
 
-/* {{{ xz_functions[]
-   Table containing functions exported by this module. */
-const zend_function_entry xz_functions[] = {
+/* {{{ xz_functions[] */
+static const zend_function_entry xz_functions[] = {
 	PHP_FE(xzdecode, NULL)
 	PHP_FE(xzopen, NULL)
 	PHP_FE(xzencode, NULL)
@@ -73,20 +59,13 @@ const zend_function_entry xz_functions[] = {
 	PHP_FALIAS(xzwrite, fwrite, arginfo_xzwrite)
 	PHP_FALIAS(xzclose, fclose, arginfo_xzclose)
 	PHP_FALIAS(xzpassthru, fpassthru, arginfo_xzpassthru)
-#ifndef PHP_FE_END
-	{ NULL, NULL, NULL, 0, 0 }
-#else
 	PHP_FE_END
-#endif
 };
 /* }}} */
 
-/* {{{ xz_module_entry
-   Table describing module. */
+/* {{{ xz_module_entry */
 zend_module_entry xz_module_entry = {
-#if ZEND_MODULE_API_NO >= 20010901
 	STANDARD_MODULE_HEADER,
-#endif
 	"xz",
 	xz_functions,
 	PHP_MINIT(xz),
@@ -94,15 +73,16 @@ zend_module_entry xz_module_entry = {
 	NULL, /* PHP_RINIT */
 	NULL, /* PHP_RSHUTDOWN */
 	PHP_MINFO(xz),
-#if ZEND_MODULE_API_NO >= 20010901
-	"0.1.1",
-#endif
+	PHP_XZ_VERSION,
 	STANDARD_MODULE_PROPERTIES
 };
 /* }}} */
 
 #ifdef COMPILE_DL_XZ
-	ZEND_GET_MODULE(xz)
+# ifdef ZTS
+ZEND_TSRMLS_CACHE_DEFINE()
+# endif
+ZEND_GET_MODULE(xz)
 #endif
 
 /* {{{ INI entries. */
