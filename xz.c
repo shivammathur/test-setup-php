@@ -255,7 +255,7 @@ PHP_FUNCTION(xzencode)
 
 	lzma_end(&strm);
 
-	RETURN_STRINGL(out, out_len,  0);
+	RETURN_STRINGL(out, out_len);
 }
 /* }}} */
 
@@ -314,7 +314,7 @@ PHP_FUNCTION(xzdecode)
 
 	lzma_end(&strm);
 
-	RETURN_STRINGL(out, out_len,  0);
+	RETURN_STRINGL(out, out_len);
 }
 /* }}} */
 
