@@ -1,7 +1,7 @@
 php-xz
 ======
 
-[![Build Status](https://travis-ci.org/codemasher/php-xz/php-xz.svg?branch=master)](https://travis-ci.org/codemasher/php-xz)
+[![Build Status](https://travis-ci.org/codemasher/php-xz.svg?branch=master)](https://travis-ci.org/codemasher/php-xz)
 
 PHP Extension providing XZ (LZMA2) compression/decompression functions.
 
@@ -18,22 +18,27 @@ Do not forget to add `extension = xz.so` to your `php.ini`.
 
 ## Requirements
 
-This module depends on `git`, `php5-dev` and `liblzma-dev`. If you are using Ubuntu, you can easily install all of them by typing the following command in your terminal:
+This module requires `git` and `liblzma-dev` as well as php7-dev. If you are using Ubuntu, you can easily install all of them by typing the following command in your terminal:
 
 ```bash
-sudo apt-get install git php5-dev liblzma-dev
+sudo apt-get install git php7.2-dev liblzma-dev
 ```
 
 ## Basic usage
 
 ```php
-<?php
-
-$fh = xzopen("/tmp/test.xz", "w");
-xzwrite($fh, "Data you would like compressed and written.\n");
+$fh = xzopen('/tmp/test.xz', 'w');
+xzwrite($fh, 'Data you would like compressed and written.');
 xzclose($fh);
 
-$fh = xzopen("/tmp/test.xz", "r");
+$fh = xzopen('/tmp/test.xz', 'r');
 xzpassthru($fh);
 xzclose($fh);
+```
+
+```php
+$str = 'Data you would like compressed.';
+
+$encoded = xzencode($str);
+$decoded = xzdecode($encoded);
 ```
