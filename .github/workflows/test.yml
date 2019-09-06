@@ -16,7 +16,5 @@ jobs:
       uses: shivammathur/setup-php@master
       with:
         php-version: ${{ matrix.php-versions }}
-    - name: Check composer DIR
-      run: DIR C:\ProgramData\ComposerBin
     - name: Check PHP and composer version
-      run: php -v && composer -V
+      run: php -v && composer.bat -V
