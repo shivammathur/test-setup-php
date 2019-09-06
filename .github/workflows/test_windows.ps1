@@ -4,4 +4,4 @@ if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]:
 }
 
 [Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\ProgramData\ComposerBin", "Machine")
-echo $env:Path'
+echo $env:Path
