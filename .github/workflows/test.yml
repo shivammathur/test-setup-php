@@ -4,10 +4,10 @@ jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      max-parallel: 15
+      max-parallel: 5
       matrix:
-        operating-system: [windows-latest]
-        php-versions: ['7.2', '7.3']
+        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -16,7 +16,5 @@ jobs:
       uses: shivammathur/setup-php@master
       with:
         php-version: ${{ matrix.php-versions }}
-    - name: add composer
-      run: powershell .\.github\workflows\test_windows.ps1
     - name: Check PHP and composer version
       run: php -v && composer -V
