@@ -17,6 +17,6 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
     - name: add composer
-      run: powershell -command '[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\ProgramData\ComposerBin", "Machine")' && powershell -command 'echo $env:Path'
+      run: powershell .\.github\workflows\test_windows.ps1
     - name: Check PHP and composer version
       run: php -v && composer -V
