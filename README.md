@@ -1,4 +1,4 @@
 # test-setup-php
 
 Testing github action shivammathur/setup-php
-Test: 5
+Test: 6
