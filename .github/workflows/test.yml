@@ -4,10 +4,10 @@ jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      max-parallel: 5
+      max-parallel: 8
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macOS-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3']
+        php-versions: ['5.0', '5.1', '5.2', '5.3', '5.4', '5.5', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
