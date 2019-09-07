@@ -16,5 +16,6 @@ jobs:
       uses: shivammathur/setup-php@master
       with:
         php-version: ${{ matrix.php-versions }}
-    - name: Check PHP and composer version
-      run: php -v && composer -V
+        extension-csv: mbstring, xdebug, pcov
+    - name: Testing
+      run: php -v && composer -V && php -m
