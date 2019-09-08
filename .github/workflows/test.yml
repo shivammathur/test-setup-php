@@ -7,7 +7,7 @@ jobs:
       max-parallel: 5
       matrix:
         operating-system: [windows-2019, windows-2016]
-        php-versions: ['7.4']
+        php-versions: ['7.4RC']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
