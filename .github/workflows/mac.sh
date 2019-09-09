@@ -1,6 +1,7 @@
 xcode-select --install
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew install autoconf automake libtool
+brew install autoconf automake libtool libxml2
+brew link libxml2 --force
 mkdir -p ~/local/php
 cd ~/local/php
 wget –quiet https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
