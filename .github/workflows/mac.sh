@@ -33,13 +33,12 @@ cd openssl-1.1.0c
 make depend
 make -j4
 sudo make install
-
-
-sudo cd /usr/local/src
+chmod 755 /usr/local/src
+cd /usr/local/src
 sudo wget –quiet https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
 sudo tar -xzf php-7.4.0RC1.tar.gz
 sudo rm php-7.4.0RC1.tar.gz
-sudo cd php-7.4.0RC1
+cd php-7.4.0RC1
 uname -a
 sudo ./buildconf --force
 sudo ./configure \
