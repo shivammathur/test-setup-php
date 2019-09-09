@@ -1,10 +1,12 @@
 xcode-select --install
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew install autoconf automake libtool libxml2 pkg-config krb5
+brew install autoconf automake libtool libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt
 brew link libxml2 --force
-export LDFLAGS="-L/usr/local/opt/libxml2/lib -L/usr/local/opt/krb5/lib"
-export CPPFLAGS="-I/usr/local/opt/libxml2/include -I/usr/local/opt/krb5/include"
+export LIBXML_LIBS="-L/usr/local/opt/libxml2/lib"
+export LIBXML_CFLAGS="-I/usr/local/opt/libxml2/include"
 export PKG_CONFIG_PATH="/usr/local/opt/libxml2/lib/pkgconfig"
+export KERBEROS_LIBS="-L/usr/local/opt/krb5/lib"
+export KERBEROS_CFLAGS="-I/usr/local/opt/krb5/include"
 mkdir -p ~/local/php
 cd ~/local/php
 wget –quiet https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
@@ -14,7 +16,7 @@ cd ~/local/php
 cd php-7.4.0RC1
 uname -a
 ./buildconf --force
-./configure LIBXML_CFLAGS=-I/usr/local/opt/libxml2/include LIBXML_LIBS=-L/usr/local/opt/libxml2/lib \
+./configure \
 --enable-option-checking=fatal \
 --prefix="$HOME"/php-install \
 --quiet \
@@ -74,11 +76,8 @@ make -j4
 make test
 sudo make install
 
-ln -s /usr/local/dev/php-7.4.0RC1 /usr/local/php
-
-sudo cp /usr/local/src/php-7.4.0RC1/php.ini-production /usr/local/php/etc/php.ini
-/usr/local/php/bin/pecl config-set php_ini /usr/local/php/etc/php.ini
-/usr/local/php/bin/pear config-set php_ini /usr/local/php/etc/php.ini
+ln -s ~/local/php/php-7.4.0RC1 /usr/local/php
+sudo cp ~/local/php/php-7.4.0RC1/php.ini-production /usr/local/php/etc/php.ini
 
 php -v
 brew install composer
