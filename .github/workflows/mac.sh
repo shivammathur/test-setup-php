@@ -5,47 +5,67 @@ brew link libxml2 --force
 brew install jpeg
 brew install libpng
 brew install libmcrypt
-cd /usr/local/src
-wget https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
+mkdir -p ~/local/php
+cd ~/local/php
+wget –quiet https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
 tar -xzf php-7.4.0RC1.tar.gz
 rm php-7.4.0RC1.tar.gz
-mkdir -p /usr/local/src
-cd /usr/local/src
+cd ~/local/php
 cd php-7.4.0RC1
 uname -a
+./buildconf --force
 ./configure \
-  --prefix=/usr/local/dev/php-7.4.0RC1 \
-  --with-config-file-path=/usr/local/dev/php-7.4.0RC1/etc \
-  --with-config-file-scan-dir=/usr/local/php-7.4.0RC1/ext \
-  --enable-bcmath \
-  --enable-cli \
-  --enable-mbstring \
-  --enable-gd-jis-conv \
-  --enable-sockets \
-  --enable-exif \
-  --enable-ftp \
-  --enable-soap \
-  --enable-opcache \
-  --enable-simplexml \
-  --enable-maintainer-zts \
-  --with-sqlite3 \
-  --enable-xmlreader \
-  --enable-xmlwriter \
-  --with-mysql-sock=/tmp/mysql.sock \
-  --with-mysqli=mysqlnd \
-  --with-pdo-mysql=mysqlnd \
-  --with-pdo-sqlite \
-  --with-bz2 \
-  --with-curl \
-  --with-imap-ssl \
-  --with-pear \  
-  --with-openssl=/usr/local/Cellar/openssl@1.1/1.1.1c \
-  --with-xmlrpc \
-  --with-xsl \
-  --with-zlib \
-  --with-apxs2 \
-  --with-iconv=/usr \
-  --with-ldap
+--enable-option-checking=fatal \
+--prefix="$HOME"/php-install \
+--quiet \
+--enable-phpdbg \
+--enable-fpm \
+--with-pdo-mysql=mysqlnd \
+--with-mysqli=mysqlnd \
+--with-pgsql \
+--with-pdo-pgsql \
+--with-pdo-sqlite \
+--enable-intl \
+--without-pear \
+--enable-gd \
+--with-jpeg \
+--with-webp \
+--with-freetype \
+--with-xpm \
+--enable-exif \
+--with-zip \
+--enable-soap \
+--enable-xmlreader \
+--with-xsl \
+--with-tidy \
+--with-xmlrpc \
+--enable-sysvsem \
+--enable-sysvshm \
+--enable-shmop \
+--enable-pcntl \
+--with-readline \
+--enable-mbstring \
+--with-curl \
+--with-gettext \
+--enable-sockets \
+--with-bz2 \
+--with-openssl \
+--with-gmp \
+--enable-bcmath \
+--enable-calendar \
+--enable-ftp \
+--with-pspell=/usr \
+--with-enchant=/usr \
+--with-kerberos \
+--enable-sysvmsg \
+--with-ffi \
+--enable-zend-test=shared \
+--enable-werror \
+--with-pear 
+
+make
+make install
+
   
 export LDFLAGS=-L/usr/local/opt/openssl/lib
 export CPPFLAGS=-I/usr/local/opt/openssl/include
