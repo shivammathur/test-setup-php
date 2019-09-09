@@ -10,11 +10,11 @@ export ENCHANT_LIBS="-L/usr/local/opt/enchant/lib"
 export ENCHANT_CFLAGS="-I/usr/local/opt/enchant/include"
 export LIBFFI_LIBS="-L/usr/local/opt/libffi/lib"
 export LIBFFI_CFLAGS="-I/usr/local/opt/libffi/include"
-export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib"
 export KERBEROS_LIBS="-L/usr/local/opt/krb5/lib"
 export KERBEROS_CFLAGS="-I/usr/local/opt/krb5/include"
 export OPENSSL_LIBS="-L/usr/local/opt/openssl@1.1/lib"
 export OPENSSL_CFLAGS="-I/usr/local/opt/openssl@1.1/include"
+export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib"
 mkdir -p ~/local/php
 cd ~/local/php
 wget –quiet https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
