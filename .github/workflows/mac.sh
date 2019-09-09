@@ -1,12 +1,14 @@
 sudo rm -rf /Library/Developer/CommandLineTools
 sudo xcode-select --install
-sudo xcode-select -s /Library/Developer/CommandLineTools
+echo $PKG_CONFIG_PATH
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew install autoconf automake libtool libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt bzip2
+brew install autoconf automake libtool libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt bzip2 enchant
 brew link libxml2 --force
 export LIBXML_LIBS="-L/usr/local/opt/libxml2/lib"
 export LIBXML_CFLAGS="-I/usr/local/opt/libxml2/include"
-export PKG_CONFIG_PATH="/usr/local/opt/libxml2/lib/pkgconfig"
+export ENCHANT_LIBS="-L/usr/local/opt/enchant/lib"
+export ENCHANT_CFLAGS="-I/usr/local/opt/enchant/include"
+export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/lib
 export KERBEROS_LIBS="-L/usr/local/opt/krb5/lib"
 export KERBEROS_CFLAGS="-I/usr/local/opt/krb5/include"
 export OPENSSL_LIBS="-L/usr/local/opt/openssl@1.1/lib"
