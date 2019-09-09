@@ -1,7 +1,5 @@
 xcode-select --install
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew install wget
-brew install openssl
 brew install libxml2
 brew link libxml2 --force
 brew install jpeg
@@ -9,12 +7,12 @@ brew install libpng
 brew install libmcrypt
 cd /usr/local/src
 wget https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
-tar -xzvf php-7.4.0RC1.tar.gz
+tar -xzf php-7.4.0RC1.tar.gz
 rm php-7.4.0RC1.tar.gz
-
+mkdir -p /usr/local/src
 cd /usr/local/src
 cd php-7.4.0RC1
-
+uname -a
 ./configure \
   --prefix=/usr/local/dev/php-7.4.0RC1 \
   --with-config-file-path=/usr/local/dev/php-7.4.0RC1/etc \
@@ -27,7 +25,6 @@ cd php-7.4.0RC1
   --enable-exif \
   --enable-ftp \
   --enable-soap \
-  --enable-zip \
   --enable-opcache \
   --enable-simplexml \
   --enable-maintainer-zts \
@@ -40,10 +37,9 @@ cd php-7.4.0RC1
   --with-pdo-sqlite \
   --with-bz2 \
   --with-curl \
-  --with-gd \
   --with-imap-ssl \
   --with-pear \  
-  --with-openssl=/usr/local/Cellar/openssl/1.0.2j \
+  --with-openssl=/usr/local/Cellar/openssl@1.1/1.1.1c \
   --with-xmlrpc \
   --with-xsl \
   --with-zlib \
