@@ -23,19 +23,14 @@ export KERBEROS_LIBS="-L/usr/local/opt/krb5/lib"
 export KERBEROS_CFLAGS="-I/usr/local/opt/krb5/include"
 export OPENSSL_LIBS="-L/usr/local/opt/openssl@1.1/lib"
 export OPENSSL_CFLAGS="-I/usr/local/opt/openssl@1.1/include"
-export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib"
+export READLINE_LIBS="-L/usr/local/opt/readline/lib"
+export READLINE_CFLAGS="-I/usr/local/opt/readline/include"
+export PKG_CONFIG_PATH="/usr/local/opt/krb5/lib/pkgconfig:/usr/local/opt/icu4c/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig:/usr/local/opt/openssl@1.1/lib/pkgconfig:/usr/local/opt/readline/lib/pkgconfig:/usr/local/opt/libxml2/lib/pkgconfig:/usr/local/opt/krb5/lib/pkgconfig:/usr/local/opt/icu4c/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig:/usr/local/opt/libxml2/lib/pkgconfig"
 sudo mkdir -p /usr/local/src
 chmod 755 /usr/local/src
+openssl version
 cd /usr/local/src
-sudo wget https://www.openssl.org/source/openssl-1.1.0c.tar.gz
-sudo tar xzvf openssl-1.1.0c.tar.gz
-cd openssl-1.1.0c
-sudo ./configure shared darwin64-x86_64-cc
-sudo make depend
-sudo make -j4
-sudo make install
-cd /usr/local/src
-sudo wget –quiet https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
+sudo wget –q https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
 sudo tar -xzf php-7.4.0RC1.tar.gz
 sudo rm php-7.4.0RC1.tar.gz
 cd php-7.4.0RC1
