@@ -35,12 +35,11 @@ make -j4
 sudo make install
 
 
-cd /usr/local/src
-wget –quiet https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
-tar -xzf php-7.4.0RC1.tar.gz
-rm php-7.4.0RC1.tar.gz
-cd ~/local/php
-cd php-7.4.0RC1
+sudo cd /usr/local/src
+sudo wget –quiet https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
+sudo tar -xzf php-7.4.0RC1.tar.gz
+sudo rm php-7.4.0RC1.tar.gz
+sudo cd php-7.4.0RC1
 uname -a
 sudo ./buildconf --force
 sudo ./configure \
