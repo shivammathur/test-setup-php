@@ -1,11 +1,7 @@
 xcode-select --install
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew install autoconf automake libtool libxml2
+brew install autoconf automake libtool libxml2 pkg-config
 brew link libxml2 --force
-cd ~
-curl https://pkgconfig.freedesktop.org/releases/pkg-config-0.29.tar.gz -o pkgconfig.tgz
-tar -zxf pkgconfig.tgz && cd pkg-config-0.29
-./configure --with-internal-glib && make install
 export LDFLAGS="-L/usr/local/opt/libxml2/lib"
 export CPPFLAGS="-I/usr/local/opt/libxml2/include"
 mkdir -p ~/local/php
