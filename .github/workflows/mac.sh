@@ -2,8 +2,8 @@ xcode-select --install
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 brew install autoconf automake libtool libxml2 pkg-config krb5
 brew link libxml2 --force
-export LDFLAGS="-L/usr/local/opt/libxml2/lib"
-export CPPFLAGS="-I/usr/local/opt/libxml2/include"
+export LDFLAGS="-L/usr/local/opt/libxml2/lib -L/usr/local/opt/krb5/lib"
+export CPPFLAGS="-I/usr/local/opt/libxml2/include -I/usr/local/opt/krb5/include"
 export PKG_CONFIG_PATH="/usr/local/opt/libxml2/lib/pkgconfig"
 mkdir -p ~/local/php
 cd ~/local/php
