@@ -24,8 +24,18 @@ export KERBEROS_CFLAGS="-I/usr/local/opt/krb5/include"
 export OPENSSL_LIBS="-L/usr/local/opt/openssl@1.1/lib"
 export OPENSSL_CFLAGS="-I/usr/local/opt/openssl@1.1/include"
 export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib"
-mkdir -p ~/local/php
-cd ~/local/php
+sudo mkdir -p /usr/local/src
+cd /usr/local/src
+wget https://www.openssl.org/source/openssl-1.1.0c.tar.gz
+tar xzvf openssl-1.1.0c.tar.gz
+cd openssl-1.1.0c
+./configure shared darwin64-x86_64-cc
+make depend
+make -j4
+sudo make install
+
+
+cd /usr/local/src
 wget –quiet https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
 tar -xzf php-7.4.0RC1.tar.gz
 rm php-7.4.0RC1.tar.gz
@@ -33,10 +43,9 @@ cd ~/local/php
 cd php-7.4.0RC1
 uname -a
 sudo ./buildconf --force
-sudo ./configure --help
 sudo ./configure \
 --enable-option-checking=fatal \
---prefix="$HOME"/php-install \
+--prefix=/usr/local/dev/php-7.4.0 \
 --quiet \
 --enable-phpdbg \
 --enable-fpm \
@@ -77,20 +86,13 @@ sudo ./configure \
 --with-ffi \
 --enable-zend-test=shared \
 --enable-werror \
---with-pear 
-
-make
-make install
-
-  
-export LDFLAGS=-L/usr/local/opt/openssl/lib
-export CPPFLAGS=-I/usr/local/opt/openssl/include
+--with-pear
 
 sudo make -j4
 sudo make install
 
-sudo ln -s ~/local/php/php-7.4.0RC1 /usr/local/php
-sudo cp ~/local/php/php-7.4.0RC1/php.ini-production /etc/php.ini
+sudo ln -s /usr/local/dev/php-7.4.0 /usr/local/php
+sudo cp /usr/local/dev/php-7.4.0/php.ini-production /etc/php.ini
 which php
 php -v
 brew install composer
