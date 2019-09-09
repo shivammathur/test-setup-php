@@ -4,7 +4,7 @@ brew install autoconf automake libtool libxml2
 brew link libxml2 --force
 cd ~
 curl https://pkgconfig.freedesktop.org/releases/pkg-config-0.29.tar.gz -o pkgconfig.tgz
-tar -zxf pkg-config-0.29.tar.gz && cd pkg-config-0.29
+tar -zxf pkgconfig.tgz && cd pkg-config-0.29
 ./configure && make install
 export LDFLAGS="-L/usr/local/opt/libxml2/lib"
 export CPPFLAGS="-I/usr/local/opt/libxml2/include"
