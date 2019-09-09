@@ -25,15 +25,15 @@ export OPENSSL_LIBS="-L/usr/local/opt/openssl@1.1/lib"
 export OPENSSL_CFLAGS="-I/usr/local/opt/openssl@1.1/include"
 export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib"
 sudo mkdir -p /usr/local/src
-cd /usr/local/src
-wget https://www.openssl.org/source/openssl-1.1.0c.tar.gz
-tar xzvf openssl-1.1.0c.tar.gz
-cd openssl-1.1.0c
-./configure shared darwin64-x86_64-cc
-make depend
-make -j4
-sudo make install
 chmod 755 /usr/local/src
+cd /usr/local/src
+sudo wget https://www.openssl.org/source/openssl-1.1.0c.tar.gz
+sudo tar xzvf openssl-1.1.0c.tar.gz
+cd openssl-1.1.0c
+sudo ./configure shared darwin64-x86_64-cc
+sudo make depend
+sudo make -j4
+sudo make install
 cd /usr/local/src
 sudo wget –quiet https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
 sudo tar -xzf php-7.4.0RC1.tar.gz
