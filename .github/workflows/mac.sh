@@ -1,7 +1,8 @@
 sudo rm -rf /Library/Developer/CommandLineTools
 xcode-select --install
+sudo xcode-select --switch /Library/Developer/CommandLineTools
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew install autoconf automake libtool libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt
+brew install autoconf automake libtool libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt bzip2
 brew link libxml2 --force
 export LIBXML_LIBS="-L/usr/local/opt/libxml2/lib"
 export LIBXML_CFLAGS="-I/usr/local/opt/libxml2/include"
@@ -81,7 +82,7 @@ sudo make install
 
 sudo ln -s ~/local/php/php-7.4.0RC1 /usr/local/php
 sudo cp ~/local/php/php-7.4.0RC1/php.ini-production /usr/local/php/etc/php.ini
-
+php -i
 php -v
 brew install composer
 composer -V
