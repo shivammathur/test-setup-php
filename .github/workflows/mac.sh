@@ -2,6 +2,10 @@ xcode-select --install
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 brew install autoconf automake libtool libxml2
 brew link libxml2 --force
+cd ~
+curl https://pkgconfig.freedesktop.org/releases/pkg-config-0.29.2.tar.gz -o pkgconfig.tgz
+tar -zxf pkgconfig.tgz && cd pkg-config-0.29
+./configure && make install
 mkdir -p ~/local/php
 cd ~/local/php
 wget –quiet https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
