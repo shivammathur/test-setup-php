@@ -7,6 +7,8 @@ export LIBXML_CFLAGS="-I/usr/local/opt/libxml2/include"
 export PKG_CONFIG_PATH="/usr/local/opt/libxml2/lib/pkgconfig"
 export KERBEROS_LIBS="-L/usr/local/opt/krb5/lib"
 export KERBEROS_CFLAGS="-I/usr/local/opt/krb5/include"
+export OPENSSL_LIBS="-L/usr/local/opt/openssl@1.1/lib"
+export OPENSSL_CFLAGS="-I/usr/local/opt/openssl@1.1/include"
 mkdir -p ~/local/php
 cd ~/local/php
 wget –quiet https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
