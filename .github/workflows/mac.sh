@@ -64,9 +64,6 @@ sudo ./configure \
 --enable-bcmath \
 --enable-calendar \
 --enable-ftp \
---with-pspell=/usr \
---with-enchant=/usr \
---with-kerberos \
 --enable-sysvmsg \
 --with-ffi \
 --enable-zend-test=shared \
