@@ -23,8 +23,9 @@ rm php-7.4.0RC1.tar.gz
 cd ~/local/php
 cd php-7.4.0RC1
 uname -a
-./buildconf --force
-./configure \
+sudo ./buildconf --force
+sudo ./configure --help
+sudo ./configure \
 --enable-option-checking=fatal \
 --prefix="$HOME"/php-install \
 --quiet \
@@ -79,8 +80,7 @@ make install
 export LDFLAGS=-L/usr/local/opt/openssl/lib
 export CPPFLAGS=-I/usr/local/opt/openssl/include
 
-make -j4
-make test
+sudo make -j4
 sudo make install
 
 sudo ln -s ~/local/php/php-7.4.0RC1 /usr/local/php
