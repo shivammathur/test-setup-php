@@ -4,6 +4,15 @@ echo $PKG_CONFIG_PATH
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 brew install autoconf automake libtool libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt bzip2 enchant
 brew link libxml2 --force
+echo 'export PATH="/usr/local/opt/openssl@1.1/bin:$PATH"' >> ~/.bash_profile
+echo 'export PATH="/usr/local/opt/krb5/bin:$PATH"' >> ~/.bash_profile
+echo 'export PATH="/usr/local/opt/krb5/sbin:$PATH"' >> ~/.bash_profile
+echo 'export PATH="/usr/local/opt/icu4c/bin:$PATH"' >> ~/.bash_profile
+echo 'export PATH="/usr/local/opt/icu4c/sbin:$PATH"' >> ~/.bash_profile
+echo 'export PATH="/usr/local/opt/bzip2/bin:$PATH"' >> ~/.bash_profile
+echo 'export PATH="/usr/local/opt/bison/bin:$PATH"' >> ~/.bash_profile
+echo 'export PATH="/usr/local/opt/libxml2/bin:$PATH"' >> ~/.bash_profile
+source ~/.bash_profile
 export LIBXML_LIBS="-L/usr/local/opt/libxml2/lib"
 export LIBXML_CFLAGS="-I/usr/local/opt/libxml2/include"
 export ENCHANT_LIBS="-L/usr/local/opt/enchant/lib"
