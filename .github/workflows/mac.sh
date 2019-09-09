@@ -4,8 +4,9 @@ brew install autoconf automake libtool libxml2
 brew link libxml2 --force
 cd ~
 curl https://pkgconfig.freedesktop.org/releases/pkg-config-0.29.2.tar.gz -o pkgconfig.tgz
-tar -zxf pkgconfig.tgz && cd pkg-config-0.29
+tar -zxf pkg-config-0.29.2.tar.gz && cd pkg-config-0.29.2
 ./configure && make install
+find /usr/local/Cellar -name 'pkgconfig' -type d | grep lib/pkgconfig | tr '\n' ':' | sed s/.$//)
 mkdir -p ~/local/php
 cd ~/local/php
 wget –quiet https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
@@ -15,7 +16,7 @@ cd ~/local/php
 cd php-7.4.0RC1
 uname -a
 ./buildconf --force
-./configure \
+./configure LIBXML_CFLAGS=-I/usr/local/opt/libxml2/include LIBXML_LIBS=-L/usr/local/opt/libxml2/lib \
 --enable-option-checking=fatal \
 --prefix="$HOME"/php-install \
 --quiet \
