@@ -1,3 +1,4 @@
+sudo rm -rf /Library/Developer/CommandLineTools
 xcode-select --install
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 brew install autoconf automake libtool libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt
@@ -78,7 +79,7 @@ make -j4
 make test
 sudo make install
 
-ln -s ~/local/php/php-7.4.0RC1 /usr/local/php
+sudo ln -s ~/local/php/php-7.4.0RC1 /usr/local/php
 sudo cp ~/local/php/php-7.4.0RC1/php.ini-production /usr/local/php/etc/php.ini
 
 php -v
