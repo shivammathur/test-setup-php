@@ -3,10 +3,11 @@ xcode-select --install
 brew install autoconf automake libtool libxml2
 brew link libxml2 --force
 cd ~
-curl https://pkgconfig.freedesktop.org/releases/pkg-config-0.29.2.tar.gz -o pkgconfig.tgz
-tar -zxf pkg-config-0.29.2.tar.gz && cd pkg-config-0.29.2
+curl https://pkgconfig.freedesktop.org/releases/pkg-config-0.29.tar.gz -o pkgconfig.tgz
+tar -zxf pkg-config-0.29.tar.gz && cd pkg-config-0.29
 ./configure && make install
-find /usr/local/Cellar -name 'pkgconfig' -type d | grep lib/pkgconfig | tr '\n' ':' | sed s/.$//)
+export LDFLAGS="-L/usr/local/opt/libxml2/lib"
+export CPPFLAGS="-I/usr/local/opt/libxml2/include"
 mkdir -p ~/local/php
 cd ~/local/php
 wget –quiet https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
