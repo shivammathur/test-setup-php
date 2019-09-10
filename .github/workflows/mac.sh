@@ -1,11 +1,13 @@
 sudo rm -rf /Library/Developer/CommandLineTools
 sudo xcode-select --install
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew reinstall autoconf automake pcre libtool libpng webp jpeg oniguruma freetype libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt bzip2 enchant
+brew install autoconf automake pcre libtool libpng webp jpeg oniguruma freetype libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt bzip2 enchant
 brew link --force gettext
 brew link --force bison
 brew link --force openssl
 brew link --force libxml2
+brew link --force bzip2
+echo 'export PATH="/usr/local/opt/bzip2/bin:$PATH"' >> ~/.bash_profile
 echo 'export PATH="/usr/local/opt/openssl@1.1/bin:$PATH"' >> ~/.bash_profile
 echo 'export PATH="/usr/local/opt/krb5/bin:$PATH"' >> ~/.bash_profile
 echo 'export PATH="/usr/local/opt/krb5/sbin:$PATH"' >> ~/.bash_profile
@@ -29,7 +31,9 @@ export OPENSSL_LIBS="-L/usr/local/opt/openssl@1.1/lib"
 export OPENSSL_CFLAGS="-I/usr/local/opt/openssl@1.1/include"
 export READLINE_LIBS="-L/usr/local/opt/readline/lib"
 export READLINE_CFLAGS="-I/usr/local/opt/readline/include"
-export PKG_CONFIG_PATH="/usr/local/opt/krb5/lib/pkgconfig:/usr/local/opt/icu4c/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig:/usr/local/opt/openssl@1.1/lib/pkgconfig:/usr/local/opt/readline/lib/pkgconfig:/usr/local/opt/libxml2/lib/pkgconfig:/usr/local/opt/krb5/lib/pkgconfig:/usr/local/opt/icu4c/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig:/usr/local/opt/libxml2/lib/pkgconfig"
+export BZIP2_LIBS="-L/usr/local/opt/bzip2/lib"
+export BZIP2_CFLAGS="-I/usr/local/opt/bzip2/include"
+export PKG_CONFIG_PATH="/usr/local/opt/krb5/lib/pkgconfig:/usr/local/opt/icu4c/lib/pkgconfig:/usr/local/obzip2pt/libffi/lib/pkgconfig:/usr/local/opt/openssl@1.1/lib/pkgconfig:/usr/local/opt/readline/lib/pkgconfig:/usr/local/opt/libxml2/lib/pkgconfig:/usr/local/opt/krb5/lib/pkgconfig:/usr/local/opt/icu4c/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig:/usr/local/opt/libxml2/lib/pkgconfig"
 cd ~
 curl -L -O https://github.com/phpbrew/phpbrew/raw/master/phpbrew
 chmod +x ./phpbrew
