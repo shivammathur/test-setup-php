@@ -1,9 +1,11 @@
 sudo rm -rf /Library/Developer/CommandLineTools
 sudo xcode-select --install
-echo $PKG_CONFIG_PATH
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew reinstall autoconf automake libtool libpng webp freetype libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt bzip2 enchant
-brew link libxml2 --force
+brew reinstall autoconf automake pcre libtool libpng webp jpeg oniguruma freetype libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt bzip2 enchant
+brew link --force gettext
+brew link --force bison
+brew link --force openssl
+brew link --force libxml2
 echo 'export PATH="/usr/local/opt/openssl@1.1/bin:$PATH"' >> ~/.bash_profile
 echo 'export PATH="/usr/local/opt/krb5/bin:$PATH"' >> ~/.bash_profile
 echo 'export PATH="/usr/local/opt/krb5/sbin:$PATH"' >> ~/.bash_profile
@@ -17,8 +19,10 @@ export LIBXML_LIBS="-L/usr/local/opt/libxml2/lib"
 export LIBXML_CFLAGS="-I/usr/local/opt/libxml2/include"
 export ENCHANT_LIBS="-L/usr/local/opt/enchant/lib"
 export ENCHANT_CFLAGS="-I/usr/local/opt/enchant/include"
-export LIBFFI_LIBS="-L/usr/local/opt/libffi/lib"
-export LIBFFI_CFLAGS="-I/usr/local/opt/libffi/include"
+export FFI_LIBS="-L/usr/local/opt/libffi/lib"
+export FFI_CFLAGS="-I/usr/local/opt/libffi/include"
+export ICU_LIBS="-L/usr/local/opt/icu4c/lib"
+export ICU_CFLAGS="-I/usr/local/opt/icu4c/include"
 export KERBEROS_LIBS="-L/usr/local/opt/krb5/lib"
 export KERBEROS_CFLAGS="-I/usr/local/opt/krb5/include"
 export OPENSSL_LIBS="-L/usr/local/opt/openssl@1.1/lib"
@@ -26,64 +30,11 @@ export OPENSSL_CFLAGS="-I/usr/local/opt/openssl@1.1/include"
 export READLINE_LIBS="-L/usr/local/opt/readline/lib"
 export READLINE_CFLAGS="-I/usr/local/opt/readline/include"
 export PKG_CONFIG_PATH="/usr/local/opt/krb5/lib/pkgconfig:/usr/local/opt/icu4c/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig:/usr/local/opt/openssl@1.1/lib/pkgconfig:/usr/local/opt/readline/lib/pkgconfig:/usr/local/opt/libxml2/lib/pkgconfig:/usr/local/opt/krb5/lib/pkgconfig:/usr/local/opt/icu4c/lib/pkgconfig:/usr/local/opt/libffi/lib/pkgconfig:/usr/local/opt/libxml2/lib/pkgconfig"
-sudo mkdir -p /usr/local/src
-chmod 755 /usr/local/src
-openssl version
-cd /usr/local/src
-sudo wget –q https://downloads.php.net/~derick/php-7.4.0RC1.tar.gz
-sudo tar -xzf php-7.4.0RC1.tar.gz
-sudo rm php-7.4.0RC1.tar.gz
-cd php-7.4.0RC1
-uname -a
-sudo ./buildconf --force
-sudo ./configure \
---enable-option-checking=fatal \
---prefix=/usr/local/dev/php-7.4.0 \
---quiet \
---enable-phpdbg \
---enable-fpm \
---with-pdo-mysql=mysqlnd \
---with-mysqli=mysqlnd \
---with-pgsql \
---with-pdo-pgsql \
---with-pdo-sqlite \
---enable-intl \
---without-pear \
---enable-gd \
---with-jpeg \
---with-webp \
---with-freetype \
---with-xpm \
---enable-exif \
---with-zip \
---enable-soap \
---enable-xmlreader \
---with-xsl \
---with-tidy \
---with-xmlrpc \
---enable-sysvsem \
---enable-sysvshm \
---enable-shmop \
---enable-pcntl \
---with-readline \
---enable-mbstring \
---with-curl \
---with-gettext \
---enable-sockets \
---with-gmp \
---enable-bcmath \
---enable-calendar \
---enable-ftp \
---enable-sysvmsg \
---enable-zend-test=shared \
---enable-werror \
---with-pear
-
-sudo make -j4
-sudo make install
-
-sudo ln -s /usr/local/dev/php-7.4.0 /usr/local/php
-sudo cp /usr/local/dev/php-7.4.0/php.ini-production /etc/php.ini
+cd ~
+curl -L -O https://github.com/phpbrew/phpbrew/raw/master/phpbrew
+chmod +x ./phpbrew
+./phpbrew init
+./phpbrew install 7.4.0RC1 --  --with-libxml
 which php
 php -v
 brew install composer
