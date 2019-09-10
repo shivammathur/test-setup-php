@@ -1,7 +1,7 @@
 sudo rm -rf /Library/Developer/CommandLineTools
 sudo xcode-select --install
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew install autoconf automake pcre libtool libpng webp jpeg oniguruma freetype libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt bzip2 enchant
+brew install autoconf automake pcre libtool libpng webp jpeg oniguruma freetype libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt zlib bzip2 enchant
 brew link --force gettext
 brew link --force bison
 brew link --force openssl
@@ -38,7 +38,7 @@ cd ~
 curl -L -O https://github.com/phpbrew/phpbrew/raw/master/phpbrew
 chmod +x ./phpbrew
 ./phpbrew init
-./phpbrew install 7.4.0RC1 --  --with-libxml
+./phpbrew install 7.4.0RC1 +bz2="$(brew --prefix bzip2)" +zlib="$(brew --prefix zlib)" +openssl="$(brew --prefix openssl)" --  --with-libxml --with-openssl="$(brew --prefix openssl)"
 which php
 php -v
 brew install composer
