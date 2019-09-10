@@ -2,7 +2,7 @@ sudo rm -rf /Library/Developer/CommandLineTools
 sudo xcode-select --install
 echo $PKG_CONFIG_PATH
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew reinstall autoconf automake libtool libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt bzip2 enchant
+brew reinstall autoconf automake libtool libpng libwebp libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt bzip2 enchant
 brew link libxml2 --force
 echo 'export PATH="/usr/local/opt/openssl@1.1/bin:$PATH"' >> ~/.bash_profile
 echo 'export PATH="/usr/local/opt/krb5/bin:$PATH"' >> ~/.bash_profile
@@ -70,13 +70,11 @@ sudo ./configure \
 --with-curl \
 --with-gettext \
 --enable-sockets \
---with-openssl \
 --with-gmp \
 --enable-bcmath \
 --enable-calendar \
 --enable-ftp \
 --enable-sysvmsg \
---with-ffi \
 --enable-zend-test=shared \
 --enable-werror \
 --with-pear
