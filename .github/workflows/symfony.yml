@@ -23,8 +23,8 @@ jobs:
       run: cd / && composer create-project symfony/symfony-demo my_project && cd my_project
     - name: Test on windows
       if: matrix.operating-system == 'windows-latest'
-      run: php .\bin\phpunit
+      run: .\vendor\bin\simple-phpunit
     - name: Test on macos and linux
       if: matrix.operating-system != 'windows-latest'
-      run: ./bin/phpunit      
+      run: ./vendor/bin/simple-phpunit    
     
