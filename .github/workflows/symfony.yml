@@ -20,7 +20,7 @@ jobs:
     - name: Check PHP and composer version
       run: php -v && composer -V
     - name: Setup symfony
-      run: composer create-project symfony/symfony-demo my_project && cd my_project
+      run: cd / && composer create-project symfony/symfony-demo my_project && cd my_project
     - name: Test on windows
       if: matrix.operating-system == 'windows-latest'
       run: php .\bin\phpunit
