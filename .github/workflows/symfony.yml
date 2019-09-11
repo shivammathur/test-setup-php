@@ -1,4 +1,4 @@
-name: Test workflow
+name: Symfony workflow
 on: [push]
 jobs:
   run:    
@@ -19,7 +19,7 @@ jobs:
         extension-csv: pdo_sqlite
     - name: Testing
       run: php -v && composer -V
-    - name setup symfony
+    - name: setup symfony
       run: composer create-project symfony/symfony-demo my_project && cd my_project/bin
     - name: Test on windows
       if: matrix.operating-system == 'windows-latest'
