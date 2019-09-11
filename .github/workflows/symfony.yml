@@ -1,0 +1,30 @@
+name: Test workflow
+on: [push]
+jobs:
+  run:    
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      max-parallel: 5
+      matrix:
+        operating-system: [windows-latest, ubuntu-latest, macOS-latest]
+        php-versions: ['7.2', '7.3']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+    - name: Install PHP
+      uses: shivammathur/setup-php@develop
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extension-csv: pdo_sqlite
+    - name: Testing
+      run: php -v && composer -V
+    - name setup symfony
+      run: composer create-project symfony/symfony-demo my_project && cd my_project/bin
+    - name: Test on windows
+      if: matrix.operating-system == 'windows-latest'
+      run: .\phpunit
+    - name: Test on linux and mac
+      if: matrix.operating-system != 'windows-latest'
+      run: ./phpunit      
+    
