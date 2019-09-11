@@ -22,9 +22,9 @@ jobs:
     - name: Setup symfony
       run: composer create-project symfony/symfony-demo my_project && cd my_project
     - name: Test on windows
-      if: matrix.operating-system == "windows-latest"
+      if: matrix.operating-system == 'windows-latest'
       run: php .\bin\phpunit
     - name: Test on macos and linux
-      if: matrix.operating-system != "windows-latest"
+      if: matrix.operating-system != 'windows-latest'
       run: ./bin/phpunit      
     
