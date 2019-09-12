@@ -34,9 +34,13 @@ export PKG_CONFIG_PATH="/usr/local/opt/krb5/lib/pkgconfig:/usr/local/opt/icu4c/l
 cd ~
 curl -L -O https://github.com/phpbrew/phpbrew/raw/master/phpbrew
 chmod +x ./phpbrew
-./phpbrew init
-./phpbrew install -j 10 7.4.0RC1 +default +bz2="$(brew --prefix bzip2)" +zlib="$(brew --prefix zlib)" -openssl --  --with-libxml
-./phpbrew switch php-7.4.0RC1
+sudo mv phpbrew /usr/local/bin/phpbrew
+sudo mkdir -p /opt/phpbrew
+phpbrew init --root=/opt/phpbrew
+echo "[[ -e ~/.phpbrew/bashrc ]] && source ~/.phpbrew/bashrc" >> ~/.bashrc
+source ~/.bashrc
+phpbrew install -j 10 7.4.0RC1 +default +bz2="$(brew --prefix bzip2)" +zlib="$(brew --prefix zlib)" -openssl --  --with-libxml
+phpbrew switch php-7.4.0RC1
 which php
 php -v
 brew install composer
