@@ -38,7 +38,7 @@ cd ~
 curl -L -O https://github.com/phpbrew/phpbrew/raw/master/phpbrew
 chmod +x ./phpbrew
 ./phpbrew init
-./phpbrew install 7.4.0RC1 +bz2="$(brew --prefix bzip2)" +zlib="$(brew --prefix zlib)" +openssl="$(brew --prefix openssl)" --  --with-libxml --with-openssl="$(brew --prefix openssl)"
+./phpbrew install 7.4.0RC1 +default +bz2="$(brew --prefix bzip2)" +zlib="$(brew --prefix zlib)" -openssl --  --with-libxml
 which php
 php -v
 brew install composer
