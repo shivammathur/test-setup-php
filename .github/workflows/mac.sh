@@ -1,6 +1,3 @@
-sudo rm -rf /Library/Developer/CommandLineTools
-sudo xcode-select --install
-/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 brew install autoconf automake pcre libtool libpng webp jpeg oniguruma freetype libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt zlib bzip2 enchant
 brew link --force gettext
 brew link --force bison
