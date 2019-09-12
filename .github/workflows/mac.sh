@@ -39,9 +39,10 @@ sudo mkdir -p /opt/phpbrew
 phpbrew init --root=/opt/phpbrew
 echo "[[ -e ~/.phpbrew/bashrc ]] && source ~/.phpbrew/bashrc" >> ~/.bashrc
 source ~/.bashrc
-phpbrew install -j 10 7.4.0RC1 +default +bz2="$(brew --prefix bzip2)" +zlib="$(brew --prefix zlib)" -openssl --  --with-libxml
+phpbrew install -j 20 7.4.0RC1 +default +bz2="$(brew --prefix bzip2)" +zlib="$(brew --prefix zlib)" -openssl --  --with-libxml
 phpbrew switch php-7.4.0RC1
 which php
 php -v
 brew install composer
 composer -V
+php -m
