@@ -1,6 +1,5 @@
-old=$(php-config --extension-dir)
 brew fetch autoconf& brew fetch automake& brew fetch pcre& brew fetch libtool& brew fetch libpng& brew fetch webp& brew fetch jpeg& brew fetch oniguruma& brew fetch freetype& brew fetch libxml2& brew fetch pkg-config& brew fetch krb5& brew fetch openssl& brew fetch icu4c& brew fetch re2c& brew fetch bison& brew fetch libzip& brew fetch mcrypt& brew fetch zlib& brew fetch bzip2& brew fetch enchant
-brew install autoconf automake pcre libtool libpng webp jpeg oniguruma freetype libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt zlib bzip2 enchant
+brew install autoconf automake pcre libtool libpng webp jpeg oniguruma freetype libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt zlib bzip2 enchant >> /dev/null
 brew link --force gettext
 brew link --force bison
 brew link --force openssl
@@ -41,14 +40,10 @@ sudo mkdir -p /opt/phpbrew
 phpbrew init --root=/opt/phpbrew
 echo "[[ -e ~/.phpbrew/bashrc ]] && source ~/.phpbrew/bashrc" >> ~/.bashrc
 source ~/.bashrc
-phpbrew install -j $(nproc) 7.4.0RC1 +default +bz2="$(brew --prefix bzip2)" +zlib="$(brew --prefix zlib)" -openssl --  --with-libxml
+phpbrew install -j 10 7.4.0RC1 +default +bz2="$(brew --prefix bzip2)" +zlib="$(brew --prefix zlib)" -openssl --  --with-libxml
 phpbrew switch php-7.4.0RC1
 which php
 php -v
-new=$(php-config --extension-dir)
-ini=$(php-config --ini-path)
-cp $old/openssl.so $new/openssl.so
-echo "extension=openssl.so" << $ini/php.ini
 brew install composer
 composer -V
 php -m
