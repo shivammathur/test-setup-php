@@ -1,3 +1,4 @@
+brew fetch autoconf& brew fetch automake& brew fetch pcre& brew fetch libtool& brew fetch libpng& brew fetch webp& brew fetch jpeg& brew fetch oniguruma& brew fetch freetype& brew fetch libxml2& brew fetch pkg-config& brew fetch krb5& brew fetch openssl& brew fetch icu4c& brew fetch re2c& brew fetch bison& brew fetch libzip& brew fetch mcrypt& brew fetch zlib& brew fetch bzip2& brew fetch enchant
 brew install autoconf automake pcre libtool libpng webp jpeg oniguruma freetype libxml2 pkg-config krb5 openssl icu4c re2c bison libzip mcrypt zlib bzip2 enchant
 brew link --force gettext
 brew link --force bison
