@@ -7,7 +7,13 @@ jobs:
       max-parallel: 6
       matrix:
         operating-system: [windows-latest, ubuntu-latest, macOS-latest]
-        php-versions: [php5.6, php7.0, php7.1, php7.2, php7.3, php7.4]
+        php-versions: 
+          - php5.6
+          - php7.0
+          - php7.1
+          - php7.2
+          - php7.3
+          - php7.4
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
