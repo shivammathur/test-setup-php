@@ -17,5 +17,5 @@ jobs:
         run: php{{ matrix.php-versions }} -v || echo "Not found"
       - name: Check PHP if windows
         if: matrix.operating-system == 'windows-latest'
-        run: try { php{{ matrix.php-versions }} -v } catch [Exception] { echo $_ }
+        run: php -v
         shell: powershell
