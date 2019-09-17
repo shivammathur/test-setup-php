@@ -1,0 +1,19 @@
+name: Versions workflow
+on: [push]
+jobs:
+  run:    
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      max-parallel: 6
+      matrix:
+        operating-system: [windows-latest, ubuntu-latest, macOS-latest]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    steps:
+    - name: Check PHP if not windows
+      if: matrix.operating-system != 'windows-latest'
+      run: php{{ matrix.php-versions }} -v || echo "Not found"
+    - name: Check PHP if windows
+      if: matrix.operating-system != 'windows-latest'
+      run: try { php{{ matrix.php-versions }} -v } catch [Exception] { echo $_ }
+      shell: powershell
