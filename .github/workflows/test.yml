@@ -6,8 +6,8 @@ jobs:
     strategy:
       max-parallel: 12
       matrix:
-        operating-system: [macOS-latest]
-        php-versions: ['7.4']
+        operating-system: [windows-latest, ubuntu-latest, macOS-latest]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -16,17 +16,7 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extension-csv: mbstring, xdebug, pcov
-        ini-values-csv: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata" #optional
     - name: Testing PHP version
       run: php -v
     - name: Testing Composer version
       run: composer -V
-    - name: Testing Extensions
-      run: php -m
-    - name: Testing ini values
-      run: |
-        php -r "echo \"post_max_size: \" . ini_get('post_max_size') . \"\n\";"
-        php -r "echo \"short_open_tag: \" . ini_get('short_open_tag') . \"\n\";"
-        php -r "echo \"date.timezone: \" . ini_get('date.timezone') . \"\n\";"
-
