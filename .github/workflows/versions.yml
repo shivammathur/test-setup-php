@@ -16,7 +16,7 @@ jobs:
         run: ls /usr/bin && ls /usr/local/bin
       - name: check php.ini file
         run: |
-          - php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/\s//g"
-          - cat $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/\s//g")
+          - php${{ matrix.php-versions}} --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/\s//g"
+          - cat $(php${{ matrix.php-versions}} --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/\s//g")
       - name: Check PHP
         run: php -v && php${{ matrix.php-versions }} -v || echo "Not found"
