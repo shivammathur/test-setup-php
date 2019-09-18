@@ -15,10 +15,10 @@ jobs:
       - name: list bin
         run: ls /usr/bin && ls /usr/local/bin
       - name: check php.ini file location
-        run: php${{ matrix.php-versions}} --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g"
+        run: php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g"
       - name: Fix permission
-        run: sudo chmod 777 $(php${{ matrix.php-versions}} --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+        run: sudo chmod 777 $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
       - name: add to php.ini
-        run: sudo echo "date.timezone=Asia/Kolkata" >> `php${{ matrix.php-versions}} --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g"`        
+        run: sudo echo "date.timezone=Asia/Kolkata" >> `php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g"`        
       - name: Check PHP ini
-        run: php${{ matrix.php-versions }} -v && php${{ matrix.php-versions }} -r "echo ini_get('date.timezone');"
+        run: php -v && php -r "echo ini_get('date.timezone');"
