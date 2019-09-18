@@ -17,6 +17,6 @@ jobs:
       - name: check php.ini file location
         run: php${{ matrix.php-versions}} --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/\s//g"
       - name: add to php.ini
-        run: sudo echo "date.timezone=Asia/Kolkata" >> `sudo php${{ matrix.php-versions}} --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||"`        
+        run: chmod a+x /usr/bin/php${{ matrix.php-versions}} && sudo echo "date.timezone=Asia/Kolkata" >> `php${{ matrix.php-versions}} --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||"`        
       - name: Check PHP ini
         run: php${{ matrix.php-versions }} -v && php${{ matrix.php-versions }} -r "echo ini_get('date.timezone');"
