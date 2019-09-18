@@ -6,8 +6,8 @@ jobs:
     strategy:
       max-parallel: 6
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-16.04, macOS-latest]
-        php-versions: ['7.1', '7.2', '7.3']
+        operating-system: [macOS-latest]
+        php-versions: ['7.1']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout Master
@@ -15,8 +15,10 @@ jobs:
       - name: list bin
         run: ls /usr/bin && ls /usr/local/bin
       - name: check php.ini file location
-        run: php${{ matrix.php-versions}} --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/\s//g"
+        run: php${{ matrix.php-versions}} --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g"
+      - name: Fix permission
+        run: sudo chmod 777 $(php${{ matrix.php-versions}} --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
       - name: add to php.ini
-        run: sudo chmod 777 $(php${{ matrix.php-versions}} --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||") && sudo echo "date.timezone=Asia/Kolkata" >> `php${{ matrix.php-versions}} --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||"`        
+        run: sudo echo "date.timezone=Asia/Kolkata" >> `php${{ matrix.php-versions}} --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g"`        
       - name: Check PHP ini
         run: php${{ matrix.php-versions }} -v && php${{ matrix.php-versions }} -r "echo ini_get('date.timezone');"
