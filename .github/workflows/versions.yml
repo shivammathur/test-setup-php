@@ -12,8 +12,8 @@ jobs:
     steps:
       - name: Checkout Master
         uses: actions/checkout@master
-      - name: list bin
-        run: ls /usr/bin && ls /usr/local/bin
+      - name: create config
+        run: sudo cp /etc/php.ini.default /etc/php.ini
       - name: check php.ini file location
         run: php --ini
       - name: Fix permission
