@@ -15,7 +15,7 @@ jobs:
       - name: list bin
         run: ls /usr/bin && ls /usr/local/bin
       - name: check php.ini file location
-        run: php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||"
+        run: php --ini
       - name: Fix permission
         run: sudo chmod 777 $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||")
       - name: add to php.ini
