@@ -8,6 +8,8 @@ jobs:
     - name: Checkout
       uses: actions/checkout@master
     - name: Install PHPManager
-      run: Install-Module -Name PhpManager -Force -Scope CurrentUser
+      run: |
+        Install-Module -Name PhpManager -Force -Scope CurrentUser
+        Get-Php
       shell: powershell
       
