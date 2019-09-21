@@ -1,0 +1,13 @@
+name: isNuget
+on: [push]
+jobs:
+  run:    
+    runs-on: windows-latest
+    name: Test Nuget
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+    - name: Install PHPManager
+      run: Install-Module -Name PhpManager -Force -Scope CurrentUser
+      shell: powershell
+      
