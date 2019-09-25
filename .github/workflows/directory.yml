@@ -1,0 +1,20 @@
+name: Test directory
+on: [push]
+jobs:
+  run:    
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      max-parallel: 12
+      matrix:
+        operating-system: [macOS-latest, linux-latest, windows-latest]
+    name: Test on ${{ matrix.operating-system }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+    - name: current directory
+      if: matrix.operating-system != 'windows-latest'
+      run: pwd
+    - name: current directory
+      if: matrix.operating-system == 'windows-latest'
+      run: (Get-Location).Path
+      shell: powershell
