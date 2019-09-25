@@ -1,4 +1,4 @@
-name: Test workflow #1.3.3
+name: Test workflow #1.3.4
 on: [push]
 jobs:
   run:    
@@ -23,7 +23,13 @@ jobs:
     - name: Testing Composer version
       run: composer -V
     - name: Testing Extensions
-      run: php -m
+      run: |
+        php -r "echo 'mbstring: '.extension_loaded('mbstring');"
+        php -r "echo 'xdebug: '.extension_loaded('xdebug');"
+        php -r "echo 'pcov: '.extension_loaded('pcov');"
+        php -r "echo 'pnctl: '.extension_loaded('pnctl');"
+        php -r "echo 'intl: '.extension_loaded('intl');"
+        php -r "echo 'bcmath: '.extension_loaded('bcmath');"        
     - name: Testing ini values
       run: |
         php -r "echo \"post_max_size: \" . ini_get('post_max_size') . \"\n\";"
