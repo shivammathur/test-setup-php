@@ -32,7 +32,7 @@ jobs:
         php -r "echo 'bcmath: '.extension_loaded('bcmath');"        
     - name: Testing ini values
       run: |
-        php --ini
+        cat $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g") | grep xdebug
         php -r "echo \"post_max_size: \" . ini_get('post_max_size') . \"\n\";"
         php -r "echo \"short_open_tag: \" . ini_get('short_open_tag') . \"\n\";"
         php -r "echo \"date.timezone: \" . ini_get('date.timezone') . \"\n\";"
