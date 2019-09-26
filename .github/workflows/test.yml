@@ -6,9 +6,8 @@ jobs:
     strategy:
       max-parallel: 12
       matrix:
-        operating-system: [macOS-latest, windows-latest, ubuntu-latest]
+        operating-system: [windows-latest]
         php-versions: ['7.3', '7.4']
-        coverage: ['xdebug', 'pcov']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -17,9 +16,8 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extension-csv: mbstring, xdebug, pcov, pnctl, intl, bcmath #optional
+        extension-csv: mbstring, bcmath #optional
         ini-values-csv: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata" #optional
-        coverage: ${{ matrix.coverage }}
     - name: Testing PHP version
       run: php -v
     - name: Testing Composer version
@@ -31,13 +29,3 @@ jobs:
         php -r "echo \"post_max_size: \" . ini_get('post_max_size') . \"\n\";"
         php -r "echo \"short_open_tag: \" . ini_get('short_open_tag') . \"\n\";"
         php -r "echo \"date.timezone: \" . ini_get('date.timezone') . \"\n\";"
-    - name: Testing Coverage if POV
-      if: matrix.coverage == 'pcov'
-      run: |        
-        php -r "echo \"pcov.enabled: \" . ini_get('pcov.enabled') . \"\n\";"
-        php -v
-    - name: Testing Coverage if Xdebug
-      if: matrix.coverage == 'xdebug'
-      run: |        
-        php -r "echo 'xdebug: '.extension_loaded('xdebug');"
-        php -v
