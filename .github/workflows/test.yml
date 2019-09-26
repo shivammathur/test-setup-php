@@ -6,7 +6,7 @@ jobs:
     strategy:
       max-parallel: 12
       matrix:
-        operating-system: [macOS-latest]
+        operating-system: [macOS-latest, windows-latest, ubuntu-latest]
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
         coverage: ['xdebug', 'pcov']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
@@ -33,7 +33,7 @@ jobs:
     - name: Testing Coverage if POV
       if: matrix.coverage == 'pcov'
       run: |        
-        php -r "echo \"pov.enabled: \" . ini_get('pov.enabled') . \"\n\";"
+        php -r "echo \"pov.enabled: \" . ini_get('pcov.enabled') . \"\n\";"
         php -v
     - name: Testing Coverage if Xdebug
       if: matrix.coverage == 'xdebug'
