@@ -6,7 +6,7 @@ jobs:
     strategy:
       max-parallel: 12
       matrix:
-        operating-system: [windows-latest]
+        operating-system: [windows-2019]
         php-versions: ['7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -16,8 +16,8 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extension-csv: mbstring, bcmath #optional
-        ini-values-csv: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata, extension=php_mbstring.dll" #optional
+        extension-csv: mbstring, dom
+        ini-values-csv: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata" #optional
     - name: Testing PHP version
       run: php -v
     - name: Testing Composer version
