@@ -1,4 +1,4 @@
-name: Test workflow #1.3.4
+name: Test workflow #1.3.5
 on: [push]
 jobs:
   run:    
@@ -7,7 +7,8 @@ jobs:
       max-parallel: 12
       matrix:
         operating-system: [macOS-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3']
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        coverage: ['xdebug', 'pcov']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -23,16 +24,19 @@ jobs:
     - name: Testing Composer version
       run: composer -V
     - name: Testing Extensions
-      run: |
-        php -r "echo 'mbstring: '.extension_loaded('mbstring');"
-        php -r "echo 'xdebug: '.extension_loaded('xdebug');"
-        php -r "echo 'pcov: '.extension_loaded('pcov');"
-        php -r "echo 'pnctl: '.extension_loaded('pnctl');"
-        php -r "echo 'intl: '.extension_loaded('intl');"
-        php -r "echo 'bcmath: '.extension_loaded('bcmath');"        
+      run: php -m      
     - name: Testing ini values
-      run: |
-        cat $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g") | grep xdebug
+      run: |        
         php -r "echo \"post_max_size: \" . ini_get('post_max_size') . \"\n\";"
         php -r "echo \"short_open_tag: \" . ini_get('short_open_tag') . \"\n\";"
         php -r "echo \"date.timezone: \" . ini_get('date.timezone') . \"\n\";"
+    - name: Testing Coverage if POV
+      if: matrix.coverage == 'pcov'
+      run: |        
+        php -r "echo \"pov.enabled: \" . ini_get('pov.enabled') . \"\n\";"
+        php -v
+    - name: Testing Coverage if Xdebug
+      if: matrix.coverage == 'xdebug'
+      run: |        
+        php -r "echo 'xdebug: '.extension_loaded('xdebug');"
+        php -v
