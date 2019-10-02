@@ -6,7 +6,7 @@ jobs:
     strategy:
       max-parallel: 12
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macOS-latest]        
+        operating-system: [ubuntu-latest]        
         php-versions: ['7.4']
         coverage: ['xdebug', 'pcov']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
@@ -20,7 +20,7 @@ jobs:
         extension-csv: mbstring, xdebug, pcov, pcntl, intl, bcmath #optional  
         coverage: ${{ matrix.coverage }}
     - name: Testing PHP version
-      run: php -v
+      run: php -v && php --ini && ls -la /etc
     - name: Testing Composer version
       run: composer -V
     - name: Testing Extensions
