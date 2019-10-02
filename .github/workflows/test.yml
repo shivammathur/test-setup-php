@@ -6,7 +6,7 @@ jobs:
     strategy:
       max-parallel: 12
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
+        operating-system: [macOS-latest]
         php-versions: ['7.4']
         coverage: ['xdebug', 'pcov']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
