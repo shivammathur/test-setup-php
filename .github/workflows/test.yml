@@ -42,9 +42,14 @@ jobs:
       run: |        
         php -r "echo 'xdebug: '.extension_loaded('xdebug');"
         php -v
-    - name: Test all extensions
-      if: matrix.operating-system != 'windows-latest'
+    - name: Test ini and extensions
+      if: matrix.operating-system == 'macOS-latest'
       run: |
         tail -10 $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
         ls $(php -i | grep "extension_dir => /opt" | sed -e "s|.*=> s*||")
+    - name: Test ini and extensions
+      if: matrix.operating-system == 'ubuntu-latest'
+      run: |
+        tail -10 $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+        ls $(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")        
       
