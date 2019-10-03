@@ -1,4 +1,4 @@
-name: Test workflow #1.3.7-7.4 rc3 -bz2
+name: Test workflow #1.3.7-7.4
 on: [push]
 jobs:
   run:    
@@ -6,9 +6,9 @@ jobs:
     strategy:
       max-parallel: 12
       matrix:
-        operating-system: [macOS-latest]        
+        operating-system: [ubuntu-latest, macOS-latest]        
         php-versions: ['7.4']
-        #coverage: ['xdebug', 'pcov']
+        coverage: ['xdebug', 'pcov']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
     - name: Checkout
