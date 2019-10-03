@@ -18,6 +18,7 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         extension-csv: mbstring, xdebug, pcov, pcntl, intl, bcmath #optional  
+        ini-values-csv: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata" #optional
         coverage: ${{ matrix.coverage }}
     - name: Testing PHP version
       run: php -v
@@ -45,5 +46,5 @@ jobs:
       if: matrix.operating-system != 'windows-latest'
       run: |
         tail -10 $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-        ls $(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
+        ls $(php -i | grep "extension_dir => /opt" | sed -e "s|.*=> s*||")
       
