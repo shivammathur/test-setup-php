@@ -7,7 +7,16 @@ jobs:
     steps:
     - name: Test Normal
       run: Write-Host "Test Message" -ForegroundColor green
-      shell: pwsh
+      shell: powershell
     - name: Test Mix
       run: Write-Host "\033[32;1mTest Message\033[0m"
-      shell: pwsh
+      shell: powershell
+    - name: Test Normal
+      run: echo "Test Message"
+      shell: powershell
+    - name: Test Mix
+      run: echo "\033[32;1mTest Message\033[0m"
+      shell: powershell
+    - name: Test Mix
+      run: echo -e "\033[32;1mTest Message\033[0m"
+      shell: powershell
