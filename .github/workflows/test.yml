@@ -7,8 +7,8 @@ jobs:
       max-parallel: 12
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macOS-latest]
-        php-versions: ['7.3', '7.4']
-        coverage: [xdebug, pcov, none]
+        php-versions: [7.3, 7.4]
+        coverage: [xdebug, pcov]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
     - name: Checkout
@@ -41,27 +41,5 @@ jobs:
       if: matrix.coverage == 'xdebug'
       run: |        
         php -r "echo 'xdebug: '.extension_loaded('xdebug');"
-        php -v
-    - name: Testing Coverage if none
-      if: matrix.coverage == 'none'
-      run: |        
-        php -r "echo 'xdebug: '.extension_loaded('xdebug');"
-        php -r "echo 'xdebug: '.extension_loaded('pcov');"
-        php -v        
-    - name: Test ini and extensions
-      if: matrix.operating-system == 'macOS-latest'
-      run: |
-        tail -10 $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-        ls $(php -i | grep "extension_dir => /opt" | sed -e "s|.*=> s*||")
-    - name: Test ini and extensions
-      if: matrix.operating-system == 'ubuntu-latest'
-      run: |
-        tail -10 $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-        ls $(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")      
-    - name: Test ini and extensions
-      if: matrix.operating-system == 'windows-latest'
-      run: |
-        Get-Content C:\tools\php\php.ini -Tail 10
-        DIR C:\tools\php\ext
-      shell: powershell         
+        php -v            
       
