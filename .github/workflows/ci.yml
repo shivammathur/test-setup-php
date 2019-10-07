@@ -1,0 +1,43 @@
+name: Testing Symfony website with MySQL
+on: [push, pull_request]
+jobs:
+  laravel:
+    name: Symfony (PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }})
+    runs-on: ubuntu-latest
+    env:
+      DB_PASSWORD: password
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: false
+          MYSQL_ROOT_PASSWORD: symfony
+          MYSQL_DATABASE: symfony
+        ports:
+          - 3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    strategy:
+      fail-fast: false
+      max-parallel: 15
+      matrix:
+        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
+        php-versions: [7.2, 7.3]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Setup PHP, with composer and extensions
+        uses: shivammathur/setup-php@master #https://github.com/shivammathur/setup-php
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extension-csv: mbstring, ctype, iconv #optional
+          coverage: xdebug #optional
+      - name: Install Composer dependencies
+        run: composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader
+      - name: Run Migration
+        run: |
+          php bin/console doctrine:schema:update --force
+          php bin/console doctrine:migrations:migrate
+        env:
+          DATABASE_URL: mysql://root:symfony@localhost:${{ job.services.mysql.ports['3306'] }}/symfony
+      - name: Run Tests
+        run: php bin/phpunit
