@@ -1,22 +1,22 @@
-name: Testing Symfony website with MySQL
+name: Testing Symfony website with PostgreSQL
 on: [push, pull_request]
 jobs:
   laravel:
     name: Symfony (PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }})
     runs-on: ubuntu-latest
     services:
-      mysql:
-        image: mysql:5.7
+      postgres:
+        image: postgres:10.8
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: false
-          MYSQL_ROOT_PASSWORD: symfony
-          MYSQL_DATABASE: symfony
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
         ports:
-          - 3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+          - 5432/tcp
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
     strategy:
       fail-fast: false
-      max-parallel: 15
+      max-parallel: 3
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macOS-latest]
         php-versions: [7.3]
@@ -36,6 +36,6 @@ jobs:
           php bin/console doctrine:schema:update --force || echo "No migrations"
           php bin/console doctrine:migrations:migrate || echo "No migrations"
         env:
-          DATABASE_URL: mysql://root:symfony@127.0.0.1:${{ job.services.mysql.ports['3306'] }}/symfony
+          DATABASE_URL: mysql://postgres:postgres@localhost:${{ job.services.postgres.ports[5432] }}/postgres
       - name: Run Tests
         run: php bin/phpunit
