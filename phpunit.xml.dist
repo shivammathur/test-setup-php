@@ -1,22 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="tests/_support/_bootstrap.php"
-        backupGlobals="false"
-        colors="true"
-        convertErrorsToExceptions="true"
-        convertNoticesToExceptions="true"
-        convertWarningsToExceptions="true"
-        stopOnError="false"
-        stopOnFailure="false"
-        stopOnIncomplete="false"
-        stopOnSkipped="false">
+<phpunit backupGlobals="false"
+         backupStaticAttributes="false"
+         bootstrap="tests/_support/_bootstrap.php"
+         colors="true"
+         convertErrorsToExceptions="true"
+         convertNoticesToExceptions="true"
+         convertWarningsToExceptions="true"
+         processIsolation="true"
+         stopOnError="true"
+         stopOnFailure="true"
+         verbose="true"
+>
     <testsuites>
-        <testsuite name="app">
+        <testsuite name="CountryCity Test Suite">
             <directory>./tests</directory>
         </testsuite>
     </testsuites>
-
-    <php>
-        <env name="app.baseURL" value="http://example.com"/>
-    </php>
-
+    <filter>
+        <whitelist>
+            <directory suffix=".php">./_support</directory>
+            <exclude>
+                <directory>./.github</directory>
+                <directory>./app</directory>
+                <directory>./public</directory>
+                <directory>./vendor</directory>
+                <directory>./writable</directory>
+                <directory>./tests</directory>
+            </exclude>
+        </whitelist>
+    </filter>
 </phpunit>
