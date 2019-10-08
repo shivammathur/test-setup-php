@@ -1,19 +1,19 @@
-name: Testing Symfony website with PostgreSQL
+name: Testing Symfony website with MySQL
 on: [push, pull_request]
 jobs:
   laravel:
     name: Symfony (PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }})
     runs-on: ubuntu-latest
     services:
-      postgres:
-        image: postgres:10.8
+      mysql:
+        image: mysql:5.7
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
+          MYSQL_ALLOW_EMPTY_PASSWORD: false
+          MYSQL_ROOT_PASSWORD: symfony
+          MYSQL_DATABASE: symfony
         ports:
-          - 5432/tcp
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
+          - 3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     strategy:
       fail-fast: false
       max-parallel: 3
@@ -27,15 +27,19 @@ jobs:
         uses: shivammathur/setup-php@master #https://github.com/shivammathur/setup-php
         with:
           php-version: ${{ matrix.php-versions }}
-          extension-csv: mbstring, ctype, iconv, pdo_mysql, pdo_pgsql #optional
+          extension-csv: mbstring, ctype, iconv, pdo_mysql #optional
           coverage: xdebug #optional
       - name: Install Composer dependencies
-        run: composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader
+        run: |
+          composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader
       - name: Run Migration
         run: |
+          composer require symfony/orm-pack
           php bin/console doctrine:schema:update --force || echo "No migrations"
           php bin/console doctrine:migrations:migrate || echo "No migrations"
         env:
-          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports[5432] }}/postgres?charset=UTF-8
+          DATABASE_URL: mysql://root:symfony@127.0.0.1:${{ job.services.mysql.ports['3306'] }}/symfony
       - name: Run Tests
-        run: php bin/phpunit
+        run: |
+          composer require phpunit
+          php bin/phpunit
