@@ -1,45 +1,16 @@
-name: Test workflow #1.4.1
+name: Test workflow
 on: [push]
 jobs:
   run:    
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      max-parallel: 15
-      matrix:
-        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3']
-        coverage: [xdebug, pcov, none]
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
+    runs-on: macOS-latest
+    name: test darwin
     steps:
     - name: Checkout
       uses: actions/checkout@master
-    - name: Install PHP
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extension-csv: mbstring, xdebug, pcov, pcntl, intl, bcmath #optional  
-        ini-values-csv: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata" #optional
-        coverage: ${{ matrix.coverage }}
-    - name: Testing PHP version
-      run: php -v
-    - name: Testing Composer version
-      run: composer -V
-    - name: Testing Extensions
+    - name: Check extensions on darwin
       run: |
-        php -m
-    - name: Testing ini values
-      run: |        
-        php -r "echo \"post_max_size: \" . ini_get('post_max_size') . \"\n\";"
-        php -r "echo \"short_open_tag: \" . ini_get('short_open_tag') . \"\n\";"
-        php -r "echo \"date.timezone: \" . ini_get('date.timezone') . \"\n\";"
-    - name: Testing Coverage if POV
-      if: matrix.coverage == 'pcov'
-      run: |        
-        php -r "echo \"pcov.enabled: \" . ini_get('pcov.enabled') . \"\n\";"
-        php -v
-    - name: Testing Coverage if Xdebug
-      if: matrix.coverage == 'xdebug'
-      run: |        
-        php -r "echo 'xdebug: '.extension_loaded('xdebug');"
-        php -v            
+        ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+        ext_dir=$(/usr/bin/php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
+        ls $ext_dir
+     
       
