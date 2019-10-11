@@ -1,4 +1,4 @@
-name: Test workflow #1.4.2 -versionfix
+name: Test workflow #1.4.2
 on: [push]
 jobs:
   run:    
@@ -8,7 +8,6 @@ jobs:
       matrix:
         operating-system: [ubuntu-16.04]
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3']
-        coverage: [pcov, none]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
     - name: Checkout
@@ -17,36 +16,11 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extension-csv: mbstring, xdebug, pcov, pcntl, intl, bcmath #optional  
-        ini-values-csv: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata" #optional
-        coverage: ${{ matrix.coverage }}
     - name: Testing PHP version
       run: php -v
     - name: Testing Composer version
       run: composer -V
     - name: Testing Extensions
       run: |
-        php -m
-    - name: Testing ini values
-      run: |        
-        php -r "echo \"post_max_size: \" . ini_get('post_max_size') . \"\n\";"
-        php -r "echo \"short_open_tag: \" . ini_get('short_open_tag') . \"\n\";"
-        php -r "echo \"date.timezone: \" . ini_get('date.timezone') . \"\n\";"
-    - name: Testing Coverage if POV
-      if: matrix.coverage == 'pcov'
-      run: |        
-        php -r "echo \"pcov.enabled: \" . ini_get('pcov.enabled') . \"\n\";"
-        php -v
-    - name: Testing Coverage if Xdebug
-      if: matrix.coverage == 'xdebug'
-      run: |        
-        php -r "echo 'xdebug: '.extension_loaded('xdebug');"
-        php -v         
-    - name: Testing Coverage if none
-      if: matrix.coverage == 'none'
-      run: |        
-        cat ${{ matrix.php-versions }}linux.sh
-        php -r "echo 'xdebug: '.extension_loaded('xdebug');"
-        php -r "echo 'xdebug: '.extension_loaded('pcov');"
-        php -v                
+        php -m   
       
