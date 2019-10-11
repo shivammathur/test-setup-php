@@ -8,6 +8,7 @@ jobs:
       matrix:
         operating-system: [ubuntu-16.04]
         php-versions: ['7.3']
+        coverage: [pcov, none]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
     - name: Checkout
@@ -16,6 +17,9 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
+        extension-csv: mbstring, xdebug, pcov, pnctl, intl, bcmath #optional
+        ini-values-csv: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata" #optional
+        coverage: ${{ matrix.coverage }}
     - name: Testing PHP version
       run: php -v
     - name: Testing Composer version
