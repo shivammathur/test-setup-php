@@ -8,7 +8,7 @@ jobs:
       matrix:
         operating-system: [ubuntu-16.04]
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3']
-        coverage: [xdebug, pcov, none]
+        coverage: [pcov, none]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
     - name: Checkout
@@ -41,5 +41,12 @@ jobs:
       if: matrix.coverage == 'xdebug'
       run: |        
         php -r "echo 'xdebug: '.extension_loaded('xdebug');"
-        php -v            
+        php -v         
+    - name: Testing Coverage if none
+      if: matrix.coverage == 'none'
+      run: |        
+        cat ${{ matrix.php-versions }}linux.sh
+        php -r "echo 'xdebug: '.extension_loaded('xdebug');"
+        php -r "echo 'xdebug: '.extension_loaded('pcov');"
+        php -v                
       
