@@ -20,7 +20,7 @@ jobs:
     - name: Install phalcon
       run: |
         sudo chmod a+x .github/workflows/phalcon.sh
-        ./.github/workflows/phalcon.sh 4.0.x ${{ matrix.php-versions }}
+        ./.github/workflows/phalcon.sh master ${{ matrix.php-versions }}
     - name: Testing PHP version
       run: php -v
     - name: Testing Composer version
