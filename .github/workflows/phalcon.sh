@@ -1,3 +1,4 @@
+echo "cores: "$(getconf _NPROCESSORS_ONLN)
 ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
 sudo DEBIAN_FRONTEND=noninteractive apt install php"$2"-dev php-pear -y
 for tool in php-config phpize; do
@@ -13,9 +14,9 @@ if [ "$1" = "master" ]; then
 else
   git clone --depth=1 -v https://github.com/phalcon/cphalcon.git -b "$1"
   (
-    cd cphalcon/build/php7/64bits && /usr/bin/phpize"$2"
+    cd cphalcon/build/php7/64bits && /usr/bin/phpize"$2"    
     sudo ./configure --silent --with-php-config=/usr/bin/php-config"$2" --enable-phalcon
-    sudo make -j6 && sudo make install
+    sudo make -j12 && sudo make install
     echo "extension=phalcon.so" >> "$ini_file"
   )
 fi
