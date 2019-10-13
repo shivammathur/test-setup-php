@@ -38,7 +38,7 @@ jobs:
           extension-csv: mbstring, psr, mysql
           coverage: xdebug #optional
       - name: Install phalcon
-        run: sudo DEBIAN_FRONTEND=noninteractive apt install php${{ matrix.php-versions }}-phalcon -y
+        run: curl -s https://packagecloud.io/install/repositories/phalcon/stable/script.deb.sh | sudo bash
       - name: Install Composer dependencies
         run: composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader
       - name: Prepare the application
