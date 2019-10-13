@@ -14,8 +14,8 @@ else
   git clone --depth=1 -v https://github.com/phalcon/cphalcon.git -b "$1"
   (
     cd cphalcon/build/php7/64bits && /usr/bin/phpize"$2"
-    ./configure --silent --with-php-config=/usr/bin/php-config"$2" --enable-phalcon
-    make -j6 && make install
+    sudo ./configure --silent --with-php-config=/usr/bin/php-config"$2" --enable-phalcon
+    sudo make -j6 && sudo make install
     echo "extension=phalcon.so" >> "$ini_file"
   )
 fi
