@@ -14,9 +14,14 @@ if [ "$1" = "master" ]; then
 else
   git clone --depth=1 -v https://github.com/phalcon/cphalcon.git -b "$1"
   (
+    echo "-------------phpize--------------"
     cd cphalcon/build/php7/64bits && /usr/bin/phpize"$2"    
+    echo "-------------configure--------------"
     sudo ./configure --silent --with-php-config=/usr/bin/php-config"$2" --enable-phalcon
-    sudo make -j12 && sudo make install
+    echo "-------------make--------------"
+    sudo make -j3
+    echo "-------------install--------------"
+    sudo make install
     echo "extension=phalcon.so" >> "$ini_file"
   )
 fi
