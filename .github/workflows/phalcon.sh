@@ -1,5 +1,5 @@
 ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-sudo DEBIAN_FRONTEND=noninteractive apt install php"$2"-dev php"$2"-pear -y
+sudo DEBIAN_FRONTEND=noninteractive apt install php"$2"-dev php-pear -y
 sudo pecl config-set php_ini "$ini_file"
 sudo pear config-set php_ini "$ini_file"
 sudo pecl install psr
