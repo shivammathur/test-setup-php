@@ -44,6 +44,7 @@ jobs:
         run: php -r "file_exists('.env') || copy('.env.example', '.env');"
       - name: Run Migration
         run: |
+          vendor/bin/phinx init
           vendor/bin/phinx migrate
           vendor/bin/phinx seed:run
         env:
