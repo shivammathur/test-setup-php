@@ -18,5 +18,5 @@ jobs:
       run: sh -c "echo -e '\u001b[31mHello\u001b[39m'"
       shell: powershell
     - name: Test with printf
-      run: printf "\u001b[31mHello\u001b[39m"
+      run: printf "\033[31;1mHello \033[0m"
       shell: powershell
