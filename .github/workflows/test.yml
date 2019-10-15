@@ -5,18 +5,15 @@ jobs:
     runs-on: windows-latest
     name: Test powershell
     steps:
-    - name: Test Normal
-      run: Write-Host "Test Message" -ForegroundColor green
+    - name: Test Write-Host
+      run: Write-Host "Hello" -ForegroundColor red
       shell: powershell
-    - name: Test Mix
-      run: Write-Host "\033[32;1mTest Message\033[0m"
+    - name: Test Write-Host with code codes 
+      run: Write-Host "\u001b[31mHello\u001b[39m"
       shell: powershell
-    - name: Test Normal
-      run: echo "Test Message"
+    - name: Test echo
+      run: echo "\u001b[31mHello\u001b[39m"
       shell: powershell
-    - name: Test Mix
-      run: echo "\033[32;1mTest Message\033[0m"
-      shell: powershell
-    - name: Test Mix
-      run: echo -e "\033[32;1mTest Message\033[0m"
+    - name: Test console.log in node
+      run: node -e "console.log('\u001b[31mHello\u001b[39m')"
       shell: powershell
