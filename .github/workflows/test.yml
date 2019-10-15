@@ -17,3 +17,6 @@ jobs:
     - name: Test with sh
       run: sh -c "echo -e '\u001b[31mHello\u001b[39m'"
       shell: powershell
+    - name: Test with printf
+      run: printf "\u001b[31mHello\u001b[39m"
+      shell: powershell
