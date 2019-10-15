@@ -8,12 +8,12 @@ jobs:
     - name: Test Write-Host
       run: Write-Host "Hello" -ForegroundColor red
       shell: powershell
-    - name: Test Write-Host with code codes 
-      run: Write-Host "\u001b[31mHello\u001b[39m"
-      shell: powershell
-    - name: Test echo
-      run: echo "\u001b[31mHello\u001b[39m"
-      shell: powershell
     - name: Test console.log in node
       run: node -e "console.log('\u001b[31mHello\u001b[39m')"
+      shell: powershell
+    - name: Test with python
+      run: python -c "print('\u001b[31mHello\u001b[39m')"
+      shell: powershell
+    - name: Test with sh
+      run: sh -c "echo -e '\u001b[31mHello\u001b[39m'"
       shell: powershell
