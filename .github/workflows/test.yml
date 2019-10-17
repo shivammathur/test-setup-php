@@ -1,20 +1,20 @@
-name: Test workflow #1.4.3r
+name: Test workflow #1.4.3
 on: [push]
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      max-parallel: 3
+      max-parallel: 18
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['7.4']
+        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
         coverage: [xdebug, pcov, none]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
     - name: Checkout
       uses: actions/checkout@master
     - name: Install PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
         extension-csv: mbstring, xdebug, pcov, pcntl, intl, bcmath #optional  
@@ -47,4 +47,4 @@ jobs:
       run: |        
         php -r "echo 'xdebug: '.extension_loaded('xdebug');"
         php -r "echo 'xdebug: '.extension_loaded('pcov');"
-        php -v          
+        php -v
