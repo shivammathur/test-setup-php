@@ -1,14 +1,14 @@
-name: Test workflow #1.3.4 on macOS with hirak/prestissimo
+name: Test workflow #1.4.3 PHP7.4 RC4
 on: [push]
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      max-parallel: 12
+      max-parallel: 3
       matrix:
         operating-system: [macOS-latest]
-        php-versions: ['7.3']
-        coverage: [none, pcov]
+        php-versions: ['7.4']
+        coverage: [none, xdebug, pcov]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
