@@ -1,4 +1,4 @@
-name: Test workflow #1.4.2
+name: Test workflow
 on: [push]
 jobs:
   run:    
@@ -8,23 +8,17 @@ jobs:
       matrix:
         operating-system: [windows-latest]
         php-versions: ['7.3']
-        coverage: [pcov, none]
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@master
+    - name: See tools
+      run: DIR C:\tools
+    - name: See PHP
+      run: DIR C:\tools\php
     - name: Install PHP
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extension-csv: mbstring, xdebug, pcov, pnctl, intl, bcmath #optional
-        ini-values-csv: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata" #optional
-        coverage: ${{ matrix.coverage }}
     - name: Testing PHP version
       run: php -v
-    - name: Testing Composer version
-      run: composer -V
-    - name: Testing Extensions
-      run: |
-        php -m   
-      
