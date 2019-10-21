@@ -7,7 +7,7 @@ jobs:
       fail-fast: false
       max-parallel: 2
       matrix:
-        operating-system: [windows-latest]
+        operating-system: [windows-latest, windows-2016]
         php-versions: ['5.6', '7.2']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
