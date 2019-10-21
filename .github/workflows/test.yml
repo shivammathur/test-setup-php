@@ -4,21 +4,24 @@ jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      max-parallel: 15
+      fail-fast: false
+      max-parallel: 2
       matrix:
         operating-system: [windows-latest]
-        php-versions: ['7.3']
+        php-versions: ['5.6', '7.2']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@master
-    - name: See tools
-      run: DIR C:\tools
-    - name: See PHP
-      run: DIR C:\tools\php
-    - name: Install PHP
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
+    - name: Install PHPManager
+      run: Install-Module -Name PhpManager -Force -Scope CurrentUser
+    - name: Install PHP on windows
+      run: |
+        Install-Php -Version $version -Architecture x86 -ThreadSafe $true -Path C:\tools\php${{ matrix.php-versions }} -TimeZone UTC -InitialPhpIni Production -Force
+        (Get-PhpSwitcher).targets
+        Initialize-PhpSwitcher -Alias C:\tools\php -Scope CurrentUser -Force
+        Add-PhpToSwitcher -Name ${{ matrix.php-versions }} -Path C:\tools\php${{ matrix.php-versions }} -Force
+        Switch-Php $version -Force
+        Enable-PhpExtension openssl
     - name: Testing PHP version
       run: php -v
