@@ -29,7 +29,7 @@ jobs:
         (Get-PhpSwitcher).targets
         Initialize-PhpSwitcher -Alias C:\tools\php -Scope CurrentUser -Force
         Add-PhpToSwitcher -Name ${{ matrix.php-versions }} -Path C:\tools\php${{ matrix.php-versions }} -Force
-        Switch-Php $version -Force
+        Switch-Php ${{ matrix.php-versions }} -Force
       shell: powershell
     - name: Enable openssl
       run: Enable-PhpExtension openssl
