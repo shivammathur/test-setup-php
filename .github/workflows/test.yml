@@ -15,13 +15,19 @@ jobs:
       uses: actions/checkout@master
     - name: Install PHPManager
       run: Install-Module -Name PhpManager -Force -Scope CurrentUser
+      shell: powershell
     - name: Install PHP on windows
+      run: Install-Php -Version $version -Architecture x86 -ThreadSafe $true -Path C:\tools\php${{ matrix.php-versions }} -TimeZone UTC -InitialPhpIni Production -Force
+      shell: powershell
+    - name: Switch PHP
       run: |
-        Install-Php -Version $version -Architecture x86 -ThreadSafe $true -Path C:\tools\php${{ matrix.php-versions }} -TimeZone UTC -InitialPhpIni Production -Force
         (Get-PhpSwitcher).targets
         Initialize-PhpSwitcher -Alias C:\tools\php -Scope CurrentUser -Force
         Add-PhpToSwitcher -Name ${{ matrix.php-versions }} -Path C:\tools\php${{ matrix.php-versions }} -Force
         Switch-Php $version -Force
-        Enable-PhpExtension openssl
+      shell: powershell
+    - name: Enable openssl
+      run: Enable-PhpExtension openssl
+      shell: powershell
     - name: Testing PHP version
       run: php -v
