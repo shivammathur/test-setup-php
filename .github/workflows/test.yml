@@ -18,10 +18,10 @@ jobs:
       shell: powershell
     - name: Install MSVC-Redist
       if: matrix.php-versions == '5.6'
-      run: choco install php --force --version=5.6.40 --params='"/ThreadSafe ""/InstallDir:C:\tools\php"""'
+      run: Install-Module -Name VcRedist -Force
     - name: Install PHP on windows
       if: matrix.php-versions != '5.6'
-      run: Install-Php -Version ${{ matrix.php-versions }} -Architecture x86 -ThreadSafe $true -Path C:\tools\php -TimeZone UTC -InitialPhpIni Production -Force
+      run: Install-Php -Version ${{ matrix.php-versions }} -Architecture x86 -ThreadSafe $true -InstallVC -Path C:\tools\php -TimeZone UTC -InitialPhpIni Production -Force
       shell: powershell
     - name: Enable openssl
       run: Enable-PhpExtension openssl
