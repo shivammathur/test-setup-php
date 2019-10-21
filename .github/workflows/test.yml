@@ -17,7 +17,7 @@ jobs:
       run: Install-Module -Name PhpManager -Force -Scope CurrentUser
       shell: powershell
     - name: Install MSVC-Redist
-      if: ${{ matrix.php-versions }} == '5.6'
+      if: matrix.php-versions == '5.6'
       run: choco upgrade msvisualcplusplus2012-redist -y
     - name: Install PHP on windows
       run: |
