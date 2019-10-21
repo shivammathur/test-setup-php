@@ -21,7 +21,6 @@ jobs:
       run: Install-Module -Name VcRedist -Force
       shell: powershell
     - name: Install PHP on windows
-      if: matrix.php-versions != '5.6'
       run: Install-Php -Version ${{ matrix.php-versions }} -Architecture x86 -ThreadSafe $true -InstallVC -Path C:\tools\php -TimeZone UTC -InitialPhpIni Production -Force
       shell: powershell
     - name: Enable openssl
