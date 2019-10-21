@@ -18,18 +18,12 @@ jobs:
       shell: powershell
     - name: Install MSVC-Redist
       if: matrix.php-versions == '5.6'
-      run: choco upgrade msvisualcplusplus2012-redist -y
+      run: choco install php --version=5.6.40 --package-parameters='"/ThreadSafe ""/InstallDir:C:\tools\php"""'
     - name: Install PHP on windows
+      if: matrix.php-versions != '5.6'
       run: |
         Uninstall-Php C:\tools\php
-        Install-Php -Version ${{ matrix.php-versions }} -Architecture x86 -ThreadSafe $true -Path C:\tools\php${{ matrix.php-versions }} -TimeZone UTC -InitialPhpIni Production -Force
-      shell: powershell
-    - name: Switch PHP
-      run: |
-        (Get-PhpSwitcher).targets
-        Initialize-PhpSwitcher -Alias C:\tools\php -Scope CurrentUser -Force
-        Add-PhpToSwitcher -Name ${{ matrix.php-versions }} -Path C:\tools\php${{ matrix.php-versions }} -Force
-        Switch-Php ${{ matrix.php-versions }} -Force
+        Install-Php -Version ${{ matrix.php-versions }} -Architecture x86 -ThreadSafe $true -Path C:\tools\php -TimeZone UTC -InitialPhpIni Production -Force
       shell: powershell
     - name: Enable openssl
       run: Enable-PhpExtension openssl
