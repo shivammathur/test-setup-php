@@ -22,7 +22,7 @@ jobs:
           Install-Module -Name VcRedist -Force
           New-Item -Path C:\Temp\VcRedist -ItemType Directory
           Get-VcList -Release "2012" | Save-VcRedist -Path C:\Temp\VcRedist
-          $VcList = Get-VcList
+          $VcList = Get-VcList -Release "2012"
           Install-VcRedist -Path C:\Temp\VcRedist -VcList $VcList -Silent
       shell: powershell
     - name: Install PHP on windows
