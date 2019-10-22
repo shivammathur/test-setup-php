@@ -1,7 +1,7 @@
 php-xz
 ======
 
-[![Build Status](https://travis-ci.org/codemasher/php-xz.svg?branch=master)](https://travis-ci.org/codemasher/php-xz)
+[![Build Status](https://travis-ci.org/codemasher/php-ext-xz.svg?branch=master)](https://travis-ci.org/codemasher/php-ext-xz)
 
 PHP Extension providing XZ (LZMA2) compression/decompression functions.
 
