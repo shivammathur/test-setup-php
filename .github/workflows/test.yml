@@ -20,7 +20,7 @@ jobs:
       run: Install-Php -Version ${{ matrix.php-versions }} -Architecture x64 -ThreadSafe $true -Path C:\tools\php -TimeZone UTC -InitialPhpIni Production -Force
       shell: powershell
     - name: Enable openssl
-      run: Enable-PhpExtension openssl
+      run: Install-PhpExtension openssl
       shell: powershell
     - name: Testing PHP version
       run: php -v
