@@ -16,17 +16,8 @@ jobs:
     - name: Install PHPManager
       run: Install-Module -Name PhpManager -Force -Scope CurrentUser
       shell: powershell
-    - name: Install MSVC-Redist
-      if: matrix.php-versions == '5.6'
-      run: |
-          Install-Module -Name VcRedist -Force
-          New-Item -Path C:\Temp\VcRedist -ItemType Directory
-          Get-VcList -Release "2012" | Save-VcRedist -Path C:\Temp\VcRedist
-          $VcList = Get-VcList -Release "2012"
-          Install-VcRedist -Path C:\Temp\VcRedist -VcList $VcList -Silent
-      shell: powershell
     - name: Install PHP on windows
-      run: Install-Php -Version ${{ matrix.php-versions }} -Architecture x86 -ThreadSafe $true -Path C:\tools\php -TimeZone UTC -InitialPhpIni Production -Force
+      run: Install-Php -Version ${{ matrix.php-versions }} -Architecture x64 -ThreadSafe $true -Path C:\tools\php -TimeZone UTC -InitialPhpIni Production -Force
       shell: powershell
     - name: Enable openssl
       run: Enable-PhpExtension openssl
