@@ -1,26 +1,22 @@
-name: Test workflow
+name: Test workflow #1.4.4, test fixed windows logs
 on: [push]
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      fail-fast: false
-      max-parallel: 2
+      max-parallel: 10
       matrix:
         operating-system: [windows-latest, windows-2016]
-        php-versions: ['5.6', '7.2']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
     - name: Checkout
       uses: actions/checkout@master
-    - name: Install PHPManager
-      run: Install-Module -Name PhpManager -Force -Scope CurrentUser
-      shell: powershell
-    - name: Install PHP on windows
-      run: Install-Php -Version ${{ matrix.php-versions }} -Architecture x64 -ThreadSafe $true -Path C:\tools\php -TimeZone UTC -InitialPhpIni Production -Force
-      shell: powershell
-    - name: Enable openssl
-      run: Install-PhpExtension openssl
-      shell: powershell
+    - name: Install PHP
+      uses: shivammathur/setup-php@windows
+      with:
+        php-version: ${{ matrix.php-versions }}
     - name: Testing PHP version
       run: php -v
+    - name: Testing Composer version
+      run: composer -V          
