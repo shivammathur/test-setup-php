@@ -12,3 +12,8 @@ jobs:
     - name: Checkout
       uses: actions/checkout@master
     - run: Install-Module -Name PhpManager -Force -Scope CurrentUser
+      shell: pwsh
+      continue-on-error: true
+    - run: Install-Module -Name PhpManager -Force -Scope CurrentUser
+      shell: powershell
+      continue-on-error: true
