@@ -13,7 +13,7 @@ jobs:
     - name: Test Write-Host
       run: Write-Host "Hello" -ForegroundColor red
     - name: Test console.log in node
-      run: node -e "console.log('\u001b[31mHello\u001b[39m')
+      run: node -e "console.log('\u001b[31mHello\u001b[39m')"
     - name: Test with python
       run: python -c "print('\u001b[31mHello\u001b[39m')"
     - name: Test with sh
