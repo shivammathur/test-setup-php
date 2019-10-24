@@ -1,22 +1,14 @@
-name: Test workflow #1.4.4, test if broken
+name: Test workflow
 on: [push]
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      max-parallel: 10
+      max-parallel: 2
       matrix:
         operating-system: [windows-latest, windows-2016]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
+    name: Test Install-Module
     steps:
     - name: Checkout
       uses: actions/checkout@master
-    - name: Install PHP
-      uses: shivammathur/setup-php@windows
-      with:
-        php-version: ${{ matrix.php-versions }}
-    - name: Testing PHP version
-      run: php -v
-    - name: Testing Composer version
-      run: composer -V          
+    - run: Install-Module -Name PhpManager -Force -Scope CurrentUser
