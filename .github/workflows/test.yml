@@ -1,22 +1,22 @@
 name: Test workflow
 on: [push]
-jobs:
+jobs:      
   run:    
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        os: [windows-latest, windows-2016]      
+    runs-on: ${{ matrix.os }}
     name: Test powershell
     steps:
     - name: Test Write-Host
       run: Write-Host "Hello" -ForegroundColor red
-      shell: powershell
     - name: Test console.log in node
-      run: node -e "console.log('\u001b[31mHello\u001b[39m')"
-      shell: powershell
+      run: node -e "console.log('\u001b[31mHello\u001b[39m')
     - name: Test with python
       run: python -c "print('\u001b[31mHello\u001b[39m')"
-      shell: powershell
     - name: Test with sh
       run: sh -c "echo -e '\u001b[31mHello\u001b[39m'"
-      shell: powershell
     - name: Test with printf
       run: printf "\033[31;1mHello \033[0m"
-      shell: powershell
