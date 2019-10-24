@@ -1,3 +1,4 @@
+# GitHub Action for Slim Framework
 name: Testing Slim Framework
 on: [push, pull_request]
 jobs:
@@ -6,7 +7,7 @@ jobs:
       max-parallel: 6
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macOS-latest]
-        php-versions: [7.4]
+        php-versions: ['7.2', '7.3']
     runs-on: ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -16,12 +17,8 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           extension-csv: mbstring, simplexml, dom
-          coverage: none #optional
+          coverage: xdebug #optional
       - name: Install dependencies
         run: composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader
-      - name: Test with phpunit in windows
-        if: matrix.operating-system == 'windows-latest'
-        run: .\vendor\bin\phpunit --coverage-text
       - name: Test with phpunit
-        if: matrix.operating-system != 'windows-latest'
         run: vendor/bin/phpunit --coverage-text
