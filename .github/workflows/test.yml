@@ -1,13 +1,13 @@
-name: Test workflow #1.4.5 debug
+name: Test workflow #1.4.5 test after cleanup
 on: [push]
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      max-parallel: 18
+      max-parallel: 9
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macOS-latest]
-        php-versions: ['7.3', '7.4']
+        php-versions: ['7.4']
         coverage: [xdebug, pcov, none]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
