@@ -1,26 +1,22 @@
-name: Test workflow #1.4.2
+name: Test phalcon extension #1.4.5
 on: [push]
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      max-parallel: 2
+      max-parallel: 3
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['7.2', '7.3']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
+        php-versions: ['7.2', '7.3', '7.4']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@master
     - name: Install PHP
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        extension-csv: mbstring
-    - name: Install phalcon
-      run: |
-        sudo chmod a+x .github/workflows/phalcon.sh
-        ./.github/workflows/phalcon.sh 4.0.x ${{ matrix.php-versions }}
+        extension-csv: mbstring, phalcon4
     - name: Testing PHP version
       run: php -v
     - name: Testing Composer version
