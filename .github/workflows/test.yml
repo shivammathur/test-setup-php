@@ -1,4 +1,4 @@
-name: Test phalcon extension #1.4.5 test2
+name: Test phalcon extension #1.4.5 test3
 on: [push]
 jobs:
   run:    
@@ -13,7 +13,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@master
     - name: Install PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
         extension-csv: mbstring, phalcon4
