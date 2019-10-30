@@ -32,5 +32,4 @@ jobs:
         run: echo "$MATRIX_CONTEXT"
       - name: Check OS
         run: |
-          node -e "console.log(process.env['RUNNER_OS'])"
-          echo "$RUNNER_CONTEXT.os"
+          node -e "console.log(process.env)"
