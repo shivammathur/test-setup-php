@@ -32,5 +32,5 @@ jobs:
         run: echo "$MATRIX_CONTEXT"
       - name: Check OS
         run: |
-          npm i --global platform
+          npm i platform
           node -e "var platform = require('platform'); console.log(platform.os.toString())"
