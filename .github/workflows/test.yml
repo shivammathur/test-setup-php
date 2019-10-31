@@ -1,4 +1,4 @@
-name: Test workflow
+name: Test workflow on windows
 on: [push]
 jobs:
   run:    
@@ -11,9 +11,11 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@master
-    - run: Install-Module -Name PhpManager -Force -Scope CurrentUser
-      shell: pwsh
-      continue-on-error: true
-    - run: Install-Module -Name PhpManager -Force -Scope CurrentUser
-      shell: powershell
-      continue-on-error: true
+    - name: Setup PHP 7.4
+      uses: shivammathur/setup-php
+      with:
+        php-version: '7.4'
+    - run: |
+        Install-PhpExtension xdebug
+        php -v
+        php -m
