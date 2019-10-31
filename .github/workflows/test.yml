@@ -16,6 +16,6 @@ jobs:
       with:
         php-version: '7.4'
     - run: |
-        Install-PhpExtension xdebug
+        Install-PhpExtension xdebug -Version 2.8
         php -v
         php -m
