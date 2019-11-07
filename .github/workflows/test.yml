@@ -27,7 +27,7 @@ jobs:
     - name: Install uopz
       run: |
         ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-        pecl config-set php_ini "$ini_file"
+        sudo pecl config-set php_ini "$ini_file"
         sudo pecl install uopz
     - name: Testing extensions
       run: php -m
