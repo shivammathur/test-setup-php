@@ -20,7 +20,7 @@ jobs:
     - name: Testing Composer version
       run: composer -V
     - name: Install uopz
-      run: sudo pecl install uopz || echo "failed"
+      run: sudo pecl install uopz || echo "failed to install"
     - name: Testing extensions
       run: php -m
 
