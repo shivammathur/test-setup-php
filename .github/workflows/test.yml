@@ -23,7 +23,7 @@ jobs:
       run: |
         wget https://github.com/pear/pearweb_phars/raw/master/install-pear-nozlib.phar
         sudo php install-pear-nozlib.phar
-        pear update-channels
+        sudo pear update-channels
     - name: Install uopz
       run: pecl install uopz
     - name: Testing extensions
