@@ -15,13 +15,12 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
+        extension-csv: uopz
         pecl: true
     - name: Testing PHP version
       run: php -v
     - name: Testing Composer version
       run: composer -V
-    - name: Install uopz
-      run: sudo pecl install uopz || echo "failed to install"
     - name: Testing extensions
       run: php -m
 
