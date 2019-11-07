@@ -22,7 +22,7 @@ jobs:
     - name: Install pecl
       run: |
         wget https://github.com/pear/pearweb_phars/raw/master/install-pear-nozlib.phar
-        php install-pear-nozlib.phar
+        sudo php install-pear-nozlib.phar
     - name: Install uopz
       run: pecl install uopz
     - name: Testing extensions
