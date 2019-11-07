@@ -1,7 +1,7 @@
-name: Test workflow #1.4.6
+name: Test workflow #1.4.6 test uopz
 on: [push]
 jobs:
-  run:    
+  run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
