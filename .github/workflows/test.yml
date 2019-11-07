@@ -21,11 +21,14 @@ jobs:
       run: composer -V
     - name: Install pecl
       run: |
-        wget https://github.com/pear/pearweb_phars/raw/master/install-pear-nozlib.phar
+        wget https://pear.php.net/install-pear-nozlib.phar
         sudo php install-pear-nozlib.phar
         sudo pear update-channels
     - name: Install uopz
-      run: pecl install uopz
+      run: |
+        ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+        pecl config-set php_ini "$ini_file"
+        sudo pecl install uopz
     - name: Testing extensions
       run: php -m
 
