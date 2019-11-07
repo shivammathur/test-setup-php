@@ -4,10 +4,9 @@ jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      max-parallel: 1
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3']
+        operating-system: [ubuntu-latest]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
     - name: Checkout
@@ -19,4 +18,12 @@ jobs:
     - name: Testing PHP version
       run: php -v
     - name: Testing Composer version
-      run: composer -V          
+      run: composer -V
+    - name: Install pecl
+      run: |
+        sudo apt-get install php-pear
+    - name: Install uopz
+      run: pecl install uopz
+    - name: Testing extensions
+      run: php -m
+
