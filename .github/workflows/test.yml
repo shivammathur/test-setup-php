@@ -21,7 +21,8 @@ jobs:
       run: composer -V
     - name: Install pecl
       run: |
-        sudo apt-get install php-pear
+        wget https://github.com/pear/pearweb_phars/raw/master/install-pear-nozlib.phar
+        php install-pear-nozlib.phar
     - name: Install uopz
       run: pecl install uopz
     - name: Testing extensions
