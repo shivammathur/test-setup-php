@@ -19,8 +19,12 @@ jobs:
       run: php -v
     - name: Testing Composer version
       run: composer -V
-    - name: Install uopz
-      run: sudo pecl install uopz || echo "failed to install"
-    - name: Testing extensions
-      run: php -m
-
+    - name: Install pecl and uopz
+      run: |
+        wget https://github.com/pear/pearweb_phars/raw/master/install-pear-nozlib.phar
+        sudo php install-pear-nozlib.phar || echo "failed to install pear"
+        sudo pear update-channels || echo "failed to update pear"
+        ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+        sudo pear config-set php_ini "$ini_file" || echo "failed update"
+        sudo pecl config-set php_ini "$ini_file" || echo "failed update"
+        sudo pecl install uopz || echo "failed"
