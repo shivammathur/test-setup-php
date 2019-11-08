@@ -4,7 +4,6 @@ jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      max-parallel: 3
       matrix:
         operating-system: [windows-latest]
         coverage: [xdebug, pcov, none]
