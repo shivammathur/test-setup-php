@@ -15,7 +15,7 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: '7.2'
-        extension-csv: mbstring, xdebug, pcov, intl, uopz #optional
+        extension-csv: mbstring, xdebug, pcov, intl, gd #optional
         ini-values-csv: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata" #optional
         coverage: ${{ matrix.coverage }}
         pecl: true
