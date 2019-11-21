@@ -1,22 +1,23 @@
-name: '5.6 - windows'
+name: 'Test workflow'
 on: [push]
 jobs:
-  run:    
+  run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [windows-latest]
+        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
         coverage: [xdebug, pcov, none]
-    name: PHP 5.6 Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
     - name: Checkout
       uses: actions/checkout@master
     - name: Install PHP
       uses: shivammathur/setup-php@develop
       with:
-        php-version: '5.6'
-        extension-csv: mbstring, xdebug, pcov, intl, gd #optional
-        ini-values-csv: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata" #optional
+        php-version: ${{ matrix.php-versions }}
+        extension-csv: mbstring, xdebug, pcov, intl, gd
+        ini-values-csv: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
         coverage: ${{ matrix.coverage }}
     - name: Test action side effects
       run: git status
