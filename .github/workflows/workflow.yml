@@ -13,7 +13,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@master
     - name: Install PHP
-      uses: shivammathur/setup-php@develop
+      uses: mlocati/setup-php@improve-win32
       with:
         php-version: ${{ matrix.php-versions }}
         extension-csv: mbstring, xdebug, pcov, intl, gd
