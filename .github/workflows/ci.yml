@@ -22,11 +22,13 @@ jobs:
         uses: shivammathur/setup-php@master #https://github.com/shivammathur/setup-php
         with:
           php-version: ${{ matrix.php-versions }}
-      - name: Check versions
-        run: node -v && yarn -V
+      - name: Check node versions
+        run: node -v
+      - name: Install JS dependencies
+        run: yarn -V
       - name: Install Composer dependencies
         run: composer install -o --prefer-dist --no-interaction
-      - name: Yarn
+      - name: Yarn test and build
         run: |
           yarn run test
           yarn run build
