@@ -3,7 +3,7 @@ name: Testing Sage
 on: [push, pull_request]
 jobs:
   sage:
-    name: Sage (PHP ${{ matrix.php-versions }} with Node v${{ matrix.node-versions }})
+    name: Sage (PHP ${{ matrix.php-versions }} & Node v${{ matrix.node-versions }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -24,6 +24,28 @@ jobs:
           extension-csv: mbstring
       - name: Check node versions
         run: node -v
+      - name: Get yarn cache
+        id: yarn-cache
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - uses: actions/cache@v1
+        with:
+          path: ${{ steps.yarn-cache.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: |
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
+      - uses: actions/cache@v1
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
       - name: Install JS dependencies
         run: yarn -V
       - name: Install Composer dependencies
