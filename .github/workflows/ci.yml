@@ -3,12 +3,11 @@ name: Testing Sage
 on: [push, pull_request]
 jobs:
   sage:
-    name: Sage (PHP ${{ matrix.php-versions }} with Node v${{ matrix.node-versions }} on ${{ matrix.operating-system }})
-    runs-on: ${{ matrix.operating-system }}
+    name: Sage (PHP ${{ matrix.php-versions }} with Node v${{ matrix.node-versions }})
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
         php-versions: ['7.1', '7.2', '7.3', '7.4']
         node-versions: ['8', '10']
     steps:
