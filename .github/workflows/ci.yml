@@ -3,7 +3,7 @@ name: Testing Sage
 on: [push, pull_request]
 jobs:
   sage:
-    name: Sage (PHP ${{ matrix.php-versions }} & Node v${{ matrix.node-versions }})
+    name: Sage (PHP ${{ matrix.php-versions }} & Node ${{ matrix.node-versions }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
