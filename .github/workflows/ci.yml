@@ -2,7 +2,7 @@
 name: Testing Sage
 on: [push, pull_request]
 jobs:
-  sage
+  sage:
     name: Sage (PHP ${{ matrix.php-versions }} with Node v${{ matrix.node-versions }} on ${{ matrix.operating-system }})
     runs-on: ${{ matrix.operating-system }}
     strategy:
