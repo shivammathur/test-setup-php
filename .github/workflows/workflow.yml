@@ -5,15 +5,15 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [windows-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', 'nightly']
         coverage: [xdebug, pcov, none]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
     - name: Checkout
       uses: actions/checkout@master
     - name: Install PHP
-      uses: mlocati/setup-php@improve-win32
+      uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
         extension-csv: mbstring, xdebug, pcov, intl, gd
