@@ -1,0 +1,14 @@
+<phpunit
+    bootstrap="vendor/autoload.php"
+    colors="true"
+    beStrictAboutChangesToGlobalState="true"
+    beStrictAboutOutputDuringTests="true"
+    beStrictAboutTestsThatDoNotTestAnything="true"
+    convertErrorsToExceptions="true"
+>
+    <testsuites>
+        <testsuite name="main">
+            <directory>test</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

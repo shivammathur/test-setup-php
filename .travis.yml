@@ -1,0 +1,10 @@
+language: php
+matrix:
+  include:
+    - php: 7.1
+    - php: 7.2
+    - php: 7.3
+    - php: 7.4snapshot
+before_install: phpenv config-rm xdebug.ini || true
+install: composer install
+script: phpdbg -qrr vendor/bin/phpunit
