@@ -6,6 +6,7 @@ class ReproTest extends TestCase
 {
     public function testDebugMagicMethod()
     {
+    	var_dump(new ClassA());
         ob_start();
         var_dump(new ClassA());
 

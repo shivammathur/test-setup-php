@@ -4,23 +4,26 @@ on:
   pull_request:
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         php: ['7.1', '7.2', '7.3', '7.4']
-    name: PHP ${{ matrix.php }}
+        os: [ubuntu-latest, ubuntu-16.04]
+    name: PHP ${{ matrix.php }} on ${{ matrix.os }}
     steps:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Set up PHP
-      uses: shivammathur/setup-php@master
+      uses: shivammathur/setup-php@develop      
       with:
         php-version: ${{ matrix.php }}
         extension-csv: dom, mbstring
-        coverage: none
+        coverage: none      
     - name: Check PHP version
       run: php -v
+    - name: Check extensions
+      run: php -m      
     - name: Install dependencies
       run: composer install
     - name: Run tests
