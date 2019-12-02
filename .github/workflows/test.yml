@@ -15,10 +15,9 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extension-csv: mbstring, xml, ctype, iconv, pdo, pdo_mysql, pdo_pgsql, pdo_sqlite3, pgsql, phar, fileinfo, sqlite3
-        ini-values-csv: post_max_size=256M, short_open_tag=On #optional
-        coverage: xdebug #optional
-    - name: Check Composer Version
-      run: composer -V
+        extension-csv: mbstring, redis
     - name: Check PHP Extensions
-      run: php -m
+      run: |
+        php -m
+        php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
+        php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
