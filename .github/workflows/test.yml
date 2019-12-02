@@ -18,7 +18,7 @@ jobs:
         php-version: ${{ matrix.php-versions }}
         extension-csv: mbstring
     - name: Install redis
-      run: apt-get install php-redis
+      run: sudo DEBIAN_FRONTEND=noninteractive apt-get install -y php-redis
     - name: Check PHP Extensions
       run: |
         php -m
