@@ -4,10 +4,10 @@ jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:    
+      fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['7.4']
-        #php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -15,10 +15,10 @@ jobs:
     - name: update ppa
       run: sudo apt-get update      
     - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extension-csv: mbstring, igbinary, redis
+        extension-csv: mbstring, redis
     - name: Check PHP Extensions
       run: |
         php -m
