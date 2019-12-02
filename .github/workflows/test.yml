@@ -11,9 +11,7 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
-    - name: update ppa
-      run: sudo apt-get update      
+      uses: actions/checkout@v1    
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
