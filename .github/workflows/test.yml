@@ -15,12 +15,12 @@ jobs:
     - name: update ppa
       run: sudo apt-get update      
     - name: Setup PHP
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        extension-csv: mbstring, redis
+        extension-csv: mbstring, igbinary, redis
     - name: Check PHP Extensions
       run: |
         php -m
         php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
-        #php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
+        php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
