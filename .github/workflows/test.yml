@@ -1,4 +1,4 @@
-name: Test workflow #1.4.6 Test ext-uopz
+name: Test workflow #1.4.6 Test ext-gearman
 on: [push]
 jobs:
   run:    
@@ -6,19 +6,17 @@ jobs:
     strategy:    
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        operating-system: [ubuntu-16.04]
+        php-versions: ['7.1', '7.2', '7.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v1    
-    - name: Setup PHP
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extension-csv: mbstring, redis
-    - name: Check PHP Extensions
+    - name: Update
+      run: sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
+    - name: Install
+      run: sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libgearman-dev php${{ matrix.php-versions }}-gearman
+    - name: Test extensions
       run: |
-        php -m
-        php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
-        php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
+        php${{ matrix.php-versions }} -m
+        php${{ matrix.php-versions }} -r "if(! extension_loaded('gearman')) {throw new Exception('gearman not found');}"
