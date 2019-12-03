@@ -6,4 +6,4 @@
 - [X] Checks composer setup.  
 - [X] Checks action side effects.  
 
-**Runs every 6 hrs**
+**Runs every 6 hrs with verbose branch**
