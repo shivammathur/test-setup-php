@@ -1,26 +1,19 @@
-name: Test workflow #1.4.3 PHP7.4 RC4
+name: Test workflow
 on: [push]
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      max-parallel: 3
       matrix:
         operating-system: [macOS-latest]
-        php-versions: ['7.4']
-        coverage: [none, xdebug, pcov]
+        php-versions: ['7.4']      
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
-      uses: actions/checkout@master
+      uses: actions/checkout@v1
     - name: Install PHP
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        extension-csv: mbstring, xdebug, pcov, pnctl, intl, bcmath #optional
-        ini-values-csv: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata" #optional
-        coverage: ${{ matrix.coverage }}
     - name: Testing PHP version
       run: php -v
-    - name: Testing Composer version
-      run: composer -V
