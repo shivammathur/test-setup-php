@@ -1,63 +1,39 @@
-name: 'v1-verbose workflow'
+name: 'Test 8.0'
 on:
   push:
-  schedule:
-    - cron: '0 */6 * * *'
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
-        coverage: [xdebug, pcov, none]
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
+        operating-system: [ubuntu-latest, ubuntu-16.04]
+        php-version: ['8.0']
+    name: Test PHP 8.0
     steps:
       - name: Checkout
         uses: actions/checkout@v1
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extension-csv: mbstring, xdebug, pcov, intl, gd
-          ini-values-csv: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
-          coverage: ${{ matrix.coverage }}
-      - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
-      - name: Testing PHP version
         run: |
-          php -v
-          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
-      - name: Testing Composer version
-        run: php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
-      - name: Testing Extensions
+          release=$(lsb_release -r -s)
+          tar_file=php_"$php_version"%2Bubuntu"$release".tar.xz
+          install_dir=~/php/"$php_version"
+          curl -o "$tar_file" -L https://bintray.com/shivammathur/php/download_file?file_path="$tar_file"
+          ls
+          sudo mkdir -p ~/php
+          sudo chmod -R 777 ~/php
+          sudo tar xf "$tar_file" -C ~/php
+          rm -rf "$tar_file"
+          sudo ln -sf "$install_dir"/bin/* /usr/bin/
+          sudo ln -sf "$install_dir"/etc/php.ini /etc/php.ini
+        env:
+          php_version: ${{ matrix.php-version }}
+      - name: Check versions
         run: |
-          php -m
-          php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
-          php -r "if('${{ matrix.coverage }}'=='xdebug' && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
-          php -r "if('${{ matrix.coverage }}'!='none' && phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
-          php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
-          php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}"
-      - name: Testing ini values
-        run: |
-          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
-          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
-          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
-      - name: Testing Coverage if PCOV
-        if: matrix.coverage == 'pcov'
-        run: |
-          php -r "if(phpversion()>=7.1 && ini_get('pcov.enabled')!=1) {throw new Exception('PCOV not enabled');}"
-          php -r "if(phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
-          php -v
-      - name: Testing Coverage if Xdebug
-        if: matrix.coverage == 'xdebug'
-        run: |
-          php -r "if(! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
-          php -v
-      - name: Testing disabling coverage
-        if: matrix.coverage == 'none'
-        run: |
-          php -r "if(extension_loaded('xdebug')) {throw new Exception('Xdebug found');}"
-          php -r "if(extension_loaded('Xdebug')) {throw new Exception('Xdebug found');}"
-          php -r "if(extension_loaded('pcov')) {throw new Exception('PCOV found');}"
-          php -v
+          php -v | head -n 1
+          php-cgi -v | head -n 1
+          phpdbg -V | head -n 1
+          composer -V
+          pecl -V
+          php-config --version
+          phpize -v
+
