@@ -14,6 +14,7 @@ jobs:
         uses: actions/checkout@v1
       - name: Install PHP
         run: |
+          sudo DEBIAN_FRONTEND=noninteractive apt-fast -y install libicu-dev libmcrypt-dev libreadline-dev
           release=$(lsb_release -r -s)
           tar_file=php_"$php_version"%2Bubuntu"$release".tar.xz
           install_dir=~/php/"$php_version"
