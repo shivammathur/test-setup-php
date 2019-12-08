@@ -14,12 +14,11 @@ jobs:
         uses: actions/checkout@v1
       - name: Install PHP
         run: |
-          sudo DEBIAN_FRONTEND=noninteractive apt-fast -y install libicu-dev libmcrypt-dev libreadline-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -y install libicu-dev
           release=$(lsb_release -r -s)
           tar_file=php_"$php_version"%2Bubuntu"$release".tar.xz
           install_dir=~/php/"$php_version"
           curl -o "$tar_file" -L https://bintray.com/shivammathur/php/download_file?file_path="$tar_file"
-          ls
           sudo mkdir -p ~/php
           sudo chmod -R 777 ~/php
           sudo tar xf "$tar_file" -C ~/php
@@ -37,4 +36,11 @@ jobs:
           pecl -V
           php-config --version
           phpize -v
+      - name: Benchmark
+        run: |
+          printf "Benchmark with PHP7.3\n"
+          sudo phpdismod -v 7.3 xdebug
+          sudo curl https://raw.githubusercontent.com/php/php-src/master/Zend/bench.php | php7.3
+          printf "Benchmark with PHP${{ matrix.php-version }}\n"
+          curl https://raw.githubusercontent.com/php/php-src/master/Zend/bench.php | php
 
