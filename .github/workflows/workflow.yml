@@ -22,6 +22,6 @@ jobs:
       - name: Testing PHP version
         run: php -v
       - name: Update Xdebug
-        run: sudo pecl upgrade -f xdebug
+        run: $(which pecl) install xdebug
       - name: Testing PHP version after update
         run: php -v
