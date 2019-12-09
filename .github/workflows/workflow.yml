@@ -6,8 +6,8 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest, ubuntu16.04]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        operating-system: [ubuntu-latest, ubuntu-16.04]
+        php-versions: ['7.1', '7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
       - name: Checkout
@@ -21,6 +21,6 @@ jobs:
       - name: Testing PHP version
         run: php -v
       - name: Update Xdebug
-        run: sudo pecl install xdebug
+        run: sudo pecl install xdebug-2.9.0
       - name: Testing PHP version after update
         run: php -v
