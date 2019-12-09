@@ -5,6 +5,7 @@ jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
+      fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, ubuntu-16.04]
         php-versions: ['7.1', '7.2', '7.3', '7.4']
@@ -22,5 +23,6 @@ jobs:
         run: php -v
       - name: Update Xdebug
         run: sudo pecl install xdebug-2.9.0
+        continue-on-error: true
       - name: Testing PHP version after update
         run: php -v
