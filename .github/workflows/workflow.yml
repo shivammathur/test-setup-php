@@ -21,6 +21,6 @@ jobs:
       - name: Testing PHP version
         run: php -v
       - name: Install Xdebug
-        run: pecl install xdebug-2.9.0
+        run: pecl install xdebug
       - name: Testing PHP version after update
         run: php -v
