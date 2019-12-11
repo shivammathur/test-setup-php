@@ -19,8 +19,8 @@ jobs:
         uses: shivammathur/setup-php@v1
         with:
           php-version: ${{ matrix.php-versions }}
-          extension-csv: mbstring, xdebug, pcov, intl, gd
-          ini-values-csv: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+          extensions: mbstring, xdebug, pcov, intl, gd
+          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
           coverage: ${{ matrix.coverage }}
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
