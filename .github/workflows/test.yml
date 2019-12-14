@@ -1,22 +1,23 @@
-name: Test workflow #1.4.6 Test ext-gearman
+name: Test workflow #1.6.1 test ext-gearman
 on: [push]
 jobs:
-  run:    
+  run:
     runs-on: ${{ matrix.operating-system }}
-    strategy:    
+    strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-16.04]
+        operating-system: [ubuntu-latest, ubuntu-16.04]
         php-versions: ['7.1', '7.2', '7.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v1    
-    - name: Update
-      run: sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
-    - name: Install
-      run: sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libgearman-dev php${{ matrix.php-versions }}-gearman
-    - name: Test extensions
-      run: |
-        php${{ matrix.php-versions }} -m
-        php${{ matrix.php-versions }} -r "if(! extension_loaded('gearman')) {throw new Exception('gearman not found');}"
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: gearman
+      - name: Test extensions
+        run: |
+          php -r "if(! extension_loaded('gearman')) {throw new Exception('gearman not found');}"
+          php -r "echo 'ext-gearman: '.phpversion('gearman');"
