@@ -6,17 +6,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-16.04]
+        operating-system: [ubuntu-latest, ubuntu-16.04, macos-latest]
         php-versions: ['7.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v1
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: xml
+          extensions: xml, zlib, lib
       - name: Test Version
         run: php -v
       - name: Test extensions
