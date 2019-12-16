@@ -6,21 +6,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-16.04, macos-latest]
+        operating-system: [ubuntu-latest, ubuntu-16.04]
         php-versions: ['7.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v1
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v1
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: xml, zlib, lib, libxml
+          extensions: xml
       - name: Test Version
         run: php -v
       - name: Test extensions
         run: |
           php -m
-          ls $(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
-          tail -n 20 $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+          php -r "if(! extension_loaded('xml')) {throw new Exception('xml not found');}"
