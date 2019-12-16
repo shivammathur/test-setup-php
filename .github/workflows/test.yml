@@ -7,7 +7,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, ubuntu-16.04]
-        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4']
+        php-versions: ['7.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -17,7 +17,10 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: xml
+      - name: Test Version
+        run: php -v
       - name: Test extensions
         run: |
-          php -r "if(! extension_loaded('xml')) {throw new Exception('xml not found');}"
-          php -r "echo 'ext-xml: '.phpversion('xml');"
+          php -m
+          ls $(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
+          tail -n 20 $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
