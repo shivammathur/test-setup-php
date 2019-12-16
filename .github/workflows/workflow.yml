@@ -19,7 +19,7 @@ jobs:
         uses: shivammathur/setup-php@v1
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, xdebug, pcov, intl, gd
+          extensions: mbstring, opcache
           ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
           coverage: ${{ matrix.coverage }}
       - name: Test action side effects
@@ -34,10 +34,7 @@ jobs:
         run: |
           php -m
           php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
-          php -r "if('${{ matrix.coverage }}'=='xdebug' && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
-          php -r "if('${{ matrix.coverage }}'!='none' && phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
-          php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
-          php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}"
+          php -r "if(! extension_loaded('Zend OPcache')) {throw new Exception('mbstring not found');}"
       - name: Testing ini values
         run: |
           php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
