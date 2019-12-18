@@ -9,4 +9,4 @@ jobs:
     name: Test powershell
     steps: 
     - name: Test powershell
-      uses: printf $ProgressPreference 
+      run: printf $ProgressPreference 
