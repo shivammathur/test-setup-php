@@ -6,7 +6,7 @@ jobs:
     strategy:    
       matrix:
         operating-system: [windows-latest, windows-2016]
-    name: Test powershell
+    name: Test PHP benchmark
     steps: 
-    - name: Test powershell
-      run: printf $ProgressPreference 
+    - name: Run benchmark
+      run: curl https://raw.githubusercontent.com/php/php-src/master/Zend/bench.php | php
