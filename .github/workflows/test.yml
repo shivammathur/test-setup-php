@@ -3,19 +3,10 @@ on: [push]
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
-    strategy:
-      max-parallel: 2
+    strategy:    
       matrix:
         operating-system: [windows-latest, windows-2016]
-    name: Test Install-Module
-    steps:
-    - name: Checkout
-      uses: actions/checkout@master
-    - name: Setup PHP 7.4
-      uses: shivammathur/setup-php@master
-      with:
-        php-version: '7.4'
-    - run: |
-        Install-PhpExtension xdebug -Version 2.8
-        php -v
-        php -m
+    name: Test powershell
+    steps: 
+    - name: Test powershell
+      uses: printf $ProgressPreference 
