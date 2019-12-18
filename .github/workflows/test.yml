@@ -9,4 +9,4 @@ jobs:
     name: Test PHP benchmark
     steps: 
     - name: Run benchmark
-      run: curl https://raw.githubusercontent.com/php/php-src/master/Zend/bench.php | php
+      run: curl -sL https://raw.githubusercontent.com/php/php-src/master/Zend/bench.php | php
