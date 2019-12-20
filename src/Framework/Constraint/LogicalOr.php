@@ -31,7 +31,7 @@ final class LogicalOr extends Constraint
     }
 
     /**
-     * @param mixed[] $constraints
+     * @param Constraint[] $constraints
      */
     public function setConstraints(array $constraints): void
     {
@@ -39,7 +39,9 @@ final class LogicalOr extends Constraint
 
         foreach ($constraints as $constraint) {
             if (!($constraint instanceof Constraint)) {
-                $constraint = new IsEqual($constraint);
+                $constraint = new IsEqual(
+                    $constraint
+                );
             }
 
             $this->constraints[] = $constraint;
@@ -59,7 +61,7 @@ final class LogicalOr extends Constraint
      * @throws ExpectationFailedException
      * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
      */
-    public function evaluate($other, string $description = '', bool $returnResult = false): ?bool
+    public function evaluate($other, string $description = '', bool $returnResult = false)
     {
         $success = false;
 
@@ -78,8 +80,6 @@ final class LogicalOr extends Constraint
         if (!$success) {
             $this->fail($other, $description);
         }
-
-        return null;
     }
 
     /**

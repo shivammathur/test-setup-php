@@ -1,5 +1,5 @@
 --TEST--
-phpunit --configuration tests/_files/phpunit-example-extension --no-extensions
+phpunit --configuration tests/_files/phpunit-example-extension
 --FILE--
 <?php declare(strict_types=1);
 $_SERVER['argv'][1] = '--configuration';

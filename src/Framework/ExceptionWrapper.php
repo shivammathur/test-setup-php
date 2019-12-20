@@ -83,8 +83,8 @@ final class ExceptionWrapper extends Exception
 
         $this->serializableTrace = $t->getTrace();
 
-        foreach (\array_keys($this->serializableTrace) as $key) {
-            unset($this->serializableTrace[$key]['args']);
+        foreach ($this->serializableTrace as $i => $call) {
+            unset($this->serializableTrace[$i]['args']);
         }
 
         if ($t->getPrevious()) {

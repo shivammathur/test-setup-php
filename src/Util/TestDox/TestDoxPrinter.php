@@ -72,7 +72,6 @@ class TestDoxPrinter extends ResultPrinter
 
     /**
      * @param null|resource|string $out
-     * @param int|string           $numberOfColumns
      *
      * @throws \PHPUnit\Framework\Exception
      */

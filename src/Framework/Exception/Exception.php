@@ -46,8 +46,8 @@ class Exception extends \RuntimeException implements \PHPUnit\Exception
 
         $this->serializableTrace = $this->getTrace();
 
-        foreach (\array_keys($this->serializableTrace) as $key) {
-            unset($this->serializableTrace[$key]['args']);
+        foreach ($this->serializableTrace as $i => $call) {
+            unset($this->serializableTrace[$i]['args']);
         }
     }
 

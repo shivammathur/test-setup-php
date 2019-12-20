@@ -333,7 +333,7 @@ final class TestCaseTest extends TestCase
     {
         $test = new \ThrowExceptionTestCase('test');
         $test->expectException(\RuntimeException::class);
-        $test->expectExceptionMessageMatches('/runtime .*? occurred/');
+        $test->expectExceptionMessageRegExp('/runtime .*? occurred/');
 
         $result = $test->run();
 
@@ -341,13 +341,13 @@ final class TestCaseTest extends TestCase
         $this->assertTrue($result->wasSuccessful());
     }
 
-    public function testexpectExceptionMessageMatchesAllowsAccessingExpectedExceptionRegExp(): void
+    public function testExpectExceptionMessageRegExpAllowsAccessingExpectedExceptionRegExp(): void
     {
         $messageRegExp = '/runtime .*? occurred/';
 
         $test = new \ThrowExceptionTestCase('test');
 
-        $test->expectExceptionMessageMatches($messageRegExp);
+        $test->expectExceptionMessageRegExp($messageRegExp);
 
         $this->assertSame($messageRegExp, $test->getExpectedExceptionMessageRegExp());
     }
@@ -356,7 +356,7 @@ final class TestCaseTest extends TestCase
     {
         $test = new \ThrowExceptionTestCase('test');
         $test->expectException(\RuntimeException::class);
-        $test->expectExceptionMessageMatches('/logic .*? occurred/');
+        $test->expectExceptionMessageRegExp('/logic .*? occurred/');
 
         $result = $test->run();
 
@@ -372,7 +372,7 @@ final class TestCaseTest extends TestCase
     {
         $test = new \ThrowExceptionTestCase('test');
         $test->expectException(\RuntimeException::class);
-        $test->expectExceptionMessageMatches('#runtime .*? occurred/');
+        $test->expectExceptionMessageRegExp('#runtime .*? occurred/');
 
         $test->run();
 
@@ -743,7 +743,7 @@ final class TestCaseTest extends TestCase
 
         $this->assertEquals(
             'PHP >= 99-dev is required.' . \PHP_EOL .
-            'PHPUnit >= 99-dev is required.' . \PHP_EOL .
+            'PHPUnit >= 9-dev is required.' . \PHP_EOL .
             'Operating system matching /DOESNOTEXIST/i is required.' . \PHP_EOL .
             'Function testFuncOne is required.' . \PHP_EOL .
             'Function testFunc2 is required.' . \PHP_EOL .

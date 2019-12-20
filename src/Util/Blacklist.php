@@ -188,7 +188,6 @@ final class Blacklist
 
                 try {
                     $directory = (new \ReflectionClass($className))->getFileName();
-                    // @codeCoverageIgnoreStart
                 } catch (\ReflectionException $e) {
                     throw new Exception(
                         $e->getMessage(),
@@ -196,7 +195,6 @@ final class Blacklist
                         $e
                     );
                 }
-                // @codeCoverageIgnoreEnd
 
                 for ($i = 0; $i < $parent; $i++) {
                     $directory = \dirname($directory);

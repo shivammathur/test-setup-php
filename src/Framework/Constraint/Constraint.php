@@ -21,7 +21,7 @@ use SebastianBergmann\Exporter\Exporter;
 abstract class Constraint implements Countable, SelfDescribing
 {
     /**
-     * @var ?Exporter
+     * @var Exporter
      */
     private $exporter;
 
@@ -38,7 +38,7 @@ abstract class Constraint implements Countable, SelfDescribing
      * @throws ExpectationFailedException
      * @throws \SebastianBergmann\RecursionContext\InvalidArgumentException
      */
-    public function evaluate($other, string $description = '', bool $returnResult = false): ?bool
+    public function evaluate($other, string $description = '', bool $returnResult = false)
     {
         $success = false;
 
@@ -53,8 +53,6 @@ abstract class Constraint implements Countable, SelfDescribing
         if (!$success) {
             $this->fail($other, $description);
         }
-
-        return null;
     }
 
     /**

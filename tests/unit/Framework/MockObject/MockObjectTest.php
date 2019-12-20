@@ -491,6 +491,15 @@ final class MockObjectTest extends TestCase
         $this->assertInstanceOf(Traversable::class, $mock);
     }
 
+    public function testMultipleInterfacesCanBeMockedInSingleObject(): void
+    {
+        $mock = $this->getMockBuilder([AnInterface::class, AnotherInterface::class])
+                     ->getMock();
+
+        $this->assertInstanceOf(AnInterface::class, $mock);
+        $this->assertInstanceOf(AnotherInterface::class, $mock);
+    }
+
     /**
      * @testdox getMockForTrait()
      */
@@ -1020,6 +1029,9 @@ final class MockObjectTest extends TestCase
             'Traversable'                   => ['Traversable'],
             '\Traversable'                  => ['\Traversable'],
             'TraversableMockTestInterface'  => ['TraversableMockTestInterface'],
+            "['Traversable']"               => [['Traversable']],
+            "['Iterator', 'Traversable']"   => [['Iterator', 'Traversable']],
+            "['\Iterator', '\Traversable']" => [['\Iterator', '\Traversable']],
         ];
     }
 

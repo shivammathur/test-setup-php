@@ -160,17 +160,6 @@ final class TestSuiteTest extends TestCase
         $this->assertEquals(1, $this->result->skippedCount());
     }
 
-    public function testItErrorsOnlyOnceOnHookException(): void
-    {
-        $suite = new TestSuite(\TestCaseWithExceptionInHook::class);
-
-        $suite->run($this->result);
-
-        $this->assertEquals(2, $this->result->count());
-        $this->assertEquals(1, $this->result->errorCount());
-        $this->assertEquals(1, $this->result->skippedCount());
-    }
-
     public function testTestDataProviderDependency(): void
     {
         $suite = new TestSuite(\DataProviderDependencyTest::class);

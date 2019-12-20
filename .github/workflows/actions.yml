@@ -19,13 +19,7 @@ jobs:
       - name: Test version and extensions
         run: |
           php -v
-          php -m
-      - name: Test version and extensions
-        run: sudo DEBIAN_FRONTEND=noninteractive apt-get remove -y php-xdebug
-      - name: Test version and extensions
-        run: |
-          php -v
-          php -m                    
+          php -m                   
       - name: Install dependencies
         run: composer install --no-progress --no-suggest --prefer-dist      
       - name: Test with phpunit

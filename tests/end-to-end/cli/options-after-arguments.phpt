@@ -1,5 +1,5 @@
 --TEST--
-phpunit ../../_files/BankAccountTest.php --colors
+phpunit BankAccountTest ../../_files/BankAccountTest.php --colors
 --FILE--
 <?php declare(strict_types=1);
 $arguments = [

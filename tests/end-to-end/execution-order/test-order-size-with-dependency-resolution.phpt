@@ -7,6 +7,7 @@ $arguments = [
     '--debug',
     '--verbose',
     '--order-by=depends,size',
+    'TestWithDifferentSizes',
     \realpath(__DIR__ . '/../../_files/TestWithDifferentSizes.php'),
 ];
 \array_splice($_SERVER['argv'], 1, count($arguments), $arguments);

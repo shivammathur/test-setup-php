@@ -19,7 +19,7 @@ final class ExceptionMessageRegExpTest extends TestCase
     public function testRegexMessage(): void
     {
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessageMatches('/^A polymorphic \w+ message/');
+        $this->expectExceptionMessageRegExp('/^A polymorphic \w+ message/');
 
         throw new \Exception('A polymorphic exception message');
     }
@@ -27,7 +27,7 @@ final class ExceptionMessageRegExpTest extends TestCase
     public function testRegexMessageExtreme(): void
     {
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessageMatches('/^a poly[a-z]+ [a-zA-Z0-9_]+ me(s){2}age$/i');
+        $this->expectExceptionMessageRegExp('/^a poly[a-z]+ [a-zA-Z0-9_]+ me(s){2}age$/i');
 
         throw new \Exception('A polymorphic exception message');
     }
@@ -41,7 +41,7 @@ final class ExceptionMessageRegExpTest extends TestCase
         \ini_set('xdebug.scream', '1');
 
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessageMatches('#Screaming preg_match#');
+        $this->expectExceptionMessageRegExp('#Screaming preg_match#');
 
         throw new \Exception('Screaming preg_match');
     }

@@ -9,8 +9,6 @@
  */
 namespace PHPUnit\Framework;
 
-use PHPUnit\Util\Filter;
-use PHPUnit\Util\InvalidDataSetException;
 use PHPUnit\Util\Test as TestUtil;
 
 /**
@@ -68,31 +66,28 @@ final class TestBuilder
                 );
             } catch (IncompleteTestError $e) {
                 $message = \sprintf(
-                    "Test for %s::%s marked incomplete by data provider\n%s",
+                    'Test for %s::%s marked incomplete by data provider',
                     $className,
-                    $methodName,
-                    $this->throwableToString($e)
+                    $methodName
                 );
-
-                $data = new IncompleteTestCase($className, $methodName, $message);
+                $message = $this->appendExceptionMessageIfAvailable($e, $message);
+                $data    = new IncompleteTestCase($className, $methodName, $message);
             } catch (SkippedTestError $e) {
                 $message = \sprintf(
-                    "Test for %s::%s skipped by data provider\n%s",
+                    'Test for %s::%s skipped by data provider',
                     $className,
-                    $methodName,
-                    $this->throwableToString($e)
+                    $methodName
                 );
-
-                $data = new SkippedTestCase($className, $methodName, $message);
+                $message = $this->appendExceptionMessageIfAvailable($e, $message);
+                $data    = new SkippedTestCase($className, $methodName, $message);
             } catch (\Throwable $t) {
                 $message = \sprintf(
-                    "The data provider specified for %s::%s is invalid.\n%s",
+                    'The data provider specified for %s::%s is invalid.',
                     $className,
-                    $methodName,
-                    $this->throwableToString($t)
+                    $methodName
                 );
-
-                $data = new WarningTestCase($message);
+                $message = $this->appendExceptionMessageIfAvailable($t, $message);
+                $data    = new WarningTestCase($message);
             }
 
             // Test method with @dataProvider.
@@ -123,6 +118,17 @@ final class TestBuilder
         }
 
         return $test;
+    }
+
+    private function appendExceptionMessageIfAvailable(\Throwable $e, string $message): string
+    {
+        $_message = $e->getMessage();
+
+        if (!empty($_message)) {
+            $message .= "\n" . $_message;
+        }
+
+        return $message;
     }
 
     /** @psalm-param class-string $className */
@@ -204,29 +210,5 @@ final class TestBuilder
                 $backupSettings['backupStaticAttributes']
             );
         }
-    }
-
-    private function throwableToString(\Throwable $t): string
-    {
-        $message = $t->getMessage();
-
-        if (empty(\trim($message))) {
-            $message = '<no message>';
-        }
-
-        if ($t instanceof InvalidDataSetException) {
-            return \sprintf(
-                "%s\n%s",
-                $message,
-                Filter::getFilteredStacktrace($t)
-            );
-        }
-
-        return \sprintf(
-            "%s: %s\n%s",
-            \get_class($t),
-            $message,
-            Filter::getFilteredStacktrace($t)
-        );
     }
 }

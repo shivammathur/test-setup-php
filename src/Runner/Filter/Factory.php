@@ -21,13 +21,11 @@ use ReflectionClass;
 final class Factory
 {
     /**
-     * @psalm-var array<int,array{0: \ReflectionClass, 1: array|string}>
+     * @var array
      */
     private $filters = [];
 
     /**
-     * @param array|string $args
-     *
      * @throws InvalidArgumentException
      */
     public function addFilter(ReflectionClass $filter, $args): void
@@ -50,8 +48,6 @@ final class Factory
             [$class, $args] = $filter;
             $iterator       = $class->newInstance($iterator, $args, $suite);
         }
-
-        \assert($iterator instanceof FilterIterator);
 
         return $iterator;
     }

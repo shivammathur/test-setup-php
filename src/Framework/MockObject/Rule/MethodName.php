@@ -59,6 +59,6 @@ final class MethodName
 
     public function matchesName(string $methodName): bool
     {
-        return (bool) $this->constraint->evaluate($methodName, '', true);
+        return $this->constraint->evaluate($methodName, '', true);
     }
 }

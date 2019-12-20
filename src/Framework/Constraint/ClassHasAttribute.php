@@ -10,6 +10,7 @@
 namespace PHPUnit\Framework\Constraint;
 
 use PHPUnit\Framework\Exception;
+use ReflectionClass;
 
 /**
  * Constraint that asserts that the class it is evaluated for has a given
@@ -49,8 +50,7 @@ class ClassHasAttribute extends Constraint
     protected function matches($other): bool
     {
         try {
-            return (new \ReflectionClass($other))->hasProperty($this->attributeName);
-            // @codeCoverageIgnoreStart
+            return (new ReflectionClass($other))->hasProperty($this->attributeName);
         } catch (\ReflectionException $e) {
             throw new Exception(
                 $e->getMessage(),
@@ -58,7 +58,6 @@ class ClassHasAttribute extends Constraint
                 $e
             );
         }
-        // @codeCoverageIgnoreEnd
     }
 
     /**
