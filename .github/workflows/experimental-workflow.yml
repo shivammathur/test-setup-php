@@ -1,5 +1,6 @@
 name: Experimental develop workflow
 on:
+  repository_dispatch:
   push:
 jobs:
   run:
@@ -13,7 +14,7 @@ jobs:
         coverage: [xdebug, pcov, none]
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@develop
         with:
           fetch-depth: 1
 

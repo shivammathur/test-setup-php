@@ -1,5 +1,6 @@
 name: 'Develop workflow'
 on:
+  repository_dispatch:
   push:
 jobs:
   run:
