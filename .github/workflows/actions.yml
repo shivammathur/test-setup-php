@@ -1,0 +1,30 @@
+name: Tests
+on: [push, pull_request]
+jobs:
+  build:
+    strategy:
+      matrix:
+        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
+        php-versions: [7.3, 7.4]
+    runs-on: ${{ matrix.operating-system }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Set up php and composer
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}        
+          extensions: mbstring, xdebug
+          coverage: none
+      - name: Test version and extensions
+        run: |
+          php -v
+          php -m
+      - name: Test version and extensions
+        run: |
+          php -v
+          php -m
+      - name: Install dependencies
+        run: composer install --no-progress --no-suggest --prefer-dist
+      - name: Test with phpunit
+        run: vendor/bin/phpunit --no-coverage
