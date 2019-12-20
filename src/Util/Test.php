@@ -280,20 +280,6 @@ final class Test
     }
 
     /**
-     * Returns the expected exception for a test.
-     *
-     * @return array|false
-     *
-     * @deprecated
-     * @codeCoverageIgnore
-     * @psalm-param class-string $className
-     */
-    public static function getExpectedException(string $className, string $methodName)
-    {
-        return Registry::getInstance()->forMethod($className, $methodName)->expectedException();
-    }
-
-    /**
      * Returns the provided data for a method.
      *
      * @throws Exception
@@ -649,6 +635,7 @@ final class Test
         if (\function_exists($element) && \strpos($element, '\\') !== false) {
             try {
                 $codeToCoverList[] = new \ReflectionFunction($element);
+                // @codeCoverageIgnoreStart
             } catch (\ReflectionException $e) {
                 throw new Exception(
                     $e->getMessage(),
@@ -656,6 +643,7 @@ final class Test
                     $e
                 );
             }
+            // @codeCoverageIgnoreEnd
         } elseif (\strpos($element, '::') !== false) {
             [$className, $methodName] = \explode('::', $element);
 
@@ -677,6 +665,7 @@ final class Test
 
                     try {
                         $methods = (new \ReflectionClass($className))->getMethods();
+                        // @codeCoverageIgnoreStart
                     } catch (\ReflectionException $e) {
                         throw new Exception(
                             $e->getMessage(),
@@ -684,6 +673,7 @@ final class Test
                             $e
                         );
                     }
+                    // @codeCoverageIgnoreEnd
 
                     $inverse    = isset($methodName[1]) && $methodName[1] === '!';
                     $visibility = 'isPublic';
@@ -711,6 +701,7 @@ final class Test
                             $codeToCoverList[] = new \ReflectionFunction(
                                 $methodName
                             );
+                            // @codeCoverageIgnoreStart
                         } catch (\ReflectionException $e) {
                             throw new Exception(
                                 $e->getMessage(),
@@ -718,6 +709,7 @@ final class Test
                                 $e
                             );
                         }
+                        // @codeCoverageIgnoreEnd
                     } else {
                         if (!((\class_exists($className) || \interface_exists($className) || \trait_exists($className)) &&
                             \method_exists($className, $methodName))) {
@@ -735,6 +727,7 @@ final class Test
                                 $className,
                                 $methodName
                             );
+                            // @codeCoverageIgnoreStart
                         } catch (\ReflectionException $e) {
                             throw new Exception(
                                 $e->getMessage(),
@@ -742,6 +735,7 @@ final class Test
                                 $e
                             );
                         }
+                        // @codeCoverageIgnoreEnd
                     }
                 }
             }
@@ -778,6 +772,7 @@ final class Test
 
                 try {
                     $codeToCoverList[] = new \ReflectionClass($className);
+                    // @codeCoverageIgnoreStart
                 } catch (\ReflectionException $e) {
                     throw new Exception(
                         $e->getMessage(),
@@ -785,6 +780,7 @@ final class Test
                         $e
                     );
                 }
+                // @codeCoverageIgnoreEnd
             }
         }
 

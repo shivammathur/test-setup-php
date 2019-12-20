@@ -14,6 +14,7 @@ use PHPUnit\Framework\InvalidDataProviderException;
 use PHPUnit\Framework\SkippedTestError;
 use PHPUnit\Framework\Warning;
 use PHPUnit\Util\Exception;
+use PHPUnit\Util\InvalidDataSetException;
 
 /**
  * This is an abstraction around a PHPUnit-specific docBlock,
@@ -40,8 +41,6 @@ final class DocBlock
     private const REGEX_REQUIRES = '/@requires\s+(?P<name>function|extension)\s+(?P<value>([^\s<>=!]+))\s*(?P<operator>[<>=!]{0,2})\s*(?P<version>[\d\.-]+[\d\.]?)?[ \t]*\r?$/m';
 
     private const REGEX_TEST_WITH = '/@testWith\s+/';
-
-    private const REGEX_EXPECTED_EXCEPTION = '(@expectedException\s+([:.\w\\\\x7f-\xff]+)(?:[\t ]+(\S*))?(?:[\t ]+(\S*))?\s*$)m';
 
     /** @var string */
     private $docComment;
@@ -238,61 +237,6 @@ final class DocBlock
     }
 
     /**
-     * @return array|bool
-     *
-     * @psalm-return false|array{
-     *   class: class-string,
-     *   code: int|string|null,
-     *   message: string,
-     *   message_regex: string
-     * }
-     */
-    public function expectedException()
-    {
-        $docComment = (string) \substr($this->docComment, 3, -2);
-
-        if (1 !== \preg_match(self::REGEX_EXPECTED_EXCEPTION, $docComment, $matches)) {
-            return false;
-        }
-
-        /** @psalm-var class-string $class */
-        $class         = $matches[1];
-        $annotations   = $this->symbolAnnotations();
-        $code          = null;
-        $message       = '';
-        $messageRegExp = '';
-
-        if (isset($matches[2])) {
-            $message = \trim($matches[2]);
-        } elseif (isset($annotations['expectedExceptionMessage'])) {
-            $message = $this->parseAnnotationContent($annotations['expectedExceptionMessage'][0]);
-        }
-
-        if (isset($annotations['expectedExceptionMessageRegExp'])) {
-            $messageRegExp = $this->parseAnnotationContent($annotations['expectedExceptionMessageRegExp'][0]);
-        }
-
-        if (isset($matches[3])) {
-            $code = $matches[3];
-        } elseif (isset($annotations['expectedExceptionCode'])) {
-            $code = $this->parseAnnotationContent($annotations['expectedExceptionCode'][0]);
-        }
-
-        if (\is_numeric($code)) {
-            $code = (int) $code;
-        } elseif (\is_string($code) && \defined($code)) {
-            $code = (int) \constant($code);
-        }
-
-        return [
-            'class'         => $class,
-            'code'          => $code,
-            'message'       => $message,
-            'message_regex' => $messageRegExp,
-        ];
-    }
-
-    /**
      * Returns the provided data for a method.
      *
      * @throws Exception
@@ -312,7 +256,7 @@ final class DocBlock
 
         foreach ($data as $key => $value) {
             if (!\is_array($value)) {
-                throw new Exception(
+                throw new InvalidDataSetException(
                     \sprintf(
                         'Data set %s is invalid.',
                         \is_int($key) ? '#' . $key : '"' . $key . '"'
@@ -433,12 +377,14 @@ final class DocBlock
                 $dataProviderMethod = $dataProviderClass->getMethod(
                     $dataProviderMethodName
                 );
+                // @codeCoverageIgnoreStart
             } catch (\ReflectionException $e) {
                 throw new Exception(
                     $e->getMessage(),
                     (int) $e->getCode(),
                     $e
                 );
+                // @codeCoverageIgnoreEnd
             }
 
             if ($dataProviderMethod->isStatic()) {

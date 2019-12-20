@@ -659,10 +659,12 @@ final class TestResult implements Countable
         Timer::start();
 
         try {
+            $invoker = new Invoker;
+
             if (!$test instanceof WarningTestCase &&
                 $this->enforceTimeLimit &&
                 ($this->defaultTimeLimit || $test->getSize() != \PHPUnit\Util\Test::UNKNOWN) &&
-                \extension_loaded('pcntl') && \class_exists(Invoker::class)) {
+                $invoker->canInvokeWithTimeout()) {
                 switch ($test->getSize()) {
                     case \PHPUnit\Util\Test::SMALL:
                         $_timeout = $this->timeoutForSmallTests;
@@ -685,7 +687,6 @@ final class TestResult implements Countable
                         break;
                 }
 
-                $invoker = new Invoker;
                 $invoker->invoke([$test, 'runBare'], [], $_timeout);
             } else {
                 $test->runBare();
@@ -859,6 +860,7 @@ final class TestResult implements Countable
             $test->getNumAssertions() == 0) {
             try {
                 $reflected = new \ReflectionClass($test);
+                // @codeCoverageIgnoreStart
             } catch (\ReflectionException $e) {
                 throw new Exception(
                     $e->getMessage(),
@@ -866,12 +868,14 @@ final class TestResult implements Countable
                     $e
                 );
             }
+            // @codeCoverageIgnoreEnd
 
             $name = $test->getName(false);
 
             if ($name && $reflected->hasMethod($name)) {
                 try {
                     $reflected = $reflected->getMethod($name);
+                    // @codeCoverageIgnoreStart
                 } catch (\ReflectionException $e) {
                     throw new Exception(
                         $e->getMessage(),
@@ -879,6 +883,7 @@ final class TestResult implements Countable
                         $e
                     );
                 }
+                // @codeCoverageIgnoreEnd
             }
 
             $this->addFailure(

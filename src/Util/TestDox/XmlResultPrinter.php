@@ -19,7 +19,6 @@ use PHPUnit\Framework\TestListener;
 use PHPUnit\Framework\TestSuite;
 use PHPUnit\Framework\Warning;
 use PHPUnit\Util\Printer;
-use ReflectionClass;
 
 /**
  * @internal This class is not covered by the backward compatibility promise for PHPUnit
@@ -222,7 +221,8 @@ final class XmlResultPrinter extends Printer implements TestListener
             }
 
             try {
-                $file = (new ReflectionClass($test))->getFileName();
+                $file = (new \ReflectionClass($test))->getFileName();
+                // @codeCoverageIgnoreStart
             } catch (\ReflectionException $e) {
                 throw new Exception(
                     $e->getMessage(),
@@ -230,6 +230,7 @@ final class XmlResultPrinter extends Printer implements TestListener
                     $e
                 );
             }
+            // @codeCoverageIgnoreEnd
 
             foreach ($steps as $step) {
                 if (isset($step['file']) && $step['file'] === $file) {

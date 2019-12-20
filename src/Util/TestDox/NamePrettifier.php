@@ -30,7 +30,7 @@ final class NamePrettifier
      */
     private $useColor;
 
-    public function __construct($useColor = false)
+    public function __construct(bool $useColor = false)
     {
         $this->useColor = $useColor;
     }
@@ -49,6 +49,7 @@ final class NamePrettifier
                 return $annotations['class']['testdox'][0];
             }
         } catch (UtilException $e) {
+            // ignore, determine className by parsing the provided name
         }
 
         $parts     = \explode('\\', $className);
@@ -62,6 +63,10 @@ final class NamePrettifier
             $className = \substr($className, \strlen('Tests'));
         } elseif (\strpos($className, 'Test') === 0) {
             $className = \substr($className, \strlen('Test'));
+        }
+
+        if (empty($className)) {
+            $className = 'UnnamedTests';
         }
 
         if (!empty($parts)) {
@@ -141,7 +146,7 @@ final class NamePrettifier
         if (\is_int($test->dataName())) {
             $data = Color::dim(' with data set ') . Color::colorize('fg-cyan', (string) $test->dataName());
         } else {
-            $data = Color::dim(' with ') . Color::colorize('fg-cyan', Color::visualizeWhitespace($test->dataName()));
+            $data = Color::dim(' with ') . Color::colorize('fg-cyan', Color::visualizeWhitespace((string) $test->dataName()));
         }
 
         return $data;
@@ -213,6 +218,7 @@ final class NamePrettifier
     {
         try {
             $reflector = new \ReflectionMethod(\get_class($test), $test->getName(false));
+            // @codeCoverageIgnoreStart
         } catch (\ReflectionException $e) {
             throw new UtilException(
                 $e->getMessage(),
@@ -220,6 +226,7 @@ final class NamePrettifier
                 $e
             );
         }
+        // @codeCoverageIgnoreEnd
 
         $providedData       = [];
         $providedDataValues = \array_values($test->getProvidedData());
@@ -231,6 +238,7 @@ final class NamePrettifier
             if (!\array_key_exists($i, $providedDataValues) && $parameter->isDefaultValueAvailable()) {
                 try {
                     $providedDataValues[$i] = $parameter->getDefaultValue();
+                    // @codeCoverageIgnoreStart
                 } catch (\ReflectionException $e) {
                     throw new UtilException(
                         $e->getMessage(),
@@ -238,6 +246,7 @@ final class NamePrettifier
                         $e
                     );
                 }
+                // @codeCoverageIgnoreEnd
             }
 
             $value = $providedDataValues[$i++] ?? null;
