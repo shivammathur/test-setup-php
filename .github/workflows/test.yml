@@ -1,4 +1,4 @@
-name: Test phalcon extension #1.6.2
+name: Test phalcon extension #1.6.2 debug
 on: [push]
 jobs:
   run:    
@@ -22,5 +22,8 @@ jobs:
     - name: Testing Composer version
       run: composer -V
     - name: Testing Extensions
-      run: php -m           
+      run: |
+        php -m
+        php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
+        php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
       
