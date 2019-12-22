@@ -7,7 +7,7 @@ jobs:
       max-parallel: 3
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['7.2', '7.3']
+        php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -16,7 +16,7 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extension-csv: mbstring, phalcon3
+        extension-csv: mbstring, phalcon4
     - name: Testing PHP version
       run: php -v
     - name: Testing Composer version
