@@ -4,7 +4,7 @@ jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      max-parallel: 3
+      fail-fast: false      
       matrix:
         operating-system: [windows-latest]
         php-versions: ['7.2', '7.3', '7.4']
@@ -16,7 +16,7 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extension-csv: mbstring, phalcon4
+        extensions: mbstring, phalcon4
     - name: Testing PHP version
       run: php -v
     - name: Testing Composer version
