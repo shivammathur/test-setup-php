@@ -1,4 +1,4 @@
-name: Test phalcon extension #v4hotfix
+name: Test phalcon extension 
 on: [push]
 jobs:
   run:    
@@ -6,8 +6,8 @@ jobs:
     strategy:
       max-parallel: 3
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['7.2', '7.3']
+        operating-system: [windows-latest]
+        php-versions: ['7.0', '7.1', '7.2', '7.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
