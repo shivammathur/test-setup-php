@@ -7,7 +7,7 @@ jobs:
       fail-fast: false      
       matrix:
         operating-system: [macos-latest]
-        php-versions: ['7.2', '7.3', '7.4']
+        php-versions: ['7.0', '7.1', '7.2', '7.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -16,7 +16,7 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: mbstring, phalcon4
+        extensions: mbstring, phalcon3
     - name: Testing PHP version
       run: php -v
     - name: Testing Composer version
