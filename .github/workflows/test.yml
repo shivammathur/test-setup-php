@@ -6,12 +6,10 @@ jobs:
     strategy:    
       matrix:
         operating-system: [windows-latest, windows-2016]
-    name: Test PHP benchmark
+    name: Test windows env
     steps: 
-    - name: Run benchmark
+    - name: Print env
       run: |
-        php -v
-        curl -o bench.php https://raw.githubusercontent.com/php/php-src/master/Zend/bench.php
-        cat bench.php
-        php bench.php
+        printf $env:runner_toolcache
+        printf $env:temp
         
