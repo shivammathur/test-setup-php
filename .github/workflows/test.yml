@@ -15,7 +15,7 @@ jobs:
         $php_dir = "C:\tools\php"
         $tool = "php-cs-fixer"
         Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $php_dir\$tool
-        Set-Content -Path $php_dir\$tool.bat -Value "php $tool.phar"
+        Set-Content -Path $php_dir\$tool.bat -Value "php $tool"
         php-cs-fixer 
     - name: Test Tool
       continue-on-error: true
