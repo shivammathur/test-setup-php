@@ -10,6 +10,6 @@ jobs:
     steps: 
     - name: Print env
       run: |
-        printf $env:runner_toolcache
-        printf $env:temp
+        echo $env:runner_toolcache
+        echo $env:temp
         
