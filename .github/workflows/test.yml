@@ -6,10 +6,19 @@ jobs:
     strategy:    
       matrix:
         operating-system: [windows-latest, windows-2016]
-    name: Test windows env
+    name: Test setup tool
     steps: 
-    - name: Print env
+    - name: Setup Tool
+      continue-on-error: true
       run: |
-        echo $env:RUNNER_TOOL_CACHE
-        echo $env:temp
+        $url = "http://cs.sensiolabs.org/download/php-cs-fixer-v2.phar"
+        $php_dir = "C:\tools\php"
+        $tool = "php-cs-fixer"
+        Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $php_dir\$tool
+        Set-Content -Path $php_dir\$tool.bat -Value "php $tool.phar"
+        php-cs-fixer 
+    - name: Test Tool
+      continue-on-error: true
+      run: php-cs-fixer
+      run: php-cs-fixer     
         
