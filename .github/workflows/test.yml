@@ -28,12 +28,12 @@ jobs:
           git stash
           php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Create PHP file on windows
-        if: matrix.operating-system == windows-latest
+        if: matrix.operating-system == 'windows-latest'
         run: |
           Set-Output -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
           echo "::set-output name=testfile::$RUNNER_TOOL_CACHE\test.php"
       - name: Create PHP file
-        if: matrix.operating-system != windows-latest
+        if: matrix.operating-system != 'windows-latest'
         run: |
           echo '<?php echo "test"; ?>' << $RUNNER_TOOL_CACHE/test.php
           echo "::set-output name=testfile::$RUNNER_TOOL_CACHE/test.php"
