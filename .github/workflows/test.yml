@@ -23,21 +23,7 @@ jobs:
           php-version: ${{ matrix.php-versions }}
           tools: php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, codeception, phpunit, deployer, prestissimo, pecl
       - name: Test action side effects
-        run: |
-          git status        
-          php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
-      - name: Create PHP file on windows
-        if: matrix.operating-system == 'windows-latest'
-        run: |
-          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
-          echo "::set-output name=testfile::${{ runner.tool_cache }}\test.php"
-          echo $testfile
-      - name: Create PHP file
-        if: matrix.operating-system != 'windows-latest'
-        run: |
-          echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
-          echo "::set-output name=testfile::${{ runner.tool_cache }}/test.php"
-          echo $testfile
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
         run: |      
           composer -V
@@ -45,8 +31,17 @@ jobs:
           phpcs --version
           phpcbf --version
           phpcpd -V
-          phpstan -V
-          phpmd $testfile text cleancode
+          phpstan -V          
           codeception -V
           phpunit --version
           deployer -V
+      - name: Test phpmd on windows
+        if: matrix.operating-system == 'windows-latest'      
+        run: |
+          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
+          phpmd $RUNNER_TOOL_CACHE\test.php text cleancode
+      - name: Test phpmd
+        if: matrix.operating-system != 'windows-latest'      
+        run: |
+          echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
+          phpmd $RUNNER_TOOL_CACHE/test.php text cleancode          
