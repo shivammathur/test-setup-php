@@ -54,4 +54,5 @@ jobs:
       - name: Run Tests
         run: |
           curl -o bin/phpunit -L https://raw.githubusercontent.com/symfony/symfony/master/phpunit
+          composer require phpunit
           php bin/phpunit --coverage-text
