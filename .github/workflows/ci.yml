@@ -27,7 +27,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, mysql
-          coverage: xdebug #optional
+          coverage: pcov #optional
       - name: Test extensions
         run: php -m
       - name: Get composer cache directory
@@ -52,4 +52,6 @@ jobs:
         env:
           DATABASE_URL: mysql://root:symfony@127.0.0.1:${{ job.services.mysql.ports['3306'] }}/symfony
       - name: Run Tests
-        run: php bin/phpunit --coverage-text
+        run: |
+          curl -o bin/phpunit -L https://raw.githubusercontent.com/symfony/symfony/master/phpunit
+          php bin/phpunit --coverage-text
