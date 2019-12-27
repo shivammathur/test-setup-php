@@ -1,36 +1,52 @@
-name: Test workflow
-on: [push]
-jobs:      
-  run:    
+name: Tools develop workflow
+on:
+  repository_dispatch:
+  push:
+jobs:
+  run:
+    name: Run
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
-      max-parallel: 3
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]      
-    runs-on: ${{ matrix.os }}
-    name: Test env
+        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
+        php-versions: ['7.4']
     steps:
-      - name: Dump job context
-        env:
-          JOB_CONTEXT: ${{ toJson(job) }}
-        run: echo "$JOB_CONTEXT"
-      - name: Dump steps context
-        env:
-          STEPS_CONTEXT: ${{ toJson(steps) }}
-        run: echo "$STEPS_CONTEXT"
-      - name: Dump runner context
-        env:
-          RUNNER_CONTEXT: ${{ toJson(runner) }}
-        run: echo "$RUNNER_CONTEXT"
-      - name: Dump strategy context
-        env:
-          STRATEGY_CONTEXT: ${{ toJson(strategy) }}
-        run: echo "$STRATEGY_CONTEXT"
-      - name: Dump matrix context
-        env:
-          MATRIX_CONTEXT: ${{ toJson(matrix) }}
-        run: echo "$MATRIX_CONTEXT"
-      - name: Check OS
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, codeception, phpunit, deployer, prestissimo, pecl
+      - name: Test action side effects
         run: |
-          npm i platform
-          node -e "var platform = require('platform'); console.log(platform.os.toString())"
+          git status
+          git stash
+          php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Create PHP file on windows
+        if: matrix.operating-system == windows-latest
+        run: |
+          Set-Output -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
+          echo "::set-output name=testfile::$RUNNER_TOOL_CACHE\test.php"
+      - name: Create PHP file
+        if: matrix.operating-system != windows-latest
+        run: |
+          echo '<?php echo "test"; ?>' << $RUNNER_TOOL_CACHE/test.php
+          echo "::set-output name=testfile::$RUNNER_TOOL_CACHE/test.php"
+      - name: Testing Tools
+        run: |
+          echo "<?php echo test; ?>" < $RUNNER_TOOL_CACHE/test.php
+          composer -V
+          php-cs-fixer -V
+          phpcs --version
+          phpcbf --version
+          phpcpd -V
+          phpstan -V
+          phpmd $testfile text cleancode
+          codeception -V
+          phpunit --version
+          deployer -V
