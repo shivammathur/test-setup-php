@@ -39,7 +39,7 @@ jobs:
           path: ${{ steps.composer-cache.outputs.dir }}
           # Use composer.json for key, if composer.lock is not committed.
           # key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
           restore-keys: ${{ runner.os }}-composer-
       - name: Install Composer dependencies
         run: |
@@ -54,5 +54,5 @@ jobs:
       - name: Run Tests
         run: |
           curl -o bin/phpunit -L https://raw.githubusercontent.com/symfony/symfony/master/phpunit
-          composer require phpunit
+          composer require symfony/phpunit-bridge
           php bin/phpunit --coverage-text
