@@ -24,22 +24,20 @@ jobs:
           tools: php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, codeception, phpunit, deployer, prestissimo, pecl
       - name: Test action side effects
         run: |
-          git status
-          git stash
+          git status        
           php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Create PHP file on windows
         if: matrix.operating-system == 'windows-latest'
         run: |
-          Set-Output -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
+          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
           echo "::set-output name=testfile::$RUNNER_TOOL_CACHE\test.php"
       - name: Create PHP file
         if: matrix.operating-system != 'windows-latest'
         run: |
-          echo '<?php echo "test"; ?>' << $RUNNER_TOOL_CACHE/test.php
+          echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
           echo "::set-output name=testfile::$RUNNER_TOOL_CACHE/test.php"
       - name: Testing Tools
-        run: |
-          echo "<?php echo test; ?>" < $RUNNER_TOOL_CACHE/test.php
+        run: |      
           composer -V
           php-cs-fixer -V
           phpcs --version
