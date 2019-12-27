@@ -30,12 +30,14 @@ jobs:
         if: matrix.operating-system == 'windows-latest'
         run: |
           Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
-          echo "::set-output name=testfile::$RUNNER_TOOL_CACHE\test.php"
+          echo "::set-output name=testfile::${{ runner.tool_cache }}\test.php"
+          echo $testfile
       - name: Create PHP file
         if: matrix.operating-system != 'windows-latest'
         run: |
           echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
-          echo "::set-output name=testfile::$RUNNER_TOOL_CACHE/test.php"
+          echo "::set-output name=testfile::${{ runner.tool_cache }}/test.php"
+          echo $testfile
       - name: Testing Tools
         run: |      
           composer -V
