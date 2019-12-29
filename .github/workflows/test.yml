@@ -14,10 +14,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@master
     - name: Install PHP
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: mbstring
+      run: brew install php@${{ matrix.php-versions }}
     - name: Install phalcon v4
       run: |
         brew tap phalcon/extension https://github.com/phalcon/homebrew-tap
