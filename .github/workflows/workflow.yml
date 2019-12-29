@@ -16,7 +16,7 @@ jobs:
           fetch-depth: 1
 
       - name: Setup PHP
-        run: curl -qsSL https://gist.githubusercontent.com/shivammathur/cd7ce1789ae99f1872bf30a6e8a3addb/raw/69ebb0416f026ffd74adb2e3c5fabc5e0a68435e/install_php | sh -s ${{ matrix.php-versions }}
+        run: curl -qsSL https://gist.githubusercontent.com/shivammathur/cd7ce1789ae99f1872bf30a6e8a3addb/raw/1b7c29d0ccdb3ea810d462d0dea4c32e443b28e4/install_php | sh -s ${{ matrix.php-versions }}
 
       - name: Testing PHP version
         run: |
