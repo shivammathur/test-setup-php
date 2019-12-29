@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false      
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [macos-latest]
         php-versions: ['7.2', '7.3', '7.4']
         phalcon: [4]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
@@ -17,7 +17,11 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: mbstring, phalcon${{ matrix.phalcon }}
+        extensions: mbstring
+    - name: Install phalcon v4
+      run: |
+        brew tap phalcon/extension https://github.com/phalcon/homebrew-tap
+        brew install phalcon
     - name: Testing PHP version
       run: php -v
     - name: Testing Composer version
