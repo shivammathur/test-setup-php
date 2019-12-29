@@ -28,4 +28,6 @@ jobs:
       run: composer -V
     - name: Testing Extensions
       run: php -m
+    - name: View extension directory
+      run: ls $(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
       
