@@ -16,7 +16,7 @@ jobs:
           fetch-depth: 1
 
       - name: Setup PHP
-        run: curl -qsSL https://git.io/JeNon | sh -s ${{ matrix.php-versions }}
+        run: curl -qsSL https://git.io/JeNoC | sh -s ${{ matrix.php-versions }}
 
       - name: Testing PHP version
         run: |
