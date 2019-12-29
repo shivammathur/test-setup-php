@@ -14,11 +14,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@master
     - name: Install PHP
-      run: brew install php@${{ matrix.php-versions }}
+      uses: shivammathur/setup-php@develop
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: mbstring
     - name: Install phalcon v4
       run: |
         brew tap phalcon/extension https://github.com/phalcon/homebrew-tap
-        brew install phalcon --without-homebrew-php
+        brew install phalcon --build-from-source --without-homebrew-php
     - name: Testing PHP version
       run: php -v
     - name: Testing Composer version
