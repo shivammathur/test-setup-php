@@ -21,7 +21,7 @@ jobs:
     - name: Install phalcon v4
       run: |
         brew tap phalcon/extension https://github.com/phalcon/homebrew-tap
-        brew install phalcon
+        brew install phalcon --without-homebrew-php
     - name: Testing PHP version
       run: php -v
     - name: Testing Composer version
