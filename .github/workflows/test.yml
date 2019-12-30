@@ -1,24 +1,18 @@
-name: Test workflow #1.6.3 Test redis
+name: OpenSSL workflow
 on: [push]
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
-    strategy:    
-      fail-fast: false
+    strategy:
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        operating-system: [macos-latest]
+    name: Test openssl@1.0
     steps:
     - name: Checkout
-      uses: actions/checkout@v1    
-    - name: Setup PHP
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: mbstring, redis
-    - name: Check PHP Extensions
+      uses: actions/checkout@v1
+    - name: Install openssl
       run: |
-        php -m
-        php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
-        php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
+        brew tap shivammathur/homebrew-openssl-deprecated
+        brew install openssl@1.0
+        sudo cp -rf /usr/local/opt/openssl@1.0/* /usr/local/opt/openssl
+        ls /usr/local/opt/openssl/lib
