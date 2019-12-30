@@ -17,17 +17,16 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: mbstring
     - name: Install phalcon v4
       run: |
-        brew tap phalcon/extension https://github.com/phalcon/homebrew-tap
-        brew install phalcon || true
+        brew tap shivammathur/homebrew-phalcon
+        brew install phalcon@${{ matrix.php-versions }}_${{ matrix.phalcon }}
     - name: Testing PHP version
       run: php -v
-    - name: Testing Composer version
-      run: composer -V
     - name: Testing Extensions
-      run: php -m
-    - name: View extension directory
-      run: ls $(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
-      
+      run: |
+        php -r "echo 'psr: ' . phpversion('psr').'\n';"
+        php -r "echo 'phalcon: ' . phpversion('phalcon').'\n';"        
+        php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
+        php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
+        php -r "if(phpversion('phalcon')[0]!='${{ matrix.phalcon }}') {throw new Exception('Wrong phalcon version Installed');}"
