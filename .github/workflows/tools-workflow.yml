@@ -36,9 +36,11 @@ jobs:
           phpunit --version
           psalm -v
           phinx -V
-          pecl -V
           deployer -V
           composer global show hirak/prestissimo
+      - name: Test pecl
+        if: matrix.operating-system != 'windows-latest'
+        run: pecl -V
       - name: Test phpmd on windows
         if: matrix.operating-system == 'windows-latest'
         run: |
