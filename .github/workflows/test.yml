@@ -25,8 +25,8 @@ jobs:
       run: php -v
     - name: Testing Extensions
       run: |
-        php -r "echo 'psr: ' . phpversion('psr').'\n';"
-        php -r "echo 'phalcon: ' . phpversion('phalcon').'\n';"        
+        php -r "echo 'psr: ' . phpversion('psr').\"\n\";"
+        php -r "echo 'phalcon: ' . phpversion('phalcon').\"\n\";"
         php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
         php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
         php -r "if(phpversion('phalcon')[0]!='${{ matrix.phalcon }}') {throw new Exception('Wrong phalcon version Installed');}"
