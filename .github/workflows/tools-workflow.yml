@@ -37,7 +37,9 @@ jobs:
           psalm -v
           phinx -V
           deployer -V
-          composer global show hirak/prestissimo
+      - name: Test prestissimo
+        run: composer global show hirak/prestissimo
+        continue-on-error: true
       - name: Test pecl
         if: matrix.operating-system != 'windows-latest'
         run: pecl -V
