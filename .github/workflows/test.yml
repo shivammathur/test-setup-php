@@ -25,4 +25,4 @@ jobs:
         php -r "echo 'phalcon: ' . phpversion('phalcon').\"\n\";"
         php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
         php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
-        php -r "if(phpversion('phalcon')[0]!='${{ matrix.phalcon }}') {throw new Exception('Wrong phalcon version Installed');}"
+        php -r "if(phpversion('phalcon')[0]!='3') {throw new Exception('Wrong phalcon version Installed');}"
