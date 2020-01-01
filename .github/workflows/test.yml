@@ -1,4 +1,4 @@
-name: Test workflow #1.6.3 Test redis
+name: Test workflow #1.7.0 Test ext-mongo
 on: [push]
 jobs:
   run:    
@@ -13,12 +13,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1    
     - name: Setup PHP
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: mbstring, redis
+        extensions: mbstring, mongo
     - name: Check PHP Extensions
       run: |
         php -m
         php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
-        php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
+        php -r "if(! extension_loaded('mongo')) {throw new Exception('mongo not found');}"
