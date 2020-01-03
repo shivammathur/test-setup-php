@@ -2,7 +2,7 @@
 name: Testing CakePHP
 on: [push, pull_request]
 jobs:
-  testsuite:
+  tests:
     strategy:
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macOS-latest]
@@ -63,4 +63,4 @@ jobs:
           php-version: '7.3'
           tools: phpstan
       - name: Static Analysis using PHPStan
-        run: vendor/bin/phpstan analyse --no-progress src/
+        run: phpstan analyse --no-progress src/
