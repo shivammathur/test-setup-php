@@ -72,6 +72,7 @@ jobs:
         uses: shivammathur/setup-php@v1
         with:
           php-version: '7.3'
+          extensions: mbstring, intl
           tools: phpstan
       - name: Get composer cache directory
         id: composer-cache
