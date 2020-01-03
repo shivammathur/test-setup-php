@@ -46,6 +46,9 @@ jobs:
         with:
           php-version: '7.3'
           extensions: mbstring, intl
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
       - name: Cache composer dependencies
         uses: actions/cache@v1
         with:
@@ -70,6 +73,9 @@ jobs:
         with:
           php-version: '7.3'
           tools: phpstan
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
       - name: Cache composer dependencies
         uses: actions/cache@v1
         with:
