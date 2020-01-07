@@ -54,7 +54,7 @@ jobs:
           echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
           phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
   versions:
-    name: latest
+    name: versions
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
@@ -103,8 +103,8 @@ jobs:
         run: |
           echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
           phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
-  invalid:
-    name: latest
+  special:
+    name: special
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
@@ -118,7 +118,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: php-cs-fixer:100.100.100, phpcs:^3.5.2, phpcbf:>=3.5.2, phpcpd:<=4.0.0, phpstan:^0.12.3, invalid:1.2.3, invalid, hirak/prestissimo:100.100.100, composer
+          tools: php-cs-fixer:100.100.100, phpcs:^3.5.2, phpcbf:>=3.5.2, phpcpd:<=4.0.0, phpstan:^0.12.3, invalid:1.2.3, invalid, hirak/prestissimo, prestissimo:100.100.100, composer
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
@@ -128,4 +128,6 @@ jobs:
           phpcbf --version
           phpcpd -V
           phpstan -V
+      - name: Test prestissimo
+        run: composer global show hirak/prestissimo
 
