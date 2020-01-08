@@ -1,22 +1,37 @@
-# GitHub Action for CakePHP
+# GitHub Action for CakePHP with MySQL and Redis
 name: Testing CakePHP
 on: [push, pull_request]
 jobs:
   tests:
     strategy:
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
         php-versions: ['7.2', '7.3', '7.4']
-    runs-on: ${{ matrix.operating-system }}
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: false
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: cakephp
+        ports:
+          - 3306/tcp
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+      redis:
+        image: redis
+        ports:
+          - 6379/tcp
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
       - name: Setup PHP
-        uses: shivammathur/setup-php@v1 #https://github.com/shivammathur/setup-php
+        uses: shivammathur/setup-php@v1
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, intl, pdo_sqlite, pdo_mysql
-          coverage: pcov #optional
+          php-version: ${{ matrix.php-version }}
+          # You can also use ext-apcu or ext-memcached instead of ext-redis
+          # Install memcached if using ext-memcached
+          extensions: mbstring, intl, redis, pdo_mysql
+          coverage: pcov
       - name: Get composer cache directory
         id: composer-cache
         run: echo "::set-output name=dir::$(composer config cache-files-dir)"
@@ -34,6 +49,9 @@ jobs:
           composer run-script post-install-cmd --no-interaction
       - name: Test with phpunit
         run: vendor/bin/phpunit --coverage-text
+        env:
+          REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
+          DB_DSN: 'mysql://root:password@127.0.0.1:${{ job.services.mysql.ports['3306'] }}/cakephp?init[]=SET sql_mode = "STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"'
 
   coding-standard:
     name: Coding Standard
@@ -73,7 +91,7 @@ jobs:
         with:
           php-version: '7.3'
           extensions: mbstring, intl
-          tools: phpstan
+          tools: phpstan, psalm
       - name: Get composer cache directory
         id: composer-cache
         run: echo "::set-output name=dir::$(composer config cache-files-dir)"
@@ -87,5 +105,7 @@ jobs:
           restore-keys: ${{ runner.os }}-composer-
       - name: Install dependencies
         run: composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader
+      - name: Static Analysis using Psalm
+        run: psalm --show-info=false
       - name: Static Analysis using PHPStan
         run: phpstan analyse --no-progress src/
