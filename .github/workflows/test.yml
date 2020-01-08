@@ -16,6 +16,6 @@ jobs:
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: memcached
+        extensions: dom
     - name: Check PHP Extensions
       run: php -m
