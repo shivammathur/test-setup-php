@@ -105,7 +105,5 @@ jobs:
           restore-keys: ${{ runner.os }}-composer-
       - name: Install dependencies
         run: composer install --no-progress --no-suggest --prefer-dist --optimize-autoloader
-      - name: Static Analysis using Psalm
-        run: psalm --show-info=false
       - name: Static Analysis using PHPStan
         run: phpstan analyse --no-progress src/
