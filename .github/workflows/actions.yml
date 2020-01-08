@@ -27,7 +27,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v1
         with:
-          php-version: ${{ matrix.php-version }}
+          php-version: ${{ matrix.php-versions }}
           # You can also use ext-apcu or ext-memcached instead of ext-redis
           # Install memcached if using ext-memcached
           extensions: mbstring, intl, redis, pdo_mysql
