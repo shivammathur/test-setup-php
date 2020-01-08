@@ -1,5 +1,6 @@
-# GitHub Action for CakePHP with MySQL and Redis
-name: Testing CakePHP
+# GitHub Action for CakePHP with PostgreSQL and Redis
+# Tested with https://github.com/cakephp/app
+name: Testing CakePHP with PostgreSQL
 on: [push, pull_request]
 jobs:
   tests:
@@ -8,15 +9,15 @@ jobs:
         php-versions: ['7.2', '7.3', '7.4']
     runs-on: ubuntu-latest
     services:
-      mysql:
-        image: mysql:5.7
+      postgres:
+        image: postgres:10.8
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: false
-          MYSQL_ROOT_PASSWORD: password
-          MYSQL_DATABASE: cakephp
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
         ports:
-          - 3306/tcp
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+          - 5432/tcp
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
       redis:
         image: redis
         ports:
@@ -30,7 +31,7 @@ jobs:
           php-version: ${{ matrix.php-versions }}
           # You can also use ext-apcu or ext-memcached instead of ext-redis
           # Install memcached if using ext-memcached
-          extensions: mbstring, intl, redis, pdo_mysql
+          extensions: mbstring, intl, redis, pdo_pgsql
           coverage: pcov
       - name: Get composer cache directory
         id: composer-cache
@@ -51,7 +52,7 @@ jobs:
         run: vendor/bin/phpunit --coverage-text
         env:
           REDIS_PORT: ${{ job.services.redis.ports['6379'] }}
-          DB_DSN: "mysql://root:password@127.0.0.1:${{ job.services.mysql.ports['3306'] }}/cakephp?init[]=SET sql_mode = \"STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION\""
+          DB_DSN: postgres://postgres@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/postgres
 
   coding-standard:
     name: Coding Standard
@@ -91,7 +92,7 @@ jobs:
         with:
           php-version: '7.3'
           extensions: mbstring, intl
-          tools: phpstan, psalm
+          tools: phpstan
       - name: Get composer cache directory
         id: composer-cache
         run: echo "::set-output name=dir::$(composer config cache-files-dir)"
