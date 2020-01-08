@@ -4,3 +4,4 @@
 - Test 1.5.7 release
 - Test 1.6.0 release
 - Test 1.7.1 release
+- Test 1.7.1 release
