@@ -30,9 +30,7 @@ jobs:
       run: composer install --prefer-dist --no-progress --no-suggest
 
     - name: Run test suite
-      run: composer run-script test-coverage
-      env:
-        COMPOSER_PROCESS_TIMEOUT: 600
+      run: COMPOSER_PROCESS_TIMEOUT=2000 composer run-script test-coverage
 
     - name: Push coverage to Scrutinizer-ci
       if: matrix.php-versions == '7.3'
