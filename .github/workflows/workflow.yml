@@ -47,5 +47,5 @@ jobs:
           coverage: xdebug
       - name: Testing PHP version
         run: php -v
-      - name: Check Xdebug
+      - name: Check xdebug
         run: php -r "echo phpversion('xdebug');"
