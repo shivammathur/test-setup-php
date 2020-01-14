@@ -33,9 +33,12 @@ jobs:
           sudo php install-pear-nozlib.phar >/dev/null 2>&1
           sudo rm -rf install-pear-nozlib.phar >/dev/null 2>&1
           ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+          ext_dir=$(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
           sudo pear config-set php_ini "$ini_file" >/dev/null 2>&1
           sudo pear config-set auto_discover 1 >/dev/null 2>&1
-          sudo pear channel-update pear.php.net >/dev/null 2>&1      
+          sudo pear channel-update pear.php.net >/dev/null 2>&1
+          sudo rm -rf /etc/php/"$version"/cli/conf.d/*xdebug* >/dev/null 2>&1
+          sudo rm -rf "$ext_dir"/xdebug.so >/dev/null 2>&1          
           sudo pecl install xdebug-2.8.1 || echo 'could not install xdebug 2.8.1'
       - name: Install PHP
         uses: shivammathur/setup-php@develop
