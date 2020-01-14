@@ -40,15 +40,11 @@ jobs:
           sudo pear channel-update pear.php.net >/dev/null 2>&1
           sudo DEBIAN_FRONTEND=noninteractive apt-fast remove php-xdebug
           sudo pecl install xdebug-2.8.1 || echo 'could not install xdebug 2.8.1'
-          current_version=$(php -r "echo phpversion('$extension');")
-          final_version=$(printf "%s\n%s" "$current_version" "$latest_version" | sort | tail -n 1)
-          if [ "$final_version" != "$current_version"  ]; then
-            version_exists=$(apt-cache policy -- *"$extension" | grep "$final_version")
-            if [ -z "$version_exists" ]; then
-              find /etc/apt/sources.list.d -type f -name 'ondrej-ubuntu-php*.list' -exec sudo DEBIAN_FRONTEND=noninteractive apt-fast update -o Dir::Etc::sourcelist="{}" ';'
-            fi
-            sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y php"$version"-"$extension"
-          fi
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          coverage: xdebug
       - name: Testing PHP version
         run: php -v
       - name: Check xdebug
