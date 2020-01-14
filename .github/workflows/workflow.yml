@@ -16,6 +16,8 @@ jobs:
       - name: Install Xdebug 2.8.1
         env:
           version: ${{ matrix.php-versions }}
+          extension: 'xdebug'
+          latest_version: '2.9.0'
         run: |
           switch_version() {
             for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
@@ -23,8 +25,7 @@ jobs:
                 sudo update-alternatives --set $tool /usr/bin/"$tool$version" >/dev/null 2>&1
               fi
             done
-          }          
-          find /etc/apt/sources.list.d -type f -name 'ondrej-ubuntu-php*.list' -exec sudo DEBIAN_FRONTEND=noninteractive apt-fast update -o Dir::Etc::sourcelist="{}" ';' >/dev/null 2>&1
+          }                    
           sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y php"$version" php"$version"-dev php"$version"-xml >/dev/null 2>&1
           switch_version
           sudo update-alternatives --set php-config /usr/bin/php-config"$version" >/dev/null 2>&1
@@ -40,11 +41,15 @@ jobs:
           sudo rm -rf /etc/php/"$version"/cli/conf.d/*xdebug* >/dev/null 2>&1
           sudo rm -rf "$ext_dir"/xdebug.so >/dev/null 2>&1          
           sudo pecl install xdebug-2.8.1 || echo 'could not install xdebug 2.8.1'
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          coverage: xdebug
+          current_version=$(php -r "echo phpversion('$extension');")
+          final_version=$(printf "%s\n%s" "$current_version" "$latest_version" | sort | tail -n 1)
+          if [ "$final_version" != "$current_version"  ]; then
+            version_exists=$(apt-cache policy -- *"$extension" | grep "$final_version")
+            if [ -z "$version_exists" ]; then
+              find /etc/apt/sources.list.d -type f -name 'ondrej-ubuntu-php*.list' -exec sudo DEBIAN_FRONTEND=noninteractive apt-fast update -o Dir::Etc::sourcelist="{}" ';'
+            fi
+            sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y php"$version"-"$extension"
+          fi
       - name: Testing PHP version
         run: php -v
       - name: Check xdebug
