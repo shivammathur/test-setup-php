@@ -7,7 +7,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, ubuntu-16.04]
-        php-versions: ['7.0', '7.1']
+        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -16,6 +16,16 @@ jobs:
       uses: shivammathur/setup-php@v1
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: pdo_sqlite, gmp, psr, zip
-    - name: Check PHP Extensions
-      run: php -m
+        tools: pecl
+
+    - name: Debug PHP
+      run: |
+        php -v
+        php-config --extension-dir
+        which php
+        ls -al $(which php)
+        which phpize
+        ls -al $(which phpize)
+        which php-config
+        ls -al $(which php-config)
+        ls -al /usr/bin/ | grep "php-config"
