@@ -12,8 +12,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Install pkg-config
-      run: brew install pkg-config
+    - name: Install pkg-config and imagemagick
+      run: brew install pkg-config imagemagick
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
       with:
