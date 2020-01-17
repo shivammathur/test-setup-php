@@ -6,26 +6,20 @@ jobs:
     strategy:    
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-16.04]
-        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4']
+        operating-system: [ubuntu-latest, ubuntu-16.04, windows-latest, macos-latest]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Setup PHP
-      uses: shivammathur/setup-php@v1
+      uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        tools: pecl
+        tools: phpize, php-config
 
-    - name: Debug PHP
+    - name: Check tools
+      if: matrix.operating-system != 'windows-latest'
       run: |
-        php -v
-        php-config --extension-dir
-        which php
-        ls -al $(which php)
-        which phpize
-        ls -al $(which phpize)
-        which php-config
-        ls -al $(which php-config)
-        ls -al /usr/bin/ | grep "php-config"
+        php-config --version
+        phpize --version    
