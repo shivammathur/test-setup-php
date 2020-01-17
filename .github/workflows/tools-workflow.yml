@@ -18,7 +18,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, codeception, phpunit, psalm, phinx, deployer, prestissimo, composer-prefetcher, pecl
+          tools: php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, codeception, phpunit, psalm, phinx, deployer, prestissimo, composer-prefetcher, pecl, phpize, php-config
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
@@ -40,9 +40,12 @@ jobs:
       - name: Test composer-prefetcher
         run: composer global show narrowspark/automatic-composer-prefetcher
         continue-on-error: true
-      - name: Test pecl
+      - name: Test pecl, phpize, php-config
         if: matrix.operating-system != 'windows-latest'
-        run: pecl -V
+        run: |
+          pecl -V
+          php-config --version
+          phpize --version
       - name: Test phpmd on windows
         if: matrix.operating-system == 'windows-latest'
         run: |
