@@ -6,18 +6,19 @@ jobs:
     strategy:    
       matrix:
         operating-system: [windows-latest, windows-2016]
-    name: Test setup tool
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        ts: [$false, $true]
+    name: Test ts - ${{ matrix.ts }}
     steps: 
-    - name: Setup Tool
-      continue-on-error: true
-      run: |
-        $url = "http://cs.sensiolabs.org/download/php-cs-fixer-v2.phar"
-        $php_dir = "C:\tools\php"
-        $tool = "php-cs-fixer"
-        Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $php_dir\$tool
-        Set-Content -Path $php_dir\$tool.bat -Value "php $php_dir\$tool"
-        Add-Content -Path $PsHome\profile.ps1 -Value "New-Alias $tool $php_dir\$tool.bat"
-        php-cs-fixer 
-    - name: Test Tool
-      continue-on-error: true
-      run: php-cs-fixer
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
+        uses: shivammathur/setup-php@v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+        env:
+          PHPTS: ${{ matrix.ts }}
+      - name: Test thread safety
+        run: |
+          $installed = Get-Php -Path C:\tools\php
+          printf %s $installed.ThreadSafe
