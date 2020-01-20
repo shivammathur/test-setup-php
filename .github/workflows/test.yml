@@ -8,12 +8,12 @@ jobs:
         operating-system: [windows-latest, windows-2016]
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
         ts: [$false, $true]
-    name: Test ts - ${{ matrix.ts }}
+    name: Test ${{ matrix.php-versions }}, ts - ${{ matrix.ts }}
     steps: 
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@v1
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
         env:
