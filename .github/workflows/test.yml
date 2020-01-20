@@ -1,13 +1,13 @@
-name: Test workflow on windows #1.7.4 test again
+name: Test workflow on windows #1.7.4
 on: [push]
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:    
       matrix:
-        operating-system: [windows-latest, windows-2016]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
-        ts: [$false, $true]
+        operating-system: [windows-latest]
+        php-versions: ['5.6', '7.3', '7.4']
+        ts: [ts, nts]
     name: Test ${{ matrix.php-versions }}, ts - ${{ matrix.ts }}
     steps: 
       - name: Checkout
