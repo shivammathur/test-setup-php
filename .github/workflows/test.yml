@@ -15,6 +15,7 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
       with:
-        php-version: ${{ matrix.php-versions }}      
+        php-version: ${{ matrix.php-versions }}
+        extensions: intl
     - name: Check PHP Extensions
       run: php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
