@@ -21,8 +21,7 @@ jobs:
           PHPTS: ${{ matrix.ts }}
       - name: Check PHP Version
         run: php -v
-      - name: Tests
-        run: |
-          php -r "if(! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
-          php -r "if(! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
-          php -r "if( ! ZEND_THREAD_SAFE && '${{ matrix.ts }}' == 'ts') { throw new Exception('Wrong ts'); }"
+      - name: Check extensions
+        run: php -m
+      - name: Test thread safety
+        run: php -r "if( ! ZEND_THREAD_SAFE && '${{ matrix.ts }}' == 'ts') { throw new Exception('Wrong ts'); }"
