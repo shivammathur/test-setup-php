@@ -6,16 +6,18 @@ jobs:
     strategy:    
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-16.04]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        operating-system: [macos-latest]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: intl
+        extensions: imagick
     - name: Check PHP Extensions
-      run: php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
+      run: |
+        php -m
+        php -r "if(! extension_loaded('imagick')) {throw new Exception('imagick not found');}"
