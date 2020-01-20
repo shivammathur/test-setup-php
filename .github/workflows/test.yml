@@ -1,4 +1,4 @@
-name: Test phalcon extension v3
+name: Test phalcon extension v4
 on: [push]
 jobs:
   run:    
@@ -7,7 +7,7 @@ jobs:
       fail-fast: false      
       matrix:
         operating-system: [ubuntu-latest, ubuntu-16.04]
-        php-versions: ['7.0', '7.1', '7.2', '7.3']
+        php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -16,7 +16,7 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: phalcon3, xdebug, mbstring
+        extensions: phalcon4, xdebug, mbstring
         coverage: xdebug
     - name: Testing PHP version
       run: php -v
@@ -26,4 +26,4 @@ jobs:
         php -r "echo 'phalcon: ' . phpversion('phalcon');"
         php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
         php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
-        php -r "if(phpversion('phalcon')[0]!='3') {throw new Exception('Wrong phalcon version Installed');}"
+        php -r "if(phpversion('phalcon')[0]!='4') {throw new Exception('Wrong phalcon version Installed');}"
