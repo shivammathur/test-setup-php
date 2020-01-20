@@ -18,5 +18,7 @@ jobs:
           php-version: ${{ matrix.php-versions }}
         env:
           PHPTS: ${{ matrix.ts }}
+      - name: Check PHP Version
+        run: php -v
       - name: Test thread safety
         run: php -r "if( ! ZEND_THREAD_SAFE && '${{ matrix.ts }}' == 'ts') { throw new Exception('Wrong ts'); }"
