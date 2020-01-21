@@ -6,9 +6,8 @@ jobs:
     strategy:    
       matrix:
         operating-system: [windows-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
-        ts: [ts, nts]
-    name: Test ${{ matrix.php-versions }}, ts - ${{ matrix.ts }}
+        php-versions: ['7.3']
+    name: Test phive
     steps: 
       - name: Checkout
         uses: actions/checkout@v2
@@ -16,12 +15,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: pcov, xdebug, mbstring
-        env:
-          PHPTS: ${{ matrix.ts }}
-      - name: Check PHP Version
-        run: php -v
-      - name: Check extensions
-        run: php -m
-      - name: Test thread safety
-        run: php -r "if( ! ZEND_THREAD_SAFE && '${{ matrix.ts }}' == 'ts') { throw new Exception('Wrong ts'); }"
+          tools: phive
+      - name: Check phive
+        continue-on-error: true
+        run: phive status
