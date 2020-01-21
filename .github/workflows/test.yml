@@ -12,9 +12,9 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Get Composer Cache Directory
+    - name: Get Extension Directory
       id: ext-dir  
-      run: echo "::set-output name=dir::$(php -i | grep \"extension_dir => /usr\" | sed -e \"s|.*=> s*||\")"
+      run: echo "::set-output name=dir::$(php -i | grep 'extension_dir => /usr' | sed -e 's|.*=> s*||')"
     - name: Cache extensions
       uses: actions/cache@v1
       with:
