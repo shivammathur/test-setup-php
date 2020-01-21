@@ -16,6 +16,8 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           tools: phive
+      - name: Check extensions
+        run: php -m
       - name: Check phive
         continue-on-error: true
         run: phive status
