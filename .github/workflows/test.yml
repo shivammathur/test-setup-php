@@ -6,12 +6,18 @@ jobs:
     strategy:
       fail-fast: false      
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [windows-latest]
         php-versions: ['7.0', '7.1', '7.2', '7.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@master
+    - name: Cache extensions
+      uses: actions/cache@v1
+      with:
+        path: C:\tools\php\ext
+        key: ${{ runner.os }}-phalcon3-${{ matrix.php-versions }}-${{ hashFiles('**/*test.yml') }}
+        restore-keys: ${{ runner.os }}-phalcon3-${{ matrix.php-versions }}
     - name: Install PHP
       uses: shivammathur/setup-php@develop
       with:
