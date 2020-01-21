@@ -1,24 +1,36 @@
-name: Test workflow on windows #1.7.4
-on: [push]
+name: Experimental workflow
+on:
+  push:
 jobs:
-  run:    
+  run:
+    name: Run
     runs-on: ${{ matrix.operating-system }}
-    strategy:    
+    strategy:
+      fail-fast: false
       matrix:
         operating-system: [windows-latest]
-        php-versions: ['7.3']
-    name: Test phive
-    steps: 
+        php-versions: ['8.0']
+        coverage: [xdebug, pcov, none]
+    steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v1
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: mbstring
-          tools: phive
-      - name: Check extensions
-        run: php -m
-      - name: Check phive
+          coverage: ${{ matrix.coverage }}
+      - name: Test Opcache
+        run: php -r "if(! extension_loaded('Zend OPcache')) {throw new Exception('Zend OPcache not found');}"
         continue-on-error: true
-        run: phive status
+      - name: Test ini
+        continue-on-error: true
+        run: |
+          php -r "if(ini_get('opcache.jit_buffer_size')!='256M') {throw new Exception('opcache.jit_buffer_size not set');}"
+          php -r "if(ini_get('opcache.jit')!=1235) {throw new Exception('opcache.jit not set');}"
+          php -r "if(ini_get('pcre.jit')!=1) {throw new Exception('pcre.jit not set');}"
+      - name: Benchmark
+        continue-on-error: true
+        run: curl https://raw.githubusercontent.com/php/php-src/master/Zend/bench.php | php
+          
+
+          
