@@ -20,16 +20,13 @@ jobs:
           php-version: ${{ matrix.php-versions }}
           coverage: ${{ matrix.coverage }}
       - name: Test Opcache
-        run: php -r "if(! extension_loaded('Zend OPcache')) {throw new Exception('Zend OPcache not found');}"
-        continue-on-error: true
-      - name: Test ini
-        continue-on-error: true
+        run: php -r "if(! extension_loaded('Zend OPcache')) {throw new Exception('Zend OPcache not found');}"      
+      - name: Test ini      
         run: |
           php -r "if(ini_get('opcache.jit_buffer_size')!='256M') {throw new Exception('opcache.jit_buffer_size not set');}"
           php -r "if(ini_get('opcache.jit')!=1235) {throw new Exception('opcache.jit not set');}"
           php -r "if(ini_get('pcre.jit')!=1) {throw new Exception('pcre.jit not set');}"
-      - name: Benchmark
-        continue-on-error: true
+      - name: Benchmark      
         run: curl https://raw.githubusercontent.com/php/php-src/master/Zend/bench.php | php
           
 
