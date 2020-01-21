@@ -7,3 +7,4 @@
 - Test 1.6.1 release.
 - Test 1.7.1 release.
 - Test 1.7.3 release.
+- Test 1.7.4 release.
