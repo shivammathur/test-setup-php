@@ -6,16 +6,19 @@ jobs:
     strategy:
       fail-fast: false      
       matrix:
-        operating-system: [windows-latest]
+        operating-system: [ubuntu-latest, macos-latest]
         php-versions: ['7.0', '7.1', '7.2', '7.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
-      uses: actions/checkout@master
+      uses: actions/checkout@v2
+    - name: Get Composer Cache Directory
+      id: ext-dir  
+      run: echo "::set-output name=dir::$(php -i | grep \"extension_dir => /usr\" | sed -e \"s|.*=> s*||\")"
     - name: Cache extensions
       uses: actions/cache@v1
       with:
-        path: C:\tools\php\ext
+        path: ${{ steps.ext-dir.outputs.dir }}
         key: ${{ runner.os }}-phalcon3-${{ matrix.php-versions }}-${{ hashFiles('**/*test.yml') }}
         restore-keys: ${{ runner.os }}-phalcon3-${{ matrix.php-versions }}
     - name: Install PHP
