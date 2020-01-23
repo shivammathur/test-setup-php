@@ -12,11 +12,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: msgpack-beta
     - name: Check PHP Extensions
-      run: php -m
+      run: |
+        sudo pecl install msgpack-beta
+        php -m
       
