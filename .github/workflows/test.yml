@@ -1,26 +1,22 @@
-name: Test workflow #1.4.6 test uopz final
+name: Test workflow #160
 on: [push]
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
-    strategy:
+    strategy:    
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
+        php-versions: ['7.2', '7.3', '7.4']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@master
-    - name: Install PHP
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extension-csv: uopz
-        pecl: true
-    - name: Testing PHP version
-      run: php -v
-    - name: Testing Composer version
-      run: composer -V
-    - name: Testing extensions
-      run: php -m
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Install PHP
+        uses: shivammathur/setup-php@master
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ast, mbstring, pdo
+          ini-values: "date.timezone=UTC"
+          coverage: PCOV
+          tools: pecl
 
