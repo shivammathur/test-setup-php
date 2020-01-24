@@ -12,11 +12,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@master
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@master
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ast, mbstring, pdo
-          ini-values: "date.timezone=UTC"
-          coverage: PCOV
+          extensions: ast, mbstring, pdo        
+          coverage: pcov
           tools: pecl
 
