@@ -12,7 +12,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@master
       - name: Install PHP
-        uses: shivammathur/setup-php@master
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: ast, mbstring, pdo
