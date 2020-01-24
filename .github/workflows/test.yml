@@ -4,7 +4,7 @@ jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      max-parallel: 1
+      max-parallel: 15
       matrix:
         operating-system: [ubuntu-latest]
         php-versions: ['7.2', '7.3', '7.4']
