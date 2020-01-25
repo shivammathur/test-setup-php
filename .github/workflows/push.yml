@@ -1,0 +1,13 @@
+name: Run Tests
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Composer dependencies
+      run: composer install --no-ansi --no-interaction --no-scripts --no-suggest --no-progress --prefer-dist
+    - name: Run Tests
+      run: |
+        echo "::add-matcher::.github/pm.json"
+        ./vendor/bin/phpunit
