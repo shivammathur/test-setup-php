@@ -11,6 +11,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@master
+    - name: Hold PHP
+      run: sudo apt-mark hold php7.4
     - name: Install PHP
       uses: shivammathur/setup-php@verbose
       with:
