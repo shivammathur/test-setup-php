@@ -16,7 +16,12 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: msgpack-beta
+        extensions: msgpack-beta, ast-beta
     - name: Check PHP Extensions
-      run: php -m
+      run: |
+        php -r "if(! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}"
+        php -r "if(! extension_loaded('ast')) {throw new Exception('ast not found');}"
+        php -r "echo phpversion('msgpack');"
+        php -r "echo phpversion('ast');"
+        php -m
       
