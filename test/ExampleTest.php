@@ -33,5 +33,9 @@ class PMTest extends TestCase
     {        
 		$this->markTestSkipped('skip');
 		$this->assertEquals(0, 1);
-    }           
+    }     
+    public function testSeven()
+    {            	
+        file_get_contents('/nonexistent_file'); 
+    }              
 }
