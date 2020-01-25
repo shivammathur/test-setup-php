@@ -21,6 +21,8 @@ jobs:
     - name: Testing PHP version
       run: php -v    
     - name: Testing ini values
-      run: |        
+      run: |
+        php -m
+        php -r "echo phpversion('intl') . \"\n\";"
         php -r "echo \"apc.enable_cli: \" . ini_get('apc.enable_cli') . \"\n\";"
         php -r "echo \"session.save_path: \" . ini_get('session.save_path') . \"\n\";"
