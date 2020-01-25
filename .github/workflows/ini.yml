@@ -1,15 +1,13 @@
-name: Test workflow #1.3.7-7.4 rc3
+name: Test workflow
 on: [push]
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      max-parallel: 12
       matrix:
         operating-system: [ubuntu-latest]        
-        php-versions: ['7.4']
-        coverage: ['xdebug', 'pcov']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
+        php-versions: ['7.4']      
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@master
@@ -17,26 +15,10 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extension-csv: mbstring, xdebug, pcov, pcntl, intl, bcmath #optional  
-        coverage: ${{ matrix.coverage }}
+        ini-values: apc.enable_cli=on, session.save_path=/tmp
     - name: Testing PHP version
-      run: php -v && php --ini && ls -la /etc
-    - name: Testing Composer version
-      run: composer -V
-    - name: Testing Extensions
-      run: php -m      
+      run: php -v    
     - name: Testing ini values
       run: |        
-        php -r "echo \"post_max_size: \" . ini_get('post_max_size') . \"\n\";"
-        php -r "echo \"short_open_tag: \" . ini_get('short_open_tag') . \"\n\";"
-        php -r "echo \"date.timezone: \" . ini_get('date.timezone') . \"\n\";"
-    - name: Testing Coverage if POV
-      if: matrix.coverage == 'pcov'
-      run: |        
-        php -r "echo \"pcov.enabled: \" . ini_get('pcov.enabled') . \"\n\";"
-        php -v
-    - name: Testing Coverage if Xdebug
-      if: matrix.coverage == 'xdebug'
-      run: |        
-        php -r "echo 'xdebug: '.extension_loaded('xdebug');"
-        php -v
+        php -r "echo \"apc.enable_cli: \" . ini_get('apc.enable_cli') . \"\n\";"
+        php -r "echo \"session.save_path: \" . ini_get('session.save_path') . \"\n\";"
