@@ -11,15 +11,13 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@master
-    - name: Hold PHP
-      run: sudo apt-mark hold php7.4
     - name: Install PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
         ini-values: apc.enable_cli=on, session.save_path=/tmp
         tools: pecl
-        extensions: intl
+        extensions: mbstring, intl, json, imagick
     - name: Testing PHP version
       run: php -v    
     - name: Testing ini values
