@@ -6,7 +6,7 @@ jobs:
     strategy:    
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
         php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -16,8 +16,7 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
+        extensions: msgpack-beta
     - name: Check PHP Extensions
-      run: |
-        sudo pecl install msgpack-beta
-        php -m
+      run: php -m
       
