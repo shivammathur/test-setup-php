@@ -16,8 +16,7 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         ini-values: apc.enable_cli=on, session.save_path=/tmp
-        tools: pecl
-        extensions: mbstring, intl, json, imagick
+        tools: pecl        
     - name: Testing PHP version
       run: php -v    
     - name: Testing ini values
