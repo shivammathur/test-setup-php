@@ -12,10 +12,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@master
     - name: Install PHP
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@v1
       with:
         php-version: ${{ matrix.php-versions }}
         ini-values: apc.enable_cli=on, session.save_path=/tmp
+        tools: pecl
+        extensions: mbstring, intl, json, imagick
     - name: Testing PHP version
       run: php -v    
     - name: Testing ini values
