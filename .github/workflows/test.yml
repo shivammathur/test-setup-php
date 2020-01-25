@@ -18,7 +18,8 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         tools: pecl
-        extensions: msgpack, ast
+    - name: Install extensions
+      run: sudo pecl install ast
     - name: Check PHP Extensions
       run: |
         php -r "if(! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}"
