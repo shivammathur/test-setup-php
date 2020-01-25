@@ -6,8 +6,7 @@ jobs:
     strategy:    
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        #operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
         php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -16,23 +15,13 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
-        php-version: ${{ matrix.php-versions }}      
-    - name: Install extensions
-      run: |
-        sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y php"$version"-xml php"$version"-dev php"$version"-pear
-        sudo update-alternatives --set php-config /usr/bin/php-config"$version"
-        sudo update-alternatives --set phpize /usr/bin/phpize"$version"
-        ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-        sudo pear config-set php_ini "$ini_file"
-        sudo pear config-set auto_discover 1
-        sudo pear channel-update pear.php.net
-        sudo pecl channel-update pecl.php.net
-        sudo pecl install ast
-      env:
-        version: ${{ matrix.php-versions }}
+        php-version: ${{ matrix.php-versions }}
+        extensions: msgpack-beta, ast-beta
     - name: Check PHP Extensions
-      run: |      
-        php -r "if(! extension_loaded('ast')) {throw new Exception('ast not found');}"      
+      run: |        
+        php -r "if(! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}"
+        php -r "if(! extension_loaded('ast')) {throw new Exception('ast not found');}"
+        php -r "echo phpversion('msgpack');"
         php -r "echo phpversion('ast');"
         php -m
       
