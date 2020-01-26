@@ -1,4 +1,4 @@
-name: Test phalcon extension v3 #1.7.4
+name: Test phalcon extension v4 #1.8.0
 on: [push]
 jobs:
   run:    
@@ -6,33 +6,24 @@ jobs:
     strategy:
       fail-fast: false      
       matrix:
-        operating-system: [ubuntu-latest, macos-latest]
-        php-versions: ['7.0', '7.1', '7.2', '7.3']
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Get Extension Directory
-      id: ext-dir  
-      run: echo "::set-output name=dir::$(php -i | grep 'extension_dir => /usr' | sed -e 's|.*=> s*||')"
-    - name: Cache extensions
-      uses: actions/cache@v1
-      with:
-        path: ${{ steps.ext-dir.outputs.dir }}
-        key: ${{ runner.os }}-phalcon3-${{ matrix.php-versions }}-${{ hashFiles('**/*test.yml') }}
-        restore-keys: ${{ runner.os }}-phalcon3-${{ matrix.php-versions }}
     - name: Install PHP
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: phalcon3, xdebug, mbstring
-        coverage: xdebug
+        extensions: phalcon4, xdebug-beta, mbstring      
     - name: Testing PHP version
       run: php -v
     - name: Testing Extensions
       run: |
-        #php -r "echo 'psr: ' . phpversion('psr').', ';"
+        php -r "echo 'psr: ' . phpversion('psr').', ';"
         php -r "echo 'phalcon: ' . phpversion('phalcon');"
-        #php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
+        php -r "echo 'xdebug: ' . phpversion('xdebug');"
+        php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
         php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
-        php -r "if(phpversion('phalcon')[0]!='3') {throw new Exception('Wrong phalcon version Installed');}"
+        php -r "if(phpversion('phalcon')[0]!='4') {throw new Exception('Wrong phalcon version Installed');}"
