@@ -13,11 +13,21 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@v1
       with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: psr
+        php-version: ${{ matrix.php }}
+        extensions: gmp, pdo_sqlite, psr, zip
+        tools: phpize, php-config
+        coverage: xdebug
+        ini-values: variables_order=EGPCS, enable_dl=On, allow_url_fopen=On, error_reporting=-1, memory_limit=1G, date.timezone=UTC, xdebug.max_nesting_level=256          
+    - name: Test extensions
+      run: |
+        php -m
+        ls /etc/php/${{ matrix.php-versions }}/cli/conf.d
+        cat /etc/php/${{ matrix.php-versions }}/cli/conf.d/*psr.ini
+        tail -n 25 $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+        
     - name: Check PHP Extensions
       run: |
-        php -r "if(! extension_loaded('psr')) {throw new Exception('msgpack not found');}"
+        php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
         php -r "echo phpversion('psr');"
