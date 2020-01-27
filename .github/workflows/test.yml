@@ -16,19 +16,10 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: gmp, pdo_sqlite, psr, zip
-        tools: php-config, phpize
-        coverage: xdebug
-        ini-values: variables_order=EGPCS, enable_dl=On, allow_url_fopen=On, error_reporting=-1, memory_limit=1G, date.timezone=UTC, xdebug.max_nesting_level=256 
-    - name: Test extensions
-      run: |
-        php -v
-        php -m
-        ls /etc/php/${{ matrix.php-versions }}/cli/conf.d
-        cat /etc/php/${{ matrix.php-versions }}/cli/conf.d/*psr.ini || echo 'not found'
-        tail -n 25 $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-        
+        extensions: psr, ast                    
     - name: Check PHP Extensions
       run: |
         php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
+        php -r "if(! extension_loaded('ast')) {throw new Exception('ast not found');}"
         php -r "echo phpversion('psr');"
+        php -r "echo phpversion('ast');"
