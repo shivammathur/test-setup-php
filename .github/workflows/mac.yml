@@ -11,9 +11,7 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Install PHP
-      uses: shivammathur/setup-php@verbose
-      with:
-        php-version: ${{ matrix.php-versions }}
     - name: Testing PHP version
       run: php -v
+    - name: Testing PHP extensions
+      run: php -m
