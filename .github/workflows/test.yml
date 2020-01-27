@@ -15,8 +15,10 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@v1
       with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: psr      
+        php-version: ${{ matrix.php }}
+        extensions: gmp, pdo_sqlite, psr, zip      
+        coverage: xdebug
+        ini-values: variables_order=EGPCS, enable_dl=On, allow_url_fopen=On, error_reporting=-1, memory_limit=1G, date.timezone=UTC, xdebug.max_nesting_level=256 
     - name: Test extensions
       run: |
         php -m
