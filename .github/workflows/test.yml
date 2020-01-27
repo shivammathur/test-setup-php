@@ -15,7 +15,7 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@v1
       with:
-        php-version: ${{ matrix.php }}
+        php-version: ${{ matrix.php-versions }}
         extensions: gmp, pdo_sqlite, psr, zip
         tools: phpize, php-config
         coverage: xdebug
