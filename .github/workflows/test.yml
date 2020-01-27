@@ -17,8 +17,7 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: psr
-        tools: phpize, php-config
-        coverage: xdebug      
+        tools: phpize, php-config        
     - name: Test extensions
       run: |
         php -m
