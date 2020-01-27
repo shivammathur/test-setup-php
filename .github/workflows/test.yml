@@ -18,8 +18,7 @@ jobs:
         php-version: ${{ matrix.php-versions }}
         extensions: psr
         tools: phpize, php-config
-        coverage: xdebug
-        ini-values: variables_order=EGPCS, enable_dl=On, allow_url_fopen=On, error_reporting=-1, memory_limit=1G, date.timezone=UTC, xdebug.max_nesting_level=256          
+        coverage: xdebug      
     - name: Test extensions
       run: |
         php -m
