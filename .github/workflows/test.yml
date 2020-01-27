@@ -13,10 +13,11 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Setup PHP
-      uses: shivammathur/setup-php@v1
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: gmp, pdo_sqlite, psr, zip      
+        extensions: gmp, pdo_sqlite, psr, zip
+        tools: php-config
         coverage: xdebug
         ini-values: variables_order=EGPCS, enable_dl=On, allow_url_fopen=On, error_reporting=-1, memory_limit=1G, date.timezone=UTC, xdebug.max_nesting_level=256 
     - name: Test extensions
