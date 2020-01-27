@@ -6,22 +6,18 @@ jobs:
     strategy:    
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['7.4']
+        operating-system: [ubuntu-latest]
+        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Setup PHP
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: msgpack-beta, ast-beta
+        extensions: psr
     - name: Check PHP Extensions
-      run: |        
-        php -r "if(! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}"
-        php -r "if(! extension_loaded('ast')) {throw new Exception('ast not found');}"
-        php -r "echo phpversion('msgpack');"
-        php -r "echo phpversion('ast');"
-        php -m
-      
+      run: |
+        php -r "if(! extension_loaded('psr')) {throw new Exception('msgpack not found');}"
+        php -r "echo phpversion('psr');"
