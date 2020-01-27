@@ -8,3 +8,4 @@
 - Test 1.7.1 release.
 - Test 1.7.3 release.
 - Test 1.7.4 release.
+- Test 1.8.0 release.
