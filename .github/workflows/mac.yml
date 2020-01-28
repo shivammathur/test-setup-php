@@ -11,6 +11,10 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+    - name: Intstall PHP
+      run: |
+        brew install php
+        brew link --force --overwrite php
     - name: Testing PHP version
       run: php -v
     - name: Testing PHP extensions
