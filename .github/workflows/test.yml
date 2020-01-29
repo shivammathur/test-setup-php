@@ -23,7 +23,7 @@ jobs:
         echo "::set-output name=extension_dir::$(echo $prefix$suffix)"
     - name: Fix permissions
       run: |
-        mkdir -p $ext_dir
+        sudo mkdir -p $ext_dir
         sudo chmod -R 777 $ext_dir      
       env:
         ext_dir: ${{ steps.extension-dir.outputs.extension_dir }}
