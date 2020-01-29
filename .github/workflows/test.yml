@@ -17,14 +17,17 @@ jobs:
       run: |
         suffix=$(curl -sSL https://raw.githubusercontent.com/php/php-src/PHP-${{ matrix.php-versions }}/main/php.h | grep PHP_API_VERSION | cut -d' ' -f 3)
         ext_dir=$(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
-        prefix=$(echo "$ext_dir" | sed -e "s/[0-9]\+//")        
+        prefix=$(echo "$ext_dir" | sed -e "s/[0-9]\+//")
+        sudo mkdir -p $ext_dir
+        sudo chown -R $USER:$USER $prefix
+        sudo rm -rf $ext_dir/*        
         echo "::set-output name=extension_dir::$(echo $prefix$suffix)"        
     - name: Cache extensions
       uses: actions/cache@v1
       with:
-        path: ${{ steps.extension-dir.outputs.extension_dir }}/ast.so
-        key: ${{ runner.os }}-ast-${{ matrix.php-versions }}-${{ hashFiles('**/*test.yml') }}
-        restore-keys: ${{ runner.os }}-ast-${{ matrix.php-versions }}-        
+        path: ${{ steps.extension-dir.outputs.extension_dir }}
+        key: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ hashFiles('**/*test.yml') }}
+        restore-keys: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-        
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
       with:
