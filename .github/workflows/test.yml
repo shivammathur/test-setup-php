@@ -25,7 +25,7 @@ jobs:
       run: |
         sudo mkdir -p $ext_dir
         sudo chmod -R 755 $ext_dir
-        rm -rf $ext_dir/*.so
+        sudo rm -rf $ext_dir/*.so
       env:
         ext_dir: ${{ steps.extension-dir.outputs.extension_dir }}
         
