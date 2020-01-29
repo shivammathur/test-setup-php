@@ -19,8 +19,7 @@ jobs:
         ext_dir=$(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
         prefix=$(echo "$ext_dir" | sed -e "s/[0-9]\+//")
         sudo mkdir -p $ext_dir
-        sudo chown -R $USER:$USER $prefix
-        sudo rm -rf $ext_dir/*        
+        sudo chown -R $USER:$USER $prefix      
         echo "::set-output name=extension_dir::$(echo $prefix$suffix)"        
     - name: Cache extensions
       uses: actions/cache@v1
