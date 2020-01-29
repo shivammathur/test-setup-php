@@ -19,7 +19,7 @@ jobs:
         ext_dir=$(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
         prefix=$(echo "$ext_dir" | sed 's/[0-9]*//g')
         sudo mkdir -p $ext_dir
-        sudo chown -R $USER:$USER $prefix      
+        sudo chown -R $USER:$(id -g -n) $prefix      
         echo "::set-output name=extension_dir::$(echo $prefix$suffix)"
     - name: Check extensions
       run: ls $(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")        
