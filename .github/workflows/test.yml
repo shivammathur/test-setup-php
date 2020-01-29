@@ -19,6 +19,8 @@ jobs:
         suffix=$(curl -sSL --retry 5 https://raw.githubusercontent.com/php/php-src/PHP-${{ matrix.php-versions }}/main/php.h | grep "PHP_API_VERSION" | cut -d' ' -f 3)
         if [ $(uname -s) = "Linux" ]; then
           ext_dir="/usr/lib/php/$suffix"
+          sudo mkdir -p "$ext_dir"
+          sudo chown -R "$USER":"$(id -g -n)" "${ext_dir%/*}"          
         elif [ $(uname -s) = "Darwin" ]; then
           ext_dir="/usr/local/lib/php/pecl/$suffix"
         else
@@ -36,7 +38,7 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         tools: pecl
-        extensions: ast
+        extensions: mbstring, intl, json, yaml, apcu, imagick, igbinary, msgpack-beta, redis
     - name: Check PHP version
       run: php -v
     - name: Check PHP extensions
