@@ -18,6 +18,8 @@ jobs:
         suffix=$(curl -sSL https://raw.githubusercontent.com/php/php-src/PHP-${{ matrix.php-versions }}/main/php.h | grep PHP_API_VERSION | cut -d' ' -f 3)
         ext_dir=$(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
         prefix=$(echo "$ext_dir" | sed "s/[0-9]\+//")
+        echo "Prefix: $prefix"
+        echo "Suffix: $suffix"
         echo "::set-output name=extension_dir::$(echo $prefix$suffix)"
     - name: Cache extensions
       uses: actions/cache@v1
@@ -29,6 +31,7 @@ jobs:
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
+        tools: pecl
         extensions: ast
     - name: Check PHP version
       run: php -v
