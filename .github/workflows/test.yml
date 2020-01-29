@@ -24,7 +24,7 @@ jobs:
     - name: Fix permissions
       run: |
         sudo mkdir -p $ext_dir
-        sudo chmod -R 755 $ext_dir
+        sudo chmod -R 777 $ext_dir
         sudo rm -rf $ext_dir/*.so
       env:
         ext_dir: ${{ steps.extension-dir.outputs.extension_dir }}
