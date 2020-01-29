@@ -28,7 +28,7 @@ jobs:
       with:
         path: ${{ steps.extension-dir.outputs.extension_dir }}
         key: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ hashFiles('**/*test.yml') }}
-        restore-keys: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-
+        restore-keys: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ hashFiles('**/*test.yml') }}
     - name: Check extensions
       run: ls $(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
     - name: Setup PHP
