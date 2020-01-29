@@ -14,14 +14,14 @@ jobs:
       uses: actions/checkout@v2
     - name: Get Extension Directory
       id: extension-dir
-      run: |
-        suffix=$(curl -sSL --retry 5 https://raw.githubusercontent.com/php/php-src/PHP-${{ matrix.php-versions }}/main/php.h | grep "PHP_API_VERSION" | cut -d' ' -f 3)
-        echo "Suffix: $suffix"
+      run: |        
         ext_dir=$(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
-        prefix=$(echo "$ext_dir" | sed 's/[0-9]*//g')
-        sudo mkdir -p $ext_dir
-        sudo chown -R $USER:$(id -g -n) $prefix      
-        echo "::set-output name=extension_dir::$(echo $prefix$suffix)"
+        prefix="${ext_dir//[0-9]*//g}"        
+        suffix=$(curl -sSL --retry 5 https://raw.githubusercontent.com/php/php-src/PHP-${{ matrix.php-versions }}/main/php.h | grep "PHP_API_VERSION" | cut -d' ' -f 3)
+        ext_dir="$prefix$suffix"
+        sudo mkdir -p "$ext_dir"
+        sudo chown -R "$USER":"$(id -g -n)" "${ext_dir%/*}"
+        echo "::set-output name=extension_dir::$ext_dir"
     - name: Check extensions
       run: ls $(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")        
     - name: Cache extensions
