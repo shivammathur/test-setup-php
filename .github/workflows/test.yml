@@ -6,33 +6,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, macos-latest]
-        php-versions: ['5.6', '7.0', '7.4']
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        php-versions: ['5.6', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Get Extension Directory
+      shell: bash
       id: extension-dir
-      run: |        
-        ext_dir=$(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
-        prefix="${ext_dir//[0-9]*/}"
+      run: |
         suffix=$(curl -sSL --retry 5 https://raw.githubusercontent.com/php/php-src/PHP-${{ matrix.php-versions }}/main/php.h | grep "PHP_API_VERSION" | cut -d' ' -f 3)
-        ext_dir="$prefix$suffix"
-        echo "Extension directory: $ext_dir"
-        sudo mkdir -p "$ext_dir"
-        sudo chown -R "$USER":"$(id -g -n)" "${ext_dir%/*}"        
-        echo "::set-output name=extension_dir::$ext_dir"
-    - name: Check extensions
-      run: ls $(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")        
+        if [ $(uname -s) = "Linux" ]; then
+          ext_dir="/usr/lib/php/$suffix"
+        elif [ $(uname -s) = "Darwin" ]; then
+          ext_dir="/usr/local/lib/php/pecl/$suffix"
+        else
+          ext_dir="C:\tools\php\ext"
+        fi
+        echo "::set-output name=extension_dir::$ext_dir"   
     - name: Cache extensions
       uses: actions/cache@v1
       with:
         path: ${{ steps.extension-dir.outputs.extension_dir }}
         key: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ hashFiles('**/*test.yml') }}
         restore-keys: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ hashFiles('**/*test.yml') }}
-    - name: Check extensions
-      run: ls $(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
       with:
