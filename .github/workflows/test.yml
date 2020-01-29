@@ -17,14 +17,14 @@ jobs:
       run: |
         suffix=$(curl -sSL https://raw.githubusercontent.com/php/php-src/PHP-${{ matrix.php-versions }}/main/php.h | grep PHP_API_VERSION | cut -d' ' -f 3)
         ext_dir=$(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
-        prefix=$(echo "$ext_dir" | sed "s/[0-9]\+//")
+        prefix=$(echo "$ext_dir" | sed -e "s/[0-9]\+//")
         echo "Prefix: $prefix"
         echo "Suffix: $suffix"
         echo "::set-output name=extension_dir::$(echo $prefix$suffix)"
     - name: Fix permissions
       run: |
         sudo mkdir -p $ext_dir
-        sudo chmod -R 777 $ext_dir      
+        sudo chmod -R 755 $ext_dir      
       env:
         ext_dir: ${{ steps.extension-dir.outputs.extension_dir }}
         
