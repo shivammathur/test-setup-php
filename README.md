@@ -1,3 +1,3 @@
 # test-setup-php
 
-Testing github action shivammathur/setup-php
+Testing php extensions
