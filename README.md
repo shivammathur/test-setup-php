@@ -1,4 +1,5 @@
 # test-setup-php
 
 Testing php extensions
-Test cache
+
+Test cache: 1
