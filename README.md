@@ -2,4 +2,4 @@
 
 Testing php extensions
 
-Test cache: 1
+Test cache: 2
