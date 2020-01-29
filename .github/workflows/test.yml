@@ -16,11 +16,11 @@ jobs:
       id: extension-dir
       run: |        
         ext_dir=$(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
-        prefix="${ext_dir//[0-9]*//g}"        
+        prefix="${ext_dir//[0-9]*/}"
         suffix=$(curl -sSL --retry 5 https://raw.githubusercontent.com/php/php-src/PHP-${{ matrix.php-versions }}/main/php.h | grep "PHP_API_VERSION" | cut -d' ' -f 3)
-        ext_dir="$prefix$suffix"
-        sudo mkdir -p "$ext_dir"
+        ext_dir="$prefix$suffix"        
         sudo chown -R "$USER":"$(id -g -n)" "${ext_dir%/*}"
+        sudo mkdir -p "$ext_dir"
         echo "::set-output name=extension_dir::$ext_dir"
     - name: Check extensions
       run: ls $(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")        
