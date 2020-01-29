@@ -1,13 +1,13 @@
 name: Test workflow
 on: [push]
 jobs:
-  run:    
+  run:
     runs-on: ${{ matrix.operating-system }}
-    strategy:    
+    strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4']
+        operating-system: [ubuntu-latest, macos-latest]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -16,11 +16,5 @@ jobs:
       uses: shivammathur/setup-php@v1
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: gmp, pdo_sqlite, psr, zip
-        tools: phpize, php-config
-        coverage: xdebug
-        ini-values: variables_order=EGPCS, enable_dl=On, allow_url_fopen=On, error_reporting=-1, memory_limit=1G, date.timezone=UTC, xdebug.max_nesting_level=256                   
-    - name: Check PHP Extensions
-      run: |
-        php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"        
-        php -r "echo phpversion('psr');"        
+    - name: Check extension_dir      
+      run: echo $(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
