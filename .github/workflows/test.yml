@@ -15,7 +15,7 @@ jobs:
     - name: Get Extension Directory
       id: extension-dir
       run: |
-        suffix=$(curl -sSL https://raw.githubusercontent.com/php/php-src/PHP-7.4/main/php.h | grep PHP_API_VERSION | cut -d' ' -f 3)
+        suffix=$(curl -sSL https://raw.githubusercontent.com/php/php-src/PHP-${{ matrix.php-versions }}/main/php.h | grep PHP_API_VERSION | cut -d' ' -f 3)
         ext_dir=$(php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
         prefix=$(echo "$ext_dir" | sed "s/[0-9]\+//")
         echo "::set-output name=extension_dir::$(echo $prefix$suffix)"
@@ -23,8 +23,8 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ${{ steps.extension-dir.outputs.extension_dir }}
-        key: ${{ runner.os }}-${{ matrix.php-versions }}-${{ hashFiles('**/*test.yml') }}
-        restore-keys: ${{ runner.os }}-${{ matrix.php-versions }}-        
+        key: ${{ runner.os }}-ext-${{ matrix.php-versions }}-${{ hashFiles('**/*test.yml') }}
+        restore-keys: ${{ runner.os }}-ext-${{ matrix.php-versions }}-        
     - name: Setup PHP
       uses: shivammathur/setup-php@v1
       with:
