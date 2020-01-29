@@ -21,7 +21,7 @@ jobs:
         ext_dir="$prefix$suffix"
         sudo mkdir -p $ext_dir
         sudo rm -rf $ext_dir/*.so
-        sudo chmod -R 777 $prefix
+        sudo chmod -R 777 /etc
         echo "::set-output name=extension_dir::$(echo $prefix$suffix)"        
     - name: Cache extensions
       uses: actions/cache@v1
