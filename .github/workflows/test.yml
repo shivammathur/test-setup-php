@@ -23,7 +23,7 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ${{ steps.extension-dir.outputs.extension_dir }}
-        key: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ hashFiles('**/*test.yml') }}
+        key: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-5f24b50e9f2b36025ede6390ae8eba66be960db15fc4e4addbd93016dd599688
         restore-keys: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-5f24b50e9f2b36025ede6390ae8eba66be960db15fc4e4addbd93016dd599688
     - name: Install requirements for imagick
       run: brew install pkg-config imagemagick
