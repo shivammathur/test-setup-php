@@ -6,32 +6,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
-        php-versions: ['7.2', '7.3', '7.4']
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Get Extension Directory
-      shell: bash
-      id: extension-dir
-      run: |        
-        suffix=$(curl -sSL --retry 5 https://raw.githubusercontent.com/php/php-src/PHP-${{ matrix.php-versions }}/main/php.h | grep "PHP_API_VERSION" | cut -d' ' -f 3)
-        ext_dir="/usr/local/lib/php/pecl/$suffix"
-        echo "::set-output name=extension_dir::$ext_dir"   
-    - name: Cache extensions
-      uses: actions/cache@v1
-      with:
-        path: ${{ steps.extension-dir.outputs.extension_dir }}
-        key: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-5f24b50e9f2b36025ede6390ae8eba66be960db15fc4e4addbd93016dd599688
-        restore-keys: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-5f24b50e9f2b36025ede6390ae8eba66be960db15fc4e4addbd93016dd599688
-    - name: Install requirements for imagick
-      run: brew install pkg-config imagemagick
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v1
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: mbstring, intl, json, yaml, apcu, imagick, igbinary, msgpack-beta, redis
+    -   name: Setup PHP
+        uses: shivammathur/setup-php@v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: pecl
+          extensions: mbstring, bcmath, intl, gd, zip, rdkafka
     - name: Check PHP version
       run: php -v
     - name: Check PHP extensions
