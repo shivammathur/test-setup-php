@@ -15,7 +15,7 @@ jobs:
     - name: Install librdkafka
       run: sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y librdkafka-dev || brew install librdkafka
     - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@v1
       with:
         php-version: ${{ matrix.php-versions }}
         tools: pecl
