@@ -16,14 +16,7 @@ jobs:
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-    - name: Check PHP version
-      run: php -v
-    - name: Install Xdebug
-      run: |
-        if(${{ matrix.php-versions }} -eq 7.1) { $VC = '14' } else { $VC = '15' } 
-        $URL = "https://xdebug.org/files/php_xdebug-2.9.2-${{ matrix.php-versions }}-nts-vc$VC-x86_64.dll"
-        Invoke-WebRequest -UseBasicParsing -Uri $URL -OutFile C:\tools\php\ext
-        Enable-PhpExtension -Extension xdebug -Path C:\tools\php
+        extensions: xdebug  
     - name: Check PHP version
       run: php -v
     - name: Check PHP extensions
