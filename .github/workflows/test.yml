@@ -6,20 +6,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, macos-latest]
-        php-versions: ['7.4']
+        operating-system: [windows-latest]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Install librdkafka
-      run: sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y librdkafka-dev || brew install librdkafka
     - name: Setup PHP
       uses: shivammathur/setup-php@v1
       with:
-        php-version: ${{ matrix.php-versions }}
-        tools: pecl
-        extensions: rdkafka
+        php-version: ${{ matrix.php-versions }}        
+        extensions: xdebug
     - name: Check PHP version
       run: php -v
     - name: Check PHP extensions
