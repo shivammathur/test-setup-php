@@ -16,9 +16,10 @@ jobs:
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}        
-        extensions: xdebug
       env:
         PHPTS: 'ts'
+    - name: Install Xdebug
+      run: Install-PhpExtension -Extension xdebug -Version 2.9.0
     - name: Check PHP version
       run: php -v
     - name: Check PHP extensions
