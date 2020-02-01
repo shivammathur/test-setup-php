@@ -1,4 +1,4 @@
-name: Test extensions #cache1
+name: Test extensions
 on: [push]
 jobs:
   run:
@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
         php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
@@ -14,30 +14,31 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+
     - name: Get Extension Directory
       id: extensioninfo
       shell: bash
-      run: |      
-        ext_dir='C:\\tools\\php\\ext'
-        ext_hash=$(echo -n "${{ env.extensions }}" | sha256sum | cut -d ' ' -f 1)                   
-        echo "::set-output name=ext_dir::$(echo $ext_dir)"
-        echo "::set-output name=ext_hash::$ext_hash"
+      run: curl -sSL https://git.io/Jv3jG | bash -s "${{ env.extensions }}" ${{ matrix.php-versions }}
+
     - name: Cache extensions
       uses: actions/cache@v1
       with:
         path: ${{ steps.extensioninfo.outputs.ext_dir }}
         key: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
         restore-keys: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
+
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: ${{ env.extensions }}
+
     - name: Check PHP version
       run: |
         php -v
         php -r "echo 'mbstring: ' . phpversion('mbstring') .' ';"
         php -r "echo 'msgpack: ' . phpversion('msgpack') .' ';"
         php -r "echo 'xdebug: ' . phpversion('xdebug') .' ';"
+
     - name: Check PHP extensions
       run: php -m
