@@ -6,18 +6,38 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        operating-system: [macos-latest]
+        php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    env:
+      extensions: msgpack-beta, xdebug-beta
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+    - name: Get Extension Directory
+      shell: bash
+      id: extensioninfo
+      run: |        
+        suffix=$(curl -sSL --retry 5 https://raw.githubusercontent.com/php/php-src/PHP-${{ matrix.php-versions }}/main/php.h | grep "PHP_API_VERSION" | cut -d' ' -f 3)
+        ext_dir="/usr/local/lib/php/pecl/$suffix"
+        ext_hash=$(echo -n "${{ env.extensions }}" | shasum -a 256 | cut -d ' ' -f 1)
+        echo "::set-output name=ext_dir::$ext_dir"
+        echo "::set-output name=ext_hash::$ext_hash"
+    - name: Cache extensions
+      uses: actions/cache@v1
+      with:
+        path: ${{ steps.extensioninfo.outputs.ext_dir }}
+        key: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
+        restore-keys: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
     - name: Setup PHP
       uses: shivammathur/setup-php@v1
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: xdebug  
+        extensions: ${{ env.extensions }}
     - name: Check PHP version
-      run: php -v
+      run: |
+        php -v
+        php -r "echo 'msgpack: ' . phpversion('msgpack') .' ';"
+        php -r "echo 'xdebug: ' . phpversion('xdebug') .' ';"
     - name: Check PHP extensions
       run: php -m
