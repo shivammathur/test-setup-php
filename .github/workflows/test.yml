@@ -10,7 +10,7 @@ jobs:
         php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: mbstring, xdebug-beta, msgpack-beta
+      extensions: xsl, xdebug-beta, msgpack-beta
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -18,7 +18,7 @@ jobs:
       id: extensioninfo
       shell: bash
       run: |      
-        ext_dir=C:\tools\php\ext
+        ext_dir='C:\\tools\\php\\ext'
         ext_hash=$(echo -n "${{ env.extensions }}" | sha256sum | cut -d ' ' -f 1)                   
         echo "::set-output name=ext_dir::$(echo $ext_dir)"
         echo "::set-output name=ext_hash::$ext_hash"
