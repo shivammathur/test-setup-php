@@ -18,7 +18,7 @@ jobs:
     - name: Get Extension Directory
       id: extensioninfo
       shell: bash
-      run: curl -sSL https://git.io/Jv3jG | bash -s "${{ env.extensions }}" ${{ matrix.php-versions }}
+      run: curl -sSL https://git.io/JvseP | bash -s "${{ env.extensions }}" ${{ matrix.php-versions }}
 
     - name: Cache extensions
       uses: actions/cache@v1
