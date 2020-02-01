@@ -39,6 +39,7 @@ jobs:
     - name: Check PHP version
       run: |
         php -v
+        php -r "echo 'mbstring: ' . phpversion('mbstring') .' ';"
         php -r "echo 'msgpack: ' . phpversion('msgpack') .' ';"
         php -r "echo 'xdebug: ' . phpversion('xdebug') .' ';"
     - name: Check PHP extensions
