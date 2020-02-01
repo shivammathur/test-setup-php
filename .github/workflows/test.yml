@@ -5,15 +5,10 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [macos-latest]
-    name: Test openssl@1.0
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+    name: Test openssl
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
-    - name: Install openssl
-      run: |
-        brew tap shivammathur/homebrew-openssl-deprecated
-        brew install openssl@1.0
-        sudo cp -rf /usr/local/opt/openssl@1.0/* /usr/local/opt/openssl
-        brew install openssl
-        ls /usr/local/opt/openssl/lib
+      uses: actions/checkout@v2
+    - name: Check      
+      run: echo -n "apple, mango" | openssl dgst -sha256 | cut -d ' ' -f 2
