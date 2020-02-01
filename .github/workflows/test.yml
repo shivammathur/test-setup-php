@@ -15,7 +15,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Get Extension Directory
-      shell: bash
       id: extensioninfo
       run: |        
         suffix=$(curl -sSL --retry 5 https://raw.githubusercontent.com/php/php-src/PHP-${{ matrix.php-versions }}/main/php.h | grep "PHP_API_VERSION" | cut -d' ' -f 3)
