@@ -21,6 +21,6 @@ jobs:
           php-version: ${{ matrix.php-versions }}
           tools: cs2pr
       - name: Patch cs2pr
-        run: sed -i 's/\r$//' /usr/local/bin/cs2pr || sed -i '' 's/\r$//' /usr/local/bin/cs2pr
+        run: sudo sed -i 's/\r$//' /usr/local/bin/cs2pr || sudo sed -i '' 's/\r$//' /usr/local/bin/cs2pr
       - name: Testing Tools
         run: cs2pr version
