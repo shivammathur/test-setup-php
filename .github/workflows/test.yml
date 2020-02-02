@@ -13,35 +13,12 @@ jobs:
         php-versions: ['7.4']
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
-        with:
-          fetch-depth: 1
+        uses: actions/checkout@v2
 
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, codeception, phpunit, deployer, prestissimo, pecl
-      - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+          tools: cs2pr
       - name: Testing Tools
-        run: |      
-          composer -V
-          php-cs-fixer -V
-          phpcs --version
-          phpcbf --version
-          phpcpd -V
-          phpstan -V          
-          codeception -V
-          phpunit --version
-          deployer -V
-      - name: Test phpmd on windows
-        if: matrix.operating-system == 'windows-latest'      
-        run: |
-          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
-          phpmd $RUNNER_TOOL_CACHE\test.php text cleancode
-      - name: Test phpmd
-        if: matrix.operating-system != 'windows-latest'      
-        run: |
-          echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
-          phpmd $RUNNER_TOOL_CACHE/test.php text cleancode          
+        run: cs2pr version
