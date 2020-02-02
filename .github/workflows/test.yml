@@ -1,4 +1,4 @@
-name: Test extensions #check cache
+name: Test extensions #check cache intl
 on: [push]
 jobs:
   run:
@@ -36,7 +36,7 @@ jobs:
     - name: Check PHP version
       run: |
         php -v
-        php -r "echo 'mbstring: ' . phpversion('intl') .' ';"
+        php -r "echo 'intl: ' . phpversion('intl') .' ';"
 
     - name: Check PHP extensions
       run: php -m
