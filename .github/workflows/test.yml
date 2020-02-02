@@ -10,7 +10,7 @@ jobs:
         php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: xsl, xdebug-beta, msgpack-beta
+      extensions: intl
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -36,9 +36,7 @@ jobs:
     - name: Check PHP version
       run: |
         php -v
-        php -r "echo 'mbstring: ' . phpversion('mbstring') .' ';"
-        php -r "echo 'msgpack: ' . phpversion('msgpack') .' ';"
-        php -r "echo 'xdebug: ' . phpversion('xdebug') .' ';"
+        php -r "echo 'mbstring: ' . phpversion('intl') .' ';"
 
     - name: Check PHP extensions
       run: php -m
