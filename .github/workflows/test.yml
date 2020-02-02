@@ -27,7 +27,7 @@ jobs:
         key: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
         restore-keys: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
     - name: Install dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$(apt-cache depends php${{ matrix.php-versions }}-intl | awk '/Depends:/{print$2}')"
+      run: sudo apt-get install `apt-cache depends php${{ matrix.php-versions }}-intl | awk '/Depends:/{print$2}'`
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
