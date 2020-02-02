@@ -20,7 +20,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           tools: cs2pr
-      - name: Check env
-        run: env php -v
-      #- name: Testing Tools
-      #  run: cs2pr version
+      - name: Patch cs2pr
+        run: sed -i 's/\r$//' /usr/local/bin/cs2pr || sed -i '' 's/\r$//' /usr/local/bin/cs2pr
+      - name: Testing Tools
+        run: cs2pr version
