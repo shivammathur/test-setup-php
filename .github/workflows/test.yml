@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-latest]
         php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
@@ -26,7 +26,8 @@ jobs:
         path: ${{ steps.extensioninfo.outputs.ext_dir }}
         key: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
         restore-keys: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
-
+    - name: Install dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y "$(apt-cache depends php${{ matrix.php-versions }}-intl | awk '/Depends:/{print$2}')"
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
