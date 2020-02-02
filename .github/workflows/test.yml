@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, macOS-latest]
+        operating-system: [macOS-latest]
         php-versions: ['7.4']
     steps:
       - name: Checkout
@@ -21,6 +21,6 @@ jobs:
           php-version: ${{ matrix.php-versions }}
           tools: cs2pr
       - name: Patch cs2pr
-        run: sudo sed -i 's/\r$//; s/exit(9)/exit(0)/' /usr/local/bin/cs2pr || sudo sed -i '' 's/\r$//; s/exit(9)/exit(0)/' /usr/local/bin/cs2pr
+        run: sudo sed -i '' 's/\r$//; s/exit(9)/exit(0)/' /usr/local/bin/cs2pr
       - name: Testing Tools
         run: cs2pr version
