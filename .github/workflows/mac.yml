@@ -39,14 +39,16 @@ jobs:
         curl -o pear.phar -sSL https://github.com/pear/pearweb_phars/raw/master/install-pear-nozlib.phar
         sudo TERM=xterm php pear.phar -d /usr/local/lib/php -b /usr/local/bin
         sudo rm -rf port.pkg pear.phar
-        ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")        
+        ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+        sudo chmod 777 "$ini_file"
         echo "date.timezone=UTC" >>"$ini_file"
         php_h="https://raw.githubusercontent.com/php/php-src/PHP-$version/main/php.h"
-        new_ext_dir="/usr/local/lib/php/pecl/$(curl -sSL --retry 5 "$php_h" | grep "PHP_API_VERSION" | cut -d' ' -f 3)"
+        apiv=$(curl -sSL --retry 5 "$php_h" | grep "PHP_API_VERSION" | cut -d' ' -f 3)
+        new_ext_dir="/usr/local/lib/php/pecl/$apiv"
         sudo mkdir -p $new_ext_dir
         ext_dir=$(php -i | grep "extension_dir => /opt" | sed -e "s|.*=> s*||")
-        cp -r $ext_dir/* $new_ext_dir
-        echo "extension_dir=$new_ext_dir" | sudo tee -a $ini_file
+        sudo cp -r $ext_dir/* $new_ext_dir
+        echo "extension_dir=$new_ext_dir" >>"$ini_file"
         for tool in pear pecl; do
           sudo "$tool" config-set php_ini "$ini_file"
           sudo "$tool" config-set auto_discover 1
