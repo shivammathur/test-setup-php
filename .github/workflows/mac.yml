@@ -15,6 +15,8 @@ jobs:
     - name: Install PHP
       run: |
         v=${version/./}
+        curl -o pear.phar -SL https://github.com/pear/pearweb_phars/raw/master/install-pear-nozlib.phar
+        sudo php pear.phar -d /usr/local/lib/php -b /usr/local/bin || echo 'could not install pear'
         curl -o port.pkg -sSL https://github.com/macports/macports-base/releases/download/v2.6.2/MacPorts-2.6.2-10.15-Catalina.pkg
         sudo installer -pkg port.pkg -target /        
         export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
@@ -37,8 +39,6 @@ jobs:
         sudo port select --set php php$v
         sudo mkdir -p /usr/local/bin        
         sudo ln -sf /opt/local/bin/* /usr/local/bin
-        curl -o pear.phar -SL https://github.com/pear/pearweb_phars/raw/master/install-pear-nozlib.phar
-        sudo php pear.phar -d /usr/local/lib/php -b /usr/local/bin || echo 'could not install pear'
         sudo rm -rf port.pkg 
         sudo rm -rf pear.phar
         ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
