@@ -17,9 +17,10 @@ jobs:
         curl -o port.pkg -sSL https://github.com/macports/macports-base/releases/download/v2.6.2/MacPorts-2.6.2-10.15-Catalina.pkg
         sudo installer -pkg port.pkg -target /
         export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
-        while true; do 
-          sudo port -v sync
-          if [[ "$?" -eq 0 ]]; then 
+        while true; do
+          status=0
+          sudo port -v sync || status=$?          
+          if [[ "$status" -eq 0 ]]; then 
             break
           fi
         done        
@@ -33,6 +34,7 @@ jobs:
         fi
         sudo port select --set php php$v
         sudo mkdir -p /usr/local/bin
+        sudo ln -sf /opt/local/lib/php/pear/bin/* /usr/local/bin
         sudo ln -sf /opt/local/bin/* /usr/local/bin
       env:
         v: ${{ matrix.php-versions }}
