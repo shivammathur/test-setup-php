@@ -29,6 +29,7 @@ jobs:
           sudo port install php$v-cgi php$v-gd php$v-curl php$v-iconv php$v-gettext php$v-mbstring php$v-imap php$v-mcrypt php$v-xmlrpc php$v-mysql php$v-openssl php$v-sockets php$v-zip php$v-tidy php$v-xsl php$v-opcache php$v-sqlite
         else
           sudo cp /opt/local/etc/php$v/php.ini-recommended /opt/local/etc/php$v/php.ini
+          sed -i '' '/extension_dir/d' /opt/local/etc/php$v/php.ini
           sudo port install php$v-cgi php$v-gd php$v-curl php$v-iconv php$v-gettext php$v-mbstring php$v-imap php$v-mcrypt php$v-xmlrpc php$v-mysql php$v-openssl php$v-sockets php$v-zip php$v-tidy php$v-xsl
         fi
         sudo port select --set php php$v
