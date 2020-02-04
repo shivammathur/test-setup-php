@@ -18,7 +18,8 @@ jobs:
         sudo installer -pkg port.pkg -target /
         export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
         sudo port selfupdate
-        sudo port install php$v php$v-cgi php$v-gd php$v-curl php$v-iconv php$v-gettext php$v-mbstring php$v-imap php$v-mcrypt php$v-xmlrpc php$v-mysql php$v-openssl php$v-sockets php$v-zip php$v-tidy php-opcache php$v-xsl php$v-sqlite
+        sudo port install php$v php$v-cgi php$v-gd php$v-curl php$v-iconv php$v-gettext php$v-mbstring php$v-imap php$v-mcrypt php$v-xmlrpc php$v-mysql php$v-openssl php$v-sockets php$v-zip php$v-tidy php$v-xsl
+        if [ "$v" != "52" ]; then sudo port install php$v-opcache php$v-sqlite; fi
         sudo cp /opt/local/etc/php$v/php.ini-development /opt/local/etc/php$v/php.ini
         sudo port select php php$v
         sudo mkdir -p /usr/local/bin
