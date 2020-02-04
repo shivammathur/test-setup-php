@@ -15,26 +15,29 @@ jobs:
     - name: Install PHP
       run: |
         v=${version/./}
-        curl -o pear.phar -SL https://github.com/pear/pearweb_phars/raw/master/install-pear-nozlib.phar
-        sudo php pear.phar -d /usr/local/lib/php -b /usr/local/bin || echo 'could not install pear'
-        curl -o port.pkg -sSL https://github.com/macports/macports-base/releases/download/v2.6.2/MacPorts-2.6.2-10.15-Catalina.pkg
-        sudo installer -pkg port.pkg -target /        
         export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
-        export TERM=xterm
-        while true; do
-          status=0
-          sudo port -v sync || status=$?          
-          if [[ "$status" -eq 0 ]]; then 
-            break
-          fi
-        done        
+        export TERM=xterm        
+        curl -o pear.phar -SL https://github.com/pear/pearweb_phars/raw/master/install-pear-nozlib.phar
+        sudo php pear.phar -d /usr/local/lib/php -b /usr/local/bin
+        curl -o port.pkg -sSL https://github.com/macports/macports-base/releases/download/v2.6.2/MacPorts-2.6.2-10.15-Catalina.pkg
+        sudo installer -pkg port.pkg -target /
+        php_port=$(sudo port search --name --line --regex '^php\d*$' | grep "php$v")
+        if [ -n "$php_port" ]; then
+          while true; do
+            status=0
+            sudo port -v sync || status=$?
+            if [[ "$status" -eq 0 ]]; then
+              break
+            fi
+          done
+        fi
         sudo port install php$v php$v-cgi php$v-gd php$v-curl php$v-iconv php$v-gettext php$v-mbstring php$v-imap php$v-mcrypt php$v-xmlrpc php$v-mysql php$v-openssl php$v-sockets php$v-zip php$v-tidy php$v-xsl
         if [ "$v" != "52" ]; then
           sudo cp /opt/local/etc/php$v/php.ini-development /opt/local/etc/php$v/php.ini
           sudo port install php$v-opcache php$v-sqlite
         else
           sudo cp /opt/local/etc/php$v/php.ini-recommended /opt/local/etc/php$v/php.ini
-          sudo sed -i '' '/extension_dir/d' /opt/local/etc/php$v/php.ini        
+          sudo sed -i '' '/extension_dir/d' /opt/local/etc/php$v/php.ini
         fi
         sudo port select --set php php$v
         sudo mkdir -p /usr/local/bin        
@@ -42,19 +45,10 @@ jobs:
         sudo rm -rf port.pkg 
         sudo rm -rf pear.phar
         ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-        sudo chmod 777 "$ini_file" || echo "could not change permissions"
-        echo "date.timezone=UTC" >>"$ini_file"
-        php_h="https://raw.githubusercontent.com/php/php-src/PHP-$version/main/php.h"
-        apiv=$(curl -sSL --retry 5 "$php_h" | grep "PHP_API_VERSION" | cut -d' ' -f 3)
-        new_ext_dir="/usr/local/lib/php/pecl/$apiv"
-        sudo mkdir -p $new_ext_dir || echo "could not make ext_dir"
-        ext_dir=$(php -i | grep -Ei "extension_dir => /(opt|usr)" | sed -e "s|.*=> s*||")
-        sudo cp -r "$ext_dir"/* "$new_ext_dir" || echo "could not copy"
-        echo "extension_dir=$new_ext_dir" >>"$ini_file"
-        php -i | grep -Ei "extension_dir => /(opt|usr)" | sed -e "s|.*=> s*||"
+        sudo chmod 777 "$ini_file"
+        echo "date.timezone=UTC" >>"$ini_file"                              
         for tool in pear pecl; do
-          sudo "$tool" config-set php_ini "$ini_file"
-          sudo "$tool" config-set ext_dir "$new_ext_dir"
+          sudo "$tool" config-set php_ini "$ini_file"          
         done
         pecl config-show
       env:
