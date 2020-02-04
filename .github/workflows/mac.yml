@@ -21,8 +21,9 @@ jobs:
         sudo php pear.phar -d /usr/local/lib/php -b /usr/local/bin
         curl -o port.pkg -sSL https://github.com/macports/macports-base/releases/download/v2.6.2/MacPorts-2.6.2-10.15-Catalina.pkg
         sudo installer -pkg port.pkg -target /
-        php_port=$(sudo port search --name --line --regex '^php\d*$' | grep "php$v")
-        if [ -n "$php_port" ]; then
+        sync='false'
+        php_port=$(sudo port search --name --line --regex '^php\d*$' | grep "php$v" || sync='true')
+        if [ -n "$php_port" ] || [ "$sync" = "true" ]; then
           while true; do
             status=0
             sudo port -v sync || status=$?
