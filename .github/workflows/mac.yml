@@ -19,17 +19,13 @@ jobs:
         export TERM=xterm
         curl -o port.pkg -sSL https://github.com/macports/macports-base/releases/download/v2.6.2/MacPorts-2.6.2-10.15-Catalina.pkg
         sudo installer -pkg port.pkg -target /
-        sync='false'
-        php_port=$(sudo port search --name --line --regex '^php\d*$' | grep "php$v" || sync='true')
-        if [ -n "$php_port" ] || [ "$sync" = "true" ]; then
-          while true; do
-            status=0
-            sudo port -v sync || status=$?
-            if [[ "$status" -eq 0 ]]; then
-              break
-            fi
-          done
-        fi
+        while true; do
+          status=0
+          sudo port -v sync || status=$?
+          if [[ "$status" -eq 0 ]]; then
+            break
+          fi
+        done      
         sudo port install php$v php$v-cgi php$v-gd php$v-curl php$v-iconv php$v-gettext php$v-mbstring php$v-imap php$v-mcrypt php$v-xmlrpc php$v-mysql php$v-openssl php$v-sockets php$v-zip php$v-tidy php$v-xsl
         pecl_version='master'
         if [ "$v" != "52" ]; then
@@ -51,10 +47,6 @@ jobs:
         ext_dir=$(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")        
         curl -o pear.phar -SL https://github.com/pear/pearweb_phars/raw/$pecl_version/install-pear-nozlib.phar
         sudo php pear.phar -d /opt/local/lib/php$v -b /usr/local/bin || echo 'could not install pear'
-        for tool in pear pecl; do
-          sudo "$tool" config-set php_ini "$ini_file"
-          sudo "$tool" channel-update "$tool".php.net
-        done
         pecl config-show
         echo "ext_dir: $ext_dir"
         sudo rm -rf port.pkg 
@@ -65,6 +57,8 @@ jobs:
       continue-on-error: true
       run: |
         v=${version/./}     
+        ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+        ext_dir=$(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")            
         if [ "$v" = "52" ] || [ "$v" = "53" ]; then
           sudo pecl install xdebug-2.2.7
         elif [ "$v" = "54" ]; then
@@ -72,6 +66,8 @@ jobs:
         elif [ "$v" = "55" ]; then
           sudo pecl install xdebug-2.5.5
         fi
+        echo "zend_extension=$ext_dir/xdebug.so" >>"$ini_file"
+        tail -n 20 "$ini_file"
       env:
         version: ${{ matrix.php-versions }}
     - name: Testing PHP version
