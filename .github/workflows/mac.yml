@@ -16,11 +16,13 @@ jobs:
       run: |
         curl -o port.pkg -sSL https://github.com/macports/macports-base/releases/download/v2.6.2/MacPorts-2.6.2-10.15-Catalina.pkg
         sudo installer -pkg port.pkg -target /
-        export PATH="/opt/local/bin:/opt/local/sbin:$PATH" >> ~/.bash_profile && source ~/.bash_profile
+        export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
         sudo port selfupdate
         sudo port install php$v php$v-cgi php$v-gd php$v-curl php$v-iconv php$v-gettext php$v-mbstring php$v-imap php$v-mcrypt php$v-xmlrpc php$v-mysql php$v-openssl php$v-sockets php$v-zip php$v-tidy php-opcache php$v-xsl php$v-sqlite
         sudo cp /opt/local/etc/php$v/php.ini-development /opt/local/etc/php$v/php.ini
-        sudo port select php php$v        
+        sudo port select php php$v
+        sudo mkdir -p /usr/local/bin
+        sudo ln -sf /opt/local/bin/* /usr/local/bin
         php -v
         php -m
       env:
