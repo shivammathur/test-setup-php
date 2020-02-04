@@ -15,7 +15,7 @@ jobs:
     - name: Install PHP
       run: |
         curl -o port.pkg -sSL https://github.com/macports/macports-base/releases/download/v2.6.2/MacPorts-2.6.2-10.15-Catalina.pkg
-        sudo installer -pkg port.pkg -target /
+        sudo installer -pkg port.pkg -target /        
         export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
         while true; do
           status=0
@@ -36,12 +36,11 @@ jobs:
         sudo mkdir -p /usr/local/bin
         sudo ln -sf /opt/local/lib/php/pear/bin/* /usr/local/bin
         sudo ln -sf /opt/local/bin/* /usr/local/bin
+        curl -o pear.phar -sSL https://github.com/pear/pearweb_phars/raw/master/install-pear-nozlib.phar
+        sudo php pear.phar -d /usr/local/lib/php -b /usr/local/bin
+        sudo rm -rf port.pkg pear.phar
       env:
         v: ${{ matrix.php-versions }}
-    - name: Testing PHP version
-      run: php -v
-    - name: Testing PHP extensions
-      run: php -m
     - name: Test PECL
       continue-on-error: true
       env:
@@ -54,3 +53,7 @@ jobs:
         elif [ "$v" != "55" ]; then
           sudo pecl install xdebug-2.5.5
         fi
+    - name: Testing PHP version
+      run: php -v
+    - name: Testing PHP extensions
+      run: php -m        
