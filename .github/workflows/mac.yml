@@ -16,6 +16,7 @@ jobs:
       run: |
         curl -o port.pkg -sSL https://github.com/macports/macports-base/releases/download/v2.6.2/MacPorts-2.6.2-10.15-Catalina.pkg
         sudo installer -pkg port.pkg -target /
+        export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
         sudo port install php${{ matrix.php-versions }}      
         sudo cp /opt/local/etc/php${{ matrix.php-versions }}/php.ini-development /opt/local/etc/php${{ matrix.php-versions }}/php.ini
     - name: Testing PHP version
