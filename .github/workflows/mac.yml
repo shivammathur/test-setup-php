@@ -7,7 +7,7 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [macos-latest]
-        php-versions: ['52', '53', '54', '55', '74']      
+        php-versions: ['52', '53', '54', '55']      
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -18,9 +18,11 @@ jobs:
         sudo installer -pkg port.pkg -target /
         export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
         sudo port selfupdate
-        sudo port install php$v php$v-cgi php$v-gd php$v-curl php$v-intl php$v-iconv php$v-gettext php$v-mbstring php$v-imap php$v-mcrypt php$v-xmlrpc php$v-mysql php$v-openssl php$v-sockets php$v-zip php$v-tidy php$v-opcache php$v-xsl php$v-sqlite
+        sudo port install php$v php$v-cgi php$v-gd php$v-curl php$v-iconv php$v-gettext php$v-mbstring php$v-imap php$v-mcrypt php$v-xmlrpc php$v-mysql php$v-openssl php$v-sockets php$v-zip php$v-tidy php$v-opcache php$v-xsl php$v-sqlite
         sudo cp /opt/local/etc/php$v/php.ini-development /opt/local/etc/php$v/php.ini
         sudo port select php php$v
+        php -v
+        php -m
       env:
         v: ${{ matrix.php-versions }}
     - name: Testing PHP version
