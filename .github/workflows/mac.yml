@@ -7,13 +7,14 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [macos-latest]
-        php-versions: ['52', '53', '54', '55']      
+        php-versions: ['5.2', '5.3', '5.4', '5.5']      
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Install PHP
       run: |
+        v=${version/./}
         curl -o port.pkg -sSL https://github.com/macports/macports-base/releases/download/v2.6.2/MacPorts-2.6.2-10.15-Catalina.pkg
         sudo installer -pkg port.pkg -target /        
         export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
@@ -33,19 +34,30 @@ jobs:
           sudo sed -i '' '/extension_dir/d' /opt/local/etc/php$v/php.ini        
         fi
         sudo port select --set php php$v
-        sudo mkdir -p /usr/local/bin
-        sudo ln -sf /opt/local/lib/php/pear/bin/* /usr/local/bin
+        sudo mkdir -p /usr/local/bin        
         sudo ln -sf /opt/local/bin/* /usr/local/bin
         curl -o pear.phar -sSL https://github.com/pear/pearweb_phars/raw/master/install-pear-nozlib.phar
-        sudo php pear.phar -d /usr/local/lib/php -b /usr/local/bin
+        sudo TERM=xterm php pear.phar -d /usr/local/lib/php -b /usr/local/bin
         sudo rm -rf port.pkg pear.phar
+        ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")        
+        echo "date.timezone=UTC" >>"$ini_file"
+        php_h="https://raw.githubusercontent.com/php/php-src/PHP-$version/main/php.h"
+        new_ext_dir="/usr/local/lib/php/pecl/$(curl -sSL --retry 5 "$php_h" | grep "PHP_API_VERSION" | cut -d' ' -f 3)"
+        sudo mkdir -p $new_ext_dir
+        ext_dir=$(php -i | grep "extension_dir => /opt" | sed -e "s|.*=> s*||")
+        cp -r $ext_dir/* $new_ext_dir
+        echo "extension_dir=$new_ext_dir" | sudo tee -a $ini_file
+        for tool in pear pecl; do
+          sudo "$tool" config-set php_ini "$ini_file"
+          sudo "$tool" config-set auto_discover 1
+          sudo "$tool" channel-update "$tool".php.net
+        done 
       env:
-        v: ${{ matrix.php-versions }}
+        version: ${{ matrix.php-versions }}
     - name: Test PECL
       continue-on-error: true
-      env:
-        v: ${{ matrix.php-versions }}
       run: |
+        v=${version/./}     
         if [ "$v" != "52" ] || [ "$v" != "53" ]; then
           sudo pecl install xdebug-2.3.3
         elif [ "$v" != "54" ]; then
@@ -53,6 +65,8 @@ jobs:
         elif [ "$v" != "55" ]; then
           sudo pecl install xdebug-2.5.5
         fi
+      env:
+        version: ${{ matrix.php-versions }}
     - name: Testing PHP version
       run: php -v
     - name: Testing PHP extensions
