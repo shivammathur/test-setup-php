@@ -17,7 +17,12 @@ jobs:
         curl -o port.pkg -sSL https://github.com/macports/macports-base/releases/download/v2.6.2/MacPorts-2.6.2-10.15-Catalina.pkg
         sudo installer -pkg port.pkg -target /
         export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
-        sudo port -v sync
+        while true; do 
+          sudo port -v sync
+          if [[ "$?" -eq 0 ]]; then 
+            break
+          fi
+        done        
         sudo port install php$v
         if [ "$v" != "52" ]; then
           sudo cp /opt/local/etc/php$v/php.ini-development /opt/local/etc/php$v/php.ini
