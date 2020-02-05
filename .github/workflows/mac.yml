@@ -16,7 +16,7 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}        
-        extensions: xdebug, mbstring, xml
+        extensions: xdebug, mbstring, xml, amf
     - name: check unbuilt extensions
       run: ls $(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
     - name: check ini
