@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-latest]        
+        operating-system: [windows-latest]        
         php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -16,12 +16,8 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}        
-        extensions: xdebug, mbstring, xml, amf
+        extensions: xdebug, mbstring, xml
         ini-values: post_max_size=256M
-    - name: check unbuilt extensions
-      run: ls $(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
-    - name: check ini
-      run: cat $(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
     - name: Testing PHP version
       run: |
         php -v
