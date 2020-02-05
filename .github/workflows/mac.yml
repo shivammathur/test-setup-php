@@ -17,9 +17,13 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: xdebug
+    - name: Check script
+      run: cat /Users/runner/hostedtoolcache/darwin.sh
     - name: Testing PHP version
       run: |
         php -v
         php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
     - name: Testing PHP extensions
-      run: php -m        
+      run: |
+        php -m
+        php -r "if(! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
