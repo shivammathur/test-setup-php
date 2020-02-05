@@ -7,11 +7,11 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [macos-latest]
-        php-versions: ['5.5']      
+        php-versions: ['5.2', '5.3', '5.4', '5.5']      
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v1
     - name: Install PHP
       uses: shivammathur/setup-php@v2
       with:
