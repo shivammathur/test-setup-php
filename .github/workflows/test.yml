@@ -1,33 +1,32 @@
-name: Experimental workflow
-on:
-  push:
+name: Test workflow
+on: [push]
 jobs:
-  run:
-    name: Run
+  run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
-      matrix:
-        operating-system: [windows-latest]
-        php-versions: ['8.0']
-        coverage: [xdebug, pcov, none]
+      matrix:      
+        operating-system: [macos-latest]
+        php-versions: ['5.3', '5.4', '5.5']
+        #php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
-        uses: shivammathur/setup-php@v1
-        with:
-          php-version: ${{ matrix.php-versions }}
-          coverage: ${{ matrix.coverage }}
-      - name: Test Opcache
-        run: php -r "if(! extension_loaded('Zend OPcache')) {throw new Exception('Zend OPcache not found');}"      
-      - name: Test ini      
-        run: |
-          php -r "if(ini_get('opcache.jit_buffer_size')!='256M') {throw new Exception('opcache.jit_buffer_size not set');}"
-          php -r "if(ini_get('opcache.jit')!=1235) {throw new Exception('opcache.jit not set');}"
-          php -r "if(ini_get('pcre.jit')!=1) {throw new Exception('pcre.jit not set');}"
-      - name: Benchmark      
-        run: curl https://raw.githubusercontent.com/php/php-src/master/Zend/bench.php | php
-          
-
-          
+    - name: Checkout
+      uses: actions/checkout@v1
+    - name: Install PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-versions }}        
+        extensions: xdebug, mbstring, xml
+        ini-values: post_max_size=256M
+    - name: Testing PHP version
+      run: |
+        php -v
+        php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+    - name: Testing
+      run: |
+        php -m
+        php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
+        php -r "if(strpos(phpversion(), '8.0') === false && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
+        php -r "if(! extension_loaded('xml')) {throw new Exception('xml not found');}"
+        php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
