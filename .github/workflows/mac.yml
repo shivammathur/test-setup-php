@@ -17,6 +17,7 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}        
         extensions: xdebug, mbstring, xml, amf
+        ini-values: post_max_size=256M
     - name: check unbuilt extensions
       run: ls $(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
     - name: check ini
@@ -25,9 +26,10 @@ jobs:
       run: |
         php -v
         php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
-    - name: Testing PHP extensions
+    - name: Testing
       run: |
         php -m
+        php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
         php -r "if(strpos(phpversion(), "8.0") === false && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
         php -r "if(! extension_loaded('xml')) {throw new Exception('xml not found');}"
         php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
