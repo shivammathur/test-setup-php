@@ -28,6 +28,6 @@ jobs:
     - name: Testing PHP extensions
       run: |
         php -m
-        php -r "if(! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
+        php -r "if(phpversion()!="8.0.0-dev" && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
         php -r "if(! extension_loaded('xml')) {throw new Exception('xml not found');}"
         php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
