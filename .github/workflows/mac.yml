@@ -7,7 +7,8 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [macos-latest]
-        php-versions: ['5.2', '5.3', '5.4', '5.5']      
+        php-versions: ['5.2', '5.5']
+        #php-versions: ['5.2', '5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -17,10 +18,9 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: xdebug
-    - name: Check php.ini
-      run: tail -n 20 $(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-    - name: Check script
-      run: cat /Users/runner/hostedtoolcache/darwin.sh
+        #extensions: xdebug, mbstring, xml
+    - name: check ini
+      run: cat $(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
     - name: Testing PHP version
       run: |
         php -v
