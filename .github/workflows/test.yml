@@ -27,7 +27,7 @@ jobs:
       run: |
         php -m
         php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
-        php -r "if(strpos(phpversion(), '8.0') === false && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
+        #php -r "if(strpos(phpversion(), '8.0') === false && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
         php -r "if(! extension_loaded('xml')) {throw new Exception('xml not found');}"
         php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
         php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
