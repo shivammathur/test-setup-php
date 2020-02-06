@@ -1,30 +1,26 @@
-name: Test workflow #1.4.2
+name: Test workflow
 on: [push]
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      max-parallel: 15
-      matrix:
-        operating-system: [ubuntu-16.04]
-        php-versions: ['7.3']
-        coverage: [pcov, none]
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
+      fail-fast: false
+      matrix:      
+        operating-system: [ubuntu-16.04]        
+        php-versions: ['5.3', '5.4', '5.5']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
-      uses: actions/checkout@master
+      uses: actions/checkout@v1
     - name: Install PHP
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extension-csv: mbstring, xdebug, pcov, pnctl, intl, bcmath #optional
-        ini-values-csv: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata" #optional
-        coverage: ${{ matrix.coverage }}
-    - name: Testing PHP version
-      run: php -v
-    - name: Testing Composer version
-      run: composer -V
-    - name: Testing Extensions
       run: |
-        php -m   
-      
+        sudo add-apt-repository ppa:sergey-dryabzhinsky/php${PHP_VERSION/./}
+        sudo apt-get install php${PHP_VERSION/./}
+      env:
+        PHP_VERSION: ${{ matrix.php-versions }}
+    - name: Testing PHP version
+      run: |
+        php -v
+    - name: Testing
+      run: |
+        php -m
