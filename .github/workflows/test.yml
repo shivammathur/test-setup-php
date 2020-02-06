@@ -18,6 +18,7 @@ jobs:
         php-version: ${{ matrix.php-versions }}        
         extensions: xdebug, mbstring, xml
         ini-values: post_max_size=256M
+        coverage: none
     - name: Testing PHP version
       run: |
         php -v
