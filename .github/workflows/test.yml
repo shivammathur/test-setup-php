@@ -17,7 +17,7 @@ jobs:
         sudo add-apt-repository ppa:sergey-dryabzhinsky/php${PHP_VERSION/./}
         sudo apt-get update
         #apt-cache policy *php${PHP_VERSION/./}*
-        sudo apt-get install php${PHP_VERSION/./}p
+        sudo apt-get install *php${PHP_VERSION/./}p*
       env:
         PHP_VERSION: ${{ matrix.php-versions }}
     - name: Testing PHP version
