@@ -18,7 +18,7 @@ jobs:
       run: |
         sudo mkdir -p /var/run
         sudo mkdir -p /run/php
-        apt_install="sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades --no-upgrade"
+        apt_install="sudo DEBIAN_FRONTEND=noninteractive apt-get install -o Dpkg::Options::="--force-conflicts" -y --allow-downgrades --no-upgrade"
         universe=http://archive.ubuntu.com/ubuntu/pool/universe
         main=http://archive.ubuntu.com/ubuntu/pool/main
         lpd=http://launchpadlibrarian.net
