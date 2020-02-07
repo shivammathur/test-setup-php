@@ -30,14 +30,19 @@ jobs:
                         "$main"/d/db4.8/libdb4.8_4.8.30-11ubuntu1_amd64.deb \
                         "$main"/r/readline6/libreadline6_6.3-8ubuntu2_amd64.deb \
                         "$lpd"/59651391/libicu44_4.4.2-2_amd64.deb; do
-          wget --tries=5 "$deb_file"
-          $apt_install ./"${deb_file##*/}"
-        done  
+          wget --tries=5 "$deb_file"          
+        done
+        sudo dpkg -i *.deb && rm -rf *.deb
         echo "deb http://packages.dotdeb.org squeeze all" | sudo tee -a /etc/apt/sources.list        
         wget https://www.dotdeb.org/dotdeb.gpg
         sudo DEBIAN_FRONTEND=noninteractive apt-key add dotdeb.gpg
         sudo DEBIAN_FRONTEND=noninteractive apt-get update
-        $apt_install php5-common=$pkg php5-cli=$pkg php5-dev=$pkg php5-cgi=$pkg php5-curl=$pkg php5-intl=$pkg
+        $apt_install php5-common=$pkg 
+        $apt_install php5-cli=$pkg
+        $apt_install php5-dev=$pkg
+        $apt_install php5-cgi=$pkg
+        $apt_install php5-curl=$pkg
+        $apt_install php5-intl=$pkg
         for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
           if [ -e /usr/bin/"$tool"5 ]; then
             sudo mv /usr/bin/"$tool"5 /usr/bin/"$tool"5."$minor" >/dev/null 2>&1
