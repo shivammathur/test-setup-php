@@ -6,15 +6,30 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [ubuntu-16.04]        
-        php-versions: ['5.3.29', '5.4', '5.5']
+        operating-system: [ubuntu-latest, ubuntu-16.04]        
+        php-versions: ['5.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v1
-    - uses: nanasess/setup-php@master
-      with:
-        php-version: ${{ matrix.php-versions }}
+    - name: Install PHP
+      run: |
+        universe=http://archive.ubuntu.com/ubuntu/pool/universe
+        main=http://archive.ubuntu.com/ubuntu/pool/main
+        for deb_file in "$universe"/o/openssl098/libssl0.9.8_0.9.8o-7ubuntu3.1_amd64.deb \
+                        "$universe"/libo/libonig/libonig2_5.9.6-1_amd64.deb \
+                        "$main"/d/db4.8/libdb4.8_4.8.30-11ubuntu1_amd64.deb \
+                        "$main"/r/readline6/libreadline6_6.3-8ubuntu2_amd64.deb \
+                        "$main"/i/icu/libicu48_4.8.1.1-3ubuntu0.7_amd64.deb; do
+          curl --retry 5 -sL -O "$deb_file"
+          sudo apt-get install ./"$deb_file"
+        done  
+        echo "deb http://packages.dotdeb.org squeeze all" | sudo tee -a /etc/apt/sources.list
+        echo "deb-src http://packages.dotdeb.org squeeze all" | sudo tee -a /etc/apt/sources.list
+        wget https://www.dotdeb.org/dotdeb.gpg
+        sudo apt-key add dotdeb.gpg
+        sudo apt-get update
+        sudo apt-get install php5-common php5-cli php5-intl
     - name: Testing PHP version
       run: |
         php -v
