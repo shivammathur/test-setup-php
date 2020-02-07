@@ -30,7 +30,7 @@ jobs:
                         "$main"/d/db4.8/libdb4.8_4.8.30-11ubuntu1_amd64.deb \
                         "$main"/r/readline6/libreadline6_6.3-8ubuntu2_amd64.deb \
                         "$lpd"/59651391/libicu44_4.4.2-2_amd64.deb; do
-          curl --retry 5 -sL -O "$deb_file"
+          wget --tries=5 "$deb_file"
           $apt_install ./"${deb_file##*/}"
         done  
         echo "deb http://packages.dotdeb.org squeeze all" | sudo tee -a /etc/apt/sources.list        
