@@ -16,13 +16,12 @@ jobs:
       env:
         version: ${{ matrix.php-versions }}
       run: |
-        apt_install="sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades"
+        apt_install="sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades --no-upgrade"
         universe=http://archive.ubuntu.com/ubuntu/pool/universe
         main=http://archive.ubuntu.com/ubuntu/pool/main
         lpd=http://launchpadlibrarian.net
         minor=$(echo $version | cut -d'.' -f 2)
-        pkg=5.3.29-1~dotdeb.0
-        killall -KILL php-fpm
+        pkg=5.3.29-1~dotdeb.0        
         for deb_file in "$universe"/o/openssl098/libssl0.9.8_0.9.8o-7ubuntu3.1_amd64.deb \
                         "$universe"/libo/libonig/libonig2_5.9.6-1_amd64.deb \
                         "$universe"/c/curl3/libcurl3_7.58.0-2ubuntu2_amd64.deb \
