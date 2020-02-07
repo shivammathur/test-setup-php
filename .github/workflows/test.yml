@@ -27,7 +27,7 @@ jobs:
         lpd=http://launchpadlibrarian.net        
         for file in "$universe"/o/openssl098/libssl0.9.8_0.9.8o-7ubuntu3.1_amd64.deb \
                     "$universe"/libo/libonig/libonig2_5.9.6-1_amd64.deb \
-                    "$main"/d/db/libdb5.1_5.1.29-7ubuntu1_amd64.deb \
+                    "$universe"/d/db/libdb5.1_5.1.29-7ubuntu1_amd64.deb \
                     "$main"/r/readline6/libreadline6_6.3-8ubuntu2_amd64.deb \
                     "$main"/i/icu/libicu48_4.8.1.1-3ubuntu0.7_amd64.deb \
                     https://www.dotdeb.org/dotdeb.gpg; do
