@@ -32,7 +32,7 @@ jobs:
                         "$lpd"/59651391/libicu44_4.4.2-2_amd64.deb; do
           wget --tries=5 "$deb_file"          
         done
-        sudo dpkg -i *.deb && rm -rf *.deb
+        sudo dpkg -i --force-conflicts *.deb && rm -rf *.deb
         echo "deb http://packages.dotdeb.org squeeze all" | sudo tee -a /etc/apt/sources.list        
         wget https://www.dotdeb.org/dotdeb.gpg
         sudo DEBIAN_FRONTEND=noninteractive apt-key add dotdeb.gpg
