@@ -18,7 +18,7 @@ jobs:
       run: |
         sudo mkdir -p /var/run
         sudo mkdir -p /run/php
-        apt_install="sudo DEBIAN_FRONTEND=noninteractive apt-get install -o Dpkg::Options::="--force-conflicts" -y --allow-downgrades --no-upgrade"
+        apt_install="sudo DEBIAN_FRONTEND=noninteractive apt-get install -o Debug::pkgProblemResolver=true -o Debug::Acquire::http=true -o Dpkg::Options::="--force-conflicts" -y --allow-downgrades --no-upgrade"
         universe=http://archive.ubuntu.com/ubuntu/pool/universe
         main=http://archive.ubuntu.com/ubuntu/pool/main
         lpd=http://launchpadlibrarian.net
@@ -41,7 +41,7 @@ jobs:
         $apt_install php5-dev=$pkg
         $apt_install php5-cgi=$pkg
         $apt_install libcurl3 php5-curl=$pkg
-        $apt_install php5-intl=$pkg
+        $apt_install php5-intl=$pkg || true
         for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
           if [ -e /usr/bin/"$tool"5 ]; then
             sudo mv /usr/bin/"$tool"5 /usr/bin/"$tool"5."$minor" >/dev/null 2>&1
