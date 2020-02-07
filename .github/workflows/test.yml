@@ -28,7 +28,7 @@ jobs:
                         "$main"/r/readline6/libreadline6_6.3-8ubuntu2_amd64.deb \
                         "$lpd"/59651391/libicu44_4.4.2-2_amd64.deb; do
           curl --retry 5 -sL -O "$deb_file"
-          $apt_install install ./"${deb_file##*/}"
+          $apt_install ./"${deb_file##*/}"
         done  
         echo "deb http://packages.dotdeb.org squeeze all" | sudo tee -a /etc/apt/sources.list        
         wget https://www.dotdeb.org/dotdeb.gpg
@@ -36,8 +36,8 @@ jobs:
         sudo apt-get update
         $apt_install php5-common=$pkg php5-cli=$pkg php5-dev=$pkg php5-cgi=$pkg php5-curl=$pkg php5-intl=$pkg
         for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
-          if [ -e "/usr/bin/$tool5" ]; then
-            sudo mv /usr/bin/"$tool"5 /usr/bin/"$tool"5"$minor";
+          if [ -e /usr/bin/"$tool"5 ]; then
+            sudo mv /usr/bin/"$tool"5 /usr/bin/"$tool"5"$minor" >/dev/null 2>&1
           fi  
           if [ -e "/usr/bin/$tool$version" ]; then
             sudo update-alternatives --set $tool /usr/bin/"$tool$version" >/dev/null 2>&1
