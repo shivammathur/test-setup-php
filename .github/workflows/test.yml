@@ -16,12 +16,8 @@ jobs:
       env:
         version: ${{ matrix.php-versions }}
       run: |
-        sudo service php5.6-fpm stop || true
-        sudo service php7.0-fpm stop || true
-        sudo service php7.1-fpm stop || true
-        sudo service php7.2-fpm stop || true
-        sudo service php7.3-fpm stop || true
-        sudo service php7.4-fpm stop || true
+        sudo mkdir -p /var/run
+        sudo mkdir -p /run/php
         apt_install="sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades --no-upgrade"
         universe=http://archive.ubuntu.com/ubuntu/pool/universe
         main=http://archive.ubuntu.com/ubuntu/pool/main
