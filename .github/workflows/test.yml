@@ -16,16 +16,10 @@ jobs:
       env:
         version: ${{ matrix.php-versions }}
       run: |
-        sudo mkdir -p /var/run
-        sudo mkdir -p /run/php
-        apt_install="sudo DEBIAN_FRONTEND=noninteractive apt-get install -o Dpkg::Options::=--force-conflicts -y --allow-downgrades --no-upgrade"
-        #apt_install="sudo DEBIAN_FRONTEND=noninteractive apt-get install -o Debug::pkgProblemResolver=true -o Debug::Acquire::http=true -o Dpkg::Options::=--force-conflicts -y --allow-downgrades --no-upgrade"
-        universe=http://archive.ubuntu.com/ubuntu/pool/universe
-        main=http://archive.ubuntu.com/ubuntu/pool/main
-        lpd=http://launchpadlibrarian.net
-        minor=$(echo "$version" | cut -d'.' -f 2)
-        pkg=5.3.29-1~dotdeb.0
-        (        
+        deb_download() {
+          universe=http://archive.ubuntu.com/ubuntu/pool/universe
+          main=http://archive.ubuntu.com/ubuntu/pool/main
+          lpd=http://launchpadlibrarian.net        
           for file in "$universe"/o/openssl098/libssl0.9.8_0.9.8o-7ubuntu3.1_amd64.deb \
                       "$universe"/libo/libonig/libonig2_5.9.6-1_amd64.deb \
                       "$main"/d/db4.8/libdb4.8_4.8.30-11ubuntu1_amd64.deb \
@@ -33,9 +27,15 @@ jobs:
                       "$lpd"/59651391/libicu44_4.4.2-2_amd64.deb \
                       https://www.dotdeb.org/dotdeb.gpg; do
             wget --tries=5 "$file" &
-          done             
-        )
-        
+          done
+        }
+        sudo mkdir -p /var/run
+        sudo mkdir -p /run/php
+        apt_install="sudo DEBIAN_FRONTEND=noninteractive apt-get install -o Dpkg::Options::=--force-conflicts -y --allow-downgrades --no-upgrade"
+        #apt_install="sudo DEBIAN_FRONTEND=noninteractive apt-get install -o Debug::pkgProblemResolver=true -o Debug::Acquire::http=true -o Dpkg::Options::=--force-conflicts -y --allow-downgrades --no-upgrade"
+        minor=$(echo "$version" | cut -d'.' -f 2)
+        pkg=5.3.29-1~dotdeb.0
+        deb_download   
         sudo dpkg -i --force-conflicts ./*.deb
         echo "deb http://packages.dotdeb.org squeeze all" | sudo tee -a /etc/apt/sources.list        
         wget https://www.dotdeb.org/dotdeb.gpg
