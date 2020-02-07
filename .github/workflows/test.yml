@@ -16,7 +16,7 @@ jobs:
       env:
         version: ${{ matrix.php-versions }}
       run: |
-        apt_install="sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y --allow-downgrades"
+        apt_install="sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades"
         universe=http://archive.ubuntu.com/ubuntu/pool/universe
         main=http://archive.ubuntu.com/ubuntu/pool/main
         lpd=http://launchpadlibrarian.net
@@ -32,12 +32,12 @@ jobs:
         done  
         echo "deb http://packages.dotdeb.org squeeze all" | sudo tee -a /etc/apt/sources.list        
         wget https://www.dotdeb.org/dotdeb.gpg
-        sudo apt-key add dotdeb.gpg
-        sudo apt-get update
+        sudo DEBIAN_FRONTEND=noninteractive apt-key add dotdeb.gpg
+        sudo DEBIAN_FRONTEND=noninteractive apt-get update
         $apt_install php5-common=$pkg php5-cli=$pkg php5-dev=$pkg php5-cgi=$pkg php5-curl=$pkg php5-intl=$pkg
         for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
           if [ -e /usr/bin/"$tool"5 ]; then
-            sudo mv /usr/bin/"$tool"5 /usr/bin/"$tool"5"$minor" >/dev/null 2>&1
+            sudo mv /usr/bin/"$tool"5 /usr/bin/"$tool"5."$minor" >/dev/null 2>&1
           fi  
           if [ -e "/usr/bin/$tool$version" ]; then
             sudo update-alternatives --set $tool /usr/bin/"$tool$version" >/dev/null 2>&1
