@@ -16,10 +16,6 @@ jobs:
       env:
         version: ${{ matrix.php-versions }}
       run: |
-    - name: Install PHP
-      env:
-        version: ${{ matrix.php-versions }}
-      run: |
         sudo mkdir -p /var/run
         sudo mkdir -p /run/php
         apt_install="sudo DEBIAN_FRONTEND=noninteractive apt-get install -o Dpkg::Options::=--force-conflicts -y --allow-downgrades --no-upgrade"
@@ -43,6 +39,7 @@ jobs:
         wget https://www.dotdeb.org/dotdeb.gpg
         sudo DEBIAN_FRONTEND=noninteractive apt-key add dotdeb.gpg
         sudo DEBIAN_FRONTEND=noninteractive apt-get update
+        apt-cache policy php5-*
         $apt_install php5-common=$pkg || true
         $apt_install php5-cli=$pkg || true 
         $apt_install php5-dev=$pkg || true 
