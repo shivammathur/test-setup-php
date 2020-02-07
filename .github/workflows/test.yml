@@ -40,12 +40,12 @@ jobs:
         sudo DEBIAN_FRONTEND=noninteractive apt-key add dotdeb.gpg
         sudo DEBIAN_FRONTEND=noninteractive apt-get update
         apt-cache policy php5-*
-        $apt_install php5-common=$pkg || true
-        $apt_install php5-cli=$pkg || true 
-        $apt_install php5-dev=$pkg || true 
-        $apt_install php5-cgi=$pkg || true 
-        $apt_install libcurl3 php5-curl=$pkg || true 
-        $apt_install php5-intl=$pkg || true 
+        $apt_install php5-common || true
+        $apt_install php5-cli || true 
+        $apt_install php5-dev || true 
+        $apt_install php5-cgi || true 
+        $apt_install libcurl3 php5-curl || true 
+        $apt_install php5-intl || true 
         for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
           if [ -f /usr/bin/"$tool"5 ]; then
             sudo cp /usr/bin/"$tool"5 /usr/bin/"$tool"5."$minor"
