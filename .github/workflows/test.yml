@@ -26,6 +26,10 @@ jobs:
         pkg=5.3.29-1~dotdeb.0        
         for deb_file in "$universe"/o/openssl098/libssl0.9.8_0.9.8o-7ubuntu3.1_amd64.deb \
                         "$universe"/libo/libonig/libonig2_5.9.6-1_amd64.deb \
+                        "$main"/k/krb5/libgssapi-krb5-2_1.13.2+dfsg-5_amd64.deb \
+                        "$universe"/libi/libidn2-0/libidn2-0_0.10-3_amd64.deb \
+                        "$universe"/n/nghttp2/libnghttp2-14_1.7.1-1_amd64.deb \
+                        "$main"/libp/libpsl/libpsl5_0.19.1-5build1_amd64.deb
                         "$universe"/c/curl3/libcurl3_7.58.0-2ubuntu2_amd64.deb \
                         "$main"/d/db4.8/libdb4.8_4.8.30-11ubuntu1_amd64.deb \
                         "$main"/r/readline6/libreadline6_6.3-8ubuntu2_amd64.deb \
