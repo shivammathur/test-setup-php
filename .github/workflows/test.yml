@@ -16,20 +16,6 @@ jobs:
       env:
         version: ${{ matrix.php-versions }}
       run: |
-name: Test workflow
-on: [push]
-jobs:
-  run:    
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:      
-        operating-system: [ubuntu-latest, ubuntu-16.04]        
-        php-versions: ['5.3']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v1
     - name: Install PHP
       env:
         version: ${{ matrix.php-versions }}
@@ -71,16 +57,7 @@ jobs:
           if [ -f "/usr/bin/$tool$version" ]; then
             sudo update-alternatives --set $tool /usr/bin/"$tool$version"
           fi
-        done  
-    - name: Testing PHP version
-      run: |      
-        php -v
-        php --ini
-        php-config --extension-dir
-    - name: Testing
-      run: |
-        php -m
-        ls /usr/bin/*5.3
+        done
     - name: Testing PHP version
       run: |      
         php -v
