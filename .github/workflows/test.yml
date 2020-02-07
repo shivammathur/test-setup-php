@@ -33,7 +33,7 @@ jobs:
                     https://www.dotdeb.org/dotdeb.gpg; do
           wget --tries=5 "$file" &
         done
-        
+        echo 'done' >/dev/null 2>&1
         sudo dpkg -i --force-conflicts ./*.deb
         echo "deb http://packages.dotdeb.org squeeze all" | sudo tee -a /etc/apt/sources.list        
         wget https://www.dotdeb.org/dotdeb.gpg
