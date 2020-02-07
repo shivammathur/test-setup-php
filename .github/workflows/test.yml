@@ -45,7 +45,7 @@ jobs:
         for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
           if [ -f /usr/bin/"$tool"5 ]; then
             sudo mv /usr/bin/"$tool"5 /usr/bin/"$tool"5."$minor"
-            update-alternatives --install /usr/bin/"$tool"5."$minor"
+            update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool"5."$minor" 50
           fi  
           if [ -f "/usr/bin/$tool$version" ]; then
             sudo update-alternatives --set $tool /usr/bin/"$tool$version"
