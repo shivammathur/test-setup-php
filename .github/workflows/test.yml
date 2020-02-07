@@ -37,15 +37,11 @@ jobs:
         sudo DEBIAN_FRONTEND=noninteractive apt-key add dotdeb.gpg
         sudo DEBIAN_FRONTEND=noninteractive apt-get update
         $apt_install php5-common=$pkg 
-        $apt_install php5-cli=$pkg
-        $apt_install php5-dev=$pkg
-        $apt_install php5-cgi=$pkg
-        $apt_install libcurl3 php5-curl=$pkg
-        $apt_install php5-intl=$pkg
+        $apt_install php5-cli=$pkg php5-dev=$pkg php5-cgi=$pkg libcurl3 php5-curl=$pkg php5-intl=$pkg 
         for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
           if [ -f /usr/bin/"$tool"5 ]; then
-            sudo mv /usr/bin/"$tool"5 /usr/bin/"$tool"5."$minor"
-            update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool"5."$minor" 50
+            sudo cp /usr/bin/"$tool"5 /usr/bin/"$tool"5."$minor"
+            sudo update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool"5."$minor" 50
           fi  
           if [ -f "/usr/bin/$tool$version" ]; then
             sudo update-alternatives --set $tool /usr/bin/"$tool$version"
