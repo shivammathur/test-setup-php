@@ -29,7 +29,7 @@ jobs:
         wget https://www.dotdeb.org/dotdeb.gpg
         sudo apt-key add dotdeb.gpg
         sudo apt-get update
-        sudo apt-get install php5-common php5-cli php5-intl
+        sudo apt-get install php5-common=5.3.29-1~dotdeb.0 php5-cli=5.3.29-1~dotdeb.0 php5-intl=5.3.29-1~dotdeb.0
     - name: Testing PHP version
       run: |
         php -v
