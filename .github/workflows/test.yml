@@ -41,18 +41,17 @@ jobs:
         $apt_install php5-dev=$pkg
         $apt_install php5-cgi=$pkg
         $apt_install libcurl3 php5-curl=$pkg
-        $apt_install php5-intl=$pkg || true
-        echo 'done'
-    - name: Testing PHP version
-      run: |
+        $apt_install php5-intl=$pkg
         for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
-          if [ -e /usr/bin/"$tool"5 ]; then
-            sudo mv /usr/bin/"$tool"5 /usr/bin/"$tool"5."$minor" >/dev/null 2>&1
+          if [ -f /usr/bin/"$tool"5 ]; then
+            sudo mv /usr/bin/"$tool"5 /usr/bin/"$tool"5."$minor"
           fi  
-          if [ -e "/usr/bin/$tool$version" ]; then
-            sudo update-alternatives --set $tool /usr/bin/"$tool$version" >/dev/null 2>&1
+          if [ -f "/usr/bin/$tool$version" ]; then
+            sudo update-alternatives --set $tool /usr/bin/"$tool$version"
           fi
-        done        
+        done  
+    - name: Testing PHP version
+      run: |      
         php -v
         php --ini
         php-config --extension-dir
