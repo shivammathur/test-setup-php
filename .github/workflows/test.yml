@@ -7,27 +7,21 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [ubuntu-latest, ubuntu-16.04]        
-        php-versions: ['5.3', '5.4', '5.5']
+        php-versions: ['5.3', '5.4', '5.5', '7.4', '8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Install PHP
-      env:
-        version: ${{ matrix.php-versions }}
-      run: curl -sSL https://github.com/shivammathur/php5-ubuntu/releases/latest/download/install.sh | bash -s ${{ matrix.php-versions }}
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: xdebug, zip
+        ini-values: post_max_size=256M
     - name: Testing PHP version
       run: |      
         php -v
-        php --ini
-        php-config --extension-dir
-    - name: Testing
-      env:
-        version: ${{ matrix.php-versions }}
+        php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+    - name: Testing extensions      
       run: |
-        php$version -v | head -n 1
-        php-cgi$version -v | head -n 1
-        php-config$version --version
-        phpize$version -v
-        php$version -m
-        pecl -V
+        php -r "if(! extension_loaded('zip')) {throw new Exception('zip not found');}"
