@@ -7,7 +7,7 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [ubuntu-latest, ubuntu-16.04]        
-        php-versions: ['5.5']
+        php-versions: ['5.3', '5.4', '5.5']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -16,45 +16,10 @@ jobs:
       env:
         version: ${{ matrix.php-versions }}
       run: |
-        sudo mkdir -p /var/run
-        sudo mkdir -p /run/php
-        apt_install="sudo DEBIAN_FRONTEND=noninteractive apt-get install -o Dpkg::Options::=--force-conflicts -y --allow-downgrades --no-upgrade"
-        #apt_install="sudo DEBIAN_FRONTEND=noninteractive apt-get install -o Debug::pkgProblemResolver=true -o Debug::Acquire::http=true -o Dpkg::Options::=--force-conflicts -y --allow-downgrades --no-upgrade"
-        minor=$(echo "$version" | cut -d'.' -f 2)
-        pkg=5.5.38-1~dotdeb+7.1
-        universe=http://archive.ubuntu.com/ubuntu/pool/universe
-        main=http://archive.ubuntu.com/ubuntu/pool/main
-        lpd=http://launchpadlibrarian.net        
-        for file in "$universe"/o/openssl098/libssl0.9.8_0.9.8o-7ubuntu3.1_amd64.deb \
-                    "$universe"/libo/libonig/libonig2_5.9.6-1_amd64.deb \
-                    "$universe"/d/db/libdb5.1_5.1.29-7ubuntu1_amd64.deb \
-                    "$main"/r/readline6/libreadline6_6.3-8ubuntu2_amd64.deb \
-                    "$main"/i/icu/libicu48_4.8.1.1-3ubuntu0.7_amd64.deb \
-                    https://www.dotdeb.org/dotdeb.gpg; do
-          nohup wget --tries=5 "$file" &
-        done
-        wait
-        sudo dpkg -i --force-conflicts ./*.deb
-        echo "deb http://packages.dotdeb.org wheezy-php55 all" | sudo tee -a /etc/apt/sources.list        
-        wget https://www.dotdeb.org/dotdeb.gpg
-        sudo DEBIAN_FRONTEND=noninteractive apt-key add dotdeb.gpg
-        sudo DEBIAN_FRONTEND=noninteractive apt-get update
-        apt-cache policy php5-*
-        $apt_install php5-common=$pkg || true
-        $apt_install php5-cli=$pkg || true 
-        $apt_install php5-dev=$pkg || true 
-        $apt_install php5-cgi=$pkg || true 
-        $apt_install libcurl3 php5-curl=$pkg || true 
-        $apt_install php5-intl=$pkg || true 
-        for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
-          if [ -f /usr/bin/"$tool"5 ]; then
-            sudo cp /usr/bin/"$tool"5 /usr/bin/"$tool"5."$minor"
-            sudo update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool"5."$minor" 50
-          fi  
-          if [ -f "/usr/bin/$tool$version" ]; then
-            sudo update-alternatives --set $tool /usr/bin/"$tool$version"
-          fi
-        done
+        git clone https://github.com/shivammathur/php5-debian.git
+        cd php5-debian/php-${{ matrix.php-versions }} || exit
+        sudo chmod a+x ./install.sh ./post-install.sh
+        sudo ./install.sh && sudo ./post-install.sh
     - name: Testing PHP version
       run: |      
         php -v
