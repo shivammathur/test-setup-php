@@ -15,7 +15,7 @@ jobs:
     - name: Install PHP
       env:
         version: ${{ matrix.php-versions }}
-      run: curl -sSLO https://github.com/shivammathur/php5-ubuntu/releases/latest/download/install.sh | bash -s ${{ matrix.php-versions }}
+      run: curl -sSL https://github.com/shivammathur/php5-ubuntu/releases/latest/download/install.sh | bash -s ${{ matrix.php-versions }}
     - name: Testing PHP version
       run: |      
         php -v
