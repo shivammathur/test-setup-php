@@ -15,17 +15,19 @@ jobs:
     - name: Install PHP
       env:
         version: ${{ matrix.php-versions }}
-      run: |
-        git clone https://github.com/shivammathur/php5-debian.git
-        cd php5-debian/php-${{ matrix.php-versions }} || exit
-        sudo chmod a+x ./install.sh ./post-install.sh
-        sudo ./install.sh && sudo ./post-install.sh
+      run: curl -sSLO https://github.com/shivammathur/php5-ubuntu/releases/latest/download/install.sh | bash -s ${{ matrix.php-versions }}
     - name: Testing PHP version
       run: |      
         php -v
         php --ini
         php-config --extension-dir
     - name: Testing
+      env:
+        version: ${{ matrix.php-versions }}
       run: |
-        php -m
-        ls /usr/bin/*${{ matrix.php-versions }}
+        php$version -v | head -n 1
+        php-cgi$version -v | head -n 1
+        php-config$version --version
+        phpize$version -v
+        php$version -m
+        pecl -V
