@@ -25,16 +25,16 @@ jobs:
         universe=http://archive.ubuntu.com/ubuntu/pool/universe
         main=http://archive.ubuntu.com/ubuntu/pool/main
         lpd=http://launchpadlibrarian.net        
-        #for file in "$universe"/o/openssl098/libssl0.9.8_0.9.8o-7ubuntu3.1_amd64.deb \
-        #            "$universe"/libo/libonig/libonig2_5.9.6-1_amd64.deb \
-        #            "$main"/d/db4.8/libdb4.8_4.8.30-11ubuntu1_amd64.deb \
-        #            "$main"/r/readline6/libreadline6_6.3-8ubuntu2_amd64.deb \
-        #            "$lpd"/59651391/libicu44_4.4.2-2_amd64.deb \
-        #            https://www.dotdeb.org/dotdeb.gpg; do
-        #  nohup wget --tries=5 "$file" &
-        #done
-        #wait
-        #sudo dpkg -i --force-conflicts ./*.deb
+        for file in "$universe"/o/openssl098/libssl0.9.8_0.9.8o-7ubuntu3.1_amd64.deb \
+                    "$universe"/libo/libonig/libonig2_5.9.6-1_amd64.deb \
+                    "$main"/d/db4.8/libdb4.8_4.8.30-11ubuntu1_amd64.deb \
+                    "$main"/r/readline6/libreadline6_6.3-8ubuntu2_amd64.deb \
+                    "$lpd"/59651391/libicu44_4.4.2-2_amd64.deb \
+                    https://www.dotdeb.org/dotdeb.gpg; do
+          nohup wget --tries=5 "$file" &
+        done
+        wait
+        sudo dpkg -i --force-conflicts ./*.deb
         echo "deb http://packages.dotdeb.org wheezy-php55 all" | sudo tee -a /etc/apt/sources.list        
         wget https://www.dotdeb.org/dotdeb.gpg
         sudo DEBIAN_FRONTEND=noninteractive apt-key add dotdeb.gpg
