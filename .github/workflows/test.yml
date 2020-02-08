@@ -28,4 +28,4 @@ jobs:
     - name: Testing
       run: |
         php -m
-        ls /usr/bin/*5.5
+        ls /usr/bin/*${{ matrix.php-versions }}
