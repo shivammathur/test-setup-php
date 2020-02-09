@@ -21,22 +21,25 @@ jobs:
           tools: php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, cs2pr, codeception, phpunit, psalm, phinx, phive, deployer, prestissimo, composer-prefetcher, pecl, phpize, php-config, symfony
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Print php.ini
+        if: matrix.operating-system != 'windows-latest'
+        run: cat $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
       - name: Testing Tools
         run: |
-          composer -V
-          php-cs-fixer -V
-          phpcs --version
-          phpcbf --version
-          phpcpd -V
-          phpstan -V
-          codeception -V
-          cs2pr version
-          phpunit --version
-          psalm -v
-          phinx -V
-          phive status
-          deployer -V
-          symfony version
+          composer -V || true
+          php-cs-fixer -V || true
+          phpcs --version || true
+          phpcbf --version || true
+          phpcpd -V || true
+          phpstan -V || true
+          codeception -V || true
+          cs2pr version || true
+          phpunit --version || true
+          psalm -v || true
+          phinx -V || true
+          phive status || true
+          deployer -V || true
+          symfony version || true
       - name: Test prestissimo
         run: composer global show hirak/prestissimo
         continue-on-error: true
@@ -79,20 +82,20 @@ jobs:
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
         run: |
-          composer -V
-          php-cs-fixer -V
-          phpcs --version
-          phpcbf --version
-          phpcpd -V
-          phpstan -V
-          codeception -V
-          cs2pr version
-          phpunit --version
-          psalm -v
-          phinx -V
-          phive status
-          deployer -V
-          symfony version
+          composer -V || true
+          php-cs-fixer -V || true
+          phpcs --version || true
+          phpcbf --version || true
+          phpcpd -V || true
+          phpstan -V || true
+          codeception -V || true
+          cs2pr version || true
+          phpunit --version || true
+          psalm -v || true
+          phinx -V || true
+          phive status || true
+          deployer -V || true
+          symfony version || true
       - name: Test prestissimo
         run: composer global show hirak/prestissimo
         continue-on-error: true
@@ -132,11 +135,11 @@ jobs:
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
         run: |
-          composer -V
-          phpcs --version
-          phpcbf --version
-          phpcpd -V
-          phpstan -V
+          composer -V || true
+          phpcs --version || true
+          phpcbf --version || true
+          phpcpd -V || true
+          phpstan -V || true
       - name: Test prestissimo
         run: composer global show hirak/prestissimo
 
