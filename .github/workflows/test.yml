@@ -24,7 +24,7 @@ jobs:
       run: php -m
     - name: Test composer
       run: |
-        sudo apt-get install -y --reinstall openssl libssl
+        sudo apt-get install -y --reinstall openssl libssl-dev
         openssl version
         composer global require robmorgan/phinx
 
