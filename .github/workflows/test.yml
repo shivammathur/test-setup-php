@@ -24,5 +24,5 @@ jobs:
     - name: Testing extension
       run: php -m
     - name: Test composer
-      run: composer global install robmorgan/phinx
+      run: composer global require robmorgan/phinx
 
