@@ -24,7 +24,8 @@ jobs:
       run: php -m
     - name: Test composer
       run: |
-        sudo apt-get install -y --reinstall openssl libssl-dev
+        git config http.sslVerify false
+        export GIT_SSL_NO_VERIFY=true
         openssl version
         composer global require robmorgan/phinx
 
