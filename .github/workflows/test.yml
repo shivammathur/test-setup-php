@@ -27,5 +27,6 @@ jobs:
         sudo mkdir -p /usr/local/ssl
         sudo curl -o /usr/local/ssl/cacert.pem https://curl.haxx.se/ca/cacert.pem
         echo "openssl.cafile= /usr/local/ssl/cacert.pem" >> $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+        composer config --global cafile "/usr/local/ssl/cacert.pem"
         composer global require robmorgan/phinx
 
