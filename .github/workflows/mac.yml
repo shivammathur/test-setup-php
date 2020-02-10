@@ -17,12 +17,9 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}        
+        extensions: intl        
     - name: Testing PHP version
       run: |
-        ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-        ext_dir=$(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
-        sudo pecl install -f intl
-        echo "$prefix=$ext_dir/$extension.so" >>"$ini_file"
         php -v
     - name: Testing
       run: |
