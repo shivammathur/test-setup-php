@@ -24,8 +24,6 @@ jobs:
       run: php -m
     - name: Test composer
       run: |
-        git config http.sslVerify false
-        export GIT_SSL_NO_VERIFY=true
-        openssl version
+        composer config --global disable-tls true                
         composer global require robmorgan/phinx
 
