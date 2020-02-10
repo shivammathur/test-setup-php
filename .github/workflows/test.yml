@@ -1,4 +1,4 @@
-name: Test workflow #Test
+name: Test workflow
 on: [push]
 jobs:
   run:    
@@ -6,8 +6,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [ubuntu-latest, macos-latest]
-        php-versions: ['5.3']
+        operating-system: [ubuntu-latest]
+        php-versions: ['5.3', '5.4', '5.5']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -16,12 +16,14 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: xdebug, zip
-        ini-values: post_max_size=256M
     - name: Testing PHP version
-      run: |      
+      run: |
         php -v
         php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
-    - name: Testing extensions      
+    - name: Testing extension
+      run: php -m
+    - name: Test composer
       run: |
-        php -r "if(! extension_loaded('zip')) {throw new Exception('zip not found');}"
+        sudo apt-get install -y --reinstall openssl
+        composer global require robmorgan/phinx
+
