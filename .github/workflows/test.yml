@@ -24,6 +24,7 @@ jobs:
       run: php -m
     - name: Test composer
       run: |
-        composer config --global disable-tls true                
+        composer config --global disable-tls true
+        composer config --global secure-http false
         composer global require robmorgan/phinx
 
