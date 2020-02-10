@@ -19,7 +19,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: codeception:1.1.0
+          tools: codeception:2.3.5
 
       - name: Testing Tools
         run: codeception -V
