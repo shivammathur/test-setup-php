@@ -15,7 +15,7 @@ jobs:
     - name: Install PHP
       run: |
         git clone https://github.com/shivammathur/php5-ubuntu.git
-        cd php-5.3 || exit
+        cd php5-ubuntu/php-5.3 || exit
         sudo a+x *.sh
         ./install.sh
         ./post-install.sh
