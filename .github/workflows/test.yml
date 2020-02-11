@@ -13,15 +13,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Install PHP
-      run: |
-        git clone https://github.com/shivammathur/php5-ubuntu.git
-        cd php5-ubuntu/php-5.3 || exit
-        sudo chmod a+x *.sh
-        ./install.sh
-        ./post-install.sh
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-versions }}
     - name: Testing PHP version
       run: |
         php -v
-        ls -la /usr/bin/php*
+        php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
     - name: Testing extension
       run: php -m
+    - name: Test composer
+      run: composer global require robmorgan/phinx
