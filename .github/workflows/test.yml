@@ -6,9 +6,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['5.3', '5.4', '5.5', '7.2']
-        #php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+        operating-system: [windows-latest, windows-2016]
+        php-versions: ['5.3', '5.4', '5.5']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -18,11 +17,8 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
     - name: Testing PHP version
-      run: |
-        php -v
-        php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+      run: php -v
     - name: Testing extension
       run: php -m
     - name: Test composer
       run: composer global require robmorgan/phinx
-
