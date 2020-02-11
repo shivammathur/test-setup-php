@@ -13,22 +13,15 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Install PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: ${{ matrix.php-versions }}
+      run: |
+        git clone https://github.com/shivammathur/php5-ubuntu.git
+        cd php-5.3 || exit
+        sudo a+x *.sh
+        ./install.sh
+        ./post-install.sh
     - name: Testing PHP version
       run: |
         php -v
-        php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+        ls -la /usr/bin/php*
     - name: Testing extension
       run: php -m
-    - name: Test composer
-      run: |
-        sudo apt-get install -y curl
-        sudo mkdir -p /usr/local/ssl
-        sudo curl -o /usr/local/ssl/cacert.pem https://curl.haxx.se/ca/cacert.pem
-        echo "openssl.cafile= /usr/local/ssl/cacert.pem" >> $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-        composer config --global cafile "/usr/local/ssl/cacert.pem"
-        curl -sSL https://repo.packagist.org/packages.json | cat
-        composer global require robmorgan/phinx
-
