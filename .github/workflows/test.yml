@@ -36,7 +36,9 @@ jobs:
 
     - name: Check PHP version
       run: |
-        php -v
+        ls /etc/apt/sources.list.d        
+        ppa="dotdeb-ubuntu-php*.list"
+        find /etc/apt/sources.list.d -type f -name "$ppa" -exec sudo DEBIAN_FRONTEND=noninteractive apt-fast update -o Dir::Etc::sourcelist="{}" ';'
         sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y php5-gmp
 
     - name: Check PHP extensions
