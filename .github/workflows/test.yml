@@ -1,4 +1,4 @@
-name: Test extensions #compare apt wrapper
+name: Test extensions
 on: [push]
 jobs:
   run:
@@ -6,38 +6,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['7.2', '7.3', '7.4']
+        operating-system: [ubuntu-latest, macos-latest]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
-    env:
-      extensions: xsl
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Get Extension Directory
-      id: extensioninfo
-      shell: bash
-      run: curl -sSL https://git.io/JvseP | bash -s "${{ env.extensions }}" ${{ matrix.php-versions }}
-
-    - name: Cache extensions
-      uses: actions/cache@v1
-      with:
-        path: ${{ steps.extensioninfo.outputs.ext_dir }}
-        key: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
-        restore-keys: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
-
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
+        php-version: ${{ matrix.php-versions }}        
 
-    - name: Check PHP version
+    - name: Check 
       run: |
         php -v
-        php -r "if(! extension_loaded('xsl')) {throw new Exception('xsl not found');}"
-        php -r "echo 'xsl: ' . phpversion('xsl') .' ';"
+        echo $(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
 
-    - name: Check PHP extensions
-      run: php -m
