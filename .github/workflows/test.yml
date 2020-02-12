@@ -1,4 +1,4 @@
-name: Test extensions #check cache intl after fix
+name: Test extensions #check cache mysql after fix
 on: [push]
 jobs:
   run:
@@ -10,7 +10,7 @@ jobs:
         php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1','7.2', '7.3', '7.4', '8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: intl
+      extensions: mysql
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -36,7 +36,8 @@ jobs:
     - name: Check PHP version
       run: |
         php -v
-        php -r "echo 'intl: ' . phpversion('intl') .' ';"
+        php -r "if(! extension_loaded('mysql')) {throw new Exception('mysql not found');}"
+        php -r "echo 'mysql: ' . phpversion('mysql') .' ';"
 
     - name: Check PHP extensions
       run: php -m
