@@ -36,7 +36,7 @@ jobs:
 
     - name: Check PHP version
       run: |
-        php-v
+        php -v
 
     - name: Check PHP extensions
       run: php -m
