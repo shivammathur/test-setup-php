@@ -1,4 +1,4 @@
-name: Test extensions
+name: Test extensions #check cache intl after fix
 on: [push]
 jobs:
   run:
@@ -6,20 +6,38 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, macos-latest]
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+        operating-system: [ubuntu-latest]
+        php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    env:
+      extensions: intl
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
+    - name: Get Extension Directory
+      id: extensioninfo
+      shell: bash
+      run: curl -sSL https://raw.githubusercontent.com/shivammathur/setup-php/v2/src/scripts/ext/extensions.sh | bash -s "${{ env.extensions }}" ${{ matrix.php-versions }}
+
+    - name: Cache extensions
+      uses: actions/cache@v1
+      with:
+        path: ${{ steps.extensioninfo.outputs.ext_dir }}
+        key: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
+        restore-keys: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
+    - name: Install dependencies
+      run: sudo apt-get install `apt-cache depends php${{ matrix.php-versions }}-intl | awk '/Depends:/{print$2}'`
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: ${{ matrix.php-versions }}        
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.extensions }}
 
-    - name: Check 
+    - name: Check PHP version
       run: |
         php -v
-        echo $(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
+        php -r "echo 'intl: ' . phpversion('intl') .' ';"
 
+    - name: Check PHP extensions
+      run: php -m
