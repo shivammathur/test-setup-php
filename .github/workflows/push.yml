@@ -11,8 +11,8 @@ jobs:
         php -r "echo 'test;" || true
         php -r "echo 'test;" || true
         php -r "noecho();" || true
-        php -r "trigger_error('test', E_USER_WARNING);" || true
-        php -r "trigger_error('test', E_USER_NOTICE);" || true
-        php -r "trigger_error('test', E_USER_ERROR);" || true
-        php -r "trigger_error('test', E_USER_DEPRECATED);" || true
+        php -r "trigger_error('E_USER_WARNING', E_USER_WARNING);" || true
+        php -r "trigger_error('E_USER_NOTICE', E_USER_NOTICE);" || true
+        php -r "trigger_error('E_USER_ERROR', E_USER_ERROR);" || true
+        php -r "trigger_error('E_USER_DEPRECATED', E_USER_DEPRECATED);" || true
          
