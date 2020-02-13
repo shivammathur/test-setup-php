@@ -5,9 +5,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Composer dependencies
-      run: composer install --no-ansi --no-interaction --no-scripts --no-suggest --no-progress --prefer-dist
+    - uses: korelstar/phplint-problem-matcher@v1
     - name: Run Tests
       run: |
-        echo "::add-matcher::.github/pm.json"
-        ./vendor/bin/phpunit
+        php -r "echo 'test;" || true
+        php -r "echo 'test;" || true
+        php -r "noecho();" || true
+        php -r "trigger_error('test', E_USER_WARNING);" || true
+        php -r "trigger_error('test', E_USER_NOTICE);" || true
+        php -r "trigger_error('test', E_USER_ERROR);" || true
+        php -r "trigger_error('test', E_USER_DEPRECATED);" || true
+         
