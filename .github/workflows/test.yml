@@ -1,4 +1,4 @@
-name: Test extensions #check cache gmp
+name: Test extensions #check cache gmp and zip
 on: [push]
 jobs:
   run:
@@ -11,7 +11,8 @@ jobs:
         #php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1','7.2', '7.3', '7.4', '8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: gmp, mbstring
+      extensions: gmp, zip
+      salt: cache
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -19,7 +20,7 @@ jobs:
     - name: Get Extension Directory
       id: extensioninfo
       shell: bash
-      run: curl -sSL https://raw.githubusercontent.com/shivammathur/setup-php/v2/src/scripts/ext/extensions.sh | bash -s "${{ env.extensions }}" ${{ matrix.php-versions }}
+      run: curl -sSL https://raw.githubusercontent.com/shivammathur/setup-php/v2/src/scripts/ext/extensions.sh | bash -s "${{ env.extensions }}-${{ env.salt }}" ${{ matrix.php-versions }}
 
     - name: Cache extensions
       uses: actions/cache@v1
