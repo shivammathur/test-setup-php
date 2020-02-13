@@ -30,7 +30,7 @@ jobs:
         restore-keys: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
     
     - name: APT Update
-      if: matrix.operating-system = 'ubuntu-latest'
+      if: ${{ matrix.operating-system }} = 'ubuntu-latest'
       run: sudo DEBIAN_FRONTEND=noninteractive apt-get update
 
     - name: Setup PHP
