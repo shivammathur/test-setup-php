@@ -36,10 +36,7 @@ jobs:
         extensions: ${{ env.extensions }}
 
     - name: Check PHP version
-      run: |
-        echo $(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
-        ls $(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
-        php -v
+      run: php -v
 
     - name: Check PHP extensions
       run: php -m
