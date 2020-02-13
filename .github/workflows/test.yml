@@ -12,22 +12,25 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
       extensions: swoole, grpc, protobuf
-      salt: cachev1
+      key: cachev1
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Get Extension Directory
-      id: extensioninfo
-      shell: bash
-      run: curl -sSL https://raw.githubusercontent.com/shivammathur/setup-php/v2/src/scripts/ext/extensions.sh | bash -s "${{ env.extensions }}-${{ env.salt }}" ${{ matrix.php-versions }}
+    - name: Setup cache environment
+      id: cache-extensions
+      uses: shivammathur/cache-extensions@v1
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.extensions }}
+        key: ${{ env.key }}
 
     - name: Cache extensions
       uses: actions/cache@v1
       with:
         path: ${{ steps.extensioninfo.outputs.ext_dir }}
-        key: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
-        restore-keys: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
+        key: ${{ runner.os }}-ext-${{ matrix.php-versions }}-${{ steps.cache-extensions.outputs.ext_hash }}
+        restore-keys: ${{ runner.os }}-ext-${{ matrix.php-versions }}-${{ steps.cache-extensions.outputs.ext_hash }}
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
