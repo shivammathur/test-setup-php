@@ -12,7 +12,7 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
       extensions: swoole, grpc, protobuf
-      salt: cache
+      salt: cachev1
     steps:
     - name: Checkout
       uses: actions/checkout@v2
