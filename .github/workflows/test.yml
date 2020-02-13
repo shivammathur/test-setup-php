@@ -28,10 +28,6 @@ jobs:
         path: ${{ steps.extensioninfo.outputs.ext_dir }}
         key: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
         restore-keys: ${{ runner.os }}-extensions-${{ matrix.php-versions }}-${{ steps.extensioninfo.outputs.ext_hash }}
-    
-    - name: APT Update
-      if: ${{ matrix.operating-system }} = 'ubuntu-latest'
-      run: sudo DEBIAN_FRONTEND=noninteractive apt-get update
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
