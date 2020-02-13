@@ -6,12 +6,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, macos-latest]
-        php-versions: ['7.1','7.2', '7.3', '7.4']
-        #php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1','7.2', '7.3', '7.4', '8.0']
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        php-versions: ['5.5', '5.6', '7.0', '7.1','7.2', '7.3', '7.4']        
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: swoole, grpc, protobuf
+      extensions: grpc
       key: cachev1
     steps:
     - name: Checkout
