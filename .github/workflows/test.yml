@@ -7,17 +7,17 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['5.5', '5.6', '7.0', '7.1','7.2', '7.3', '7.4']        
+        php-versions: ['7.2', '7.3', '7.4']        
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
       extensions: grpc
-      key: cachev1
+      key: cache-v1
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
     - name: Setup cache environment
-      id: cache-extensions
+      id: cache-env
       uses: shivammathur/cache-extensions@v1
       with:
         php-version: ${{ matrix.php-versions }}
@@ -27,15 +27,14 @@ jobs:
     - name: Cache extensions
       uses: actions/cache@v1
       with:
-        path: ${{ steps.cache-extensions.outputs.ext_dir }}
-        key: ${{ runner.os }}-ext-${{ matrix.php-versions }}-${{ steps.cache-extensions.outputs.ext_hash }}
-        restore-keys: ${{ runner.os }}-ext-${{ matrix.php-versions }}-${{ steps.cache-extensions.outputs.ext_hash }}
+        path: ${{ steps.cache-env.outputs.dir }}
+        key: ${{ steps.cache-env.outputs.key }}
+        restore-keys: ${{ steps.cache-env.outputs.key }}
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}
-        tools: pecl
         extensions: ${{ env.extensions }}
 
     - name: Check PHP version
