@@ -1,4 +1,4 @@
-name: Test phalcon extension v3 #2.0.0 Test cache
+name: Test phalcon extension v3 #2.0.0 Test cache again
 on: [push]
 jobs:
   run:    
@@ -30,6 +30,9 @@ jobs:
         path: ${{ steps.cache-env.outputs.dir }}
         key: ${{ steps.cache-env.outputs.key }}
         restore-keys: ${{ steps.cache-env.outputs.key }}
+        
+    - name: Check ext files
+      run: ls $(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
 
     - name: Install PHP
       uses: shivammathur/setup-php@v2
@@ -40,6 +43,7 @@ jobs:
       run: php -v
     - name: Testing Extensions
       run: |
+        ls $(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
         #php -r "echo 'psr: ' . phpversion('psr').', ';"
         php -r "echo 'phalcon: ' . phpversion('phalcon');"
         #php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
