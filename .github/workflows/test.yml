@@ -1,21 +1,21 @@
-name: Test extensions #check cache 1.0.0
+name: Test phalcon extension v3 #2.0.0 Test cache
 on: [push]
 jobs:
-  run:
+  run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      fail-fast: false
+      fail-fast: false      
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['7.2', '7.3', '7.4']        
+        php-versions: ['7.0', '7.1', '7.2', '7.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: grpc
-      key: cache-v1.0.2
+      extensions: phalcon3
+      key: cache-v1
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-
+    
     - name: Setup cache environment
       id: cache-env
       uses: shivammathur/cache-extensions@v1
@@ -31,15 +31,17 @@ jobs:
         key: ${{ steps.cache-env.outputs.key }}
         restore-keys: ${{ steps.cache-env.outputs.key }}
 
-    - name: Setup PHP
+    - name: Install PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}
-        tools: pecl
         extensions: ${{ env.extensions }}
-
-    - name: Check PHP version
+    - name: Testing PHP version
       run: php -v
-
-    - name: Check PHP extensions
-      run: php -m
+    - name: Testing Extensions
+      run: |
+        #php -r "echo 'psr: ' . phpversion('psr').', ';"
+        php -r "echo 'phalcon: ' . phpversion('phalcon');"
+        #php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
+        php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
+        php -r "if(phpversion('phalcon')[0]!='3') {throw new Exception('Wrong phalcon version Installed');}"
