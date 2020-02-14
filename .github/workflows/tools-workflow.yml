@@ -116,13 +116,13 @@ jobs:
           echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
           phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
   old_versions:
-    name: versions
+    name: old_versions
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macOS-latest]
-        php-versions: ['5.4']
+        php-versions: ['5.5']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
