@@ -6,23 +6,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-latest]
-        php-versions: ['5.3']
-        #php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        operating-system: [macos-latest]        
+    #name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    name: ${{ matrix.operating-system }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
-    - name: Install PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: ${{ matrix.php-versions }}        
-        extensions: intl        
+      uses: actions/checkout@v1    
     - name: Testing PHP version
       run: |
         php -v
     - name: Testing
       run: |
         php -m
-        ls $(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
-        tail -n 20 $(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
