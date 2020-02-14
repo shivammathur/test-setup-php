@@ -11,7 +11,7 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
       extensions: grpc
-      key: cache-v1.0.1
+      key: cache-v1.0.2
     steps:
     - name: Checkout
       uses: actions/checkout@v2
