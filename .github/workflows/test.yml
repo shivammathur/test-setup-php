@@ -43,6 +43,8 @@ jobs:
       run: php -v
     - name: Testing Extensions
       run: |
+        pecl config-get ext_dir
+        echo $(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
         ls $(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
         #php -r "echo 'psr: ' . phpversion('psr').', ';"
         php -r "echo 'phalcon: ' . phpversion('phalcon');"
