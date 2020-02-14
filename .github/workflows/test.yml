@@ -44,7 +44,7 @@ jobs:
     - name: Testing Extensions
       run: |
         php --ini
-        tail -n 20 $(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+        cat /usr/local/etc/php/${{ matrix.php-versions }}/conf.d/ext-phalcon.ini
         pecl config-get ext_dir
         echo $(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
         ls $(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
