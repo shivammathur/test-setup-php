@@ -1,4 +1,4 @@
-name: Test phalcon extension v3 #2.0.0 Test cache again
+name: Test extensions
 on: [push]
 jobs:
   run:    
@@ -6,50 +6,23 @@ jobs:
     strategy:
       fail-fast: false      
       matrix:
-        operating-system: [macos-latest]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
         php-versions: ['7.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
-    env:
-      extensions: phalcon3
-      key: cache-v1
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    
-    - name: Setup cache environment
-      id: cache-env
-      uses: shivammathur/cache-extensions@v1
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
-        key: ${{ env.key }}
-
-    - name: Cache extensions
-      uses: actions/cache@v1
-      with:
-        path: ${{ steps.cache-env.outputs.dir }}
-        key: ${{ steps.cache-env.outputs.key }}
-        restore-keys: ${{ steps.cache-env.outputs.key }}
-        
-    - name: Check ext files
-      run: ls $(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
 
     - name: Install PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
+        extensions: xdebug-2.8.0beta2, pcov-1.0.5
     - name: Testing PHP version
       run: php -v
     - name: Testing Extensions
-      run: |
-        php --ini
-        cat /usr/local/etc/php/${{ matrix.php-versions }}/conf.d/ext-phalcon.ini
-        pecl config-get ext_dir
-        echo $(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
-        ls $(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
-        #php -r "echo 'psr: ' . phpversion('psr').', ';"
-        php -r "echo 'phalcon: ' . phpversion('phalcon');"
-        #php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
-        php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
-        php -r "if(phpversion('phalcon')[0]!='3') {throw new Exception('Wrong phalcon version Installed');}"
+      run: |                                        
+        php -r "echo 'xdebug: ' . phpversion('xdebug');"
+        php -r "echo 'pcov: ' . phpversion('pcov');"
+        php -r "if(! extension_loaded('xdebug')) {throw new Exception('xdebug not found');}"
+        php -r "if(! extension_loaded('pcov')) {throw new Exception('pcov not found');}"
