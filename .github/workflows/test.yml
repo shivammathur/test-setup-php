@@ -34,7 +34,7 @@ jobs:
           $bintray = "https://dl.bintray.com/shivammathur/php"
           # Invoke-WebRequest -UseBasicParsing -Uri $bintray/libeay32.dll -OutFile $php_dir\libeay32.dll
           # Invoke-WebRequest -UseBasicParsing -Uri $bintray/ssleay32.dll -OutFile $php_dir\ssleay32.dll
-          Add-Content $php_dir\php.ini "extension=$php_dir\php_curl.dll`nextension=$php_dir\php_openssl.dll"          
+          Enable-PhpExtension -Extension openssl, curl -Path $php_dir
         } catch {
           Write-Output $_.Exception|format-list -force
         }
