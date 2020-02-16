@@ -20,10 +20,7 @@ jobs:
       run: php -v
     - name: Testing extension
       run: php -m
-    - name: Test openssl
-      run: |
-        echo 'test'
+    - name: Test composer
+      run: |        
         php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
-        Get-PhpExtension C:\tools\php\ext\php_openssl.dll
-        Get-PhpExtension C:\tools\php\ext\php_curl.dll
-        DIR C:\tools\php\ext
+        composer global require robmorgan/phinx
