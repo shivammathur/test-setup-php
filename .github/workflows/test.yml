@@ -23,7 +23,8 @@ jobs:
         $installed = Get-Php -Path $php_dir
         Set-PhpIniKey -Key 'date.timezone' -Value 'UTC' -Path $php_dir
     - name: Setup
-      run: |      
+      run: |
+        $php_dir = "C:\tools\php"
         $bintray = "https://dl.bintray.com/shivammathur/php"
         Invoke-WebRequest -UseBasicParsing -Uri $bintray/libeay32.dll -OutFile $php_dir\libeay32.dll
         Invoke-WebRequest -UseBasicParsing -Uri $bintray/ssleay32.dll -OutFile $php_dir\ssleay32.dll
