@@ -25,25 +25,26 @@ jobs:
     - name: Setup
       run: |
         php -v
+        DIR $php_dir\ext
         $php_dir = "C:\tools\php"
         try
         {
-          Remove-Item $php_dir\libeay32.dll
-          Remove-Item $php_dir\ssleay32.dll
+          # Remove-Item $php_dir\libeay32.dll
+          # Remove-Item $php_dir\ssleay32.dll
           $bintray = "https://dl.bintray.com/shivammathur/php"
-          Invoke-WebRequest -UseBasicParsing -Uri $bintray/libeay32.dll -OutFile $php_dir\libeay32.dll
-          Invoke-WebRequest -UseBasicParsing -Uri $bintray/ssleay32.dll -OutFile $php_dir\ssleay32.dll
-          Add-Content $php_dir\php.ini "`nextension=C:\tools\php\ext\php_openssl.dll"
-          Add-Content $php_dir\php.ini "`nextension=C:\tools\php\ext\php_curl.dll"
+          # Invoke-WebRequest -UseBasicParsing -Uri $bintray/libeay32.dll -OutFile $php_dir\libeay32.dll
+          # Invoke-WebRequest -UseBasicParsing -Uri $bintray/ssleay32.dll -OutFile $php_dir\ssleay32.dll
+          Add-Content $php_dir\php.ini "extension=$php_dir\php_curl.dll`nextension=$php_dir\php_openssl.dll"          
         } catch {
           Write-Output $_.Exception|format-list -force
         }
         php -v
         php -m
+    - name: Check ini
+      run: cat C:\tools\php\php.ini    
     - name: Update CA
       run: |
         $php_dir = "C:\tools\php"
-        DIR $php_dir\ext
         try {
           Update-PhpCAInfo -Path $php_dir -Source CurrentUser        
         } catch {
