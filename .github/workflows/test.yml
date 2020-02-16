@@ -24,9 +24,12 @@ jobs:
         Set-PhpIniKey -Key 'date.timezone' -Value 'UTC' -Path $php_dir
     - name: Setup
       run: |
+        php -v
         $php_dir = "C:\tools\php"
         try
         {
+          Remove-Item $php_dir\libeay32.dll
+          Remove-Item $php_dir\ssleay32.dll
           $bintray = "https://dl.bintray.com/shivammathur/php"
           Invoke-WebRequest -UseBasicParsing -Uri $bintray/libeay32.dll -OutFile $php_dir\libeay32.dll
           Invoke-WebRequest -UseBasicParsing -Uri $bintray/ssleay32.dll -OutFile $php_dir\ssleay32.dll
@@ -34,6 +37,8 @@ jobs:
         } catch {
           Write-Output $_.Exception|format-list -force
         }
+        php -v
+        php -m
     - name: Update CA
       run: |
         $php_dir = "C:\tools\php"
