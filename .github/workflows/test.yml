@@ -33,16 +33,20 @@ jobs:
           Add-Content $php_dir\php.ini "extension=php_curl.dll`nextension=php_openssl.dll"
         } catch {
           Write-Output $_.Exception|format-list -force
-        }   
+        }
     - name: Update CA
       run: |
         $php_dir = "C:\tools\php"
-        Update-PhpCAInfo -Path $php_dir -Source CurrentUser        
+        DIR $php_dir\ext
+        try {
+          Update-PhpCAInfo -Path $php_dir -Source CurrentUser        
+        } catch {
+          Write-Output $_.Exception|format-list -force
+        }
     - name: Testing PHP version
       run: php -v
     - name: Testing extension
       run: php -m
     - name: Test composer
       run: |        
-        php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
-        composer global require robmorgan/phinx
+        php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"        
