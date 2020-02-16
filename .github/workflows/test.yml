@@ -17,16 +17,14 @@ jobs:
         Install-Module -Name PhpManager -Force -Scope CurrentUser
         Install-Module -Name VcRedist -Force
     - name: Install PHP
-      env:
-        php_dir: C:\tools\php
       run: |
+        $php_dir = "C:\tools\php"
         Install-Php -Version ${{ matrix.php-versions }} -Architecture x86 -ThreadSafe $false -InstallVC -Path $php_dir -TimeZone UTC -InitialPhpIni Production -Force
         $installed = Get-Php -Path $php_dir
         Set-PhpIniKey -Key 'date.timezone' -Value 'UTC' -Path $php_dir
     - name: Setup
-      env:
-        php_dir: C:\tools\php
       run: |
+        $php_dir = "C:\tools\php"
         try
         {
           $bintray = "https://dl.bintray.com/shivammathur/php"
@@ -37,9 +35,8 @@ jobs:
           Write-Output $_.Exception|format-list -force
         }   
     - name: Update CA
-      env:
-        php_dir: C:\tools\php
       run: |
+        $php_dir = "C:\tools\php"
         Update-PhpCAInfo -Path $php_dir -Source CurrentUser        
     - name: Testing PHP version
       run: php -v
