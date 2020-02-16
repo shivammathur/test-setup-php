@@ -27,11 +27,12 @@ jobs:
       run: |
         $php_dir = "C:\tools\php"
         DIR $php_dir\ext
+        Add-Content $php_dir\php.ini "extension=openssl"
+        Add-Content $php_dir\php.ini "extension=curl"
+        php -m    
         $bintray = "https://dl.bintray.com/shivammathur/php"
         Invoke-WebRequest -UseBasicParsing -Uri $bintray/libeay32.dll -OutFile $php_dir\libeay32.dll
         Invoke-WebRequest -UseBasicParsing -Uri $bintray/ssleay32.dll -OutFile $php_dir\ssleay32.dll
-        Add-Content $php_dir\php.ini "extension=openssl"
-        Add-Content $php_dir\php.ini "extension=curl"
     - name: Check ini
       run: cat C:\tools\php\php.ini    
     - name: Update CA
