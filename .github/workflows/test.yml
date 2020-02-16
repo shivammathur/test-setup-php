@@ -23,4 +23,8 @@ jobs:
     - name: Test composer
       run: |        
         php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
-        composer global require robmorgan/phinx
+        try {
+          composer -vvv global require robmorgan/phinx
+        } catch {
+          echo $_.Exception|format-list -force
+        }
