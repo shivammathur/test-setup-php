@@ -12,15 +12,40 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v1
+    - name: Install PhpManager
+      run: |
+        Install-Module -Name PhpManager -Force -Scope CurrentUser
+        Install-Module -Name VcRedist -Force
     - name: Install PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: ${{ matrix.php-versions }}
+      env:
+        php_dir: C:\tools\php
+      run: |
+        Install-Php -Version ${{ matrix.php-versions }} -Architecture x86 -ThreadSafe $false -InstallVC -Path $php_dir -TimeZone UTC -InitialPhpIni Production -Force
+        $installed = Get-Php -Path $php_dir
+        Set-PhpIniKey -Key 'date.timezone' -Value 'UTC' -Path $php_dir
+    - name: Setup
+      env:
+        php_dir: C:\tools\php
+      run: |
+        try
+        {
+          $bintray = "https://dl.bintray.com/shivammathur/php"
+          Invoke-WebRequest -UseBasicParsing -Uri $bintray/libeay32.dll -OutFile $php_dir\libeay32.dll
+          Invoke-WebRequest -UseBasicParsing -Uri $bintray/ssleay32.dll -OutFile $php_dir\ssleay32.dll
+          Add-Content $php_dir\php.ini "extension=php_curl.dll`nextension=php_openssl.dll"
+        } catch {
+          Write-Output $_.Exception|format-list -force
+        }   
+    - name: Update CA
+      env:
+        php_dir: C:\tools\php
+      run: |
+        Update-PhpCAInfo -Path $php_dir -Source CurrentUser        
     - name: Testing PHP version
       run: php -v
     - name: Testing extension
       run: php -m
     - name: Test composer
-      run: |
+      run: |        
         php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
         composer global require robmorgan/phinx
