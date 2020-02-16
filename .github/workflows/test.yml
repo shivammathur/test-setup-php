@@ -24,7 +24,7 @@ jobs:
       run: |        
         php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
         try {
-          composer -vvv global require robmorgan/phinx
+          composer -vvv self-update
         } catch {
           echo $_.Exception|format-list -force
         }
