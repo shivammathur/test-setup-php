@@ -11,42 +11,14 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
-    - name: Install PhpManager
-      run: |
-        Install-Module -Name PhpManager -Force -Scope CurrentUser
-        Install-Module -Name VcRedist -Force
+      uses: actions/checkout@v2
     - name: Install PHP
-      run: |
-        $php_dir = "C:\tools\php5"
-        mkdir -p $php_dir
-        Install-Php -Version ${{ matrix.php-versions }} -Architecture x86 -ThreadSafe $false -InstallVC -Path $php_dir -TimeZone UTC -InitialPhpIni Production -Force
-        $installed = Get-Php -Path $php_dir
-        Set-PhpIniKey -Key 'date.timezone' -Value 'UTC' -Path $php_dir
-    - name: Setup
-      run: |
-        $php_dir = "C:\tools\php5"
-        DIR $php_dir\ext
-        Add-Content $php_dir\php.ini "extension=$php_dir\php_openssl.dll"
-        Add-Content $php_dir\php.ini "extension=$php_dir\php_curl.dll"
-        php -m    
-        #$bintray = "https://dl.bintray.com/shivammathur/php"
-        #Invoke-WebRequest -UseBasicParsing -Uri $bintray/libeay32.dll -OutFile $php_dir\libeay32.dll
-        #Invoke-WebRequest -UseBasicParsing -Uri $bintray/ssleay32.dll -OutFile $php_dir\ssleay32.dll
-    - name: Check ini
-      run: cat C:\tools\php5\php.ini    
-    - name: Update CA
-      run: |
-        $php_dir = "C:\tools\php5"
-        try {
-          Update-PhpCAInfo -Path $php_dir -Source CurrentUser        
-        } catch {
-          Write-Output $_.Exception|format-list -force
-        }
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-versions }}
     - name: Testing PHP version
-      run: C:\tools\php5\php -v
+      run: php -v
     - name: Testing extension
-      run: C:\tools\php5\php -m
+      run: php -m
     - name: Test composer
-      run: |        
-        C:\tools\php5\php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"        
+      run: php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
