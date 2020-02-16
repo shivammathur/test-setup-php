@@ -19,16 +19,19 @@ jobs:
     - name: Install PHP
       run: |
         $php_dir = "C:\tools\php"
+        Remove-Item $php_dir -Recurse
         Install-Php -Version ${{ matrix.php-versions }} -Architecture x86 -ThreadSafe $false -InstallVC -Path $php_dir -TimeZone UTC -InitialPhpIni Production -Force
         $installed = Get-Php -Path $php_dir
         Set-PhpIniKey -Key 'date.timezone' -Value 'UTC' -Path $php_dir
     - name: Setup
       run: |
         $php_dir = "C:\tools\php"
+        DIR $php_dir\ext
         $bintray = "https://dl.bintray.com/shivammathur/php"
         Invoke-WebRequest -UseBasicParsing -Uri $bintray/libeay32.dll -OutFile $php_dir\libeay32.dll
         Invoke-WebRequest -UseBasicParsing -Uri $bintray/ssleay32.dll -OutFile $php_dir\ssleay32.dll
-        Enable-PhpExtension -Extension openssl, curl -Path $php_dir
+        Enable-PhpExtension -Extension openssl -Path $php_dir
+        Enable-PhpExtension -Extension curl -Path $php_dir
     - name: Check ini
       run: cat C:\tools\php\php.ini    
     - name: Update CA
