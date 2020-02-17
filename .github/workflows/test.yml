@@ -16,7 +16,6 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: mysql
     - name: Install Mysql
       run: |
         sudo apt-cache policy php5-mysql
