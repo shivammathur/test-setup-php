@@ -16,11 +16,7 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}
-    - name: Install Mysql
-      run: |
-        sudo apt-get update
-        sudo apt-cache policy php5-mysql
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y php5-mysql=5.5.38-1~dotdeb+7.1
+        extensions: mysql
     - name: Testing PHP version
       run: php -v
     - name: Test PHP extensions
