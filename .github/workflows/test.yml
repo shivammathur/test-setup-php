@@ -18,6 +18,7 @@ jobs:
         php-version: ${{ matrix.php-versions }}
     - name: Install Mysql
       run: |
+        sudo apt-get update
         sudo apt-cache policy php5-mysql
         sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y php5-mysql=5.5.38-1~dotdeb+7.1
     - name: Testing PHP version
