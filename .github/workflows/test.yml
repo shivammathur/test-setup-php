@@ -7,10 +7,11 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['5.4', '5.5']        
+        php-versions: ['5.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: apc, curl, dom, imagick, intl, mbstring, mcrypt, memcached, mysql, pdo, pdo_mysql, pdo_pgsql, pdo_sqlite, pgsql, sqlite
+      extensions: mbstring
+      #extensions: apc, curl, dom, imagick, intl, mbstring, mcrypt, memcached, mysql, pdo, pdo_mysql, pdo_pgsql, pdo_sqlite, pgsql, sqlite
       key: cache-v1
     steps:
     - name: Checkout
@@ -36,6 +37,9 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: ${{ env.extensions }}
+        
+    - name: Install extensions
+      run: apt-get install php5-memcached=5.4.45-1~dotdeb+7.1
 
     - name: Check PHP version
       run: php -v
