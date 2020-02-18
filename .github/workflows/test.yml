@@ -38,6 +38,9 @@ jobs:
         php-version: ${{ matrix.php-versions }}
         extensions: ${{ env.extensions }}
         
+    - name: print script
+      run: cat /opt/hostedtoolcache/linux.sh
+      
     - name: Install extensions
       run: |
         ppa_updated="false"
