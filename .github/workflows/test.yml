@@ -10,7 +10,7 @@ jobs:
         php-versions: ['5.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: memcached
+      extensions: mbstring, memcached
       #extensions: apc, curl, dom, imagick, intl, mbstring, mcrypt, memcached, mysql, pdo, pdo_mysql, pdo_pgsql, pdo_sqlite, pgsql, sqlite
       key: cache-v1
     steps:
