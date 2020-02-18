@@ -39,7 +39,7 @@ jobs:
         extensions: ${{ env.extensions }}
         
     - name: Install extensions
-      run: apt-get install php5-memcached=5.4.45-1~dotdeb+7.1
+      run: sudo DEBIAN_FRONTEND=noninteractive apt-get install -y php5-memcached=5.4.45-1~dotdeb+7.1
 
     - name: Check PHP version
       run: php -v
