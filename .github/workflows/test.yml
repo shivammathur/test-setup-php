@@ -10,7 +10,7 @@ jobs:
         php-versions: ['5.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: memcached
+      extensions: mbstring
       #extensions: apc, curl, dom, imagick, intl, mbstring, mcrypt, memcached, mysql, pdo, pdo_mysql, pdo_pgsql, pdo_sqlite, pgsql, sqlite
       key: cache-v1
     steps:
@@ -43,12 +43,24 @@ jobs:
       
     - name: Install extensions
       run: |
+        tick="✓"
+        cross="✗"
         ppa_updated="false"
         old_versions="5.[4-5]"
         debconf_fix="DEBIAN_FRONTEND=noninteractive"
         apt_install="sudo $debconf_fix apt-fast install -y"      
         version="5.4"
         extension="memcached"
+        add_log() {
+          mark=$1
+          subject=$2
+          message=$3
+          if [ "$mark" = "$tick" ]; then
+            printf "\033[32;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s\033[0m\n" "$mark" "$subject" "$message"
+          else
+            printf "\033[31;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s\033[0m\n" "$mark" "$subject" "$message"
+          fi
+        }        
         update_ppa() {
           if [ "$ppa_updated" = "false" ]; then
             if [[ "$version" =~ $old_versions ]]; then
@@ -67,7 +79,7 @@ jobs:
         install_command="$apt_install php5.4-$extension" 
         install_command="ppa_updated=$(update_ppa) && ${install_command/5\.[4-5]-$extension/5-$extension=$release_version}"
         echo "install_command: $install_command"
-        eval "$install_command"
+        (eval "$install_command" >/dev/null 2>&1 && add_log "$tick" "$extension" "Installed and enabled")
 
     - name: Check PHP version
       run: php -v
