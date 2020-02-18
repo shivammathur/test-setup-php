@@ -56,12 +56,12 @@ jobs:
             find /etc/apt/sources.list.d -type f -name "$ppa" -exec sudo "$debconf_fix" apt-fast update -o Dir::Etc::sourcelist="{}" ';' >/dev/null 2>&1
             echo "true"
           fi
-        }      
+        }
         test() {
-            release_version=$(php -v | head -n 1 | cut -d' ' -f 2)
+          release_version=$(php -v | head -n 1 | cut -d' ' -f 2)
         }
         test
-        install_command="$apt_install $extension" 
+        install_command="$apt_install php5.4-$extension" 
         install_command="ppa_updated=$(update_ppa) && ${install_command/5\.[4-5]-$extension/5-$extension=$release_version}"
         echo "install_command: $install_command"
         eval "$install_command"
