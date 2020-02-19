@@ -1,4 +1,4 @@
-name: 'v1 workflow'
+name: 'v2 workflow'
 on:
   repository_dispatch:
   push:
@@ -8,21 +8,24 @@ jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
+      fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
         coverage: [xdebug, pcov, none]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@v1
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, opcache
+          extensions: mbstring, xdebug, pcov, intl, gd
           ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
           coverage: ${{ matrix.coverage }}
+      - name: Add Problem Matcher
+        run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing PHP version
@@ -35,7 +38,10 @@ jobs:
         run: |
           php -m
           php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
-          php -r "if(! extension_loaded('Zend OPcache')) {throw new Exception('mbstring not found');}"
+          php -r "if('${{ matrix.coverage }}'=='xdebug' && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
+          php -r "if('${{ matrix.coverage }}'!='none' && phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
+          php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
+          php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}"
       - name: Testing ini values
         run: |
           php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
