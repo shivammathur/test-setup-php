@@ -15,7 +15,7 @@ jobs:
     - name: Install PHP
       env:
         update: true
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@6a305d9
       with:
         php-version: ${{ matrix.php-versions }}
     - name: Testing PHP version
