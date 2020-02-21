@@ -22,6 +22,8 @@ jobs:
       run: |
         old_versions="5.[4-5]"
         ppa_updated="false"
+        debconf_fix="DEBIAN_FRONTEND=noninteractive"
+        apt_install="sudo $debconf_fix apt-fast install -y"        
         update_ppa() {
           if [ "$ppa_updated" = "false" ]; then
             if [[ "$version" =~ $old_versions ]]; then
@@ -33,8 +35,6 @@ jobs:
           fi
         }
         update_ppa
-        debconf_fix="DEBIAN_FRONTEND=noninteractive"
-        apt_install="sudo $debconf_fix apt-fast install -y"
         $apt_install php"$version" php"$version"-curl php"$version"-mbstring php"$version"-xml
     - name: Testing PHP version
       run: php -v
