@@ -14,7 +14,8 @@ jobs:
       uses: actions/checkout@v2
     - name: Setup PHP
       run: |
-        curl -s https://php-osx.liip.ch/install.sh | bash -s ${{ matrix.php-versions }}
+        curl -s https://php-osx.liip.ch/install.sh | bash -s ${{ matrix.php-versions }} >/dev/null 2>&1
+        cat /usr/local/php5/php.d/99-liip-developer.ini
         sudo rm -rf /usr/local/php5/php.d/99-liip-developer.ini
         sudo ln -sf /usr/local/php5/bin/* /usr/local/bin
     - name: check ini
@@ -22,7 +23,7 @@ jobs:
         ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
         sudo chmod 777 "$ini_file"
         echo "detect_unicode=Off" >>"$ini_file"      
-        sudo pecl install -f acpu-4.0.11
+        sudo pecl install -f apcu-4.0.11
     - name: Setup Composer
       run: |
         brew install composer
