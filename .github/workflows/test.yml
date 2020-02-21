@@ -19,7 +19,10 @@ jobs:
     - name: Testing PHP version
       env:
         version: ${{ matrix.php-versions }}
-      run: $apt_install php"$version" php"$version"-curl php"$version"-mbstring php"$version"-xml
+      run: |
+        debconf_fix="DEBIAN_FRONTEND=noninteractive"
+        apt_install="sudo $debconf_fix apt-fast install -y"
+        $apt_install php"$version" php"$version"-curl php"$version"-mbstring php"$version"-xml
     - name: Testing PHP version
       run: php -v
     - name: Test PHP extensions
