@@ -6,17 +6,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [ubuntu-latest]        
-        php-versions: ['5.3', '5.4', '5.5']
+        operating-system: [ubuntu-latest, ubuntu-16.04]        
+        php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Install PHP
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@develop
       with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: mysql
+        php-version: ${{ matrix.php-versions }}        
+    - name: Testing PHP version
+      env:
+        version: ${{ matrix.php-versions }}
+      run: $apt_install php"$version" php"$version"-curl php"$version"-mbstring php"$version"-xml
     - name: Testing PHP version
       run: php -v
     - name: Test PHP extensions
