@@ -6,13 +6,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [windows-latest, windows-2016]
-        php-versions: ['5.3', '5.4', '5.5', '7.2']
+        operating-system: [windows-latest, macos-latest]
+        php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Install PHP
+      env:
+        update: true
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}
@@ -20,11 +22,3 @@ jobs:
       run: php -v
     - name: Testing extension
       run: php -m
-    - name: Test composer
-      run: |        
-        php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
-        try {
-          composer -vvv self-update
-        } catch {
-          echo $_.Exception|format-list -force
-        }
