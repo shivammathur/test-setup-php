@@ -7,7 +7,7 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [macos-latest]
-        php-versions: ['5.3', '5.4', '5.5', '5.6']
+        php-versions: ['5.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}    
     steps:
     - name: Checkout
@@ -17,6 +17,10 @@ jobs:
         curl -s https://php-osx.liip.ch/install.sh | bash -s ${{ matrix.php-versions }}
         sudo rm -rf /usr/local/php5/php.d/99-liip-developer.ini
         sudo ln -sf /usr/local/php5/bin/* /usr/local/bin
+    - name: check ini
+      run: |
+        cat /usr/local/php5-5.3.29-20141019-211753/lib/php.ini
+        echo "detect_unicode=Off" >> /usr/local/php5-5.3.29-20141019-211753/lib/php.ini
     - name: Setup Composer
       run: |
         brew install composer
