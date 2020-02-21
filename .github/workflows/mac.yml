@@ -17,7 +17,10 @@ jobs:
         curl -s https://php-osx.liip.ch/install.sh | bash -s ${{ matrix.php-versions }}
         sudo rm -rf /usr/local/php5/php.d/99-liip-developer.ini
         sudo ln -sf /usr/local/php5/bin/* /usr/local/bin
-        ls /usr/local/php5/bin/
+    - name: Setup Composer
+      run: |
+        brew install composer
+        composer -V
     - name: Testing PHP version
       run: |
         php -v    
