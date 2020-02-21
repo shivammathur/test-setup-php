@@ -20,7 +20,8 @@ jobs:
         ls /usr/local/php5/bin/
     - name: Testing PHP version
       run: |
-        php -v              
+        php -v    
+        php --ini          
     - name: Testing
       run: |
         php -m
