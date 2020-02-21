@@ -15,7 +15,7 @@ jobs:
     - name: Setup PHP
       run: |
         wget https://raw.githubusercontent.com/faessler/homebrew-php-from-stone-age/master/php%40${{ matrix.php-versions }}.rb
-        brew install ./php%40${{ matrix.php-versions }}.rb
+        brew install ./php@${{ matrix.php-versions }}.rb
         brew link --force --overwrite php@${{ matrix.php-versions }}
     - name: Testing PHP version
       run: |
