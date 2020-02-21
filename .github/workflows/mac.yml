@@ -22,7 +22,7 @@ jobs:
         ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
         sudo chmod 777 "$ini_file"
         echo "detect_unicode=Off" >>"$ini_file"      
-        sudo pecl install -f inotify-0.1.6
+        sudo pecl install -f acpu-4.0.11
     - name: Setup Composer
       run: |
         brew install composer
