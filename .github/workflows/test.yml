@@ -11,11 +11,11 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
-      uses: actions/checkout@develop
+      uses: actions/checkout@v2
     - name: Install PHP
       env:
         update: true
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
     - name: Testing PHP version
