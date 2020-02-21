@@ -7,7 +7,7 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [macos-latest]
-        php-versions: ['5.3']
+        php-versions: ['5.3', '5.4', '5.5']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}    
     steps:
     - name: Checkout
@@ -19,10 +19,10 @@ jobs:
         sudo ln -sf /usr/local/php5/bin/* /usr/local/bin
     - name: check ini
       run: |
-        cat /usr/local/php5-5.3.29-20141019-211753/lib/php.ini
         ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
         sudo chmod 777 "$ini_file"
-        echo "detect_unicode=Off" >>"$ini_file"
+        echo "detect_unicode=Off" >>"$ini_file"      
+        sudo pecl install -f inotify-0.1.6
     - name: Setup Composer
       run: |
         brew install composer
