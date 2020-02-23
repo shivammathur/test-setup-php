@@ -11,7 +11,7 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
       extensions: apcu, igbinary, html_parse
-      key: cache-darwin
+      key: cache-darwin1
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -19,7 +19,7 @@ jobs:
       run: brew install ekhtml
     - name: Setup cache environment
       id: cache-env
-      uses: shivammathur/cache-extensions@v1
+      uses: shivammathur/cache-extensions@develop
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: ${{ env.extensions }}
