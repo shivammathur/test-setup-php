@@ -18,12 +18,12 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: apcu, igbinary, gnupg
+        extensions: apcu, igbinary, expect-0.3.2
     - name: Testing PHP version
       run: |
         php -v        
     - name: Testing
       run: |        
-        sudo pecl install -f gnupg
+        sudo pecl install -f expect-0.3.2
         php -m
         php -r "echo phpversion('apcu');"       
