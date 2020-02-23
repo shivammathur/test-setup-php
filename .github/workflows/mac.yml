@@ -10,13 +10,12 @@ jobs:
         php-versions: ['5.3', '5.4', '5.5']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: apcu, igbinary, html_parse
-      key: cache-darwin1
+      extensions: apcu-4.0.11
+      key: cache-darwin
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: install dependency
-      run: brew install ekhtml
+      
     - name: Setup cache environment
       id: cache-env
       uses: shivammathur/cache-extensions@develop
@@ -45,6 +44,5 @@ jobs:
         php -v        
     - name: Testing
       run: |
-        ls -la $(php -i | grep -Ei "extension_dir => /usr" | sed -e "s|.*=> s*||")
         php -m
         php -r "echo phpversion('apcu');"       
