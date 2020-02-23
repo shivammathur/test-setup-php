@@ -31,6 +31,9 @@ jobs:
         path: ${{ steps.cache-env.outputs.dir }}
         key: ${{ steps.cache-env.outputs.key }}
         restore-keys: ${{ steps.cache-env.outputs.key }}
+        
+    - name: Verify cache
+      run: ls ${{ steps.cache-env.outputs.dir }}
 
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
