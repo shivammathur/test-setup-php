@@ -42,5 +42,6 @@ jobs:
         php -v        
     - name: Testing
       run: |
+        ls -la $(php -i | grep -Ei "extension_dir => /usr" | sed -e "s|.*=> s*||")
         php -m
         php -r "echo phpversion('apcu');"       
