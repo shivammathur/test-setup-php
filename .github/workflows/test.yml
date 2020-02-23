@@ -1,4 +1,4 @@
-name: Test extensions #test cache v9
+name: Test extensions
 on: [push]
 jobs:
   run:
@@ -7,14 +7,17 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['5.4', '5.5']
+        php-versions: ['5.3', '7.2', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: apc, curl, dom, imagick, intl, mbstring, mcrypt, memcached, mysql, pdo, pdo_mysql, pdo_pgsql, pdo_sqlite, pgsql, sqlite
-      key: cache-v10
+      extensions: inotify-0.1.6
+      key: cache-v1
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+    
+    - name: check toolcache
+      run: ls ${{ runner.tool_cache }}
 
     - name: Setup cache environment
       id: cache-env
@@ -37,11 +40,13 @@ jobs:
         php-version: ${{ matrix.php-versions }}
         extensions: ${{ env.extensions }}
         
-    - name: print script
-      run: cat /opt/hostedtoolcache/linux.sh
+    - name: check toolcache
+      run: ls ${{ runner.tool_cache }}
       
     - name: Check PHP version
       run: php -v
 
     - name: Check PHP extensions
-      run: php -m
+      run: |
+        php -r "echo phpversion('inotify');"
+        php -m
