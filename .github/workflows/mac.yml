@@ -36,10 +36,11 @@ jobs:
       run: ls ${{ steps.cache-env.outputs.dir }}
 
     - name: Setup PHP
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
+      run: sudo curl -s https://php-osx.liip.ch/install.sh | bash -s ${{ matrix.php-versions }}
+      #uses: shivammathur/setup-php@develop
+      #with:
+      #  php-version: ${{ matrix.php-versions }}
+      #  extensions: ${{ env.extensions }}
     - name: Testing PHP version
       run: |
         php -v        
