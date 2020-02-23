@@ -18,12 +18,11 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: apcu, igbinary, ncurses
+        extensions: apcu, igbinary, opengl-0.8.0
     - name: Testing PHP version
       run: |
         php -v        
     - name: Testing
-      run: |
-        sudo pecl install -f ncurses
+      run: |        
         php -m
         php -r "echo phpversion('apcu');"       
