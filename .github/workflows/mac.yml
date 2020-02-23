@@ -16,7 +16,7 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: acpu-4.0.11
+        extensions: apcu-4.0.11
     - name: Test Composer
       run: composer -V
     - name: Testing PHP version
