@@ -16,11 +16,11 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
+        extensions: apcu-4.0.11
     - name: Testing PHP version
       run: |
         php -v        
     - name: Testing
       run: |
-        sudo pecl install -f apcu-4.0.11
         php -m
-        php -r "echo phpversion('acpu');"       
+        php -r "echo phpversion('apcu');"       
