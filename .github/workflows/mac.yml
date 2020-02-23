@@ -11,19 +11,17 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}    
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
-    - name: link ncurses
-      run: sudo ln -sf /usr/lib/libncurses.dylib /usr/local/lib/libncursesw.dylib
+      uses: actions/checkout@v2        
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: apcu, igbinary, expect-0.3.2
+        extensions: apcu, igbinary, html_parse
     - name: Testing PHP version
       run: |
         php -v        
     - name: Testing
       run: |        
-        sudo pecl install -f expect-0.3.2
+        sudo pecl install -f html_parse
         php -m
         php -r "echo phpversion('apcu');"       
