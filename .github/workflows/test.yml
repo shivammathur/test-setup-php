@@ -7,13 +7,12 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [ubuntu-latest, ubuntu-16.04]        
-        php-versions: ['5.6', '7.0']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    name: Test on ${{ matrix.operating-system }}
     steps:
     - name: Test ppa
       run: |
-        sudo apt-config policy libicu-dev
-        sudo apt-config depends libicu-dev
+        sudo apt-cache policy libicu-dev
+        sudo apt-cache depends libicu-dev
         sudo DEBIAN_FRONTEND=noninteractive apt-get update
-        sudo apt-config policy libicu-dev
-        sudo apt-config depends libicu-dev        
+        sudo apt-cache policy libicu-dev
+        sudo apt-cache depends libicu-dev        
