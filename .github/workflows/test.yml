@@ -40,12 +40,9 @@ jobs:
     - name: update composer
       run: |
         for i in 1 2 3 4 5 7; do
-          echo 'webiste'
-          time curl -SLO https://getcomposer.org/composer-stable.phar
-          echo 'github'
-          time curl -SLO https://github.com/composer/composer/releases/download/1.9.3/composer.phar
-          echo 'bintray'
-          time curl -SLO https://dl.bintray.com/shivammathur/playground/composer.phar
+          echo 'webiste' && time curl -sSLO https://getcomposer.org/composer-stable.phar
+          echo 'github' && time curl -sSLO https://github.com/composer/composer/releases/download/1.9.3/composer.phar
+          echo 'bintray' && time curl -sSLO https://dl.bintray.com/shivammathur/playground/composer.phar
         done  
       
     - name: Check PHP version
