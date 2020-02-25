@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-latest, macos-latest]
         php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
@@ -39,7 +39,8 @@ jobs:
         
     - name: update composer
       run: |
-        sudo composer self-update
+        time curl -sSLO https://getcomposer.org/composer-stable.phar
+        time curl -sSLO https://github.com/composer/composer/releases/download/1.9.3/composer.phar
         composer -V
       
     - name: Check PHP version
