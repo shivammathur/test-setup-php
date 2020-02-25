@@ -6,18 +6,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['5.3', '7.2', '7.4']
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        php-versions: {'7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: inotify-0.1.6
+      extensions: mbstring
       key: cache-v1
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    
-    - name: check toolcache
-      run: ls ${{ runner.tool_cache }}
 
     - name: Setup cache environment
       id: cache-env
@@ -40,8 +37,10 @@ jobs:
         php-version: ${{ matrix.php-versions }}
         extensions: ${{ env.extensions }}
         
-    - name: check toolcache
-      run: ls ${{ runner.tool_cache }}
+    - name: update composer
+      run: |
+        composer self-update
+        composer -V
       
     - name: Check PHP version
       run: php -v
