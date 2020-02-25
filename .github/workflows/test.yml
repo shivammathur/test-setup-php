@@ -42,8 +42,8 @@ jobs:
 
     - name: Check PHP extensions
       run: |
-        php -r "echo 'inotify'.phpversion('inotify');"
-        php -r "echo 'xdebug'.phpversion('xdebug');"
-        php -r "echo 'pcov'.phpversion('pcov');"
-        php -r "echo 'pcov'.phpversion('intl');"
+        php -r "echo 'inotify'.phpversion('inotify').', ';"
+        php -r "echo 'xdebug'.phpversion('xdebug').', ';"
+        php -r "echo 'pcov'.phpversion('pcov').', ';"
+        php -r "echo 'intl'.phpversion('intl');"
         php -m
