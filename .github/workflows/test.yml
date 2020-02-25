@@ -19,9 +19,8 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: wp-cli
 
       - name: Testing Tools
         run: |
-          wp-cli --info
-          wp --info
+          composer self-update
+          composer -V
