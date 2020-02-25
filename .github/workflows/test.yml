@@ -10,7 +10,7 @@ jobs:
         php-versions: ['5.5', '7.2', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: intl, xdebug-2.8.0beta2, pcov-beta, inotify
+      extensions: xdebug-beta
       key: cache-v1
     steps:
     - name: Checkout
@@ -42,8 +42,5 @@ jobs:
 
     - name: Check PHP extensions
       run: |
-        php -r "echo 'inotify'.phpversion('inotify').', ';"
-        php -r "echo 'xdebug'.phpversion('xdebug').', ';"
-        php -r "echo 'pcov'.phpversion('pcov').', ';"
-        php -r "echo 'intl'.phpversion('intl');"
+        php -r "echo 'xdebug'.phpversion('xdebug');"
         php -m
