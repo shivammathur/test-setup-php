@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, macos-latest]
+        operating-system: [ubuntu-latest]
         php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
@@ -39,9 +39,10 @@ jobs:
         
     - name: update composer
       run: |
-        time curl -sSLO https://getcomposer.org/composer-stable.phar
-        time curl -sSLO https://github.com/composer/composer/releases/download/1.9.3/composer.phar
-        composer -V
+        for i in 1 2 3 4 5 7; do
+          time curl -sSLO https://getcomposer.org/composer-stable.phar
+          time curl -sSLO https://github.com/composer/composer/releases/download/1.9.3/composer.phar
+        done  
       
     - name: Check PHP version
       run: php -v
