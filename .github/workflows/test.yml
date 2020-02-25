@@ -39,7 +39,7 @@ jobs:
         
     - name: update composer
       run: |
-        composer self-update
+        sudo composer self-update
         composer -V
       
     - name: Check PHP version
