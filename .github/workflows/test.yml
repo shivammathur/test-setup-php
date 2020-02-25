@@ -6,11 +6,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['7.4']
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        php-versions: ['5.5', '7.2', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: mbstring
+      extensions: intl, xdebug-2.8.0beta2, pcov-beta, inotify
       key: cache-v1
     steps:
     - name: Checkout
@@ -18,7 +18,7 @@ jobs:
 
     - name: Setup cache environment
       id: cache-env
-      uses: shivammathur/cache-extensions@v1
+      uses: shivammathur/cache-extensions@develop
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: ${{ env.extensions }}
@@ -36,19 +36,14 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: ${{ env.extensions }}
-        
-    - name: update composer
-      run: |
-        for i in 1 2 3 4 5 7; do
-          echo 'webiste' && time curl -sSLO https://getcomposer.org/composer-stable.phar
-          echo 'github' && time curl -sSLO https://github.com/composer/composer/releases/download/1.9.3/composer.phar
-          echo 'bintray' && time curl -sSLO https://dl.bintray.com/shivammathur/playground/composer.phar
-        done  
       
     - name: Check PHP version
       run: php -v
 
     - name: Check PHP extensions
       run: |
-        php -r "echo phpversion('inotify');"
+        php -r "echo 'inotify'.phpversion('inotify');"
+        php -r "echo 'xdebug'.phpversion('xdebug');"
+        php -r "echo 'pcov'.phpversion('pcov');"
+        php -r "echo 'pcov'.phpversion('intl');"
         php -m
