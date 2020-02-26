@@ -10,5 +10,6 @@ jobs:
     name: Test on ${{ matrix.operating-system }}
     steps:
     - name: Test services
-      run: ls /etc/init.d
-    - name: service postgresql status
+      run: |
+        ls /etc/init.d
+        service postgresql status
