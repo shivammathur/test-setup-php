@@ -9,10 +9,6 @@ jobs:
         operating-system: [ubuntu-latest, ubuntu-16.04]        
     name: Test on ${{ matrix.operating-system }}
     steps:
-    - name: Test ppa
-      run: |
-        sudo apt-cache policy libicu-dev
-        sudo apt-cache depends libicu-dev
-        sudo DEBIAN_FRONTEND=noninteractive apt-get update
-        sudo apt-cache policy libicu-dev
-        sudo apt-cache depends libicu-dev        
+    - name: Test services
+      run: ls /etc/init.d
+    - name: service postgresql status
