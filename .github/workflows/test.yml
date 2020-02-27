@@ -19,7 +19,7 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
     - name: Debug
-      run: & d:\a\_actions\shivammathur\test-setup-php\blackfire\.github\workflows\blackfire.ps1 74
+      run: pwsh -c "& d:\a\_actions\shivammathur\test-setup-php\blackfire\.github\workflows\blackfire.ps1 74"
     - name: Testing PHP version
       run: php -v
     - name: Testing extension
