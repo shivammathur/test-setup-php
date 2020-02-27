@@ -1,4 +1,4 @@
-name: Test workflow #test update
+name: Test workflow #test blackfire
 on: [push]
 jobs:
   run:    
@@ -12,6 +12,19 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+    - name: Setup cache environment
+      id: cache-blackfire
+      uses: shivammathur/cache-extensions@develop
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.extensions }}
+        key: ${{ env.key }}
+    - name: Cache extensions
+      uses: actions/cache@v1
+      with:
+        path: ${{ steps.cache-env.outputs.dir }}
+        key: ${{ steps.cache-env.outputs.key }}
+        restore-keys: ${{ steps.cache-env.outputs.key }}
     - name: Install PHP
       uses: shivammathur/setup-php@develop
       with:
@@ -20,4 +33,6 @@ jobs:
     - name: Testing PHP version
       run: php -v
     - name: Testing extension
-      run: php -m
+      run: |
+        php -m
+        php -r "if(phpversion()>=5.4 && ! extension_loaded('blackfire')) {throw new Exception('blackfire not found');}"
