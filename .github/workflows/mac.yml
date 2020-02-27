@@ -14,13 +14,13 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Setup PHP      
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
     - name: Testing PHP version
       run: |
         php -v
-        php -r "echo "PHP_INT_SIZE: ".PHP_INT_SIZE;"   
+        php -r "echo 'PHP_INT_SIZE: '.PHP_INT_SIZE;"   
     - name: Testing
       run: |
         php -m
