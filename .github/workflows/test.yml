@@ -13,9 +13,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Install PHP
-      uses: shivammathur/setup-php@verbose
+      uses: jaapio/setup-php@feature/ext-blackfire
       with:
         php-version: ${{ matrix.php-versions }}
+        extensions: blackfire
     - name: Testing PHP version
       run: php -v
     - name: Testing extension
