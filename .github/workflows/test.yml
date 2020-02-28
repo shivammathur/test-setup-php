@@ -20,7 +20,7 @@ jobs:
       uses: shivammathur/cache-extensions@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
+        extensions: ${{ env.extensions }}        
         key: ${{ env.key }}
     - name: Cache extensions
       uses: actions/cache@v1
@@ -32,10 +32,16 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}    
+        extensions: ${{ env.extensions }}
+        tools: blackfire, blackfire-player
     - name: Testing PHP version
       run: php -v
     - name: Testing extension
       run: |
         php -m
         php -r "if(phpversion()>=5.4 && ! extension_loaded('blackfire')) {throw new Exception('blackfire not found');}"
+        blackfire-agent -v
+        blackfire version -V
+        blackfire-player
+        blackfire-agent -d
+        
