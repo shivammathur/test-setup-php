@@ -16,6 +16,7 @@ jobs:
     - name: Setup PHP      
       run: |
         /usr/bin/python -V
+        /usr/bin/python3 -V
         sudo curl -sSL https://dl.bintray.com/shivammathur/php/install.sh | bash -s ${{ matrix.php-versions }}
         for tool in pear peardev pecl php php-config phpize; do
           sudo ln -sf /usr/local/php5/bin/"$tool" /usr/local/bin/"$tool"
