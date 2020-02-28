@@ -6,21 +6,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-latest]        
-    name: Test
+        operating-system: [macos-latest]
+        php-versions: ['5.3', '5.4', '5.5']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Setup PHP      
+    - name: Setup certifi
       run: |
-        if [[ -f /usr/bin/python3 ]]; then
-           PYTHONPATH=/usr/bin/python3
-        elif [[ -f /usr/bin/python ]]; then
-           PYTHONPATH=/usr/bin/python
-        else
-           PYTHONPATH=$(command -v python)
-        fi        
-        pip3 -V || echo "pip3 not found"
-        pip3.7 -V || echo "pip3.7 not found"
-        pip"$($PYTHONPATH -V | cut -d' ' -f 2 | cut -d'.' -f 1-2)" -V
+        pip3 install certifi
+        python3 -c "import certifi; print(certifi.where())"
