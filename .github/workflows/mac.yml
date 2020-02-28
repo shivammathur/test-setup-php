@@ -21,7 +21,8 @@ jobs:
         done        
     - name: Testing PHP version
       run: |
-        php -v        
+        php -v
+        php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
     - name: Testing
       run: |
         php -m
