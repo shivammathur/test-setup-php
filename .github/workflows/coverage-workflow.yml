@@ -1,4 +1,4 @@
-name: 'Develop workflow'
+name: 'Develop coverage workflow'
 on:
   repository_dispatch:
   push:
@@ -11,7 +11,8 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macOS-latest]
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        php-versions: ['5.3', 5.5', '5.6', '7.4', '8.0']
+        coverage: [xdebug, pcov, none]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
       - name: Checkout
@@ -37,7 +38,7 @@ jobs:
         run: |
           php -m
           php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
-          php -r "if('${{ matrix.coverage }}'=='xdebug' && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
+          php -r "if('${{ matrix.coverage }}'=='xdebug' && phpversion() < 8.0 && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
           php -r "if('${{ matrix.coverage }}'!='none' && phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
           php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
           php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}"
@@ -55,7 +56,7 @@ jobs:
       - name: Testing Coverage if Xdebug
         if: matrix.coverage == 'xdebug'
         run: |
-          php -r "if(! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
+          php -r "if(phpversion() < 8.0 && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
           php -v
       - name: Testing disabling coverage
         if: matrix.coverage == 'none'

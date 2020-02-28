@@ -1,4 +1,4 @@
-name: Experimental v2 workflow
+name: Experimental develop workflow
 on:
   repository_dispatch:
   push:
@@ -13,12 +13,11 @@ jobs:
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macOS-latest]
         php-versions: ['8.0']
-        coverage: [xdebug, pcov, none]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: mbstring, opcache
