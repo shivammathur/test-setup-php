@@ -6,23 +6,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-latest]
-        php-versions: ['5.3', '5.4', '5.5']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        operating-system: [macos-latest]        
+    name: Test
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
     - name: Setup PHP      
       run: |
-        sudo curl -sSL https://dl.bintray.com/shivammathur/php/install.sh | bash -s ${{ matrix.php-versions }}
-        for tool in pear peardev pecl php php-config phpize; do
-          sudo ln -sf /usr/local/php5/bin/"$tool" /usr/local/bin/"$tool"
-        done        
-    - name: Testing PHP version
-      run: |
-        php -v
-        php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
-    - name: Testing
-      run: |
-        php -m
+        if [[ -f /usr/bin/python3 ]]; then
+           PYTHONPATH=/usr/bin/python3
+        elif [[ -f /usr/bin/python ]]; then
+           PYTHONPATH=/usr/bin/python
+        else
+           PYTHONPATH=$(command -v python)
+        fi        
+        pip3 -V || echo "pip3 not found"
+        pip3.7 -V || echo "pip3.7 not found"
+        pip"$($PYTHONPATH -V | cut -d' ' -f 2 | cut -d'.' -f 1-2)" -V
