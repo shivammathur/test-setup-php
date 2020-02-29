@@ -11,7 +11,7 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env: 
       extensions: xdebug, intl
-      key: cachev1
+      key: cachev10
     steps:
     - name: Checkout
       uses: actions/checkout@v2 
@@ -43,5 +43,7 @@ jobs:
     - name: Test PHP version
       run: |
         php -m
+        php -r "if(! extension_loaded('xdebug')) {throw new Exception('xdebug not found');}"
+        php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
         php -r "echo phpversion('xdebug').', ';"
         php -r "echo phpversion('intl');"
