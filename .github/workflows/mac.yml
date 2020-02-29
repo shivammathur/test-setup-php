@@ -9,11 +9,39 @@ jobs:
         operating-system: [macos-latest]
         php-versions: ['5.3', '5.4', '5.5']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    env: 
+      extensions: xdebug, swoole-1.9.3
+      key: cachev1
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v2 
+      
+    - name: Setup cache environment
+      id: cache-env
+      uses: shivammathur/cache-extensions@develop
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.extensions }}
+        key: ${{ env.key }}
 
-    - name: Setup certifi
+    - name: Cache extensions
+      uses: actions/cache@v1
+      with:
+        path: ${{ steps.cache-env.outputs.dir }}
+        key: ${{ steps.cache-env.outputs.key }}
+        restore-keys: ${{ steps.cache-env.outputs.key }}
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@develop
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.extensions }}
+        
+    - name: Test PHP version
+      run: php -v
+      
+    - name: Test PHP version
       run: |
-        pip3 install certifi
-        python3 -c "import certifi; print(certifi.where())"
+        php -m
+        php -r "echo phpversion('xdebug').', ';"
+        php -r "echo phpversion('swoole');"
