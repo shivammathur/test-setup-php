@@ -17,7 +17,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Test
-      id: test
+      id: test-step
       run: |
         version=${{ matrix.php-versions }}
         nodot_version=${version/./}
@@ -91,8 +91,11 @@ jobs:
         curl -V
         php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
         ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
-        echo "::set-output name=dir::$ext_dir"
+        echo $ext_dir
+        echo "::set-output name=ext_dir::$ext_dir"
+    - name: Test
+      run: echo ${{ steps.test-step.outputs.ext_dir }}
     - uses: actions/upload-artifact@v1    
       with:
         name: ext
-        path: ${{ steps.test.outputs.dir }}
+        path: ${{ steps.test-step.outputs.ext_dir }}
