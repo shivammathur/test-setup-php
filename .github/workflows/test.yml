@@ -18,14 +18,57 @@ jobs:
 
     - name: Test
       run: |
-        curl -s https://php-osx.liip.ch/install.sh | bash -s ${{ matrix.php-versions }}        
-        sudo curl -o /usr/local/php5/lib/libcrypto.a -SL https://dl.bintray.com/shivammathur/playground/libcrypto.a
-        sudo curl -o /usr/local/php5/lib/libcurl.4.dylib -SL https://dl.bintray.com/shivammathur/playground/libcurl.4.dylib
-        sudo curl -o /usr/local/php5/lib/libcurl.a -SL https://dl.bintray.com/shivammathur/playground/libcurl.a
-        sudo curl -o /usr/local/php5/lib/libcurl.la -SL https://dl.bintray.com/shivammathur/playground/libcurl.la
-        sudo ln -sf /usr/local/php5/bin/* /usr/local/bin/      
+        version=${{ matrix.php-versions }}
+        nodot_version=${version/./}
+        old_versions="5.[3-5]"
+        # Function to add PECL when macports is used
+        add_pecl_old() {
+          pecl_version='master'
+          if [ "$1" = "53" ]; then
+            pecl_version='v1.9.5'
+          fi
+          curl -o pear.phar -sSL https://github.com/pear/pearweb_phars/raw/$pecl_version/install-pear-nozlib.phar
+          sudo php pear.phar -d /opt/local/lib/php$1 -b /usr/local/bin && rm -rf pear.phar
+        }
+
+        add_macports() {
+          uri=$(curl -sSL https://github.com/macports/macports-base/releases | grep -Eo "(\/.*Catalina.pkg)" | head -n 1)
+          curl -o port.pkg -sSL https://github.com"$uri"
+          sudo installer -pkg port.pkg -target / && rm -rf port.pkg
+        }
+
+        sync_macports() {
+          while true; do
+            status=0
+            sudo port sync || status=$?
+            if [[ "$status" -eq 0 ]]; then
+              break
+            fi
+            sleep 2
+          done
+        }
+
+        port_setup_php() {
+          sudo port install php$1 php$1-curl php$1-mbstring php$1-xmlrpc php$1-openssl php$1-opcache
+          sudo cp /opt/local/etc/php$1/php.ini-development /opt/local/etc/php$1/php.ini
+          sudo port select --set php php$1
+          sudo ln -sf /opt/local/bin/* /usr/local/bin
+          add_pecl_old "$1"
+        }        
+        export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
+        export TERM=xterm
+        step_log "Setup Macports"
+        add_macports
+        add_log "$tick" "Macports" "Installed"
+        sync_macports
+        add_log "$tick" "Macports" "Synced"
+        step_log "Setup PHP"
+        port_setup_php $nodot_version
+        status="Installed"   
         php -i  | grep "Registered Stream Socket Transports "
         php -v
         php -m
         curl -V
-        php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"        
+        php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
+        ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
+        ls $ext_dir
