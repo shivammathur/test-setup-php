@@ -7,41 +7,22 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, ubuntu-16.04]
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        #php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+    #name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    name: test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v2      
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
-    
-    - name: Enable all extensions
-      run: |
-        ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-        ext_dir=$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
-        for bin in $ext_dir/*.so; do
-          extension=$(basename $bin | cut -d'.' -f 1)
-          if ! php -m | grep -i -q -w "$extension"; then
-            echo "extension=$extension.so" >>"$ini_file" && echo "$extension Enabled"
-          fi  
-        done
-        cat $ini_dir
-      
-    - name: Check PHP version
-      run: php -v
-
-    - name: Check PHP extensions
+    - name: Check Libs
       id: os
       run: |
-        php -m
+        apt list --installed | cut -d'/' -f 1        
         osname=$(lsb_release -s -c)
-        php -m > $osname-php${{ matrix.php-versions }}-extensions
+        apt list --installed | cut -d'/' -f 1 > $osname-libs
         echo "::set-output name=osname::$osname"
 
     - uses: actions/upload-artifact@v1
       with:
-        name: ${{ steps.os.outputs.osname }}-php${{ matrix.php-versions }}-extensions
-        path: ${{ steps.os.outputs.osname }}-php${{ matrix.php-versions }}-extensions
+        name: ${{ steps.os.outputs.osname }}-libs
+        path: ${{ steps.os.outputs.osname }}-libs
