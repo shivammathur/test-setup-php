@@ -58,14 +58,12 @@ jobs:
         }
 
         sync_macports() {
-          while true; do
-            status=0
-            sudo port sync || status=$?
-            if [[ "$status" -eq 0 ]]; then
-              break
-            fi
-            sleep 2
-          done
+          sudo mkdir -p /opt/local/var/macports/sources/github.com/macports/macports-ports/
+          sudo chown -R $USER:admin /opt/local/var/macports/sources/github.com
+          git clone https://github.com/macports/macports-ports.git /opt/local/var/macports/sources/github.com/macports/macports-ports/
+          rm -rf /opt/local/etc/macports/sources.conf
+          echo "file:///opt/local/var/macports/sources/github.com/macports/macports-ports/ [default]" | sudo tee /opt/local/etc/macports/sources.conf
+          sudo port -v sync
         }
 
         port_setup_php() {
