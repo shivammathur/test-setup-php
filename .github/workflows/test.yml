@@ -19,8 +19,11 @@ jobs:
     - name: Test
       run: |
         curl -s https://php-osx.liip.ch/install.sh | bash -s ${{ matrix.php-versions }}
-        sudo ln -sf /usr/local/php5/bin/* /usr/local/bin/
-        sudo ln -sf /usr/local/php5/lib/* /usr/local/lib/
+        curl -o /usr/local/php5/lib/libcrypto.a -SL https://dl.bintray.com/shivammathur/playground/libcrypto.a
+        curl -o /usr/local/php5/lib/libcurl.4.dylib -SL https://dl.bintray.com/shivammathur/playground/libcurl.4.dylib
+        curl -o /usr/local/php5/lib/libcurl.a -SL https://dl.bintray.com/shivammathur/playground/libcurl.a
+        curl -o /usr/local/php5/lib/libcurl.la -SL https://dl.bintray.com/shivammathur/playground/libcurl.la
+        sudo ln -sf /usr/local/php5/bin/* /usr/local/bin/      
         php -i  | grep "Registered Stream Socket Transports "
         php -v
         php -m
