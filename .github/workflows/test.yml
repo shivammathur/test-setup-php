@@ -17,9 +17,9 @@ jobs:
     - name: Check Libs
       id: os
       run: |
-        apt list --installed | cut -d'/' -f 1        
+        apt list --installed |  cut -d'/' -f 1 | grep ^lib.*
         osname=$(lsb_release -s -c)
-        apt list --installed | cut -d'/' -f 1 > $osname-libs
+        apt list --installed |  cut -d'/' -f 1 | grep ^lib.* > $osname-libs
         echo "::set-output name=osname::$osname"
 
     - uses: actions/upload-artifact@v1
