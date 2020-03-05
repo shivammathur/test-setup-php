@@ -20,6 +20,7 @@ jobs:
       run: |
         curl -s https://php-osx.liip.ch/install.sh | bash -s ${{ matrix.php-versions }}
         sudo ln -sf /usr/local/php5/bin/* /usr/local/bin/
+        sudo ln -sf /usr/local/php5/lib/* /usr/local/lib/
         php -i  | grep "Registered Stream Socket Transports "
         php -v
         php -m
