@@ -60,8 +60,8 @@ jobs:
         sync_macports() {
           sudo mkdir -p /opt/local/var/macports/sources/github.com/macports/macports-ports/
           sudo chown -R $USER:admin /opt/local/var/macports/sources/github.com
-          git clone https://github.com/macports/macports-ports.git /opt/local/var/macports/sources/github.com/macports/macports-ports/
-          rm -rf /opt/local/etc/macports/sources.conf
+          git clone --depth=1 https://github.com/macports/macports-ports.git /opt/local/var/macports/sources/github.com/macports/macports-ports/
+          sudo rm -rf /opt/local/etc/macports/sources.conf
           echo "file:///opt/local/var/macports/sources/github.com/macports/macports-ports/ [default]" | sudo tee /opt/local/etc/macports/sources.conf
           sudo port -v sync
         }
