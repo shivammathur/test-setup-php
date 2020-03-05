@@ -11,7 +11,7 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
       extensions: blackfire, apcu, intl, xml, json, zip, mbstring, pdo, pdo_mysql, pdo_odbc, pcntl, curl, date, openssl, xmlreader, zlib
-      key: cache-blackfire
+      key: cache-exts
       BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }} 
       BLACKFIRE_SERVER_TOKEN: ${{ secrets.BLACKFIRE_SERVER_TOKEN }}
       BLACKFIRE_CLIENT_ID: ${{ secrets.BLACKFIRE_CLIENT_ID }}
@@ -33,7 +33,7 @@ jobs:
         key: ${{ steps.cache-env.outputs.key }}
         restore-keys: ${{ steps.cache-env.outputs.key }}
     - name: Install PHP
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: ${{ env.extensions }}
