@@ -21,7 +21,26 @@ jobs:
         version=${{ matrix.php-versions }}
         nodot_version=${version/./}
         old_versions="5.[3-5]"
-        # Function to add PECL when macports is used
+        tick="✓"
+        cross="✗"
+
+        step_log() {
+          message=$1
+          printf "\n\033[90;1m==> \033[0m\033[37;1m%s\033[0m\n" "$message"
+        }
+
+        # Function to log result of a operation
+        add_log() {
+          mark=$1
+          subject=$2
+          message=$3
+          if [ "$mark" = "$tick" ]; then
+            printf "\033[32;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s\033[0m\n" "$mark" "$subject" "$message"
+          else
+            printf "\033[31;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s\033[0m\n" "$mark" "$subject" "$message"
+          fi
+        }
+
         add_pecl_old() {
           pecl_version='master'
           if [ "$1" = "53" ]; then
