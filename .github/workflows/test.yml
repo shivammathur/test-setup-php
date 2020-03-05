@@ -9,21 +9,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['5.6', '5.5', '5.4', '5.3']
+        operating-system: [macos-latest]
+        php-versions: ['5.4', '5.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: mbstring
-
     - name: Test
       run: |
+        curl -s https://php-osx.liip.ch/install.sh | bash -s ${{ matrix.php-versions }}
+        sudo ln -sf /usr/local/php5/bin/* /usr/local/bin/
+        php -i  | grep "Registered Stream Socket Transports "
         php -v
         php -m
         curl -V
