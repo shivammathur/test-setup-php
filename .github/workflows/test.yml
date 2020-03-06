@@ -67,7 +67,8 @@ jobs:
           php -v                           
           ext_dir=$(php -d "date.timezone=UTC" -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
           sudo mkdir -p $ext_dir
-          sudo mv /tmp/php$1/*.so $ext_dir        
+          sudo mv /tmp/php$1/ext/*.so $ext_dir
+          sudo mv /tmp/php$1/lib/* /opt/local/lib
           for bin in $ext_dir/*.so; do
             extension=$(basename $bin | cut -d'.' -f 1)
             echo "extension=$extension.so" | sudo tee -a /opt/local/etc/php"$nodot_version"/php.ini
