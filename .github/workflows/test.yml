@@ -69,7 +69,7 @@ jobs:
           ext_dir=$(php -d "date.timezone=UTC" -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
           echo $ext_dir
           ls /tmp/php$1
-          sudo cp /tmp/php$1/*.so $ext_dir/
+          rsync --exclude="*" --include="*.so" "/tmp/php$1" "$ext_dir"        
           for bin in $ext_dir/*.so; do
             extension=$(basename $bin | cut -d'.' -f 1)
             echo "extension=$extension.so" >>"$ini_file" && echo "$extension Enabled"            
