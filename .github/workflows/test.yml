@@ -61,15 +61,15 @@ jobs:
           curl -o /tmp/php$1.tar.xz -SL https://dl.bintray.com/shivammathur/playground/php$version.tar.xz
           sudo tar xf /tmp/php$1.tar.xz -C /tmp
           sudo installer -pkg /tmp/php$1/php$1.mpkg -target /          
-          sudo cp /opt/local/etc/php$nodot_version/php.ini-development /opt/local/etc/php$nodot_version/php.ini
+          sudo cp /opt/local/etc/php$nodot_version/php.ini-development /opt/local/etc/php$nodot_version/php.ini          
           sudo port select --set php php$nodot_version
           sudo ln -sf /opt/local/bin/* /usr/local/bin
           php -v
           ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")                  
           ext_dir=$(php -d "date.timezone=UTC" -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
           echo $ext_dir
-          mv /tmp/php$1/*.so $ext_dir
-          ls $ext_dir
+          ls /tmp/php$1
+          sudo cp /tmp/php$1/*.so $ext_dir/
           for bin in $ext_dir/*.so; do
             extension=$(basename $bin | cut -d'.' -f 1)
             echo "extension=$extension.so" >>"$ini_file" && echo "$extension Enabled"            
