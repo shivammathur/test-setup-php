@@ -71,7 +71,7 @@ jobs:
           sudo mv /tmp/php$1/*.so $ext_dir        
           for bin in $ext_dir/*.so; do
             extension=$(basename $bin | cut -d'.' -f 1)
-            echo "extension=$extension.so" >>"$ini_file" && echo "$extension Enabled"            
+            echo "extension=$extension.so" | sudo tee -a $ini_file"
           done                
           add_pecl_old "$nodot_version"
         }        
