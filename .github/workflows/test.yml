@@ -4,19 +4,21 @@ jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      max-parallel: 15
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['7.2', '7.3', '7.4']
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@master
       - name: Install PHP
-        uses: shivammathur/setup-php@master
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ast, mbstring, pdo        
-          coverage: pcov
+          extensions: ast          
           tools: pecl
+      - name: Test PHP version
+        run: php -v
+      - name: Test PHP version
+        run: php -m
 
