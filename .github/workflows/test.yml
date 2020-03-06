@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [macos-latest]
-        php-versions: ['5.4', '5.3']
+        php-versions: ['5.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -58,11 +58,23 @@ jobs:
         }
 
         port_setup_php() {
-          sudo port install php$1 php$1-curl php$1-mbstring php$1-xmlrpc php$1-openssl php$1-opcache
-          sudo cp /opt/local/etc/php$1/php.ini-development /opt/local/etc/php$1/php.ini
-          sudo port select --set php php$1
+          curl -o /tmp/php$1.tar.xz -SL https://dl.bintray.com/shivammathur/playground/php$version.tar.xz
+          sudo tar xf /tmp/php$1.tar.xz
+          sudo installer -pkg /tmp/php$1/php$1.mpkg -target /          
+          sudo cp /opt/local/etc/php$nodot_version/php.ini-development /opt/local/etc/php$nodot_version/php.ini
+          sudo port select --set php php$nodot_version
           sudo ln -sf /opt/local/bin/* /usr/local/bin
-          add_pecl_old "$1"
+          ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+          ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
+          mv /tmp/php$1/*.so $ext_dir/
+          ls $ext_dir
+          for bin in $ext_dir/*.so; do
+            extension=$(basename $bin | cut -d'.' -f 1)
+            if ! php -m | grep -i -q -w "$extension"; then
+              echo "extension=$extension.so" >>"$ini_file" && echo "$extension Enabled"
+            fi  
+          done                
+          add_pecl_old "$nodot_version"
         }        
         export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
         export TERM=xterm
@@ -70,19 +82,11 @@ jobs:
         add_macports
         add_log "$tick" "Macports" "Installed"
         step_log "Setup PHP"
-        port_setup_php $nodot_version
+        port_setup_php $version
         status="Installed"   
+        php --ini
         php -i  | grep "Registered Stream Socket Transports "
         php -v
-        php -m
+        php -m        
         curl -V
-        php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
-        ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
-        echo $ext_dir
-        echo "::set-output name=ext_dir::$ext_dir"
-    - name: Test
-      run: echo ${{ steps.test-step.outputs.ext_dir }}
-    - uses: actions/upload-artifact@v1    
-      with:
-        name: ext-${{ matrix.php-versions }}
-        path: ${{ steps.test-step.outputs.ext_dir }}
+        php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"      
