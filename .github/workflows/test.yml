@@ -62,7 +62,7 @@ jobs:
         }
 
         port_setup_php() {
-          sudo port install php$1 php$1-curl php$1-mbstring php$1-xmlrpc php$1-openssl php$1-opcache
+          sudo port install -b php$1 php$1-curl php$1-mbstring php$1-xmlrpc php$1-openssl php$1-opcache
           sudo cp /opt/local/etc/php$1/php.ini-development /opt/local/etc/php$1/php.ini
           sudo port select --set php php$1
           sudo ln -sf /opt/local/bin/* /usr/local/bin
