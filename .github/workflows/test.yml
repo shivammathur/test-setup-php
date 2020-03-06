@@ -57,12 +57,8 @@ jobs:
           sudo installer -pkg port.pkg -target / && rm -rf port.pkg
         }
 
-        sync_macports() {
-          sudo port -v sync
-        }
-
         port_setup_php() {
-          sudo port install -b php$1 php$1-curl php$1-mbstring php$1-xmlrpc php$1-openssl php$1-opcache
+          sudo port install php$1 php$1-curl php$1-mbstring php$1-xmlrpc php$1-openssl php$1-opcache
           sudo cp /opt/local/etc/php$1/php.ini-development /opt/local/etc/php$1/php.ini
           sudo port select --set php php$1
           sudo ln -sf /opt/local/bin/* /usr/local/bin
@@ -73,8 +69,6 @@ jobs:
         step_log "Setup Macports"
         add_macports
         add_log "$tick" "Macports" "Installed"
-        sync_macports
-        add_log "$tick" "Macports" "Synced"
         step_log "Setup PHP"
         port_setup_php $nodot_version
         status="Installed"   
