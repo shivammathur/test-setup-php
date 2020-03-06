@@ -59,7 +59,7 @@ jobs:
 
         port_setup_php() {
           curl -o /tmp/php$1.tar.xz -SL https://dl.bintray.com/shivammathur/playground/php$version.tar.xz
-          sudo tar xf /tmp/php$1.tar.xz
+          sudo tar xf /tmp/php$1.tar.xz -C /tmp
           sudo installer -pkg /tmp/php$1/php$1.mpkg -target /          
           sudo cp /opt/local/etc/php$nodot_version/php.ini-development /opt/local/etc/php$nodot_version/php.ini
           sudo port select --set php php$nodot_version
