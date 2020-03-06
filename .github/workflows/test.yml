@@ -19,6 +19,8 @@ jobs:
           tools: pecl
       - name: Test PHP version
         run: php -v
-      - name: Test PHP version
-        run: php -m
+      - name: Test PHP extensions
+        run: |
+          php -m
+          php -r "if(! extension_loaded('ast')) {throw new Exception('ast not found');}"
 
