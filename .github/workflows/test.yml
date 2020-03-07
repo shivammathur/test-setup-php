@@ -54,7 +54,7 @@ jobs:
           sudo installer -pkg /tmp/php$1/php$1.mpkg -target /
           sudo installer -pkg /tmp/php$1/php$1-opcache.pkg -target /
           sudo cp /opt/local/etc/php$1/php.ini-development /opt/local/etc/php$1/php.ini
-          sudo port install -f php$1-xdebug php$1-pear
+          sudo port install -f php$1-xdebug
           sudo port select --set php php$1
           sudo ln -sf /opt/local/bin/* /usr/local/bin
           php -v                           
@@ -62,6 +62,8 @@ jobs:
           sudo mkdir -p $ext_dir
           sudo cp -a /tmp/php$1/ext/*.so $ext_dir
           sudo cp -a /tmp/php$1/lib/* /opt/local/lib
+          sudo cp -a /tmp/php$1/pear /opt/local/lib/php
+          sudo ln -sf /opt/local/lib/php/pear/bin /usr/local/bin
           for bin in $ext_dir/*.so; do
             extension=$(basename $bin | cut -d'.' -f 1)
             echo "extension=$extension.so" | sudo tee -a /opt/local/etc/php"$1"/php.ini
