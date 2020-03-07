@@ -6,7 +6,7 @@ jobs:
     strategy:
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4']
+        php-versions: ['8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -14,13 +14,12 @@ jobs:
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ast          
-          tools: pecl
+          php-version: ${{ matrix.php-versions }}          
       - name: Test PHP version
         run: php -v
       - name: Test PHP extensions
         run: |
+          sudo pecl install -f pcov
           php -m
           php -r "if(! extension_loaded('ast')) {throw new Exception('ast not found');}"
 
