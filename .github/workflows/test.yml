@@ -42,15 +42,6 @@ jobs:
           fi
         }
 
-        add_pecl_old() {
-          pecl_version='master'
-          if [ "$1" = "53" ]; then
-            pecl_version='v1.9.5'
-          fi
-          curl -o pear.phar -sSL https://github.com/pear/pearweb_phars/raw/$pecl_version/install-pear-nozlib.phar
-          sudo php pear.phar -d /opt/local/lib/php$1 -b /usr/local/bin && rm -rf pear.phar
-        }
-
         add_macports() {
           uri=$(curl -sSL https://github.com/macports/macports-base/releases | grep -Eo "(\/.*Catalina.pkg)" | head -n 1)
           curl -o port.pkg -sSL https://github.com"$uri"
@@ -60,8 +51,10 @@ jobs:
         port_setup_php() {
           curl -o /tmp/php$1.tar.xz -SL https://dl.bintray.com/shivammathur/playground/php$1.tar.xz
           sudo tar xf /tmp/php$1.tar.xz -C /tmp
-          sudo installer -pkg /tmp/php$1/php$1.mpkg -target /          
+          sudo installer -pkg /tmp/php$1/php$1.mpkg -target /
+          sudo installer -pkg /tmp/php$1/php$1-opcache.pkg -target /
           sudo cp /opt/local/etc/php$1/php.ini-development /opt/local/etc/php$1/php.ini
+          sudo port install php$1-xdebug php$1-pear
           sudo port select --set php php$1
           sudo ln -sf /opt/local/bin/* /usr/local/bin
           php -v                           
@@ -71,11 +64,9 @@ jobs:
           sudo cp -a /tmp/php$1/lib/* /opt/local/lib
           for bin in $ext_dir/*.so; do
             extension=$(basename $bin | cut -d'.' -f 1)
-            if [ "$extension" != "opcache" ]; then
-              echo "extension=$extension.so" | sudo tee -a /opt/local/etc/php"$1"/php.ini
-            fi  
-          done                
-          add_pecl_old "$1"
+            echo "extension=$extension.so" | sudo tee -a /opt/local/etc/php"$1"/php.ini
+          done          
+          #add_pecl_old "$1"
         }        
         export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
         export TERM=xterm
@@ -90,4 +81,5 @@ jobs:
         php -v
         php -m        
         curl -V
+        pecl -V
         php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"      
