@@ -71,7 +71,8 @@ jobs:
           sudo cp -a /tmp/php$1/lib/* /opt/local/lib
           for bin in $ext_dir/*.so; do
             extension=$(basename $bin | cut -d'.' -f 1)
-            echo "extension=$extension.so" | sudo tee -a /opt/local/etc/php"$1"/php.ini
+            if [ "$extension" = "opcache" ]; then prefix="zend_extension"; else prefix="extension"; fi
+            echo "$prefix=$extension.so" | sudo tee -a /opt/local/etc/php"$1"/php.ini
           done                
           add_pecl_old "$1"
         }        
