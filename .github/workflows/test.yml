@@ -53,8 +53,7 @@ jobs:
         
         configure_pecl() {
           for tool in pear pecl; do
-            sudo "$tool" config-set php_ini "$ini_file"
-            sudo "$tool" config-set auto_discover 1          
+            sudo "$tool" config-set php_ini "$ini_file"      
           done
         }
 
