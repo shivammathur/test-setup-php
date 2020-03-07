@@ -50,6 +50,14 @@ jobs:
           curl -o pear.phar -sSL https://github.com/pear/pearweb_phars/raw/$pecl_version/install-pear-nozlib.phar
           sudo php pear.phar -d /opt/local/lib/php$1 -b /usr/local/bin && rm -rf pear.phar
         }
+        
+        configure_pecl() {
+          for tool in pear pecl; do
+            sudo "$tool" config-set php_ini "$ini_file" >/dev/null 2>&1
+            sudo "$tool" config-set auto_discover 1 >/dev/null 2>&1
+            sudo "$tool" channel-update "$tool".php.net >/dev/null 2>&1
+          done
+        }
 
         add_macports() {
           uri=$(curl -sSL https://github.com/macports/macports-base/releases | grep -Eo "(\/.*Catalina.pkg)" | head -n 1)
@@ -75,6 +83,7 @@ jobs:
           done
           sudo installer -pkg /tmp/php$1/php$1-opcache.pkg -target /
           add_pecl_old $1
+          configure_pecl
         }        
         export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
         export TERM=xterm
@@ -87,7 +96,8 @@ jobs:
         php --ini 
         php -i  | grep "Registered Stream Socket Transports "
         php -v
+        pecl install -f xdebug
         php -m        
         curl -V
-        pecl -V
+        pecl -V        
         php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"      
