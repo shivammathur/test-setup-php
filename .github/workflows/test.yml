@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [macos-latest]
-        php-versions: ['5.3']
+        php-versions: ['5.3', '5.4', '5.5']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -58,11 +58,11 @@ jobs:
         }
 
         port_setup_php() {
-          curl -o /tmp/php$1.tar.xz -SL https://dl.bintray.com/shivammathur/playground/php$version.tar.xz
+          curl -o /tmp/php$1.tar.xz -SL https://dl.bintray.com/shivammathur/playground/php$1.tar.xz
           sudo tar xf /tmp/php$1.tar.xz -C /tmp
           sudo installer -pkg /tmp/php$1/php$1.mpkg -target /          
-          sudo cp /opt/local/etc/php$nodot_version/php.ini-development /opt/local/etc/php$nodot_version/php.ini
-          sudo port select --set php php$nodot_version
+          sudo cp /opt/local/etc/php$1/php.ini-development /opt/local/etc/php$1/php.ini
+          sudo port select --set php php$1
           sudo ln -sf /opt/local/bin/* /usr/local/bin
           php -v                           
           ext_dir=$(php -d "date.timezone=UTC" -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
@@ -71,9 +71,9 @@ jobs:
           sudo cp -a /tmp/php$1/lib/* /opt/local/lib
           for bin in $ext_dir/*.so; do
             extension=$(basename $bin | cut -d'.' -f 1)
-            echo "extension=$extension.so" | sudo tee -a /opt/local/etc/php"$nodot_version"/php.ini
+            echo "extension=$extension.so" | sudo tee -a /opt/local/etc/php"$1"/php.ini
           done                
-          add_pecl_old "$nodot_version"
+          add_pecl_old "$1"
         }        
         export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
         export TERM=xterm
@@ -81,7 +81,7 @@ jobs:
         time add_macports
         add_log "$tick" "Macports" "Installed"
         step_log "Setup PHP"
-        time port_setup_php $version
+        time port_setup_php $nodot_version
         status="Installed"   
         php --ini
         php -i  | grep "Registered Stream Socket Transports "
