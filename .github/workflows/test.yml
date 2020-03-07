@@ -68,10 +68,10 @@ jobs:
           done
           sudo installer -pkg /tmp/php$1/php$1-opcache.pkg -target /
           for bin in $ext_dir/*.so; do
+            php --ini || echo "true"
             extension=$(basename $bin | cut -d'.' -f 1)
             sudo sed -i '' "/$extension/d" /opt/local/etc/php"$1"/php.ini
-            echo "$extension"          
-            php --ini || echo "true"
+            echo "$extension"            
           done
         }        
         export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
