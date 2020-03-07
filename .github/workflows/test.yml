@@ -53,9 +53,8 @@ jobs:
         
         configure_pecl() {
           for tool in pear pecl; do
-            sudo "$tool" config-set php_ini "$ini_file" || true
-            sudo "$tool" config-set auto_discover 1 || true
-            sudo "$tool" channel-update "$tool".php.net || true
+            sudo "$tool" config-set php_ini "$ini_file"
+            sudo "$tool" config-set auto_discover 1          
           done
         }
 
@@ -74,6 +73,7 @@ jobs:
           sudo ln -sf /opt/local/bin/* /usr/local/bin
           php -v                           
           ext_dir=$(php -d "date.timezone=UTC" -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
+          ini_dir=/opt/local/etc/php"$1"/php.ini
           sudo mkdir -p $ext_dir
           sudo cp -a /tmp/php$1/ext/*.so $ext_dir
           sudo cp -a /tmp/php$1/lib/* /opt/local/lib                    
