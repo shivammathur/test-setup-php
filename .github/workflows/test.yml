@@ -40,60 +40,21 @@ jobs:
           else
             printf "\033[31;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s\033[0m\n" "$mark" "$subject" "$message"
           fi
-        }
-        
-        add_pecl_old() {
-          pecl_version='master'
-          if [ "$1" = "53" ]; then
-            pecl_version='v1.9.5'
-          fi
-          curl -o pear.phar -sSL https://github.com/pear/pearweb_phars/raw/$pecl_version/install-pear-nozlib.phar
-          sudo php pear.phar -d /opt/local/lib/php$1 -b /usr/local/bin && rm -rf pear.phar
-        }
-        
-        configure_pecl() {
-          echo "PECL ini: $ini_file"
-          echo "PECL ext: $ext_dir"
-          for tool in pear pecl; do
-            sudo "$tool" config-set php_ini "$ini_file"
-            sudo "$tool" config-set ext_dir "$ext_dir"
-          done
-        }
+        }          
 
         add_macports() {
           uri=$(curl -sSL https://github.com/macports/macports-base/releases | grep -Eo "(\/.*Catalina.pkg)" | head -n 1)
           curl -o port.pkg -sSL https://github.com"$uri"
           sudo installer -pkg port.pkg -target / && rm -rf port.pkg
         }
-
-        port_setup_php() {
-          curl -o /tmp/php$1.tar.xz -SL https://dl.bintray.com/shivammathur/playground/php$1.tar.xz
-          sudo tar xf /tmp/php$1.tar.xz -C /tmp
-          sudo installer -pkg /tmp/php$1/php$1.mpkg -target /          
-          sudo cp /opt/local/etc/php$1/php.ini-development /opt/local/etc/php$1/php.ini        
-          sudo port select --set php php$1
-          sudo ln -sf /opt/local/bin/* /usr/local/bin
-          php -v                           
-          ext_dir=$(php -d "date.timezone=UTC" -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
-          ini_file=/opt/local/etc/php"$1"/php.ini
-          sudo mkdir -p $ext_dir
-          sudo cp -a /tmp/php$1/ext/*.so $ext_dir
-          sudo cp -a /tmp/php$1/lib/* /opt/local/lib                    
-          for bin in $ext_dir/*.so; do
-            extension=$(basename $bin | cut -d'.' -f 1)
-            echo "extension=$extension.so" | sudo tee -a /opt/local/etc/php"$1"/php.ini
-          done
-          sudo installer -pkg /tmp/php$1/php$1-opcache.pkg -target /
-          add_pecl_old $1
-          configure_pecl
-        }        
+       
         export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
         export TERM=xterm
         step_log "Setup Macports"
         time add_macports
         add_log "$tick" "Macports" "Installed"
         step_log "Setup PHP"
-        time port_setup_php $nodot_version
+        curl -sSL https://github.com/shivammathur/php5-darwin/releases/download/0.0.2RC1/install.sh | bash -s "$nodot_version"
         status="Installed"        
         php --ini 
         php -i  | grep "Registered Stream Socket Transports "
