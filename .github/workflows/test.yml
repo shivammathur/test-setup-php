@@ -52,8 +52,11 @@ jobs:
         }
         
         configure_pecl() {
+          echo "PECL ini: $ini_file"
+          echo "PECL ext: $ext_dir"
           for tool in pear pecl; do
-            sudo "$tool" config-set php_ini "$ini_file"      
+            sudo "$tool" config-set php_ini "$ini_file"
+            sudo "$tool" config-set ext_dir "$ext_dir"
           done
         }
 
