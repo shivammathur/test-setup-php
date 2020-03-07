@@ -96,7 +96,7 @@ jobs:
         php --ini 
         php -i  | grep "Registered Stream Socket Transports "
         php -v
-        pecl install -f xdebug
+        sudo pecl install -f xdebug
         php -m        
         curl -V
         pecl -V        
