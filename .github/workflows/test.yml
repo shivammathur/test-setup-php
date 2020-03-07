@@ -36,6 +36,7 @@ jobs:
       - name: Test PHP version
         run: php -v
       - name: Test PHP extensions
-        run: |          
+        run: |      
+          php -r "if(! extension_loaded('pcov')) {throw new Exception('pcov not found');}"    
           php -m          
 
