@@ -53,9 +53,9 @@ jobs:
         
         configure_pecl() {
           for tool in pear pecl; do
-            sudo "$tool" config-set php_ini "$ini_file" >/dev/null 2>&1
-            sudo "$tool" config-set auto_discover 1 >/dev/null 2>&1
-            sudo "$tool" channel-update "$tool".php.net >/dev/null 2>&1
+            sudo "$tool" config-set php_ini "$ini_file" || true
+            sudo "$tool" config-set auto_discover 1 || true
+            sudo "$tool" channel-update "$tool".php.net || true
           done
         }
 
@@ -96,7 +96,7 @@ jobs:
         php --ini 
         php -i  | grep "Registered Stream Socket Transports "
         php -v
-        sudo pecl install -f xdebug
+        sudo pecl install -f xdebug-2.2.7
         php -m        
         curl -V
         pecl -V        
