@@ -54,7 +54,7 @@ jobs:
           sudo installer -pkg /tmp/php$1/php$1.mpkg -target /
           sudo installer -pkg /tmp/php$1/php$1-opcache.pkg -target /
           sudo cp /opt/local/etc/php$1/php.ini-development /opt/local/etc/php$1/php.ini
-          sudo port install php$1-xdebug php$1-pear
+          sudo port install -f php$1-xdebug php$1-pear
           sudo port select --set php php$1
           sudo ln -sf /opt/local/bin/* /usr/local/bin
           php -v                           
