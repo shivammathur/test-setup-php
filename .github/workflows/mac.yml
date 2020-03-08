@@ -36,12 +36,14 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: ${{ env.extensions }}
+        tools: prestissimo
         
     - name: Test PHP version
       run: php -v
       
     - name: Test PHP version
       run: |
+        composer global show hirak/prestissimo
         ls $(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
         ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
         cat $ini_file
