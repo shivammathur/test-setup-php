@@ -1,4 +1,4 @@
-name: Test workflow #1.7.3
+name: Test workflow #2.1.1
 on: [push]
 jobs:
   run:    
@@ -6,13 +6,13 @@ jobs:
     strategy:
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@master
     - name: Install PHP
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}
     - name: Testing PHP version
