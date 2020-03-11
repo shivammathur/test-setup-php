@@ -10,7 +10,7 @@ jobs:
         php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: sqlite
+      extensions: sqlite3
       key: cache-v1
     steps:
     - name: Checkout
@@ -42,4 +42,5 @@ jobs:
 
     - name: Check PHP extensions
       run: |        
+        php -r "if(! extension_loaded('sqlite3')) {throw new Exception('sqlite3 not found');}"
         php -m
