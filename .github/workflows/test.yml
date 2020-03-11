@@ -6,23 +6,40 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-16.04]
-        #php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
-    #name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
-    name: test on ${{ matrix.operating-system }}
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    env:
+      extensions: sqlite
+      key: cache-v1
     steps:
     - name: Checkout
-      uses: actions/checkout@v2      
+      uses: actions/checkout@v2
 
-    - name: Check Libs
-      id: os
-      run: |
-        apt list --installed |  cut -d'/' -f 1 | grep ^lib.*
-        osname=$(lsb_release -s -c)
-        apt list --installed |  cut -d'/' -f 1 | grep ^lib.* > $osname-libs
-        echo "::set-output name=osname::$osname"
-
-    - uses: actions/upload-artifact@v1
+    - name: Setup cache environment
+      id: cache-env
+      uses: shivammathur/cache-extensions@develop
       with:
-        name: ${{ steps.os.outputs.osname }}-libs
-        path: ${{ steps.os.outputs.osname }}-libs
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.extensions }}
+        key: ${{ env.key }}
+
+    - name: Cache extensions
+      uses: actions/cache@v1
+      with:
+        path: ${{ steps.cache-env.outputs.dir }}
+        key: ${{ steps.cache-env.outputs.key }}
+        restore-keys: ${{ steps.cache-env.outputs.key }}
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@verbose
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.extensions }}
+      
+    - name: Check PHP version
+      run: php -v
+
+    - name: Check PHP extensions
+      run: |        
+        php -m
