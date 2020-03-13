@@ -32,7 +32,7 @@ jobs:
         restore-keys: ${{ steps.cache-env.outputs.key }}
 
     - name: Setup PHP
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: ${{ env.extensions }}
