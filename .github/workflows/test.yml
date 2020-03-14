@@ -6,41 +6,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macOS-10.15]
-        php-versions: ['7.4']
+        operating-system: [ubuntu-latest, windows-latest, macos-10.15]
+        php-versions: ['5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
-    env:
-      extensions: sqlite3
-      key: cache-v1
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-
-    - name: Setup cache environment
-      id: cache-env
-      uses: shivammathur/cache-extensions@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
-        key: ${{ env.key }}
-
-    - name: Cache extensions
-      uses: actions/cache@v1
-      with:
-        path: ${{ steps.cache-env.outputs.dir }}
-        key: ${{ steps.cache-env.outputs.key }}
-        restore-keys: ${{ steps.cache-env.outputs.key }}
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
+        extensions: imagick
       
     - name: Check PHP version
       run: php -v
 
     - name: Check PHP extensions
-      run: |        
-        php -r "if(! extension_loaded('sqlite3')) {throw new Exception('sqlite3 not found');}"
+      run: |      
         php -m
+        php -r "if(! extension_loaded('imagick')) {throw new Exception('imagick not found');}"
