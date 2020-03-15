@@ -18,7 +18,7 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: sqlite
+        extensions: sqlite, gd
       
     - name: Check PHP version
       run: php -v
@@ -27,3 +27,4 @@ jobs:
       run: |      
         php -m
         php -r "if(! extension_loaded('sqlite3')) {throw new Exception('sqlite3 not found');}"
+        php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}"
