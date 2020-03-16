@@ -7,20 +7,17 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [windows-latest]
-        php-versions: ['5.5', '5.6', '7.2', '7.4', '8.0']
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Install PHP
-      timeout-minutes: 1
-      continue-on-error: true
-      uses: jaapio/setup-php@feature/ext-blackfire
+      uses: shivammathur/setup-php@v2
       with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: blackfire
+        php-version: ${{ matrix.php-versions }}        
     - name: Debug
-      run: type C:\hostedtoolcache\windows\win32.ps1
+      run: DIR C:\tools\php\ext
     - name: Testing PHP version
       run: php -v
     - name: Testing extension
