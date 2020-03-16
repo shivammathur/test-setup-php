@@ -7,15 +7,15 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macos-10.15]
-        #php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        #php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
     - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@releases/v1
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: mysql, pdo_mysql, sqlite3, pdo_sqlite
@@ -24,4 +24,9 @@ jobs:
       run: php -v
 
     - name: Check PHP extensions
-      run: php -m
+      run: | 
+        php -m
+        php -r "if(! extension_loaded('mysql')) {throw new Exception('mysql not found');}"
+        php -r "if(! extension_loaded('pdo_mysql')) {throw new Exception('pdo_mysql not found');}"
+        php -r "if(! extension_loaded('sqlite3')) {throw new Exception('sqlite3 not found');}"
+        php -r "if(! extension_loaded('pdo_sqlite')) {throw new Exception('pdo_sqlite not found');}"
