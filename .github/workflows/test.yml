@@ -18,7 +18,10 @@ jobs:
       run: |
         try {
           $php_dir = 'C:\tools\php'
-          Measure-Command { Install-Module -Name PhpManager -Force -Scope CurrentUser }
+          Measure-Command {
+            git clone https://github.com/mlocati/powershell-phpmanager.git ${{ runner.temp }}
+            Import-Module ${{ runner.temp }}\PhpManager\PhpManager.psd1
+          }
           Measure-Command { Install-Php -Version ${{ matrix.php-versions }} -Architecture 'x64' -ThreadSafe $true -Path $php_dir -TimeZone UTC -InitialPhpIni Production -Force }
         } catch [Exception] {
           echo $_.Exception.GetType().FullName, $_.Exception.Message
