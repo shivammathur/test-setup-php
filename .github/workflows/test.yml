@@ -15,7 +15,8 @@ jobs:
     - name: Install PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: ${{ matrix.php-versions }}        
+        php-version: ${{ matrix.php-versions }}
+        extensions: mysql, mysqli
     - name: Debug
       run: DIR C:\tools\php\ext
     - name: Testing PHP version
