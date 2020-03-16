@@ -18,7 +18,7 @@ jobs:
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: sqlite-1.0.3
+        extensions: pdo_mysql, mysql, pdo_sqlite, sqlite3
       
     - name: Check PHP version
       run: php -v
