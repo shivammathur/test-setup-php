@@ -18,10 +18,16 @@ jobs:
       run: |
         try {
           $php_dir = 'C:\tools\php'
-          Measure-Command {
-            git clone https://github.com/mlocati/powershell-phpmanager.git ${{ runner.temp }}\PhpManager
-            Import-Module ${{ runner.temp }}\PhpManager\PhpManager\PhpManager.psd1
-          }
+          Function Install-PhpManager() {
+            $repo = "mlocati/powershell-phpmanager"
+            $zip_file = "$php_dir\PhpManager.zip"
+            $tags = Invoke-WebRequest https://api.github.com/repos/$repo/tags | ConvertFrom-Json
+            $tag = $tags[0].Name
+            Invoke-WebRequest -UseBasicParsing -Uri https://github.com/$repo/archive/$tag.zip -OutFile $zip_file
+            Expand-Archive -Path $php_dir\PhpManager.zip -DestinationPath $php_dir\PhpManager
+            Import-Module $php_dir\PhpManager\powershell-phpmanager-$tag\PhpManager\PhpManager.psd1
+          }          
+          Measure-Command { Install-PhpManager }
           Measure-Command { Install-Php -Version ${{ matrix.php-versions }} -Architecture 'x64' -ThreadSafe $true -Path $php_dir -TimeZone UTC -InitialPhpIni Production -Force }
         } catch [Exception] {
           echo $_.Exception.GetType().FullName, $_.Exception.Message
