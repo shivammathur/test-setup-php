@@ -14,10 +14,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Install PHP
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: mysql
+        extensions: mysql, pdo_mysql
     - name: Debug
       run: DIR C:\tools\php\ext
     - name: Testing PHP version
