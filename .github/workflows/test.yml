@@ -16,9 +16,13 @@ jobs:
       uses: actions/checkout@v2
     - name: Install PHP
       run: |
-        $php_dir = 'C:\tools\php'
-        Measure-Command { Install-Module -Name PhpManager -Force -Scope CurrentUser }
-        Measure-Command { Install-Php -Version ${{ matrix.php-versions }} -Architecture 'x64' -ThreadSafe $true -Path $php_dir -TimeZone UTC -InitialPhpIni Production -Force }
+        try {
+          $php_dir = 'C:\tools\php'
+          Measure-Command { Install-Module -Name PhpManager -Force -Scope CurrentUser }
+          Measure-Command { Install-Php -Version ${{ matrix.php-versions }} -Architecture 'x64' -ThreadSafe $true -Path $php_dir -TimeZone UTC -InitialPhpIni Production -Force }
+        } catch [Exception] {
+          echo $_.Exception.GetType().FullName, $_.Exception.Message
+        }
     - name: Testing PHP version
       run: php -v
     - name: Testing extension
