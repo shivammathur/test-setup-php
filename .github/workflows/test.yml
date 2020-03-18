@@ -18,7 +18,4 @@ jobs:
       run: |
         php -r "throw new Exception('error1');"        
         php -r "throw new Exception('error2');"
-    - name: Testing PHP version
-      run: php -v
-    - name: Testing extension
-      run: php -m
+        php -m
