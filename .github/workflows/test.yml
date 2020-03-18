@@ -19,7 +19,9 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
     - name: Test PHPManager
-      run:  Get-PhpExtension -Path C:\tools\php
+      run:  |
+        type $PsHome\profile.ps1
+        Get-PhpExtension -Path C:\tools\php
     - name: Testing PHP version
       run: php -v
     - name: Testing extension
