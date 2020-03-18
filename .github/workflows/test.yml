@@ -22,7 +22,7 @@ jobs:
       run: |
         $tags = Invoke-WebRequest https://api.github.com/repos/mlocati/powershell-phpmanager/tags | ConvertFrom-Json
         $tag = $tags[0].Name
-        Add-Content -Path $PsHome\profile.ps1 -Value "Import-Module C:\tools\php\PhpManager\powershell-phpmanager-${tag}\PhpManager"
+        #Add-Content -Path $PsHome\profile.ps1 -Value "Import-Module C:\tools\php\PhpManager\powershell-phpmanager-${tag}\PhpManager"
         type $PsHome\profile.ps1
     - name: Test PHPManager
       run:  Get-PhpExtension -Path C:\tools\php
