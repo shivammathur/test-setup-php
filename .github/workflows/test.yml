@@ -1,4 +1,4 @@
-name: Test workflow #test
+name: Test workflow #test logs
 on: [push]
 jobs:
   run:    
@@ -7,18 +7,26 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [windows-latest]
-        php-versions: ['7.3']
-        #php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
-        #php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+        php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Test
+    - name: Install PHP
+      env:
+        update: true
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-versions }}
+    - name: Add to profile
       run: |
-        Set-StrictMode -Version Latest
-        $ErrorActionPreference = "Stop"
-        $PSDefaultParameterValues['*:ErrorAction']='Stop'
-        php -r "throw new Exception('error1');"        
-        php -r "throw new Exception('error2');"
-        php -m
+        $tags = Invoke-WebRequest https://api.github.com/repos/mlocati/powershell-phpmanager/tags | ConvertFrom-Json
+        $tag = $tags[0].Name
+        Add-Content -Path $PsHome\profile.ps1 -Value "Import-Module C:\tools\php\PhpManager\powershell-phpmanager-${tag}\PhpManager"
+        type $PsHome\profile.ps1
+    - name: Test PHPManager
+      run:  Get-PhpExtension -Path C:\tools\php
+    - name: Testing PHP version
+      run: php -v
+    - name: Testing extension
+      run: php -m
