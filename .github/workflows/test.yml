@@ -16,8 +16,7 @@ jobs:
       uses: actions/checkout@v2
     - name: Test
       run: |
-        php -r "throw new Exception('error1');"
-        $ErrorActionPreference = "stop"
+        php -r "throw new Exception('error1');"        
         php -r "throw new Exception('error2');"
     - name: Testing PHP version
       run: php -v
