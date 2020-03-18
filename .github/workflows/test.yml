@@ -16,7 +16,9 @@ jobs:
       uses: actions/checkout@v2
     - name: Test
       run: |
-        $ErrorActionPreference = "stop"
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = "Stop"
+        $PSDefaultParameterValues['*:ErrorAction']='Stop'
         php -r "throw new Exception('error1');"        
         php -r "throw new Exception('error2');"
         php -m
