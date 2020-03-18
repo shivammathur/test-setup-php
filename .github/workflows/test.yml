@@ -14,24 +14,11 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Install PHP
+    - name: Test
       run: |
-        try {
-          $php_dir = 'C:\tools\php'
-          Function Install-PhpManager() {
-            $repo = "mlocati/powershell-phpmanager"
-            $zip_file = "${php_dir}\PhpManager.zip"
-            $tags = Invoke-WebRequest https://api.github.com/repos/$repo/tags | ConvertFrom-Json
-            $tag = $tags[0].Name
-            Invoke-WebRequest -UseBasicParsing -Uri https://github.com/$repo/archive/$tag.zip -OutFile $zip_file
-            Expand-Archive -Path $zip_file -DestinationPath $php_dir\PhpManager
-            Import-Module $php_dir\PhpManager\powershell-phpmanager-$tag\PhpManager
-          }        
-          Measure-Command { Install-PhpManager }
-          Measure-Command { Install-Php -Version ${{ matrix.php-versions }} -Architecture 'x64' -ThreadSafe $true -Path $php_dir -TimeZone UTC -InitialPhpIni Production -Force }
-        } catch [Exception] {
-          echo $_.Exception.GetType().FullName, $_.Exception.Message
-        }
+        php -r "throw new Exception('error1');"
+        $ErrorActionPreference = "stop"
+        php -r "throw new Exception('error2');"
     - name: Testing PHP version
       run: php -v
     - name: Testing extension
