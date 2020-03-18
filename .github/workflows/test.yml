@@ -15,15 +15,9 @@ jobs:
     - name: Install PHP
       env:
         update: true
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@v1
       with:
         php-version: ${{ matrix.php-versions }}
-    - name: Add to profile
-      run: |
-        $tags = Invoke-WebRequest https://api.github.com/repos/mlocati/powershell-phpmanager/tags | ConvertFrom-Json
-        $tag = $tags[0].Name
-        #Add-Content -Path $PsHome\profile.ps1 -Value "Import-Module C:\tools\php\PhpManager\powershell-phpmanager-${tag}\PhpManager"
-        type $PsHome\profile.ps1
     - name: Test PHPManager
       run:  Get-PhpExtension -Path C:\tools\php
     - name: Testing PHP version
