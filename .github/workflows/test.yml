@@ -10,7 +10,7 @@ jobs:
         php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: phalcon4
+      extensions: phalcon-4.0.5
       key: cache-v10
     steps:
     - name: Checkout
