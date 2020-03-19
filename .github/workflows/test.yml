@@ -1,4 +1,4 @@
-name: Test phalcon extension v4 #test cache v12
+name: Test phalcon extension v4 #cache
 on: [push]
 jobs:
   run:    
@@ -11,7 +11,7 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
       extensions: psr, phalcon-4.0.5
-      key: cache-v12
+      key: cache-test
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -32,7 +32,7 @@ jobs:
         restore-keys: ${{ steps.cache-env.outputs.key }}
 
     - name: Install PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: ${{ env.extensions }}
