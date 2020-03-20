@@ -10,40 +10,17 @@ jobs:
         php-versions: ['5.6', '7.0']
         #php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
-    env: 
-      extensions: intl, redis
-      key: cachev11
     steps:
     - name: Checkout
-      uses: actions/checkout@v2 
-      
-    - name: Setup cache environment
-      id: cache-env
-      uses: shivammathur/cache-extensions@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
-        key: ${{ env.key }}
-
-    - name: Cache extensions
-      uses: actions/cache@v1
-      with:
-        path: ${{ steps.cache-env.outputs.dir }}
-        key: ${{ steps.cache-env.outputs.key }}
-        restore-keys: ${{ steps.cache-env.outputs.key }}
+      uses: actions/checkout@v2
+    
+    - name: Update
+      run: sudo DEBIAN_FRONTEND=noninteractive apt-get update  
 
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
         
     - name: Test PHP version
-      run: php -v
-      
-    - name: Test PHP version
-      run: |
-        php -m
-        php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
-        php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
-        php -r "echo phpversion('intl');"
+      run: php -v    
