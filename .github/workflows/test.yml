@@ -12,8 +12,8 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     
-    - name: Remove heroku list
-      run: sudo rm -rf /etc/apt/sources.list.d/heroku*
+    #- name: Remove heroku list
+    #  run: sudo rm -rf /etc/apt/sources.list.d/heroku*
  
     #- name: Update
     #  run: sudo DEBIAN_FRONTEND=noninteractive apt-get update
