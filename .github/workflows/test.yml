@@ -12,6 +12,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     
+    - name: Remove heroku list
+      run: sudo rm -rf /etc/apt/sources.list.d/heroku*
+    
     - name: Setup PHP
       run: sudo DEBIAN_FRONTEND=noninteractive apt-get install php${{ matrix.php-versions }}
         
