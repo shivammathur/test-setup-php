@@ -1,14 +1,13 @@
 name: Test workflow #test cache
 on: [push]
 jobs:
-  run:    
-    runs-on: ${{ matrix.operating-system }}
+  tests:
     strategy:
-      fail-fast: false
-      matrix:      
-        operating-system: [10.13, 10.14, 10.15]
+      matrix:
+        version: [10.15, 10.14, 10.13]
         php-versions: ['7.4']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.version }}
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.version }}
     env: 
       extensions: xdebug
       key: cache-v3
