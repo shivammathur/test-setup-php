@@ -6,13 +6,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-latest]
-        php-versions: ['5.3', '5.4', '5.5']
+        operating-system: [10.13, 10.14, 10.15]
+        php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env: 
       extensions: xdebug
       key: cache-v3
     steps:
+    - name: Test OS
+      run: sw_vers -productVersion
+      continue-on-error: true
+      
     - name: Checkout
       uses: actions/checkout@v2 
       
@@ -35,18 +39,7 @@ jobs:
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
-        tools: prestissimo
+        extensions: ${{ env.extensions }}        
         
     - name: Test PHP version
-      run: php -v
-      
-    - name: Test PHP version
-      run: |
-        composer global show hirak/prestissimo
-        ls $(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
-        ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-        cat $ini_file
-        php --ini
-        php -m
-        php -r "echo phpversion('xdebug');"      
+      run: php -v        
