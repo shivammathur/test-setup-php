@@ -18,8 +18,8 @@ jobs:
         php-version: ${{ matrix.php-versions }}
         tools: phinx:0.5.0
 
-    - name: Composer install
-      run: composer global show robmorgan/phinx
+    - name: Test phinx
+      run: phinx -V
       
     - name: Test PHP version
       run: php -v        
