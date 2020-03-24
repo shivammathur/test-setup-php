@@ -4,41 +4,23 @@ jobs:
   tests:
     strategy:
       matrix:
-        version: [macos-10.15, macos-10.14, macos-10.13]
-        php-versions: ['7.4']
+        version: [macos-latest]
+        php-versions: ['5.3', '5.4', '5.5', '5.6']
     runs-on: ${{ matrix.version }}
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.version }}
-    env: 
-      extensions: xdebug
-      key: cache-v3
-    steps:
-    - name: Test OS
-      run: sw_vers -productVersion
-      continue-on-error: true
-      
+    steps:      
     - name: Checkout
-      uses: actions/checkout@v2 
-      
-    - name: Setup cache environment
-      id: cache-env
-      uses: shivammathur/cache-extensions@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
-        key: ${{ env.key }}
-
-    - name: Cache extensions
-      uses: actions/cache@v1
-      with:
-        path: ${{ steps.cache-env.outputs.dir }}
-        key: ${{ steps.cache-env.outputs.key }}
-        restore-keys: ${{ steps.cache-env.outputs.key }}
+      uses: actions/checkout@v2
 
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}        
-        
+
+    - name: Composer install
+      run: |
+        composer require robmorgan/phinx:0.5.0
+        phinx -V
+      
     - name: Test PHP version
       run: php -v        
