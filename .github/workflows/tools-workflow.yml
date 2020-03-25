@@ -139,7 +139,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
+        env:
+          COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           php-version: ${{ matrix.php-versions }}
           tools: blackfire, blackfire-player, php-cs-fixer:2.2.20, phpcs:2.9.2, phpcbf:2.9.2, phpcpd:2.0.4, phpmd:2.8.0, codeception:2.3.5, cs2pr:1.0.1, phpunit:4.8.36, phinx:0.5.0, deployer:2.0.0, prestissimo:0.3.8, composer:1.9.3, symfony:4.12.3
