@@ -10,10 +10,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: Test env
     steps:
-      - name: Dump GitHub context
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: echo "$GITHUB_CONTEXT"
       - name: Dump job context
         env:
           JOB_CONTEXT: ${{ toJson(job) }}
@@ -34,3 +30,6 @@ jobs:
         env:
           MATRIX_CONTEXT: ${{ toJson(matrix) }}
         run: echo "$MATRIX_CONTEXT"
+      - name: Check OS
+        run: |
+          node -e "console.log(process.env)"
