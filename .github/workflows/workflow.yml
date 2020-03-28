@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-16.04, macos-latest]
+        operating-system: [ubuntu-latest, ubuntu-16.04]
         php-versions: ['8.0']
     steps:
       - name: Checkout
@@ -20,10 +20,15 @@ jobs:
           
       - name: Install Xdebug
         run: |
+          term=xterm
           cd ~ && git clone --depth=1 https://github.com/xdebug/xdebug.git
           cd xdebug || echo "Failed to clone Xdebug"
           sudo ./rebuild.sh
-          
+          tail -n 10 $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+          ls $(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
+
       - name: Testing PHP version
-        run: |
-          php -v
+        run: php -v
+
+      - name: Testing PHP extensions
+        run: php -m
