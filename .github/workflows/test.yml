@@ -5,38 +5,19 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['8.0']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
-    env:
-      key: axt1
-      extensions: pcov
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]        
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}                
     steps:       
       - name: Checkout
-        uses: actions/checkout@master
-      - name: Setup cache environment
-        id: cache-env
-        uses: shivammathur/cache-extensions@develop
+        uses: actions/checkout@v2
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-          key: ${{ env.key }}
-
-      - name: Cache extensions
-        uses: actions/cache@v1
-        with:
-          path: ${{ steps.cache-env.outputs.dir }}
-          key: ${{ steps.cache-env.outputs.key }}
-          restore-keys: ${{ steps.cache-env.outputs.key }}
-      - name: Install PHP
-        uses: shivammathur/setup-php@225ad7d
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
+          php-version: '7.1'
+          tools: pecl
+          extensions: ast
       - name: Test PHP version
         run: php -v
       - name: Test PHP extensions
-        run: |      
-          php -r "if(! extension_loaded('pcov')) {throw new Exception('pcov not found');}"    
-          php -m          
+        run: php -m          
 
