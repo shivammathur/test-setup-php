@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-16.04]
+        operating-system: [ubuntu-latest, ubuntu-16.04, macos-latest]
         php-versions: ['8.0']
     steps:
       - name: Checkout
@@ -25,11 +25,9 @@ jobs:
           cd xdebug || echo "Failed to clone Xdebug"
           sudo phpize
           sudo ./configure
-          sudo make
-          ls /home/runner/xdebug/modules
-          #sudo make install
-          #sudo cp modules/xdebug.so "$(php -i | grep "extension_dir => /opt" | sed -e "s|.*=> s*||")"
-          #echo "zend_extension=xdebug.so" >> $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")        
+          sudo make          
+          sudo cp modules/xdebug.so "$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")"
+          echo "zend_extension=xdebug.so" >> $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")        
 
       - name: Testing PHP version
         run: php -v
