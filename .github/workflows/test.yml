@@ -6,17 +6,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-16.04]        
-    name: PHP on ${{ matrix.operating-system }}
-    env:
-      ACTIONS_RUNNER_DEBUG: ${{ secrets.ACTIONS_RUNNER_DEBUG }}
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        php-versions: ['7.3', '7.4']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@develop
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: ast
       
-    - run: |
-        sudo apt-get install php-ast
-        php -r "if(! extension_loaded('ast')) {throw new Exception('ast not found');}"        
-      continue-on-error: true
-      timeout-minutes: 3
-        
+    - name: Check PHP version
+      run: php -v
+
+    - name: Check PHP extensions
+      run: php -m
+
+    - name: Check ast
+      run: php -r "if(! extension_loaded('ast')) {throw new Exception('ast not found');}"
