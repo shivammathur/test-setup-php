@@ -15,9 +15,8 @@ jobs:
       uses: actions/checkout@v2
       
     - run: |
-        sudo apt-get install php-ast php-uopz
-        php -r "if(! extension_loaded('ast')) {throw new Exception('ast not found');}"
-        php -r "if(! extension_loaded('uopz')) {throw new Exception('uopz not found');}"
+        sudo apt-get install php-ast
+        php -r "if(! extension_loaded('ast')) {throw new Exception('ast not found');}"        
       continue-on-error: true
-      timeout-minutes: 1
+      timeout-minutes: 3
         
