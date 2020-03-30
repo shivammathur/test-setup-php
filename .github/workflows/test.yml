@@ -18,6 +18,7 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: uopz
+        coverage: none
       
     - name: Check PHP version
       run: php -v
