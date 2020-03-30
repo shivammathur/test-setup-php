@@ -9,6 +9,8 @@ jobs:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
         php-versions: ['7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    env:
+      ACTIONS_RUNNER_DEBUG: ${{ secrets.ACTIONS_RUNNER_DEBUG }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -25,9 +27,8 @@ jobs:
     - name: Check PHP extensions
       run: php -m
 
-    - name: Test mbstring
-      run: php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
-
     - name: Test uopz
       run: php -r "if(! extension_loaded('uopz')) {throw new Exception('uopz not found');}"
+      continue-on-error: true
+      timeout-minutes: 1
         
