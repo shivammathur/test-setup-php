@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]        
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
         php-versions: ['7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -23,7 +23,10 @@ jobs:
       run: php -v
 
     - name: Check PHP extensions
-      run: | 
-        php -m      
-        php -r "if(! extension_loaded('ast')) {throw new Exception('ast not found');}"
-        php -r "if(! extension_loaded('uopz')) {throw new Exception('uopz not found');}"
+      run: php -m
+
+    - name: Check ast
+      run: php -r "if(! extension_loaded('ast')) {throw new Exception('ast not found');}"
+
+    - name: Check uopz
+      run: php -r "if(! extension_loaded('uopz')) {throw new Exception('uopz not found');}"
