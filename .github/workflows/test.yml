@@ -25,5 +25,9 @@ jobs:
     - name: Check PHP extensions
       run: php -m
 
-    - name: Test
-      run: php -r "echo 'test';"
+    - name: Test mbstring
+      run: php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
+
+    - name: Test uopz
+      run: php -r "if(! extension_loaded('uopz')) {throw new Exception('uopz not found');}"
+        
