@@ -20,4 +20,10 @@ jobs:
 #        update: true # specify true or false
         
     - name: Check lib
-      run: ls /usr/local/opt
+      run: echo $test      
+      env:
+        test:
+          - >
+            a,
+            b
+        
