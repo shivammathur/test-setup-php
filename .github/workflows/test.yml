@@ -22,8 +22,7 @@ jobs:
     - name: Check lib
       run: echo $test      
       env:
-        test:
-          - >
+        test: >-
             a,
             b
         
