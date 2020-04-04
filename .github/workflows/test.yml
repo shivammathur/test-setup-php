@@ -12,17 +12,15 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     
-#    - name: Setup PHP
-#      uses: shivammathur/setup-php@v2
-#      with:
-#        php-version: ${{ matrix.php-versions }}
-#      env:
-#        update: true # specify true or false
-        
-    - name: Check lib
-      run: echo $test      
-      env:
-        test: >-
-            a,
-            b
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: >-
+          intl,
+          mbstring
+        ini-values: >-
+          memory_limit=-1
+          error_reporting=-1
+
         
