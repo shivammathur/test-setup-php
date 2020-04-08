@@ -1,24 +1,26 @@
-name: Test extensions #run 5
+name: Test extensions
 on: [push]
+env:
+    PHP_VERSION: 7.4
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-16.04]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        operating-system: [ubuntu-latest, ubuntu-16.04]        
+    name: test ds on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
     - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@v2
       with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: imagick
-        coverage: none
+        coverage: "none"
+        php-version: "${{ PHP_VERSION }}"
+        tools: pecl
+        extensions: ds
       
     - name: Check PHP version
       run: php -v
@@ -26,5 +28,5 @@ jobs:
     - name: Check PHP extensions
       run: php -m
 
-    - name: Check imagick
-      run: php -r "if(! extension_loaded('imagick')) {throw new Exception('imagick not found');}"
+    - name: Check ds
+      run: php -r "if(! extension_loaded('ds')) {throw new Exception('ds not found');}"
