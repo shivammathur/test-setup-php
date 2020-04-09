@@ -17,7 +17,7 @@ jobs:
       uses: shivammathur/setup-php@verbose
       with:        
         php-version: ${{ matrix.php-versions }}
-        extensions: mailparse, mbstring
+        extensions: mbstring, mailparse-2.1.6
       
     - name: Check PHP version
       run: php -v
@@ -27,4 +27,3 @@ jobs:
 
     - name: Check mailparse
       run: php -r "if(! extension_loaded('mailparse')) {throw new Exception('mailparse not found');}"
-      continue-on-error: true
