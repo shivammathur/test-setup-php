@@ -25,5 +25,5 @@ jobs:
     - name: Check PHP extensions
       run: php -m
 
-    - name: Check ds
-      run: php -r "if(! extension_loaded('ds')) {throw new Exception('ds not found');}"
+    - name: Check mailparse
+      run: php -r "if(! extension_loaded('mailparse')) {throw new Exception('mailparse not found');}"
