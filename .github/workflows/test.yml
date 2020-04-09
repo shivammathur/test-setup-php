@@ -1,4 +1,4 @@
-name: Test workflow #test logs
+name: Test workflow
 on: [push]
 jobs:
   run:    
@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [windows-latest]
+        operating-system: [windows-latest, windows-2016]
         php-versions: ['8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -19,6 +19,10 @@ jobs:
         extensions: mbstring, xdebug, pcov, intl, gd
         ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
         coverage: ${{ matrix.coverage }}
+    - name: Test files
+      run: DIR C:\tools\php
+    - name: Test ext
+      run: DIR C:\tools\php\ext
     - name: Testing git
       run: git status
     - name: Testing PHP version
