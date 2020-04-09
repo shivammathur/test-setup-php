@@ -14,20 +14,12 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        env:
+        uses: shivammathur/setup-php@verbose
+        with:
           php-version: ${{ matrix.php-versions }}
-          
-      - name: Install Xdebug
-        run: |
-          term=xterm
-          cd ~ && git clone --depth=1 https://github.com/xdebug/xdebug.git
-          cd xdebug || echo "Failed to clone Xdebug"
-          sudo phpize
-          sudo ./configure
-          sudo make          
-          sudo cp modules/xdebug.so "$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")"
-          echo "zend_extension=xdebug.so" >> $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")        
+          extensions: xml, opcache, xdebug, pcov
+          ini-values: post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata
+          coverage: pcov
 
       - name: Testing PHP version
         run: php -v
