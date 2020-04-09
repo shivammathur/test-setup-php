@@ -16,12 +16,8 @@ jobs:
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: intl
+        extensions: intl, pcov
 
-    - name: Test files
-      run: DIR C:\tools\php
-    - name: Test ext
-      run: DIR C:\tools\php\ext
     - name: Testing git
       run: git status
     - name: Testing PHP version
