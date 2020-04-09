@@ -17,7 +17,7 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:        
         php-version: ${{ matrix.php-versions }}
-        extensions: mailparse
+        extensions: mbstring, mailparse
       
     - name: Check PHP version
       run: php -v
