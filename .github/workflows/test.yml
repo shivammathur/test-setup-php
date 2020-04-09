@@ -27,5 +27,7 @@ jobs:
       run: git status
     - name: Testing PHP version
       run: php -v
+      continue-on-error: true
     - name: Testing extension
       run: php -m
+      continue-on-error: true
