@@ -16,7 +16,7 @@ jobs:
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: intl, pcov
+        extensions: mbstring, xdebug, intl, gd
 
     - name: Testing git
       run: git status
