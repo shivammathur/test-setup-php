@@ -16,9 +16,7 @@ jobs:
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: mbstring, xdebug, pcov, intl, gd
-        ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
-        coverage: ${{ matrix.coverage }}
+
     - name: Test files
       run: DIR C:\tools\php
     - name: Test ext
