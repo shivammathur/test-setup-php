@@ -14,8 +14,12 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Install libyaml
-      if: ${{ matrix.operating-system }} = "ubuntu-latest"
+      if: ${{ matrix.operating-system }} == "ubuntu-latest"
       run: sudo apt-get install libyaml
+
+    - name: Install libyaml
+      if: ${{ matrix.operating-system }} == "macos-latest"
+      run: brew install libyaml
 
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
@@ -31,7 +35,7 @@ jobs:
       run: php -m
 
     - name: check ext_dir and php.ini
-      if: ${{ matrix.operating-system }} = "windows-latest"
+      if: ${{ matrix.operating-system }} == "windows-latest"
       run: |
         DIR C:\tools\php\ext
         type C:\tools\php\php.ini
