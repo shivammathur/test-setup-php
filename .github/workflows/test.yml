@@ -15,7 +15,7 @@ jobs:
 
     - name: Install libyaml-dev
       if: matrix.operating-system == 'ubuntu-latest'
-      run: sudo apt-get install libyaml
+      run: sudo apt-get install libyaml-dev
 
     - name: Install libyaml
       if: matrix.operating-system == 'macos-latest'
