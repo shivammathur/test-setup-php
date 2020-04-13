@@ -13,6 +13,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
+    - name: Install libyaml
+      if: matrix.operating-system = "ubuntu-latest"
+      run: sudo apt-get install libyaml
+
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
       with:        
@@ -25,6 +29,12 @@ jobs:
 
     - name: Check PHP extensions
       run: php -m
+
+    - name: check ext_dir and php.ini
+      if: matrix.operating-system = "windows-latest"
+      run: |
+        DIR C:\tools\php\ext
+        type C:\tools\php\php.ini
 
     - name: Check mailparse
       run: php -r "if(! extension_loaded('yaml')) {throw new Exception('yaml not found');}"
