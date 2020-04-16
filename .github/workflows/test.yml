@@ -5,20 +5,12 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['7.3', '7.4']
-    name: Test ${{ matrix.operating-system }} - ${{ matrix.php-versions }}
+        operating-system: [macos-latest]
+        #php-versions: ['7.3', '7.4']
+    name: Test ${{ matrix.operating-system }} # - ${{ matrix.php-versions }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: >-
-          intl,
-          mbstring
-        ini-values: >-
-          memory_limit=-1,
-          error_reporting=-1
+    - name: check lib
+      run: ls /usr/local/opt 
