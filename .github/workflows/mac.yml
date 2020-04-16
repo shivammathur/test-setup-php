@@ -1,14 +1,14 @@
-name: Test workflow #test cache
+name: Test workflow #test darwin
 on: [push]
 jobs:
   old_versions:
-    name: versions
+    name: darwin
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
-        php-versions: ['5.5']
+        operating-system: [macos-latest]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -16,42 +16,7 @@ jobs:
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
-          php-version: ${{ matrix.php-versions }}
-          tools: blackfire, blackfire-player, php-cs-fixer:2.2.20, phpcs:2.9.2, phpcbf:2.9.2, phpcpd:2.0.4, phpmd:2.8.0, codeception:2.3.5, cs2pr:1.0.1, phpunit:4.8.36, phinx:0.5.0, deployer:2.0.0, prestissimo:0.3.8, composer:1.9.3, symfony:4.12.3
-      - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
-      - name: Testing Tools
-        run: |
-          blackfire-agent -v
-          blackfire version -V
-          blackfire-player -V
-          composer -V
-          php-cs-fixer -V
-          phpcs --version
-          phpcbf --version
-          phpcpd -V
-          codeception -V
-          phpunit --version
-          cs2pr version
-          phinx -V
-          deployer -V
-          symfony version
-      - name: Test prestissimo
-        run: composer global show hirak/prestissimo
-        continue-on-error: true
-      - name: Test pecl
-        if: matrix.operating-system != 'windows-latest'
-        run: pecl -V
-      - name: Test phpmd on windows
-        if: matrix.operating-system == 'windows-latest'
-        run: |
-          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
-          phpmd $RUNNER_TOOL_CACHE\test.php text cleancode
-      - name: Test phpmd
-        if: matrix.operating-system != 'windows-latest'
-        run: |
-          echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
-          phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
+          php-version: ${{ matrix.php-versions }}          
       
       - name: Test PHP version
-        run: php -v        
+        run: php -v && php -m
