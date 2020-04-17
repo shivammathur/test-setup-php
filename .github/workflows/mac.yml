@@ -17,5 +17,6 @@ jobs:
           sudo mkdir Formula
           PHP_VERSION=php
           sudo curl -o Formula/php.rb -SL https://raw.githubusercontent.com/shivammathur/homebrew-php/master/Formula/$PHP_VERSION.rb
-          sudo sed -i '' "s~^  depends_on \"jpeg\".*~  depends_on \"jpeg\"\\\n  depends_on \"krb5\"~g" ./Formula/"$PHP_VERSION".rb
+          sudo sed -i '' "s~^  depends_on \"jpeg\".*~  depends_on \"jpeg\"
+          depends_on \"krb5\"~g" ./Formula/"$PHP_VERSION".rb
           sudo cat "Formula/$PHP_VERSION.rb"
