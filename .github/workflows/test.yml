@@ -6,11 +6,19 @@ jobs:
     strategy:
       matrix:
         operating-system: [macos-latest]
-        #php-versions: ['7.3', '7.4']
-    name: Test ${{ matrix.operating-system }} # - ${{ matrix.php-versions }}
+        php-versions: ['8.0']
+    name: Test ${{ matrix.operating-system }} - ${{ matrix.php-versions }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+  
+    - name: setup-php
+      uses: shivammathur/setup-php@verbose
+      with: 
+        php-version: ${{ matrix.php-versions }}
     
-    - name: check lib
-      run: ls /usr/local/opt 
+    - name: check libs
+      run: ls /usr/local/opt
+      
+    - name: check libs
+      run: ls /usr/local/opt/libffi/lib/ || true
