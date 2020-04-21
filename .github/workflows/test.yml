@@ -10,15 +10,14 @@ jobs:
     name: Test ${{ matrix.operating-system }} - ${{ matrix.php-versions }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
-  
-    - name: setup-php
-      uses: shivammathur/setup-php@verbose
-      with: 
-        php-version: ${{ matrix.php-versions }}
+      uses: actions/checkout@v
         
     - name: check php
-      run: php -v
+      run: |
+        brew tap shivammathur/homebrew-php
+        brew install shivammathur/php/php@8.0
+        brew link --force --overwrite php@8.0
+        php -v
     
     - name: check libs
       run: ls /usr/local/opt
