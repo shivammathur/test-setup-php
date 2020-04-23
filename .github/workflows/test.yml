@@ -26,13 +26,14 @@ jobs:
     - name: Test fix 
       run: |        
         lib_error=$(php -v 2>&1) || true        
-        libs=$(echo "$lib_error" | grep -m 1 -Eo "([a-z]*.[0-9].dylib)")
+        libs=$(echo "$lib_error" | grep -m 1 -Eo "([a-z]*).[0-9].dylib")
         echo "libs: $libs"
         for lib in $libs; do
-          lib_name=$(echo "$lib" | cut -d '.' -f 1)
-          lib_path=/usr/local/opt/"$lib_name"/lib
+          #lib_name=$(echo "$lib" | cut -d '.' -f 1)
+          #lib_path=/usr/local/opt/"$lib_name"/lib
           echo "lib: $lib"
-          sudo cp "$lib_path/$lib_name.dylib" "$lib_path/$lib"
+          brew upgrade $lib
+          #sudo cp "$lib_path/$lib_name.dylib" "$lib_path/$lib"
         done
         php -v
         php -m
