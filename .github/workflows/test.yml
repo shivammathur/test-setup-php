@@ -18,22 +18,21 @@ jobs:
     - name: check libs
       run: ls /usr/local/opt/libffi/lib/ || true
   
-    #- name: setup-php
-    #  uses: shivammathur/setup-php@verbose
-    #  with: 
-    #    php-version: ${{ matrix.php-versions }}
+    - name: setup-php
+      uses: shivammathur/setup-php@verbose
+      with: 
+        php-version: ${{ matrix.php-versions }}
    
     - name: Test fix 
       run: |        
-        #lib_error=$(php -v 2>&1) || true
-        lib_error="dyld: Library not loaded: /usr/local/opt/libffi/lib/libffi.7.dylib dyld: Library not loaded: /usr/local/opt/libffi/lib/test.8.dylib Referenced from: /usr/local/bin/php Reason: image not found /Users/runner/runners/2.169.1/work/_temp/ec1ddf01-fffe-4198-b9f7-f5899f080e1d.sh: line 1:  1608 Abort trap: 6 php -v"
-        libs=$(echo "$lib_error" | grep -e "[a-z]*.[0-9].dylib")
+        lib_error=$(php -v 2>&1) || true        
+        libs=$(echo "$lib_error" | grep -m 1 -Eo "([a-z]*.[0-9].dylib)")
         echo "libs: $libs"
         for lib in $libs; do
           lib_name=$(echo "$lib" | cut -d '.' -f 1)
           lib_path=/usr/local/opt/"$lib_name"/lib
           echo "lib: $lib"
-          #sudo cp "$lib_path/$lib_name.dylib" "$lib_path/$lib"
+          sudo cp "$lib_path/$lib_name.dylib" "$lib_path/$lib"
         done
         php -v
     
