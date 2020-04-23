@@ -22,6 +22,17 @@ jobs:
       uses: shivammathur/setup-php@verbose
       with: 
         php-version: ${{ matrix.php-versions }}
+   
+    - name: Test fix 
+      run: |
+        libs=$(php -v 2>/dev/null | grep -Ei "[a-z]*.[0-9].dylib")
+        echo "libs: $libs"
+        for lib in $libs; do
+          lib_name=$(echo "$lib" | cut -d '.' -f 1)
+          lib_path=/usr/local/opt/"$lib_name"/lib
+          sudo cp "$lib_path/$lib_name.dylib" "$lib_path/$lib"
+        done
+        php -v
     
     - name: check libs
       run: ls /usr/local/opt
