@@ -26,7 +26,7 @@ jobs:
     - name: Test fix 
       run: |        
         lib_error=$(php -v 2>&1) || true        
-        libs=$(echo "$lib_error" | grep -m 1 -Eo "([a-z]*).[0-9].dylib")
+        libs=$(echo "$lib_error" | grep -m 1 -Eo "(/opt/[a-z]*)" | cut -d '/' -f 3)
         echo "libs: $libs"
         for lib in $libs; do
           #lib_name=$(echo "$lib" | cut -d '.' -f 1)
