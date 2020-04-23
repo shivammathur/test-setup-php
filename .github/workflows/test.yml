@@ -11,15 +11,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-      
-    - name: Fetch
-      run: |
-        brew_dir=$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula  
-        for formula in httpd pkg-config apr apr-util argon2 aspell autoconf bison curl-openssl freetds freetype gettext glib gmp icu4c jpeg krb5 libffi libpng libpq libsodium libzip oniguruma openldap openssl@1.1 re2c sqlite tidyp unixodbc webp; do
-          sudo curl -o "$brew_dir"/"$formula".rb -sSL https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/"$formula".rb &
-          to_wait+=( $! )          
-        done
-        wait "${to_wait[@]}"
   
     - name: setup-php
       uses: shivammathur/setup-php@verbose
@@ -27,19 +18,9 @@ jobs:
         php-version: ${{ matrix.php-versions }}        
         extensions: opcache
    
-    - name: Test fix 
-      run: |
-        #lib_error=$(php -v 2>&1) || true
-        #libs=$(echo "$lib_error" | grep -m 1 -Eo "(/opt/[a-z]*)" | cut -d '/' -f 3)
-        #for lib in $libs; do
-        #  brew install --force https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/"$lib".rb
-        #done
-        ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-        ext_dir=$(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
-        #ls $ext_dir
-        #echo "zend_extension=$ext_dir/opcache.so" >>"$ini_file"
-        php -v
-        php -m
+    - name: Test fix
+      run: php -v
+ 
     
     - name: check libs
       run: ls /usr/local/opt
