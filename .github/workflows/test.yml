@@ -25,7 +25,7 @@ jobs:
    
     - name: Test fix 
       run: |
-        lib_error=$(php -v 2>/dev/null)
+        lib_error=$(php -v 2>&1) || true
         libs=$(echo "$lib_error" | grep -Ei "[a-z]*.[0-9].dylib")
         echo "libs: $libs"
         for lib in $libs; do
