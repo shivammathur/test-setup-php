@@ -22,9 +22,6 @@ jobs:
       uses: shivammathur/setup-php@verbose
       with: 
         php-version: ${{ matrix.php-versions }}
-        
-    - name: check php
-      run: php -v
     
     - name: check libs
       run: ls /usr/local/opt
