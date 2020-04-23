@@ -26,6 +26,7 @@ jobs:
         done
         ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
         ext_dir=$(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
+        ls $ext_dir
         echo "zend_extension=$ext_dir/opcache.so" >>"$ini_file"
         php -v
         php -m
