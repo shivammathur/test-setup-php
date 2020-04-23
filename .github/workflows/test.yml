@@ -35,6 +35,7 @@ jobs:
           sudo cp "$lib_path/$lib_name.dylib" "$lib_path/$lib"
         done
         php -v
+        php -m
     
     - name: check libs
       run: ls /usr/local/opt
