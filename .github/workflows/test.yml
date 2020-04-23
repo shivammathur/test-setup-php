@@ -11,23 +11,22 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-
-    - name: check libs
-      run: brew update      
   
     - name: setup-php
       uses: shivammathur/setup-php@verbose
       with: 
-        php-version: ${{ matrix.php-versions }}
-        extensions: opcache
+        php-version: ${{ matrix.php-versions }}        
    
     - name: Test fix 
       run: |
-        #lib_error=$(php -v 2>&1) || true
-        #libs=$(echo "$lib_error" | grep -m 1 -Eo "(/opt/[a-z]*)" | cut -d '/' -f 3)
-        #for lib in $libs; do
-        #  brew install --force https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/"$lib".rb
-        #done
+        lib_error=$(php -v 2>&1) || true
+        libs=$(echo "$lib_error" | grep -m 1 -Eo "(/opt/[a-z]*)" | cut -d '/' -f 3)
+        for lib in $libs; do
+          brew install --force https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/"$lib".rb
+        done
+        ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+        ext_dir=$(php -i | grep -Ei "extension_dir => /(usr|opt)" | sed -e "s|.*=> s*||")
+        echo "zend_extension=$ext_dir/opcache.so" >>"$ini_file"
         php -v
         php -m
     
