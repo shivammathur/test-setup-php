@@ -24,8 +24,7 @@ jobs:
     #    php-version: ${{ matrix.php-versions }}
    
     - name: Test fix 
-      run: |
-        man grep
+      run: |        
         #lib_error=$(php -v 2>&1) || true
         lib_error="dyld: Library not loaded: /usr/local/opt/libffi/lib/libffi.7.dylib dyld: Library not loaded: /usr/local/opt/libffi/lib/test.8.dylib Referenced from: /usr/local/bin/php Reason: image not found /Users/runner/runners/2.169.1/work/_temp/ec1ddf01-fffe-4198-b9f7-f5899f080e1d.sh: line 1:  1608 Abort trap: 6 php -v"
         libs=$(echo "$lib_error" | grep -m 1 -Eo "([a-z]*.[0-9].dylib"))
