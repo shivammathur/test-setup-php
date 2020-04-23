@@ -32,7 +32,7 @@ jobs:
           #lib_name=$(echo "$lib" | cut -d '.' -f 1)
           #lib_path=/usr/local/opt/"$lib_name"/lib
           echo "lib: $lib"
-          brew upgrade $lib
+          brew install --force https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/$lib.rb
           #sudo cp "$lib_path/$lib_name.dylib" "$lib_path/$lib"
         done
         php -v
