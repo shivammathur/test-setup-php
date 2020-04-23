@@ -14,8 +14,9 @@ jobs:
       
     - name: Fetch
       run: |
+        prefix=$(brew --prefix) 
         for formula in httpd pkg-config apr apr-util argon2 aspell autoconf bison curl-openssl freetds freetype gettext glib gmp icu4c jpeg krb5 libffi libpng libpq libsodium libzip oniguruma openldap openssl@1.1 re2c sqlite tidyp unixodbc webp; do
-          sudo curl -o "$(brew --prefix)"/Homebrew/Library/Taps/homebrew-core/Formula/"$formula".rb -sSL https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/"$formula".rb
+          sudo curl -o "$prefix"/Homebrew/Library/Taps/homebrew-core/Formula/"$formula".rb -SL https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/"$formula".rb
           brew upgrade "$formula"
         done
   
