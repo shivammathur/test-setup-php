@@ -1,22 +1,27 @@
-name: Test workflow #test darwin
+name: Test workflow #test old PHP on darwin
 on: [push]
 jobs:
-  old_versions:
-    name: darwin
+  run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
-      matrix:
-        operating-system: [macos-latest]        
+      matrix:      
+        operating-system: [macos-latest]
+        php-versions: ['5.3', '5.4', '5.5']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2       
 
-      - name: Test
-        run: |
-          sudo mkdir Formula
-          PHP_VERSION=php
-          NL=$'\\\n'
-          sudo curl -o Formula/php.rb -SL https://raw.githubusercontent.com/shivammathur/homebrew-php/master/Formula/$PHP_VERSION.rb
-          sudo sed -i '' "s~^  depends_on \"jpeg\".*~  depends_on \"jpeg\"${NL}  depends_on \"krb5\"~g" ./Formula/"$PHP_VERSION".rb
-          sudo cat "Formula/$PHP_VERSION.rb"
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: mbstring, xdebug, pcov, intl, gd
+        ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+        
+    - name: Test PHP version
+      run: php -v
+      
+    - name: Test PHP extensions
+      run: php -m
