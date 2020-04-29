@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-16.04, macos-latest]
+        operating-system: [ubuntu-latest, ubuntu-16.04]
         php-versions: ['8.0']
     steps:
       - name: Checkout
@@ -17,9 +17,6 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: xml, opcache, xdebug, pcov
-          ini-values: post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata
-          coverage: pcov
 
       - name: Testing PHP version
         run: php -v
