@@ -12,8 +12,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
  
-    - name: check libs
-      run: ls /usr/local/opt
+    - name: install icu4c
+      run: |
+        brew tap shivammathur/homebrew-php
+        brew install shivammathur/php/icu4c
       
     - name: check libs
       run: ls /usr/local/opt/icu4c/lib/ || true
