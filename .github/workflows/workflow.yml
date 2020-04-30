@@ -13,9 +13,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Install zip
-        run: sudo apt-get install libzip-dev
-
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
