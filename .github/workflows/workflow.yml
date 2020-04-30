@@ -15,7 +15,7 @@ jobs:
         
       - name: fix
         run: |
-          sudo apt-get update
+          sudo apt-get update && sudo apt-get install libzip-dev
 
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
