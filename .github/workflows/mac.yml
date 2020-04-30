@@ -14,12 +14,14 @@ jobs:
       uses: actions/checkout@v2
       
     - name: brew update
-      run: brew update
-
-    - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
-      with:
-        php-version: ${{ matrix.php-versions }}
+      env:
+        version: ${{ matrix.php-versions }}
+      run: |
+        if [ "$version" = "5.6" ] || [ "$version" = "7.0" ] || [ "$version" = "7.1" ]; then
+          brew tap eXolnet/homebrew-deprecated          
+        fi        
+        brew install php@$version
+        brew link --force --overwrite php@"$version"
         
     - name: Test PHP version
       run: php -v
