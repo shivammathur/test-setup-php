@@ -7,19 +7,11 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [macos-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+        php-versions: ['7.2', '7.3', '7.2', '7.3', '7.2', '7.3', '7.2', '7.3', '7.2', '7.3', '7.2', '7.3', '7.2', '7.3', '7.2', '7.3', '7.2', '7.3', '7.2', '7.3', '7.2', '7.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    
-    - name: icu4c Fix
-      env:
-        version: ${{ matrix.php-versions }}
-      run: |
-        if [ "$version" = "5.6" ] || [ "$version" = "7.0" ]; then
-          brew install --force https://raw.githubusercontent.com/Homebrew/homebrew-core/14e7bc36f9a88c952428b1e5ef197538282cabe5/Formula/icu4c.rb
-        fi  
 
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
