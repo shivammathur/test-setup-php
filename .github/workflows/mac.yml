@@ -11,7 +11,13 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v2       
+      uses: actions/checkout@v2
+    
+    - name: icu4c Fix
+      run: |
+        if [ "$version" = "5.6" ] || [ "$version" = "7.0" ]; then
+          brew install --force https://raw.githubusercontent.com/Homebrew/homebrew-core/14e7bc36f9a88c952428b1e5ef197538282cabe5/Formula/icu4c.rb
+        fi  
 
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
