@@ -7,18 +7,16 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [macos-latest]
-        php-versions: ['5.3', '5.4', '5.5']
+        php-versions: ['7.1', '7.2', '7.3', '7.4', '8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2       
 
     - name: Setup PHP
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: mbstring, xdebug, pcov, intl, gd
-        ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
         
     - name: Test PHP version
       run: php -v
