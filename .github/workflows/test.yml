@@ -15,7 +15,7 @@ jobs:
     - name: install icu4c
       run: |
         brew tap shivammathur/homebrew-php
-        brew install shivammathur/php/icu4c --force
+        brew install https://raw.githubusercontent.com/shivammathur/homebrew-php/master/Formula/icu4c.rb --force
       
     - name: check libs
       run: ls /usr/local/opt/icu4c/lib/ || true
