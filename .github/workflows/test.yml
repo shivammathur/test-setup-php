@@ -6,16 +6,11 @@ jobs:
     strategy:
       matrix:
         operating-system: [macos-latest]
-        php-versions: ['8.0']
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     name: Test ${{ matrix.operating-system }} - ${{ matrix.php-versions }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
- 
-    - name: install icu4c
-      run: |
-        brew tap shivammathur/homebrew-php
-        brew install -f https://homebrew.bintray.com/bottles/icu4c-64.2.catalina.bottle.tar.gz
       
     - name: check libs
       run: ls /usr/local/opt/icu4c/lib/ || true
