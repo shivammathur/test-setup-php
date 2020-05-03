@@ -37,7 +37,9 @@ jobs:
       run: echo $PATH
     
     - name: Export path
-      run: echo "export PATH=$PATH:/home/runner/.composer/vendor/bin" >> ~/.bashrc            
+      run: |
+        echo "export PATH=$PATH:/home/runner/.composer/vendor/bin" >> ~/.bashrc
+        source ~/.bashrc
 
     - name: Echo path
       run: echo $PATH
