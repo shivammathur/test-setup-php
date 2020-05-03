@@ -28,10 +28,7 @@ jobs:
         extensions: ${{ env.extensions }} #optional
         tools: prestissimo, phpcs, phpcbf, phpmd, phpstan, phpcpd
         ini-values: "post_max_size=256M" #optional
-        coverage: none
-        
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-progress --no-suggest
+        coverage: none        
 
     - name: Install Parallel-Lint
       run: composer global require php-parallel-lint/php-parallel-lint
