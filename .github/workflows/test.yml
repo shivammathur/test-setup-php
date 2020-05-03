@@ -37,9 +37,7 @@ jobs:
       run: echo $PATH
     
     - name: Export path
-      run: |
-        echo "export PATH=$PATH:/home/runner/.composer/vendor/bin" >> ~/.bashrc
-        source ~/.bashrc
+      run: echo "::add-path::$(composer -q global config home)/vendor/bin"
 
     - name: Echo path
       run: echo $PATH
