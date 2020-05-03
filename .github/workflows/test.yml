@@ -1,24 +1,52 @@
-name: tools workflow
+name: Feature CI
 on:
-  repository_dispatch:
   push:
-jobs:
-  run:
-    name: Run
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['7.4']
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+    branches-ignore:
+      - master
+  pull_request:
+    branches-ignore:
+      - master
 
-      - name: Install PHP
-        uses: shivammathur/setup-php@verbose
-        with:
-          php-version: ${{ matrix.php-versions }}
-          tools: phive
-      - name: Testing Tools
-        run: phive status
+env:
+  extensions: mbstring #intl, pcov
+jobs:
+  tests:    
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        php-versions: ['7.2']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.os }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Install PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.extensions }} #optional
+        tools: prestissimo, phpcs, phpcbf, phpmd, phpstan, phpcpd
+        ini-values: "post_max_size=256M" #optional
+        coverage: none
+        
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-suggest
+
+    - name: Install Parallel-Lint
+      run: composer global require php-parallel-lint/php-parallel-lint
+
+    - name: Echo path
+      run: echo $PATH
+    
+    - name: Export path
+      run: echo "export PATH=$PATH:/home/runner/.composer/vendor/bin" >> ~/.bash_profile      
+
+    - name: Echo path
+      run: echo $PATH
+
+    - name: Check Parallel-Lint  
+      run: /home/runner/.composer/vendor/bin/parallel-lint --version
+
+    - name: Check Parallel-Lint  
+      run: parallel-lint --version
