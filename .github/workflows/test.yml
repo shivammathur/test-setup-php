@@ -34,6 +34,6 @@ jobs:
         if: matrix.operating-system == 'macos-latest'
         run: |
           echo $PATH
-          ls /home/runner/.composer/vendor/bin       
+          ls /Users/runner/.composer/vendor/bin
       - name: Testing Tools
         run: phinx -V
