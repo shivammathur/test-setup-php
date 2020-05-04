@@ -31,7 +31,4 @@ jobs:
       run: echo $PATH
 
     - name: Check Parallel-Lint  
-      run: /home/runner/.composer/vendor/bin/parallel-lint --version
-
-    - name: Check Parallel-Lint  
       run: parallel-lint --version
