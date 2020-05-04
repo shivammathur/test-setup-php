@@ -1,21 +1,13 @@
-name: Feature CI
+name: Test
 on:
   push:
-    branches-ignore:
-      - master
-  pull_request:
-    branches-ignore:
-      - master
-
-env:
-  extensions: mbstring #intl, pcov
 jobs:
   tests:    
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        php-versions: ['7.2']
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.os }}
     steps:
     - name: Checkout
@@ -24,11 +16,7 @@ jobs:
     - name: Install PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }} #optional
-        tools: prestissimo, phpcs, phpcbf, phpmd, phpstan, phpcpd
-        ini-values: "post_max_size=256M" #optional
-        coverage: none        
+        php-version: ${{ matrix.php-versions }}  
 
     - name: Install Parallel-Lint
       run: composer global require php-parallel-lint/php-parallel-lint
