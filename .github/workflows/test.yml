@@ -25,7 +25,7 @@ jobs:
       run: echo $env:PATH
     
     - name: Export path
-      run: echo "::add-path::$(composer -q global config home)/vendor/bin"
+      run: Write-Output "::add-path::C:/Users/runneradmin/AppData/Roaming/Composer/vendor/bin"
 
     - name: Echo path
       run: echo $env:PATH
