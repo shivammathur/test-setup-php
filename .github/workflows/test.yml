@@ -6,39 +6,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
-        operating-system: [ubuntu-latest, macos-latest]
+        php-versions: ['7.3']
+        operating-system: [macos-latest]
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
-    -   name: Install system dependencies
-        if: matrix.operating-system == 'ubuntu-latest'
-        run: |
-            sudo wget -O - http://packages.couchbase.com/ubuntu/couchbase.key | sudo apt-key add -
-            echo "deb http://packages.couchbase.com/ubuntu bionic bionic/main" | sudo tee /etc/apt/sources.list.d/couchbase.list
-            sudo apt-get update
-            sudo apt-get install libcouchbase-dev
-            
-    -   name: Install system dependencies
-        if: matrix.operating-system == 'macos-latest'
-        run: brew install libcouchbase
-
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:        
         php-version: ${{ matrix.php-versions }}
-        tools: pecl
-        extensions: couchbase
+        
+    - name: Test SNMP
+      run: |
+        time brew tap kabel/php-ext
+        time brew install php@7.3-snmp
       
     - name: Check PHP version
       run: php -v
 
-    - name: Check ini files
-      run: php --ini
-
     - name: Check PHP extensions
       run: |
         php -m
-        php -r "if(! extension_loaded('couchbase')) {throw new Exception('couchbase not found');}"
