@@ -6,39 +6,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Install libyaml-dev
-      if: matrix.operating-system == 'ubuntu-latest'
-      run: sudo apt-get install libyaml-dev
-
-    - name: Install libyaml
-      if: matrix.operating-system == 'macos-latest'
-      run: brew install libyaml
-
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
       with:        
         php-version: ${{ matrix.php-versions }}
         pecl: true
-        extensions: yaml
+        extensions: couchbase
       
     - name: Check PHP version
       run: php -v
 
+    - name: Check PHP version
+      run: php --ini
+
     - name: Check PHP extensions
       run: php -m
-
-    - name: check ext_dir and php.ini
-      if: matrix.operating-system == 'windows-latest'
-      run: |
-        DIR C:\tools\php\ext
-        type C:\tools\php\php.ini
-
-    - name: Check mailparse
-      run: php -r "if(! extension_loaded('yaml')) {throw new Exception('yaml not found');}"
