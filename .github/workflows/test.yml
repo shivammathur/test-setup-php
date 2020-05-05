@@ -39,4 +39,6 @@ jobs:
       run: php --ini
 
     - name: Check PHP extensions
-      run: php -m
+      run: |
+        php -m
+        php -r "if(! extension_loaded('couchbase')) {throw new Exception('couchbase not found');}"
