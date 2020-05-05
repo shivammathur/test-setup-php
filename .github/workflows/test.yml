@@ -19,21 +19,9 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: phinx
-      - name: Test PATH
-        if: matrix.operating-system == 'windows-latest'
-        run: |
-          echo $env:PATH
-          DIR C:/Users/runneradmin/AppData/Roaming/Composer/vendor/bin
-      - name: Test PATH
-        if: matrix.operating-system == 'ubuntu-latest'
-        run: |
-          echo $PATH
-          ls /home/runner/.composer/vendor/bin
-      - name: Test PATH          
-        if: matrix.operating-system == 'macos-latest'
-        run: |
-          echo $PATH
-          ls /Users/runner/.composer/vendor/bin
+          tools: blackfire, blackfire-player
       - name: Testing Tools
-        run: phinx -V
+        run: |
+          blackfire-agent -v
+          blackfire version -V
+          blackfire-player -V          
