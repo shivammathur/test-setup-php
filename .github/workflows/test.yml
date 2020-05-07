@@ -19,9 +19,12 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
+          extensions: blackfire
           tools: blackfire, blackfire-player
       - name: Testing Tools
-        run: |
+        run: |          
           blackfire-agent -v
           blackfire version -V
-          blackfire-player -V          
+          blackfire-player -V
+          php -v
+          php -m
