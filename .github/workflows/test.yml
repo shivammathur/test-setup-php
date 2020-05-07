@@ -19,7 +19,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: blackfire-1.31.0
+          extensions: blackfire-1.31.0, pcov-1.0.6
           tools: blackfire, blackfire-player
       - name: Testing Tools
         run: |          
