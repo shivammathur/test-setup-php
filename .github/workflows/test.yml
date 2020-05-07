@@ -20,11 +20,10 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: blackfire-1.31.0, pcov-1.0.6
-          tools: blackfire, blackfire-player
+          tools: infection, vapor-cli
       - name: Testing Tools
         run: |          
-          blackfire-agent -v
-          blackfire version -V
-          blackfire-player -V
+          infection -V
+          vapor -V
           php -v
           php -m
