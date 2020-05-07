@@ -2,44 +2,24 @@ name: Test workflow #test cache
 on: [push]
 
 jobs:
-  run:    
+  run:
+    name: windows test    
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:      
         operating-system: [windows-latest]
-        php-versions: ['8.0']
-    env:
-      extensions: intl, pcov
-      key: cache-win-v2
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        php-versions: ['7.3']
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-
-    - name: Setup cache environment
-      id: cache-env
-      uses: shivammathur/cache-extensions@v1
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
-        key: ${{ env.key }}
-
-    - name: Cache extensions
-      uses: actions/cache@v1
-      with:
-        path: ${{ steps.cache-env.outputs.dir }}
-        key: ${{ steps.cache-env.outputs.key }}
-        restore-keys: ${{ steps.cache-env.outputs.key }}
-
     - name: Install PHP
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@develop
       with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
+        php-version: ${{ matrix.php-versions }}        
 
-    - name: Testing git
-      run: git status
+    - name: Testing vapor
+      run: |
+        composer global require laravel/vapor-cli
+        vapor -V
 
     - name: Testing PHP version
       run: php -v
