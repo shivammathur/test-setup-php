@@ -3,7 +3,7 @@ on:
   repository_dispatch:
   push:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 1/5 * * *'
 jobs:
   run:
     name: Run
