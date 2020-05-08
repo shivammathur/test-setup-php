@@ -1,6 +1,9 @@
 name: 'Extension workflow'
 on:
+  repository_dispatch:
   push:
+  schedule:
+    - cron: '0 1/5 * * *'
 jobs:
   run1:
     runs-on: ${{ matrix.operating-system }}
@@ -33,6 +36,9 @@ jobs:
           php -r "if(phpversion()>=5.5 && ! extension_loaded('imagick')) {throw new Exception('imagick not found');}"
           php -r "if(phpversion()>=7.0 && ! extension_loaded('ast')) {throw new Exception('ast not found');}"
           php -r "if(phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
+      - name: Testing phalcon
+        if: matrix.php-version != '5.3'
+        run: |
           php -r "if(phpversion()>=7.2 && ! extension_loaded('psr')) {throw new Exception('psr not found');}"
           php -r "if(phpversion()>=7.2 && ! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
           php -r "if(phpversion()>=7.2 && phpversion('phalcon')[0]!='4') {throw new Exception('Wrong phalcon version Installed');}"
@@ -60,7 +66,9 @@ jobs:
           php -m
           php -r "if(phpversion()>=7.0 && ! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}"
           php -r "if(phpversion()>=7.1 && ! extension_loaded('uopz')) {throw new Exception('uopz not found');}"
-          php -r "if(phpversion()>=7.1 && phpversion()<=7.3 && ! extension_loaded('psr')) {throw new Exception('psr not found');}"
+      - name: Testing phalcon
+        if: matrix.php-version != '5.3'
+        run: |
           php -r "if(phpversion()>=7.1 && phpversion()<=7.3 && ! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
           php -r "if(phpversion()>=7.1 && phpversion()<=7.3 && phpversion('phalcon')[0]!='3') {throw new Exception('Wrong phalcon version Installed');}"
       - name: Testing gearman
