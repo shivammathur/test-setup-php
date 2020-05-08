@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macOS-latest]
-        php-versions: ['5.3', '7.4']
+        php-versions: ['5.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -37,7 +37,7 @@ jobs:
           php -r "if(phpversion()>=7.0 && ! extension_loaded('ast')) {throw new Exception('ast not found');}"
           php -r "if(phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
       - name: Testing phalcon
-        if: matrix.php-version != 5.3
+        if: matrix.php-version != "'5.3'"
         run: |
           php -r "if(phpversion()>=7.2 && ! extension_loaded('psr')) {throw new Exception('psr not found');}"
           php -r "if(phpversion()>=7.2 && ! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
@@ -48,7 +48,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macOS-latest]
-        php-versions: ['5.3', '7.4']
+        php-versions: ['5.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -67,7 +67,7 @@ jobs:
           php -r "if(phpversion()>=7.0 && ! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}"
           php -r "if(phpversion()>=7.1 && ! extension_loaded('uopz')) {throw new Exception('uopz not found');}"
       - name: Testing phalcon
-        if: matrix.php-version != 5.3
+        if: matrix.php-version != "'5.3'"
         run: |
           php -r "if(phpversion()>=7.1 && phpversion()<=7.3 && ! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
           php -r "if(phpversion()>=7.1 && phpversion()<=7.3 && phpversion('phalcon')[0]!='3') {throw new Exception('Wrong phalcon version Installed');}"
