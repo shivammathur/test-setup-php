@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false      
       matrix:
-        operating-system: [ubuntu-latest, macos-latest]
+        operating-system: [windows-latest, macos-latest]
         php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
@@ -17,7 +17,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Install PHP
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: phalcon4
