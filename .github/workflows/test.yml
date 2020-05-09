@@ -1,6 +1,9 @@
 name: 'Extension workflow'
 on:
+  repository_dispatch:
   push:
+  schedule:
+    - cron: '0 1/5 * * *'
 jobs:
   run1:
     runs-on: ${{ matrix.operating-system }}
@@ -52,14 +55,14 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           coverage: none
-          extensions: uopz, phalcon3, gearman
+          extensions: msgpack, uopz, phalcon3, gearman
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
         run: |
           php -m
           php -r "if(phpversion()>=7.0 && ! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}"
-          php -r "if(phpversion()>=7.1 && ! extension_loaded('uopz')) {throw new Exception('uopz not found');}"          
+          php -r "if(phpversion()>=7.1 && ! extension_loaded('uopz')) {throw new Exception('uopz not found');}"
           php -r "if(phpversion()>=7.1 && phpversion()<=7.3 && ! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
           php -r "if(phpversion()>=7.1 && phpversion()<=7.3 && phpversion('phalcon')[0]!='3') {throw new Exception('Wrong phalcon version Installed');}"
       - name: Testing gearman
