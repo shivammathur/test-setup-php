@@ -17,7 +17,7 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: psr, phalcon4
+        extensions: phalcon4
     - name: Testing PHP version
       run: php -v
     - name: Testing Extensions
