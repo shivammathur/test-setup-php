@@ -1,4 +1,4 @@
-name: Test phalcon extension v3 #test cache
+name: Test phalcon extension v4
 on: [push]
 jobs:
   run:    
@@ -8,11 +8,11 @@ jobs:
       matrix:
         operating-system: [macos-latest]
         #operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['7.0', '7.1', '7.2', '7.3']
+        php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: psr, phalcon3
-      key: cache-phalcon3-v2
+      extensions: psr, phalcon4
+      key: cache-phalcon4-v1
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -45,4 +45,4 @@ jobs:
         php -r "echo 'phalcon: ' . phpversion('phalcon');"
         php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
         php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
-        php -r "if(phpversion('phalcon')[0]!='3') {throw new Exception('Wrong phalcon version Installed');}"
+        php -r "if(phpversion('phalcon')[0]!='4') {throw new Exception('Wrong phalcon version Installed');}"
