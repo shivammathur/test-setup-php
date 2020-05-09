@@ -52,9 +52,11 @@ jobs:
               ;;
           esac
         }
+        extension=phalcon3        
         apiv=$(get_apiv)
         ls "/usr/local/lib/php/pecl/$apiv"
-        brew install php@"$version"
+        brew tap shivammathur/homebrew-php
+        brew install shivammathur/php/php@"$version"
         brew link --force --overwrite php@"$version"
         phalcon_version=$(php -d="extension=psr.so" -d="extension=phalcon.so" -r "echo phpversion('phalcon');" 2>/dev/null | cut -d'.' -f 1)
         extension_major=${extension: -1}        
