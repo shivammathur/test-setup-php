@@ -11,7 +11,7 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
       extensions: psr, phalcon3
-      key: cache-phalcon3-v1
+      key: cache-phalcon3-v2
     steps:
     - name: Checkout
       uses: actions/checkout@v2
