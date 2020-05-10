@@ -5,13 +5,9 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-16.04, windows-latest, macos-latest]
+        operating-system: [windows-latest]
         php-versions: ['7.4']
     name: Test ${{ matrix.operating-system }} - ${{ matrix.php-versions }}
     steps:
     - name: Test windows
-      if: matrix.operating-system == 'windows-latest'
-      run: echo $env:UserName
-    - name: Test windows
-      if: matrix.operating-system != 'windows-latest'
-      run: echo $USER
+      run: dir c:\tools
