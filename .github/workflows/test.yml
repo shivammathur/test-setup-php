@@ -5,23 +5,13 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-16.04]
+        operating-system: [ubuntu-latest, ubuntu-16.04, windows-latest, macos-latest]
         php-versions: ['7.4']
     name: Test ${{ matrix.operating-system }} - ${{ matrix.php-versions }}
     steps:
-    - name: Test
-      continue-on-error: true
-      run: |
-        tick="✓"
-        cross="✗"        
-        add_log() {
-          mark=$1
-          subject=$2
-          message=$3
-          if [ "$mark" = "$tick" ]; then
-            printf "\033[32;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s\033[0m\n" "$mark" "$subject" "$message"
-          else
-            printf "\033[31;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s\033[0m\n" "$mark" "$subject" "$message"
-          fi
-        }        
-        add_log "$cross" "PHP" "PHP $version is not supported on self-hosted runner" && exit 1
+    - name: Test windows
+      if: matrix.operating-system == 'windows-latest'
+      run: echo $env:UserName
+    - name: Test windows
+      if: matrix.operating-system != 'windows-latest'
+      run: echo $USER
