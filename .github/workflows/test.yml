@@ -1,4 +1,4 @@
-name: Test phalcon extension v4 #test cache
+name: Test phalcon extension v3
 on: [push]
 jobs:
   run:    
@@ -9,33 +9,15 @@ jobs:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
         php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
-    env:
-      extensions: psr, phalcon4
-      key: cache-phalcon4-v1
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-
-    - name: Setup cache environment
-      id: cache-env
-      uses: shivammathur/cache-extensions@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
-        key: ${{ env.key }}
-
-    - name: Cache extensions
-      uses: actions/cache@v1
-      with:
-        path: ${{ steps.cache-env.outputs.dir }}
-        key: ${{ steps.cache-env.outputs.key }}
-        restore-keys: ${{ steps.cache-env.outputs.key }}
 
     - name: Install PHP
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
+        extensions: psr, phalcon3
     - name: Testing PHP version
       run: php -v
     - name: Testing Extensions
@@ -44,4 +26,4 @@ jobs:
         php -r "echo 'phalcon: ' . phpversion('phalcon');"
         php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
         php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
-        php -r "if(phpversion('phalcon')[0]!='4') {throw new Exception('Wrong phalcon version Installed');}"
+        php -r "if(phpversion('phalcon')[0]!='3') {throw new Exception('Wrong phalcon version Installed');}"
