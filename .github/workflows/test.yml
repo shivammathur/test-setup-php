@@ -10,4 +10,4 @@ jobs:
     name: Test ${{ matrix.operating-system }} - ${{ matrix.php-versions }}
     steps:
     - name: Test windows
-      run: dir c:\tools
+      run: ls -la c:\tools
