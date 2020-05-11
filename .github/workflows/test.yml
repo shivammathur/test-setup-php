@@ -10,4 +10,25 @@ jobs:
     name: Test ${{ matrix.operating-system }} - ${{ matrix.php-versions }}
     steps:
     - name: Test windows
-      run: ls -la c:\tools
+      run: |
+        Function Get-Path {
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" +
+                  [System.Environment]::GetEnvironmentVariable("Path","User")
+        }
+
+        Function Add-Path {
+          param(
+            [string]$PathItem
+          )
+          $currentPath = (Get-ItemProperty -Path 'hkcu:\Environment' -Name PATH).Path
+          if ($currentPath -contains $PathItem) {
+            $currentPath = $currentPath -replace "$PathItem;"
+          }
+          $newPath = $PathItem + ';' + $currentPath
+          Set-ItemProperty -Path 'hkcu:\Environment' -Name Path -Value $NewPath
+          Get-Path
+        }
+        Add-Path C:\tools
+    - name: Test windows
+      run: |
+        Write-Output $env:PATH
