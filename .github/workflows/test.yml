@@ -32,6 +32,7 @@ jobs:
         Write-Output $env:PATH
         $profile1 = 'testtest'
         try {
+          New-Item $profile1 -Type File -Force
           if($null -eq (Get-Content $profile1 | findstr 'Get-PathFromRegistry')) {
             Add-Content -Path $profile1 -Value 'Function Get-PathFromRegistry { $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User") }; Get-PathFromRegistry'
           }
