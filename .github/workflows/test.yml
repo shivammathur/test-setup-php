@@ -31,7 +31,7 @@ jobs:
         Add-Path C:\tools        
         Write-Output $env:PATH
         try {
-          $profile = [Environment]::GetFolderPath('MyDocuments') + '\Profile.ps1'
+          $profile = 'Profile.ps1'
           if(-not(Test-Path -LiteralPath $profile)) {            
             New-Item $profile -ItemType File
           }        
