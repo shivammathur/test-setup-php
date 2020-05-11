@@ -29,6 +29,7 @@ jobs:
           Get-Path
         }
         Add-Path C:\tools
+        Write-Output $env:PATH
     - name: Test windows
       run: |
         Write-Output $env:PATH
