@@ -31,15 +31,11 @@ jobs:
         Add-Path C:\tools        
         Write-Output $env:PATH
         try {
-          if(-not(Test-Path -LiteralPath $profile)) {
-            $profile_dir = [System.IO.Path]::GetDirectoryName($profile)
-            if(-not(Test-Path -LiteralPath $profile_dir)) {
-              New-Item $profile_dir -ItemType Directory
-            }             
+          if(-not(Test-Path -LiteralPath $profile.CurrentUserAllHosts)) {            
             New-Item $profile -ItemType File
           }        
-          if($null -eq (Get-Content $profile | findstr 'Get-PathFromRegistry')) { 
-            Add-Content -Path $profile -Value 'Function Get-PathFromRegistry { $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User") }; Get-PathFromRegistry' 
+          if($null -eq (Get-Content $profile.CurrentUserAllHosts | findstr 'Get-PathFromRegistry')) { 
+            Add-Content -Path $profile.CurrentUserAllHosts -Value 'Function Get-PathFromRegistry { $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User") }; Get-PathFromRegistry' 
           }
         } catch [Exception] {
           echo $_.Exception|format-list -force
