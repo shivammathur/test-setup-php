@@ -28,8 +28,11 @@ jobs:
           Set-ItemProperty -Path 'hkcu:\Environment' -Name Path -Value $NewPath
           Get-PathFromRegistry
         }
-        Add-Path C:\tools
+        Add-Path C:\tools        
         Write-Output $env:PATH
+        if(-not(Test-Path -LiteralPath $profile)) {
+          New-Item $profile -ItemType File
+        }
         try {
           if($null -eq (Get-Content $profile | findstr 'Get-PathFromRegistry')) { 
             Add-Content -Path $profile -Value 'Function Get-PathFromRegistry { $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User") }; Get-PathFromRegistry' 
