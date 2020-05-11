@@ -11,7 +11,7 @@ jobs:
     steps:
     - name: Test windows
       run: |
-        Function Get-Path {
+        Function Get-PathFromRegistry {
           $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" +
                   [System.Environment]::GetEnvironmentVariable("Path","User")
         }
@@ -26,10 +26,13 @@ jobs:
           }
           $newPath = $PathItem + ';' + $currentPath
           Set-ItemProperty -Path 'hkcu:\Environment' -Name Path -Value $NewPath
-          Get-Path
+          Get-PathFromRegistry
         }
         Add-Path C:\tools
         Write-Output $env:PATH
+        if($null -eq (Get-Content $profile | findstr 'Get-PathFromRegistry')) { 
+          Add-Content -Path $profile -Value 'Function Get-PathFromRegistry { $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User") }; Get-PathFromRegistry' 
+        }
     - name: Test windows
       run: |
         Write-Output $env:PATH
