@@ -30,21 +30,15 @@ jobs:
         }
         Add-Path C:\tools        
         Write-Output $env:PATH
-        try {        
-          $profile_dir = [System.IO.Path]::GetDirectoryName($profile)
-          if(-not(Test-Path -LiteralPath $profile_dir)) {            
-            New-Item $profile_dir -ItemType Directory -Force
-          }
-        } catch {
-          echo $_.Exception|format-list -force
-        }
+        $profile1 = 'testtest'
         try {
-          if(-not(Test-Path -LiteralPath $profile)) {     
-            New-Item $profile -ItemType File -Force
+          if($null -eq (Get-Content $profile1 | findstr 'Get-PathFromRegistry')) {
+            Add-Content -Path $profile1 -Value 'Function Get-PathFromRegistry { $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User") }; Get-PathFromRegistry'
           }
+          Type $profile1
         } catch {
-          echo $_.Exception|format-list -force
-        }
+          Write-Output $_.Exception|format-list -force
+        }      
     - name: Test windows
       run: |
         Write-Output $env:PATH
