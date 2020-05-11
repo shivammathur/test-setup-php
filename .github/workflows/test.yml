@@ -31,8 +31,9 @@ jobs:
         Add-Path C:\tools        
         Write-Output $env:PATH
         try {        
-          if(-not(Test-Path -LiteralPath $profile)) {            
-            New-Item ([System.IO.Path]::GetDirectoryName($profile)) -ItemType Directory >$null 2>&1
+          if(-not(Test-Path -LiteralPath $profile)) {
+            $profile_dir = [System.IO.Path]::GetDirectoryName($profile)
+            New-Item $profile_dir -ItemType Directory >$null 2>&1
             New-Item $profile -ItemType File >$null 2>&1
           }        
           if($null -eq (Get-Content $profile | findstr 'Get-PathFromRegistry')) { 
