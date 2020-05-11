@@ -32,6 +32,10 @@ jobs:
         Write-Output $env:PATH
         try {
           if(-not(Test-Path -LiteralPath $profile)) {
+            $profile_dir = [System.IO.Path]::GetDirectoryName($profile)
+            if(-not(Test-Path -LiteralPath $profile_dir)) {
+              New-Item $profile_dir -ItemType Directory
+            }             
             New-Item $profile -ItemType File
           }        
           if($null -eq (Get-Content $profile | findstr 'Get-PathFromRegistry')) { 
