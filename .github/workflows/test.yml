@@ -11,35 +11,4 @@ jobs:
     steps:
     - name: Test windows
       run: |
-        Function Get-PathFromRegistry {
-          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" +
-                  [System.Environment]::GetEnvironmentVariable("Path","User")
-        }
-
-        Function Add-Path {
-          param(
-            [string]$PathItem
-          )
-          $currentPath = (Get-ItemProperty -Path 'hkcu:\Environment' -Name PATH).Path
-          if ($currentPath -contains $PathItem) {
-            $currentPath = $currentPath -replace "$PathItem;"
-          }
-          $newPath = $PathItem + ';' + $currentPath
-          Set-ItemProperty -Path 'hkcu:\Environment' -Name Path -Value $NewPath
-          Get-PathFromRegistry
-        }
-        Add-Path C:\tools        
-        Write-Output $env:PATH
-        $profile1 = 'testtest'
-        try {
-          New-Item $profile1 -Type File -Force
-          if($null -eq (Get-Content $profile1 | findstr 'Get-PathFromRegistry')) {
-            Add-Content -Path $profile1 -Value 'Function Get-PathFromRegistry { $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User") }; Get-PathFromRegistry'
-          }
-          Type $profile1
-        } catch {
-          Write-Output $_.Exception|format-list -force
-        }      
-    - name: Test windows
-      run: |
-        Write-Output $env:PATH
+        Write-Host 'Test String' -ForegroundColor Blue
