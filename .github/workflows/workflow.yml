@@ -3,7 +3,7 @@ on:
   repository_dispatch:
   push:
   schedule:
-    - cron: '0 */5 * * *'
+    - cron: '0 1/5 * * *'
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
