@@ -5,10 +5,19 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [macos-latest]      
-    name: Test ${{ matrix.operating-system }}
+        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
+        php-versions: ['7.2', '7.3', '7.4']
+    name: PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
     steps:
-    - name: Test 8.0
-      run: |
-        brew tap shivammathur/homebrew-php
-        brew install --verbose --build-bottle shivammathur/php/php@8.0
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+        env:
+          update: true
+      - name: Testing PHP version
+        run: php -v
+      - name: Testing Extensions
+        run: php -m
