@@ -14,9 +14,10 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Setup PHP
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
+      env:
         update: true
         
     - name: Test PHP version
