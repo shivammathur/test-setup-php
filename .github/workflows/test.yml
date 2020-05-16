@@ -1,4 +1,4 @@
-name: Test workflow #test cache
+name: Test workflow
 on: [push]
 
 jobs:
@@ -9,16 +9,15 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [windows-latest]
-        ts: [ts, nts]
-        php-versions: ['7.3', '7.4', '8.0']
+        coverage: [xdebug, pcov]
     steps:
     - name: Install PHP
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@verbose
       with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: pcov
-      env:
-        phpts: ${{ matrix.ts }}
+        php-version: 5.5
+        extensions: mbstring, xdebug, pcov, intl, gd
+        ini-values: post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata
+        coverage: ${{ matrix.coverage }}
 
     - name: Testing PHP version
       run: php -v
