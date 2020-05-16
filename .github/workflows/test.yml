@@ -1,26 +1,64 @@
-name: Test workflow
-on: [push]
-
+name: 'Coverage workflow'
+on:
+  push:
 jobs:
   run:
-    name: ${{ matrix.php-versions }} - ${{ matrix.ts }} 
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
-      matrix:      
+      matrix:
         operating-system: [windows-latest]
-        coverage: [xdebug, pcov]
+        php-versions: ['5.5']
+        coverage: [xdebug, pcov, none]
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
-    - name: Install PHP
-      uses: shivammathur/setup-php@verbose
-      with:
-        php-version: 5.5
-        extensions: mbstring, xdebug, pcov, intl, gd
-        ini-values: post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata
-        coverage: ${{ matrix.coverage }}
-
-    - name: Testing PHP version
-      run: php -v
-
-    - name: Testing extension
-      run: php -m
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: mbstring, xdebug, pcov, intl, gd
+          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+          coverage: ${{ matrix.coverage }}
+      - name: Add Problem Matcher
+        run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Testing PHP version
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+      - name: Testing Composer version
+        run: php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
+      - name: Testing Extensions
+        run: |
+          php -m
+          php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
+          php -r "if('${{ matrix.coverage }}'=='xdebug' && phpversion() < 8.0 && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
+          php -r "if('${{ matrix.coverage }}'!='none' && phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
+          php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
+          php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}"
+      - name: Testing ini values
+        run: |
+          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
+          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
+          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
+      - name: Testing Coverage if PCOV
+        if: matrix.coverage == 'pcov'
+        run: |
+          php -r "if(phpversion()>=7.1 && ini_get('pcov.enabled')!=1) {throw new Exception('PCOV not enabled');}"
+          php -r "if(phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
+          php -v
+      - name: Testing Coverage if Xdebug
+        if: matrix.coverage == 'xdebug'
+        run: |
+          php -r "if(phpversion() < 8.0 && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
+          php -v
+      - name: Testing disabling coverage
+        if: matrix.coverage == 'none'
+        run: |
+          php -r "if(extension_loaded('xdebug')) {throw new Exception('Xdebug found');}"
+          php -r "if(extension_loaded('Xdebug')) {throw new Exception('Xdebug found');}"
+          php -r "if(extension_loaded('pcov')) {throw new Exception('PCOV found');}"
+          php -v
