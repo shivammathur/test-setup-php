@@ -14,7 +14,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup PHP, with composer and extensions
-        uses: shivammathur/setup-php@v1-verbose
+        uses: shivammathur/setup-php@b4c76768a6a8f20472b1f8adb4a9efea4c62824f
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: mbstring, xml, ctype, iconv, intl, pdo, pdo_sqlite, mysql
