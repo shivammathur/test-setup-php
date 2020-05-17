@@ -1,4 +1,4 @@
-name: Test phalcon extension v4
+name: Test phalcon extension v4 # Test 4.0.6
 on: [push]
 jobs:
   run:    
@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false      
       matrix:        
-        operating-system: [macos-latest]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
         php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
