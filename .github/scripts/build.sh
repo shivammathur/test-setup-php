@@ -1,18 +1,18 @@
 release=$(lsb_release -r -s)
 install_dir=~/php/"$PHP_VERSION"
 action_dir=$(pwd)
+sudo mkdir -p ~/php
+sudo chmod -R 777 ~/php
 (
   cd ~ || exit
   git clone git://github.com/php-build/php-build
   cd php-build || exit
   sudo ./install.sh
   cp -rf "$action_dir"/.github/scripts/default_configure_options ./share/php-build/default_configure_options
-  cat ./share/php-build/default_configure_options
+  php-build -v -i production master "$install_dir"
+  sudo chmod 777 "$install_dir"/etc/php.ini
 )
-sudo mkdir -p ~/php
-sudo chmod -R 777 ~/php
-php-build -v -i production master "$install_dir"
-sudo chmod 777 "$install_dir"/etc/php.ini
+
 (
   echo "date.timezone=UTC"
   echo "opcache.jit_buffer_size=256M"
