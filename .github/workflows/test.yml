@@ -18,6 +18,8 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: phalcon-4.0.6
+      env:
+        update: true
     - name: Testing PHP version
       run: php -v
     - name: Testing Extensions
