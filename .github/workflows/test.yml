@@ -12,7 +12,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2      
       - name: Install PHP
-        uses: shivammathur/setup-php@062567eeb11c6f0df81235d645970224e600dcf8
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: mysql, pdo_mysql, pgsql, pdo_pgsql, sqlite3, pdo_sqlite
