@@ -8,12 +8,10 @@ sudo chmod -R 777 ~/php
   git clone git://github.com/php-build/php-build
   cd php-build || exit
   sudo ./install.sh
-  cp -rf "$action_dir"/.github/scripts/master ./share/php-build/definitions/master
-  cat ./share/php-build/definitions/master
-  php-build -v -i production master "$install_dir"
-  sudo chmod 777 "$install_dir"/etc/php.ini
+  sudo cp -rf "$action_dir"/.github/scripts/master /usr/local/share/php-build/definitions/master
 )
-
+php-build -v -i production master "$install_dir"
+sudo chmod 777 "$install_dir"/etc/php.ini
 (
   echo "date.timezone=UTC"
   echo "opcache.jit_buffer_size=256M"
