@@ -7,18 +7,17 @@ jobs:
       fail-fast: false      
       matrix:        
         operating-system: [ubuntu-latest]
-        php-versions: ['7.2', '7.3', '7.4']
-        ext: ['-4.0.6', 4]
+        php-versions: ['7.2', '7.3', '7.4']        
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
     - name: Install PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: phalcon${{ matrix.ext }}
+        extensions: phalcon4
     - name: Testing PHP version
       run: php -v
     - name: Testing Extensions
