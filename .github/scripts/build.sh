@@ -11,7 +11,7 @@ action_dir=$(pwd)
 )
 sudo mkdir -p ~/php
 sudo chmod -R 777 ~/php
-php-build -iv production master "$install_dir"
+php-build -v -i production master "$install_dir"
 sudo chmod 777 "$install_dir"/etc/php.ini
 (
   echo "date.timezone=UTC"
