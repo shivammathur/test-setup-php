@@ -9,6 +9,8 @@ sudo chmod -R 777 ~/php
   cd php-build || exit
   sudo ./install.sh
   cp -rf "$action_dir"/.github/scripts/default_configure_options ./share/php-build/default_configure_options
+  sed -i 's/.\/configure $argv/echo $argv; .\/configure $argv/g' $(which php-build)
+  cat $(which php-build)
   php-build -v -i production master "$install_dir"
   sudo chmod 777 "$install_dir"/etc/php.ini
 )
