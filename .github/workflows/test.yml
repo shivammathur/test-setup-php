@@ -5,8 +5,8 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-20.04]
-        php-versions: ['7.2', '7.3', '7.4']
+        operating-system: [ubuntu-18.04, ubuntu 16.04]
+        php-versions: ['8.0']
     name: PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -15,8 +15,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-      - name: Testing release
-        run: lsb_release -a
+          extensions: mysql, pdo_mysql, pgsql, pdo_pgsql, sqlite3, pdo_sqlite
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
