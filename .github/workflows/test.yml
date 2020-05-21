@@ -16,16 +16,12 @@ jobs:
         run: |
           DEBIAN_FRONTEND=noninteractive apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates sudo gnupg
-          curl -O -SL https://packages.sury.org/php/apt.gpg
-          DEBIAN_FRONTEND=noninteractive apt-key add apt.gpg
-          rm -rf apt.gpg          
+          lsb_release -a
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: mbstring
-        env:
-          runner: self-hosted
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
