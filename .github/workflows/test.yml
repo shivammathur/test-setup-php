@@ -5,13 +5,15 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-18.04, ubuntu-16.04]
-        php-versions: ['8.0']
+        operating-system: [ubuntu-18.04]
+        php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
     container: php:7.4.5
     steps:
       - name: Checkout
-        uses: actions/checkout@v2      
+        uses: actions/checkout@v2
+      - name: Pre-requities
+        run: apt-get install sudo software-common-properties lsb_release
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
