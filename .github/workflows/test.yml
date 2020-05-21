@@ -4,7 +4,7 @@ jobs:
   run:
     runs-on: ubuntu-18.04
     name: PHP 7.4
-    container: shivammathur/node@sha256:11a4e6282885a7de5e84599294dc8a4b28b598241245f3bc629da6cf0482da62
+    container: shivammathur/node@bionic
     steps:
       - name: Checkout
         uses: actions/checkout@v2
