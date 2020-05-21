@@ -15,7 +15,7 @@ jobs:
       - name: Pre-requities
         run: |
           apt-get update
-          apt-get install sudo gpg-agent
+          apt-get install -y sudo gpg-agent
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
