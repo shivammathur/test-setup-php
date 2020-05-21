@@ -11,19 +11,17 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['7.3']
+        php-versions: ['7.4']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: blackfire-1.31.0, pcov-1.0.6
-          tools: infection, vapor-cli
+          php-version: ${{ matrix.php-versions }}          
+          tools: phan
       - name: Testing Tools
-        run: |          
-          infection -V
-          vapor -V
+        run: |
+          phan -v
           php -v
           php -m
