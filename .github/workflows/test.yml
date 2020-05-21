@@ -15,7 +15,7 @@ jobs:
       - name: Pre-requities
         run: |
           DEBIAN_FRONTEND=noninteractive apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates sudo gnupg
+          DEBIAN_FRONTEND=noninteractive apt-get install -y sudo lsb-release software-properties-common
           lsb_release -a
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
