@@ -17,7 +17,7 @@ jobs:
           apt-get update
           apt-get install sudo
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: mbstring
