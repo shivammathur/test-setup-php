@@ -8,20 +8,17 @@ jobs:
         operating-system: [ubuntu-18.04]
         php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
-    container: php:7.4.5
+    container: shivammathur/node@sha256:11a4e6282885a7de5e84599294dc8a4b28b598241245f3bc629da6cf0482da62
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Pre-requities
-        run: |
-          DEBIAN_FRONTEND=noninteractive apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y sudo lsb-release software-properties-common
-          lsb_release -a
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: mbstring
+        env:
+          runner: self-hosted
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
