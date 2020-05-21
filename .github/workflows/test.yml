@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
-    container: shivammathur/node:bionic
+    container: shivammathur/node@sha256:11a4e6282885a7de5e84599294dc8a4b28b598241245f3bc629da6cf0482da62
     steps:
       - name: Checkout
         uses: actions/checkout@v2
