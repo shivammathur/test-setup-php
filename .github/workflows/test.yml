@@ -1,10 +1,21 @@
 name: Test workflow
 on: [push]
 jobs:
-  testrun:
-    runs-on: windows-latest
+  testrun:    
     name: testrun
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [windows-latest]
+        php-versions: ['8.0']
     steps:
+      - name: Setup PHP with extensions and custom config
+        uses: shivammathur/setup-php@develop
+        env:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.extensions }}
+          ini-values: post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata
+          coverage: pcov
       - name: Test
-        run: |
-          Write-Host 'Test' -ForegroundColor Blue
+        run: type C:\hostedtoolcache\windows\win32.ps1
