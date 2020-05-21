@@ -2,12 +2,8 @@ name: Test workflow
 on: [push]
 jobs:
   run:
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      matrix:
-        operating-system: [ubuntu-18.04]
-        php-versions: ['7.4']
-    name: PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
+    runs-on: ubuntu-18.04
+    name: PHP 7.4
     container: shivammathur/node@sha256:11a4e6282885a7de5e84599294dc8a4b28b598241245f3bc629da6cf0482da62
     steps:
       - name: Checkout
@@ -15,8 +11,8 @@ jobs:
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, ast, pcov
+          php-version: 7.4
+          extensions: mbstring, ast, pcov, xdebug, redis
         env:
           runner: self-hosted
       - name: Testing PHP version
