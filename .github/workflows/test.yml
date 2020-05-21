@@ -2,23 +2,9 @@ name: Test workflow
 on: [push]
 jobs:
   testrun:
-    runs-on: ubuntu-18.04
+    runs-on: windows-latest
     name: testrun
-    strategy:
-      matrix:
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
-    container: shivammathur/node@sha256:11a4e6282885a7de5e84599294dc8a4b28b598241245f3bc629da6cf0482da62
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, mysql
-          coverage: none
-          tools: phpstan
-      - name: Testing PHP version
-        run: php -v
-      - name: Testing Extensions
-        run: php -m
+      - name: Test
+        run: |
+          Write-Host 'Test' -ForegroundColor Blue
