@@ -15,12 +15,14 @@ jobs:
       - name: Pre-requities
         run: |
           apt-get update
-          apt-get install sudo software-common-properties lsb_release
+          apt-get install sudo
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: mbstring
+        env:
+          runner: self-hosted
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
