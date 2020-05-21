@@ -13,7 +13,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Pre-requities
-        run: apt-get install sudo software-common-properties lsb_release
+        run: |
+          apt-get update
+          apt-get install sudo software-common-properties lsb_release
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
