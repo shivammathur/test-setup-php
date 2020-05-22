@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]
+        operating-system: [ubuntu-latest]
     steps:
       - name: Test
         run: |
