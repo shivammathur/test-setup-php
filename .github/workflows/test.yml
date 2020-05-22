@@ -8,14 +8,10 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [windows-latest]
-        php-versions: ['8.0']
     steps:
-      - name: Setup PHP with extensions and custom config
-        uses: shivammathur/setup-php@develop
-        env:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-          ini-values: post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata
-          coverage: pcov
       - name: Test
-        run: type C:\hostedtoolcache\windows\win32.ps1
+        run: |
+          touch a.txt
+          echo '' | sudo tee b.txt
+          chmod 777 a.txt b.txt
+          ls -la
