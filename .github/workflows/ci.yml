@@ -25,7 +25,7 @@ jobs:
         key: dependencies-php-${{ matrix.php }}-composer-${{ hashFiles('composer.json') }}
 
     - name: Setup PHP
-      uses: shivammathur/setup-php@5915f05b06af8edbd9fb3010351af5dff8b9c322
+      uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php }}
         extensions: mbstring, zip
