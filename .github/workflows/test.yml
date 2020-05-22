@@ -13,5 +13,5 @@ jobs:
         run: |
           touch a.txt
           echo '' | sudo tee b.txt
-          chmod 777 a.txt b.txt
+          sudo chmod 777 a.txt b.txt
           ls -la
