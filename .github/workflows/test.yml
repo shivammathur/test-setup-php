@@ -20,7 +20,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
       - name: Composer config
-        run: composer config -g --unset repos.packagist
+        run: composer config -g repos.packagist composer https://packagist-mirror.wmflabs.org
       - name: Composer install
         run: composer -vvv global require robmorgan/phinx:0.5.0
       - name: Testing Tools
