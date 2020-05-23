@@ -11,17 +11,17 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['7.4']
+        php-versions: ['5.5']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}          
-          tools: phan
+          tools: phinx:0.5.0
       - name: Testing Tools
         run: |
-          phan -v
+          phinx -V
           php -v
           php -m
