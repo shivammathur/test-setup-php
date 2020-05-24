@@ -12,4 +12,6 @@ jobs:
       - name: Test
         run: |
           GITHUB_COMMIT="Test --dry-run"
-          if [[ "$GITHUB_COMMIT" == *dry-run* ]]; then echo 'true'; else echo 'false'; fi
+          [[ "php" =~ php|php@7.[2-3] ]] && echo 'php'
+          [[ "php7.2" =~ php|php@7.[2-3] ]] && echo 'php7.2'
+          [[ "php7.3" =~ php|php@7.[2-3] ]] && echo 'php7.3'
