@@ -7,11 +7,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [macos-latest]
     steps:
       - name: Test
         run: |
-          touch a.txt
-          echo '' | sudo tee b.txt
-          sudo chmod 777 a.txt b.txt
-          ls -la
+          GITHUB_COMMIT="Test --dry-run"
+          if [[ "GITHUB_COMMIT" == *dry-run* ]]; then echo 'true'; else echo 'false'; fi
