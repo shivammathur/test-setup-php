@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['8.0']
+        php-versions: ['5.5']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -19,9 +19,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: prestissimo
       - name: Testing Tools
         run: |          
-          composer global show hirak/prestissimo
+          composer diagnose
           php -v
           php -m
