@@ -21,6 +21,8 @@ jobs:
           php-version: ${{ matrix.php-versions }}
       - name: Fix
         run: |
+          curl -o /home/$USER/.composer/keys.tags.pub -sSL https://raw.githubusercontent.com/composer/composer.github.io/master/releases.pub &
+          curl -o /home/$USER/.composer/keys.dev.pub -sSL https://raw.githubusercontent.com/composer/composer.github.io/master/snapshots.pub &          
           curl -o /home/$USER/cacert.pem -SL https://curl.haxx.se/ca/cacert.pem
           composer config --global cafile /home/$USER/cacert.pem
       - name: Testing Tools
