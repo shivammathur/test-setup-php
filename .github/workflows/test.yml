@@ -19,6 +19,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
+      - name: Fix
+        run: curl -s https://getcomposer.org/installer | php >/dev/null
       - name: Testing Tools
         run: |          
           composer diagnose
