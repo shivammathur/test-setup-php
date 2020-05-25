@@ -3,7 +3,6 @@ on:
   push:
 env:
   COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  tools: pecl, prestissimo
 jobs:
   latest:
     name: latest
@@ -22,13 +21,13 @@ jobs:
           path: |
             /usr/bin
             /home/runner/.composer
-          key: ${{ runner.os }}-${{ matrix.php-versions }}-${{ env.tools }}
-          restore-keys: ${{ runner.os }}-${{ matrix.php-versions }}-${{ env.tools }}
+          key: ${{ runner.os }}-${{ matrix.php-versions }}-peclprestissimo
+          restore-keys: ${{ runner.os }}-${{ matrix.php-versions }}-peclprestissimo
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: prestissimo
+          tools: pecl, prestissimo
       - name: Testing Tools
         run: |
           composer global show hirak/prestissimo
