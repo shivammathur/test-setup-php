@@ -3,7 +3,7 @@ on:
   push:
 env:
   COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  tools: prestissimo
+  tools: pecl, prestissimo
 jobs:
   latest:
     name: latest
@@ -17,9 +17,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Cache tools
-        uses: actions/cache@v1
+        uses: actions/cache@master
         with:
-          path: /home/runner/.composer
+          path: |
+            /usr/bin
+            /home/runner/.composer
           key: ${{ runner.os }}-${{ matrix.php-versions }}-${{ env.tools }}
           restore-keys: ${{ runner.os }}-${{ matrix.php-versions }}-${{ env.tools }}
       - name: Install PHP
