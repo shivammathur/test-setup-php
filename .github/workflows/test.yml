@@ -20,8 +20,8 @@ jobs:
         uses: actions/cache@v1
         with:
           path: /home/runner/.composer
-          key: ${{ runner.os }}-${{ env.php-versions }}-${{ env.tools }}
-          restore-keys: ${{ runner.os }}-${{ env.php-versions }}-${{ env.tools }}
+          key: ${{ runner.os }}-${{ matrix.php-versions }}-${{ env.tools }}
+          restore-keys: ${{ runner.os }}-${{ matrix.php-versions }}-${{ env.tools }}
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
