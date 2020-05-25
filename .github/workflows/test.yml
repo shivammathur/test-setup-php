@@ -3,6 +3,7 @@ on:
   push:
 env:
   COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  tools: prestissimo
 jobs:
   latest:
     name: latest
@@ -19,7 +20,8 @@ jobs:
         uses: actions/cache@v1
         with:
           path: /home/runner/.composer
-          key: ${{ runner.os }}-${{ hashFiles('/home/runner/.composer/composer.lock') }}
+          key: ${{ runner.os }}-${{ env.php-versions }}-${{ env.tools }}
+          restore-keys: ${{ runner.os }}-${{ env.php-versions }}-${{ env.tools }}
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
