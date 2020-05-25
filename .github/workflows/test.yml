@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['5.3', '5.4', '5.5']
+        php-versions: ['5.3', '5.4', '5.5','5.3', '5.4', '5.5','5.3', '5.4', '5.5','5.3', '5.4', '5.5']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -21,13 +21,11 @@ jobs:
           php-version: ${{ matrix.php-versions }}
       - name: Fix
         run: |
-          curl -o /home/$USER/.composer/keys.tags.pub -sSL https://raw.githubusercontent.com/composer/composer.github.io/master/releases.pub &
-          curl -o /home/$USER/.composer/keys.dev.pub -sSL https://raw.githubusercontent.com/composer/composer.github.io/master/snapshots.pub &
           curl -o /home/$USER/cacert.pem -SL https://curl.haxx.se/ca/cacert.pem
           composer config --global cafile /home/$USER/cacert.pem
       - name: Testing Tools
         run: |
-          composer diagnose
+          #composer diagnose
           composer global require robmorgan/phinx:0.5.0
           php -v
           php -m
