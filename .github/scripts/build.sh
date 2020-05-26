@@ -13,20 +13,6 @@ setup_phpbuild() {
   )
 }
 
-build_php() {
-  php-build -v -i production master "$install_dir"
-  sudo chmod 777 "$install_dir"/etc/php.ini
-  (
-    echo "date.timezone=UTC"
-    echo "opcache.jit_buffer_size=256M"
-    echo "opcache.jit=1235"
-    echo "pcre.jit=1"
-  ) >>"$install_dir"/etc/php.ini
-  sudo ln -sv "$install_dir"/sbin/php-fpm "$install_dir"/bin/php-fpm
-  sudo ln -sf "$install_dir"/bin/* /usr/bin/
-  sudo ln -sf "$install_dir"/etc/php.ini /etc/php.ini
-}
-
 setup_pear() {
   sudo curl -fsSL --retry "$tries" -o /usr/local/ssl/cert.pem https://curl.haxx.se/ca/cacert.pem
   sudo curl -fsSL --retry "$tries" -O https://pear.php.net/go-pear.phar
@@ -36,6 +22,21 @@ setup_pear() {
   sudo "$install_dir"/bin/pear config-set php_ini "$install_dir"/etc/php.ini system
   sudo "$install_dir"/bin/pear channel-update pear.php.net
   sudo "$install_dir"/bin/pecl install -f pcov
+}
+
+build_php() {
+  php-build -v -i production master "$install_dir"
+  sudo chmod 777 "$install_dir"/etc/php.ini
+  (
+    echo "date.timezone=UTC"
+    echo "opcache.jit_buffer_size=256M"
+    echo "opcache.jit=1235"
+    echo "pcre.jit=1"
+  ) >>"$install_dir"/etc/php.ini
+  setup_pear
+  sudo ln -sv "$install_dir"/sbin/php-fpm "$install_dir"/bin/php-fpm
+  sudo ln -sf "$install_dir"/bin/* /usr/bin/
+  sudo ln -sf "$install_dir"/etc/php.ini /etc/php.ini
 }
 
 bintray_create_package() {
@@ -86,7 +87,6 @@ tries=10
 sudo mkdir -m777 -p ~/php /usr/local/ssl
 setup_phpbuild
 build_php
-setup_pear
 bintray_create_package
 build_and_ship
 #push-log
