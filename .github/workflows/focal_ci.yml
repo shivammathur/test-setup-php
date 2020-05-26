@@ -22,8 +22,8 @@ jobs:
           fetch-depth: 1
       - name: Install required packages
         run: |
-          sudo DEBIAN_FRONTEND=noninteractive apt-fast -y update
-          sudo DEBIAN_FRONTEND=noninteractive apt-fast -y install sudo software-properties-common lsb-release expect locales language-pack-de re2c ccache mysql-server postgresql pkg-config libaspell-dev libbz2-dev libbison-dev libedit-dev libcurl4-gnutls-dev libenchant-dev libffi6 libffi-dev libfreetype6-dev libgccjit-6-dev libgmp-dev libicu-dev libjpeg-dev libwebp-dev libkrb5-dev libldap-dev libonig-dev libmcrypt-dev libpng-dev libpq5 libpq-dev libreadline-dev libpspell-dev libsasl2-dev libsnmp-dev libssl-dev libsqlite3-dev libsodium-dev libtidy-dev libwebp-dev libxml2-dev libxpm-dev libxslt1-dev libzip-dev
+          DEBIAN_FRONTEND=noninteractive apt-fast -y update
+          DEBIAN_FRONTEND=noninteractive apt-fast -y install sudo software-properties-common lsb-release expect locales language-pack-de re2c ccache mysql-server postgresql pkg-config libaspell-dev libbz2-dev libbison-dev libedit-dev libcurl4-gnutls-dev libenchant-dev libffi6 libffi-dev libfreetype6-dev libgccjit-6-dev libgmp-dev libicu-dev libjpeg-dev libwebp-dev libkrb5-dev libldap-dev libonig-dev libmcrypt-dev libpng-dev libpq5 libpq-dev libreadline-dev libpspell-dev libsasl2-dev libsnmp-dev libssl-dev libsqlite3-dev libsodium-dev libtidy-dev libwebp-dev libxml2-dev libxpm-dev libxslt1-dev libzip-dev
       - name: Build and ship
         run: chmod a+x .github/scripts/build.sh && .github/scripts/build.sh
         env:
