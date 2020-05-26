@@ -3,7 +3,7 @@ LOG() {
   echo "$time"" > ""$1" >>build.log
 }
 
-setup-phpbuild() {
+setup_phpbuild() {
   (
     cd ~ || exit
     git clone git://github.com/php-build/php-build
@@ -13,7 +13,7 @@ setup-phpbuild() {
   )
 }
 
-build-php() {
+build_php() {
   php-build -i production master "$install_dir"
   sudo chmod 777 "$install_dir"/etc/php.ini
   (
@@ -27,7 +27,7 @@ build-php() {
   sudo ln -sf "$install_dir"/etc/php.ini /etc/php.ini
 }
 
-setup-pear() {
+setup_pear() {
   sudo curl -fsSL --retry "$tries" -o /usr/local/ssl/cert.pem https://curl.haxx.se/ca/cacert.pem
   sudo curl -fsSL --retry "$tries" -O https://pear.php.net/go-pear.phar
   sudo chmod a+x .github/scripts/install-pear.expect
@@ -38,7 +38,7 @@ setup-pear() {
   sudo pecl install -f pcov
 }
 
-bintray-create-package() {
+bintray_create_package() {
   curl \
   --user "$BINTRAY_USER":"$BINTRAY_KEY" \
   --header "Content-Type: application/json" \
@@ -52,7 +52,7 @@ bintray-create-package() {
   https://api.bintray.com/packages/"$BINTRAY_USER"/"$BINTRAY_REPO" || true
 }
 
-build-and-ship() {
+build_and_ship() {
   (
     cd "$install_dir"/.. || exit
     sudo XZ_OPT=-e9 tar cfJ php_"$PHP_VERSION"+ubuntu"$release".tar.xz "$PHP_VERSION"
@@ -62,7 +62,7 @@ build-and-ship() {
   )
 }
 
-push-log() {
+push_log() {
   git config --local user.email "$GITHUB_EMAIL"
   git config --local user.name "$GITHUB_NAME"
   LOG "ubuntu$release build updated"
@@ -84,9 +84,9 @@ install_dir=~/php/"$PHP_VERSION"
 action_dir=$(pwd)
 tries=10
 sudo mkdir -m777 -p ~/php /usr/local/ssl
-setup-phpbuild
-build-php
-setup-pear
-bintray-create-package
-build-and-ship
+setup_phpbuild
+build_php
+setup_pear
+bintray_create_package
+build_and_ship
 #push-log
