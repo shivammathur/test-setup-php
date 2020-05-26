@@ -11,14 +11,15 @@
 
 - [Ubuntu 16.04](https://bintray.com/shivammathur/php/download_file?file_path=php_8.0%2Bubuntu16.04.tar.xz)
 - [Ubuntu 18.04](https://bintray.com/shivammathur/php/download_file?file_path=php_8.0%2Bubuntu18.04.tar.xz)
+- [Ubuntu 20.04](https://bintray.com/shivammathur/php/download_file?file_path=php_8.0%2Bubuntu20.04.tar.xz)
 
 
 ## License
 
-The code in this project is licensed under the [MIT license](http://choosealicense.com/licenses/mit/).
-Please see the [license file](LICENSE) for more information.
+The code in this project is licensed under the [MIT license](LICENSE). This project has multiple [dependencies](). Their licenses can be found in their respective repositories.
 
 
-## This project uses the following works
+## Dependencies
 
+- [php](https://github.com/php/php-src)
 - [php-build](https://github.com/php-build/php-build "php-build")
