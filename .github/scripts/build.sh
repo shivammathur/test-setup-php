@@ -14,7 +14,7 @@ setup_phpbuild() {
 }
 
 build_php() {
-  php-build -i production master "$install_dir"
+  php-build -v -i production master "$install_dir"
   sudo chmod 777 "$install_dir"/etc/php.ini
   (
     echo "date.timezone=UTC"
@@ -35,7 +35,7 @@ setup_pear() {
   rm go-pear.phar
   sudo "$install_dir"/bin/pear config-set php_ini "$install_dir"/etc/php.ini system
   sudo "$install_dir"/bin/pear channel-update pear.php.net
-  sudo pecl install -f pcov
+  sudo "$install_dir"/bin/pecl install -f pcov
 }
 
 bintray_create_package() {
