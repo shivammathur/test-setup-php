@@ -17,12 +17,15 @@ jobs:
         
       - name: Checkout
         uses: actions/checkout@v2
+      
+      - name: Install PHP nightly
+        run: curl -sSL https://github.com/shivammathur/php-builder/releases/latest/download/install.sh | bash          
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: pcov
+      #- name: Setup PHP
+      #  uses: shivammathur/setup-php@develop
+      #  with:
+      #    php-version: ${{ matrix.php-versions }}
+      #    extensions: pcov
 
       - name: Testing PHP version
         run: php -v
