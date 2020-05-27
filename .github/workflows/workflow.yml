@@ -20,7 +20,7 @@ jobs:
       
       - name: Install PHP nightly
         run: |
-          curl -sSL https://github.com/shivammathur/php-builder/releases/latest/download/install.sh | sudo bash
+          curl -sSL https://github.com/shivammathur/php-builder/releases/latest/download/install.sh | bash
           ls -la ~/php/8.0/bin
           echo '----------------'
           ls /usr/bin/p*8.0*
