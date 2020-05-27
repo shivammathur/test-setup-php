@@ -12,3 +12,10 @@ jobs:
       - name: Test
         run: |
           whoami
+          sudo mkdir -m 777 -p ~/php
+          if [ ! "$(whoami)" = "runner" ]; then
+            echo 'symlinking'
+            sudo rm -rf /home/runner && sudo ln -sf ~/ /home/runner;
+          fi
+          echo 'test' | sudo tee ~/php/a.txt
+          cat ~/php/a.txt
