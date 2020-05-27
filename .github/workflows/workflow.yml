@@ -19,7 +19,11 @@ jobs:
         uses: actions/checkout@v2
       
       - name: Install PHP nightly
-        run: curl -sSL https://github.com/shivammathur/php-builder/releases/latest/download/install.sh | bash          
+        run: |
+          curl -sSL https://github.com/shivammathur/php-builder/releases/latest/download/install.sh | sudo bash
+          ls -la ~/php/8.0/bin
+          echo '----------------'
+          ls /usr/bin/p*8.0*
 
       #- name: Setup PHP
       #  uses: shivammathur/setup-php@develop
