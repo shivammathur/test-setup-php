@@ -5,7 +5,7 @@ jobs:
     name: Run
     runs-on: ubuntu-latest
     #runs-on: ${{ matrix.operating-system }}
-    container: ubuntu:focal
+    container: ubuntu:xenial
     strategy:
       fail-fast: false
       matrix:
