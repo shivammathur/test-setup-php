@@ -3,17 +3,17 @@ on: [push]
 jobs:
   run:
     name: Run
-    runs-on: ubuntu-latest
-    #runs-on: ${{ matrix.operating-system }}
-    container: ubuntu:focal
+    #runs-on: ubuntu-latest
+    runs-on: ${{ matrix.operating-system }}
+    #container: ubuntu:focal
     strategy:
       fail-fast: false
       matrix:
-        #operating-system: [ubuntu-16.04, ubuntu-18.04]
+        operating-system: [ubuntu-16.04, ubuntu-18.04]
         php-versions: ['8.0']
     steps:
-      - name: Pre-requisites
-        run: apt-get update && apt-get install -y sudo lsb-release && lsb_release -a
+      #- name: Pre-requisites
+      #  run: apt-get update && apt-get install -y sudo lsb-release && lsb_release -a
         
       - name: Checkout
         uses: actions/checkout@v2
@@ -23,8 +23,6 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: pcov
-        env:
-          runner: self-hosted
 
       - name: Testing PHP version
         run: php -v
