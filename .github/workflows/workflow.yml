@@ -20,10 +20,12 @@ jobs:
       
       - name: Install PHP nightly
         run: |
+          version=8.0
           curl -sSL https://github.com/shivammathur/php-builder/releases/latest/download/install.sh | bash
+          ls /usr/bin/p*$version*
           for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
-            if [ -e "/usr/bin/$tool8.0" ]; then
-              sudo update-alternatives --set $tool /usr/bin/"$tool8.0"
+            if [ -e "/usr/bin/$tool$version" ]; then
+              sudo update-alternatives --set $tool /usr/bin/"$tool$version"
             fi
           done
 
