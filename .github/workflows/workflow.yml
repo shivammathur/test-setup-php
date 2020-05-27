@@ -21,9 +21,11 @@ jobs:
       - name: Install PHP nightly
         run: |
           curl -sSL https://github.com/shivammathur/php-builder/releases/latest/download/install.sh | bash
-          ls -la ~/php/8.0/bin
-          echo '----------------'
-          ls /usr/bin/p*8.0*
+          for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
+            if [ -e "/usr/bin/$tool8.0" ]; then
+              sudo update-alternatives --set $tool /usr/bin/"$tool8.0"
+            fi
+          done
 
       #- name: Setup PHP
       #  uses: shivammathur/setup-php@develop
