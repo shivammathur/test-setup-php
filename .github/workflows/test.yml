@@ -15,12 +15,13 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+      
+    - name: Setup PHP with extensions and custom config
+      uses: shivammathur/setup-php@develop
+      with:
+        php-version: ${{ matrix.php-versions }}
 
     - name: Test
-      id: test-step
-      shell: bash
-      run: |
-        version=${{ matrix.php-versions }}
-        curl -sSL https://github.com/shivammathur/php5-ubuntu/releases/latest/download/install.sh | sh -s "$version"       
+      run: |    
         php -v
         php -m 
