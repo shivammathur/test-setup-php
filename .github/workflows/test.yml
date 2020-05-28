@@ -10,5 +10,6 @@ jobs:
         operating-system: [ubuntu-latest, ubuntu-16.04, macos-latest, windows-latest, windows-2016]
     steps:
       - name: Test
-        continue-on-error: true
-        run: zstd -V
+        run: |
+          time curl -SLO https://bintray.com/shivammathur/php/download_file?file_path=php-5.4.tar.xz
+          time curl -SLO https://bintray.com/shivammathur/php/download_file?file_path=php-5.4.tar.xz
