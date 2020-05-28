@@ -7,15 +7,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-16.04]
+        operating-system: [ubuntu-latest, ubuntu-16.04, macos-latest, windows-latest, windows-2016]
     steps:
       - name: Test
-        run: |
-          whoami
-          sudo mkdir -m 777 -p ~/php
-          if [ ! "$(whoami)" = "runner" ]; then
-            echo 'symlinking'
-            sudo rm -rf /home/runner && sudo ln -sf ~/ /home/runner;
-          fi
-          echo 'test' | sudo tee ~/php/a.txt
-          cat ~/php/a.txt
+        continue-on-error: true
+        run: zstd -V
