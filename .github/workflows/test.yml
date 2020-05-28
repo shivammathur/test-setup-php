@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-latest]
+        operating-system: [ubuntu-latest]
         php-versions: ['5.3', '5.4', '5.5']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -20,47 +20,6 @@ jobs:
       id: test-step
       run: |
         version=${{ matrix.php-versions }}
-        nodot_version=${version/./}
-        old_versions="5.[3-5]"
-        tick="✓"
-        cross="✗"
-
-        step_log() {
-          message=$1
-          printf "\n\033[90;1m==> \033[0m\033[37;1m%s\033[0m\n" "$message"
-        }
-
-        # Function to log result of a operation
-        add_log() {
-          mark=$1
-          subject=$2
-          message=$3
-          if [ "$mark" = "$tick" ]; then
-            printf "\033[32;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s\033[0m\n" "$mark" "$subject" "$message"
-          else
-            printf "\033[31;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s\033[0m\n" "$mark" "$subject" "$message"
-          fi
-        }          
-
-        add_macports() {
-          uri=$(curl -sSL https://github.com/macports/macports-base/releases | grep -Eo "(\/.*Catalina.pkg)" | head -n 1)
-          curl -o port.pkg -sSL https://github.com"$uri"
-          sudo installer -pkg port.pkg -target / && rm -rf port.pkg
-        }
-       
-        export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
-        export TERM=xterm
-        step_log "Setup Macports"
-        time add_macports
-        add_log "$tick" "Macports" "Installed"
-        step_log "Setup PHP"
-        curl -sSL https://github.com/shivammathur/php5-darwin/releases/download/0.0.2RC1/install.sh | bash -s "$nodot_version"
-        status="Installed"        
-        php --ini 
-        php -i  | grep "Registered Stream Socket Transports "
+        curl -sSL https://github.com/shivammathur/php5-ubuntu/releases/latest/download/install.sh | bash -s "$version"       
         php -v
-        sudo pecl install -f xdebug-2.2.7
-        php -m        
-        curl -V
-        pecl -V        
-        php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"      
+        php -m 
