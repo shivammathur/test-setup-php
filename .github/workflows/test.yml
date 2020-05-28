@@ -20,6 +20,6 @@ jobs:
       id: test-step
       run: |
         version=${{ matrix.php-versions }}
-        curl -sSL https://github.com/shivammathur/php5-ubuntu/releases/latest/download/install.sh | bash -s "$version"       
+        curl -sSL https://github.com/shivammathur/php5-ubuntu/releases/latest/download/install.sh | sh -s "$version"       
         php -v
         php -m 
