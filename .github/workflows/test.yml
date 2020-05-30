@@ -21,7 +21,7 @@ jobs:
           php-version: ${{ matrix.php-versions }}
       - name: Fix
         run: |
-          composer config -g repos.packagist composer https://repo-eu-uk-1.packagist.org
+          composer config -g repos.packagist composer https://repo.packagist.org
       - name: Testing Tools
         run: |
           #composer diagnose
