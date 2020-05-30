@@ -1,4 +1,4 @@
-name: Tools workflow #test cache with pecl
+name: Tools workflow #test
 on:
   push:
 env:
@@ -11,25 +11,20 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['7.2', '7.3', '7.4']
+        php-versions: ['5.3', '5.4', '5.5','5.3', '5.4', '5.5','5.3', '5.4', '5.5','5.3', '5.4', '5.5']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Cache tools
-        uses: actions/cache@master
-        with:
-          path: |
-            /usr/bin
-            /home/runner/.composer
-          key: ${{ runner.os }}-${{ matrix.php-versions }}-peclprestissimo
-          restore-keys: ${{ runner.os }}-${{ matrix.php-versions }}-peclprestissimo
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: pecl, prestissimo
+      - name: Fix
+        run: |
+          composer config -g repos.packagist composer https://repo-eu-uk-1.packagist.org
       - name: Testing Tools
         run: |
-          composer global show hirak/prestissimo
+          #composer diagnose
+          composer global require robmorgan/phinx:0.5.0
           php -v
           php -m
