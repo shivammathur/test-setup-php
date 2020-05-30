@@ -21,7 +21,7 @@ jobs:
           php-version: ${{ matrix.php-versions }}
       - name: Fix
         run: |
-          composer config -g repos.packagist composer https://shivammathur.github.io/packagist-mirror
+          composer config -g repos.packagist composer https://raw.githubusercontent.com/shivammathur/packagist-mirror/gh-pages
       - name: Testing Tools
         run: |
           #composer diagnose
