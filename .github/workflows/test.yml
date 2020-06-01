@@ -11,6 +11,7 @@ jobs:
     steps:
       - name: Test
         run: |
+          sudo apt-get install -y apache2-utils
           ab -n 1000 -c 100 https://packagist.shivammathur.com/packages.json
           ab -n 1000 -c 100 https://packagist.com.br/packages.json
           ab -n 1000 -c 100 https://repo.packagist.org/packages.json
