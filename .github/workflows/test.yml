@@ -7,9 +7,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-16.04, macos-latest, windows-latest, windows-2016]
+        operating-system: [ubuntu-latest]
     steps:
       - name: Test
         run: |
-          time curl -SLO https://bintray.com/shivammathur/php/download_file?file_path=php-5.4.tar.xz
-          time curl -SLO https://bintray.com/shivammathur/php/download_file?file_path=php-5.4.tar.xz
+          ab -n 1000 -c 100 https://packagist.shivammathur.com/packages.json
+          ab -n 1000 -c 100 https://packagist.com.br/packages.json
+          ab -n 1000 -c 100 https://repo.packagist.org/packages.json
+          ab -n 1000 -c 100 packagist-mirror.wmflabs.org/packages.json
