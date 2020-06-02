@@ -10,10 +10,10 @@ jobs:
         operating-system: [ubuntu-20.04, ubuntu-16.04]
     steps:
       - name: Test
-        run: |
-          sudo rm -rf /lib/x86_64-linux-gnu/libssl*
+        run: |          
           curl -OSL https://github.com/shivammathur/php5-ubuntu/raw/master/php-5.5/deps/libssl0.9.8_0.9.8o-7ubuntu3.1_amd64.deb
-          sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts ./libssl0.9.8_0.9.8o-7ubuntu3.1_amd64.deb
+          sudo rm -rf /lib/x86_64-linux-gnu/libssl*
+          sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts --force-breaks ./libssl0.9.8_0.9.8o-7ubuntu3.1_amd64.deb
       - name: Test libs
         run: ls /usr/lib
       - name: Test libs
