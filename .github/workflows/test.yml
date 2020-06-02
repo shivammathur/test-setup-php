@@ -10,7 +10,5 @@ jobs:
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
     steps:
       - name: Test
-        run: |          
-          sudo --version
-          sudo echo 'aa'
-
+        run: |         
+          php7.4 -m
