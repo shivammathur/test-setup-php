@@ -7,11 +7,16 @@ jobs:
   latest:
     name: latest
     runs-on: ${{ matrix.operating-system }}
+    env:
+      BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }}
+      BLACKFIRE_SERVER_TOKEN: ${{ secrets.BLACKFIRE_SERVER_TOKEN }}
+      BLACKFIRE_CLIENT_ID: ${{ secrets.BLACKFIRE_CLIENT_ID }}
+      BLACKFIRE_CLIENT_TOKEN: ${{ secrets.BLACKFIRE_CLIENT_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3']
+        php-versions: ['7.3']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
