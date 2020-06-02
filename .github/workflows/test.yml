@@ -27,7 +27,7 @@ jobs:
           tools: blackfire, pecl, phpize, php-config
       - name: Testing Tools
         run: |
-          dpkg -l | grep ^..r
+          dpkg -l | grep ^..r || true
           blackfire-agent -v
           blackfire version -V
           pecl -V
