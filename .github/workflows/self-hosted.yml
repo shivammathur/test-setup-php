@@ -1,0 +1,156 @@
+name: Self-hosted develop workflow
+on:
+  repository_dispatch:
+  push:
+  schedule:
+    - cron: '0 1/5 * * *'
+jobs:
+  ubuntu:
+    name: ubuntu
+    runs-on: ubuntu-latest
+    container: ubuntu:${{ matrix.containers }}
+    strategy:
+      fail-fast: false
+      matrix:
+        containers: ["focal", "bionic", "xenial"]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+    steps:
+      - name: Install sudo and git
+        run: |
+          apt-get update && apt-get install -y sudo software-properties-common
+          add-apt-repository ppa:git-core/ppa
+          apt-get update && apt-get install -y git
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+        env:
+          runner: self-hosted
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Testing PHP version
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+      - name: Testing Composer version
+        run: php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
+      - name: Testing ini values
+        run: |
+          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
+          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
+          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
+  windows:
+    name: windows
+    needs: ubuntu
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+        env:
+          runner: self-hosted
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Testing PHP version
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+      - name: Testing Composer version
+        run: php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
+      - name: Testing ini values
+        run: |
+          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
+          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
+          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
+  darwin:
+    name: darwin
+    needs: windows
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+        env:
+          runner: self-hosted
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Testing PHP version
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+      - name: Testing Composer version
+        run: php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
+      - name: Testing ini values
+        run: |
+          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
+          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
+          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
+  oldphp-ubuntu:
+    name: oldphp-ubuntu
+    needs: darwin
+    runs-on: ubuntu-latest
+    container: ${{ matrix.containers }}
+    strategy:
+      fail-fast: false
+      matrix:
+        php-versions: ['5.3', '5.4', '5.5']
+        containers: ["ubuntu:20.04", "ubuntu:18.04", "ubuntu:16.04"]
+    steps:
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        continue-on-error: true
+        with:
+          php-version: ${{ matrix.php-versions }}
+        env:
+          runner: self-hosted
+  oldphp-windows:
+    name: oldphp-windows
+    needs: oldphp-ubuntu
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-versions: ['5.3', '5.4', '5.5']
+    steps:
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        continue-on-error: true
+        with:
+          php-version: ${{ matrix.php-versions }}
+        env:
+          runner: self-hosted
+  oldphp-darwin:
+    name: oldphp-darwin
+    needs: oldphp-windows
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-versions: ['5.3', '5.4', '5.5']
+    steps:
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        continue-on-error: true
+        with:
+          php-version: ${{ matrix.php-versions }}
+        env:
+          runner: self-hosted

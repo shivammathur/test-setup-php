@@ -4,6 +4,12 @@ on:
   push:
   schedule:
     - cron: '0 1/5 * * *'
+env:
+  COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }}
+  BLACKFIRE_SERVER_TOKEN: ${{ secrets.BLACKFIRE_SERVER_TOKEN }}
+  BLACKFIRE_CLIENT_ID: ${{ secrets.BLACKFIRE_CLIENT_ID }}
+  BLACKFIRE_CLIENT_TOKEN: ${{ secrets.BLACKFIRE_CLIENT_TOKEN }}
 jobs:
   latest:
     name: latest
@@ -11,8 +17,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
-        php-versions: ['7.3']
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
+        php-versions: ['7.4']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -20,7 +26,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: blackfire, blackfire-player, flex, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, cs2pr, codeception, phpunit, psalm, phinx, phive, deployer, prestissimo, composer-prefetcher, pecl, phpize, php-config, symfony, vapor-cli
+          tools: blackfire, blackfire-player, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, cs2pr, codeception, phpunit, psalm, phinx, phive, deployer, prestissimo, composer-prefetcher, pecl, phpize, php-config, symfony, vapor-cli
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Print php.ini
@@ -32,6 +38,7 @@ jobs:
           blackfire version -V
           blackfire-player -V
           composer -V
+          phan -v
           infection -V
           php-cs-fixer -V
           phpcs --version
@@ -73,12 +80,13 @@ jobs:
           phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
   versions:
     name: versions
+    needs: latest
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
-        php-versions: ['7.3']
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
+        php-versions: ['7.4']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -86,7 +94,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: blackfire:1.31.0, blackfire-player:1.8.1, infection:0.16.1, flex:1.6.1, php-cs-fixer:2.16.0, phpcs:3.5.2, phpcbf:3.5.2, phpcpd:4.0.0, phpstan:0.12.3, phpmd:2.8.0, codeception:3.1.2, cs2pr:1.0.2, phpunit:8.5.0, psalm:3.8.0, phinx:0.11.3, phive:0.13.1, deployer:6.7.2, prestissimo:0.3.8, composer-prefetcher:0.13.0, composer:1.2.3, pecl:1.2.3, symfony:4.12.3, vapor-cli:1.6.1
+          tools: blackfire:1.31.0, blackfire-player:1.8.1, infection:0.16.1, flex:1.6.1, phan:2.7.2, php-cs-fixer:2.16.2, phpcs:3.5.2, phpcbf:3.5.2, phpcpd:4.0.0, phpstan:0.12.3, phpmd:2.8.0, codeception:3.1.2, cs2pr:1.0.2, phpunit:8.5.0, psalm:3.8.0, phinx:0.11.3, phive:0.13.1, deployer:6.7.2, prestissimo:0.3.8, composer-prefetcher:0.13.0, composer:1.2.3, pecl:1.2.3, symfony:4.12.3, vapor-cli:1.6.1
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
@@ -95,6 +103,7 @@ jobs:
           blackfire version -V
           blackfire-player -V
           composer -V
+          phan -v
           infection -V
           php-cs-fixer -V
           phpcs --version
@@ -132,12 +141,13 @@ jobs:
           echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
           phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
   old_versions:
-    name: versions
+    name: old_versions
+    needs: versions
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
         php-versions: ['5.5']
     steps:
       - name: Checkout
@@ -183,12 +193,13 @@ jobs:
           phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
   special:
     name: special
+    needs: old_versions
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
-        php-versions: ['7.3']
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
+        php-versions: ['7.4']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -210,4 +221,3 @@ jobs:
         run: composer global show symfony/flex
       - name: Test prestissimo
         run: composer global show hirak/prestissimo
-
