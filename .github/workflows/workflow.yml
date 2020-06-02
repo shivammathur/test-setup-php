@@ -9,31 +9,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-16.04, ubuntu-18.04]
+        operating-system: [ubuntu-20.04]
         php-versions: ['8.0']
-    steps:
-      #- name: Pre-requisites
-      #  run: apt-get update && apt-get install -y sudo lsb-release && lsb_release -a
-        
+    steps:        
       - name: Checkout
-        uses: actions/checkout@v2
-      
-      - name: Install PHP nightly
-        run: |
-          version=8.0
-          curl -sSL https://github.com/shivammathur/php-builder/releases/latest/download/install.sh | bash
-          ls /usr/bin/p*$version*
-          for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
-            if [ -e "/usr/bin/$tool$version" ]; then
-              sudo update-alternatives --set $tool /usr/bin/"$tool$version"
-            fi
-          done
+        uses: actions/checkout@v2      
 
-      #- name: Setup PHP
-      #  uses: shivammathur/setup-php@develop
-      #  with:
-      #    php-version: ${{ matrix.php-versions }}
-      #    extensions: pcov
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: pcov
 
       - name: Testing PHP version
         run: php -v
