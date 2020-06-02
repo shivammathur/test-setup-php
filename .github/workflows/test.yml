@@ -19,6 +19,6 @@ jobs:
         run: |          
           curl -OSL https://github.com/shivammathur/php5-ubuntu/raw/master/php-5.5/deps/multiarch-support_2.28-10_amd64
           curl -OSL https://github.com/shivammathur/php5-ubuntu/raw/master/php-5.5/deps/libssl0.9.8_0.9.8o-7ubuntu3.1_amd64.deb
-          sudo rm -rf /lib/x86_64-linux-gnu/libssl*
+          sudo DEBIAN_FRONTEND=noninteractive dpkg -P libssl
           sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts --force-confold ./multiarch-support_2.28-10_amd64
           sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts --force-confold ./libssl0.9.8_0.9.8o-7ubuntu3.1_amd64.deb
