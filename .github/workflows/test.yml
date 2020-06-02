@@ -14,5 +14,7 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y debconf
           curl -OSL http://ftp.br.debian.org/debian/pool/main/g/glibc/multiarch-support_2.28-10_amd64.deb
           curl -OSL https://github.com/shivammathur/php5-ubuntu/raw/master/php-5.3/deps/libdb4.8_4.8.30-11ubuntu1_amd64.deb
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ./multiarch-support_2.28-10_amd64.deb
+          sudo rm -rf multiarch-support_2.28-10_amd64.deb
           sudo DEBIAN_FRONTEND=noninteractive dpkg -i -a --force-conflicts ./*.deb
           
