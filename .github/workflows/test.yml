@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3']
+        php-versions: ['7.3']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -19,7 +19,7 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: blackfire, blackfire-player, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, cs2pr, codeception, phpunit, psalm, phinx, phive, deployer, prestissimo, composer-prefetcher, pecl, phpize, php-config, symfony, vapor-cli
+          tools: flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, cs2pr, codeception, phpunit, psalm, phinx, phive, deployer, prestissimo, composer-prefetcher, pecl, phpize, php-config, symfony, vapor-cli
       - name: Testing Tools
         run: |
           pecl -V
