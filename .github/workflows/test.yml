@@ -21,12 +21,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop_verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, cs2pr, codeception, phpunit, psalm, phinx, phive, deployer, prestissimo, composer-prefetcher, pecl, phpize, php-config, symfony, vapor-cli
+          tools: blackfire, blackfire-player, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, cs2pr, codeception, phpunit, psalm, phinx, phive, deployer, prestissimo, composer-prefetcher, pecl, phpize, php-config, symfony, vapor-cli
       - name: Testing Tools
         run: |
+          blackfire-agent -v
+          blackfire version -V
+          blackfire-player -V
           pecl -V
           php-config --version
           phpize --version
