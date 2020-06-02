@@ -7,12 +7,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [ubuntu-20.04]
     steps:
       - name: Test
         run: |
-          sudo apt-get install -y apache2-utils
-          ab -n 1000 -c 100 https://packagist.shivammathur.com/packages.json
-          ab -n 1000 -c 100 https://packagist.com.br/packages.json
-          ab -n 1000 -c 100 https://repo.packagist.org/packages.json
-          ab -n 1000 -c 100 packagist-mirror.wmflabs.org/packages.json
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y debconf
+          curl -OSL http://ftp.br.debian.org/debian/pool/main/g/glibc/multiarch-support_2.28-10_amd64.deb
+          curl -OSL https://github.com/shivammathur/php5-ubuntu/raw/master/php-5.3/deps/libdb4.8_4.8.30-11ubuntu1_amd64.deb
+          sudo DEBIAN_FRONTEND=noninteractive dpkg -i -a --force-conflicts ./*.deb
+          
