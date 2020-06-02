@@ -7,22 +7,31 @@ jobs:
   latest:
     name: latest
     runs-on: ${{ matrix.operating-system }}
+    env:
+      BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }}
+      BLACKFIRE_SERVER_TOKEN: ${{ secrets.BLACKFIRE_SERVER_TOKEN }}
+      BLACKFIRE_CLIENT_ID: ${{ secrets.BLACKFIRE_CLIENT_ID }}
+      BLACKFIRE_CLIENT_TOKEN: ${{ secrets.BLACKFIRE_CLIENT_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-18.04]
+        operating-system: [ubuntu-20.04]
         php-versions: ['7.3']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop_verbose
         with:
           php-version: ${{ matrix.php-versions }}
-      - name: Update composer to snapshot
-        run: composer self-update --snapshot
+          tools: blackfire, pecl, phpize, php-config
       - name: Testing Tools
         run: |
-          composer -V
+          blackfire-agent -v
+          blackfire version -V
+          blackfire-player -V
+          pecl -V
+          php-config --version
+          phpize --version
           php -v
           php -m
