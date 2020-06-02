@@ -19,9 +19,9 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-#      - name: Fix
-#        run: |
-#          composer config -g repos.packagist composer https://packagist.shivammathur.com
+      - name: Fix
+        run: |
+          composer -q glboal config repos.packagist composer https://repo-ca-bhs-1.packagist.org
       - name: Testing Tools
         run: |
           #composer diagnose
