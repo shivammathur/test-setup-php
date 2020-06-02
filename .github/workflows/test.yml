@@ -29,7 +29,6 @@ jobs:
         run: |
           blackfire-agent -v
           blackfire version -V
-          blackfire-player -V
           pecl -V
           php-config --version
           phpize --version
