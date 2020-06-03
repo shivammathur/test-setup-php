@@ -7,38 +7,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
     steps:
-      - name: Get release
-        id: release
-        run: echo "::set-output name=name::$(lsb_release -c -s)-php${{ matrix.php-versions }}-extensions"
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-      - name: Get libs
-        run: php -m > ${{ steps.release.outputs.name }}
-      - uses: actions/upload-artifact@v2
-        with:
-          name: ${{ steps.release.outputs.name }}
-          path: ./${{ steps.release.outputs.name }}
-  merge:
-    name: merge
-    needs: generate
-    runs-on: ubuntu-latest
-    steps:
-      - name: Pre
-        run: mkdir artifacts
-      - name: Fetch
-        uses: actions/download-artifact@v2
-        with:
-          path: ./artifacts
-      - name: Extract
-        run: find ./artifacts -name "*.zip" | while read i; do unzip -j $i; done
-      - uses: actions/upload-artifact@v2
-        with:
-          name: artifacts
-          path: artifacts/
+      - name: check gcc
+        run: gcc --version
         
           
