@@ -21,7 +21,7 @@ jobs:
           php-version: ${{ matrix.php-versions }}        
       - name: Testing Tools
         run: |
-          composer self-update --snapshot
+          composer self-update 1.9.3 --snapshot
           composer -V
           php -v
           php -m
