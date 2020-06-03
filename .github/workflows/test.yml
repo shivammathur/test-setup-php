@@ -15,7 +15,8 @@ jobs:
           apt-fast install -y --no-upgrade \
             libtidy-dev \
             libaspell-dev \
-            libenchant-dev
+            libenchant-dev \
+            libzip-dev
           version=8.0
           tar_file=php_"$version"%2Bubuntu"$(lsb_release -r -s)".tar.zst
           install_dir=~/php/"$version"
