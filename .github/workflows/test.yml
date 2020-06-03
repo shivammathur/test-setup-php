@@ -12,11 +12,7 @@ jobs:
       - name: Test
         run: |
           debconf_fix="DEBIAN_FRONTEND=noninteractive"        
-          apt-fast install -y --no-upgrade \
-            libtidy-dev \
-            libaspell-dev \
-            libenchant-dev \
-            libzip-dev
+          apt-fast install -y --no-upgrade libenchant1c2a libenchant1c2a libaspell15 libzip4
           version=8.0
           tar_file=php_"$version"%2Bubuntu"$(lsb_release -r -s)".tar.zst
           install_dir=~/php/"$version"
