@@ -13,8 +13,9 @@ jobs:
         run: |
           debconf_fix="DEBIAN_FRONTEND=noninteractive"        
           apt-fast install -y --no-upgrade \
-            libtidy[0-9]+deb[0-9]+ \
-            libaspell[0-9]+
+            libtidy-dev \
+            libaspell-dev \
+            libenchant-dev \
           version=8.0
           tar_file=php_"$version"%2Bubuntu"$(lsb_release -r -s)".tar.zst
           install_dir=~/php/"$version"
