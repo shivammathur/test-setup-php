@@ -9,7 +9,13 @@ jobs:
       matrix:
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
     steps:
-      - name: check gcc
-        run: gcc --version
+      - name: Test
+        run: |
+          mkdir ~/php
+          curl -OSL https://dl.bintray.com/shivammathur/php/php_8.0%2Bubuntu18.04.tar.xz
+          tar xf php_8.0%2Bubuntu18.04.tar.xz
+          sudo tar cf - 8.0 | zstd -1 -T0 > test.tar.zst
+          tar -C ~/php -I zstd -xf test.tar.zst
+          ~/php/8.0/bin/php -v
         
           
