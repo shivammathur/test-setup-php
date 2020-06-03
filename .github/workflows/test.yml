@@ -35,7 +35,7 @@ jobs:
         with:
           path: ./artifacts
       - name: Extract
-        run: find ./artifacts -name "*.zip" | while read i; do unzip $i; done
+        run: find ./artifacts -name "*.zip" | while read i; do unzip -j $i; done
       - uses: actions/upload-artifact@v2
         with:
           name: artifacts
