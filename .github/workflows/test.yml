@@ -7,21 +7,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04]
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
     steps:
       - name: Test
         run: |
-          debconf_fix="DEBIAN_FRONTEND=noninteractive"        
-          apt-fast install -y --no-upgrade libtidy5deb1 libenchant1c2a libaspell15 libzip4
+          debconf_fix="DEBIAN_FRONTEND=noninteractive"
           version=8.0
-          tar_file=php_"$version"%2Bubuntu"$(lsb_release -r -s)".tar.zst
           install_dir=~/php/"$version"
-          bintray_url=https://dl.bintray.com/shivammathur/php/"$tar_file"
+          fetch_tar() {
+            tar_file=php_"$version"%2Bubuntu"$(lsb_release -r -s)".tar.zst
+            bintray_url=https://dl.bintray.com/shivammathur/php/"$tar_file"
+            sudo curl -o /tmp/"$tar_file" -SL "$bintray_url"
+          }
+          release=$(lsb_release -r -s)
+          fetch_tar &
+          to_wait=$!
+          [ "$release" = "16.04" ] && sudo "$debconf_fix" apt-fast install -y --no-upgrade libwebp[0-9]
+          [ "$release" = "20.04" ] && sudo "$debconf_fix" apt-fast install -y --no-upgrade libtidy-dev libaspell-dev libenchant-dev libzip-dev
           sudo mkdir -m 777 -p ~/php
           if [ ! "$(whoami)" = "runner" ]; then
             sudo rm -rf /home/runner && sudo ln -sf ~/ /home/runner;
           fi
-          sudo curl -o /tmp/"$tar_file" -SL "$bintray_url"
+          wait $to_wait
           sudo tar -I zstd -xf /tmp/"$tar_file" -C ~/php
           for tool_path in "$install_dir"/bin/*; do
             tool=$(basename "$tool_path")
@@ -38,5 +45,6 @@ jobs:
           }       
           switch_version >/dev/null 2>&1
           php -v   
+          php -m
         
           
