@@ -11,16 +11,8 @@ jobs:
     steps:
       - name: Test
         run: |
-          curl -sSLO http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-10/gcc-10-base_10-20200411-0ubuntu1_amd64.deb
-          curl -sSLO http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-10/libgcc-s1_10-20200411-0ubuntu1_amd64.deb
-          curl -sSLO http://archive.ubuntu.com/ubuntu/pool/universe/libz/libzstd/zstd_1.4.4+dfsg-3_amd64.deb
-          sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts ./*.deb
-          zstd -V          
-          mkdir ~/php
-          curl -OSL https://dl.bintray.com/shivammathur/php/php_8.0%2Bubuntu$(lsb_release -r -s).tar.xz
-          tar xf php_8.0%2Bubuntu18.04.tar.xz
-          sudo tar cf - 8.0 | zstd -1 -T0 > test.tar.zst
-          tar -C ~/php -I zstd -xf test.tar.zst
-          ~/php/8.0/bin/php -v
+          debconf_fix="DEBIAN_FRONTEND=noninteractive"
+          sudo "$debconf_fix" apt-get update
+          sudo "$debconf_fix" apt-fast install -y curl lsb-release software-properties-common
         
           
