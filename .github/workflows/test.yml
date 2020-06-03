@@ -7,8 +7,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        operating-system: [ubuntu-20.04]
     steps:
-      - name: Test
-        run: |         
-          php7.4 -m
+      - name: Get libs
+        run: sudo apt list --installed | cut -d ' ' -f 1 | cut -d '/' -f 1 | grep '^lib*' > focal-libs
+      - uses: actions/upload-artifact@v2
+        with:
+          name: focal-libs
+          path: ./focal-libs
