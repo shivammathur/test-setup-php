@@ -24,9 +24,12 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: blackfire, pecl
+          tools: blackfire, blackfire-player, pecl, php-config, phpize
       - name: Testing Tools
         run: |
+          blackfire-agent -v
+          blackfire version -V
+          blackfire-player -V          
           pecl -V
           php-config --version
           phpize --version
