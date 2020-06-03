@@ -26,10 +26,50 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: pecl, phpize, php-config
+          tools: blackfire
       - name: Testing Tools
         run: |
+          version=${{ matrix.php-versions }}
+          pecl_config='false'
+          debconf_fix="DEBIAN_FRONTEND=noninteractive"
+          apt_install="sudo $debconf_fix apt-fast install -y"          
+          scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
+          ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+          pecl_file="$scan_dir"/99-pecl.ini       
+          configure_pecl() {
+            echo "configuring PECL\n"
+            if [ "$pecl_config" = "false" ] && [ -e /usr/bin/pecl ]; then
+              for tool in pear pecl; do
+                sudo "$tool" config-set php_ini "$scan_dir"/99-pecl.ini
+                sudo "$tool" channel-update "$tool".php.net
+              done
+              pecl_config="true"
+            fi
+          }        
+          add_devtools() {
+            if ! [ -e "/usr/bin/phpize$version" ] || ! [ -e "/usr/bin/php-config$version" ]; then
+              echo "Installing php-dev and php-xml\n"
+              sudo "$debconf_fix" apt-get update && $apt_install php"$version"-dev php"$version"-xml
+            fi
+            sudo update-alternatives --set php-config /usr/bin/php-config"$version"
+            sudo update-alternatives --set phpize /usr/bin/phpize"$version"
+            configure_pecl
+          }          
+          add_pecl() {
+            add_devtools
+            if [ ! -e /usr/bin/pecl ]; then
+              echo "Installing pear\n"
+              $apt_install php-pear
+            fi
+            configure_pecl          
+          }          
           apt-cache policy php-pear
+          echo 'PECL---------------------------------'
+          add_pecl
+          echo '-------------------------------------'
+          echo 'DEVTOOLS---------------------------------'
+          add_devtools
+          echo '-------------------------------------'
           pecl -V
           php-config --version
           phpize --version
