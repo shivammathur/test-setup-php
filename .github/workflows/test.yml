@@ -7,17 +7,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        operating-system: [ubuntu-18.04, ubuntu-16.04]
     steps:
       - name: Test
         run: |
           debconf_fix="DEBIAN_FRONTEND=noninteractive"        
-          sudo "$debconf_fix" apt-fast install -y --no-upgrade \
-            libxslt1-dev \
-            libtidy-dev \
-            libwebp-dev \
-            libxpm-dev \
-            libzip-dev
           version=8.0
           tar_file=php_"$version"%2Bubuntu"$(lsb_release -r -s)".tar.zst
           install_dir=~/php/"$version"
