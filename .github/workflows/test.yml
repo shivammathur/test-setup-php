@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-18.04, ubuntu-20.04]
+        operating-system: [ubuntu-18.04, ubuntu-20.04, macos-latest]
         php-versions: ['7.2', '7.3', '7.4']
     steps:
       - name: Checkout
@@ -29,8 +29,6 @@ jobs:
           tools: blackfire, pecl
       - name: Testing Tools
         run: |
-          sudo apt-cache policy php-pear
-          sudo apt-fast check
           pecl -V
           php-config --version
           phpize --version
