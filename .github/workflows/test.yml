@@ -18,10 +18,10 @@ jobs:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-versions }}
-          tools: composer-snapshot
+          php-version: ${{ matrix.php-versions }}        
       - name: Testing Tools
         run: |
+          composer self-update --snapshot
           composer -V
           php -v
           php -m
