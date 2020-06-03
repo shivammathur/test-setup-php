@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Testing lists
+        run: apt-cache policy php-pear
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
@@ -27,6 +29,7 @@ jobs:
           tools: blackfire, pecl, phpize, php-config
       - name: Testing Tools
         run: |
+          apt-cache policy php-pear
           blackfire-agent -v
           blackfire version -V
           pecl -V
