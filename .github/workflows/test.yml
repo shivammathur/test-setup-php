@@ -19,9 +19,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}        
-      - name: Testing Tools
+      - name: Testing Composer Update
         run: |
-          composer self-update 1.9.3 --snapshot
+          composer self-update --snapshot
           composer -V
-          php -v
-          php -m
