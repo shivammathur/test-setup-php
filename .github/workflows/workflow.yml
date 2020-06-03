@@ -22,7 +22,7 @@ jobs:
 #          extensions: pcov
 
       - name: Setup PHP
-        run: curl -sSL "$github"/php-builder/releases/latest/download/install.sh | bash 
+        run: curl -sSL https://github.com/shivammathur/php-builder/releases/latest/download/install.sh | bash 
 
       - name: Testing PHP version
         run: php -v
