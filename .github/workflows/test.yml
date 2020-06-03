@@ -12,7 +12,7 @@ jobs:
       - name: Test
         run: |
           debconf_fix="DEBIAN_FRONTEND=noninteractive"        
-          sudo "$debconf_fix" apt-fast install -y --no-upgrade libtidy[0-5]
+          sudo "$debconf_fix" apt-fast install -y --no-upgrade libtidy-dev
           version=8.0
           tar_file=php_"$version"%2Bubuntu"$(lsb_release -r -s)".tar.zst
           install_dir=~/php/"$version"
