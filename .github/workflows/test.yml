@@ -13,11 +13,7 @@ jobs:
         run: |
           debconf_fix="DEBIAN_FRONTEND=noninteractive"        
           sudo "$debconf_fix" apt-fast install -y --no-upgrade \
-            libonig-dev \
             libxslt1-dev \
-            libaspell-dev \
-            libcurl4-gnutls-dev \
-            libenchant-dev \
             libtidy-dev \
             libwebp-dev \
             libxpm-dev \
