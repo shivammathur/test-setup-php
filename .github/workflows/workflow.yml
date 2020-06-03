@@ -15,20 +15,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2      
 
-#      - name: Setup PHP
-#        uses: shivammathur/setup-php@v2
-#        with:
-#          php-version: ${{ matrix.php-versions }}
-#          extensions: pcov
-
       - name: Setup PHP
-        run: |
-          curl -sSL https://github.com/shivammathur/php-builder/releases/latest/download/install.sh | bash
-          for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
-            if [ -e "/usr/bin/$tool$version" ]; then
-              sudo update-alternatives --set $tool /usr/bin/"$tool$version"
-            fi
-          done          
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: pcov      
 
       - name: Testing PHP version
         run: php -v
