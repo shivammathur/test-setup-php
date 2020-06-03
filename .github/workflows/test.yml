@@ -19,7 +19,6 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}        
-      - name: Testing Composer Update
-        run: |
-          composer self-update --snapshot
+      - name: Testing Composer version
+        run: |        
           composer -V
