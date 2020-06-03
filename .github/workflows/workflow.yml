@@ -15,11 +15,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2      
 
+#      - name: Setup PHP
+#        uses: shivammathur/setup-php@v2
+#        with:
+#          php-version: ${{ matrix.php-versions }}
+#          extensions: pcov
+
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: pcov
+        run: curl -sSL "$github"/php-builder/releases/latest/download/install.sh | bash 
 
       - name: Testing PHP version
         run: php -v
