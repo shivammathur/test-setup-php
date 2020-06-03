@@ -26,12 +26,10 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: blackfire, pecl, phpize, php-config
+          tools: pecl, phpize, php-config
       - name: Testing Tools
         run: |
           apt-cache policy php-pear
-          blackfire-agent -v
-          blackfire version -V
           pecl -V
           php-config --version
           phpize --version
