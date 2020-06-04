@@ -5,12 +5,13 @@ jobs:
     name: Run
     runs-on: ubuntu-latest
     #runs-on: ${{ matrix.operating-system }}
-    container: ubuntu:bionic
+    container: ubuntu:${{ matrix.containers }}
     strategy:
       fail-fast: false
       matrix:
+        containers: [focal, bionic, xenial]
         #operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
-        php-versions: ['8.0']
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     steps:        
       - name: Checkout
         uses: actions/checkout@v2
