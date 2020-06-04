@@ -27,7 +27,7 @@ jobs:
             sudo ln -sf /usr/bin/apt-get /usr/bin/apt-fast
           fi
           sudo "$debconf_fix" apt-get update
-          sudo "$debconf_fix" apt-fast install -y --no-upgrade curl lsb-release software-properties-common
+          sudo "$debconf_fix" apt-fast install -y --no-upgrade curl lsb-release software-properties-common zstd
           release=$(lsb_release -r -s)
           if ! apt-cache policy | grep -q ondrej/php; then
             LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
