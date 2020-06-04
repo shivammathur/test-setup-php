@@ -16,9 +16,65 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}        
-      - name: Testing Composer version
+      - name: Testing Composer version default
+        run: |        
+          composer -V
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:v1
+      - name: Testing Composer version v1
+        run: |        
+          composer -V
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:v2
+      - name: Testing Composer version v2
+        run: |        
+          composer -V
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:1
+      - name: Testing Composer version 1
+        run: |        
+          composer -V
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:2
+      - name: Testing Composer version 2
+        run: |        
+          composer -V
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:snapshot
+      - name: Testing Composer version snapshot
+        run: |        
+          composer -V
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:preview
+      - name: Testing Composer version preview
+        run: |        
+          composer -V
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:stable
+      - name: Testing Composer version stable
         run: |        
           composer -V
