@@ -19,7 +19,7 @@ jobs:
       - name: Setup PHP
         run: |
           debconf_fix="DEBIAN_FRONTEND=noninteractive"
-          "$debconf_fix" apt-get update && "$debconf_fix" apt-get install -y sudo
+          apt-get update && apt-get install -y sudo
           version=8.0
           install_dir=~/php/"$version"
           to_wait=''
