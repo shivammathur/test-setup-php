@@ -22,6 +22,8 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
+        env:
+          runner: self-hosted
         
       - name: Testing PHP version
         run: php -v
