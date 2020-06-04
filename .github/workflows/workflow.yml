@@ -1,3 +1,4 @@
+
 name: Experimental workflow
 on: [push]
 jobs:
@@ -13,20 +14,54 @@ jobs:
         php-versions: ['8.0']
     steps:        
       - name: Checkout
-        uses: actions/checkout@v2
-        
-      - name: Install sudo
-        run: apt-get update && apt-get install -y sudo
+        uses: actions/checkout@v2      
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-        env:
-          runner: self-hosted
-        
+        run: |
+          debconf_fix="DEBIAN_FRONTEND=noninteractive"
+          version=8.0
+          install_dir=~/php/"$version"
+          to_wait=''
+          if ! command -v apt-fast >/dev/null; then
+            sudo ln -sf /usr/bin/apt-get /usr/bin/apt-fast
+          fi
+          sudo "$debconf_fix" apt-get update
+          sudo "$debconf_fix" apt-fast install -y --no-upgrade curl lsb-release software-properties-common
+          release=$(lsb_release -r -s)
+          if ! apt-cache policy | grep -q ondrej/php; then
+            LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
+            if [ "$release" = "16.04" ]; then
+              sudo "$debconf_fix" apt-get update >/dev/null 2>&1
+            fi
+          fi
+
+          sudo "$debconf_fix" apt-fast install -y --no-upgrade libpq-dev libfreetype-dev libicu-dev libjpeg-dev libpng-dev libonig-dev libxslt1-dev libaspell-dev libcurl4-gnutls-dev libenchant-dev libtidy-dev libwebp-dev libxpm-dev libzip-dev &
+          to_wait=$!              
+          tar_file=php_"$version"%2Bubuntu"$release".tar.zst
+          bintray_url=https://dl.bintray.com/shivammathur/php/"$tar_file"
+          sudo curl -o /tmp/"$tar_file" -SL "$bintray_url"
+          sudo mkdir -m 777 -p ~/php
+          if [ ! "$(whoami)" = "runner" ]; then
+            sudo rm -rf /home/runner && sudo ln -sf ~/ /home/runner;
+          fi
+          wait $to_wait
+          sudo tar -I zstd -xf /tmp/"$tar_file" -C ~/php
+          for tool_path in "$install_dir"/bin/*; do
+            tool=$(basename "$tool_path")
+            sudo cp "$tool_path" /usr/bin/"$tool$version"
+            sudo update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool$version" 50
+          done
+          sudo ln -sf "$install_dir"/etc/php.ini /etc/php.ini
+          switch_version() {
+            for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
+              if [ -e "/usr/bin/$tool$version" ]; then
+                sudo update-alternatives --set $tool /usr/bin/"$tool$version"
+              fi
+            done
+          }    
+          switch_version >/dev/null 2>&1      
       - name: Testing PHP version
         run: php -v
 
       - name: Testing PHP extensions
-        run: php -m        
+        run: php -m    
