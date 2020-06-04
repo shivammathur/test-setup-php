@@ -16,42 +16,10 @@ jobs:
         uses: actions/checkout@v2      
 
       - name: Setup PHP
-        run: |
-          debconf_fix="DEBIAN_FRONTEND=noninteractive"
-          version=8.0
-          install_dir=~/php/"$version"
-          to_wait=''
-          release=$(lsb_release -r -s)
-          if [ "$release" = "16.04" ]; then
-            sudo "$debconf_fix" apt-fast install -y --no-upgrade libwebp[0-9] &
-            to_wait=$!
-          elif [ "$release" = "20.04" ]; then
-            sudo "$debconf_fix" apt-fast install -y --no-upgrade libtidy-dev libaspell-dev libenchant-dev libzip-dev &
-            to_wait=$!
-          fi               
-          tar_file=php_"$version"%2Bubuntu"$release".tar.zst
-          bintray_url=https://dl.bintray.com/shivammathur/php/"$tar_file"
-          sudo curl -o /tmp/"$tar_file" -SL "$bintray_url"
-          sudo mkdir -m 777 -p ~/php
-          if [ ! "$(whoami)" = "runner" ]; then
-            sudo rm -rf /home/runner && sudo ln -sf ~/ /home/runner;
-          fi
-          wait $to_wait
-          sudo tar -I zstd -xf /tmp/"$tar_file" -C ~/php
-          for tool_path in "$install_dir"/bin/*; do
-            tool=$(basename "$tool_path")
-            sudo cp "$tool_path" /usr/bin/"$tool$version"
-            sudo update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool$version" 50
-          done
-          sudo ln -sf "$install_dir"/etc/php.ini /etc/php.ini
-          switch_version() {
-            for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
-              if [ -e "/usr/bin/$tool$version" ]; then
-                sudo update-alternatives --set $tool /usr/bin/"$tool$version"
-              fi
-            done
-          }    
-          switch_version >/dev/null 2>&1      
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+        
       - name: Testing PHP version
         run: php -v
 
