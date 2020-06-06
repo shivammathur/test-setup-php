@@ -24,7 +24,7 @@ jobs:
     - name: Test
       run: |
         DIR $env:PHPROOT\ext
-        Invoke-WebRequest -UseBasicParsing -Uri https://dl.bintray.com/shivammathur/php/libeay32.dll -OutFile $env:PHPROOT\libeasy32.dll
+        Invoke-WebRequest -UseBasicParsing -Uri https://dl.bintray.com/shivammathur/php/libeay32.dll -OutFile $env:PHPROOT\libeay32.dll
         Invoke-WebRequest -UseBasicParsing -Uri https://dl.bintray.com/shivammathur/php/ssleay32.dll -OutFile $env:PHPROOT\ssleay32.dll
         php -v
         php -m 
