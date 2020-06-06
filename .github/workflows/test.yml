@@ -24,7 +24,8 @@ jobs:
               printf "\033[31;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s\033[0m\n" "$mark" "$subject" "$message"
             fi
           }
-          add_log "$cross" "Exit" "Test exit"
+          word='exit'
+          add_log "$cross" "Exit" "Test $word"
           exit 1
         
           
