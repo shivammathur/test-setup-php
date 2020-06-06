@@ -15,9 +15,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    
-    - name: Remove previous PHP
-      run: Get-ChildItem -Path $env:PHPROOT -Include * -File -Recurse | foreach { $_.Delete()}
       
     - name: Setup PHP with extensions and custom config
       uses: shivammathur/setup-php@develop
@@ -25,11 +22,16 @@ jobs:
         php-version: ${{ matrix.php-versions }}
 
     - name: Test
+      env:
+        version: ${{ matrix.php-versions }}
       run: |
-        DIR $env:PHPROOT\ext
-        Invoke-WebRequest -UseBasicParsing -Uri https://dl.bintray.com/shivammathur/php/libeay32.dll -OutFile $env:PHPROOT\libeay32.dll
-        Invoke-WebRequest -UseBasicParsing -Uri https://dl.bintray.com/shivammathur/php/ssleay32.dll -OutFile $env:PHPROOT\ssleay32.dll
-        DIR $env:PHPROOT
-        php -v
-        php -m 
-        php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
+        $php_dir="C:\tools\php$version"
+        Install-Php -Version $version -Architecture x86 -ThreadSafe $false -InstallVC -Path $php_dir -TimeZone UTC -InitialPhpIni Production -Force
+        Enable-PhpExtension -Extension openssl, curl, mbstring -Path $php_dir
+        Invoke-WebRequest -UseBasicParsing -Uri https://dl.bintray.com/shivammathur/php/libeay32.dll -OutFile $php_dir\libeay32.dll
+        Invoke-WebRequest -UseBasicParsing -Uri https://dl.bintray.com/shivammathur/php/ssleay32.dll -OutFile $php_dir\ssleay32.dll
+        Update-PhpCAInfo -Path $php_dir -Source Curl
+        cd $php_dir
+        .\php -v
+        .\php -m 
+        .\php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
