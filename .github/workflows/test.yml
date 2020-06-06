@@ -1,4 +1,4 @@
-name: oldphp on darwin
+name: oldphp on windows
 
 on: [push, pull_request]
 
@@ -23,7 +23,7 @@ jobs:
 
     - name: Test
       run: |
-        Update-PhpCAInfo -Path $php_dir -Source Curl
+        Update-PhpCAInfo -Path $env:PHPROOT -Source Curl
         php -v
         php -m 
         php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
