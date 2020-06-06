@@ -15,6 +15,9 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+    
+    - name: Remove previous PHP
+      run: Get-ChildItem -Path $env:PHPROOT -Include * -File -Recurse | foreach { $_.Delete()}
       
     - name: Setup PHP with extensions and custom config
       uses: shivammathur/setup-php@develop
