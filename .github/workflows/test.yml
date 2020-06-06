@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        operating-system: [windows-latest]
         php-versions: ['5.3', '5.4', '5.5']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -17,11 +17,13 @@ jobs:
       uses: actions/checkout@v2
       
     - name: Setup PHP with extensions and custom config
-      uses: shivammathur/setup-php@d70024ad455d7eefcae9b68c70abd496157dd50e
+      uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
 
     - name: Test
-      run: |    
+      run: |
+        Update-PhpCAInfo -Path $php_dir -Source Curl
         php -v
         php -m 
+        php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
