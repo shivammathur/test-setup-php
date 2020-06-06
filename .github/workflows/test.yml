@@ -19,12 +19,11 @@ jobs:
     - name: Setup PHP with extensions and custom config
       uses: shivammathur/setup-php@develop
       with:
-        php-version: ${{ matrix.php-versions }}
+        php-version: 7.4
 
     - name: Test
-      env:
-        version: ${{ matrix.php-versions }}
       run: |
+        $version='${{ matrix.php-versions }}'
         $php_dir="C:\tools\php$version"
         Install-Php -Version $version -Architecture x86 -ThreadSafe $false -InstallVC -Path $php_dir -TimeZone UTC -InitialPhpIni Production -Force
         Enable-PhpExtension -Extension openssl, curl, mbstring -Path $php_dir
