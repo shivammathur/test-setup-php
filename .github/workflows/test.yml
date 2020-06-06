@@ -1,50 +1,41 @@
 name: Test workflow
 on: [push]
 jobs:
-  generate:    
-    name: generate
-    runs-on: ${{ matrix.operating-system }}
+  test:    
+    name: test
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - name: Test
+      - name: Test exit on windows
+        if: matrix.os == 'windows-latest'
+        continue-on-error: true
         run: |
-          debconf_fix="DEBIAN_FRONTEND=noninteractive"
-          version=8.0
-          install_dir=~/php/"$version"
-          fetch_tar() {
-            tar_file=php_"$version"%2Bubuntu"$(lsb_release -r -s)".tar.zst
-            bintray_url=https://dl.bintray.com/shivammathur/php/"$tar_file"
-            sudo curl -o /tmp/"$tar_file" -SL "$bintray_url"
+          $cross = ([char]10007)
+          Function Add-Log($mark, $subject, $message) {
+            $code = if ($mark -eq $cross) { "31" } else { "32" }
+            printf "\033[%s;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s \033[0m\n" $code $mark $subject $message
           }
-          release=$(lsb_release -r -s)
-          fetch_tar &
-          to_wait=$!
-          [ "$release" = "16.04" ] && sudo "$debconf_fix" apt-fast install -y --no-upgrade libwebp[0-9]
-          [ "$release" = "20.04" ] && sudo "$debconf_fix" apt-fast install -y --no-upgrade libtidy-dev libaspell-dev libenchant-dev libzip-dev
-          sudo mkdir -m 777 -p ~/php
-          if [ ! "$(whoami)" = "runner" ]; then
-            sudo rm -rf /home/runner && sudo ln -sf ~/ /home/runner;
-          fi
-          wait $to_wait
-          sudo tar -I zstd -xf /tmp/"$tar_file" -C ~/php
-          for tool_path in "$install_dir"/bin/*; do
-            tool=$(basename "$tool_path")
-            sudo cp "$tool_path" /usr/bin/"$tool$version"
-            sudo update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool$version" 50
-          done
-          sudo ln -sf "$install_dir"/etc/php.ini /etc/php.ini
-          switch_version() {
-            for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
-              if [ -e "/usr/bin/$tool$version" ]; then
-                sudo update-alternatives --set $tool /usr/bin/"$tool$version"
-              fi
-            done
-          }       
-          switch_version >/dev/null 2>&1
-          php -v   
-          php -m
+          Add-Log $cross "Exit" "Test exit"
+          exit 1
+      - name: Test exit if not on windows
+        if: matrix.os != 'windows-latest'
+        continue-on-error: true
+        run: |
+          cross="✗"
+          add_log() {
+            mark=$1
+            subject=$2
+            message=$3
+            if [ "$mark" = "$tick" ]; then
+              printf "\033[32;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s\033[0m\n" "$mark" "$subject" "$message"
+            else
+              printf "\033[31;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s\033[0m\n" "$mark" "$subject" "$message"
+            fi
+          }
+          add_log "$cross" "Exit" "Test exit"
+          exit 1
         
           
