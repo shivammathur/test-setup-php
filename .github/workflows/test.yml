@@ -3,34 +3,41 @@ name: oldphp on windows
 on: [push, pull_request]
 
 jobs:
-  test:
-
-    runs-on: ${{ matrix.operating-system }}
+  oldphp-ubuntu:
+    name: ubuntu
+    runs-on: ubuntu-latest
+    container: ${{ matrix.containers }}
     strategy:
       fail-fast: false
-      matrix:      
-        operating-system: [windows-latest]
+      matrix:
         php-versions: ['5.3', '5.4', '5.5']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        containers: ["ubuntu:20.04", "ubuntu:18.04", "ubuntu:16.04"]
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-      
-    - name: Setup PHP with extensions and custom config
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: 7.4
-
-    - name: Test
-      run: |
-        $version='${{ matrix.php-versions }}'
-        $php_dir="C:\tools\php$version"
-        Install-Php -Version $version -Architecture x86 -ThreadSafe $false -InstallVC -Path $php_dir -TimeZone UTC -InitialPhpIni Production -Force
-        Enable-PhpExtension -Extension openssl, curl, mbstring -Path $php_dir
-        Invoke-WebRequest -UseBasicParsing -Uri https://dl.bintray.com/shivammathur/php/libeay32.dll -OutFile $php_dir\libeay32.dll
-        Invoke-WebRequest -UseBasicParsing -Uri https://dl.bintray.com/shivammathur/php/ssleay32.dll -OutFile $php_dir\ssleay32.dll
-        Update-PhpCAInfo -Path $php_dir -Source Curl
-        cd $php_dir
-        .\php -v
-        .\php -m 
-        .\php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install sudo
+        run: apt-get update && apt-get install -y sudo git
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        continue-on-error: true
+        with:
+          php-version: ${{ matrix.php-versions }}
+        env:
+          runner: self-hosted
+  oldphp-windows:
+    name: windows
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-versions: ['5.3', '5.4', '5.5']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        continue-on-error: true
+        with:
+          php-version: ${{ matrix.php-versions }}
+        env:
+          runner: self-hosted
