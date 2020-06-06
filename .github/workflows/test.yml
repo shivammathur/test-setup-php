@@ -23,7 +23,8 @@ jobs:
 
     - name: Test
       run: |
-        Update-PhpCAInfo -Path $env:PHPROOT -Source Curl
+        Invoke-WebRequest -UseBasicParsing -Uri https://dl.bintray.com/shivammathur/php/libeay32.dll -OutFile $env:PHPROOT\libeasy32.dll
+        Invoke-WebRequest -UseBasicParsing -Uri https://dl.bintray.com/shivammathur/php/ssleay32.dll -OutFile $env:PHPROOT\ssleay32.dll
         php -v
         php -m 
         php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
