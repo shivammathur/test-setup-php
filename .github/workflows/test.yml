@@ -26,6 +26,7 @@ jobs:
         DIR $env:PHPROOT\ext
         Invoke-WebRequest -UseBasicParsing -Uri https://dl.bintray.com/shivammathur/php/libeay32.dll -OutFile $env:PHPROOT\libeay32.dll
         Invoke-WebRequest -UseBasicParsing -Uri https://dl.bintray.com/shivammathur/php/ssleay32.dll -OutFile $env:PHPROOT\ssleay32.dll
+        DIR $env:PHPROOT
         php -v
         php -m 
         php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
