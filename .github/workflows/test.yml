@@ -12,7 +12,7 @@ jobs:
       - name: Test exit 
         continue-on-error: true
         run: |
-          echo 'if true; then printf "X PHP PHP 5.3 is not supported on self-hosted runner"; fi && exit 1' > linux.sh
+          printf "run() { \nif true; then printf \"X PHP PHP 5.3 is not supported on self-hosted runner\"; fi && exit 1 \n} \nrun;" > linux.sh
           cat linux.sh
           bash linux.sh
 
