@@ -1,6 +1,9 @@
 name: Tools develop workflow
 on:
+  repository_dispatch:
   push:
+  schedule:
+    - cron: '0 1/5 * * *'
 env:
   COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }}
@@ -15,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
-        php-versions: ['7.3']
+        php-versions: ['7.4']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -51,8 +54,6 @@ jobs:
           deployer -V
           symfony version
           vapor -V
-      - name: Testing composer
-        run: php -r "if(strpos(@exec('composer -V'), 'Composer version 1') === false) {throw new Exception('Composer not found');}"
       - name: Test flex
         run: composer global show symfony/flex
       - name: Test prestissimo
@@ -85,7 +86,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
-        php-versions: ['7.3']
+        php-versions: ['7.4']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -93,7 +94,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: blackfire:1.31.0, blackfire-player:1.8.1, composer:v2, infection:0.16.1, flex:1.6.1, phan:2.7.2, php-cs-fixer:2.16.0, phpcs:3.5.2, phpcbf:3.5.2, phpcpd:4.0.0, phpstan:0.12.3, phpmd:2.8.0, codeception:3.1.2, cs2pr:1.0.2, phpunit:8.5.0, psalm:3.8.0, phinx:0.11.3, phive:0.13.1, deployer:6.7.2, prestissimo:0.3.8, composer-prefetcher:0.13.0, composer:1.2.3, pecl:1.2.3, symfony:4.12.3, vapor-cli:1.6.1
+          tools: blackfire:1.31.0, blackfire-player:1.8.1, infection:0.16.1, flex:1.6.1, phan:2.7.2, php-cs-fixer:2.16.0, phpcs:3.5.2, phpcbf:3.5.2, phpcpd:4.0.0, phpstan:0.12.3, phpmd:2.8.0, codeception:3.1.2, cs2pr:1.0.2, phpunit:8.5.0, psalm:3.8.0, phinx:0.11.3, phive:0.13.1, deployer:6.7.2, prestissimo:0.3.8, composer-prefetcher:0.13.0, composer:1.2.3, pecl:1.2.3, symfony:4.12.3, vapor-cli:1.6.1
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
@@ -118,8 +119,6 @@ jobs:
           deployer -V
           symfony version
           vapor -V
-      - name: Testing composer
-        run: php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Composer not found');}"
       - name: Test flex
         run: composer global show symfony/flex
       - name: Test prestissimo
@@ -157,7 +156,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: blackfire, blackfire-player, composer:snapshot, php-cs-fixer:2.2.20, phpcs:2.9.2, phpcbf:2.9.2, phpcpd:2.0.4, phpmd:2.8.0, codeception:2.3.5, cs2pr:1.0.1, phpunit:4.8.36, phinx:0.5.0, deployer:2.0.0, prestissimo:0.3.8, composer:1.9.3, symfony:4.12.3
+          tools: blackfire, blackfire-player, php-cs-fixer:2.2.20, phpcs:2.9.2, phpcbf:2.9.2, phpcpd:2.0.4, phpmd:2.8.0, codeception:2.3.5, cs2pr:1.0.1, phpunit:4.8.36, phinx:0.5.0, deployer:2.0.0, prestissimo:0.3.8, composer:1.9.3, symfony:4.12.3
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
@@ -176,8 +175,6 @@ jobs:
           phinx -V
           deployer -V
           symfony version
-      - name: Testing composer
-        run: php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Composer not found');}"
       - name: Test prestissimo
         run: composer global show hirak/prestissimo
         continue-on-error: true
@@ -202,7 +199,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
-        php-versions: ['7.3']
+        php-versions: ['7.4']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -210,7 +207,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: composer:preview, php-cs-fixer:100.100.100, phpcs:^3.5.2, phpcbf:>=3.5.2, phpcpd:<=4.0.0, phpstan:^0.12.3, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, symfony/flex, composer
+          tools: php-cs-fixer:100.100.100, phpcs:^3.5.2, phpcbf:>=3.5.2, phpcpd:<=4.0.0, phpstan:^0.12.3, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, symfony/flex, composer
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
@@ -220,8 +217,6 @@ jobs:
           phpcbf --version
           phpcpd -V
           phpstan -V
-      - name: Testing composer
-        run: php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Composer not found');}"
       - name: Test flex
         run: composer global show symfony/flex
       - name: Test prestissimo
