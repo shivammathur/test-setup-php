@@ -13,7 +13,7 @@ jobs:
         run: |
           cross="✗"
           version='5.3'
-          echo "::error:: \033[34;1mPHP \033[0m\033[90;1mPHP $version is not supported on self-hosted runner\033[0m\n"
+          printf "::error:: \033[34;1mPHP \033[0m\033[90;1mPHP $version is not supported on self-hosted runner\033[0m\n"
           exit 1
 
       - name: Should not run
