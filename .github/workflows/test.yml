@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Test exit 
         run: |
-          echo 'echo "issue";set -e;exit 1' > linux.sh
+          echo 'printf "issue";set -e;exit 1' > linux.sh
           cat linux.sh
           bash linux.sh
 
