@@ -1,9 +1,6 @@
 name: Experimental v1 workflow
 on:
-  repository_dispatch:
   push:
-  schedule:
-    - cron: '0 */6 * * *'
 jobs:
   run:
     name: Run
@@ -11,9 +8,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
         php-versions: ['8.0']
-        coverage: [xdebug, pcov, none]
     steps:
       - name: Checkout
         uses: actions/checkout@v2

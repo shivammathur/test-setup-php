@@ -1,0 +1,86 @@
+name: Composer v1 workflow
+on:
+  push:
+jobs:
+  latest:
+    name: latest
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
+        php-versions: ['7.4']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
+        uses: shivammathur/setup-php@releases/v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+      - name: Testing Composer version default
+        run: |
+          php -r "if(strpos(@exec('composer -V'), 'Composer version 1') === false) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - name: Install PHP
+        uses: shivammathur/setup-php@releases/v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:v1
+      - name: Testing Composer version v1
+        run: |
+          php -r "if(strpos(@exec('composer -V'), 'Composer version 1') === false) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - name: Install PHP
+        uses: shivammathur/setup-php@releases/v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:v2
+      - name: Testing Composer version v2
+        run: |
+          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - name: Install PHP
+        uses: shivammathur/setup-php@releases/v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:1
+      - name: Testing Composer version 1
+        run: |
+          php -r "if(strpos(@exec('composer -V'), 'Composer version 1') === false) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - name: Install PHP
+        uses: shivammathur/setup-php@releases/v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:2
+      - name: Testing Composer version 2
+        run: |
+          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - name: Install PHP
+        uses: shivammathur/setup-php@releases/v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:snapshot
+      - name: Testing Composer version snapshot
+        run: |
+          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - name: Install PHP
+        uses: shivammathur/setup-php@releases/v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:preview
+      - name: Testing Composer version preview
+        run: |
+          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - name: Install PHP
+        uses: shivammathur/setup-php@releases/v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:stable
+      - name: Testing Composer version stable
+        run: |
+          php -r "if(strpos(@exec('composer -V'), 'Composer version 1') === false) {throw new Exception('Wrong composer version');}"
+          composer -V
