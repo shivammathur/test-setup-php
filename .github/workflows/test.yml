@@ -14,8 +14,8 @@ jobs:
           cross="✗"
           version='5.3'
           echo "::error:: \033[34;1mPHP \033[0m\033[90;1mPHP $version is not supported on self-hosted runner\033[0m\n"
-          echo https://api.github.com/repos/${{ github.repository }}/check-runs/${{ github.run_id }}
-          curl -H "Accept: application/vnd.github.antiope-preview+json" -X PATCH -u ${{ github.repository_owner }}:${{ secrets.GITHUB_TOKEN }} -d '{"conclusion": "neutral"}' https://api.github.com/repos/${{ github.repository }}/check-runs/${{ github.run_id }}
+          exit 64
+
       - name: Should not run
         run: echo 'test'
         
