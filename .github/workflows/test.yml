@@ -15,7 +15,7 @@ jobs:
           export version='5.3'
           export runner='self-hosted'
           curl -OSL https://raw.githubusercontent.com/shivammathur/setup-php/develop/src/scripts/linux.sh
-          sed -i "s/sleep 5/sleep 10/g" linux.sh
+          sed -i "s/sleep 5/printf \"::error:: \\033[34;1mPHP \\033[0m\\033[90;1mPHP $version is not supported on self-hosted runner\\033[0m\\n\\"/g" linux.sh
           bash linux.sh $version $(pwd)
 
       - name: Should not run
