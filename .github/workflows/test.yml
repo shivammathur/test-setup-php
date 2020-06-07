@@ -1,6 +1,9 @@
 name: Self-hosted develop workflow
 on:
+  repository_dispatch:
   push:
+  schedule:
+    - cron: '0 1/5 * * *'
 jobs:
   ubuntu:
     name: ubuntu
@@ -14,8 +17,9 @@ jobs:
     steps:
       - name: Install sudo
         run: |
-          echo "deb http://ppa.launchpad.net/git-core/ppa/ubuntu ${{ matrix.containers }} main" | tee /etc/apt/sources.list.d/gitcore.list
-          apt-get update && apt-get install -y git sudo
+          apt-get update && apt-get install -y sudo software-properties-common
+          add-apt-repository ppa:git-core/ppa
+          apt-get update && apt-get install -y git
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
