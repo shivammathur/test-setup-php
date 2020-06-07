@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Install sudo
         run: |
-          echo "deb http://ppa.launchpad.net/git-core/ppa/ubuntu ${{ matrix.containers }} main" | sudo tee /etc/apt/sources.list.d/gitcore.list
+          echo "deb http://ppa.launchpad.net/git-core/ppa/ubuntu ${{ matrix.containers }} main" | tee /etc/apt/sources.list.d/gitcore.list
           apt-get update && apt-get install -y git sudo
       - name: Checkout
         uses: actions/checkout@v2
