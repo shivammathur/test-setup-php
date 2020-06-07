@@ -1,8 +1,12 @@
-name: Tools workflow #test composer version
+name: Tools develop workflow
 on:
   push:
 env:
   COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }}
+  BLACKFIRE_SERVER_TOKEN: ${{ secrets.BLACKFIRE_SERVER_TOKEN }}
+  BLACKFIRE_CLIENT_ID: ${{ secrets.BLACKFIRE_CLIENT_ID }}
+  BLACKFIRE_CLIENT_TOKEN: ${{ secrets.BLACKFIRE_CLIENT_TOKEN }}
 jobs:
   latest:
     name: latest
@@ -10,71 +14,215 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['5.6']
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
+        php-versions: ['7.3']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-versions }}        
-      - name: Testing Composer version default
-        run: |        
+          php-version: ${{ matrix.php-versions }}
+          tools: blackfire, blackfire-player, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, cs2pr, codeception, phpunit, psalm, phinx, phive, deployer, prestissimo, composer-prefetcher, pecl, phpize, php-config, symfony, vapor-cli
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Print php.ini
+        if: matrix.operating-system != 'windows-latest'
+        run: cat $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+      - name: Testing Tools
+        run: |
+          blackfire-agent -v
+          blackfire version -V
+          blackfire-player -V
           composer -V
+          phan -v
+          infection -V
+          php-cs-fixer -V
+          phpcs --version
+          phpcbf --version
+          phpcpd -V
+          phpstan -V
+          codeception -V
+          cs2pr version
+          phpunit --version
+          psalm -v
+          phinx -V
+          phive status
+          deployer -V
+          symfony version
+          vapor -V
+      - name: Testing composer
+        run: php -r "if(strpos(@exec('composer -V'), 'Composer version 1') === false) {throw new Exception('Composer not found');}"
+      - name: Test flex
+        run: composer global show symfony/flex
+      - name: Test prestissimo
+        run: composer global show hirak/prestissimo
+        continue-on-error: true
+      - name: Test composer-prefetcher
+        run: composer global show narrowspark/automatic-composer-prefetcher
+        continue-on-error: true
+      - name: Test pecl, phpize, php-config
+        if: matrix.operating-system != 'windows-latest'
+        run: |
+          pecl -V
+          php-config --version
+          phpize --version
+      - name: Test phpmd on windows
+        if: matrix.operating-system == 'windows-latest'
+        run: |
+          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
+          phpmd $RUNNER_TOOL_CACHE\test.php text cleancode
+      - name: Test phpmd
+        if: matrix.operating-system != 'windows-latest'
+        run: |
+          echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
+          phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
+  versions:
+    name: versions
+    needs: latest
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
+        php-versions: ['7.3']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: composer:v1
-      - name: Testing Composer version v1
-        run: |        
+          tools: blackfire:1.31.0, blackfire-player:1.8.1, composer:v2, infection:0.16.1, flex:1.6.1, phan:2.7.2, php-cs-fixer:2.16.0, phpcs:3.5.2, phpcbf:3.5.2, phpcpd:4.0.0, phpstan:0.12.3, phpmd:2.8.0, codeception:3.1.2, cs2pr:1.0.2, phpunit:8.5.0, psalm:3.8.0, phinx:0.11.3, phive:0.13.1, deployer:6.7.2, prestissimo:0.3.8, composer-prefetcher:0.13.0, composer:1.2.3, pecl:1.2.3, symfony:4.12.3, vapor-cli:1.6.1
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Testing Tools
+        run: |
+          blackfire-agent -v
+          blackfire version -V
+          blackfire-player -V
           composer -V
+          phan -v
+          infection -V
+          php-cs-fixer -V
+          phpcs --version
+          phpcbf --version
+          phpcpd -V
+          phpstan -V
+          codeception -V
+          cs2pr version
+          phpunit --version
+          psalm -v
+          phinx -V
+          phive status
+          deployer -V
+          symfony version
+          vapor -V
+      - name: Testing composer
+        run: php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Composer not found');}"
+      - name: Test flex
+        run: composer global show symfony/flex
+      - name: Test prestissimo
+        run: composer global show hirak/prestissimo
+        continue-on-error: true
+      - name: Test composer-prefetcher
+        run: composer global show narrowspark/automatic-composer-prefetcher
+        continue-on-error: true
+      - name: Test pecl
+        if: matrix.operating-system != 'windows-latest'
+        run: pecl -V
+      - name: Test phpmd on windows
+        if: matrix.operating-system == 'windows-latest'
+        run: |
+          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
+          phpmd $RUNNER_TOOL_CACHE\test.php text cleancode
+      - name: Test phpmd
+        if: matrix.operating-system != 'windows-latest'
+        run: |
+          echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
+          phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
+  old_versions:
+    name: old_versions
+    needs: versions
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
+        php-versions: ['5.5']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: composer:v2
-      - name: Testing Composer version v2
-        run: |        
+          tools: blackfire, blackfire-player, composer:snapshot, php-cs-fixer:2.2.20, phpcs:2.9.2, phpcbf:2.9.2, phpcpd:2.0.4, phpmd:2.8.0, codeception:2.3.5, cs2pr:1.0.1, phpunit:4.8.36, phinx:0.5.0, deployer:2.0.0, prestissimo:0.3.8, composer:1.9.3, symfony:4.12.3
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Testing Tools
+        run: |
+          blackfire-agent -v
+          blackfire version -V
+          blackfire-player -V
           composer -V
+          php-cs-fixer -V
+          phpcs --version
+          phpcbf --version
+          phpcpd -V
+          codeception -V
+          phpunit --version
+          cs2pr version
+          phinx -V
+          deployer -V
+          symfony version
+      - name: Testing composer
+        run: php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Composer not found');}"
+      - name: Test prestissimo
+        run: composer global show hirak/prestissimo
+        continue-on-error: true
+      - name: Test pecl
+        if: matrix.operating-system != 'windows-latest'
+        run: pecl -V
+      - name: Test phpmd on windows
+        if: matrix.operating-system == 'windows-latest'
+        run: |
+          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
+          phpmd $RUNNER_TOOL_CACHE\test.php text cleancode
+      - name: Test phpmd
+        if: matrix.operating-system != 'windows-latest'
+        run: |
+          echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
+          phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
+  special:
+    name: special
+    needs: old_versions
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
+        php-versions: ['7.3']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: composer:1
-      - name: Testing Composer version 1
-        run: |        
+          tools: composer:preview, php-cs-fixer:100.100.100, phpcs:^3.5.2, phpcbf:>=3.5.2, phpcpd:<=4.0.0, phpstan:^0.12.3, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, symfony/flex, composer
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Testing Tools
+        run: |
           composer -V
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          tools: composer:2
-      - name: Testing Composer version 2
-        run: |        
-          composer -V
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          tools: composer:snapshot
-      - name: Testing Composer version snapshot
-        run: |        
-          composer -V
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          tools: composer:preview
-      - name: Testing Composer version preview
-        run: |        
-          composer -V
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          tools: composer:stable
-      - name: Testing Composer version stable
-        run: |        
-          composer -V
+          phpcs --version
+          phpcbf --version
+          phpcpd -V
+          phpstan -V
+      - name: Testing composer
+        run: php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Composer not found');}"
+      - name: Test flex
+        run: composer global show symfony/flex
+      - name: Test prestissimo
+        run: composer global show hirak/prestissimo
