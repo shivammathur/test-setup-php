@@ -8,18 +8,28 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, ubuntu-16.04]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        php-versions: ['8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: mbstring
-          coverage: xdebug
+      - name: Setup Xdebug
+        run: |
+          curl -o /tmp/xdebug.tar.gz -sSL https://github.com/xdebug/xdebug/archive/master.tar.gz
+          tar xf /tmp/xdebug.tar.gz
+          cd xdebug | exit 1
+          phpize
+          ./configure --enable-xdebug
+          make
+          make install
+          
       - name: Testing PHP version
         run: php -v
       - name: Check xdebug
-        run: php -r "echo phpversion('xdebug');"
+        run: php --ini
+      - name: Check extensions
+        run: php -m
