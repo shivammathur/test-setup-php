@@ -26,6 +26,7 @@ jobs:
           ./configure --enable-xdebug
           make
           make install
+          echo zend_extension=xdebug >> ~/php/8.0/etc/php.ini
           
       - name: Testing PHP version
         run: php -v
