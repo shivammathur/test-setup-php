@@ -20,8 +20,8 @@ jobs:
       - name: Setup Xdebug
         run: |
           curl -o /tmp/xdebug.tar.gz -sSL https://github.com/xdebug/xdebug/archive/master.tar.gz
-          tar xf /tmp/xdebug.tar.gz
-          cd xdebug | exit 1
+          tar xf /tmp/xdebug.tar.gz -C /tmp          
+          cd /tmp/xdebug-master || exit 1
           phpize
           ./configure --enable-xdebug
           make
