@@ -12,3 +12,4 @@
 - Test 1.8.1 release.
 - Test 2.0.1 release.
 - Test 2.1.0 release.
+- Test 2.3.0 release.

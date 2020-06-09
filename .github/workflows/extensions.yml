@@ -3,16 +3,17 @@ on:
   repository_dispatch:
   push:
   schedule:
-    - cron: '0 3 * * *'
+    - cron: '15 3 * * *'
 jobs:
-  run1:
+  run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
+      max-parallel: 8
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
         php-versions: ['5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
-    name: 1) PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -20,7 +21,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, xdebug, pcov, intl, gd, redis, xml, soap, imagick, ast, phalcon4
+          extensions: mbstring, xdebug, pcov, intl, gd, redis, xml, soap, imagick, ast, phalcon4, msgpack, gearman
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
@@ -39,32 +40,7 @@ jobs:
           php -r "if(phpversion()>=7.2 && ! extension_loaded('psr')) {throw new Exception('psr not found');}"
           php -r "if(phpversion()>=7.2 && ! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
           php -r "if(phpversion()>=7.2 && phpversion('phalcon')[0]!='4') {throw new Exception('Wrong phalcon version Installed');}"
-  run2:
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
-        php-versions: ['5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
-    name: 2) PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-versions }}
-          coverage: none
-          extensions: msgpack, uopz, phalcon3, gearman
-      - name: Testing PHP version
-        run: php -v
-      - name: Testing Extensions
-        run: |
-          php -m
           php -r "if(phpversion()>=7.0 && ! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}"
-          php -r "if(phpversion()>=7.1 && ! extension_loaded('uopz')) {throw new Exception('uopz not found');}"
-          php -r "if(phpversion()>=7.0 && phpversion()<=7.3 && ! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
-          php -r "if(phpversion()>=7.0 && phpversion()<=7.3 && phpversion('phalcon')[0]!='3') {throw new Exception('Wrong phalcon version Installed');}"
       - name: Testing gearman
         if: matrix.operating-system == 'ubuntu-latest'
         run: |
