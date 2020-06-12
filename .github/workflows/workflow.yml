@@ -19,6 +19,7 @@ jobs:
           php-version: ${{ matrix.php-versions }}
       - name: setup Xdebug
         run: |
+          xcrun --show-sdk-path
           (
             cd ~ && git clone https://github.com/xdebug/xdebug.git
             cd xdebug || echo "Failed to clone Xdebug"
