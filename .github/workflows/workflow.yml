@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        operating-system: [macos-latest]
         php-versions: ['8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
@@ -17,6 +17,17 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
+      - name: setup Xdebug
+        run: |
+          (
+            cd ~ && git clone https://github.com/xdebug/xdebug.git
+            cd xdebug || echo "Failed to clone Xdebug"
+            sudo phpize
+            sudo ./configure --enable-xdebug
+            sudo make
+            sudo make install
+            echo "zend_extension=xdebug.so" >> $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+          )
       - name: Testing PHP version
         run: php -v
       - name: Check extensions
