@@ -17,7 +17,7 @@ jobs:
         run: |
           brew tap shivammathur/php
           brew tap shivammathur/extensions
-          brew install php@${{ matrix.php-versions }}
+          brew install shivammathur/php/php@${{ matrix.php-versions }}
           brew link --force --overwrite php@${{ matrix.php-versions }}
           brew install pcov@${{ matrix.php-versions }}
           brew install xdebug@${{ matrix.php-versions }}
