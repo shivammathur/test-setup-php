@@ -19,7 +19,7 @@ jobs:
           php-version: ${{ matrix.php-versions }}
       - name: add extensions
         run: |
-          brew add shivammathur/homebrew-extensions
+          brew tap shivammathur/homebrew-extensions
           brew install pcov@${{ matrix.php-versions }}
           brew install xdebug@${{ matrix.php-versions }}
       - name: Testing PHP version
