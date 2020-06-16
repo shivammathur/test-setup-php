@@ -7,9 +7,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
-        php-versions: ['8.0']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
+        operating-system: [macos-latest]
+        php-versions: ['7.4', '8.0']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -17,7 +17,11 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: xdebug
+      - name: add extensions
+        run: |
+          brew add shivammathur/homebrew-extensions
+          brew install pcov@${{ matrix.php-versions }}
+          brew install xdebug@${{ matrix.php-versions }}
       - name: Testing PHP version
         run: php -v
       - name: Check extensions
