@@ -13,15 +13,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-versions }}
       - name: Setup extensions
         run: |
           brew tap shivammathur/extensions
           brew install pcov@${{ matrix.php-versions }}
           brew install xdebug@${{ matrix.php-versions }}
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
       - name: Testing PHP version
         run: php -v
       - name: Check extensions
