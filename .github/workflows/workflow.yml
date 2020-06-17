@@ -16,8 +16,8 @@ jobs:
       - name: Setup extensions
         run: |
           brew tap shivammathur/extensions
-          brew install pcov@${{ matrix.php-versions }}
-          brew install xdebug@${{ matrix.php-versions }}
+          brew install pcov@${{ matrix.php-versions }} --without-config-file
+          brew install xdebug@${{ matrix.php-versions }} --without-config-file
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
