@@ -8,19 +8,20 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [macos-latest]
-        php-versions: ['7.1', '7.2', '7.3', '7.4']
+        php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup
+        continue-on-error: true
         run: |
           brew tap shivammathur/php
           brew tap shivammathur/extensions
-          brew reinstall shivammathur/php/php@${{ matrix.php-versions }}
+          brew install shivammathur/php/php@${{ matrix.php-versions }}
           brew link --force --overwrite php@${{ matrix.php-versions }}
-          brew install pcov@${{ matrix.php-versions }}
-          brew install xdebug@${{ matrix.php-versions }}
+          brew install pcov@7.2
+          brew install xdebug@7.2  
       - name: Testing PHP version
         run: php -v
       - name: Check extensions
