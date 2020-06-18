@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, macOS-latest]
+        operating-system: [ubuntu-18.04, ubuntu-16.04]
         php-versions: ['7.4']
     steps:
       - name: Checkout
@@ -21,15 +21,18 @@ jobs:
       - name: Add aerospike
         run: |
           (
+            ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+            ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
+            echo "ini_file: $ini_file"
+            echo "ext_dir: $ext_dir"
             cd /tmp
             composer require aerospike/aerospike-client-php ~7.0
             find vendor/aerospike/aerospike-client-php/ -name "*.sh" -exec chmod +x {} \;
-            cd vendor/aerospike/aerospike-client-php/ && sudo composer run-script post-install-cmd
-            ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-            ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
+            cd vendor/aerospike/aerospike-client-php/ && sudo composer run-script post-install-cmd         
             cp -rf ./src/modules/* $ext_dir
             echo "extension=aerospike.so" >> $ini_file
             echo "aerospike.udf.lua_user_path=/usr/local/aerospike/usr-lua" >> $ini_file
+            ls $ext_dir
           )
       - name: Test PHP version
         run: php -v
