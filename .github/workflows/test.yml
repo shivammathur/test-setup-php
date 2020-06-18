@@ -22,7 +22,7 @@ jobs:
         run: |
           (
             ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-            ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
+            ext_dir=$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
             echo "ini_file: $ini_file"
             echo "ext_dir: $ext_dir"
             cd /tmp
