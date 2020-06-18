@@ -22,7 +22,7 @@ jobs:
         run: |        
           if [ "$(uname -s)" = "Darwin" ]; then 
             brew install automake
-            export CFLAGS="-L$(brew --prefix)/opt/openssl/lib -I$(brew --prefix)/opt/openssl/include"
+            sudo mkdir -p /usr/local/ssl/lib && sudo cp -rf $(brew --prefix)/opt/openssl/lib/lib* /usr/local/ssl/lib/
             opt=" -Ei"
           fi
           (          
