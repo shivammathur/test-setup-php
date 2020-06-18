@@ -1,155 +1,37 @@
-name: Tools develop workflow
+name: Tools workflow
 on:
-  repository_dispatch:
   push:
-  schedule:
-    - cron: '0 1/5 * * *'
-env:
-  COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }}
-  BLACKFIRE_SERVER_TOKEN: ${{ secrets.BLACKFIRE_SERVER_TOKEN }}
-  BLACKFIRE_CLIENT_ID: ${{ secrets.BLACKFIRE_CLIENT_ID }}
-  BLACKFIRE_CLIENT_TOKEN: ${{ secrets.BLACKFIRE_CLIENT_TOKEN }}
 jobs:  
   versions:
-    name: versions
+    name: tools
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, macOS-latest]
         php-versions: ['7.4']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: blackfire:1.31.0, blackfire-player:1.8.1, infection:0.16.1, flex:1.6.1, phan:2.7.2, php-cs-fixer:2.16.2, phpcs:3.5.2, phpcbf:3.5.2, phpcpd:4.0.0, phpstan:0.12.3, phpmd:2.8.0, codeception:3.1.2, cs2pr:1.0.2, phpunit:8.5.0, psalm:3.8.0, phinx:0.11.3, phive:0.13.1, deployer:6.7.2, prestissimo:0.3.8, composer-prefetcher:0.13.0, composer:1.2.3, pecl:1.2.3, symfony:4.12.3, vapor-cli:1.6.1
-      - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
-      - name: Testing Tools
+          tools: pecl
+      - name: Add aerospike
         run: |
-          blackfire-agent -v
-          blackfire version -V
-          blackfire-player -V
-          composer -V
-          phan -v
-          infection -V
-          php-cs-fixer -V
-          phpcs --version
-          phpcbf --version
-          phpcpd -V
-          phpstan -V
-          codeception -V
-          cs2pr version
-          phpunit --version
-          psalm -v
-          phinx -V
-          phive status
-          deployer -V
-          symfony version
-          vapor -V
-      - name: Test flex
-        run: composer global show symfony/flex
-      - name: Test prestissimo
-        run: composer global show hirak/prestissimo
-        continue-on-error: true
-      - name: Test composer-prefetcher
-        run: composer global show narrowspark/automatic-composer-prefetcher
-        continue-on-error: true
-      - name: Test pecl
-        if: matrix.operating-system != 'windows-latest'
-        run: pecl -V
-      - name: Test phpmd on windows
-        if: matrix.operating-system == 'windows-latest'
-        run: |
-          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
-          phpmd $RUNNER_TOOL_CACHE\test.php text cleancode
-      - name: Test phpmd
-        if: matrix.operating-system != 'windows-latest'
-        run: |
-          echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
-          phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
-  old_versions:
-    name: old_versions
-    needs: versions
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
-        php-versions: ['5.5']
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          tools: blackfire, blackfire-player, php-cs-fixer:2.2.20, phpcs:2.9.2, phpcbf:2.9.2, phpcpd:2.0.4, phpmd:2.8.0, codeception:2.3.5, cs2pr:1.0.1, phpunit:4.8.36, phinx:0.5.0, deployer:2.0.0, prestissimo:0.3.8, composer:1.9.3, symfony:4.12.3
-      - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
-      - name: Testing Tools
-        run: |
-          blackfire-agent -v
-          blackfire version -V
-          blackfire-player -V
-          composer -V
-          php-cs-fixer -V
-          phpcs --version
-          phpcbf --version
-          phpcpd -V
-          codeception -V
-          phpunit --version
-          cs2pr version
-          phinx -V
-          deployer -V
-          symfony version
-      - name: Test prestissimo
-        run: composer global show hirak/prestissimo
-        continue-on-error: true
-      - name: Test pecl
-        if: matrix.operating-system != 'windows-latest'
-        run: pecl -V
-      - name: Test phpmd on windows
-        if: matrix.operating-system == 'windows-latest'
-        run: |
-          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
-          phpmd $RUNNER_TOOL_CACHE\test.php text cleancode
-      - name: Test phpmd
-        if: matrix.operating-system != 'windows-latest'
-        run: |
-          echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
-          phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
-  special:
-    name: special
-    needs: old_versions
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
-        php-versions: ['7.4']
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          tools: php-cs-fixer:100.100.100, phpcs:^3.5.2, phpcbf:>=3.5.2, phpcpd:<=4.0.0, phpstan:^0.12.3, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, symfony/flex, composer
-      - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
-      - name: Testing Tools
-        run: |
-          composer -V
-          phpcs --version
-          phpcbf --version
-          phpcpd -V
-          phpstan -V
-      - name: Test flex
-        run: composer global show symfony/flex
-      - name: Test prestissimo
-        run: composer global show hirak/prestissimo
+          (
+            cd /tmp
+            composer require aerospike/aerospike-client-php ~7.0
+            find vendor/aerospike/aerospike-client-php/ -name "*.sh" -exec chmod +x {} \;
+            cd vendor/aerospike/aerospike-client-php/ && sudo composer run-script post-install-cmd
+            ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+            ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
+            cp ./src/modules/* $ext_dir
+            echo "extension=aerospike.so" >> $ini_file
+            echo "aerospike.udf.lua_user_path=/usr/local/aerospike/usr-lua" >> $ini_file
+          )
+      - name: Test PHP version
+        run: php -v
+      - name: Test PHP extensions
+        run: php -m
