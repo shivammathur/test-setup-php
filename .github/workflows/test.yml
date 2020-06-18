@@ -20,10 +20,10 @@ jobs:
           tools: pecl
       - name: Add aerospike
         run: |        
-          if [ "$(uname -s)" = "Darwin" ]; then brew install automake;opt="-Ei"; fi
+          if [ "$(uname -s)" = "Darwin" ]; then brew install automake;opt=" -Ei"; fi
           (          
             ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-            ext_dir=$(php -i | grep "$opt" "extension_dir => /" | sed -e "s|.*=> s*||")
+            ext_dir=$(php -i | grep"$opt" "extension_dir => /" | sed -e "s|.*=> s*||")
             git clone https://github.com/aerospike/aerospike-client-php /tmp/aerospike
             cd /tmp/aerospike/src && sudo chmod a+x ./build.sh && sudo ./build.sh
             sudo cp -rf ./modules/* "$ext_dir/"
