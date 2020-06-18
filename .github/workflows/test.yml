@@ -8,17 +8,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
-        php-versions: ['7.3', '7.4', '8.0']
+         os: [macos-latest]
+#        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
+#        php-versions: ['7.3', '7.4', '8.0']
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-versions }}
-      - name: Testing PHP version
+      - name: Testing packages
         run: |
-          php -v
-          php -m
-          composer -V      
+          brew install automake || true
+          brew install openssl || true
