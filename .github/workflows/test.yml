@@ -29,7 +29,7 @@ jobs:
             composer require aerospike/aerospike-client-php ~7.0
             find vendor/aerospike/aerospike-client-php/ -name "*.sh" -exec chmod +x {} \;
             cd vendor/aerospike/aerospike-client-php/ && sudo composer run-script post-install-cmd         
-            cp -rf ./src/modules/* $ext_dir
+            cp -rf ./src/modules/* "$ext_dir/"
             echo "extension=aerospike.so" >> $ini_file
             echo "aerospike.udf.lua_user_path=/usr/local/aerospike/usr-lua" >> $ini_file
             ls $ext_dir
