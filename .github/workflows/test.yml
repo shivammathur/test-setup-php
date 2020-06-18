@@ -19,6 +19,7 @@ jobs:
           php-version: ${{ matrix.php-versions }}
           tools: pecl
       - name: Add aerospike
+        continue-on-error: true
         run: |
           (   
             ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
@@ -34,6 +35,8 @@ jobs:
             echo "extension=aerospike.so" >> $ini_file
             echo "aerospike.udf.lua_user_path=/usr/local/aerospike/usr-lua" >> $ini_file
           )
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v2
       - name: Test PHP version
         run: php -v
       - name: Test PHP extensions
