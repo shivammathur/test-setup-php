@@ -27,16 +27,14 @@ jobs:
             git clone https://github.com/aerospike/aerospike-client-php /tmp/aerospike && cd /tmp/aerospike/src
             if [ "$(uname -s)" = "Darwin" ]; then 
               brew install automake
-              sudo cp -R $(brew --prefix)/opt/openssl/lib/lib* ../aerospike-client-c/lib/
+              mkdir ../aerospike-client-c/lib && sudo cp -rf $(brew --prefix)/opt/openssl/lib/ ../aerospike-client-c/lib/
               ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
             fi            
             sudo chmod a+x ./build.sh && sudo ./build.sh
-            sudo cp -R ./modules/* "$ext_dir/"
+            sudo cp -rf ./modules/* "$ext_dir/"
             echo "extension=aerospike.so" >> $ini_file
             echo "aerospike.udf.lua_user_path=/usr/local/aerospike/usr-lua" >> $ini_file
           )
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v2
       - name: Test PHP version
         run: php -v
       - name: Test PHP extensions
