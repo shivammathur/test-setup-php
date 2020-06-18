@@ -27,7 +27,8 @@ jobs:
             git clone https://github.com/aerospike/aerospike-client-php /tmp/aerospike && cd /tmp/aerospike/src
             if [ "$(uname -s)" = "Darwin" ]; then 
               brew install automake
-              mkdir -p ../aerospike-client-c/lib && sudo cp -rf $(brew --prefix)/opt/openssl/lib/ ../aerospike-client-c/lib/
+              export AS_OSX_OPENSSL_INC="-I$(brew --prefix openssl)/include" 
+              export AS_OSX_OPENSSL_LINK="-L$(brew --prefix openssl)/lib"
               ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
             fi            
             sudo chmod a+x ./build.sh && sudo ./build.sh
