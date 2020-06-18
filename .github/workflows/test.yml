@@ -20,7 +20,11 @@ jobs:
           tools: pecl
       - name: Add aerospike
         run: |        
-          if [ "$(uname -s)" = "Darwin" ]; then brew install automake;opt=" -Ei"; fi
+          if [ "$(uname -s)" = "Darwin" ]; then 
+            brew install automake
+            export CFLAGS="-L$(brew --prefix)/opt/openssl/lib -I$(brew --prefix)/opt/openssl/include"
+            opt=" -Ei"
+          fi
           (          
             ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
             ext_dir=$(php -i | grep"$opt" "extension_dir => /" | sed -e "s|.*=> s*||")
