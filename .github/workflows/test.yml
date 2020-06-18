@@ -22,8 +22,8 @@ jobs:
         run: |        
           if [ "$(uname -s)" = "Darwin" ]; then 
             brew install automake
-            sudo mkdir -p /usr/local/ssl/lib && sudo cp -rf $(brew --prefix)/opt/openssl/lib/lib* /usr/local/ssl/lib/
-            opt=" -Ei"
+            sudo mkdir -p /usr/local/lib && sudo cp -rf $(brew --prefix)/opt/openssl/lib/lib* /usr/local/lib
+            ls /usr/local/lib
           fi
           (          
             ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
