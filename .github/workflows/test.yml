@@ -19,17 +19,17 @@ jobs:
           php-version: ${{ matrix.php-versions }}
           tools: pecl
       - name: Add aerospike
-        run: |        
-          if [ "$(uname -s)" = "Darwin" ]; then 
-            brew install automake
-            sudo mkdir -p /usr/local/lib && sudo cp -rf $(brew --prefix)/opt/openssl/lib/lib* /usr/local/lib
-            ls /usr/local/lib
-          fi
-          (          
+        run: |
+          (   
             ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-            ext_dir=$(php -i | grep"$opt" "extension_dir => /" | sed -e "s|.*=> s*||")
-            git clone https://github.com/aerospike/aerospike-client-php /tmp/aerospike
-            cd /tmp/aerospike/src && sudo chmod a+x ./build.sh && sudo ./build.sh
+            ext_dir=$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
+            git clone https://github.com/aerospike/aerospike-client-php /tmp/aerospike && cd /tmp/aerospike/src
+            if [ "$(uname -s)" = "Darwin" ]; then 
+              brew install automake
+              sudo cp -rf $(brew --prefix)/opt/openssl/lib/lib* ../aerospike-client-c/lib/
+              ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
+            fi            
+            sudo chmod a+x ./build.sh && sudo ./build.sh
             sudo cp -rf ./modules/* "$ext_dir/"
             echo "extension=aerospike.so" >> $ini_file
             echo "aerospike.udf.lua_user_path=/usr/local/aerospike/usr-lua" >> $ini_file
