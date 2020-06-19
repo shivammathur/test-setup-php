@@ -23,4 +23,17 @@ jobs:
       - name: Test php extensions
         run: php -m
       - name: Check pcov versions
-        run: Get-PhpExtension -Path C:\tools\php
+        run: |
+          $arch = 'x64'
+          $arch_name ='amd64'
+          if(-not([Environment]::Is64BitOperatingSystem) -or $version -lt '7.0') {
+            $arch = 'x86'
+            $arch_name = '386'
+          }
+
+          $ts = $env:PHPTS -eq 'ts'
+          if($env:PHPTS -ne 'ts') {
+            $env:PHPTS = 'nts'
+          }          
+          echo "https://github.com/shivammathur/php-extensions-windows/releases/download/latest/php_$env:PHPTS`_$arch`_pcov.dll"
+          Get-PhpExtension -Path C:\tools\php
