@@ -18,7 +18,6 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: pcov
           coverage: pcov
         env:
           phpts: ${{ matrix.ts }}
@@ -31,20 +30,4 @@ jobs:
           name: pcov${{ matrix.ts }}
           path: C:\tools\php\ext\php_pcov.dll
       - name: Check pcov versions
-        env:
-          phpts: ${{ matrix.ts }}
-        run: |
-          $version='8.0'
-          $arch = 'x64'
-          $arch_name ='amd64'
-          if(-not([Environment]::Is64BitOperatingSystem) -or $version -lt '7.0') {
-            $arch = 'x86'
-            $arch_name = '386'
-          }
-
-          $ts = $env:PHPTS -eq 'ts'
-          if($env:PHPTS -ne 'ts') {
-            $env:PHPTS = 'nts'
-          } 
-
-          Get-PhpExtension -Path C:\tools\php
+        run: php -r "echo phpversion('pcov');"
