@@ -25,8 +25,7 @@ jobs:
       - name: Test php extensions
         run: php -m
       - name: Check pcov versions
-        run: |
-          Invoke-WebRequest -Headers @{"Cache-Control"="no-cache"} -UseBasicParsing -Uri "https://github.com/shivammathur/php-extensions-windows/releases/latest/download/php_${{ matrix.ts }}_x64_pcov.dll" -OutFile C:\tools\php\ext\php_pcov.dll
+        run: |        
           Enable-PhpExtension -Extension pcov -Path C:\tools\php
           php -m
           php -r "echo phpversion('pcov');"
