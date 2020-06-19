@@ -36,7 +36,7 @@ jobs:
         run: |
           php -m
           php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
-          php -r "if('${{ matrix.coverage }}'=='xdebug' && phpversion() < 8.0 && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
+          php -r "if('${{ matrix.coverage }}'=='xdebug' && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
           php -r "if('${{ matrix.coverage }}'!='none' && phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
           php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
           php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}"
@@ -54,7 +54,7 @@ jobs:
       - name: Testing Coverage if Xdebug
         if: matrix.coverage == 'xdebug'
         run: |
-          php -r "if(phpversion() < 8.0 && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
+          php -r "if(! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
           php -v
       - name: Testing disabling coverage
         if: matrix.coverage == 'none'
