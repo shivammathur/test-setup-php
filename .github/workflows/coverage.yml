@@ -1,4 +1,4 @@
-name: Experimental v2 workflow
+name: 'Coverage v2 workflow'
 on:
   repository_dispatch:
   push:
@@ -6,13 +6,19 @@ on:
     - cron: '30 1/5 * * *'
 jobs:
   run:
-    name: Run
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
+      max-parallel: 15
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
-        php-versions: ['8.0']
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
+        php-versions: ['5.3', '5.5', '5.6', '7.4', '8.0']
+        coverage: [xdebug, pcov, none]
+        include:
+          - operating-system: ubuntu-18.04
+            php-versions: '7.4'
+            coverage: xdebug3
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -20,8 +26,9 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, opcache
-          ini-values: post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata
+          extensions: mbstring, xdebug, pcov, intl, gd
+          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+          coverage: ${{ matrix.coverage }}
       - name: Add Problem Matcher
         run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
       - name: Test action side effects
@@ -30,16 +37,19 @@ jobs:
         run: |
           php -v
           php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
-
       - name: Testing Composer version
-        run: |
-          composer -V
-          php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
+        run: php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
       - name: Testing Extensions
         run: |
           php -m
           php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
-          php -r "if(! extension_loaded('Zend OPcache')) {throw new Exception('mbstring not found');}"
+          php -r "if('${{ matrix.coverage }}'=='xdebug' && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
+          php -r "if('${{ matrix.coverage }}'!='none' && phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
+          php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
+          php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}"
+      - name: Testing Xdebug
+        if: matrix.coverage == 'xdebug3' || matrix.php-version == '8.0'
+        run: php -r "if(strpos(phpversion('xdebug'), '3.0') === false) {throw new Exception('Wrong Xdebug version Installed');}"
       - name: Testing ini values
         run: |
           php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
@@ -48,13 +58,13 @@ jobs:
       - name: Testing Coverage if PCOV
         if: matrix.coverage == 'pcov'
         run: |
-          php -r "if(ini_get('pcov.enabled')!=1) {throw new Exception('PCOV not enabled');}"
-          php -r "if(! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
+          php -r "if(phpversion()>=7.1 && ini_get('pcov.enabled')!=1) {throw new Exception('PCOV not enabled');}"
+          php -r "if(phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
           php -v
       - name: Testing Coverage if Xdebug
         if: matrix.coverage == 'xdebug'
         run: |
-          # php -r "if(! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
+          php -r "if(! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
           php -v
       - name: Testing disabling coverage
         if: matrix.coverage == 'none'
@@ -63,13 +73,3 @@ jobs:
           php -r "if(extension_loaded('Xdebug')) {throw new Exception('Xdebug found');}"
           php -r "if(extension_loaded('pcov')) {throw new Exception('PCOV found');}"
           php -v
-      - name: Test JIT
-        run: |
-          php -r "if(! extension_loaded('Zend OPcache')) {throw new Exception('Zend OPcache not found');}"
-          php -r "if(ini_get('opcache.jit_buffer_size')!='256M') {throw new Exception('opcache.jit_buffer_size not set');}"
-          php -r "if(ini_get('opcache.jit')!=1235) {throw new Exception('opcache.jit not set');}"
-          php -r "if(ini_get('pcre.jit')!=1) {throw new Exception('pcre.jit not set');}"
-      - name: Benchmark JIT
-        run: |
-          curl -o bench.php https://raw.githubusercontent.com/php/php-src/master/Zend/bench.php
-          php bench.php
