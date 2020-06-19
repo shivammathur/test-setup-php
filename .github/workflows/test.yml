@@ -9,6 +9,7 @@ jobs:
       matrix:
         operating-system: [windows-latest]
         php-versions: ['8.0']
+        ts: [ts, nts]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -16,8 +17,10 @@ jobs:
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-versions }}                  
+          php-version: ${{ matrix.php-versions }}
           coverage: pcov
+        env:
+          phpts: ${{ matrix.ts }}
       - name: Test PHP
         run: php -v
       - name: Test php extensions
