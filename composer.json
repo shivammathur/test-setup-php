@@ -1,0 +1,71 @@
+{
+    "name": "shivammathur/countrycity",
+    "description": "API to get all countries and all cities in a country.",
+    "keywords": [
+        "cities",
+        "countries",
+        "php",
+        "rest",
+        "dropdown",
+        "psr7",
+        "geodata"
+    ],
+    "homepage": "http://github.com/shivammathur",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Shivam Mathur",
+            "email": "contact@shivammathur.com",
+            "homepage": "https://shivammathur.com",
+            "role": "author"
+        }
+    ],
+    "require": {
+        "php": "^7.4",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "halaxa/json-machine": "*",
+        "laminas/laminas-httphandlerrunner": "*",
+        "slim/http-cache": "^0.4.0",
+        "slim/php-view": "^2.2",
+        "slim/psr7": "*",
+        "slim/slim": "^3.12",
+        "symfony/event-dispatcher": "*",
+        "symfony/http-kernel": "*",
+        "symfony/lock": "*",
+        "symfony/polyfill-iconv": "^1.17",
+        "symfony/polyfill-mbstring": "^1.17",
+        "symfony/process": "*"
+    },
+    "require-dev": {
+        "php-coveralls/php-coveralls": "*",
+        "phpunit/php-code-coverage": "dev-master",
+        "phpunit/php-timer": "dev-master",
+        "phpunit/phpunit": "dev-master",
+        "sebastian/global-state": "dev-master",
+        "sebastian/type": "dev-master",
+        "squizlabs/php_codesniffer": "*"
+    },
+    "suggest": {
+        "ext-pcov": "*"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    },
+    "autoload": {
+        "psr-4": {
+            "CountryCity\\API\\": "api/v1/",
+            "CountryCity\\Templates\\": "templates/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "CountryCity\\Tests\\API\\": "tests/api/v1"
+        }
+    },
+    "support": {
+        "email": "contact@shivammathur.com",
+        "issues": "https://github.com/shivammathur/countrycity/issues"
+    }
+}

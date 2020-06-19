@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         verbose="true">
+    <testsuites>
+        <testsuite name="CountryCity Test Suite">
+            <directory>./tests</directory>
+        </testsuite>
+    </testsuites>
+    <coverage processUncoveredFiles="true">
+        <include>
+            <directory suffix=".php">./api</directory>
+        </include>
+        <exclude>
+            <directory>./.github</directory>
+            <directory>./data</directory>
+            <directory>./public</directory>
+            <directory>./vendor</directory>
+            <directory>./src</directory>
+            <directory>./tests</directory>
+            <directory>./templates</directory>
+        </exclude>
+    </coverage>
+</phpunit>
