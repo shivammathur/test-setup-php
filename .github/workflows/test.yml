@@ -24,6 +24,7 @@ jobs:
         run: php -m
       - name: Check pcov versions
         run: |
+          $version='8.0'
           $arch = 'x64'
           $arch_name ='amd64'
           if(-not([Environment]::Is64BitOperatingSystem) -or $version -lt '7.0') {
