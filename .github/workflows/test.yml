@@ -40,6 +40,8 @@ jobs:
           $ts = $env:PHPTS -eq 'ts'
           if($env:PHPTS -ne 'ts') {
             $env:PHPTS = 'nts'
-          }          
-          echo "https://github.com/shivammathur/php-extensions-windows/releases/download/latest/php_$env:PHPTS`_$arch`_pcov.dll"
+          } 
+          Remove-Item C:\tools\ext\php_pcov.dll
+          Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/shivammathur/php-extensions-windows/releases/latest/download/php_$env:phpts`_$arch`_pcov.dll" -OutFile C:\tools\php\ext\php_pcov.dll"
+          
           Get-PhpExtension -Path C:\tools\php
