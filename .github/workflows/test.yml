@@ -18,16 +18,15 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          coverage: pcov
         env:
           phpts: ${{ matrix.ts }}
       - name: Test PHP
         run: php -v
       - name: Test php extensions
         run: php -m
-      - uses: actions/upload-artifact@v2
-        with:
-          name: pcov${{ matrix.ts }}
-          path: C:\tools\php\ext\php_pcov.dll
       - name: Check pcov versions
-        run: php -r "echo phpversion('pcov');"
+        run: |
+          Invoke-WebRequest -Headers @{"Cache-Control"="no-cache"} -UseBasicParsing -Uri "https://github.com/shivammathur/php-extensions-windows/releases/latest/download/php_${{ matrix.ts }}_x64_pcov.dll" -OutFile C:\tools\php\ext\php_pcov.dll
+          Enable-PhpExtension -Extension pcov -Path C:\tools\php
+          php -m
+          php -r "echo phpversion('pcov');"
