@@ -15,9 +15,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
+          extensions: pcov
           coverage: pcov
         env:
           phpts: ${{ matrix.ts }}
