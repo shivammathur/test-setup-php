@@ -26,6 +26,8 @@ jobs:
       - name: Test php extensions
         run: php -m
       - name: Check pcov versions
+        env:
+          phpts: ${{ matrix.ts }}
         run: |
           $version='8.0'
           $arch = 'x64'
