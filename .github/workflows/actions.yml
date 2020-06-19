@@ -14,9 +14,9 @@ jobs:
       - name: Set up php and composer
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-versions }}        
+          php-version: ${{ matrix.php-versions }}
+          ini-values:  xdebug.mode=coverage
           extensions: 'mbstring'
-          ini-values: 'pcov.directory=api'
           coverage: ${{ matrix.coverage }}
       - name: Install dependencies
         run: composer install --no-progress --no-suggest --prefer-dist --ignore-platform-reqs
