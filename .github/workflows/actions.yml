@@ -8,8 +8,7 @@ jobs:
       matrix:
         operating-system: [ubuntu-latest]
         php-versions: ['7.4', '8.0']
-        coverage: [xdebug, pcov, none]
-        extensions: [xdebug, xdebug3]
+        coverage: [xdebug, xdebug3, pcov, none]
     runs-on: ${{ matrix.operating-system }}
     steps:
       - name: Checkout
