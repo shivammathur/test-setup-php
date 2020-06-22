@@ -10,20 +10,11 @@ jobs:
       matrix:
          os: [macos-latest]
 #        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
-#        php-versions: ['7.3', '7.4', '8.0']
+         php-versions: ['5.3', '5.4', '5.5']
     steps:
-      - name: packaging
-        run: |
-          curl -sSLO https://github.com/shivammathur/php5-darwin/releases/download/1.0.0/php53.tar.xz
-          curl -sSLO https://github.com/shivammathur/php5-darwin/releases/download/1.0.0/php54.tar.xz
-          curl -sSLO https://github.com/shivammathur/php5-darwin/releases/download/1.0.0/php55.tar.xz
-          for version in '53' '54' '55'; do
-            tar xf php$version.tar.xz
-            tar cf - php$version | zstd -22 -T0 --ultra > php$version.tar.zst
-          done
-      - uses: actions/upload-artifact@v2
+      - name: test
+        uses: shivammathur/setup-php@v2
         with:
-          name: my-artifact
-          path: ./*.zst
+          php-version: ${{ matrix.php-version }}
             
         
