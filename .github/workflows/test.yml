@@ -21,6 +21,11 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: pdo, pdo_sqlite, mysql, pdo_mysql, pdo_pgsql, pgsql
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: pdo, pdo_sqlite, mysql, pdo_mysql, pdo_pgsql, pgsql
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
