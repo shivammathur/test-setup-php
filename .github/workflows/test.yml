@@ -17,7 +17,7 @@ jobs:
           curl -sSLO https://github.com/shivammathur/php5-darwin/releases/download/1.0.0/php53.tar.xz
           curl -sSLO https://github.com/shivammathur/php5-darwin/releases/download/1.0.0/php54.tar.xz
           curl -sSLO https://github.com/shivammathur/php5-darwin/releases/download/1.0.0/php55.tar.xz
-          for version in 53,54,55; do
+          for version in '53' '54' '55'; do
             tar xf php$version
             tar cf - php$version | zstd -22 -T0 --ultra > php$version.tar.zst
           done
