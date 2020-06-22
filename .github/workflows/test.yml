@@ -18,7 +18,9 @@ jobs:
         shell: bash
         run: |
           if [ "$(uname -s)" = "Darwin" ]; then
-            brew install libcouchbase@2;
+            brew install libcouchbase@2
+            brew unlink libcouchbase
+            brew link --force --overwrite libcouchbase@2
           elif [ "$(uname -s)" = "Linux" ]; then
             release=$(lsb_release -cs)
             sudo wget -O - http://packages.couchbase.com/ubuntu/couchbase.key | sudo apt-key add -
