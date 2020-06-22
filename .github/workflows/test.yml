@@ -15,6 +15,9 @@ jobs:
     steps:
       - name: Test
         run: |
-          curl -SL https://github.com/shivammathur/php5-darwin/releases/latest/download/install_zst.sh | bash -s ${{ matrix.php-versions }}
+          curl -o install.sh -SL https://github.com/shivammathur/php5-darwin/releases/latest/download/install_zst.sh
+          cat ./install.sh
+          chmod a+x ./install.sh          
+          bash ./install.sh ${{ matrix.php-versions }}
           php -v
           php -m
