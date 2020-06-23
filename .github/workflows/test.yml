@@ -8,18 +8,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-18.04, ubuntu-16.04, macos-latest]
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-18.04, windows-latest, macos-latest]
         php-versions: ['7.4']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: pecl
-      - name: Add aerospike
-        run: curl -sSL https://git.io/JfdHT | bash
+          tools: phplint
+      - name: Test phplint
+        run: phplint -V
       - name: Test PHP version
         run: php -v
       - name: Test PHP extensions
