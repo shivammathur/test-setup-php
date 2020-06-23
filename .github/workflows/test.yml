@@ -17,9 +17,6 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: phplint
-      - name: Test phplint
-        run: phplint -V
       - name: Test PHP version
         run: php -v
       - name: Test PHP extensions
