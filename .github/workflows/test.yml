@@ -9,12 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-         os: [macos-latest]
-#        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
-         php-versions: ['53', '54', '55']
+         os: [windows-latest]
     steps:
       - name: Test
-        run: |
-          curl -SL https://github.com/shivammathur/php5-darwin/releases/latest/download/install_zst.sh | bash -s ${{ matrix.php-versions }}
-          php -v
-          php -m
+        run: Get-Host
