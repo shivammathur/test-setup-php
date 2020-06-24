@@ -14,5 +14,6 @@ jobs:
       - name: Test
         run: |
           New-Item -Path test.ps1 -Value "echo test"
+          Start-Sleep 2
           Measure-Command { powershell test.ps1 }
           Measure-Command { pwsh test.ps1 }
