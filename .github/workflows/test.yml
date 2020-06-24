@@ -12,4 +12,7 @@ jobs:
          os: [windows-latest]
     steps:
       - name: Test
-        run: Get-Host
+        run: |
+          New-Item -Path test.ps1 -Value "echo test"
+          Measure-Command { powershell test.ps1 }
+          Measure-Command { pwsh test.ps1 }
