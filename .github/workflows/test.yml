@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [windows-latest]
-        php-versions: ['7.4']
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -17,7 +17,11 @@ jobs:
         uses: shivammathur/setup-php@wintest
         with:
           php-version: ${{ matrix.php-versions }}
+      - name: Test composer version
+        run: composer -V
       - name: Test PHP version
         run: php -v
+      - name: Test PHP version using module
+        run: Get-Php -Path $env:PHPROOT
       - name: Test PHP extensions
         run: php -m
