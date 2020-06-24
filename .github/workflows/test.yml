@@ -12,6 +12,4 @@ jobs:
          os: [windows-latest]
     steps:
       - name: Test
-        run: |
-          Measure-Command { powershell -c "echo test" }
-          Measure-Command { pwsh -c "echo test" }
+        run: powershell -c "echo test"
