@@ -22,6 +22,8 @@ jobs:
           php -v
           Get-Php -Path C:\tools\php
       - name: Test PHP extensions
-        run: php -m
+        run: |
+          Add-PhpExtension pcov -Path C:\tools\php
+          php -m
       - name: Test Composer
         run: composer -V
