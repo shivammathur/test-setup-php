@@ -12,4 +12,4 @@ jobs:
          os: [windows-latest]
     steps:
       - name: Test
-        run: pwsh -c "echo test"
+        run: which pwsh
