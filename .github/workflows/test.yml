@@ -12,4 +12,4 @@ jobs:
          os: [windows-latest]
     steps:
       - name: Test
-        run: powershell -c "echo test"
+        run: pwsh -c "echo test"
