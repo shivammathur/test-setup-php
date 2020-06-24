@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [windows-latest]
-        php-versions: ['7.4']
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -22,8 +22,6 @@ jobs:
           php -v
           Get-Php -Path C:\tools\php
       - name: Test PHP extensions
-        run: |
-          Install-PhpExtension pcov -Path C:\tools\php
-          php -m
+        run: php -m
       - name: Test Composer
         run: composer -V
