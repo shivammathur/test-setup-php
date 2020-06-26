@@ -8,33 +8,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        operating-system: [macOS-latest]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     name: 1) PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Intall libs
-        shell: bash
+      - name: Test
+        env:
+          version: ${{ matrix.php-versions }}
         run: |
-          if [ "$(uname -s)" = "Darwin" ]; then
-            brew install libcouchbase@2
-            brew link --force --overwrite libcouchbase@2
-          elif [ "$(uname -s)" = "Linux" ]; then
-            release=$(lsb_release -cs)
-            sudo wget -O - http://packages.couchbase.com/ubuntu/couchbase.key | sudo apt-key add -
-            echo "deb http://packages.couchbase.com/ubuntu $release $release/main" | sudo tee /etc/apt/sources.list.d/couchbase.list
-            sudo DEBIAN_FRONTEND=noninteractive apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libcouchbase-dev            
-          fi
-      - name: Install PHP
-        uses: shivammathur/setup-php@verbose
-        with:
-          php-version: ${{ matrix.php-versions }}
-          tools: pecl
-          extensions: couchbase
+          brew tap shivammathur/php
+          brew install php@$version || true
+          brew link --force --overwrite php@$version || true
+          brew tap shivammathur/extensions
+          brew install xdebug@$version
+          brew install pcov@$version
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
-        run: |
-          php -m
-          php -r "if(! extension_loaded('couchbase')) {throw new Exception('xml not found');}"
+        run: php -m
