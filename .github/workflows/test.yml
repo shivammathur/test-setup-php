@@ -1,29 +1,31 @@
-name: Test extensions #test cache
-on: [push]
+name: 'Extension workflow'
+on:
+  repository_dispatch:
+  push:
 jobs:
-  run:
+  run1:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, macos-latest]
-        php-versions: ['7.4']        
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
-    env:
-      extensions: swoole, grpc, protobuf
+        operating-system: [macOS-latest]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+    name: 1) PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-
-    - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
-        tools: pecl
-
-    - name: Check PHP version
-      run: php -v
-
-    - name: Check PHP extensions
-      run: php -m
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Test
+        env:
+          version: ${{ matrix.php-versions }}
+        run: |
+          brew tap shivammathur/php
+          brew install php@$version || true
+          brew link --force --overwrite php@$version || true
+          brew tap shivammathur/extensions
+          brew install xdebug@$version
+          brew install swoole@$version
+          brew install pcov@$version || true
+      - name: Testing PHP version
+        run: php -v
+      - name: Testing Extensions
+        run: php -m
