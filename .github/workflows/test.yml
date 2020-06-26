@@ -9,15 +9,17 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [macOS-latest]
-        php-versions: ['7.2']
-#        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+#        php-versions: ['7.2']
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     name: 1) PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Test
-        env:
-          version: ${{ matrix.php-versions }}
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+      - name: Test      
         run: |
           brew install grpc
           curl -OSL https://pecl.php.net/get/grpc-1.30.0.tgz
