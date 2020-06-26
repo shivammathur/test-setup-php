@@ -9,27 +9,23 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [macOS-latest]
-#        php-versions: ['7.2']
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     name: 1) PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-versions }}
-      - name: Test      
+      - name: Test
+        env:
+          version: ${{ matrix.php-versions }}
         run: |
-          brew install grpc
-          curl -OSL https://pecl.php.net/get/grpc-1.30.0.tgz
-          tar xf grpc-1.30.0.tgz
-          cd grpc-1.30.0
-          phpize
-          ./configure --enable-grpc
-          make
-          make install
-          echo "extension=grpc" >> $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+          brew tap shivammathur/php
+          brew install php@$version || true
+          brew link --force --overwrite php@$version || true
+          brew tap shivammathur/extensions
+          brew install xdebug@$version
+          brew install swoole@$version
+          brew install pcov@$version || true
+          brew install grpc@$version || true
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
