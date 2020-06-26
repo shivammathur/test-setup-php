@@ -23,7 +23,7 @@ jobs:
           brew link --force --overwrite php@$version || true
           brew tap shivammathur/extensions
           brew install xdebug@$version
-          brew install pcov@$version
+          brew install pcov@$version || true
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
