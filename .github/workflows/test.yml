@@ -1,4 +1,4 @@
-name: 'Coverage workflow'
+name: 'Windows workflow'
 on:
   push:
 jobs:
@@ -14,20 +14,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - run: Remove-Item 'C:\tools\php' -Recurse -Force
-      - run: New-Item C:\tools\php -Itemtype 'directory'
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
         env:
           phpts: ${{ matrix.ts }}
+      - name: Test
+        run: git status
       - name: Test PHP
         run: php -v
       - name: Test php extensions
         run: php -m
-      - name: Check pcov versions
-        run: |        
-          Enable-PhpExtension -Extension pcov -Path C:\tools\php
-          php -m
-          php -r "echo phpversion('pcov');"
