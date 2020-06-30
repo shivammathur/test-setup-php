@@ -13,7 +13,7 @@ jobs:
         run: apt-cache policy libzip-dev
       - name: Increase priority on libzip-dev
         run: |
-          printf "Package: libzip-dev\nPin: release a=focal, c=universe\nPin-Priority: 900" >> /etc/apt/preferences.d/99focal-universe
+          printf "Package: libzip-dev\nPin: release a=focal, c=universe\nPin-Priority: 900" | sudo tee -a /etc/apt/preferences.d/99focal-universe
       - name: Test libzip-dev new priority
         run: apt-cache policy libzip-dev
       - name: Install lizip-dev
