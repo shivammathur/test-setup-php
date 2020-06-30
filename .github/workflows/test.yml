@@ -5,11 +5,19 @@ on:
 jobs:
   ubuntu:
     name: runner
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-         os: [windows-latest]
+    runs-on: ubuntu-20.04
     steps:
-      - name: Test
-        run: which pwsh
+      - name: Test current libzip binaries
+        run: ls -la /usr/lib/x86_64-linux-gnu/libzip*
+      - name: Test libzip-dev default priority
+        run: apt-cache policy libzip-dev
+      - name: Increase priority on libzip-dev
+        run: |
+          printf "Package: libzip-dev\nPin: release a=focal, c=universe\nPin-Priority: 900" >> /etc/apt/preferences.d/99focal-universe
+      - name: Test libzip-dev new priority
+        run: apt-cache policy libzip-dev
+      - name: Install lizip-dev
+        run: sudo apt-get install -y libzip-dev
+      - name: Test final libzip binaries
+        run: ls -la /usr/lib/x86_64-linux-gnu/libzip*
+        
