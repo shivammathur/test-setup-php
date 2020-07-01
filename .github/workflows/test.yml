@@ -15,6 +15,13 @@ jobs:
         php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
+      - name: Debug
+        run: |
+          type $profile
+          Get-Module -All
+          [environment]::GetEnvironmentVariable("POWERSHELL_UPDATECHECK")
+          [environment]::GetEnvironmentVariable("POWERSHELL_UPDATECHECK_OPTOUT")
+          [environment]::GetEnvironmentVariable("POWERSHELL_TELEMETRY_OPTOUT")
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
