@@ -3,10 +3,10 @@ on:
   push:
 jobs:
   run:
-    env:
-      POWERSHELL_UPDATECHECK: "Off"
-      POWERSHELL_UPDATECHECK_OPTOUT: 1
-      POWERSHELL_TELEMETRY_OPTOUT: 1
+#    env:
+#      POWERSHELL_UPDATECHECK: "Off"
+#      POWERSHELL_UPDATECHECK_OPTOUT: 1
+#      POWERSHELL_TELEMETRY_OPTOUT: 1
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
@@ -15,6 +15,12 @@ jobs:
         php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
       - name: Debug
         run: |
           if(Test-Path $profile) {
@@ -33,12 +39,6 @@ jobs:
           [environment]::GetEnvironmentVariable("POWERSHELL_UPDATECHECK")
           [environment]::GetEnvironmentVariable("POWERSHELL_UPDATECHECK_OPTOUT")
           [environment]::GetEnvironmentVariable("POWERSHELL_TELEMETRY_OPTOUT")
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
       - name: Test PHP
         run: php -v
       - name: Test php extensions
