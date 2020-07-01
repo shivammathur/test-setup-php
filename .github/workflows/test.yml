@@ -26,4 +26,4 @@ jobs:
       - name: Test Composer
         run: |
           composer -V
-          composer --vvv global require symfony/flex
+          composer global require -vvv symfony/flex
