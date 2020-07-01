@@ -19,9 +19,7 @@ jobs:
           php-version: ${{ matrix.php-versions }}
           tools: composer:v2
       - name: Test PHP version
-        run: |
-          php -v
-          Get-Php -Path C:\tools\php
+        run: php -v
       - name: Test PHP extensions
         run: php -m
       - name: Test Composer
