@@ -13,23 +13,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Update pwsh
+        run: Invoke-Expression "& { $(Invoke-RestMethod 'https://aka.ms/install-powershell.ps1') } -daily"
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-      - name: Benchmark 1
-        run: |
-          $total = 0; 1..10 | % { $total += (Measure-Command { pwsh -c 1 }).TotalMilliseconds };$total/10
-          echo $total
-      - name: Benchmark
-        run: |
-          $total = 0; 1..10 | % { $total += (Measure-Command { pwsh -c 1 }).TotalMilliseconds };$total/10
-          echo $total
-        env:
-          POWERSHELL_UPDATECHECK: "Off"
-          POWERSHELL_UPDATECHECK_OPTOUT: 1
-          POWERSHELL_TELEMETRY_OPTOUT: 1
-
       - name: Debug
         run: |
           if(Test-Path $profile) {
@@ -47,8 +36,7 @@ jobs:
           Get-Module -All
           [environment]::GetEnvironmentVariable("POWERSHELL_UPDATECHECK")
           [environment]::GetEnvironmentVariable("POWERSHELL_UPDATECHECK_OPTOUT")
-          [environment]::GetEnvironmentVariable("POWERSHELL_TELEMETRY_OPTOUT")
-          [environment]::GetEnvironmentVariable("DOTNET_CLI_TELEMETRY_OPTOUT")          
+          [environment]::GetEnvironmentVariable("POWERSHELL_TELEMETRY_OPTOUT")      
       - name: Test PHP
         run: php -v
       - name: Test php extensions
