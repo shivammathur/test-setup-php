@@ -3,13 +3,14 @@ on:
   push:
 jobs:
   run:
+    env:
+      POWERSHELL_UPDATECHECK: "Off"
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
         operating-system: [windows-latest]
-        php-versions: ['8.0']
-        ts: [ts, nts]
+        php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -18,15 +19,6 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, xdebug, pcov, intl, gd
-          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
-        env:
-          phpts: ${{ matrix.ts }}
-      - name: Test
-        continue-on-error: true
-        run: | 
-          git status
-          php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Test PHP
         run: php -v
       - name: Test php extensions
