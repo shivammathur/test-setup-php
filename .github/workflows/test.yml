@@ -13,33 +13,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Update pwsh
-        continue-on-error: true
-        run: |
-          echo 'test'
-          # Invoke-Expression "& { $(Invoke-RestMethod 'https://aka.ms/install-powershell.ps1') } -Destination 'C:\Program Files\PowerShell\7' -daily -preview"
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-versions }}
-      - name: Debug
-        run: |
-          if(Test-Path $profile) {
-            echo "profile"
-            type $profile
-          }
-          if(Test-Path $PsHome\Profile.ps1) {
-            echo "$PsHome\Profile.ps1"
-            type $PsHome\Profile.ps1
-          }
-          if(Test-Path $PsHome\Microsoft.PowerShell_profile.ps1) {
-            echo "$PsHome\Microsoft.PowerShell_profile.ps1"
-            type $PsHome\Microsoft.PowerShell_profile.ps1
-          }                           
-          Get-Module -All
-          [environment]::GetEnvironmentVariable("POWERSHELL_UPDATECHECK")
-          [environment]::GetEnvironmentVariable("POWERSHELL_UPDATECHECK_OPTOUT")
-          [environment]::GetEnvironmentVariable("POWERSHELL_TELEMETRY_OPTOUT")      
+          php-version: ${{ matrix.php-versions }}  
       - name: Test PHP
         run: php -v
       - name: Test php extensions
