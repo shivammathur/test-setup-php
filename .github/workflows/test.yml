@@ -17,8 +17,9 @@ jobs:
         continue-on-error: true
         run: |
           pwsh -C "Get-Host"
-          Invoke-Expression "& { $(Invoke-RestMethod 'https://aka.ms/install-powershell.ps1') } -daily -preview -AddToPath"
+          Invoke-Expression "& { $(Invoke-RestMethod 'https://aka.ms/install-powershell.ps1') } -Destination 'C:\Program Files\PowerShell\7' -daily -preview -AddToPath"
           pwsh -C "Get-Host"
+          which pwsh
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
