@@ -17,7 +17,18 @@ jobs:
     steps:
       - name: Debug
         run: |
-          type $profile
+          if(Test-Path $profile) {
+            echo "profile"
+            type $profile
+          }
+          if(Test-Path $PsHome\Profile.ps1) {
+            echo "$PsHome\Profile.ps1"
+            type $PsHome\Profile.ps1
+          }
+          if(Test-Path $PsHome\Microsoft.PowerShell_profile.ps1) {
+            echo "$PsHome\Microsoft.PowerShell_profile.ps1"
+            type $PsHome\Microsoft.PowerShell_profile.ps1
+          }                           
           Get-Module -All
           [environment]::GetEnvironmentVariable("POWERSHELL_UPDATECHECK")
           [environment]::GetEnvironmentVariable("POWERSHELL_UPDATECHECK_OPTOUT")
