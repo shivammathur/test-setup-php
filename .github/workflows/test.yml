@@ -17,7 +17,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Check
+      - name: Check 1
+        run: Write-Host "Test"
+      - name: Check 2
         run: Write-Host "Test"
       - name: Install PHP
         uses: shivammathur/setup-php@develop
