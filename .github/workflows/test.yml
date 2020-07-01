@@ -18,7 +18,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: composer:${{ matrix.cv }}
+          tools: composer:${{ matrix.cv }}, flex
       - name: Test PHP version
         run: php -v
       - name: Test PHP extensions
@@ -26,4 +26,3 @@ jobs:
       - name: Test Composer
         run: |
           composer -V
-          composer global require -vvv symfony/flex
