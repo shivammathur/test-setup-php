@@ -3,10 +3,6 @@ on:
   push:
 jobs:
   run:
-    env:
-      POWERSHELL_UPDATECHECK: "Off"
-      POWERSHELL_UPDATECHECK_OPTOUT: 1
-      POWERSHELL_TELEMETRY_OPTOUT: 1
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
@@ -18,7 +14,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
       - name: Debug
