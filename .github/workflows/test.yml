@@ -15,7 +15,10 @@ jobs:
         uses: actions/checkout@v2
       - name: Update pwsh
         continue-on-error: true
-        run: Invoke-Expression "& { $(Invoke-RestMethod 'https://aka.ms/install-powershell.ps1') } -preview -AddToPath"
+        run: |
+          pwsh -C "Get-Host"
+          Invoke-Expression "& { $(Invoke-RestMethod 'https://aka.ms/install-powershell.ps1') } -daily -preview -AddToPath"
+          pwsh -C "Get-Host"
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
