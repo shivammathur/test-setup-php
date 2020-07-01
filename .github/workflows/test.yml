@@ -8,8 +8,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['7.3', '7.4']
+        operating-system: [ubuntu-latest]
+        php-versions: ['7.4']
+        cv: [v1, v2]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -17,10 +18,12 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: composer:v2
+          tools: composer:${{ matrix.cv }}
       - name: Test PHP version
         run: php -v
       - name: Test PHP extensions
         run: php -m
       - name: Test Composer
-        run: composer -V
+        run: |
+          composer -V
+          composer global install symfony/flex
