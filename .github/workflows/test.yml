@@ -3,10 +3,10 @@ on:
   push:
 jobs:
   run:
-#    env:
-#      POWERSHELL_UPDATECHECK: "Off"
-#      POWERSHELL_UPDATECHECK_OPTOUT: 1
-#      POWERSHELL_TELEMETRY_OPTOUT: 1
+    env:
+      POWERSHELL_UPDATECHECK: "Off"
+      POWERSHELL_UPDATECHECK_OPTOUT: 1
+      POWERSHELL_TELEMETRY_OPTOUT: 1
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
