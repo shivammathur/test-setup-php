@@ -16,7 +16,8 @@ jobs:
       - name: Update pwsh
         continue-on-error: true
         run: |
-          Invoke-Expression "& { $(Invoke-RestMethod 'https://aka.ms/install-powershell.ps1') } -Destination 'C:\Program Files\PowerShell\7' -daily -preview"
+          echo 'test'
+          # Invoke-Expression "& { $(Invoke-RestMethod 'https://aka.ms/install-powershell.ps1') } -Destination 'C:\Program Files\PowerShell\7' -daily -preview"
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
