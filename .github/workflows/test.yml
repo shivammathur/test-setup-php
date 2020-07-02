@@ -3,29 +3,14 @@ on:
   push:
 jobs:
   run:
-    env:
-      POWERSHELL_UPDATECHECK: "Off"
-      POWERSHELL_UPDATECHECK_OPTOUT: 1      
-      POWERSHELL_TELEMETRY_OPTOUT: 1
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
         operating-system: [windows-latest]
-        php-versions: ['7.4']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    name: Test on ${{ matrix.operating-system }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
       - name: Check 1
         run: Write-Host "Test"
       - name: Check 2
         run: Write-Host "Test"
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}  
-      - name: Test PHP
-        run: php -v
-      - name: Test php extensions
-        run: php -m
