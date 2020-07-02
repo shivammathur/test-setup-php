@@ -15,8 +15,11 @@ jobs:
     
     - name: Remove PPA
       run: |
-        sudo rm /etc/apt/sources.list.d/ondrej*
-        sudo apt-get update        
+        . /etc/lsb-release
+        if [ "$DISTRIB_RELEASE" = "20.04" ]; then
+          sudo rm /etc/apt/sources.list.d/ondrej*
+          sudo apt-get update
+        fi  
 
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
