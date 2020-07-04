@@ -4,7 +4,7 @@ on:
 jobs:
   run:
     env:
-      ext: swoole
+      ext: protobuf
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
@@ -19,10 +19,10 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.ext }}
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
         run: |
-          sudo pecl install -f ${{ env.ext }}
           php -m
           php -r "if(! extension_loaded('${{ env.ext }}')) {throw new Exception('${{ env.ext }} not found');}"          
