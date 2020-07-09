@@ -7,16 +7,17 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [macos-latest]
-        php-versions: ['8.0']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    name: Test macOS
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
     - name: Setup PHP
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
+      run: |
+        brew uninstall php
+        brew tap shivammathur/php
+        brew install shivammathur/php/php@7.4
+        brew link --overwrite --force php@7.4
 
     - name: Test PHP version
       run: php -v
