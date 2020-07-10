@@ -8,9 +8,21 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [windows-latest]
-    name: Test on ${{ matrix.operating-system }}
+        php-versions: ['8.0']
+        ts: [ts, nts]
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-      - name: Check 1
-        run: Write-Host "Test"
-      - name: Check 2
-        run: Write-Host "Test"
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+        env:
+          phpts: ${{ matrix.ts }}
+      - name: Test
+        run: git status
+      - name: Test PHP
+        run: php -v
+      - name: Test php extensions
+        run: php -m
