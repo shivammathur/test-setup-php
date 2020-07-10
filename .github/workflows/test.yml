@@ -3,15 +3,13 @@ on:
   push:
 jobs:
   run:
-    env:
-      ext: xdebug
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
-        php-versions: ['8.0']
-    name: 1) PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        operating-system: [ubuntu-18.04]
+        php-versions: ['7.2']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -19,9 +17,9 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.ext }}
+          extensions: gd, exif
+          tools: pecl, composer
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
-        run: |
-          php -m
+        run: php -m
