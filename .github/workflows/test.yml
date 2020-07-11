@@ -15,13 +15,13 @@ jobs:
 
     - name: Setup PHP
       run: |
-        dpkg --clear-avail
         sudo rm -rf /etc/apt/sources.list.d/*
         sudo rm -rf /etc/apt/sources.list.save /etc/apt/sources.list
         printf 'deb http://azure.archive.ubuntu.com/ubuntu %s main multiverse universe restricted\n' "$(. /etc/os-release; printf "%s" "$UBUNTU_CODENAME")"{,-security} | sudo tee /etc/apt/sources.list
         LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
         sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
-        dpkg --clear-avail
+        sudo dpkg --clear-avail
+        sudo sudo sync-available || true
         version='${{ matrix.php-versions }}'
         sudo mkdir -p /var/run /run/php        
         IFS=' ' read -r -a packages <<< "$(echo "cli curl mbstring xml intl" | sed "s/[^ ]*/php$version-&/g")"          
