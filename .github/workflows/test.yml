@@ -22,16 +22,22 @@ jobs:
         sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
         version='${{ matrix.php-versions }}'
         sudo mkdir -p /var/run /run/php        
-        IFS=' ' read -r -a packages <<< "$(echo "curl mbstring xml intl" | sed "s/[^ ]*/php$version-&/g")"
-        IFS=' ' read -r -a pre_packages <<< "$(echo "common cli" | sed "s/[^ ]*/php$version-&/g")"
-          
-        sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y libapache2-mod-php7.4 "${pre_packages[@]}" php"$version" "${packages[@]}"
+        IFS=' ' read -r -a packages <<< "$(echo "curl mbstring xml intl" | sed "s/[^ ]*/php$version-&/g")"          
+        sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y php"$version" "${packages[@]}"
         for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
           if [ -e "/usr/bin/$tool$version" ]; then
             sudo update-alternatives --set $tool /usr/bin/"$tool$version"
           fi
         done
         ls /var/cache/apt/archives
+        mkdir archives
+        cp /var/cache/apt/archives/*deb ./archives
+        
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: php_${{ matrix.php-versions }}
+        path: archives     
         
     - name: Test PHP version
       run: php -v
