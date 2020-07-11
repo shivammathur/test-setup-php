@@ -15,6 +15,9 @@ jobs:
 
     - name: Setup PHP
       run: |
+        if ! apt-cache policy | grep -q ondrej/php; then
+          LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
+        fi
         version='${{ matrix.php-versions }}'
         sudo mkdir -p /var/run /run/php
         IFS=' ' read -r -a packages <<< "$(echo "curl mbstring xml intl" | sed "s/[^ ]*/php$version-&/g")"
