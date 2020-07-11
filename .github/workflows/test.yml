@@ -15,10 +15,11 @@ jobs:
 
     - name: Setup PHP
       run: |
-        ls /etc/apt/sources.list.d/
-        sudo rm -rf /etc/apt/sources.list.d/* 
         LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
+        sudo cp -R /etc/apt/sources.list.d /etc/apt/sources.list.d.save
+        sudo rm -rf /etc/apt/sources.list.d/!(*ondrej*)
         sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
+        sudo cp -R /etc/apt/sources.list.d.save/!(*ondrej*) /etc/apt/sources.list/        
         version='${{ matrix.php-versions }}'
         sudo mkdir -p /var/run /run/php        
         IFS=' ' read -r -a packages <<< "$(echo "cli curl mbstring xml intl" | sed "s/[^ ]*/php$version-&/g")"          
