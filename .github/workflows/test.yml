@@ -15,13 +15,12 @@ jobs:
 
     - name: Setup PHP
       run: |
-        sudo rm -rf /var/lib/apt/lists/*
         LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
         sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
         version='${{ matrix.php-versions }}'
         sudo mkdir -p /var/run /run/php        
         IFS=' ' read -r -a packages <<< "$(echo "curl mbstring xml intl" | sed "s/[^ ]*/php$version-&/g")"          
-        sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y php"$version" "${packages[@]}" apache2- apache2-bin- libapache2-mod-php"$version"-
+        sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y php"$version" "${packages[@]}" php"$version"-fpm- apache2- apache2-bin- libapache2-mod-php"$version"-
         for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
           if [ -e "/usr/bin/$tool$version" ]; then
             sudo update-alternatives --set $tool /usr/bin/"$tool$version"
