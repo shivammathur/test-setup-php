@@ -16,8 +16,8 @@ jobs:
     - name: Setup PHP
       run: |
         sudo rm -rf /etc/apt/sources.list.d/*
-        sudo mv /etc/apt/sources.list.save /etc/apt/sources.list
-        printf 'deb http://azure.ubuntu.com/ubuntu %s main multiverse universe restricted\n' "$(. /etc/os-release; printf "%s" "$UBUNTU_CODENAME")"{,-security} | sudo tee /etc/apt/sources.list
+        sudo rm -rf /etc/apt/sources.list.save /etc/apt/sources.list
+        printf 'deb http://azure.archive.ubuntu.com/ubuntu %s main multiverse universe restricted\n' "$(. /etc/os-release; printf "%s" "$UBUNTU_CODENAME")"{,-security} | sudo tee /etc/apt/sources.list
         LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
         sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
         version='${{ matrix.php-versions }}'
