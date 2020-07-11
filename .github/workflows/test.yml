@@ -6,18 +6,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [ubuntu-latest]
-        php-versions: ['8.0']
+        operating-system: [ubuntu-20.04]
+        php-versions: ['7.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2  
 
     - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: mbstring, intl
+      run: |
+        version='${{ matrix.php-versions }}'
+        sudo mkdir -p /var/run /run/php
+        IFS=' ' read -r -a packages <<< "$(echo "curl mbstring xml intl" | sed "s/[^ ]*/php$version-&/g")"
+        php"$version" "${packages[@]}"
+        for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
+          if [ -e "/usr/bin/$tool$version" ]; then
+            sudo update-alternatives --set $tool /usr/bin/"$tool$version"
+          fi
+        done
         
     - name: Test PHP version
       run: php -v
