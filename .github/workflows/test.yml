@@ -15,7 +15,9 @@ jobs:
 
     - name: Setup PHP
       run: |
+        echo '----------'
         LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
+        echo '----------'
         sudo cp -R /etc/apt/sources.list.d /etc/apt/sources.list.d.save
         sudo rm -rf /etc/apt/sources.list.d/!(*ondrej*)
         sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
