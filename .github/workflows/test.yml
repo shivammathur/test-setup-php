@@ -15,10 +15,8 @@ jobs:
 
     - name: Setup PHP
       run: |
-        sudo rm -rf /var/cache/apt/archives/*
-        if ! apt-cache policy | grep -q ondrej/php; then
-          LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
-        fi
+        rm -rf /var/lib/apt/lists/*
+        LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
         sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
         version='${{ matrix.php-versions }}'
         sudo mkdir -p /var/run /run/php        
@@ -28,16 +26,7 @@ jobs:
           if [ -e "/usr/bin/$tool$version" ]; then
             sudo update-alternatives --set $tool /usr/bin/"$tool$version"
           fi
-        done
-        ls /var/cache/apt/archives
-        mkdir archives
-        cp /var/cache/apt/archives/*deb ./archives
-        
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: php_${{ matrix.php-versions }}
-        path: archives     
+        done 
         
     - name: Test PHP version
       run: php -v
