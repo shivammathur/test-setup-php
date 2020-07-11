@@ -7,32 +7,16 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [ubuntu-20.04]
-        php-versions: ['7.3']
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2  
 
     - name: Setup PHP
-      run: |
-        shopt -s extglob      
-        sudo cp -R /etc/apt/sources.list.d /etc/apt/sources.list.d.save
-        sudo rm -rf /etc/apt/sources.list.d/!(*ondrej*)
-        if ! apt-cache policy | grep -q ondrej/php; then
-          LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
-        fi  
-        sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
-        sudo cp -R /etc/apt/sources.list.d.save/!(*ondrej*) /etc/apt/sources.list.d/
-        shopt -u extglob
-        version='${{ matrix.php-versions }}'
-        sudo mkdir -p /var/run /run/php        
-        IFS=' ' read -r -a packages <<< "$(echo "cli curl mbstring xml intl" | sed "s/[^ ]*/php$version-&/g")"          
-        sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y "${packages[@]}"
-        for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
-          if [ -e "/usr/bin/$tool$version" ]; then
-            sudo update-alternatives --set $tool /usr/bin/"$tool$version"
-          fi
-        done 
+      uses: shivammathur/setup-php@develop
+      with:
+        php-version: ${{ matrix.php-versions }}
         
     - name: Test PHP version
       run: php -v
