@@ -15,13 +15,15 @@ jobs:
 
     - name: Setup PHP
       run: |
-        echo '----------'
-        LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
-        echo '----------'
+        shopt -s extglob      
         sudo cp -R /etc/apt/sources.list.d /etc/apt/sources.list.d.save
         sudo rm -rf /etc/apt/sources.list.d/!(*ondrej*)
+        if ! apt-cache policy | grep -q ondrej/php; then
+          LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
+        fi  
         sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
-        sudo cp -R /etc/apt/sources.list.d.save/!(*ondrej*) /etc/apt/sources.list/        
+        sudo cp -R /etc/apt/sources.list.d.save/!(*ondrej*) /etc/apt/sources.list.d/
+        shopt -u extglob
         version='${{ matrix.php-versions }}'
         sudo mkdir -p /var/run /run/php        
         IFS=' ' read -r -a packages <<< "$(echo "cli curl mbstring xml intl" | sed "s/[^ ]*/php$version-&/g")"          
