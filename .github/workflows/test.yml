@@ -22,7 +22,7 @@ jobs:
         version='${{ matrix.php-versions }}'
         sudo mkdir -p /var/run /run/php        
         IFS=' ' read -r -a packages <<< "$(echo "cli curl mbstring xml intl" | sed "s/[^ ]*/php$version-&/g")"          
-        sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y "${packages[@]}" apache2- apache2-bin- libapache2-mod-php"$version"-
+        sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y "${packages[@]}"
         for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
           if [ -e "/usr/bin/$tool$version" ]; then
             sudo update-alternatives --set $tool /usr/bin/"$tool$version"
