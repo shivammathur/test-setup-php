@@ -15,17 +15,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
         env:
           phpts: ${{ matrix.ts }}
-      - name: Patch
-        run: |
-          if($version -lt "5.5") {
-            Invoke-WebRequest -UseBasicParsing -Uri "https://dl.bintray.com/shivammathur/php/libeay32.dll" -OutFile C:\tools\php\libeay32.dll
-            Invoke-WebRequest -UseBasicParsing -Uri "https://dl.bintray.com/shivammathur/php/ssleay32.dll" -OutFile C:\tools\php\ssleay32.dll
-          }
       - name: Test PHP
         run: php -v
       - name: Test php extensions
