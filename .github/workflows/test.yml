@@ -8,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [windows-latest]
-        php-versions: ['8.0']
+        php-versions: ['5.3', '5.4', '5.5']
         ts: [ts, nts]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -20,9 +20,15 @@ jobs:
           php-version: ${{ matrix.php-versions }}
         env:
           phpts: ${{ matrix.ts }}
-      - name: Test
-        run: git status
+      - name: Patch
+        run: |
+          if($version -lt "5.5") {
+            Invoke-WebRequest -UseBasicParsing -Uri "https://dl.bintray.com/shivammathur/php/libeay32.dll" -OutFile C:\tools\php\libeay32.dll
+            Invoke-WebRequest -UseBasicParsing -Uri "https://dl.bintray.com/shivammathur/php/ssleay32.dll" -OutFile C:\tools\php\ssleay32.dll
+          }
       - name: Test PHP
         run: php -v
       - name: Test php extensions
         run: php -m
+      - name: Test SSL
+        run: php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
