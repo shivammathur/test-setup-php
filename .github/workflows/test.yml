@@ -6,12 +6,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [ubuntu-latest, ubuntu-16.04]
-        php-versions: ['5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        operating-system: [ubuntu-latest, macos-latest]
+        php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: blackfire, apcu, intl, xml, json, zip, mbstring, pdo, pdo_mysql, pdo_odbc, pcntl, curl, date, openssl, xmlreader, zlib
-      key: cache-exts
       BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }} 
       BLACKFIRE_SERVER_TOKEN: ${{ secrets.BLACKFIRE_SERVER_TOKEN }}
       BLACKFIRE_CLIENT_ID: ${{ secrets.BLACKFIRE_CLIENT_ID }}
@@ -19,24 +17,11 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Setup cache environment
-      id: cache-env
-      uses: shivammathur/cache-extensions@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}        
-        key: ${{ env.key }}
-    - name: Cache extensions
-      uses: actions/cache@v1
-      with:
-        path: ${{ steps.cache-env.outputs.dir }}
-        key: ${{ steps.cache-env.outputs.key }}
-        restore-keys: ${{ steps.cache-env.outputs.key }}
     - name: Install PHP
-      uses: shivammathur/setup-php@develop
+      uses: lolautruche/setup-php@fix-blackfire
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
+        extensions: blackfire
         tools: blackfire, blackfire-player
     - name: Testing PHP version
       run: php -v
