@@ -22,7 +22,7 @@ jobs:
         run: |
           Invoke-WebRequest -UseBasicParsing -Uri https://download.oracle.com/otn_software/nt/instantclient/instantclient-basiclite-windows.zip -OutFile C:\tools\php\instantclient.zip
           Expand-Archive -Path C:\tools\php\instantclient.zip -DestinationPath C:\tools\php -Force
-          Import-Module ((Split-Path (Get-Module -ListAvailable PhpManager).Path) + '\PhpManager.psm1')
+          #Import-Module ((Split-Path (Get-Module -ListAvailable PhpManager).Path) + '\PhpManager.psm1')
           $PhpVersion = Get-Php -Path C:\tools\php
           $ociVersion = Get-PeclPackageVersion oci8 | Select -First 1
           $ociUrl = Get-PeclArchiveUrl oci8 $ociVersion $phpVersion     
