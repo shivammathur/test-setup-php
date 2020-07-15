@@ -7,8 +7,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['5.3''7.2', '7.3', '7.4']
+        operating-system: [windows-latest]
+        php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -18,6 +18,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
       - name: Install oci8
+        continue-on-error: true
         run: |
           Invoke-WebRequest -UseBasicParsing -Uri https://download.oracle.com/otn_software/nt/instantclient/instantclient-basiclite-windows.zip -OutFile C:\tools\php\instantclient.zip
           Expand-Archive -Path C:\tools\php\instantclient.zip -DestinationPath C:\tools\php -Force
