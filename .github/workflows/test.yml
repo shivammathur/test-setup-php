@@ -16,21 +16,8 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
-          extensions: pdo_oci
+          extensions: oci8, pdo_oci
           php-version: ${{ matrix.php-versions }}
-      - name: Install oci8
-        continue-on-error: true
-        run: |
-          $php_dir='C:\tools\php'
-          Invoke-WebRequest -UseBasicParsing -Uri https://download.oracle.com/otn_software/nt/instantclient/instantclient-basiclite-windows.zip -OutFile $php_dir\instantclient.zip
-          Expand-Archive -Path $php_dir\instantclient.zip -DestinationPath $php_dir -Force
-          Copy-Item $php_dir\instantclient*\* $php_dir
-          $PhpVersion = Get-Php -Path $php_dir
-          $ociVersion = Get-PeclPackageVersion oci8 | Select -First 1
-          $ociUrl = Get-PeclArchiveUrl oci8 $ociVersion $phpVersion     
-          Invoke-WebRequest -UseBasicParsing -Uri $ociUrl -OutFile $php_dir\oci8.zip
-          Expand-Archive -Path $php_dir\oci8.zip -DestinationPath $php_dir\ext -Force
-          Add-Content -Value "`r`nextension=php_oci8.dll" -Path $php_dir\php.ini
           
       - name: Testing PHP version
         run: php -v
