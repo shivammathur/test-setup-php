@@ -16,7 +16,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
-          extensions: xdebug-2.8.0beta1
+          extensions: xdebug-2.8.0beta2
           php-version: ${{ matrix.php-versions }}
       - name: Testing PHP version
         run: php -v
