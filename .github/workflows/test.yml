@@ -7,8 +7,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['7.2', '7.3', '7.4']
+        operating-system: [ubuntu-latest]
+        php-versions: ['5.3''7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -16,8 +16,13 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
-          extensions: xdebug-3.0.0beta
           php-version: ${{ matrix.php-versions }}
+      - name: Install oci8
+        run: |
+          Invoke-WebRequest -UseBasicParsing -Uri https://download.oracle.com/otn_software/nt/instantclient/instantclient-basiclite-windows.zip -OutFile C:\tools\php\instantclient.zip
+          Expand-Archive -Path C:\tools\php\instantclient.zip -DestinationPath C:\tools\php -Force
+          Install-PhpExtension oci8 -Path C:\tools\php
+          
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
