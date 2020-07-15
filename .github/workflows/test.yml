@@ -16,6 +16,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
+          extensions: pdo_oci
           php-version: ${{ matrix.php-versions }}
       - name: Install oci8
         continue-on-error: true
