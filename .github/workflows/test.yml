@@ -18,7 +18,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Install PHP
-      uses: lolautruche/setup-php@fix-blackfire
+      uses: shivammathur/setup-php@test-pr-249
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: blackfire
