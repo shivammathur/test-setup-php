@@ -34,9 +34,7 @@ jobs:
               curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/linux/instantclient/instantclient-$package-linuxx64.zip"
             elif [ "$os" = "Darwin" ]; then
               libs="/usr/local/lib/"
-              which phpize
               which php-config
-              sudo sed -i '' 's~includedir=.*~includedir="$(xcrun --show-sdk-path)/usr/include/php"~g' $(which phpize)
               sudo sed -i '' 's~include_dir=.*~include_dir="$(xcrun --show-sdk-path)/usr/include/php"~g' $(which php-config)
               cat /usr/local/bin/phpize | grep includedir
               cat /usr/local/bin/php-config | grep include_dir
