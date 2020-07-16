@@ -51,7 +51,7 @@ jobs:
             (                                      
               cd "/opt/oracle/php-src-$branch/ext/$extension"
               sudo /usr/local/bin/phpize && ./configure --with-php-config=/usr/local/bin/php-config --with-"$extension"=instantclient,/opt/oracle/instantclient
-              make && sudo make install
+              sudo make && sudo make install
               echo "extension=$extension" | sudo tee -a $(pecl config-get php_ini)
             )
           done        
