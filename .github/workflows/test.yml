@@ -47,7 +47,7 @@ jobs:
           get_tag() {
             master_version='8.0'
             tag='master'
-            if [ ! "$version" = "$master_version" ] && [ ! "$extension" = "pdo_oci" ]; then
+            if [ ! "$version" = "$master_version" ]; then
                 tag="php-$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')"
             fi
             echo "$tag"
@@ -89,10 +89,21 @@ jobs:
               sudo sed -i '' 's~includedir=.*~includedir="$(xcrun --show-sdk-path)/usr/include/php"~g' "$phpize_orig"
             fi  
           }
+          
+          patch_pdo_oci_config() {
+            if [ "$os" = 'Linux' ]; then
+              oracle_version=$(ls /opt/oracle | grep -oP "[0-9]+\_[0-9]+" | sed -e 's/_/./g')
+              sed -i "s/11.1/$oracle_version/g" opt/oracle/php-src-$tag/ext/pdo_oci/config.m4
+            elif [ "$os" = 'Darwin' ]; then
+              oracle_version=$(ls /opt/oracle | grep -oE "[0-9]+\_[0-9]+" | sed -e 's/_/./g')
+              sed -i '' "s/11.1/$oracle_version/g" opt/oracle/php-src-$tag/ext/pdo_oci/config.m4
+            fi
+          }
 
           install_extension() {
             (
               cd "/opt/oracle/php-src-$tag/ext/$extension" || exit
+              [ "$extension" = "pdo_oci" ] && patch_pdo_oci_config
               sudo phpize && ./configure --with-php-config="$(command -v php-config)" --with-"$extension"=instantclient,"$oracle_client"
               sudo make
               sudo cp ./modules/* "$(pecl config-get ext_dir)/"
@@ -109,8 +120,8 @@ jobs:
           oracle_client=$oracle_home/instantclient
           phpize_orig=/usr/local/bin/$(readlink /usr/local/bin/phpize) || true
           os=$(uname -s)
-          for extension in oci8 pdo_oci; do
-            tag=$(get_tag)
+          tag=$(get_tag)
+          for extension in oci8 pdo_oci; do            
             get_client
             get_php
             patch_phpize
