@@ -97,10 +97,10 @@ jobs:
           patch_pdo_oci_config() {
             if [ "$os" = 'Linux' ]; then
               oracle_version=$(ls /opt/oracle | grep -oP "[0-9]+\_[0-9]+" | sed -e 's/_/./g')
-              sed -i "s/11.1/$oracle_version/g" opt/oracle/php-src-$tag/ext/pdo_oci/config.m4
+              sed -i "s/11.1/$oracle_version/g" /opt/oracle/php-src-$tag/ext/pdo_oci/config.m4
             elif [ "$os" = 'Darwin' ]; then
               oracle_version=$(ls /opt/oracle | grep -oE "[0-9]+\_[0-9]+" | sed -e 's/_/./g')
-              sed -i '' "s/11.1/$oracle_version/g" opt/oracle/php-src-$tag/ext/pdo_oci/config.m4
+              sed -i '' "s/11.1/$oracle_version/g" /opt/oracle/php-src-$tag/ext/pdo_oci/config.m4
             fi
           }
 
