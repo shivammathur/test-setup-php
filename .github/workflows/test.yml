@@ -72,8 +72,8 @@ jobs:
                 curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/$os_name/instantclient/instantclient-$package-$arch.zip"
                 unzip "/opt/oracle/$package.zip" -d "$oracle_home"
               done
+              sudo ln -sf "$oracle_client*/*.$lib_ext*" "$libs"
               sudo ln -sf "$oracle_client*" "$oracle_client"
-              sudo ln -sf "$oracle_client/*.$lib_ext*" $libs
             fi
           }
 
@@ -84,8 +84,10 @@ jobs:
 
           # Function to patch phpize to get
           patch_phpize() {
-            sudo cp "$phpize_orig" "$phpize_orig.bck"
-            [ "$os" = "Darwin" ] && sudo sed -i '' 's~includedir=.*~includedir="$(xcrun --show-sdk-path)/usr/include/php"~g' "$phpize_orig"
+            if [ "$os" = "Darwin" ]; then
+              sudo cp "$phpize_orig" "$phpize_orig.bck"
+              sudo sed -i '' 's~includedir=.*~includedir="$(xcrun --show-sdk-path)/usr/include/php"~g' "$phpize_orig"
+            fi  
           }
 
           install_extension() {
@@ -95,7 +97,7 @@ jobs:
               sudo make
               sudo cp ./modules/* "$(pecl config-get ext_dir)/"
               echo "extension=$extension.so" | sudo tee -a "$(pecl config-get php_ini)"
-              sudo mv "$phpize_orig.bck" "$phpize_orig"
+              [ "$os" = "Darwin" ] && sudo mv "$phpize_orig.bck" "$phpize_orig"
             )
           }
 
@@ -105,7 +107,7 @@ jobs:
           #extension=$2
           oracle_home='/opt/oracle'
           oracle_client=$oracle_home/instantclient
-          phpize_orig=/usr/local/bin/$(readlink /usr/local/bin/phpize)
+          phpize_orig=/usr/local/bin/$(readlink /usr/local/bin/phpize) || true
           os=$(uname -s)
           for extension in oci8 pdo_oci; do
             tag=$(get_tag)
