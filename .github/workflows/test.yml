@@ -29,14 +29,17 @@ jobs:
           sudo mkdir -p -m 777 /opt/oracle
           libs="/usr/lib/"
           sudo cp /usr/bin/phpize /usr/local/bin/phpize
+          sudo cp /usr/bin/php-config /usr/local/bin/php-config
           for package in basiclite sdk; do
             os=$(uname -s)
             if [ "$os" = "Linux" ]; then
               curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/linux/instantclient/instantclient-$package-linuxx64.zip"
             elif [ "$os" = "Darwin" ]; then
               libs="/usr/local/lib/"
-              sudo sed -i '' 's~includedir=.*~includedir="`eval echo $(xcrun --show-sdk-path)/usr/include`/php"~g' /usr/local/bin/phpize
+              sudo sed -i '' 's~includedir=.*~includedir="$(xcrun --show-sdk-path)/usr/include/php"~g' /usr/local/bin/phpize
+              sudo sed -i '' 's~include_dir=.*~include_dir="$(xcrun --show-sdk-path)/usr/include/php"~g' /usr/local/bin/php-config
               cat /usr/local/bin/phpize | grep includedir
+              cat /usr/local/bin/php-config | grep include_dir
               curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/mac/instantclient/instantclient-$package-macos.zip"
             fi
             unzip "/opt/oracle/$package.zip" -d /opt/oracle
@@ -47,7 +50,7 @@ jobs:
           for extension in oci8 pdo_oci; do
             (                                      
               cd "/opt/oracle/php-src-$branch/ext/$extension"
-              sudo /usr/local/bin/phpize && ./configure --with-php-config=/usr/bin/php-config --with-"$extension"=instantclient,/opt/oracle/instantclient
+              sudo /usr/local/bin/phpize && ./configure --with-php-config=/usr/local/bin/php-config --with-"$extension"=instantclient,/opt/oracle/instantclient
               make && sudo make install
               echo "extension=$extension" | sudo tee -a $(pecl config-get php_ini)
             )
