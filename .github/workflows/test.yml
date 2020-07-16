@@ -19,6 +19,7 @@ jobs:
           php-version: ${{ matrix.php-versions }}
           tools: pecl
       - name: Add oci8 and pdo_oci
+        continue-on-error: true
         run: |
           # Function to log result of a operation
           add_log() {
@@ -108,10 +109,10 @@ jobs:
           os=$(uname -s)
           for extension in oci8 pdo_oci; do
             tag=$(get_tag)
-            get_client >/dev/null 2>&1
-            get_php >/dev/null 2>&1
-            patch_phpize >/dev/null 2>&1
-            install_extension >/dev/null 2>&1
+            get_client
+            get_php
+            patch_phpize
+            install_extension
             (check_extension "$extension" && add_log "$tick" "$extension" "Enabled") ||
             add_log "$cross" "$extension" "Could not install $extension"
           done       
