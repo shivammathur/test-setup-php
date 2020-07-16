@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
+        operating-system: [ubuntu-latest, macos-latest]
         php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -30,23 +30,23 @@ jobs:
           }
           sudo mkdir -p -m 777 /opt/oracle
           libs="/usr/lib/"
+          sudo cp /usr/bin/phpize /usr/local/bin/phpize
           for package in basiclite sdk; do
             os=$(uname -s)
             if [ "$os" = "Linux" ]; then
               curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/linux/instantclient/instantclient-$package-linuxx64.zip"
             elif [ "$os" = "Darwin" ]; then
-              libs="/usr/local/lib/"        
+              libs="/usr/local/lib/"
+              sudo sed -i '' 's~includedir=.*~includedir="`eval echo $(xcrun --show-sdk-path)/usr/include`/php"~g' /usr/local/bin/phpize
               curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/mac/instantclient/instantclient-$package-macos.zip"
             fi
             unzip "/opt/oracle/$package.zip" -d /opt/oracle
           done
           sudo ln -sf /opt/oracle/instantclient*/*.so* $libs
           sudo ln -sf /opt/oracle/instantclient* /opt/oracle/instantclient
-          curl -sSL https://github.com/php/php-src/archive/$branch.tar.gz | tar xzf - -C /opt/oracle/php
+          curl -sSL https://github.com/php/php-src/archive/$branch.tar.gz | tar xzf - -C /opt/oracle/
           for extension in oci8 pdo_oci; do
-            (
-              sudo cp /usr/bin/phpize /usr/local/bin/phpize
-              sudo sed -i '' 's~includedir=.*~includedir="`eval echo $(xcrun --show-sdk-path)/usr/include`/php"~g' /usr/local/bin/phpize          
+            (                                      
               cd "/opt/oracle/php-src-$branch/ext/$extension"
               sudo /usr/local/bin/phpize && ./configure --with-php-config=/usr/bin/php-config --with-"$extension"=instantclient,/opt/oracle/instantclient
               make && sudo make install
