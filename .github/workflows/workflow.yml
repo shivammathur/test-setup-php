@@ -27,6 +27,7 @@ jobs:
           tar xf /tmp/xdebug.tar.gz -C /tmp
           (
             cd /tmp/xdebug-master || exit 1
+            sed -i 's/, BP_VAR_IS//g' ./src/lib/var.c
             sudo "$install_dir"/bin/phpize
             sudo ./configure --enable-xdebug --with-php-config="$install_dir"/bin/php-config
             sudo make
