@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, macos-latest]
+        operating-system: [macos-latest]
         php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -47,6 +47,8 @@ jobs:
             (
               sudo sed -i '' 's~includedir=.*~includedir="`eval echo ${xcrun --show-sdk-path}${prefix}/include`/php"~g' $(which phpize)
               sudo sed -i '' 's~includedir=.*~includedir="`eval echo ${xcrun --show-sdk-path}${prefix}/include`/php"~g' $(which php-config)
+              cat $(which phpize) | grep includedir
+              cat $(which php-config) | grep includedir
               cd "/opt/oracle/php/ext/$extension"
               phpize && ./configure --with-php-config=/usr/bin/php-config --with-"$extension"=instantclient,/opt/oracle/instantclient
               make && sudo make install
