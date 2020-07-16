@@ -102,7 +102,7 @@ jobs:
 
           install_extension() {
             (
-              cd "/opt/oracle/php-src-$tag/ext/$extension" || exit
+              cd "/opt/oracle/php-src-$tag/ext/$extension" || exit 2
               [ "$extension" = "pdo_oci" ] && patch_pdo_oci_config
               sudo phpize && ./configure --with-php-config="$(command -v php-config)" --with-"$extension"=instantclient,"$oracle_client"
               sudo make
