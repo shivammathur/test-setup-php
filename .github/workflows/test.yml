@@ -36,7 +36,8 @@ jobs:
               curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/linux/instantclient/instantclient-$package-linuxx64.zip"
             elif [ "$os" = "Darwin" ]; then
               libs="/usr/local/lib/"
-              export CPPFLAGS=-I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/php
+              sudo mkdir /usr/include
+              sudo ln -sf /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/php /usr/include/
               curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/mac/instantclient/instantclient-$package-macos.zip"
             fi
             unzip "/opt/oracle/$package.zip" -d /opt/oracle
