@@ -28,8 +28,6 @@ jobs:
           fi
           sudo mkdir -p -m 777 /opt/oracle
           libs="/usr/lib/"
-          sudo cp /usr/bin/phpize /usr/local/bin/phpize
-          sudo cp /usr/bin/php-config /usr/local/bin/php-config
           for package in basiclite sdk; do
             os=$(uname -s)
             if [ "$os" = "Linux" ]; then
@@ -52,8 +50,7 @@ jobs:
               cd "/opt/oracle/php-src-$branch/ext/$extension"
               sudo /usr/local/bin/phpize && ./configure --with-php-config=/usr/local/bin/php-config --with-"$extension"=instantclient,/opt/oracle/instantclient
               sudo make
-              ls
-              cp ./modules/* "$(pecl config-get ext_dir)/"
+              sudo cp ./modules/* "$(pecl config-get ext_dir)/"
               echo "extension=$extension.so" | sudo tee -a $(pecl config-get php_ini)
             )
           done        
