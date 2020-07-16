@@ -45,10 +45,7 @@ jobs:
           git clone -b $(get_branch) https://github.com/php/php-src /opt/oracle/php
           for extension in oci8 pdo_oci; do
             (
-              sudo sed -i '' 's~includedir=.*~includedir="`eval echo ${xcrun --show-sdk-path}${prefix}/include`/php"~g' $(which phpize)
-              sudo sed -i '' 's~includedir=.*~includedir="`eval echo ${xcrun --show-sdk-path}${prefix}/include`/php"~g' $(which php-config)
-              cat $(which phpize) | grep includedir
-              cat $(which php-config) | grep includedir
+              sudo sed -i '' 's~includedir=.*~includedir="`eval echo ${xcrun --show-sdk-path}/usr/include`/php"~g' $(which phpize)              
               cd "/opt/oracle/php/ext/$extension"
               phpize && ./configure --with-php-config=/usr/bin/php-config --with-"$extension"=instantclient,/opt/oracle/instantclient
               make && sudo make install
