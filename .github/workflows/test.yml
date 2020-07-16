@@ -97,7 +97,7 @@ jobs:
               sudo mv "$phpize_orig.bck" "$phpize_orig"
             )
           }
-          insta
+
           tick="✓"
           cross="✗"
           version=${{ matrix.php-versions }}
