@@ -8,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, macos-latest]
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+        php-versions: ['5.6', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -20,38 +20,101 @@ jobs:
           tools: pecl
       - name: Add oci8 and pdo_oci
         run: |
-          version=${{ matrix.php-versions }}
-          master_version='8.0'
-          branch='master'
-          if [ ! "$version" = "$master_version" ]; then
-              branch="php-$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')"
-          fi
-          sudo mkdir -p -m 777 /opt/oracle
-          libs="/usr/lib/"
-          for package in basiclite sdk; do
-            os=$(uname -s)
-            if [ "$os" = "Linux" ]; then
-              curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/linux/instantclient/instantclient-$package-linuxx64.zip"
-            elif [ "$os" = "Darwin" ]; then
-              libs="/usr/local/lib/"
-              which php-config
-              sudo sed -i '' 's~includedir=.*~includedir="$(xcrun --show-sdk-path)/usr/include/php"~g' $(which phpize)
-              curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/mac/instantclient/instantclient-$package-macos.zip"
+          # Function to log result of a operation
+          add_log() {
+            mark=$1
+            subject=$2
+            message=$3
+            if [ "$mark" = "$tick" ]; then
+              printf "\033[32;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s\033[0m\n" "$mark" "$subject" "$message"
+            else
+              printf "\033[31;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s\033[0m\n" "$mark" "$subject" "$message"
             fi
-            unzip "/opt/oracle/$package.zip" -d /opt/oracle
-          done
-          sudo ln -sf /opt/oracle/instantclient*/*.so* $libs
-          sudo ln -sf /opt/oracle/instantclient* /opt/oracle/instantclient
-          curl -sSL https://github.com/php/php-src/archive/$branch.tar.gz | tar xzf - -C /opt/oracle/
-          for extension in oci8 pdo_oci; do
-            (                                      
-              cd "/opt/oracle/php-src-$branch/ext/$extension"
-              sudo phpize && ./configure --with-php-config=$(which php-config) --with-"$extension"=instantclient,/opt/oracle/instantclient
+          }
+
+          # Function to test if extension is loaded.
+          check_extension() {
+            extension=$1
+            if [ "$extension" != "mysql" ]; then
+              php -m | grep -i -q -w "$extension"
+            else
+              php -m | grep -i -q "$extension"
+            fi
+          }
+
+          # Function to get the tag for a php version
+          get_tag() {
+            master_version='8.0'
+            tag='master'
+            if [ ! "$version" = "$master_version" ] && [ ! "$extension" = "pdo_oci" ]; then
+                tag="php-$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')"
+            fi
+            echo "$tag"
+          }
+
+          # Function to fetch the client and sdk
+          get_client() {
+            sudo mkdir -p -m 777 "$oracle_home"
+            if [ ! -e "$oracle_client" ]; then
+              for package in basiclite sdk; do
+                if [ "$os" = 'Linux' ]; then
+                  libs='/usr/lib/'
+                  os_name='linux'
+                  arch='linuxx64'
+                  lib_ext='so'
+                elif [ "$os" = 'Darwin' ]; then
+                  libs='/usr/local/lib/'
+                  os_name='mac'
+                  arch='macos'
+                  lib_ext='dylib'
+                fi
+                curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/$os_name/instantclient/instantclient-$package-$arch.zip"
+                unzip "/opt/oracle/$package.zip" -d "$oracle_home"
+              done
+              sudo ln -sf "$oracle_client*" "$oracle_client"
+              sudo ln -sf "$oracle_client/*.$lib_ext*" $libs
+            fi
+          }
+
+          # Function to get PHP source
+          get_php() {
+            [ ! -d "/opt/oracle/php-src-$tag" ] && curl -sSL "https://github.com/php/php-src/archive/$tag.tar.gz" | tar xzf - -C "$oracle_home/"
+          }
+
+          # Function to patch phpize to get
+          patch_phpize() {
+            sudo cp "$phpize_orig" "$phpize_orig.bck"
+            [ "$os" = "Darwin" ] && sudo sed -i '' 's~includedir=.*~includedir="$(xcrun --show-sdk-path)/usr/include/php"~g' "$phpize_orig"
+          }
+
+          install_extension() {
+            (
+              cd "/opt/oracle/php-src-$tag/ext/$extension" || exit
+              sudo phpize && ./configure --with-php-config="$(command -v php-config)" --with-"$extension"=instantclient,"$oracle_client"
               sudo make
               sudo cp ./modules/* "$(pecl config-get ext_dir)/"
-              echo "extension=$extension.so" | sudo tee -a $(pecl config-get php_ini)
+              echo "extension=$extension.so" | sudo tee -a "$(pecl config-get php_ini)"
+              sudo mv "$phpize_orig.bck" "$phpize_orig"
             )
-          done        
+          }
+          insta
+          tick="✓"
+          cross="✗"
+          version=${{ matrix.php-versions }}
+          #extension=$2
+          oracle_home='/opt/oracle'
+          oracle_client=$oracle_home/instantclient
+          phpize_orig=/usr/local/bin/$(readlink /usr/local/bin/phpize)
+          os=$(uname -s)
+          for extension in oci8 pdo_oci; do
+            tag=$(get_tag)
+            get_client >/dev/null 2>&1
+            get_php >/dev/null 2>&1
+            patch_phpize >/dev/null 2>&1
+            install_extension >/dev/null 2>&1
+            (check_extension "$extension" && add_log "$tick" "$extension" "Enabled") ||
+            add_log "$cross" "$extension" "Could not install $extension"
+          done       
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
