@@ -51,8 +51,9 @@ jobs:
             (                                      
               cd "/opt/oracle/php-src-$branch/ext/$extension"
               sudo /usr/local/bin/phpize && ./configure --with-php-config=/usr/local/bin/php-config --with-"$extension"=instantclient,/opt/oracle/instantclient
-              sudo make && sudo make install
-              echo "extension=$extension" | sudo tee -a $(pecl config-get php_ini)
+              sudo make
+              cp "/opt/oracle/php-src-$branch/ext/oci8/modules/$extension*" "$(pecl config-get ext_dir)/"
+              echo "extension=$extension.so" | sudo tee -a $(pecl config-get php_ini)
             )
           done        
       - name: Testing PHP version
