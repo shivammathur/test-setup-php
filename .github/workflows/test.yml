@@ -36,6 +36,7 @@ jobs:
             elif [ "$os" = "Darwin" ]; then
               libs="/usr/local/lib/"
               sudo sed -i '' 's~includedir=.*~includedir="`eval echo $(xcrun --show-sdk-path)/usr/include`/php"~g' /usr/local/bin/phpize
+              cat /usr/local/bin/phpize | grep includedir
               curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/mac/instantclient/instantclient-$package-macos.zip"
             fi
             unzip "/opt/oracle/$package.zip" -d /opt/oracle
