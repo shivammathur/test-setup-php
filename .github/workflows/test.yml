@@ -72,8 +72,8 @@ jobs:
                 curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/$os_name/instantclient/instantclient-$package-$arch.zip"
                 unzip "/opt/oracle/$package.zip" -d "$oracle_home"
               done
-              sudo ln -sf "$oracle_client*/*.$lib_ext*" "$libs"
-              sudo ln -sf "$oracle_client*" "$oracle_client"
+              sudo ln -sf /opt/oracle/instantclient*/*.so* $libs
+              sudo ln -sf /opt/oracle/instantclient* /opt/oracle/instantclient
             fi
           }
 
