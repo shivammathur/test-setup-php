@@ -25,9 +25,9 @@ jobs:
             curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/linux/instantclient/instantclient-$package-linuxx64.zip"
             unzip "/opt/oracle/$package.zip" -d /opt/oracle
           done
-          ln -sf /opt/oracle/instantclient*/*.so* /usr/lib/
-          ln -sf /opt/oracle/instantclient* /opt/oracle/instantclient
-          echo "instantclient,/opt/oracle/instantclient" | pecl install oci8
+          sudo ln -sf /opt/oracle/instantclient*/*.so* /usr/lib/
+          sudo ln -sf /opt/oracle/instantclient* /opt/oracle/instantclient
+          echo "instantclient,/opt/oracle/instantclient" | sudo pecl install -f oci8
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
