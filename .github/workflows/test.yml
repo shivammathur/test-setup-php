@@ -28,7 +28,7 @@ jobs:
               echo 'master'
             fi
           }
-          mkdir /opt/oracle
+          sudo mkdir -p -m 777 /opt/oracle
           for package in basiclite sdk; do
             os=$(uname -s)
             if [ "$os" = "Linux" ]; then
