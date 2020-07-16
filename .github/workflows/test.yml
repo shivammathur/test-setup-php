@@ -21,13 +21,11 @@ jobs:
       - name: Add oci8 and pdo_oci
         run: |
           version=${{ matrix.php-versions }}
-          get_branch() {
-            if [ ! "$version" = "$master_version" ]; then
-              echo "php-$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')"
-            else
-              echo 'master'
-            fi
-          }
+          master_version='8.0'
+          branch='master'
+          if [ ! "$version" = "$master_version" ]; then
+              branch="php-$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')"
+          fi
           sudo mkdir -p -m 777 /opt/oracle
           libs="/usr/lib/"
           sudo cp /usr/bin/phpize /usr/local/bin/phpize
