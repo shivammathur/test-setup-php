@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [ubuntu-latest, macos-latest]
         php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -17,17 +17,37 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          
-      - name: Add oci
+          tools: pecl
+      - name: Add oci8 and pdo_oci
         run: |
+          get_branch() {
+            if [ ! "$version" = "$master_version" ]; then
+              branch="PHP-$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')"
+            else
+              branch='master'
+            fi
+          }
           mkdir /opt/oracle
           for package in basiclite sdk; do
-            curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/linux/instantclient/instantclient-$package-linuxx64.zip"
+            os=$(uname -s)
+            if [ "$os" = "Linux" ]; then
+              curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/linux/instantclient/instantclient-$package-linuxx64.zip"
+            elif [ "$os" = "Darwin" ]; then
+              curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/mac/instantclient/instantclient-$package-macos.zip"
+            fi
             unzip "/opt/oracle/$package.zip" -d /opt/oracle
           done
           sudo ln -sf /opt/oracle/instantclient*/*.so* /usr/lib/
-          sudo ln -sf /opt/oracle/instantclient* /opt/oracle/instantclient
-          echo "instantclient,/opt/oracle/instantclient" | sudo pecl install -f oci8
+          sudo ln -sf /opt/oracle/instantclient* /opt/oracle/instantclient         
+          git clone https://github.com/php/php-src -b $branch /opt/oracle/php
+          for extension in oci8 pdo_oci; do
+            (
+              cd "/opt/oracle/php/ext/$extension"
+              phpize && ./configure --with-php-config=/usr/bin/php-config --with-"$extension"=instantclient,/opt/oracle/instantclient
+              make && sudo make install
+              echo "extension=$extension" | sudo tee -a $(pecl config-get php_ini)
+            )
+          done        
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
