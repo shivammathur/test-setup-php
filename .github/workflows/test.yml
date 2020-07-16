@@ -37,7 +37,8 @@ jobs:
             elif [ "$os" = "Darwin" ]; then
               libs="/usr/local/lib/"
               sudo mkdir /usr/include
-              sudo ln -sf /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/php /usr/include/
+              export CFLAGS="-I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/php"
+              export CPPFLAGS="-I/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/php"           
               curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/mac/instantclient/instantclient-$package-macos.zip"
             fi
             unzip "/opt/oracle/$package.zip" -d /opt/oracle
