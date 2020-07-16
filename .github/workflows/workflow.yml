@@ -3,14 +3,14 @@ on: [push]
 jobs:
   run:
     name: Run
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     #runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
         #containers: ['mcr.microsoft.com/windows/servercore:ltsc2019']
         #operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+        php-versions: ['8.0']
     steps:        
       - name: Checkout
         uses: actions/checkout@v2        
@@ -19,9 +19,19 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: composer:preview
-        env:
-          runner: self-hosted
+          
+      - name: Install Xdebug
+        run: |
+          install_dir='/home/runner/php/8.0'
+          curl -o /tmp/xdebug.tar.gz -sSL https://github.com/xdebug/xdebug/archive/master.tar.gz
+          tar xf /tmp/xdebug.tar.gz -C /tmp
+          (
+            cd /tmp/xdebug-master || exit 1
+            sudo "$install_dir"/bin/phpize
+            sudo ./configure --enable-xdebug --with-php-config="$install_dir"/bin/php-config
+            sudo make
+            sudo make install
+          )          
         
       - name: Testing PHP version
         run: php -v
