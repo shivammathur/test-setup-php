@@ -20,11 +20,12 @@ jobs:
           tools: pecl
       - name: Add oci8 and pdo_oci
         run: |
+          version=${{ matrix.php-versions }}
           get_branch() {
             if [ ! "$version" = "$master_version" ]; then
-              branch="PHP-$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')"
+              echo "PHP-$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')"
             else
-              branch='master'
+              echo 'master'
             fi
           }
           mkdir /opt/oracle
@@ -38,8 +39,8 @@ jobs:
             unzip "/opt/oracle/$package.zip" -d /opt/oracle
           done
           sudo ln -sf /opt/oracle/instantclient*/*.so* /usr/lib/
-          sudo ln -sf /opt/oracle/instantclient* /opt/oracle/instantclient         
-          git clone -b $branch https://github.com/php/php-src /opt/oracle/php
+          sudo ln -sf /opt/oracle/instantclient* /opt/oracle/instantclient     
+          git clone -b $(get_branch) https://github.com/php/php-src /opt/oracle/php
           for extension in oci8 pdo_oci; do
             (
               cd "/opt/oracle/php/ext/$extension"
