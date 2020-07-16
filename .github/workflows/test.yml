@@ -29,16 +29,18 @@ jobs:
             fi
           }
           sudo mkdir -p -m 777 /opt/oracle
+          libs="/usr/lib/"
           for package in basiclite sdk; do
             os=$(uname -s)
             if [ "$os" = "Linux" ]; then
               curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/linux/instantclient/instantclient-$package-linuxx64.zip"
             elif [ "$os" = "Darwin" ]; then
+              libs="/usr/local/lib/"
               curl -o "/opt/oracle/$package.zip" -sSL "https://download.oracle.com/otn_software/mac/instantclient/instantclient-$package-macos.zip"
             fi
             unzip "/opt/oracle/$package.zip" -d /opt/oracle
           done
-          sudo ln -sf /opt/oracle/instantclient*/*.so* /usr/local/lib/
+          sudo ln -sf /opt/oracle/instantclient*/*.so* $libs
           sudo ln -sf /opt/oracle/instantclient* /opt/oracle/instantclient     
           git clone -b $(get_branch) https://github.com/php/php-src /opt/oracle/php
           for extension in oci8 pdo_oci; do
