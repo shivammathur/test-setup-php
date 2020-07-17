@@ -20,7 +20,6 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: pecl
           extensions: pdo_oci, oci8
 
       - name: Testing PHP version
