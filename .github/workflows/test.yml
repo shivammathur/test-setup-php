@@ -8,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [windows-latest]
-        php-versions: ['5.3', '5.4', '5.5']
+        php-versions: ['7.4']
         ts: [ts, nts]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -18,11 +18,10 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
+          extensions: oci8, pdo_oci
         env:
           phpts: ${{ matrix.ts }}
       - name: Test PHP
         run: php -v
       - name: Test php extensions
         run: php -m
-      - name: Test SSL
-        run: php -r "echo file_get_contents('https://repo.packagist.org/packages.json');"
