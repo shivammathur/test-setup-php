@@ -21,6 +21,7 @@ jobs:
       - name: Add oci8 and pdo_oci
         continue-on-error: true
         run: |
+          trap "echo --------exit-------" SIGINT SIGTERM
           # Function to log result of a operation
           add_log() {
             mark=$1
@@ -89,10 +90,17 @@ jobs:
           # Function to patch phpize to get
           patch_phpize() {
             if [ "$os" = "Darwin" ]; then
+              phpize_orig=/usr/local/bin/$(readlink /usr/local/bin/phpize) || true
               sudo cp "$phpize_orig" "$phpize_orig.bck"
               sudo sed -i '' 's~includedir=.*~includedir="$(xcrun --show-sdk-path)/usr/include/php"~g' "$phpize_orig"
             fi  
-          }          
+          }
+          restore_phpize() {
+            if [ "$os" = "Darwin" ]; then
+              phpize_orig=/usr/local/bin/$(readlink /usr/local/bin/phpize) || true
+              sudo mv "$phpize_orig.bck" "$phpize_orig"
+            fi          
+          }     
           
           patch_pdo_oci_config() {
             curl -sSLO https://raw.githubusercontent.com/php/php-src/master/ext/pdo_oci/config.m4
@@ -101,33 +109,31 @@ jobs:
 
           install_extension() {
             (
-              cd "/opt/oracle/php-src-$tag/ext/$extension" || exit 2
-              [ "$extension" = "pdo_oci" ] && patch_pdo_oci_config
-              sudo phpize && ./configure --with-php-config="$(command -v php-config)" --with-"$extension"=instantclient,"$oracle_client"
+              cd "/opt/oracle/php-src-$tag/ext/$ext" || exit 2
+              [ "$ext" = "pdo_oci" ] && patch_pdo_oci_config
+              sudo phpize && ./configure --with-php-config="$(command -v php-config)" --with-"$ext"=instantclient,"$oracle_client"
               sudo make -j$(nproc)
               sudo cp ./modules/* "$(pecl config-get ext_dir)/"
-              echo "extension=$extension.so" | sudo tee -a "$(pecl config-get php_ini)"              
+              echo "extension=$ext.so" | sudo tee -a "$(pecl config-get php_ini)"              
             )
           }
 
           tick="✓"
           cross="✗"
           version=${{ matrix.php-versions }}
-          #extension=$2
           oracle_home='/opt/oracle'
-          oracle_client=$oracle_home/instantclient
-          phpize_orig=/usr/local/bin/$(readlink /usr/local/bin/phpize) || true
-          patch_phpize
+          oracle_client=$oracle_home/instantclient          
           os=$(uname -s)
           tag=$(get_tag)
-          for extension in oci8 pdo_oci; do            
+          for ext in oci8 pdo_oci; do            
             get_client
             get_php
+            patch_phpize
             install_extension
-            (check_extension "$extension" && add_log "$tick" "$extension" "Enabled") ||
-            add_log "$cross" "$extension" "Could not install $extension"
+            restore_phpize
+            (check_extension "$ext" && add_log "$tick" "$ext" "Enabled") ||
+            add_log "$cross" "$ext" "Could not install $extension"
           done
-          [ "$os" = "Darwin" ] && sudo mv "$phpize_orig.bck" "$phpize_orig"
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
