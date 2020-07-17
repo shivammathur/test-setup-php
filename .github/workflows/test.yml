@@ -34,7 +34,6 @@ jobs:
         env: 
           runner: self-hosted
         run: |
-          #!/bin/bash
           # Function to log result of a operation
           add_log() {
             mark=$1
@@ -45,12 +44,6 @@ jobs:
             else
               printf "\033[31;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s\033[0m\n" "$mark" "$subject" "$message"
             fi
-          }
-
-          # Function to read env inputs.
-          read_env() {
-            [[ -z "${runner}" ]] && runner='github' && RUNNER='github' || runner="${runner}"
-            [ "$runner" = false ] && [[ -n ${RUNNER} ]] && runner="${RUNNER}"
           }
 
           # Function to test if extension is loaded.
@@ -163,11 +156,11 @@ jobs:
           cross="✗"
           version=${{ matrix.php-versions }}
           oracle_home='/opt/oracle'
-          oracle_client=$oracle_home/instantclient          
+          oracle_client=$oracle_home/instantclient
+          runner="${runner:-github}"                 
           os=$(uname -s)
           tag=$(get_tag)
           phpize_orig=$(get_phpize)
-          read_env
           for ext in oci8 pdo_oci; do            
             get_client
             get_php
