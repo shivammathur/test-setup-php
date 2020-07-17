@@ -5,8 +5,8 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest]        
-        php-versions: ['7.4']      
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']      
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
@@ -15,14 +15,8 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        ini-values: apc.enable_cli=on, session.save_path=/tmp
-        tools: pecl
-        extensions: mbstring, intl, json, imagick
     - name: Testing PHP version
       run: php -v    
     - name: Testing ini values
       run: |
-        php -m
-        php -r "echo phpversion('intl') . \"\n\";"
-        php -r "echo \"apc.enable_cli: \" . ini_get('apc.enable_cli') . \"\n\";"
-        php -r "echo \"session.save_path: \" . ini_get('session.save_path') . \"\n\";"
+        php -i | grep "memory_limit"
