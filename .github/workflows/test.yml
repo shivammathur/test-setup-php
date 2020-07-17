@@ -21,7 +21,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           tools: pecl
-          extensions: oci8, pdo_oci
+          extensions: pdo_oci, oci8
 
       - name: Testing PHP version
         run: php -v
