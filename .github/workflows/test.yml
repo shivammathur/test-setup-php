@@ -95,7 +95,8 @@ jobs:
           }          
           
           patch_pdo_oci_config() {
-            curl -sSLO https://raw.githubusercontent.com/php/php-src/master/ext/pdo_oci/config.m4            
+            curl -sSLO https://raw.githubusercontent.com/php/php-src/master/ext/pdo_oci/config.m4
+            sudo sed -i '' "/PHP_CHECK_PDO_INCLUDES/d" config.m4 || sudo sed -i "/PHP_CHECK_PDO_INCLUDES/d" config.m4              
           }
 
           install_extension() {
