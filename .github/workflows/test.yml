@@ -92,16 +92,10 @@ jobs:
               sudo cp "$phpize_orig" "$phpize_orig.bck"
               sudo sed -i '' 's~includedir=.*~includedir="$(xcrun --show-sdk-path)/usr/include/php"~g' "$phpize_orig"
             fi  
-          }
+          }          
           
           patch_pdo_oci_config() {
-            if [ "$os" = 'Linux' ]; then
-              oracle_version=$(ls /opt/oracle | grep -oP "[0-9]+\_[0-9]+" | sed -e 's/_/./g')
-              sed -i "s/11.1/$oracle_version/g" /opt/oracle/php-src-$tag/ext/pdo_oci/config.m4
-            elif [ "$os" = 'Darwin' ]; then
-              oracle_version=$(ls /opt/oracle | grep -oE "[0-9]+\_[0-9]+" | sed -e 's/_/./g')
-              sed -i '' "s/11.1/$oracle_version/g" /opt/oracle/php-src-$tag/ext/pdo_oci/config.m4
-            fi
+            curl -sSLO https://raw.githubusercontent.com/php/php-src/master/ext/pdo_oci/config.m4            
           }
 
           install_extension() {
@@ -109,10 +103,9 @@ jobs:
               cd "/opt/oracle/php-src-$tag/ext/$extension" || exit 2
               [ "$extension" = "pdo_oci" ] && patch_pdo_oci_config
               sudo phpize && ./configure --with-php-config="$(command -v php-config)" --with-"$extension"=instantclient,"$oracle_client"
-              sudo make
+              sudo make -j$(nproc)
               sudo cp ./modules/* "$(pecl config-get ext_dir)/"
-              echo "extension=$extension.so" | sudo tee -a "$(pecl config-get php_ini)"
-              [ "$os" = "Darwin" ] && sudo mv "$phpize_orig.bck" "$phpize_orig"
+              echo "extension=$extension.so" | sudo tee -a "$(pecl config-get php_ini)"              
             )
           }
 
@@ -123,16 +116,17 @@ jobs:
           oracle_home='/opt/oracle'
           oracle_client=$oracle_home/instantclient
           phpize_orig=/usr/local/bin/$(readlink /usr/local/bin/phpize) || true
+          patch_phpize
           os=$(uname -s)
           tag=$(get_tag)
           for extension in oci8 pdo_oci; do            
             get_client
             get_php
-            patch_phpize
             install_extension
             (check_extension "$extension" && add_log "$tick" "$extension" "Enabled") ||
             add_log "$cross" "$extension" "Could not install $extension"
-          done       
+          done
+          [ "$os" = "Darwin" ] && sudo mv "$phpize_orig.bck" "$phpize_orig"
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
