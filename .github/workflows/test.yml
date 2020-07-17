@@ -10,7 +10,7 @@ jobs:
       matrix:
         container: [focal, bionic, xenial]
         operating-system: [ubuntu-latest]
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     #name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     name: Test
     steps:
@@ -65,9 +65,9 @@ jobs:
 
           # Function to fetch the client and sdk
           get_client() {
-            echo 'get_client'
             sudo mkdir -p -m 777 "$oracle_home"
             if [ ! -e "$oracle_client" ]; then
+              sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y libaio-dev
               for package in basiclite sdk; do
                 if [ "$os" = 'Linux' ]; then
                   libs='/usr/lib/'
