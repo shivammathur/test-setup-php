@@ -166,7 +166,7 @@ jobs:
           os=$(uname -s)
           tag=$(get_tag)
           phpize_orig=$(get_phpize)
-          readenv
+          read_env
           for ext in oci8 pdo_oci; do            
             get_client
             get_php
