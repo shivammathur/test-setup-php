@@ -114,7 +114,7 @@ jobs:
               sudo phpize && ./configure --with-php-config="$(command -v php-config)" --with-"$ext"=instantclient,"$oracle_client"
               sudo make -j$(nproc)
               sudo cp ./modules/* "$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")/"
-              echo "extension=$ext.so" | sudo tee -a "$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")"              
+              echo "extension=$ext.so" | sudo tee "$(php --ini | grep additional | sed -e "s|.*: s*||")/99-$ext.ini"              
             )
           }
 
