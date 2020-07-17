@@ -31,7 +31,6 @@ jobs:
       - name: Add oci8 and pdo_oci
         continue-on-error: true
         run: |
-          trap "echo --------exit-------" SIGINT SIGTERM
           # Function to log result of a operation
           add_log() {
             mark=$1
