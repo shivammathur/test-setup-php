@@ -30,6 +30,7 @@ jobs:
         env: 
           runner: self-hosted
       - name: Add oci8 and pdo_oci
+        shell: bash
         continue-on-error: true
         env: 
           runner: self-hosted
