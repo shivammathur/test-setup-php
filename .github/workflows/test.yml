@@ -132,11 +132,7 @@ jobs:
           # Function to install the dependencies
           install_dependencies() {
             if [ "$os" = 'Linux' ] && [ "$runner" = "self-hosted" ]; then
-              sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y autoconf automake libaio-dev gcc-7 g++-7
-              for compiler in g++ gcc; do
-                sudo update-alternatives --install /usr/bin/"$compiler" "$compiler" /usr/bin/"$compiler"-7 20
-                sudo update-alternatives --set "$compiler" /usr/bin/"$compiler"-7
-              done
+              sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y autoconf automake libaio-dev gcc g++
             fi
           }
 
