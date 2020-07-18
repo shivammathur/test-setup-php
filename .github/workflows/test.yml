@@ -5,8 +5,12 @@ on:
 jobs:
   ubuntu:
     name: runner
-    runs-on: ubuntu-20.04
+    runs-on: macos-latest
     steps:
       - name: Check lists
-        run: cat /etc/apt/sources.list.save
+        run: |
+          ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+          echo -e "date.timezone=UTC\nmemory_limit=-1" >>"$ini_file"
+          php -i | grep "memory_limit"
+          
         
