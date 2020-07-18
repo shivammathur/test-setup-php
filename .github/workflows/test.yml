@@ -142,22 +142,20 @@ jobs:
             fi
             echo "extension=$ext.so" | sudo tee "$scan_dir/99-$ext.ini"
           }
-          tick="✓"
-          cross="✗"
           version=${{ matrix.php-versions }}
+          tick='✓'
+          cross='✗'
           oracle_home='/opt/oracle'
           oracle_client=$oracle_home/instantclient
-          runner="${runner:-github}"                 
+          runner="${runner:-github}" && RUNNER="${RUNNER:-github}"
           os=$(uname -s)
-          tag=$(get_tag)
-          phpize_orig=$(get_phpize)
+          scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
+          ext_dir=$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
           for ext in oci8 pdo_oci; do            
-            get_client
-            get_php
-            patch_phpize
+            install_client
             install_dependencies
             install_extension
-            restore_phpize
+            (check_extension "$ext" && add_log "$tick" "$ext" "Installed and enabled") || add_log "$cross" "$ext" "Could not install $ext"
           done
       - name: Testing PHP version
         run: php -v
