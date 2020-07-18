@@ -74,8 +74,7 @@ jobs:
                 sudo ln -s libocci."$lib_ext".12.1 libocci."$lib_ext"
               )
               sudo ln -sf /opt/oracle/instantclient*/*.$lib_ext* $libs
-              sudo sh -c "echo /opt/oracle/instantclient > /etc/ld.so.conf.d/oracle-instantclient.conf"
-              sudo ldconfig
+              [ "$os" = 'Linux' ] && sudo sh -c "echo /opt/oracle/instantclient > /etc/ld.so.conf.d/oracle-instantclient.conf" && sudo ldconfig
               sudo mkdir -p -m 777 "$oracle_client/network/admin"
             fi
             echo 'get_client_exit'
