@@ -8,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -53,33 +53,30 @@ jobs:
           # Function to fetch the client and sdk
           get_client() {
             echo 'get_client'
-            sudo mkdir -p -m 777 "$oracle_home"
-            if [ ! -e "$oracle_client" ]; then
-              for package in basiclite sdk; do
-                if [ "$os" = 'Linux' ]; then
-                  libs='/usr/lib/'
-                  os_name='linux'
-                  arch='linuxx64'
-                  lib_ext='so'
-                elif [ "$os" = 'Darwin' ]; then
-                  libs='/usr/local/lib/'
-                  os_name='mac'
-                  arch='macos'
-                  lib_ext='dylib'
-                fi
-                curl -o "/opt/oracle/$package.zip" -sSL "https://dl.bintray.com/shivammathur/playground/instantclient-"$package"-linux.x64-12.1.0.2.0.zip"
-                unzip "/opt/oracle/$package.zip" -d "$oracle_home"
-              done
-              sudo ln -sf /opt/oracle/instantclient* /opt/oracle/instantclient
-              (
-                cd /opt/oracle/instantclient
-                sudo ln -s libclntsh.so.12.1 libclntsh.so
-                sudo ln -s libocci.so.12.1 libocci.so
-              )
-              sudo ln -sf /opt/oracle/instantclient*/*.$lib_ext* $libs              
-              sudo sh -c "echo /opt/oracle/instantclient > /etc/ld.so.conf.d/oracle-instantclient.conf"
-              sudo ldconfig
-              sudo mkdir -p /opt/oracle/instantclient/network/admin           
+            sudo mkdir -p -m 777 "$oracle_home" "$oracle_client/network/admin"
+              if [ ! -e "$oracle_client" ]; then
+                for package in basiclite sdk; do
+                  if [ "$os" = 'Linux' ]; then
+                    libs='/usr/lib/'
+                    os_name='linux'
+                    lib_ext='so'
+                  elif [ "$os" = 'Darwin' ]; then
+                    libs='/usr/local/lib/'
+                    os_name='macos'
+                    lib_ext='dylib'
+                  fi
+                  curl -o "/opt/oracle/$package.zip" -sSL "https://dl.bintray.com/shivammathur/playground/instantclient-$package-$os_name.x64-12.1.0.2.0.zip"
+                  unzip "/opt/oracle/$package.zip" -d "$oracle_home"
+                done
+                sudo ln -sf /opt/oracle/instantclient* /opt/oracle/instantclient
+                (
+                  cd "$oracle_client" || exit
+                  sudo ln -s libclntsh."$lib_ext".12.1 libclntsh."$lib_ext"
+                  sudo ln -s libocci."$lib_ext".12.1 libocci."$lib_ext"
+                )
+                sudo ln -sf /opt/oracle/instantclient*/*.$lib_ext* $libs
+                sudo sh -c "echo /opt/oracle/instantclient > /etc/ld.so.conf.d/oracle-instantclient.conf"
+                sudo ldconfig           
             fi
             echo 'get_client_exit'
           }
@@ -125,7 +122,8 @@ jobs:
           install_extension() {
             (
               cd "/opt/oracle/php-src-$tag/ext/$ext" || exit 1
-              sudo phpize && ./configure --with-php-config="$(command -v php-config)" --with-"$ext"=shared,instantclient,"$oracle_client"
+              [ "$ext" = "pdo_oci" ] && patch_pdo_oci_config
+              sudo phpize && ./configure --with-php-config="$(command -v php-config)" --with-"${ext/_/-}"=shared,instantclient,"$oracle_client"
               sudo make -j"$(nproc)"
               sudo cp ./modules/* "$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")/"
               echo "extension=$ext.so" | sudo tee "$(php --ini | grep additional | sed -e "s|.*: s*||")/99-$ext.ini"
