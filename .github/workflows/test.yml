@@ -70,13 +70,13 @@ jobs:
                 curl -o "/opt/oracle/$package.zip" -sSL "https://dl.bintray.com/shivammathur/playground/instantclient-"$package"-linux.x64-12.1.0.2.0.zip"
                 unzip "/opt/oracle/$package.zip" -d "$oracle_home"
               done
+              sudo ln -sf /opt/oracle/instantclient* /opt/oracle/instantclient
               (
                 cd /opt/oracle/instantclient
                 sudo ln -s libclntsh.so.12.1 libclntsh.so
                 sudo ln -s libocci.so.12.1 libocci.so
               )
-              sudo ln -sf /opt/oracle/instantclient*/*.$lib_ext* $libs
-              sudo ln -sf /opt/oracle/instantclient* /opt/oracle/instantclient
+              sudo ln -sf /opt/oracle/instantclient*/*.$lib_ext* $libs              
               sudo sh -c "echo /opt/oracle/instantclient > /etc/ld.so.conf.d/oracle-instantclient.conf"
               sudo ldconfig
               sudo mkdir -p /opt/oracle/instantclient/network/admin           
