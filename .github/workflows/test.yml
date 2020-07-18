@@ -125,7 +125,6 @@ jobs:
           install_extension() {
             (
               cd "/opt/oracle/php-src-$tag/ext/$ext" || exit 1
-              [ "$ext" = "pdo_oci" ] && patch_pdo_oci_config
               sudo phpize && ./configure --with-php-config="$(command -v php-config)" --with-"$ext"=shared,instantclient,"$oracle_client"
               sudo make -j"$(nproc)"
               sudo cp ./modules/* "$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")/"
