@@ -122,12 +122,12 @@ jobs:
             if [ "$os" = 'Linux' ]; then
               if [ "$runner" = "self-hosted" ] || [ "$RUNNER" = "self-hosted" ]; then
                 sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y autoconf automake libaio-dev gcc g++
+              fi            
+              if [[ "$version" =~ 5.6|7.[0-4] ]]; then
+                sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y php"$version"-dev
+                sudo update-alternatives --set php-config /usr/bin/php-config"$version"
+                sudo update-alternatives --set phpize /usr/bin/phpize"$version"
               fi
-            fi
-            if [[ "$version" =~ 5.6|7.[0-4] ]]; then
-              sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y php"$version"-dev
-              sudo update-alternatives --set php-config /usr/bin/php-config"$version"
-              sudo update-alternatives --set phpize /usr/bin/phpize"$version"
             fi
           }
 
