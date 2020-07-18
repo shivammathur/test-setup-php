@@ -111,6 +111,12 @@ jobs:
               sudo mv "$phpize_orig.bck" "$phpize_orig" || true
             fi
           }
+          
+          # Function to patch pdo_oci.
+          patch_pdo_oci_config() {
+            curl -sSLO https://raw.githubusercontent.com/php/php-src/master/ext/pdo_oci/config.m4
+            sudo sed -i '' "/PHP_CHECK_PDO_INCLUDES/d" config.m4 || sudo sed -i "/PHP_CHECK_PDO_INCLUDES/d" config.m4
+          }
 
           # Function to install the dependencies.
           install_dependencies() {
@@ -135,6 +141,7 @@ jobs:
                 get_php
                 patch_phpize
                 cd "/opt/oracle/php-src-$tag/ext/$ext" || exit 1
+                [ "$ext" = "pdo_oci" ] && patch_pdo_oci_config
                 sudo phpize && ./configure --with-php-config="$(command -v php-config)" --with-"${ext/_/-}"=instantclient,"$oracle_client"
                 sudo make -j"$(nproc)"
                 sudo cp ./modules/* "$ext_dir/"
