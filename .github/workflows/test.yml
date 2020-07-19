@@ -8,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [windows-latest]
-        php-versions: ['7.4']
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
         ts: [ts, nts]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -43,7 +43,7 @@ jobs:
             Copy-Item $ext_dir\ioncube\ioncube_loader_win_$version.dll $ext_dir\php_ioncube.dll            
           }
           "zend_extension=php_ioncube.dll`r`n" + (Get-Content $php_dir\php.ini -Raw) | Set-Content $php_dir\php.ini
-          type $php_dir\php.ini
+          php -r "if(! extension_loaded('ionCube Loader')) {throw new Exception('ionCube not found');}"
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
