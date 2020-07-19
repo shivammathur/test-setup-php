@@ -14,14 +14,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: pdo_oci, oci8
+          extensions: pdo_mysql
+          
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
-        run: |
-          php -m
-          php -r "if(! extension_loaded('oci8')) {throw new Exception('oci8 not found');}"
-          php -r "if(! extension_loaded('PDO_OCI')) {throw new Exception('PDO_OCI not found');}"
+        run: php -m
