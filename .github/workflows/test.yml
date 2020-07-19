@@ -17,22 +17,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-      - name: Setup ioncube
-        run: |
-          install_ioncube() {
-            if [ ! -e "$ext_dir/ioncube.so" ]; then
-              os_name='lin'
-              [ "$(uname -s)" = "Darwin" ] && os_name='mac'
-              curl -SL https://downloads.ioncube.com/loader_downloads/ioncube_loaders_"$os_name"_x86-64.tar.gz | tar -xzf - -C /tmp
-              sudo mv /tmp/ioncube/ioncube_loader_"$os_name"_"$version".so "$ext_dir/ioncube.so"
-            fi
-            echo "zend_extension=$ext_dir/ioncube.so" | sudo tee "$scan_dir/00-ioncube.ini"
-          }
-
-          version=${{ matrix.php-versions }}
-          scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
-          ext_dir=$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
-          install_ioncube
+          extensions: ioncube
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
