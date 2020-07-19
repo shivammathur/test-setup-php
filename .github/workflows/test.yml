@@ -36,13 +36,13 @@ jobs:
             $vc = $installed.VCVersion
             $ts = ""
             if(-not($installed.ThreadSafe)) {
-              $ts = "nonts"
+              $ts = "_nonts"
             }
-            Invoke-WebRequest -UseBasicParsing -Uri "https://downloads.ioncube.com/loader_downloads/ioncube_loaders_win_$ts`_vc$vc`_$arch.zip" -OutFile $ext_dir\ioncube.zip
+            Invoke-WebRequest -UseBasicParsing -Uri "https://downloads.ioncube.com/loader_downloads/ioncube_loaders_win$ts`_vc$vc`_$arch.zip" -OutFile $ext_dir\ioncube.zip
             Expand-Archive -Path $ext_dir\ioncube.zip -DestinationPath $ext_dir -Force
             Copy-Item $ext_dir\ioncube\ioncube_loader_win_$version.dll $ext_dir\php_ioncube.dll            
           }
-          Set-Content $php_dir\php.ini –value ("zend_extension=php_ioncube.dll`r`n" + (Get-Content $php_dir\php.ini))
+          "zend_extension=php_ioncube.dll`r`n" + (Get-Content $php_dir\php.ini -Raw) | Set-Content $php_dir\php.ini
           type $php_dir\php.ini
       - name: Testing PHP version
         run: php -v
