@@ -23,4 +23,4 @@ jobs:
       - name: Testing Extensions
         run: |
           php -m
-          php -r "if(substr(phpversion(), 0, 3)!=8.0 && ! extension_loaded('ioncube')) {throw new Exception('ioncube not found');}"
+          php -r "if(substr(phpversion(), 0, 3)!=8.0 && ! extension_loaded('ionCube Loader')) {throw new Exception('ioncube not found');}"
