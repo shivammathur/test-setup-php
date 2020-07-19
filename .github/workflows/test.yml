@@ -21,13 +21,13 @@ jobs:
         env:
           phpts: ${{ matrix.ts }}
       - name: Add ioncube
-        run: |         
+        run: |
+          $version = '${{ matrix.php-versions }}'
+          $tick = ([char]8730)
+          $php_dir = 'C:\tools\php'
+          if($env:RUNNER -eq 'self-hosted') { $php_dir = "$php_dir$version" }
+          $ext_dir = "$php_dir\ext"          
           if(-not(Test-Path $ext_dir\php_ioncube.dll)) {
-            $version = '${{ matrix.php-versions }}'
-            $tick = ([char]8730)
-            $php_dir = 'C:\tools\php'
-            if($env:RUNNER -eq 'self-hosted') { $php_dir = "$php_dir$version" }
-            $ext_dir = "$php_dir\ext"
             $installed = Get-Php $php_dir
             $arch = 'x86-64'
             if(-not([Environment]::Is64BitOperatingSystem) -or $version -lt '7.0') {
@@ -42,7 +42,7 @@ jobs:
             Expand-Archive -Path $ext_dir\ioncube.zip -DestinationPath $ext_dir -Force
             Copy-Item $ext_dir\ioncube\ioncube_loader_win_$version.dll $ext_dir\php_ioncube.dll            
           }
-          Enable-PhpExtension ioncube
+          Add-Content -Value "`r`nzend_extension=php_ioncube.dll" -Path $php_dir\php.ini
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
