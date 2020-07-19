@@ -42,7 +42,7 @@ jobs:
             Expand-Archive -Path $ext_dir\ioncube.zip -DestinationPath $ext_dir -Force
             Copy-Item $ext_dir\ioncube\ioncube_loader_win_$version.dll $ext_dir\php_ioncube.dll            
           }
-          Set-Content $php_dir\php.ini –value "zend_extension=php_ioncube.dll`r`n" + (Get-Content $php_dir\php.ini)
+          Set-Content $php_dir\php.ini –value ("zend_extension=php_ioncube.dll`r`n" + (Get-Content $php_dir\php.ini))
           type $php_dir\php.ini
       - name: Testing PHP version
         run: php -v
