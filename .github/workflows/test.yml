@@ -17,6 +17,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
+          extensions: ioncube
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
