@@ -7,8 +7,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['5.5', '5.6', '7.0', '7.4', '8.0']
+        operating-system: [windows-latest]
+        php-versions: ['7.4']
+        ts: [ts, nts]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -17,13 +18,32 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: pecl
-          extensions: apc, curl, dom, imagick, intl, mbstring, mcrypt, memcached, mysql, pdo, pdo_mysql, pdo_pgsql, pdo_sqlite, pgsql, sqlite
-          
+        env:
+          phpts: ${{ matrix.ts }}
+      - name: Add ioncube
+        run: |         
+          if(-not(Test-Path $ext_dir\php_ioncube.dll)) {
+            $version = '${{ matrix.php-versions }}'
+            $tick = ([char]8730)
+            $php_dir = 'C:\tools\php'
+            if($env:RUNNER -eq 'self-hosted') { $php_dir = "$php_dir$version" }
+            $ext_dir = "$php_dir\ext"
+            $installed = Get-Php $php_dir
+            $arch = 'x86-64'
+            if(-not([Environment]::Is64BitOperatingSystem) -or $version -lt '7.0') {
+              $arch = 'x86'
+            }
+            $vc = $installed.VCVersion
+            $ts = ""
+            if(-not($installed.ThreadSafe)) {
+              $ts = "nonts"
+            }
+            Invoke-WebRequest -UseBasicParsing -Uri https://downloads.ioncube.com/loader_downloads/ioncube_loaders_win_$ts_vc$vc_x86.zip -OutFile $ext_dir\ioncube.zip
+            Expand-Archive -Path $ext_dir\ioncube.zip -DestinationPath $ext_dir -Force
+            Copy-Item $ext_dir\ioncube\ioncube_loader_win_$version.dll $ext_dir\php_ioncube.dll            
+          }
+          Enable-PhpExtension ioncube
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
-        run: |
-          php -m
-          php --ini
-          tail -20 $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+        run: php -m
