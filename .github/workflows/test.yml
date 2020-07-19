@@ -29,7 +29,7 @@ jobs:
             echo "zend_extension=$ext_dir/ioncube.so" | sudo tee "$scan_dir/00-ioncube.ini"
           }
 
-          version=$
+          version=${{ matrix.php-versions }}
           scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
           ext_dir=$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
           install_ioncube
