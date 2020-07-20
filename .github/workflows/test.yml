@@ -17,6 +17,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
+          extensions: ioncube
       - name: Add oci8
         run: |          
           # Function to log result of a operation.
@@ -32,8 +33,7 @@ jobs:
               printf "\033[%s;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s \033[0m\n" "31" $mark $subject $message
             }
           }
-          $version = '${{ matrix.php-versions }}'
-          $extension = 'oci8'
+          $version = '${{ matrix.php-versions }}'          
           $tick = ([char]8730)
           $cross = ([char]10007)
           $php_dir = 'C:\tools\php'
@@ -43,36 +43,38 @@ jobs:
           $installed = Get-Php -Path $php_dir
           try
           {
-            if (-not(Test-Path $php_dir\oci.dll)) {
-              $suffix = 'windows'
-              if (-not([Environment]::Is64BitOperatingSystem) -or $version -lt '7.0')
-              {
-                $suffix = 'nt'
+            ForEach ($extension in "pdo_oci", "oci8") {          
+              if (-not(Test-Path $php_dir\oci.dll)) {
+                $suffix = 'windows'
+                if (-not([Environment]::Is64BitOperatingSystem) -or $version -lt '7.0')
+                {
+                  $suffix = 'nt'
+                }
+                Invoke-WebRequest -UseBasicParsing -Uri https://download.oracle.com/otn_software/nt/instantclient/instantclient-basiclite-$suffix.zip -OutFile $php_dir\instantclient.zip
+                Expand-Archive -Path $php_dir\instantclient.zip -DestinationPath $php_dir -Force
+                Copy-Item $php_dir\instantclient*\* $php_dir
+              }            
+              if ($extension -eq "pdo_oci") {
+                Enable-PhpExtension pdo_oci -Path $php_dir
+              } else {
+                $status = 'Installed and enabled'
+                $ociVersion = '2.2.0'
+                if ($version -eq '7.0')
+                {
+                  $ociVersion = '2.1.8'
+                }
+                elseif ($version -lt '7.0')
+                {
+                  $ociVersion = '2.0.12'
+                }
+                $PhpVersion = Get-Php -Path $php_dir
+                $ociUrl = Get-PeclArchiveUrl oci8 $ociVersion $phpVersion
+                Invoke-WebRequest -UseBasicParsing -Uri $ociUrl -OutFile $php_dir\oci8.zip
+                Expand-Archive -Path $php_dir\oci8.zip -DestinationPath $ext_dir -Force
+                Add-Content -Value "`r`nextension=php_oci8.dll" -Path $php_dir\php.ini
               }
-              Invoke-WebRequest -UseBasicParsing -Uri https://download.oracle.com/otn_software/nt/instantclient/instantclient-basiclite-$suffix.zip -OutFile $php_dir\instantclient.zip
-              Expand-Archive -Path $php_dir\instantclient.zip -DestinationPath $php_dir -Force
-              Copy-Item $php_dir\instantclient*\* $php_dir
+              Add-Log $tick $extension $status
             }
-            if ($extension -eq "pdo_oci") {
-              Enable-PhpExtension pdo_oci -Path $php_dir
-            } else {
-              $status = 'Installed and enabled'
-              $ociVersion = '2.2.0'
-              if ($version -eq '7.0')
-              {
-                $ociVersion = '2.1.8'
-              }
-              elseif ($version -lt '7.0')
-              {
-                $ociVersion = '2.0.12'
-              }
-              $PhpVersion = Get-Php -Path $php_dir
-              $ociUrl = Get-PeclArchiveUrl oci8 $ociVersion $phpVersion
-              Invoke-WebRequest -UseBasicParsing -Uri $ociUrl -OutFile $php_dir\oci8.zip
-              Expand-Archive -Path $php_dir\oci8.zip -DestinationPath $ext_dir -Force
-              Add-Content -Value "`r`nextension=php_oci8.dll" -Path $php_dir\php.ini
-            }
-            Add-Log $tick $extension $status
           } catch [Exception] {
             echo $_.Exception|format-list -force
             Add-Log $cross $extension "Could not install $extension on PHP $($installed.FullVersion)"
@@ -84,4 +86,4 @@ jobs:
         run: |
           php -m
           php -r "if(substr(phpversion(), 0, 3)!=8.0 && ! extension_loaded('oci8')) {throw new Exception('oci8 not found');}"
-          #php -r "if(substr(phpversion(), 0, 3)!=8.0 && ! extension_loaded('pdo_oci')) {throw new Exception('pdo_oci not found');}"
+          php -r "if(substr(phpversion(), 0, 3)!=8.0 && ! extension_loaded('pdo_oci')) {throw new Exception('pdo_oci not found');}"
