@@ -5,12 +5,13 @@ on:
 jobs:
   ubuntu:
     name: runner
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Check lists
         run: |
-          ini_file=$(php -d "date.timezone=UTC" --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-          echo -e "date.timezone=UTC\nmemory_limit=-1" >>"$ini_file"
-          php -i | grep "memory_limit"
+          ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+          echo "group ini"
+          cat $ini_file
+          echo "endgroup"
           
         
