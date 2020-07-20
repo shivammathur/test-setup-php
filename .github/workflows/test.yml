@@ -10,8 +10,8 @@ jobs:
       - name: Check lists
         run: |
           ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-          echo "group ini"
+          echo "::group::ini"
           cat $ini_file
-          echo "endgroup"
+          echo "::endgroup::"
           
         
