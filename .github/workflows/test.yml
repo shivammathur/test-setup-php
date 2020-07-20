@@ -17,10 +17,12 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ioncube
+          extensions: ioncube, oci8, pdo_oci
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
         run: |
           php -m
           php -r "if(substr(phpversion(), 0, 3)!=8.0 && ! extension_loaded('ionCube Loader')) {throw new Exception('ioncube not found');}"
+          php -r "if(substr(phpversion(), 0, 3)!=8.0 && ! extension_loaded('oci8')) {throw new Exception('oci8 not found');}"
+          php -r "if(substr(phpversion(), 0, 3)!=8.0 && ! extension_loaded('pdo_oci')) {throw new Exception('pdo_oci not found');}"
