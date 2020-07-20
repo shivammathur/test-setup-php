@@ -13,3 +13,4 @@
 - Test 1.8.5 release.
 - Test 1.9.1 release.
 - Test 1.9.2 release.
+- Test 1.9.3 release.
