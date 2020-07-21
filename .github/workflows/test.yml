@@ -9,33 +9,16 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['5.5']
+        php-versions: ['7.4']
+        tools: [composer-require-checker, composer-normalize, composer-unused]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: blackfire, blackfire-player, php-cs-fixer:2.2.20, phpcs:2.9.2, phpcbf:2.9.2, phpcpd:2.0.4, phpmd:2.8.0, codeception:2.3.5, cs2pr:1.0.1, phpunit:4.8.36, deployer:2.0.0, prestissimo:0.3.8, composer:1.9.3, symfony:4.12.3
-      - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+          tools: ${{ matrix.tools }}
       - name: Testing Tools
-        run: |
-          blackfire-agent -v
-          blackfire version -V
-          blackfire-player -V
-          composer -V
-          php-cs-fixer -V
-          phpcs --version
-          phpcbf --version
-          phpcpd -V
-          codeception -V
-          phpunit --version
-          cs2pr version
-          deployer -V
-          symfony version
-      - name: Test phinx
-        run: |
-          composer global require -vvv robmorgan/phinx:0.5.0
-          phinx -V
+        run: ${{ matrix.tools }} -V
+          
