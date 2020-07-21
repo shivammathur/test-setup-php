@@ -56,6 +56,8 @@ jobs:
               }            
               if ($extension -eq "pdo_oci") {
                 Add-Content -Value "`r`nextension=php_pdo_oci.dll" -Path $php_dir\php.ini
+                php -v
+                php -m
               } else {
                 $status = 'Installed and enabled'
                 $ociVersion = '2.2.0'
@@ -74,6 +76,8 @@ jobs:
                 Add-Content -Value "`r`nextension=php_oci8.dll" -Path $php_dir\php.ini
               }
               Add-Log $tick $extension $status
+              php -v
+              php -m              
             }
           } catch [Exception] {
             echo $_.Exception|format-list -force
