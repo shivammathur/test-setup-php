@@ -19,6 +19,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           tools: ${{ matrix.tools }}
+          coverage: none
       - name: Testing Tools
         run: ${{ matrix.tools }} --version || ${{ matrix.tools }} || echo 'test'
           
