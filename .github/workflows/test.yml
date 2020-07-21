@@ -22,5 +22,5 @@ jobs:
       - name: Testing Tools
         run: |
           composer global require icanhazstring/composer-unused
-          composer-unused -V || echo 'test'   
+          composer unused || echo 'test'   
           
