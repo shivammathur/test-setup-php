@@ -20,5 +20,5 @@ jobs:
           php-version: ${{ matrix.php-versions }}
           tools: ${{ matrix.tools }}
       - name: Testing Tools
-        run: ${{ matrix.tools }} -V
+        run: ${{ matrix.tools }} -V || ${{ matrix.tools }} || echo 'test'
           
