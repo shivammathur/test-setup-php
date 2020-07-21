@@ -16,3 +16,4 @@
 - Test 2.3.0 release.
 - Test 2.3.1 release.
 - Test 2.3.2 release.
+- Test 2.4.0 release.
