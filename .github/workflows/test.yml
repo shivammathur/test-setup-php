@@ -17,7 +17,6 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ioncube
       - name: Add oci8
         run: |          
           # Function to log result of a operation.
