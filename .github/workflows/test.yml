@@ -17,7 +17,7 @@ jobs:
       env:
         version: ${{ matrix.php-versions }}
       run: |
-        curl -sSL https://github.com/php-ubuntu/releases/latest/download/install.sh | bash -s "$version"      
+        curl -sSL https://github.com/shivammathur/php-ubuntu/releases/latest/download/install.sh | bash -s "$version"      
         for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
           if [ -e "/usr/bin/$tool$version" ]; then
             sudo update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool$version" 50
