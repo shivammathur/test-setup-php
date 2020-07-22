@@ -22,7 +22,7 @@ jobs:
       run: |
         helpers=$(curl -sSL https://raw.githubusercontent.com/actions/virtual-environments/master/images/linux/scripts/installers/php.sh | grep -Po "_SCRIPTS/(.*)" | cut -d '/' -f 2)
         for script in $helpers; do
-          sudo curl -o /$script" -sSL https://raw.githubusercontent.com/actions/virtual-environments/main/images/linux/scripts/helpers/"$script"
+          sudo curl -o "/$script" -sSL https://raw.githubusercontent.com/actions/virtual-environments/main/images/linux/scripts/helpers/"$script"
         done
         curl -sSL https://raw.githubusercontent.com/actions/virtual-environments/master/images/linux/scripts/installers/php.sh | sudo bash
 
