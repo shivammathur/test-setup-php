@@ -7,22 +7,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]
-        php-versions: ['5.4','5.4','5.4','5.4','5.4','5.4','5.4','5.4']
+        operating-system: [ubuntu-latest]
+        php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: pdo_oci, oci8
+          extensions: phalcon4
           
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
-        run: |
-          php -m
-          php -r "if(substr(phpversion(), 0, 3)!=8.0 && ! extension_loaded('oci8')) {throw new Exception('oci8 not found');}"
-          php -r "if(substr(phpversion(), 0, 3)!=8.0 && ! extension_loaded('pdo_oci')) {throw new Exception('pdo_oci not found');}"
+        run: php -m
