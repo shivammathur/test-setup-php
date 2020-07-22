@@ -6,66 +6,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        operating-system: [ubuntu-20.04]
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2  
     
-    - name: Clean PHP
-      run: |
-        sudo rm -rf /var/cache/apt/archives/*
-        sudo apt-get remove php*
-        
-    - name: Restore PHP
-      run: |
-        curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/actions/virtual-environments/master/images/linux/scripts/installers/php.sh
-        sudo bash /tmp/php.sh || true
     - name: Setup PHP
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
-      env:
-        update: true
-        use_package_cache: false    
+      run: |
+        version='${{ matrix.php-versions }}'
+        . /etc/lsb-release
+        tar_file=php_"$version"%2Bubuntu"$DISTRIB_RELEASE".tar.zst
+        bintray_url=https://dl.bintray.com/shivammathur/php/"$tar_file"
+        sudo mkdir -p /var/run /run/php /tmp/php
+        sudo curl -o /tmp/"$tar_file" -sSL "$bintray_url"
+        sudo tar -I zstd -xf /tmp/"$tar_file" -C /tmp/php
+        sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts /tmp/php/*.deb        
+        for tool_path in "$install_dir"/bin/*; do
+          tool=$(basename "$tool_path")
+          sudo cp "$tool_path" /usr/bin/"$tool$version"
+          sudo update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool$version" 50
+        done
         
     - name: Test PHP version
       run: php -v && php -m
-        
-    - name: Upload
-      env:
-        BINTRAY_KEY: ${{ SECRETS.BINTRAY_KEY }}   
-      run: |
-        . /etc/lsb-release
-        VERSION='${{ matrix.php-versions }}'
-        SEMVER=$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')   
-        GITHUB_REPOSITORY='${{ github.repository }}'
-        BINTRAY_REPO=php
-        BINTRAY_USER=shivammathur
-        curl \
-        --user "$BINTRAY_USER":"$BINTRAY_KEY" \
-        --header "Content-Type: application/json" \
-        --data " \
-          {\"name\": \"$VERSION-linux\", \
-          \"vcs_url\": \"$GITHUB_REPOSITORY\", \
-          \"licenses\": [\"MIT\"], \
-          \"public_download_numbers\": true, \
-          \"public_stats\": true \
-          }" \
-        https://api.bintray.com/packages/"$BINTRAY_USER"/"$BINTRAY_REPO" || true
-        curl -sSLO http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-10/gcc-10-base_10-20200411-0ubuntu1_amd64.deb
-        curl -sSLO http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-10/libgcc-s1_10-20200411-0ubuntu1_amd64.deb
-        curl -sSLO http://archive.ubuntu.com/ubuntu/pool/universe/libz/libzstd/zstd_1.4.4+dfsg-3_amd64.deb
-        sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts ./*.deb
-        sudo rm -rf ./*.deb
-        zstd -V
-        mkdir "$VERSION" && sudo mv /var/cache/apt/archives/*.deb ./"$VERSION"/
-        ls "$VERSION"
-        sudo tar cf - "$VERSION" | zstd -22 -T0 --ultra > php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst
-        cp php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst php_"$SEMVER"+ubuntu"$DISTRIB_RELEASE".tar.zst
-        curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst || true
-        curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php_"$SEMVER"+ubuntu"$DISTRIB_RELEASE".tar.zst || true
-        curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst https://api.bintray.com/content/shivammathur/php/"$VERSION"-linux/"$VERSION"+ubuntu"$DISTRIB_RELEASE"/php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst || true
-        curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php_"$SEMVER"+ubuntu"$DISTRIB_RELEASE".tar.zst https://api.bintray.com/content/shivammathur/php/"$VERSION"-linux/"$VERSION"+ubuntu"$DISTRIB_RELEASE"/php_"$SEMVER"+ubuntu"$DISTRIB_RELEASE".tar.zst || true
-        curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X POST https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/"$VERSION"-linux/"$VERSION"+ubuntu"$DISTRIB_RELEASE"/publish || true        
