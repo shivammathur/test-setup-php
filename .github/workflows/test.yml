@@ -15,7 +15,7 @@ jobs:
     
     - name: Clean
       run: |
-        sudo rm -rf ls /var/cache/apt/archives/lock/* || true
+        sudo rm -rf ls /var/cache/apt/archives/lock || true
         sudo rm -rf ls /var/cache/apt/archives/partial/* || true
         sudo rm -rf ls /var/cache/apt/archives/* || true
 
@@ -28,11 +28,9 @@ jobs:
         
     - name: Test archives
       run: |
-        ls /var/cache/apt/archives || true
+        sudo ls /var/cache/apt/archives || true
         echo "partial"
-        ls /var/cache/apt/archives/partial || true
-        echo "lock"
-        ls /var/cache/apt/archives/lock || true
+        sudo ls /var/cache/apt/archives/partial || true
       
     - name: Test PHP version
       run: php -v && php -m
