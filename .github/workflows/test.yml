@@ -31,24 +31,27 @@ jobs:
         curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/actions/virtual-environments/master/images/linux/scripts/installers/php.sh
         sudo bash /tmp/php.sh || true
         cat "$METADATA_FILE" || true
-
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
       env:
         update: true
-        use_package_cache: false      
+        use_package_cache: false    
         
     - name: Test PHP version
       run: php -v && php -m
         
     - name: Upload
+      env:
+        BINTRAY_KEY: ${{ SECRETS.BINTRAY_KEY }}   
       run: |
         . /etc/lsb-release
         VERSION='${{ matrix.php-versions }}'
         SEMVER=$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')   
         GITHUB_REPOSITORY='${{ github.repository }}'
+        BINTRAY_REPO=php
+        BINTRAY_USER=shivammathur
         curl \
         --user "$BINTRAY_USER":"$BINTRAY_KEY" \
         --header "Content-Type: application/json" \
