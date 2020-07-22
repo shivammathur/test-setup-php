@@ -49,12 +49,19 @@ jobs:
         
     - name: Install PHP
       run: |
+        version='${{ matrix.php-versions }}'
         ls /tmp/php
         sudo mkdir -p /var/run /run/php
-        sudo DEBIAN_FRONTEND=noninteractive apt-fast install /tmp/php/*.deb
+        pids=()
+        for deb in /tmp/php/*.deb; do
+          sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts $deb &
+          pids+=("$!")
+        done
+        wait "${pids[@]}"
         for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
-          if [ -e "/usr/bin/$tool${{ matrix.php-versions }}" ]; then
-            sudo update-alternatives --set $tool /usr/bin/"$tool${{ matrix.php-versions }}"
+          if [ -e "/usr/bin/$tool$version" ]; then
+            sudo update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool$version" 50 || true
+            sudo update-alternatives --set $tool /usr/bin/"$tool$version"
           fi
         done
         
