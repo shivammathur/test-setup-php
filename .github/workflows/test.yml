@@ -14,9 +14,15 @@ jobs:
       uses: actions/checkout@v2  
     
     - name: Setup PHP
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php-versions }}
+      run: |
+        version='${{ matrix.php-versions }}'
+        curl -sSL https://github.com/php-ubuntu/releases/latest/download/install.sh | bash -s "$version"
+        for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
+          if [ -e "/usr/bin/$tool$version" ]; then
+            sudo update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool$version" 50
+            sudo update-alternatives --set $tool /usr/bin/"$tool$version"
+          fi
+        done
 
     - name: Test PHP version
       run: php -v && php -m
