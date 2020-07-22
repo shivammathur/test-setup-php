@@ -1,5 +1,5 @@
 name: Cache PHP
-on: 
+on:
   - push
   - repository_dispatch
 jobs:
@@ -13,17 +13,21 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v2  
+      uses: actions/checkout@v2
+
+    - name: Add PPA
+      run: |
+        LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
+        sudo DEBIAN_FRONTEND=noninteractive apt-get update
     
     - name: Clean PHP
       run: |
+        sudo apt-get purge 'php*'
         sudo rm -rf /var/cache/apt/archives/*
-        sudo apt-get remove php*
         
     - name: Restore PHP
-      run: |
-        curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/actions/virtual-environments/master/images/linux/scripts/installers/php.sh
-        sudo bash /tmp/php.sh || true
+      run: curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/actions/virtual-environments/master/images/linux/scripts/installers/php.sh | sudo bash || true
+
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
