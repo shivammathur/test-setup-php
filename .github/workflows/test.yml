@@ -20,7 +20,7 @@ jobs:
         
     - name: Restore PHP
       run: |
-        export HELPER_SCRIPTS="$pwd/helper" and mkdir helper
+        export HELPER_SCRIPTS="$pwd/helper" && mkdir helper
         helpers=$(curl -sSL https://raw.githubusercontent.com/actions/virtual-environments/master/images/linux/scripts/installers/php.sh | grep -Po "_SCRIPTS/(.*)" | cut -d '/' -f 2)
         for script in $helpers; do
           curl -o ./helper/"$script" -sSL https://raw.githubusercontent.com/actions/virtual-environments/main/images/linux/scripts/helpers/"$script"
