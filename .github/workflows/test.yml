@@ -51,7 +51,12 @@ jobs:
       run: |
         ls /tmp/php
         sudo mkdir -p /var/run /run/php
-        sudo DEBIAN_FRONTEND=noninteractive dpkg -i /tmp/php/*.deb
+        sudo DEBIAN_FRONTEND=noninteractive apt-fast install /tmp/php/*.deb
+        for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
+          if [ -e "/usr/bin/$tool${{ matrix.php-versions }}" ]; then
+            sudo update-alternatives --set $tool /usr/bin/"$tool${{ matrix.php-versions }}"
+          fi
+        done
         
     - name: Test PHP version
       run: php -v && php -m
