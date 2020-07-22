@@ -23,10 +23,11 @@ jobs:
         sudo curl -o /tmp/"$tar_file" -sSL "$bintray_url"
         sudo tar -I zstd -xf /tmp/"$tar_file" -C /tmp/php
         sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts /tmp/php/"$version"/*.deb        
-        for tool_path in "$install_dir"/bin/*; do
-          tool=$(basename "$tool_path")
-          sudo cp "$tool_path" /usr/bin/"$tool$version"
-          sudo update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool$version" 50
+        for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
+          if [ -e "/usr/bin/$tool$version" ]; then
+            sudo update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool$version" 50
+            sudo update-alternatives --set $tool /usr/bin/"$tool$version"
+          fi
         done
         
     - name: Test PHP version
