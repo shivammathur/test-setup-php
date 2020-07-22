@@ -52,12 +52,7 @@ jobs:
         version='${{ matrix.php-versions }}'
         ls /tmp/php
         sudo mkdir -p /var/run /run/php
-        pids=()
-        for deb in /tmp/php/*.deb; do
-          sudo rm -rf /var/lib/dpkg/*lock* && sudo dpkg --configure -a && sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts $deb &
-          pids+=("$!")
-        done
-        wait "${pids[@]}"
+        sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts /tmp/php/*.deb
         for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
           if [ -e "/usr/bin/$tool$version" ]; then
             sudo update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool$version" 50 || true
