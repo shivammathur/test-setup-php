@@ -1,7 +1,7 @@
 name: Test workflow
 on: [push]
 jobs:
-  run:    
+  package:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
@@ -30,3 +30,30 @@ jobs:
       with:
         name: php${{ matrix.php-versions }}
         path: /var/cache/apt/archives/*.deb
+        
+  test:
+    needs: package
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:      
+        operating-system: [ubuntu-20.04]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    steps:
+    - run: mkdir -p /tmp/php
+    - uses: actions/download-artifact@v2
+      with:
+        name: php${{ matrix.php-versions }}
+        path: /tmp/php
+        
+    - name: Install PHP
+      run: |
+        ls /tmp/php
+        sudo mkdir -p /var/run /run/php
+        sudo DEBIAN_FRONTEND=noninteractive dpkg -i /tmp/php/*.deb
+        
+    - name: Test PHP version
+      run: php -v && php -m
+    
+    
