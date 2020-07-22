@@ -15,8 +15,9 @@ jobs:
     
     - name: Clean
       run: |
+        sudo rm -rf ls /var/cache/apt/archives/lock/* || true
+        sudo rm -rf ls /var/cache/apt/archives/partial/* || true
         sudo rm -rf ls /var/cache/apt/archives/* || true
-        sudo rm -rf ls /var/cache/apt/apt-fast/* || true
 
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
@@ -26,10 +27,12 @@ jobs:
         update: true
         
     - name: Test archives
-      run: ls /var/cache/apt/archives || true
-
-    - name: Test apt-fast
-      run: ls /var/cache/apt/apt-fast || true
+      run: |
+        ls /var/cache/apt/archives || true
+        echo "partial"
+        ls /var/cache/apt/archives/partial || true
+        echo "lock"
+        ls /var/cache/apt/archives/lock || true
       
     - name: Test PHP version
       run: php -v && php -m
