@@ -14,23 +14,19 @@ jobs:
       uses: actions/checkout@v2  
     
     - name: Clean
-      run: |
-        sudo rm -rf ls /var/cache/apt/archives/lock || true
-        sudo rm -rf ls /var/cache/apt/archives/partial/* || true
-        sudo rm -rf ls /var/cache/apt/archives/* || true
+      run: sudo rm -rf /var/cache/apt/archives/*
 
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
       env:
-        update: true
+        update: true        
         
-    - name: Test archives
-      run: |
-        sudo ls /var/cache/apt/archives || true
-        echo "partial"
-        sudo ls /var/cache/apt/archives/partial || true
-      
     - name: Test PHP version
       run: php -v && php -m
+        
+    - uses: actions/upload-artifact@v2
+      with:
+        name: php${{ matrix.php-versions }}
+        path: /var/cache/apt/archives/*.deb
