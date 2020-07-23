@@ -35,10 +35,13 @@ jobs:
           Copy-Item -Path C:\php-snap-build\rmtools\data\config\credentials_ftps.php-dist -Destination C:\php-snap-build\rmtools\data\config\credentials_ftps.php
           $git_location="C:\Program Files\Git\cmd\git.exe"
           $tar_location="C:\Program Files\Git\usr\bin\tar.exe"
-          $git_script_location='C:\php-snap-build\rmtools\include\Git.php'
+          $task_location="C:\php-snap-build\rmtools\bin\snapshot_task.bat"
+          $git_script_location="C:\php-snap-build\rmtools\include\Git.php"
+          $config_location='C:\php-snap-build\rmtools\data\config\branch\x64\phpmaster.ini'
           ((Get-Content -path $git_script_location -Raw) -replace "c:\\apps\\git\\bin\\git.exe", $git_location) | Set-Content -Path $git_script_location
           ((Get-Content -path $git_script_location -Raw) -replace "c:\\apps\\git\\bin\\tar.exe", $tar_location) | Set-Content -Path $git_script_location
-          ((Get-Content -path C:\php-snap-build\rmtools\bin\snapshot_task.bat -Raw) -replace ">> %LOG_FILE% 2<&1", "") | Set-Content -Path C:\php-snap-build\rmtools\bin\snapshot_task.bat          
-          & C:\php-snap-build\php-sdk\phpsdk-vs16-x64.bat -t C:\php-snap-build\rmtools\bin\snapshot_task.bat --task-args "phpmaster all"
+          ((Get-Content -path $task_location -Raw) -replace ">> %LOG_FILE% 2<&1", "") | Set-Content -Path $task_location
+          ((Get-Content -path $config_location -Raw) -replace "pgo=1", "pgo=0") | Set-Content -Path $config_location
+          & C:\php-snap-build\php-sdk\phpsdk-vs16-x64.bat -t $task_location --task-args "phpmaster all"
           Get-ChildItem -Path C:\php-snap-build\obj-x64 -recurse
           
