@@ -38,5 +38,7 @@ jobs:
           $git_script_location='C:\php-snap-build\rmtools\include\Git.php'
           ((Get-Content -path $git_script_location -Raw) -replace "c:\\apps\\git\\bin\\git.exe", $git_location) | Set-Content -Path $git_script_location
           ((Get-Content -path $git_script_location -Raw) -replace "c:\\apps\\git\\bin\\tar.exe", $tar_location) | Set-Content -Path $git_script_location
+          ((Get-Content -path C:\php-snap-build\rmtools\bin\snapshot_task.bat -Raw) -replace ">> %LOG_FILE% 2<&1", "") | Set-Content -Path C:\php-snap-build\rmtools\bin\snapshot_task.bat          
           & C:\php-snap-build\php-sdk\phpsdk-vs16-x64.bat -t C:\php-snap-build\rmtools\bin\snapshot_task.bat --task-args "phpmaster all"
-          Get-Content (Get-ChildItem C:\php-snap-build\rmtools\logs *.log).Name –Wait
+          Get-ChildItem -Path C:\php-snap-build\obj-x64 -recurse
+          
