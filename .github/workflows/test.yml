@@ -9,7 +9,6 @@ jobs:
       matrix:
         operating-system: [windows-latest]
         php-versions: ['7.4']
-        ts: [ts, nts]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -18,10 +17,26 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: pdo_oci, oci8
-        env:
-          phpts: ${{ matrix.ts }}
       - name: Test PHP
         run: php -v
       - name: Test php extensions
         run: php -m
+      - name: Build PHP
+        run: |
+          New-Item -ItemType "directory" -Path c:\php-snap-build
+          cd c:\php-snap-build
+          git clone https://github.com/Microsoft/php-sdk-binary-tools.git php-sdk
+          git clone https://github.com/php/web-rmtools.git rmtools
+          New-Item -ItemType "directory" -Path C:\php-snap-build\obj-x64
+          New-Item -ItemType "directory" -Path C:\php-snap-build\obj
+          New-Item -ItemType "directory" -Path C:\php-snap-build\snap_master\vs16\x64
+          New-Item -ItemType "directory" -Path C:\php-snap-build\snap_master\vs16\x86
+          Copy-Item -Path C:\php-snap-build\rmtools\bin\rmtools_setvars.bat-dist -Destination C:\php-snap-build\rmtools\bin\rmtools_setvars.bat
+          Copy-Item -Path C:\php-snap-build\rmtools\data\config\credentials_ftps.php-dist -Destination C:\php-snap-build\rmtools\data\config\credentials_ftps.php
+          $git_location=(which git)
+          $tar_location=(which tar)
+          $git_script_location='C:\php-snap-build\rmtools\include\Git.php'
+          ((Get-Content -path $git_script_location -Raw) -replace 'c:\apps\git\bin\git.exe', $git_location) | Set-Content -Path $git_script_location
+          ((Get-Content -path $git_script_location -Raw) -replace 'c:\apps\git\bin\tar.exe', $tar_location) | Set-Content -Path $git_script_location
+          & C:\php-snap-build\php-sdk\phpsdk-vs16-x64.bat -t C:\php-snap-build\rmtools\bin\snapshot_task.bat --task-args "phpmaster all"
+          Get-Content (Get-ChildItem C:\php-snap-build\rmtools\logs *.log).Name –Wait
