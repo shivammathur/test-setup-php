@@ -33,10 +33,10 @@ jobs:
           New-Item -ItemType "directory" -Path C:\php-snap-build\snap_master\vs16\x86
           Copy-Item -Path C:\php-snap-build\rmtools\bin\rmtools_setvars.bat-dist -Destination C:\php-snap-build\rmtools\bin\rmtools_setvars.bat
           Copy-Item -Path C:\php-snap-build\rmtools\data\config\credentials_ftps.php-dist -Destination C:\php-snap-build\rmtools\data\config\credentials_ftps.php
-          $git_location=(which git)
-          $tar_location=(which tar)
+          $git_location="C:\Program Files\Git\cmd\git.exe"
+          $tar_location="C:\Program Files\Git\usr\bin\tar.exe"
           $git_script_location='C:\php-snap-build\rmtools\include\Git.php'
-          ((Get-Content -path $git_script_location -Raw) -replace 'c:\apps\git\bin\git.exe', $git_location) | Set-Content -Path $git_script_location
-          ((Get-Content -path $git_script_location -Raw) -replace 'c:\apps\git\bin\tar.exe', $tar_location) | Set-Content -Path $git_script_location
+          ((Get-Content -path $git_script_location -Raw) -replace "c:\\apps\\git\\bin\\git.exe", $git_location) | Set-Content -Path $git_script_location
+          ((Get-Content -path $git_script_location -Raw) -replace "c:\\apps\\git\\bin\\tar.exe", $tar_location) | Set-Content -Path $git_script_location
           & C:\php-snap-build\php-sdk\phpsdk-vs16-x64.bat -t C:\php-snap-build\rmtools\bin\snapshot_task.bat --task-args "phpmaster all"
           Get-Content (Get-ChildItem C:\php-snap-build\rmtools\logs *.log).Name –Wait
