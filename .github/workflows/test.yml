@@ -5,13 +5,11 @@ on:
 jobs:
   ubuntu:
     name: runner
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
-      - name: Check lists
+      - name: Check location
         run: |
-          ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-          printf "::group::\033[34;1m%s \033[0m\033[90;1m%s \033[0m\n" "php.ini" "Click to read the php.ini file"
-          cat $ini_file
-          echo "::endgroup::"
+          which git
+          which tar
           
         
