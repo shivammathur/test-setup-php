@@ -5,11 +5,26 @@ on:
 jobs:
   ubuntu:
     name: runner
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
-      - name: Check location
+      - name: Test
         run: |
-          which git
-          which tar
+          version=7.2
+          . /etc/lsb-release
+          versions=""
+          if [ "$DISTRIB_RELEASE" = "20.04" ]; then
+            versions="7.4"
+          elif [ "$DISTRIB_RELEASE" = "18.04" ]; then
+            versions="7.1 7.2 7.3 7.4"
+          elif "$DISTRIB_RELEASE" = "16.04" ]; then
+            versions="5.6 7.0 7.1 7.2 7.3 7.4"
+          fi
+          for i in $versions; do
+            if [ "$i" = "$version" ]; then
+              curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/actions/virtual-environments/master/images/linux/scripts/installers/php.sh
+              sed -i "s/\$php_versions/${{ matrix.php-versions }}/g" /tmp/php.sh
+              sudo bash /tmp/php.sh || true           
+            fi
+          done
           
         
