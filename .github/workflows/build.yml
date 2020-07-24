@@ -26,7 +26,24 @@ jobs:
         sudo rm -rf /var/cache/apt/archives/*
         
     - name: Restore PHP
-      run: curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/actions/virtual-environments/master/images/linux/scripts/installers/php.sh | sudo bash || true
+      run: |
+        . /etc/lsb-release
+        version='${{ matrix.php-versions }}'
+        versions=""
+        if [ "$DISTRIB_RELEASE" = "20.04" ]; then
+          versions="7.4"
+        elif [ "$DISTRIB_RELEASE" = "18.04" ]; then
+          versions="7.1 7.2 7.3 7.4"
+        elif "$DISTRIB_RELEASE" = "16.04" ]; then
+          versions="5.6 7.0 7.1 7.2 7.3 7.4"
+        fi
+        for i in $versions; do
+          if [ "$i" = "$version" ]; then
+            curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/actions/virtual-environments/master/images/linux/scripts/installers/php.sh
+            sed -i "s/\$php_versions/${{ matrix.php-versions }}/g" /tmp/php.sh
+            sudo bash /tmp/php.sh || true           
+          fi
+        done
 
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
@@ -67,10 +84,12 @@ jobs:
         sudo rm -rf ./*.deb
         zstd -V
         mkdir "$VERSION" && sudo mv /var/cache/apt/archives/*.deb ./"$VERSION"/
-        sudo tar cf - "$VERSION" | zstd -22 -T0 --ultra > php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst
-        cp php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst php_"$SEMVER"+ubuntu"$DISTRIB_RELEASE".tar.zst
-        curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst || true
-        curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php_"$SEMVER"+ubuntu"$DISTRIB_RELEASE".tar.zst || true
-        curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst https://api.bintray.com/content/shivammathur/php/"$VERSION"-linux/"$VERSION"+ubuntu"$DISTRIB_RELEASE"/php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst || true
-        curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php_"$SEMVER"+ubuntu"$DISTRIB_RELEASE".tar.zst https://api.bintray.com/content/shivammathur/php/"$VERSION"-linux/"$VERSION"+ubuntu"$DISTRIB_RELEASE"/php_"$SEMVER"+ubuntu"$DISTRIB_RELEASE".tar.zst || true
-        curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X POST https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/"$VERSION"-linux/"$VERSION"+ubuntu"$DISTRIB_RELEASE"/publish || true  
+        if [ -e ./"$VERSION"/php"$VERSION"-cli* ]; then
+          sudo tar cf - "$VERSION" | zstd -22 -T0 --ultra > php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst
+          cp php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst php_"$SEMVER"+ubuntu"$DISTRIB_RELEASE".tar.zst
+          curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst || true
+          curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php_"$SEMVER"+ubuntu"$DISTRIB_RELEASE".tar.zst || true
+          curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst https://api.bintray.com/content/shivammathur/php/"$VERSION"-linux/"$VERSION"+ubuntu"$DISTRIB_RELEASE"/php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst || true
+          curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php_"$SEMVER"+ubuntu"$DISTRIB_RELEASE".tar.zst https://api.bintray.com/content/shivammathur/php/"$VERSION"-linux/"$VERSION"+ubuntu"$DISTRIB_RELEASE"/php_"$SEMVER"+ubuntu"$DISTRIB_RELEASE".tar.zst || true
+          curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X POST https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/"$VERSION"-linux/"$VERSION"+ubuntu"$DISTRIB_RELEASE"/publish || true
+        fi  
