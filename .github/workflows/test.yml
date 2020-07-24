@@ -21,9 +21,7 @@ jobs:
           fi
           for i in $versions; do
             if [ "$i" = "$version" ]; then
-              curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/actions/virtual-environments/master/images/linux/scripts/installers/php.sh
-              sed -i "s/\$php_versions/${{ matrix.php-versions }}/g" /tmp/php.sh
-              sudo bash /tmp/php.sh || true           
+              echo "Test $i"         
             fi
           done
           
