@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-latest, macos-latest]
         php: ['8.0']
     name: Test macOS
     steps:
@@ -18,7 +18,10 @@ jobs:
       with:
         php-version: ${{ matrix.php }}
         tools: pecl
-        extensions: pcov, swoole, xdebug
+        extensions: pcov, xdebug
+        
+    - name: Install swoole
+      run: yes '' | sudo pecl install -f swoole
 
     - name: Test PHP version
       run: php -v
