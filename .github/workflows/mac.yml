@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-latest]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
         php: ['8.0']
     name: Test macOS
     steps:
