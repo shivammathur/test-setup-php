@@ -17,6 +17,7 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php }}
+        tools: pecl
         extensions: pcov, swoole, xdebug
 
     - name: Test PHP version
