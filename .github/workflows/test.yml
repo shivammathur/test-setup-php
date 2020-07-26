@@ -17,7 +17,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: oci8, pdo_oci
+          extensions: oci8, pdo_oci, blackfire
           
       - name: Testing PHP version
         run: php -v
