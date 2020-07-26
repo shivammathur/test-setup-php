@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false      
       matrix:        
-        operating-system: [ubuntu-latest]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
         php-versions: ['7.2', '7.3', '7.4']        
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -22,6 +22,7 @@ jobs:
       run: php -v
     - name: Testing Extensions
       run: |
+        php -r 'var_dump(new class(new Phalcon\Di\FactoryDefault) extends Phalcon\Mvc\Model {});'
         php -r "echo 'psr: ' . phpversion('psr').', ';"
         php -r "echo 'phalcon: ' . phpversion('phalcon');"
         php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
