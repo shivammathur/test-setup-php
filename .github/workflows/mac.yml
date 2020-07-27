@@ -8,13 +8,6 @@ jobs:
       matrix:      
         operating-system: [macos-latest]
         php: [5.3, 5.4, 5.5]
-        include:
-          - php: 5.3
-            xdebug: 2.2.7
-          - php: 5.4
-            xdebug: 2.4.1
-          - php: 5.5
-            xdebug: 2.5.5
     name: Test macOS
     steps:
     - name: Checkout
@@ -24,9 +17,7 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php }}
-        
-    - name: Install xdebug
-      run: yes '' | sudo pecl install -f xdebug-${{ matrix.xdebug }}
+        extensions: xdebug
 
     - name: Test PHP version
       run: php -v
