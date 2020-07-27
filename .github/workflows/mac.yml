@@ -26,7 +26,6 @@ jobs:
         php-version: ${{ matrix.php }}
         
     - name: Install xdebug
-      if: matrix.php-version == 5.3
       run: yes '' | sudo pecl install -f xdebug-${{ matrix.xdebug }}
 
     - name: Test PHP version
