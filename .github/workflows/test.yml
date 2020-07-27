@@ -7,7 +7,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        #operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-16.04]
         php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -17,7 +18,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: oci8, pdo_oci, blackfire
+          extensions: gearman
           
       - name: Testing PHP version
         run: php -v
