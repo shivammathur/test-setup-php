@@ -20,18 +20,9 @@ jobs:
         extensions: xdebug
 
     - name: Test PHP version
-      run: php -v
+      run: |
+        tail -n 20 $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+        php -v
       
     - name: Test PHP extensions
       run: php -m
-      
-    - name: Get ext_dir
-      id: ext-dir
-      run: |
-        ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
-        echo "::set-output name=ext_dir::$ext_dir"
-        
-    - uses: actions/upload-artifact@v2
-      with:
-        name: xdebug-${{ matrix.php }}
-        path: ${{ steps.ext-dir.outputs.ext_dir }}/xdebug.so
