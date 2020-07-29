@@ -6,8 +6,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, windows-latest, macos-latest]
-        php-versions: ['5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        operating-system: [macos-latest]
+        php-versions: ['5.3', '5.4', '5.5']
+        tag: [verbose, develop]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
       BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }} 
@@ -18,19 +19,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Install PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@${{ matrix.tag }}
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: blackfire
-        tools: blackfire, blackfire-player
     - name: Testing PHP version
       run: php -v
     - name: Testing extension
       run: |
         php -m
         php -r "if(phpversion()>=5.4 && ! extension_loaded('blackfire')) {throw new Exception('blackfire not found');}"
-        blackfire-agent -v
-        blackfire version -V
-        blackfire-player -V
-        blackfire-agent -d
         
