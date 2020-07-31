@@ -15,10 +15,11 @@ jobs:
           extensions: protobuf
       - name: Test
         run: |          
-          git clone -b v1.30.2 https://github.com/grpc/grpc
-          cd grpc
-          git submodule update --init
-          make grpc_php_plugin
-          cd examples/php
+          bazel build @com_google_protobuf//:protoc
+          bazel build src/compiler:grpc_php_plugin
+          sudo cp ./bazel-bin/external/com_google_protobuf/protoc /usr/bin/protoc
+          sudo cp ./bazel-bin/src/compiler/grpc_php_plugin /usr/bin/grpc_php_plugin
+          git clone https://github.com/grpc/grpc
+          cd grpc/examples/php
           ./greeter_proto_gen.sh
           composer install
