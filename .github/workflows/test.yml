@@ -7,22 +7,18 @@ jobs:
     name: runner
     runs-on: ubuntu-latest
     steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 7.4
+          tools: pecl
+          extensions: protobuf
       - name: Test
-        run: |
-          version=7.2
-          . /etc/lsb-release
-          versions=""
-          if [ "$DISTRIB_RELEASE" = "20.04" ]; then
-            versions="7.4"
-          elif [ "$DISTRIB_RELEASE" = "18.04" ]; then
-            versions="7.1 7.2 7.3 7.4"
-          elif "$DISTRIB_RELEASE" = "16.04" ]; then
-            versions="5.6 7.0 7.1 7.2 7.3 7.4"
-          fi
-          for i in $versions; do
-            if [ "$i" = "$version" ]; then
-              echo "Test $i"         
-            fi
-          done
-          
-        
+        run: |          
+          git clone -b v1.30.2 https://github.com/grpc/grpc
+          cd grpc
+          git submodule update --init
+          make grpc_php_plugin
+          cd examples/php
+          ./greeter_proto_gen.sh
+          composer install
