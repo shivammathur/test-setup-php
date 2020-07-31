@@ -22,7 +22,7 @@ jobs:
           curl_opts=(-sSL --retry 5 --retry-delay 1)
           add_protoc() {
             platform='linux'
-            [ "$(uname -s)" = "Darwin" ] && plarform='osx'
+            [ "$(uname -s)" = "Darwin" ] && platform='osx'
             protobuf_tag=$(curl "${curl_opts[@]}" https://github.com/protocolbuffers/protobuf/releases/latest 2<&1 | grep -m 1 -Eo "(v[0-9]+.[0-9]+.[0-9]+)" | head -n 1)
             curl -o /tmp/protobuf.zip "${curl_opts[@]}" "https://github.com/protocolbuffers/protobuf/releases/download/$protobuf_tag/protoc-${protobuf_tag:1}-$platform-x86_64.zip"
             sudo unzip /tmp/protobuf.zip -d /usr/local/
