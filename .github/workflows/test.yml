@@ -19,6 +19,7 @@ jobs:
             protobuf_tag=$(curl -sSL "https://api.github.com/repos/protocolbuffers/protobuf/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
             curl -o /tmp/protobuf.zip -sSL "https://github.com/protocolbuffers/protobuf/releases/download/$protobuf_tag/protoc-${protobuf_tag:1}-linux-x86_64.zip"
             sudo unzip /tmp/protobuf.zip -d /
+            sudo chmod a+x /bin/protoc
           }
           add_grpc_php_plugin() {
             grpc_tag=$(curl -sSL https://grpc.io/release)
@@ -27,6 +28,7 @@ jobs:
               cd /tmp/grpc-${grpc_tag:1}
               bazel build src/compiler:grpc_php_plugin
               sudo cp ./bazel-bin/src/compiler/grpc_php_plugin /usr/bin/grpc_php_plugin
+              sudo chmod a+x /usr/bin/grpc_php_plugin
             )
           }
           test() {
