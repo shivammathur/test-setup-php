@@ -24,9 +24,9 @@ jobs:
             grpc_tag=$(curl -sSL https://grpc.io/release)
             curl -sSL "https://github.com/grpc/grpc/archive/$grpc_tag.tar.gz" | tar -xz -C /tmp
             (
-            cd grpc-${grpc_tag:1}
-            bazel build src/compiler:grpc_php_plugin
-            sudo cp ./bazel-bin/src/compiler/grpc_php_plugin /usr/bin/grpc_php_plugin
+              cd /tmp/grpc-${grpc_tag:1}
+              bazel build src/compiler:grpc_php_plugin
+              sudo cp ./bazel-bin/src/compiler/grpc_php_plugin /usr/bin/grpc_php_plugin
             )
           }
           test() {
