@@ -25,7 +25,7 @@ jobs:
           sudo cp ./bazel-bin/src/compiler/grpc_php_plugin /usr/bin/grpc_php_plugin
           sudo chmod a+x /bin/protoc /usr/bin/grpc_php_plugin
           cd examples/php
-          protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc=/bin/grpc_php_plugin ../protos/helloworld.proto
+          protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc=/usr/bin/grpc_php_plugin ../protos/helloworld.proto
           ls .
           ls ../protos
           composer install
