@@ -4,8 +4,12 @@ on:
   push:
 jobs:
   ubuntu:
-    name: runner
-    runs-on: ubuntu-latest
+    name: runner    
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
@@ -16,8 +20,10 @@ jobs:
       - name: Test
         run: |
           add_protoc() {
+            platform='linux'
+            [ "$(uname -s)" = "Darwin" ] && plarform='osx'
             protobuf_tag=$(curl -sSL "https://api.github.com/repos/protocolbuffers/protobuf/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-            curl -o /tmp/protobuf.zip -sSL "https://github.com/protocolbuffers/protobuf/releases/download/$protobuf_tag/protoc-${protobuf_tag:1}-linux-x86_64.zip"
+            curl -o /tmp/protobuf.zip -sSL "https://github.com/protocolbuffers/protobuf/releases/download/$protobuf_tag/protoc-${protobuf_tag:1}-$platform-x86_64.zip"
             sudo unzip /tmp/protobuf.zip -d /
             sudo chmod a+x /bin/protoc
           }
