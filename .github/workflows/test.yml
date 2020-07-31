@@ -21,7 +21,7 @@ jobs:
           sudo unzip /tmp/protobuf.zip -d /
           git clone https://github.com/grpc/grpc
           cd grpc
-          bazel --batch_cpu_scheduling --io_nice_level 7 build --jobs 6 --local_ram_resources=HOST_RAM*0.5 src/compiler:grpc_php_plugin
+          bazel build src/compiler:grpc_php_plugin
           sudo cp ./bazel-bin/src/compiler/grpc_php_plugin /usr/bin/grpc_php_plugin
           sudo chmod a+x /bin/protoc /usr/bin/grpc_php_plugin
           cd examples/php
