@@ -17,6 +17,12 @@ jobs:
           php-version: 7.4
       - name: Test
         run: |
+          # Function to log result of a operation.
+          Function Add-Log($mark, $subject, $message) {
+            $code = if ($mark -eq $cross) { "31" } else { "32" }
+            printf "\033[%s;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s \033[0m\n" $code $mark $subject $message
+          }
+          
           Function Add-Msys2() {
             $msys_location='C:\msys64'
             if (-not(Test-Path C:\msys64)) {
@@ -28,7 +34,7 @@ jobs:
 
           Function Add-Grpc_php_plugin() {
             $msyc_location = Add-Msys2
-            $msyc_location\usr\bin\bash -l -c "pacman -S --noconfirm mingw-w64-x86_64-grpc"
+            . $msyc_location\usr\bin\bash -l -c "pacman -S --noconfirm mingw-w64-x86_64-grpc"
             Write-Output "::add-path::$msyc_location\mingw64\bin"
             Add-Log $tick "grpc_php_plugin" "Added $msyc_location\mingw64\bin\grpc_php_plugin.exe"
             printf "::group::\033[34;1m%s \033[0m\033[90;1m%s \033[0m\n" "grpc_php_plugin" "Click to read the grpc_php_plugin related license information"
