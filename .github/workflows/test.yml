@@ -18,11 +18,13 @@ jobs:
           php -v && php -m
           git clone https://github.com/grpc/grpc
           cd grpc
-          bazel build @com_google_protobuf//:protoc
-          bazel build src/compiler:grpc_php_plugin
+          bazel build --jobs 6 --batch_cpu_scheduling --io_nice_level 7 --local_ram_resources=HOST_RAM*0.5 @com_google_protobuf//:protoc
+          bazel build --jobs 6 --batch_cpu_scheduling --io_nice_level 7 --local_ram_resources=HOST_RAM*0.5 src/compiler:grpc_php_plugin
           sudo cp ./bazel-bin/external/com_google_protobuf/protoc /usr/bin/protoc
           sudo cp ./bazel-bin/src/compiler/grpc_php_plugin /usr/bin/grpc_php_plugin
-          git clone https://github.com/grpc/grpc
+          chmod a+x /usr/bin/protoc /usr/bin/grpc_php_plugin
           cd examples/php
-          ./greeter_proto_gen.sh
+          protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc=/usr/bin/grpc_php_plugin ../protos/helloworld.proto
+          ls .
+          ls ../protos
           composer install
