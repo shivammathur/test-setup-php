@@ -18,8 +18,8 @@ jobs:
           php -v && php -m
           git clone https://github.com/grpc/grpc
           cd grpc
-          bazel build --jobs 6 --batch_cpu_scheduling --io_nice_level 7 --local_ram_resources=HOST_RAM*0.5 @com_google_protobuf//:protoc
-          bazel build --jobs 6 --batch_cpu_scheduling --io_nice_level 7 --local_ram_resources=HOST_RAM*0.5 src/compiler:grpc_php_plugin
+          bazel --batch_cpu_scheduling --io_nice_level 7 build --jobs 6 --local_ram_resources=HOST_RAM*0.5 @com_google_protobuf//:protoc
+          bazel --batch_cpu_scheduling --io_nice_level 7 build --jobs 6 --local_ram_resources=HOST_RAM*0.5 src/compiler:grpc_php_plugin
           sudo cp ./bazel-bin/external/com_google_protobuf/protoc /usr/bin/protoc
           sudo cp ./bazel-bin/src/compiler/grpc_php_plugin /usr/bin/grpc_php_plugin
           chmod a+x /usr/bin/protoc /usr/bin/grpc_php_plugin
