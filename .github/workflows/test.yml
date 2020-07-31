@@ -19,17 +19,18 @@ jobs:
           extensions: protobuf
       - name: Test
         run: |
+          curl_opts=(-sSL --retry 5 --retry-delay 1)
           add_protoc() {
             platform='linux'
             [ "$(uname -s)" = "Darwin" ] && plarform='osx'
-            protobuf_tag=$(curl -sSL "https://api.github.com/repos/protocolbuffers/protobuf/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-            curl -o /tmp/protobuf.zip -sSL "https://github.com/protocolbuffers/protobuf/releases/download/$protobuf_tag/protoc-${protobuf_tag:1}-$platform-x86_64.zip"
+            protobuf_tag=$(curl "${curl_opts[@]}" https://github.com/protocolbuffers/protobuf/releases/latest 2<&1 | grep -m 1 -Eo "(v[0-9]+.[0-9]+.[0-9]+)" | head -n 1)
+            curl -o /tmp/protobuf.zip "${curl_opts[@]}" "https://github.com/protocolbuffers/protobuf/releases/download/$protobuf_tag/protoc-${protobuf_tag:1}-$platform-x86_64.zip"
             sudo unzip /tmp/protobuf.zip -d /
             sudo chmod a+x /bin/protoc
           }
           add_grpc_php_plugin() {
-            grpc_tag=$(curl -sSL https://grpc.io/release)
-            curl -sSL "https://github.com/grpc/grpc/archive/$grpc_tag.tar.gz" | tar -xz -C /tmp
+            grpc_tag=$(curl "${curl_opts[@]}" https://grpc.io/release)
+            curl "${curl_opts[@]}" "https://github.com/grpc/grpc/archive/$grpc_tag.tar.gz" | tar -xz -C /tmp
             (
               cd /tmp/grpc-${grpc_tag:1}
               bazel build src/compiler:grpc_php_plugin
