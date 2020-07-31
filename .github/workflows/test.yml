@@ -15,34 +15,10 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: 7.4
-          tools: pecl
+          tools: pecl, protoc, grpc_php_plugin
           extensions: protobuf
       - name: Test
         run: |
-          curl_opts=(-sSL --retry 5 --retry-delay 1)
-          add_protoc() {
-            platform='linux'
-            [ "$(uname -s)" = "Darwin" ] && platform='osx'
-            protobuf_tag=$(curl "${curl_opts[@]}" https://github.com/protocolbuffers/protobuf/releases/latest 2<&1 | grep -m 1 -Eo "(v[0-9]+.[0-9]+.[0-9]+)" | head -n 1)
-            curl -o /tmp/protobuf.zip "${curl_opts[@]}" "https://github.com/protocolbuffers/protobuf/releases/download/$protobuf_tag/protoc-${protobuf_tag:1}-$platform-x86_64.zip"
-            sudo unzip /tmp/protobuf.zip -d /usr/local/
-            sudo chmod a+x /usr/local/bin/protoc
-          }
-          add_grpc_php_plugin() {
-            grpc_tag=$(curl "${curl_opts[@]}" https://grpc.io/release)
-            curl "${curl_opts[@]}" "https://github.com/grpc/grpc/archive/$grpc_tag.tar.gz" | tar -xz -C /tmp
-            (
-              cd /tmp/grpc-${grpc_tag:1}
-              bazel build src/compiler:grpc_php_plugin
-              sudo cp ./bazel-bin/src/compiler/grpc_php_plugin /usr/local/bin/grpc_php_plugin
-              sudo chmod a+x /usr/local/bin/grpc_php_plugin
-            )
-          }
-          test() {
-            cd /tmp/grpc*/examples/php
-            protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc="$(which grpc_php_plugin)" ../protos/helloworld.proto
-            composer install
-          }
-          add_protoc
-          add_grpc_php_plugin
-          test       
+          cd /tmp/grpc*/examples/php
+          protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc="$(which grpc_php_plugin)" ../protos/helloworld.proto
+          composer install
