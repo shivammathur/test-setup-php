@@ -15,17 +15,25 @@ jobs:
           extensions: protobuf
       - name: Test
         run: |
-          php -v && php -m
-          protobuf_tag=$(curl -sSL https://api.github.com/repos/protocolbuffers/protobuf/releases 2>&1 | grep -Eo "(v[0-9]+.[0-9]+.[0-9]+)" | head -n 1)
-          curl -o /tmp/protobuf.zip -sSL "https://github.com/protocolbuffers/protobuf/releases/download/$protobuf_tag/protoc-${protobuf_tag:1}-linux-x86_64.zip"
-          sudo unzip /tmp/protobuf.zip -d /
-          git clone https://github.com/grpc/grpc
-          cd grpc
-          bazel build src/compiler:grpc_php_plugin
-          sudo cp ./bazel-bin/src/compiler/grpc_php_plugin /usr/bin/grpc_php_plugin
-          sudo chmod a+x /bin/protoc /usr/bin/grpc_php_plugin
-          cd examples/php
-          protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc=/usr/bin/grpc_php_plugin ../protos/helloworld.proto
-          ls .
-          ls ../protos
-          composer install
+          add_protoc() {
+            protobuf_tag=$(curl -sSL "https://api.github.com/repos/protocolbuffers/protobuf/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+            curl -o /tmp/protobuf.zip -sSL "https://github.com/protocolbuffers/protobuf/releases/download/$protobuf_tag/protoc-${protobuf_tag:1}-linux-x86_64.zip"
+            sudo unzip /tmp/protobuf.zip -d /
+          }
+          add_grpc_php_plugin() {
+            grpc_tag=$(curl -sSL https://grpc.io/release)
+            curl -sSL "https://github.com/grpc/grpc/archive/$grpc_tag.tar.gz" | tar -xz -C /tmp
+            (
+            cd grpc-${grpc_tag:1}
+            bazel build src/compiler:grpc_php_plugin
+            sudo cp ./bazel-bin/src/compiler/grpc_php_plugin /usr/bin/grpc_php_plugin
+            )
+          }
+          test() {
+            cd /tmp/grpc*/examples/php
+            protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc=/usr/bin/grpc_php_plugin ../protos/helloworld.proto
+            composer install
+          }
+          add_protoc
+          add_grpc_php_plugin
+          test       
