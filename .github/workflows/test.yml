@@ -15,8 +15,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: 7.4
-          tools: pecl, protoc, grpc_php_plugin
-          extensions: protobuf
+          tools: protoc, grpc_php_plugin
       - name: Test
         run: |
           cd /tmp/grpc*/examples/php
