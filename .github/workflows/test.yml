@@ -8,17 +8,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [macos-latest]
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        id: php
-        with:
-          php-version: 7.4
-          tools: protoc, grpc_php_plugin
-      - name: Test        
+      - name: Test
         run: |
-          git clone https://github.com/grpc/grpc          
-          cd grpc/examples/php
-          protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc=${{ steps.php.outputs.grpc_php_plugin_path }} ../protos/helloworld.proto
-          composer install
+          which gcc || true
+          which clang || true          
