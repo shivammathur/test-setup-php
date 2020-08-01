@@ -1,27 +1,24 @@
-name: Tools workflow
+name: Runner workflow
 on:
   push:
-jobs:  
-  versions:
-    name: tools
-    runs-on: ${{ matrix.operating-system }}
+jobs:
+  ubuntu:
+    name: runner    
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, macos-latest]
-        php-versions: ['7.4']
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
+      - name: Setup PHP
         uses: shivammathur/setup-php@develop
+        id: php
         with:
-          php-version: ${{ matrix.php-versions }}
-      - name: Testing Tools
+          php-version: 7.4
+          tools: protoc, grpc_php_plugin
+      - name: Test        
         run: |
-          curl_opts=(-sSL --retry 5 --retry-delay 1)
-          grpc_tag=$(curl "${curl_opts[@]:?}" https://grpc.io/release)
-          curl "${curl_opts[@]:?}" "https://github.com/grpc/grpc/archive/$grpc_tag.tar.gz" | tar -xz -C /tmp
-          cd "/tmp/grpc-${grpc_tag:1}" || exit
-          ./tools/bazel build src/compiler:grpc_php_plugin
-          
+          git clone https://github.com/grpc/grpc          
+          cd grpc/examples/php
+          protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc=${{ steps.php.outputs.grpc_php_plugin_path }} ../protos/helloworld.proto
+          composer install
