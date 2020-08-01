@@ -31,5 +31,3 @@ jobs:
         php -r "if(phpversion()>=5.4 && ! extension_loaded('blackfire')) {throw new Exception('blackfire not found');}"
         blackfire-agent -v
         blackfire version -V
-        blackfire-player -V        
-        
