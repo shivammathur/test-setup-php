@@ -1,4 +1,3 @@
-  
 name: Runner workflow
 on:
   push:
@@ -9,38 +8,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: 7.4
+          tools: protoc, grpc_php_plugin
       - name: Test
         run: |
-          $tick = ([char]8730)
-          $cross = ([char]10007)          
-          # Function to log result of a operation.
-          Function Add-Log($mark, $subject, $message) {
-            $code = if ($mark -eq $cross) { "31" } else { "32" }
-            printf "\033[%s;1m%s \033[0m\033[34;1m%s \033[0m\033[90;1m%s \033[0m\n" $code $mark $subject $message
-          }
-          
-          Function Add-Msys2() {
-            $msys_location='C:\msys64'
-            if (-not(Test-Path C:\msys64)) {
-              choco install msys2 -y
-              $msys_location='C:\tools\msys64'
-            }
-            return $msys_location
-          }
-
-          Function Add-Grpc_php_plugin() {
-            $msyc_location = Add-Msys2
-            . $msyc_location\usr\bin\bash -l -c "pacman -S --noconfirm mingw-w64-x86_64-grpc"
-            Write-Output "::add-path::$msyc_location\mingw64\bin"
-            Add-Log $tick "grpc_php_plugin" "Added $msyc_location\mingw64\bin\grpc_php_plugin.exe"
-            printf "::group::\033[34;1m%s \033[0m\033[90;1m%s \033[0m\n" "grpc_php_plugin" "Click to read the grpc_php_plugin related license information"
-            Write-Output (Invoke-WebRequest https://raw.githubusercontent.com/grpc/grpc/master/LICENSE).Content
-            Write-Output "::endgroup::"
-          }
-          Add-Grpc_php_plugin
+          git clone https://github.com/grpc/grpc          
+          cd grpc/examples/php
+          protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc="$(which grpc_php_plugin)" ../protos/helloworld.proto
+          composer install
