@@ -19,6 +19,5 @@ jobs:
         run: |
           git clone https://github.com/grpc/grpc          
           cd grpc/examples/php
-          echo $(which grpc_php_plugin)
-          protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc="$(which grpc_php_plugin)" ../protos/helloworld.proto
+          protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc=grpc_php_plugin ../protos/helloworld.proto
           composer install
