@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [macos-latest]
         php-versions: ['7.4']
     steps:
       - name: Checkout
@@ -17,10 +17,12 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: composer:v2
-          coverage: none
       - name: Testing Tools
         run: |
-          composer global require icanhazstring/composer-unused
-          composer unused || echo 'test'   
+          curl_opts=(-sSL --retry 5 --retry-delay 1)
+          grpc_tag=$(curl "${curl_opts[@]:?}" https://grpc.io/release)
+          curl "${curl_opts[@]:?}" "https://github.com/grpc/grpc/archive/$grpc_tag.tar.gz" | tar -xz -C /tmp
+          cd "/tmp/grpc-${grpc_tag:1}" || exit
+          export DISABLE_BAZEL_WRAPPER=1
+          bazel build src/compiler:grpc_php_plugin
           
