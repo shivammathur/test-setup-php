@@ -26,7 +26,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: blackfire, blackfire-player, composer-require-checker, composer-normalize, flex, phan, php-cs-fixer, phpcs, phpcbf, phpcpd, phplint, phpstan, phpmd, cs2pr, codeception, phpunit, psalm, phinx, phive, deployer, prestissimo, composer-prefetcher, pecl, phpize, php-config, symfony
+          tools: blackfire, blackfire-player, composer-require-checker, composer-normalize, flex, phan, php-cs-fixer, phpcs, phpcbf, phpcpd, phplint, phpstan, phpmd, cs2pr, codeception, phpunit, psalm, phinx, phive, deployer, prestissimo, composer-prefetcher, protoc, pecl, phpize, php-config, symfony
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Print php.ini
@@ -53,6 +53,7 @@ jobs:
           psalm -v
           phinx -V
           phive status
+          protoc --version
           deployer -V
           symfony version
       - name: Test flex
