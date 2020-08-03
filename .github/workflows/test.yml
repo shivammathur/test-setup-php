@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-16.04]
+        os: [ubuntu-16.04, ubuntu-latest, macos-latest]
         php: [5.3, 7.4]
     steps:
       - name: Setup PHP
@@ -16,15 +16,14 @@ jobs:
         id: php
         with:
           php-version: ${{ matrix.php }}
+          tools: protoc
       - name: Test        
         run: |
-          export CC="$(which gcc)"
-          export CXX="$(which g++)"
           curl_opts=(-sSL --retry 5 --retry-delay 1)
           grpc_tag=$(curl "${curl_opts[@]:?}" https://grpc.io/release)
           curl "${curl_opts[@]:?}" "https://github.com/grpc/grpc/archive/$grpc_tag.tar.gz" | tar -xz -C /tmp
           cd "/tmp/grpc-${grpc_tag:1}" || exit
-          ./tools/bazel build src/compiler:grpc_php_plugin
+          CC="$(which gcc)" CXX="$(which g++)" ./tools/bazel build src/compiler:grpc_php_plugin
           sudo mv ./bazel-bin/src/compiler/grpc_php_plugin /usr/local/bin/grpc_php_plugin
           sudo chmod a+x /usr/local/bin/grpc_php_plugin                   
           cd ./examples/php
