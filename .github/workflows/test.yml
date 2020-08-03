@@ -23,9 +23,13 @@ jobs:
           grpc_tag=$(curl "${curl_opts[@]:?}" https://grpc.io/release)
           curl "${curl_opts[@]:?}" "https://github.com/grpc/grpc/archive/$grpc_tag.tar.gz" | tar -xz -C /tmp
           cd "/tmp/grpc-${grpc_tag:1}" || exit
-          CC="$(which gcc)" CXX="$(which g++)" ./tools/bazel build src/compiler:grpc_php_plugin
+          if [ "$os" = "Linux" ] && [ "$(lsb_release -rs)" = "16.04" ]; then
+            CC="$(command -v gcc)" CXX="$(command -v g++)" ./tools/bazel build src/compiler:grpc_php_plugin      
+          else
+            ./tools/bazel build src/compiler:grpc_php_plugin
+          fi
           sudo mv ./bazel-bin/src/compiler/grpc_php_plugin /usr/local/bin/grpc_php_plugin
           sudo chmod a+x /usr/local/bin/grpc_php_plugin                   
           cd ./examples/php
           protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc=/usr/local/bin/grpc_php_plugin ../protos/helloworld.proto
-          composer install
+          ls .
