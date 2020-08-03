@@ -18,6 +18,8 @@ jobs:
           php-version: ${{ matrix.php }}
       - name: Test        
         run: |
+          export CC="$(which gcc)"
+          export CXX="$(which g++)"
           curl_opts=(-sSL --retry 5 --retry-delay 1)
           grpc_tag=$(curl "${curl_opts[@]:?}" https://grpc.io/release)
           curl "${curl_opts[@]:?}" "https://github.com/grpc/grpc/archive/$grpc_tag.tar.gz" | tar -xz -C /tmp
