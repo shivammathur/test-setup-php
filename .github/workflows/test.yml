@@ -8,17 +8,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         id: php
         with:
-          php-version: 7.4
+          php-version: ${{ matrix.php }}
           tools: protoc, grpc_php_plugin
       - name: Test        
         run: |
           git clone https://github.com/grpc/grpc          
           cd grpc/examples/php
+          protoc --version
           protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc=${{ steps.php.outputs.grpc_php_plugin_path }} ../protos/helloworld.proto
           composer install
+          ls .
