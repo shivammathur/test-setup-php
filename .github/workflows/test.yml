@@ -23,5 +23,3 @@ jobs:
           cd grpc/examples/php
           protoc --version
           protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc=${{ steps.php.outputs.grpc_php_plugin_path }} ../protos/helloworld.proto
-          composer install
-          ls .
