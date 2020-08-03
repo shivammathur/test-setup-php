@@ -23,7 +23,7 @@ jobs:
           grpc_tag=$(curl "${curl_opts[@]:?}" https://grpc.io/release)
           curl "${curl_opts[@]:?}" "https://github.com/grpc/grpc/archive/$grpc_tag.tar.gz" | tar -xz -C /tmp
           cd "/tmp/grpc-${grpc_tag:1}" || exit
-          if [ "$os" = "Linux" ] && [ "$(lsb_release -rs)" = "16.04" ]; then
+          if [ "$(uname -s)" = "Linux" ] && [ "$(lsb_release -rs)" = "16.04" ]; then
             CC="$(command -v gcc)" CXX="$(command -v g++)" ./tools/bazel build src/compiler:grpc_php_plugin      
           else
             ./tools/bazel build src/compiler:grpc_php_plugin
