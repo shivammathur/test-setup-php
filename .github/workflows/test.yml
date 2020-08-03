@@ -8,40 +8,9 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [windows-latest]
-        php-versions: ['7.4']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    name: Test on ${{ matrix.operating-system }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-      - name: Test PHP
-        run: php -v
-      - name: Test php extensions
-        run: php -m
-      - name: Build PHP
-        run: |
-          New-Item -ItemType "directory" -Path c:\php-snap-build
-          cd c:\php-snap-build
-          git clone https://github.com/Microsoft/php-sdk-binary-tools.git php-sdk
-          git clone https://github.com/php/web-rmtools.git rmtools
-          New-Item -ItemType "directory" -Path C:\php-snap-build\obj-x64
-          New-Item -ItemType "directory" -Path C:\php-snap-build\obj
-          New-Item -ItemType "directory" -Path C:\php-snap-build\snap_master\vs16\x64
-          New-Item -ItemType "directory" -Path C:\php-snap-build\snap_master\vs16\x86
-          Copy-Item -Path C:\php-snap-build\rmtools\bin\rmtools_setvars.bat-dist -Destination C:\php-snap-build\rmtools\bin\rmtools_setvars.bat
-          Copy-Item -Path C:\php-snap-build\rmtools\data\config\credentials_ftps.php-dist -Destination C:\php-snap-build\rmtools\data\config\credentials_ftps.php
-          $git_location="C:\Program Files\Git\cmd\git.exe"
-          $tar_location="C:\Program Files\Git\usr\bin\tar.exe"
-          $task_location="C:\php-snap-build\rmtools\bin\snapshot_task.bat"
-          $git_script_location="C:\php-snap-build\rmtools\include\Git.php"
-          $config_location='C:\php-snap-build\rmtools\data\config\branch\x64\phpmaster.ini'
-          ((Get-Content -path $git_script_location -Raw) -replace "c:\\apps\\git\\bin\\git.exe", $git_location) | Set-Content -Path $git_script_location
-          ((Get-Content -path $git_script_location -Raw) -replace "c:\\apps\\git\\bin\\tar.exe", $tar_location) | Set-Content -Path $git_script_location
-          ((Get-Content -path $task_location -Raw) -replace ">> %LOG_FILE% 2<&1", "") | Set-Content -Path $task_location
-          ((Get-Content -path $config_location -Raw) -replace "pgo=1", "pgo=0") | Set-Content -Path $config_location
-          & C:\php-snap-build\php-sdk\phpsdk-vs16-x64.bat -t $task_location --task-args "phpmaster all"
-          Get-ChildItem -Path C:\php-snap-build\obj-x64 -recurse
-          
+      - name: Check 1
+        run: Write-Host "Test"
+      - name: Check 2
+        run: Write-Host "Test"
