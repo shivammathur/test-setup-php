@@ -12,4 +12,4 @@ jobs:
     steps:
       - name: Test
         run: |
-          time aria2c -o composer https://github.com/shivammathur/composer-cache/releases/latest/download/composer-stable.phar https://getcomposer.org/download/1.10.10/composer.phar
+          time aria2c -o composer https://getcomposer.org/download/1.10.10/composer.phar https://github.com/shivammathur/composer-cache/releases/latest/download/composer-stable.phar
