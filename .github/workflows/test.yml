@@ -12,7 +12,4 @@ jobs:
     steps:
       - name: Test
         run: |
-          curl_opts=(-sSL --retry 5 --retry-delay 1)
-          for (( i=0; i<1000; ++i)); do
-            sudo curl -s -w "%{http_code}" -o "/tmp/composer.phar" "${curl_opts[@]}" "https://getcomposer.org/download/1.10.10/composer.phar" || echo "failed"
-          done       
+          time aria2c -o composer https://github.com/shivammathur/composer-cache/releases/latest/download/composer-stable.phar https://getcomposer.org/download/1.10.10/composer.phar
