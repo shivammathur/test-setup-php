@@ -6,24 +6,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [ubuntu-20.04]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        php-versions: ['8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
-      uses: actions/checkout@v2  
-    
+      uses: actions/checkout@v2
     - name: Setup PHP
-      env:
-        version: ${{ matrix.php-versions }}
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: xdebug, pcov
+    - name: Test
       run: |
-        curl -sSL https://github.com/shivammathur/php-ubuntu/releases/latest/download/install.sh | bash -s "$version"      
-        for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
-          if [ -e "/usr/bin/$tool$version" ]; then
-            sudo update-alternatives --install /usr/bin/"$tool" "$tool" /usr/bin/"$tool$version" 50
-            sudo update-alternatives --set $tool /usr/bin/"$tool$version"
-          fi
-        done
-
-    - name: Test PHP version
-      run: php -v && php -m
+        php -v
+        php --ini
+        php -m
+       
