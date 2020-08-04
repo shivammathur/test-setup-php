@@ -8,9 +8,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest]
+        os: [macos-latest, ubuntu-latest]
     steps:
       - name: Test
         run: |
-          which gcc || true
-          which clang || true          
+          curl_opts=(-sSL --retry 5 --retry-delay 1)
+          for (( i=0; i<100; ++i)); do
+            sudo curl -s -w "%{http_code}" -o "/tmp/composer.phar" "${curl_opts[@]}" "https://getcomposer.org/download/1.10.10/composer.phar" || echo "failed"
+          done       
