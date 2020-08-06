@@ -8,12 +8,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
     steps:
       - name: Test
         run: |
-          curl_opts=(-sSL --retry 5 --retry-delay 1)
-          time (
-          status_code=$(sudo curl -s -w "%{http_code}" -o composer "${curl_opts[@]}" "https://github.com/shivammathur/composer-cache/releases/latest/download/composer-stable.phar") || status_code=$(sudo curl -s -w "%{http_code}" -o composer "${curl_opts[@]}" "https://getcomposer.org/download/1.10.10/composer.phar")
-          )
-          echo $status_code
+          sudo apt-get install -y libsodium-dev
