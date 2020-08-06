@@ -36,7 +36,7 @@ jobs:
             ext=$1
             set_cubrid_repo
             set_cubrid_branch
-            git clone -b "$cubrid_branch" --recursive https://github.com/CUBRID/"$cubrid_repo" /tmp/
+            git clone -b "$cubrid_branch" --recursive "https://github.com/CUBRID/$cubrid_repo" "/tmp/$cubrid_repo"
             (
               cd "/tmp/$cubrid_repo" || exit
               phpize && ./configure --with-php-config="$(command -v php-config)" --with-"${ext/_/-}"=shared
