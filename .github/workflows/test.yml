@@ -20,12 +20,13 @@ jobs:
       - name: Install cubrid
         shell: bash
         run: |
-          get_cubrid_repo() {
-            ext=$1
-            [ "$ext" = "cubrid" ] && cubrid_repo="cubrid-php"
-            [ "$ext" = "pdo_cubrid" ] && cubrid_repo="cubrid-pdo"
+          set_cubrid_repo() {
+            case "${ext:?}" in
+              "cubrid") cubrid_repo="cubrid-php";;
+              "pdo_cubrid") cubrid_repo="cubrid-pdo";;
+            esac
           }
-          get_cubrid_branch() {
+          set_cubrid_branch() {
             case "${version:?}" in
               5.[3-6]) cubrid_branch="RB-9.3.0";;
               *) cubrid_branch="develop";;
@@ -33,8 +34,8 @@ jobs:
           }
           add_cubrid() {
             ext=$1
-            get_cubrid_repo "$ext"
-            get_cubrid_branch
+            set_cubrid_repo
+            set_cubrid_branch
             git clone -b "$cubrid_branch" --recursive https://github.com/CUBRID/"$cubrid_repo" /tmp
             (
               cd "/tmp/$cubrid_repo" || exit
