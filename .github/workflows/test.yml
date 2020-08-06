@@ -39,6 +39,7 @@ jobs:
             git clone -b "$cubrid_branch" --recursive "https://github.com/CUBRID/$cubrid_repo" "/tmp/$cubrid_repo"
             (
               cd "/tmp/$cubrid_repo" || exit
+              export CXXFLAGS="$CXXFLAGS -std=c++11"
               phpize && ./configure --with-php-config="$(command -v php-config)" --with-"${ext/_/-}"=shared
               make -j$(nproc)
               sudo make install            
