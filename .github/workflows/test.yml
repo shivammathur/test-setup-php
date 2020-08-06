@@ -31,8 +31,11 @@ jobs:
             cd cubrid-php || exit
             if [ $(uname -s) = "Linux" ]; then
               sudo "$debconf_fix" apt-get install -y "php$version-dev"
+              sudo update-alternatives --set php-config /usr/bin/php-config"$version"
+              sudo update-alternatives --set phpize /usr/bin/phpize"$version"
             elif [ $(uname -s) = "Darwin" ]; then
-              LC_ALL=C find ./cci-src -type f -name '*' -exec sed -i '' "s/readlink -f/readlink/" {} +
+              brew install coreutils
+              sudo ln -sf /usr/local/bin/greadlink /usr/local/bin/readlink
             fi            
             phpize
             ./configure --with-cubrid=shared --with-php-config=$(which php-config)
