@@ -29,8 +29,8 @@ jobs:
             cd cubrid-php || exit
             phpize
             ./configure --with-cubrid=shared --with-php-config=$(which php-config)
-            make
-            make install            
+            make -j$(nproc)
+            sudo make install            
           )
           echo "extension=cubrid.so" | sudo tee -a $scan_dir/cubrid.ini
       - name: Testing PHP version
