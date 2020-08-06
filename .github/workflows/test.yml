@@ -19,14 +19,21 @@ jobs:
           php-version: ${{ matrix.php-versions }}
       - name: Install cubrid
         run: |
-          case "${{ matrix.php-versions }}" in
+          version={{ matrix.php-versions }}
+          case "$version" in
             5.[3-6]) branch="RB-9.3.0";;
             *) branch="develop";;
           esac
+          debconf_fix="DEBIAN_FRONTEND=noninteractive"
           scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
           git clone -b $branch --recursive https://github.com/CUBRID/cubrid-php
           (
             cd cubrid-php || exit
+            if [ $(uname -s) = "Linux" ]; then
+              sudo "$debconf_fix" apt-get install -y "php$version-dev"
+            elif [ $(uname -s) = "Darwin" ]; then
+              find ./cci-src -type f -name '*' -exec sed -i '' "s/readlink -f/readlink/" {} +
+            fi            
             phpize
             ./configure --with-cubrid=shared --with-php-config=$(which php-config)
             make -j$(nproc)
