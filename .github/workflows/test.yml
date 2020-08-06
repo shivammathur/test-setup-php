@@ -21,29 +21,43 @@ jobs:
         shell: bash
         run: |
           version=${{ matrix.php-versions }}
-          case "$version" in
-            5.[3-6]) branch="RB-9.3.0";;
-            *) branch="develop";;
-          esac
           old_versions="5.[3-5]"
           debconf_fix="DEBIAN_FRONTEND=noninteractive"
           scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
-          git clone -b $branch --recursive https://github.com/CUBRID/cubrid-php
-          (
-            cd cubrid-php || exit
-            if ! [[ "$version" =~ $old_versions ]]; then
-              sudo "$debconf_fix" apt-get install -y "php$version-dev"
-              sudo update-alternatives --set php-config /usr/bin/php-config"$version"
-              sudo update-alternatives --set phpize /usr/bin/phpize"$version"
-            fi
-            phpize
-            ./configure --with-cubrid=shared --with-php-config=$(which php-config)
-            make -j$(nproc)
-            sudo make install            
-          )
-          echo "extension=cubrid.so" | sudo tee -a $scan_dir/cubrid.ini
+          if ! [[ "$version" =~ $old_versions ]]; then
+            sudo "$debconf_fix" apt-get install -y "php$version-dev"
+            sudo update-alternatives --set php-config /usr/bin/php-config"$version"
+            sudo update-alternatives --set phpize /usr/bin/phpize"$version"
+          fi
+          get_cubrid_repo() {
+            [ "$ext" = "cubrid" ] && echo "cubrid-php"
+            [ "$ext" = "pdo_cubrid" ] && echo "cubrid-pdo"          
+          }
+          get_cubrid_branch() {
+            case "$version" in
+              5.[3-6]) echo "RB-9.3.0";;
+              *) echo "develop";;
+            esac          
+          }
+          add_cubrid() {
+            ext=$1
+            cubrid_repo=$(get_cubrid_repo "$ext")
+            cubrid_branch=$(get_cubrid_branch)
+            git clone -b "$cubrid_branch" --recursive https://github.com/CUBRID/"$cubrid_repo" /tmp
+            (
+              cd "/tmp/$cubrid_repo" || exit
+              phpize && ./configure --with-php-config="$(command -v php-config)" --with-"${ext/_/-}"=shared
+              make -j$(nproc)
+              sudo make install            
+            )
+            echo "extension=$ext.so" | sudo tee "$scan_dir/$ext.ini"
+          }
+          add_cubrid cubrid
+          add_cubrid pdo_cubrid
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
         run: |
           php -m
+          php -r "if(! extension_loaded('cubrid')) {throw new Exception('cubrid not found');
+          php -r "if(! extension_loaded('pdo_cubrid')) {throw new Exception('pdo_cubrid not found');
