@@ -40,6 +40,8 @@ jobs:
             (
               cd "/tmp/$cubrid_repo" || exit
               export CXXFLAGS="$CXXFLAGS -std=c++11"
+              export CC="clang"
+              export CXX="clang++"
               phpize && ./configure --with-php-config="$(command -v php-config)" --with-"${ext/_/-}"=shared
               make -j$(nproc)
               sudo make install            
