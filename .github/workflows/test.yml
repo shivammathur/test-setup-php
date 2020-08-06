@@ -36,6 +36,7 @@ jobs:
             elif [ $(uname -s) = "Darwin" ]; then
               brew install coreutils
               sudo ln -sf /usr/local/bin/greadlink /usr/local/bin/readlink
+              sudo ln -sf /usr/local/bin/glibtoolize /usr/local/bin/libtoolize
             fi            
             phpize
             ./configure --with-cubrid=shared --with-php-config=$(which php-config)
