@@ -54,12 +54,12 @@ jobs:
             sudo update-alternatives --set php-config /usr/bin/php-config"$version"
             sudo update-alternatives --set phpize /usr/bin/phpize"$version"
           fi
-          add_cubrid cubrid
-          add_cubrid pdo_cubrid
+          add_cubrid cubrid || true
+          add_cubrid pdo_cubrid || true
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
         run: |
           php -m
-          php -r "if(! extension_loaded('cubrid')) {throw new Exception('cubrid not found');
-          php -r "if(! extension_loaded('pdo_cubrid')) {throw new Exception('pdo_cubrid not found');
+          php -r "if(! extension_loaded('cubrid')) {throw new Exception('cubrid not found');}"
+          php -r "if(! extension_loaded('pdo_cubrid')) {throw new Exception('pdo_cubrid not found');}"
