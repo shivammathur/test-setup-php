@@ -8,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, macos-latest]
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        php-versions: ['5.6', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -17,9 +17,22 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: pecl
-          extensions: cubrid, pdo_cubrid
-          
+      - name: Install cubrid
+        run: |
+          case "${{ matrix.php-versions }}" in
+            5.[3-6]) branch="RB-9.3.0";;
+            *) branch="develop";;
+          esac
+          scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
+          git clone -b $branch --recursive https://github.com/CUBRID/cubrid-php
+          (
+            cd cubrid-php || exit
+            phpize
+            ./configure --with-cubrid=shared --with-php-config=$(which php-config)
+            make
+            make install            
+          )
+          echo "extension=cubrid.so" | sudo tee -a $scan_dir/cubrid.ini
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
