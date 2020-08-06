@@ -22,19 +22,19 @@ jobs:
         run: |
           get_cubrid_repo() {
             ext=$1
-            [ "$ext" = "cubrid" ] && echo "cubrid-php"
-            [ "$ext" = "pdo_cubrid" ] && echo "cubrid-pdo"          
+            [ "$ext" = "cubrid" ] && cubrid_repo="cubrid-php"
+            [ "$ext" = "pdo_cubrid" ] && cubrid_repo="cubrid-pdo"
           }
           get_cubrid_branch() {
-            case "$version" in
-              5.[3-6]) echo "RB-9.3.0";;
-              *) echo "develop";;
-            esac          
+            case "${version:?}" in
+              5.[3-6]) cubrid_branch="RB-9.3.0";;
+              *) cubrid_branch="develop";;
+            esac
           }
           add_cubrid() {
             ext=$1
-            cubrid_repo=$(get_cubrid_repo "$ext")
-            cubrid_branch=$(get_cubrid_branch)
+            get_cubrid_repo "$ext"
+            get_cubrid_branch
             git clone -b "$cubrid_branch" --recursive https://github.com/CUBRID/"$cubrid_repo" /tmp
             (
               cd "/tmp/$cubrid_repo" || exit
