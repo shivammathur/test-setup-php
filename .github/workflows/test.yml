@@ -20,16 +20,8 @@ jobs:
       - name: Install cubrid
         shell: bash
         run: |
-          version=${{ matrix.php-versions }}
-          old_versions="5.[3-5]"
-          debconf_fix="DEBIAN_FRONTEND=noninteractive"
-          scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
-          if ! [[ "$version" =~ $old_versions ]]; then
-            sudo "$debconf_fix" apt-get install -y "php$version-dev"
-            sudo update-alternatives --set php-config /usr/bin/php-config"$version"
-            sudo update-alternatives --set phpize /usr/bin/phpize"$version"
-          fi
           get_cubrid_repo() {
+            ext=$1
             [ "$ext" = "cubrid" ] && echo "cubrid-php"
             [ "$ext" = "pdo_cubrid" ] && echo "cubrid-pdo"          
           }
@@ -52,6 +44,15 @@ jobs:
             )
             echo "extension=$ext.so" | sudo tee "$scan_dir/$ext.ini"
           }
+          version=${{ matrix.php-versions }}
+          old_versions="5.[3-5]"
+          debconf_fix="DEBIAN_FRONTEND=noninteractive"
+          scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
+          if ! [[ "$version" =~ $old_versions ]]; then
+            sudo "$debconf_fix" apt-get install -y "php$version-dev"
+            sudo update-alternatives --set php-config /usr/bin/php-config"$version"
+            sudo update-alternatives --set phpize /usr/bin/phpize"$version"
+          fi
           add_cubrid cubrid
           add_cubrid pdo_cubrid
       - name: Testing PHP version
