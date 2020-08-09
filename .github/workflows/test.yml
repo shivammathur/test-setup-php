@@ -10,7 +10,15 @@ jobs:
         operating-system: [windows-latest]
     name: Test on ${{ matrix.operating-system }}
     steps:
-      - name: Check 1
-        run: Write-Host "Test"
-      - name: Check 2
-        run: Write-Host "Test"
+      - name: install php
+        uses: shivammathur/setup-php@v2
+        with: 
+          php-version: 8.0
+      - name: Add oci
+        run: |
+          Enable-Phpextension pdo_oci, oci8 -Path C:\tools\php
+      - name: test
+        run: |
+          php -v
+          php -m    
+         
