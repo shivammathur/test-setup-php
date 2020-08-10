@@ -18,3 +18,4 @@
 - Test 2.3.2 release.
 - Test 2.4.0 release.
 - Test 2.4.1 release.
+- Test 2.4.2 release.
