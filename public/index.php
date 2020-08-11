@@ -17,9 +17,4 @@ require __DIR__ . '/../src/routes.php';
 
 
 // Run app
-try {
-    $app->run();
-} catch (Throwable $e) {
-    echo $e->getMessage();
-}
-
+$app->run();
