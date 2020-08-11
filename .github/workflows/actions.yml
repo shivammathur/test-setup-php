@@ -23,6 +23,8 @@ jobs:
           ini-values: pcov.directory=api
           coverage: pcov
           tools: composer:v2
+        env:
+          runner: self-hosted
       - name: Install dependencies
         run: composer install --no-progress --prefer-dist --ignore-platform-reqs
       - name: Test with phpunit
