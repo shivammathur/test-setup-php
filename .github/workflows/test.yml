@@ -21,7 +21,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 7.3
+          php-version: 7.4
           coverage: pcov
           tools: cs2pr
         env:
@@ -30,3 +30,9 @@ jobs:
         run: php -v
       - name: Testing Extensions
         run: php -m
+      - name: Test cc
+        run: |
+          git clone https://github.com/shivammathur/countrycity
+          cd countrycity
+          composer install --no-progress --prefer-dist
+          vendor/bin/phpunit --coverage-clover build/logs/clover.xml --coverage-text
