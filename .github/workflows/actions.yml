@@ -27,6 +27,6 @@ jobs:
           vendor/bin/phpunit --coverage-clover build/logs/clover.xml --coverage-text
       - name: Test with composer phpunit
         run: |
-          composer remove phpunit/phpunit
+          composer remove --dev phpunit/phpunit
           phpunit --version || true
           phpunit --coverage-clover build/logs/clover.xml --coverage-text
