@@ -7,8 +7,8 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['7.4', '8.0']
-        coverage: [xdebug, xdebug3, pcov, none]
+        php-versions: ['7.4']
+        coverage: [pcov]
     runs-on: ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -18,12 +18,14 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: mbstring, ${{ matrix.extensions }}
-          coverage: ${{ matrix.coverage }}
+          tools: phpunit
       - name: Install dependencies
         run: composer install --no-progress --no-suggest --prefer-dist --ignore-platform-reqs
-      - name: Test with phpunit
-        run: vendor/bin/phpunit --coverage-clover build/logs/clover.xml --coverage-text
-      - name: coveralls
-        run: sh -c php vendor/bin/php-coveralls -v
-      - name: codecov-umbrella
-        run: curl -s https://codecov.io/bash | bash -s -- -t ${{secrets.CODECOV_TOKEN}} -f build/logs/clover.xml -n github-actions-codecov
+      - name: Test with composer phpunit
+        run: |
+          vendor/bin/phpunit -V
+          vendor/bin/phpunit --coverage-clover build/logs/clover.xml --coverage-text
+      - name: Test with composer phpunit
+        run: |
+          phpunit -V
+          phpunit --coverage-clover build/logs/clover.xml --coverage-text
