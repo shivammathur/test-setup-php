@@ -12,4 +12,6 @@ jobs:
     steps:
       - name: Test
         run: |
-          which phpunit
+          which composer || true
+          which phpunit || true
+          sudo ls /usr/local/bin || true
