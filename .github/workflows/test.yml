@@ -12,5 +12,5 @@ jobs:
     steps:
       - name: Test
         run: |
-          apt-get install libargon2-0 --no-upgrade -y
+          sudo apt-get install libargon2-0 --no-upgrade -y
  
