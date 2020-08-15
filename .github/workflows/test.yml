@@ -12,5 +12,5 @@ jobs:
     steps:
       - name: Test
         run: |
-          sudo pecl install -f protobuf
+          CC=gcc CXX=g++ sudo pecl install -f protobuf
  
