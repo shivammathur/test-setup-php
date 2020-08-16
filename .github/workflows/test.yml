@@ -8,9 +8,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest]
-    steps:
+        os: [ubuntu-latest]
+    steps:    
+      - run: |
+          echo "127.0.0.1       github.com" | sudo tee -a "/etc/hosts"
+          echo "127.0.0.1       getcomposer.org" | sudo tee -a "/etc/hosts"
       - uses: shivammathur/setup-php@releases/v1
         with:
-          php-version: '5.5'
-          wrong_key: 'test'
+          php-version: '7.4'
