@@ -8,11 +8,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:    
-      - run: |
-          echo "127.0.0.1       github.com" | sudo tee -a "/etc/hosts"
-          echo "127.0.0.1       getcomposer.org" | sudo tee -a "/etc/hosts"
-      - uses: shivammathur/setup-php@releases/v1
+      - name: "Run with 7.4"
+        run: php -r "echo bin2hex(inet_pton('1.1.1.1'));"
+      - uses: shivammathur/setup-php@v2
         with:
-          php-version: '7.4'
+          php-version: '8.0'
+      - name: "Run with 8.0"
+        run: php -r "echo bin2hex(inet_pton('1.1.1.1'));"
