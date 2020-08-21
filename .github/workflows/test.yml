@@ -4,35 +4,22 @@ on:
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
-    container: ubuntu:focal
     strategy:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
     name: PHP
     steps:
-      - name: pre
-        run: |
-          apt-get update && apt-get install -y sudo software-properties-common
-          add-apt-repository ppa:git-core/ppa
-          apt-get update && apt-get install -y git
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: 7.4
           coverage: pcov
-          tools: cs2pr
-        env:
-          runner: self-hosted
+          tools: pecl
+          extensions: pdo, pdo_sqlsrv         
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
         run: php -m
-      - name: Test cc
-        run: |
-          git clone https://github.com/shivammathur/countrycity
-          cd countrycity
-          composer install --no-progress --prefer-dist
-          vendor/bin/phpunit --coverage-clover build/logs/clover.xml --coverage-text
