@@ -15,7 +15,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          tools: phing
+          tools: phing:2.15.2
 
       - name: Test        
         run: phing -v
