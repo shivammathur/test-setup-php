@@ -22,6 +22,7 @@ jobs:
         run: |
           sudo apt-get install -y php$version-fpm
           sudo service php$version-fpm start
+          sudo service php$version-fpm status
       - name: Testing PHP version
         run: |
           php -v
