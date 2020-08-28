@@ -18,7 +18,7 @@ jobs:
           php-version: ${{ matrix.php }}
       - name: Add php-fpm
         env:
-          version: ${{ matrix.php-versions }}
+          version: ${{ matrix.php }}
         run: |
           sudo apt-get install -y php$version-fpm
           sudo service php$version-fpm start
