@@ -13,11 +13,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
           extensions: fpm
       - name: Testing PHP version
         run: |
           php -v
-          php-fpm -v
+          php-fpm -v || true
