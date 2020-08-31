@@ -45,6 +45,14 @@ jobs:
             sudo rm -rf "$scan_dir"/*"$extension"* >/dev/null 2>&1
             sudo rm -rf "$ext_dir"/"$extension".so >/dev/null 2>&1
           }
+          check_extension() {
+            extension=$1
+            if [ "$extension" != "mysql" ]; then
+              php -m | grep -i -q -w "$extension"
+            else
+              php -m | grep -i -q "$extension"
+            fi
+          }          
           enable_extension() {
             if ! check_extension "$1" && [ -e "$ext_dir/$1.so" ]; then
               echo "$2=$1.so" >>"$pecl_file"
@@ -55,10 +63,11 @@ jobs:
             sudo tar -zxf /tmp/icu.tgz -C /tmp
             (
               cd /tmp/icu/source || exit 1
-              sudo mkdir /usr/local/icu
-              sudo ./configure --prefix=/usr/local/icu
+              #sudo mkdir /usr/local/icu
+              sudo ./configure --prefix=/usr
               sudo make -j$(nproc)
               sudo make install
+              sudo 
             )
           }
           install_intl() {
@@ -66,7 +75,7 @@ jobs:
             get_php
             (
               cd "/tmp/php-src-$tag/ext/intl" || exit 1
-              sudo phpize && ./configure --enable-intl --with-icu-dir=/usr/local/icu
+              sudo phpize && ./configure --enable-intl --with-icu-dir=/usr
               sudo make -j"$(nproc)"              
               delete_extension intl
               sudo cp ./modules/* "$ext_dir/"
