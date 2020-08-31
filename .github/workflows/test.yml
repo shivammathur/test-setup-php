@@ -63,10 +63,11 @@ jobs:
             sudo tar -zxf /tmp/icu.tgz -C /tmp
             (
               cd /tmp/icu/source || exit 1
-              #sudo mkdir /usr/local/icu
-              sudo ./configure --prefix=/usr
+              sudo mkdir /usr/local/icu
+              sudo ./configure --prefix=/usr/local/icu
               sudo make -j$(nproc)
               sudo make install
+              sudo cp -rf /usr/local/icu/* /usr/
             )
           }
           install_intl() {
@@ -74,7 +75,7 @@ jobs:
             get_php
             (
               cd "/tmp/php-src-$tag/ext/intl" || exit 1
-              sudo phpize && ./configure --with-php-config="$(command -v php-config)" --enable-intl --with-icu-dir=/usr
+              sudo phpize && ./configure --with-php-config="$(command -v php-config)" --enable-intl --with-icu-dir=/usr/local/icu
               sudo make -j"$(nproc)"
               delete_extension intl
               sudo cp ./modules/* "$ext_dir/"
