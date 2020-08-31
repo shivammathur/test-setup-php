@@ -66,7 +66,7 @@ jobs:
               cd /tmp/icu/source || exit 1
               sudo mkdir /usr/local/icu
               sudo ln -sf /usr/include/locale.h /usr/include/xlocale.h || true              
-              CXXFLAGS="-DU_USING_ICU_NAMESPACE=0" CPPFLAGS="-DU_NO_DEFAULT_INCLUDE_UTF_HEADERS=1" ./runConfigureICU Linux --prefix=/usr/local/icu
+              sudo CXXFLAGS="-DU_USING_ICU_NAMESPACE=0" CPPFLAGS="-DU_NO_DEFAULT_INCLUDE_UTF_HEADERS=1" ./runConfigureICU Linux --prefix=/usr/local/icu
               sudo make -j$(nproc)
               sudo make install
               sudo cp -rf /usr/local/icu/* /usr/ || true
