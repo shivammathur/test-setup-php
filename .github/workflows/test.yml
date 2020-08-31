@@ -80,16 +80,14 @@ jobs:
             (
               cd "/tmp/php-src-$tag/ext/intl" || exit 1
               delete_extension intl
-              #phpize clean && phpize && sudo ./configure --with-php-config="$(command -v php-config)" --enable-intl
-              #sudo make CXXFLAGS="-O2 -std=c++11 -stdlib=libc++ -DU_USING_ICU_NAMESPACE=1 $CXXFLAGS"
-              #sudo cp ./modules/* "$ext_dir/"
-              #enable_extension intl extension
+              phpize && sudo ./configure --with-php-config="$(command -v php-config)" --enable-intl
+              sudo make CXXFLAGS="-O2 -std=c++11 -DU_USING_ICU_NAMESPACE=1 $CXXFLAGS"
+              sudo cp ./modules/* "$ext_dir/"
+              enable_extension intl extension
             )
           }
-      - name: Sleep...
-        run: for i in 1 2 3 4 5; do echo $i; sleep $i; done
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v2
+          install_icu >/dev/null 2>&1
+          install_intl
       - name: Testing PHP
         run: |
           icu_version=$(php -i | grep "ICU version =>" | sed -e "s|.*=> s*||")
