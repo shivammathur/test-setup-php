@@ -7,7 +7,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['5.3', '5.4', '5.5']
+        php: ['7.3', '7.4']
+        icu: ['67.1', '66.1']
     name: PHP
     steps:
       - name: Checkout
@@ -16,8 +17,67 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: xsl
+          tools: phpize
+      - name: Update intl
+        env:
+          icu: ${{ matrix.icu }}
+          version: ${{ matrix.php }}
+        run: |
+          ext_dir=$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
+          scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
+          ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+          pecl_file="$scan_dir"/99-pecl.ini          
+          get_tag() {
+            master_version='8.0'
+            tag='master'
+            if [ ! "${version:?}" = "$master_version" ]; then
+              tag="php-$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')"
+            fi
+            echo "$tag"
+          }
+          get_php() {
+            curl -sL "https://github.com/php/php-src/archive/$tag.tar.gz" | tar xzf - -C "/tmp"
+          }
+          delete_extension() {
+            extension=$1
+            sudo sed -i "/$extension/d" "$ini_file"
+            sudo sed -i "/$extension/d" "$pecl_file"
+            sudo rm -rf "$scan_dir"/*"$extension"* >/dev/null 2>&1
+            sudo rm -rf "$ext_dir"/"$extension".so >/dev/null 2>&1
+          }
+          enable_extension() {
+            if ! check_extension "$1" && [ -e "$ext_dir/$1.so" ]; then
+              echo "$2=$1.so" >>"$pecl_file"
+            fi
+          }
+          install_icu() {
+            sudo curl -o /tmp/icu.tgz -sL http://github.com/unicode-org/icu/releases/download/release-${icu/./-}/icu4c-${icu/./_}-src.tgz
+            sudo tar -zxf /tmp/icu.tgz -C /tmp
+            (
+              cd /tmp/icu/source || exit 1
+              sudo mkdir /usr/local/icu
+              ./configure --prefix=/usr/local/icu
+              sudo make -j$(nproc)
+              sudo make install
+            )
+          }
+          install_intl() {
+            tag=$(get_tag)
+            get_php
+            (
+              cd "/tmp/php-src-$tag/ext/intl" || exit 1
+              sudo phpize && ./configure --enable-intl --with-icu-dir=/usr/local/icu
+              sudo make -j"$(nproc)"              
+              delete_extension intl
+              sudo cp ./modules/* "$ext_dir/"
+              enable_extension intl
+            )
+          }       
+          install_icu
+          install_intl
       - name: Testing PHP
         run: |
+          php -r "echo INTL_ICU_VERSION;"
+          php -i | grep "ICU version =>" | sed -e "s|.*=> s*||"
           php -v
           php -m
