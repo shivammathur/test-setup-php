@@ -8,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         php: ['7.3', '7.4']
-        icu: ['67.1', '66.1']
+        icu: [67.1, 66.1, 65.1, 64.2, 63.2, 62.2, 61.2, 60.3, 59.2, 58.3, 57.2, 56.2, 55.2, 54.2, 53.2, 52.2, 51.3, 50.2]
     name: PHP
     steps:
       - name: Checkout
@@ -75,8 +75,9 @@ jobs:
             get_php
             (
               cd "/tmp/php-src-$tag/ext/intl" || exit 1
-              sudo phpize && ./configure --with-php-config="$(command -v php-config)" --enable-intl --with-icu-dir=/usr
-              sudo make -j"$(nproc)"
+              export CXXFLAGS="-O2 -W -Wall -pedantic -Wpointer-arith -Wwrite-strings -Wno-long-long -std=c++11"
+              sudo phpize && ./configure --with-php-config="$(command -v php-config)" --enable-intl --with-icu-dir=/usr/local/icu
+              sudo make CXXFLAGS=${CXXFLAGS} -j"$(nproc)"
               delete_extension intl
               sudo cp ./modules/* "$ext_dir/"
               enable_extension intl extension
