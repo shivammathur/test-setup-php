@@ -74,8 +74,7 @@ jobs:
             get_php
             (
               cd "/tmp/php-src-$tag/ext/intl" || exit 1
-              sudo phpize && ./configure --enable-intl --with-icu-dir=/usr
-              sudo make -j"$(nproc)"              
+              sudo phpize && ./configure --with-php-config="$(command -v php-config)" --enable-intl --with-icu-dir=/usr
               delete_extension intl
               sudo cp ./modules/* "$ext_dir/"
               enable_extension intl extension
