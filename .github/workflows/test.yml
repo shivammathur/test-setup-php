@@ -66,8 +66,8 @@ jobs:
               cd /tmp/icu/source || exit 1
               sudo mkdir /usr/local/icu
               sudo ln -sf /usr/include/locale.h /usr/include/xlocale.h || true
-              sudo ./configure --prefix=/usr/local/icu
-              sudo make -j$(nproc)
+              sudo ./configure --prefix=/usr/local/icu CC=gcc CXX=g++
+              sudo make CC=gcc CXX=g++
               sudo make install
               sudo cp -rf /usr/local/icu/* /usr/ || true
               sudo cp -rf /usr/local/icu/lib/* /usr/lib/x86_64-linux-gnu/ || true
@@ -80,8 +80,8 @@ jobs:
               cd "/tmp/php-src-$tag/ext/intl" || exit 1
               delete_extension intl
               export CXXFLAGS="-O2 -W -Wall -pedantic -Wpointer-arith -Wwrite-strings -Wno-long-long -std=c++11 -DU_USING_ICU_NAMESPACE=1 $CXXFLAGS"
-              sudo phpize && ./configure --with-php-config="$(command -v php-config)" --enable-intl --with-icu-dir=/usr/local/icu CC=clang CXX=clang++ CXXFLAGS="${CXXFLAGS}"
-              sudo make CC=clang CXX=clang++ CXXFLAGS="${CXXFLAGS}"
+              sudo phpize && ./configure --with-php-config="$(command -v php-config)" --enable-intl --with-icu-dir=/usr/local/icu CC=gcc CXX=g++ CXXFLAGS="${CXXFLAGS}"
+              sudo make CC=gcc CXX=g++ CXXFLAGS="${CXXFLAGS}"
               sudo cp ./modules/* "$ext_dir/"
               enable_extension intl extension
             )
