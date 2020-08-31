@@ -87,7 +87,10 @@ jobs:
             )
           }       
           install_icu
-      - uses: mxschmitt/action-tmate@v2
+      - name: Sleep...
+        run: sleep 20
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v2
       - name: Testing PHP
         run: |
           icu_version=$(php -i | grep "ICU version =>" | sed -e "s|.*=> s*||")
