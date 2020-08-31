@@ -78,7 +78,7 @@ jobs:
             (
               cd "/tmp/php-src-$tag/ext/intl" || exit 1
               delete_extension intl
-              export CXXFLAGS="$CXXFLAGS -O2 -W -Wall -pedantic -Wpointer-arith -Wwrite-strings -Wno-long-long -std=c++11"
+              export CXXFLAGS="-O2 -W -Wall -pedantic -Wpointer-arith -Wwrite-strings -Wno-long-long -std=c++11 -DU_USING_ICU_NAMESPACE=1 $CXXFLAGS"
               sudo phpize && ./configure --with-php-config="$(command -v php-config)" --enable-intl --with-icu-dir=/usr/local/icu CC=clang CXX=clang++ CXXFLAGS="${CXXFLAGS}"
               sudo make CC=clang CXX=clang++ CXXFLAGS="${CXXFLAGS}"
               sudo cp ./modules/* "$ext_dir/"
