@@ -67,7 +67,6 @@ jobs:
               sudo ./configure --prefix=/usr
               sudo make -j$(nproc)
               sudo make install
-              sudo 
             )
           }
           install_intl() {
