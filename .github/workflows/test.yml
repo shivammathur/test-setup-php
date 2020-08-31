@@ -68,7 +68,8 @@ jobs:
               sudo ./configure --prefix=/usr/local/icu
               sudo make -j$(nproc)
               sudo make install
-              sudo cp -rf /usr/local/icu/* /usr/
+              sudo cp -rf /usr/local/icu/* /usr/ || true
+              sudo cp -rf /usr/local/icu/lib/* /usr/lib/x86_64-linux-gnu/ || true
             )
           }
           install_intl() {
@@ -80,9 +81,7 @@ jobs:
               export CXXFLAGS="$CXXFLAGS -O2 -W -Wall -pedantic -Wpointer-arith -Wwrite-strings -Wno-long-long -std=c++11"
               sudo phpize && ./configure --with-php-config="$(command -v php-config)" --enable-intl --with-icu-dir=/usr/local/icu CC=clang CXX=clang++ CXXFLAGS="${CXXFLAGS}"
               sudo make CC=clang CXX=clang++ CXXFLAGS="${CXXFLAGS}"
-              ls ./modules
               sudo cp ./modules/* "$ext_dir/"
-              ldd ./modules/intl.so | grep icu || true
               enable_extension intl extension
             )
           }       
@@ -90,6 +89,8 @@ jobs:
           install_intl
       - name: Testing PHP
         run: |
-          php -i | grep "ICU version =>" | sed -e "s|.*=> s*||"
+          icu_version=$(php -i | grep "ICU version =>" | sed -e "s|.*=> s*||")
+          echo $icu_version
+          [ "$icu_version" != "${{ matrix.icu }}" ] && exit 1
           php -v
           php -m
