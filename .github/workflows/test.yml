@@ -70,14 +70,13 @@ jobs:
               sudo make -j"$(nproc)"              
               delete_extension intl
               sudo cp ./modules/* "$ext_dir/"
-              enable_extension intl
+              enable_extension intl extension
             )
           }       
           install_icu
           install_intl
       - name: Testing PHP
         run: |
-          php -r "echo INTL_ICU_VERSION;"
           php -i | grep "ICU version =>" | sed -e "s|.*=> s*||"
           php -v
           php -m
