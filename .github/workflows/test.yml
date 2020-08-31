@@ -86,7 +86,7 @@ jobs:
               enable_extension intl extension
             )
           }       
-          #install_icu
+          install_icu
           install_intl
       - name: Testing PHP
         run: |
