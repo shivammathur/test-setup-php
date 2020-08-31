@@ -64,6 +64,7 @@ jobs:
             (
               cd /tmp/icu/source || exit 1
               sudo mkdir /usr/local/icu
+              sudo ln -sf /usr/include/locale.h /usr/include/xlocale.h || true
               sudo ./configure --prefix=/usr/local/icu
               sudo make -j$(nproc)
               sudo make install
@@ -75,8 +76,7 @@ jobs:
             get_php
             (
               cd "/tmp/php-src-$tag/ext/intl" || exit 1
-              export CXXFLAGS="$CXXFLAGS -O2 -W -Wall -pedantic -Wpointer-arith -Wwrite-strings -Wno-long-long -std=c++11"
-              sudo ln -sf /usr/include/locale.h /usr/include/xlocale.h || true
+              export CXXFLAGS="$CXXFLAGS -O2 -W -Wall -pedantic -Wpointer-arith -Wwrite-strings -Wno-long-long -std=c++11"              
               sudo phpize && ./configure --with-php-config="$(command -v php-config)" --enable-intl --with-icu-dir=/usr/local/icu
               sudo make CXXFLAGS=${CXXFLAGS}
               delete_extension intl
