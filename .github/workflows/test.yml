@@ -79,13 +79,14 @@ jobs:
             (
               cd "/tmp/php-src-$tag/ext/intl" || exit 1
               delete_extension intl
-              sudo phpize && ./configure --with-php-config="$(command -v php-config)" --enable-intl CXXFLAGS="${CXXFLAGS}"
-              sudo make CXXFLAGS="-O2 -std=c++11 -DU_USING_ICU_NAMESPACE=0 $CXXFLAGS"
+              echo 'phpize' && sudo phpize
+              echo 'configure' && sudo ./configure --with-php-config="$(command -v php-config)" --enable-intl CXXFLAGS="${CXXFLAGS}"
+              echo 'make' && sudo make CXXFLAGS="-O2 -std=c++11 -DU_USING_ICU_NAMESPACE=0 $CXXFLAGS"
               sudo cp ./modules/* "$ext_dir/"
               enable_extension intl extension
             )
           }       
-          install_icu
+          #install_icu
           install_intl
       - name: Testing PHP
         run: |
