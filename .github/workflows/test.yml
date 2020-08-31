@@ -85,10 +85,9 @@ jobs:
               #sudo cp ./modules/* "$ext_dir/"
               #enable_extension intl extension
             )
-          }       
-          install_icu
+          }
       - name: Sleep...
-        run: sleep 20
+        run: for i in 1 2 3 4 5; do echo $i; sleep $i; done
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v2
       - name: Testing PHP
