@@ -56,7 +56,7 @@ jobs:
             (
               cd /tmp/icu/source || exit 1
               sudo mkdir /usr/local/icu
-              ./configure --prefix=/usr/local/icu
+              sudo ./configure --prefix=/usr/local/icu
               sudo make -j$(nproc)
               sudo make install
             )
