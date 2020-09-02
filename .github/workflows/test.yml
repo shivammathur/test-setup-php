@@ -61,9 +61,8 @@ jobs:
             fi
           }
           install_icu() {
-            sudo apt-get remove -y libxml[0-9]
-            sudo apt-get remove -y php${{ matrix.php }}-intl
-            sudo apt-get remove -y libicu[0-9][0-9]          
+            sudo dpkg -r --force-depends php-intl
+            sudo dpkg -r --force-depends libicu[0-9][0-9]
             sudo curl -o /tmp/icu.tar.zst -sL https://dl.bintray.com/shivammathur/icu4c/icu4c-$icu.tar.zst            
             sudo tar -I zstd -xf /tmp/icu.tar.zst -C /usr/local
             ls /usr/local/icu/lib
