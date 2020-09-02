@@ -14,19 +14,35 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Update intl
+      - name: Setup
+      - name: Pre-requities
         env:
           icu: ${{ matrix.icu }}
           version: ${{ matrix.php }}
         run: |
           apt-get -y update
           apt-get install -y sudo gnupg curl make automake zstd software-properties-common pkg-config
+      - name: Setup PHP
+        if: matrix.php != 5.3 && matrix.php != 5.4 && matrix.php != 5.5
+        env:
+          version: ${{ matrix.php }}          
+        run: |
           LC_ALL=C.UTF-8 sudo DEBIAN_FRONTEND=noninteractive apt-add-repository ppa:ondrej/php -y
           sudo apt-get -y update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y php$version
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y php$version-xml php$version-dev || true
-          php -v
-          php -m
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y php$version php$version-xml php$version-dev || true
+      - name: Setup PHP
+        if: matrix.php == 5.3 || matrix.php == 5.4 || matrix.php == 5.5
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: :intl
+        env:
+          runner: self-hosted
+      - name: Build intl
+        env:
+          icu: ${{ matrix.icu }}
+          version: ${{ matrix.php }}
+        run: |
           ext_dir=$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
           scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
           ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
