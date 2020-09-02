@@ -34,7 +34,6 @@ jobs:
             sudo sed -i "/$extension/d" "$pecl_file"
             sudo rm -rf "$scan_dir"/*"$extension"* >/dev/null 2>&1
             sudo rm -rf "$ext_dir"/"$extension".so >/dev/null 2>&1
-            [ "$runner" = "self-hosted" ] && $apt_remove "php-$extension"
           }
           check_extension() {
             extension=$1
