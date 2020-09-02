@@ -20,6 +20,8 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
       - name: Build intl
+        timeout-minutes: 2
+        continue-on-error: true
         env:
           icu: ${{ matrix.icu }}
           version: ${{ matrix.php }}
@@ -61,6 +63,7 @@ jobs:
           delete_extension intl
           install_icu
           install_intl
+      - uses: mxschmitt/action-tmate@v2    
       - name: Testing PHP
         run: |
           icu_version=$(php -i | grep "ICU version =>" | sed -e "s|.*=> s*||")
