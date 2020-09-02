@@ -21,8 +21,8 @@ jobs:
           icu: ${{ matrix.icu }}
           version: ${{ matrix.php }}
         run: |
-          sudo apt-get -y update
-          sudo apt-get install sudo gnupg curl make software-properties-common unzip
+          apt-get -y update
+          apt-get install -y sudo gnupg curl make software-properties-common unzip
           LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
           sudo apt-get -y update
           sudo apt-get install php$version php$version-xml php$version-dev
