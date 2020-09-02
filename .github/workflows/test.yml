@@ -19,7 +19,10 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
+          extensions: :intl
           tools: phpize
+        env:
+          runner: self-hosted
       - name: Update intl
         env:
           icu: ${{ matrix.icu }}
@@ -39,13 +42,6 @@ jobs:
           }
           get_php() {
             curl -sL "https://github.com/php/php-src/archive/$tag.tar.gz" | tar xzf - -C "/tmp"
-          }
-          delete_extension() {
-            extension=$1
-            sudo sed -i "/$extension/d" "$ini_file"
-            sudo sed -i "/$extension/d" "$pecl_file"
-            sudo rm -rf "$scan_dir"/*"$extension"* >/dev/null 2>&1
-            sudo rm -rf "$ext_dir"/"$extension".so >/dev/null 2>&1
           }
           check_extension() {
             extension=$1
@@ -71,8 +67,7 @@ jobs:
             tag=$(get_tag)
             get_php
             (
-              cd "/tmp/php-src-$tag/ext/intl" || exit 1
-              delete_extension intl
+              cd "/tmp/php-src-$tag/ext/intl" || exit 1              
               phpize && sudo ./configure --with-php-config="$(command -v php-config)" --enable-intl
               sudo make CXXFLAGS="-O2 -std=c++11 -DU_USING_ICU_NAMESPACE=1 $CXXFLAGS"
               sudo cp ./modules/* "$ext_dir/"
