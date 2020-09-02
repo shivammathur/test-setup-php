@@ -29,6 +29,14 @@ jobs:
           scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
           ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
           pecl_file="$scan_dir"/99-pecl.ini
+          delete_extension() {
+            extension=$1
+            sudo sed -i "/$extension/d" "$ini_file"
+            sudo sed -i "/$extension/d" "$pecl_file"
+            sudo rm -rf "$scan_dir"/*"$extension"* >/dev/null 2>&1
+            sudo rm -rf "$ext_dir"/"$extension".so >/dev/null 2>&1
+            [ "$runner" = "self-hosted" ] && $apt_remove "php-$extension"
+          }
           check_extension() {
             extension=$1
             if [ "$extension" != "mysql" ]; then
@@ -52,6 +60,7 @@ jobs:
             sudo curl -o "$ext_dir/intl.so" -sL "https://dl.bintray.com/shivammathur/icu4c/php$version-intl-$icu.so"
             enable_extension intl extension
           }
+          delete_extension intl
           install_icu
           install_intl
       - name: Testing PHP
