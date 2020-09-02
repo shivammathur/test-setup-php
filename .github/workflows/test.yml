@@ -10,7 +10,7 @@ jobs:
         #os: [ubuntu-latest]
         os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
         php: ['7.4']
-        icu: [67.1]
+        icu: [67.1, 66.1, 65.1]
     name: PHP
     steps:
       - name: Checkout
@@ -56,7 +56,6 @@ jobs:
           }
           install_icu
           install_intl
-      - uses: mxschmitt/action-tmate@v2    
       - name: Testing PHP
         run: |
           icu_version=$(php -i | grep "ICU version =>" | sed -e "s|.*=> s*||")
