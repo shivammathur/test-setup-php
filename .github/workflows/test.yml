@@ -37,7 +37,7 @@ jobs:
             master_version='8.0'
             tag='master'
             if [ "${version::1}" = "5" ]; then
-              tag="php-5.6.40"
+              tag="php-5.5.38"
             else  
               if [ ! "${version:?}" = "$master_version" ]; then
                 tag="php-$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')"
