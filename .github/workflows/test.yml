@@ -3,27 +3,21 @@ on:
   push:
 jobs:
   run:
-    #container: ubuntu:bionic
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        php: ['5.3', '5.4', '5.5']
+        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
         icu: [67.1, 66.1, 65.1, 64.2, 63.2, 62.2, 61.2, 60.3, 59.2, 58.3, 57.2, 56.2, 55.2, 54.2, 53.2, 52.2, 51.3, 50.2]
     name: PHP
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Remove PHP
-        env:
-          version: ${{ matrix.php }}          
-        run: |
-          sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -f php* php-* php*-*
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: :intl
       - name: Build intl
         env:
           icu: ${{ matrix.icu }}
@@ -32,22 +26,7 @@ jobs:
           ext_dir=$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
           scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
           ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-          pecl_file="$scan_dir"/99-pecl.ini          
-          get_tag() {
-            master_version='8.0'
-            tag='master'
-            if [ "${version::1}" = "5" ]; then
-              tag="php-5.5.38"
-            else  
-              if [ ! "${version:?}" = "$master_version" ]; then
-                tag="php-$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')"
-              fi
-            fi  
-            echo "$tag"
-          }
-          get_php() {
-            curl -sL "https://github.com/php/php-src/archive/$tag.tar.gz" | tar xzf - -C "/tmp"
-          }
+          pecl_file="$scan_dir"/99-pecl.ini
           check_extension() {
             extension=$1
             if [ "$extension" != "mysql" ]; then
@@ -62,21 +41,13 @@ jobs:
             fi
           }
           install_icu() {
-            sudo curl -o /tmp/icu.tar.zst -sL https://dl.bintray.com/shivammathur/icu4c/icu4c-$icu.tar.zst            
-            sudo tar -I zstd -xf /tmp/icu.tar.zst -C /usr/local            
-            sudo cp -r /usr/local/icu/* /usr/
+            sudo curl -o /tmp/icu.tar.zst -sL https://dl.bintray.com/shivammathur/icu4c/icu4c-$icu.tar.zst
+            sudo tar -I zstd -xf /tmp/icu.tar.zst -C /usr/local
             sudo cp -r /usr/local/icu/lib/* /usr/lib/x86_64-linux-gnu/
           }
           install_intl() {
-            tag=$(get_tag)
-            get_php
-            (
-              cd "/tmp/php-src-$tag/ext/intl" || exit 1              
-              phpize && sudo ./configure --with-php-config="$(command -v php-config)" --enable-intl
-              sudo make CXXFLAGS="-O2 -std=c++11 -DU_USING_ICU_NAMESPACE=1 $CXXFLAGS"
-              sudo cp ./modules/* "$ext_dir/"
-              enable_extension intl extension
-            )
+            sudo curl -o "$ext_dir/intl.so" -sL "https://dl.bintray.com/shivammathur/icu4c/php$version-intl-$icu.so"
+            enable_extension intl extension
           }
           install_icu
           install_intl
