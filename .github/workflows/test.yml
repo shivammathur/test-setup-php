@@ -18,7 +18,7 @@ jobs:
         env:
           version: ${{ matrix.php }}          
         run: |
-          sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -f php$version php$version-intl
+          sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -f php* php-* php*-*
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
