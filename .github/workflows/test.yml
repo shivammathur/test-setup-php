@@ -19,7 +19,6 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-      - uses: mxschmitt/action-tmate@v2
       - name: Build intl
         env:
           icu: ${{ matrix.icu }}
