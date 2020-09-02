@@ -15,19 +15,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php }}
-          tools: phpize
-        env:
-          runner: self-hosted
       - name: Update intl
         env:
           icu: ${{ matrix.icu }}
           version: ${{ matrix.php }}
         run: |
-          sudo apt-get remove -y php$version-intl
+          sudo apt-get -y update
+          sudo apt-get install sudo gnupg curl make software-properties-common unzip
+          LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
+          sudo apt-get -y update
+          sudo apt-get install php$version php$version-xml php$version-dev
+          php -v
+          php -m
           ext_dir=$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
           scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
           ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
