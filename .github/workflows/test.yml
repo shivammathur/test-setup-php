@@ -8,26 +8,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['5.4', '5.5']
+        php: ['5.3', '5.4', '5.5']
         icu: [67.1, 66.1, 65.1, 64.2, 63.2, 62.2, 61.2, 60.3, 59.2, 58.3, 57.2, 56.2, 55.2, 54.2, 53.2, 52.2, 51.3, 50.2]
     name: PHP
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      # - name: Setup PHP
-       # run: |
-         # apt-get -y update
-         # apt-get install -y sudo gnupg curl make automake zstd software-properties-common pkg-config
-      - name: Setup PHP
-        if: matrix.php != 5.3 && matrix.php != 5.4 && matrix.php != 5.5
+      - name: Remove PHP
         env:
           version: ${{ matrix.php }}          
         run: |
-          LC_ALL=C.UTF-8 sudo DEBIAN_FRONTEND=noninteractive apt-add-repository ppa:ondrej/php -y
-          sudo apt-get -y update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y php$version php$version-xml php$version-dev || true
+          sudo DEBIAN_FRONTEND=noninteractive apt-get remove --purge -f php$version php$version-intl
       - name: Setup PHP
-        if: matrix.php == 5.3 || matrix.php == 5.4 || matrix.php == 5.5
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
@@ -44,9 +36,13 @@ jobs:
           get_tag() {
             master_version='8.0'
             tag='master'
-            if [ ! "${version:?}" = "$master_version" ]; then
-              tag="php-$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')"
-            fi
+            if [ "${version::1}" = "5" ]; then
+              tag="php-5.6.40"
+            else  
+              if [ ! "${version:?}" = "$master_version" ]; then
+                tag="php-$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')"
+              fi
+            fi  
             echo "$tag"
           }
           get_php() {
