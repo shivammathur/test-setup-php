@@ -7,9 +7,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        os: [ubuntu-latest]
+        #os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
         php: ['7.4']
-        icu: [66.1, 65.1]
+        icu: [65.1]
     name: PHP
     steps:
       - name: Checkout
@@ -18,6 +19,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
+      - uses: mxschmitt/action-tmate@v2
       - name: Build intl
         env:
           icu: ${{ matrix.icu }}
@@ -44,6 +46,7 @@ jobs:
             sudo curl -o /tmp/icu.tar.zst -sL https://dl.bintray.com/shivammathur/icu4c/icu4c-$icu.tar.zst
             sudo tar -I zstd -xf /tmp/icu.tar.zst -C /usr/local
             sudo cp -r /usr/local/icu/lib/* /usr/lib/x86_64-linux-gnu/
+            
           }
           install_intl() {
             sudo curl -o "$ext_dir/intl.so" -sL "https://dl.bintray.com/shivammathur/icu4c/php$version-intl-$icu.so"
