@@ -23,7 +23,8 @@ jobs:
           apt-get install -y sudo gnupg curl make automake zstd software-properties-common pkg-config
           LC_ALL=C.UTF-8 sudo DEBIAN_FRONTEND=noninteractive apt-add-repository ppa:ondrej/php -y
           sudo apt-get -y update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y php$version php$version-xml php$version-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y php$version
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y php$version-xml php$version-dev || true
           php -v
           php -m
           ext_dir=$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
