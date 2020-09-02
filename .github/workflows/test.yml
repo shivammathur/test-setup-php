@@ -9,7 +9,7 @@ jobs:
       matrix:
         #php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
         icu: [65.1]
-        php: [5.6]
+        php: [5.6, 7.4]
         #icu: [67.1, 66.1, 65.1, 64.2, 63.2, 62.2, 61.2, 60.3, 59.2, 58.3, 57.2, 56.2, 55.2, 54.2, 53.2, 52.2, 51.3, 50.2]
     name: PHP
     steps:
@@ -61,18 +61,8 @@ jobs:
             fi
           }
           install_icu() {
-            sudo curl -o /tmp/icu.tgz -sL http://github.com/unicode-org/icu/releases/download/release-${icu/./-}/icu4c-${icu/./_}-src.tgz
-            sudo tar -zxf /tmp/icu.tgz -C /tmp
-            (
-              cd /tmp/icu/source || exit 1
-              sudo mkdir /usr/local/icu
-              sudo ln -sf /usr/include/locale.h /usr/include/xlocale.h || true              
-              sudo ./configure --prefix=/usr/local/icu
-              sudo make -j$(nproc)
-              sudo make install
-              sudo cp -rf /usr/local/icu/* /usr/ || true
-              sudo cp -rf /usr/local/icu/lib/* /usr/lib/x86_64-linux-gnu/ || true
-            )
+            sudo curl -o /tmp/icu.tar.zst -sL https://dl.bintray.com/shivammathur/icu4c/icu4c-$icu.tar.zst            
+            sudo tar -I zstd -xf /tmp/icu.tar.zst -C /usr/local
           }
           install_intl() {
             tag=$(get_tag)
@@ -86,7 +76,7 @@ jobs:
               enable_extension intl extension
             )
           }
-          install_icu >/dev/null 2>&1
+          install_icu
           install_intl
       - name: Testing PHP
         run: |
