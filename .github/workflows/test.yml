@@ -61,7 +61,7 @@ jobs:
             fi
           }
           install_icu() {
-            sudo apt-get remove --purge -y php-intl libicu*
+            sudo apt-get remove --purge -y php-intl libxml* libicu*
             sudo curl -o /tmp/icu.tar.zst -sL https://dl.bintray.com/shivammathur/icu4c/icu4c-$icu.tar.zst            
             sudo tar -I zstd -xf /tmp/icu.tar.zst -C /usr/local
             ls /usr/local/icu/lib
