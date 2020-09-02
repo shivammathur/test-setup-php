@@ -35,8 +35,6 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: :intl
-        env:
-          runner: self-hosted
       - name: Build intl
         env:
           icu: ${{ matrix.icu }}
