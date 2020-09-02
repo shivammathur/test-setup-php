@@ -3,7 +3,7 @@ on:
   push:
 jobs:
   run:
-    container: ubuntu:bionic
+    #container: ubuntu:bionic
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
