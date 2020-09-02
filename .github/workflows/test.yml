@@ -14,13 +14,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup PHP
-        env:
-          icu: ${{ matrix.icu }}
-          version: ${{ matrix.php }}
-        run: |
-          apt-get -y update
-          apt-get install -y sudo gnupg curl make automake zstd software-properties-common pkg-config
+      # - name: Setup PHP
+       # run: |
+         # apt-get -y update
+         # apt-get install -y sudo gnupg curl make automake zstd software-properties-common pkg-config
       - name: Setup PHP
         if: matrix.php != 5.3 && matrix.php != 5.4 && matrix.php != 5.5
         env:
