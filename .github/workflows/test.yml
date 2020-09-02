@@ -25,7 +25,7 @@ jobs:
           apt-get install -y sudo gnupg curl make software-properties-common unzip
           LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
           sudo apt-get -y update
-          sudo apt-get install php$version php$version-xml php$version-dev
+          sudo apt-get install -y php$version php$version-xml php$version-dev
           php -v
           php -m
           ext_dir=$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
