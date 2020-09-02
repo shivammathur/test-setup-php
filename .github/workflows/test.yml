@@ -8,8 +8,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-16.04]
-        php: ['5.3', '5.4', '5.5', '7.4']
-        icu: [67.1]
+        php: ['5.5', '7.4']
+        icu: [67.2]
     name: PHP
     steps:
       - name: Checkout
