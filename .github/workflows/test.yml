@@ -16,10 +16,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: :intl
           tools: phpize
         env:
           runner: self-hosted
@@ -27,7 +26,8 @@ jobs:
         env:
           icu: ${{ matrix.icu }}
           version: ${{ matrix.php }}
-        run: |          
+        run: |
+          sudo apt-get remove -y php$version-intl
           ext_dir=$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
           scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
           ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
