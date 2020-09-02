@@ -18,44 +18,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: intl
-      - name: Build intl
-        timeout-minutes: 2
-        continue-on-error: true
-        env:
-          icu: ${{ matrix.icu }}
-          version: ${{ matrix.php }}
-        run: |
-          ext_dir=$(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
-          scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
-          ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-          pecl_file="$scan_dir"/99-pecl.ini
-          check_extension() {
-            extension=$1
-            if [ "$extension" != "mysql" ]; then
-              php -m | grep -i -q -w "$extension"
-            else
-              php -m | grep -i -q "$extension"
-            fi
-          }          
-          enable_extension() {
-            if ! check_extension "$1" && [ -e "$ext_dir/$1.so" ]; then
-              echo "$2=$1.so" >>"$pecl_file"
-            fi
-          }
-          install_icu() {
-            if [ "$(php -i | grep "ICU version =>" | sed -e "s|.*=> s*||")" != "$icu" ]; then
-              sudo curl -o /tmp/icu.tar.zst -sL https://dl.bintray.com/shivammathur/icu4c/icu4c-$icu.tar.zst
-              sudo tar -I zstd -xf /tmp/icu.tar.zst -C /usr/local
-              sudo cp -r /usr/local/icu/lib/* /usr/lib/x86_64-linux-gnu/
-            fi            
-          }
-          install_intl() {
-            sudo curl -o "$ext_dir/intl.so" -sL "https://dl.bintray.com/shivammathur/icu4c/php$version-intl-$icu.so"
-            enable_extension intl extension
-          }
-          install_icu
-          install_intl
+          extensions: intl-${{ matrix.icu }}
       - name: Testing PHP
         run: |
           icu_version=$(php -i | grep "ICU version =>" | sed -e "s|.*=> s*||")
