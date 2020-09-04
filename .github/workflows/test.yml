@@ -8,8 +8,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        os: [macos-latest]
     steps:    
-      - name: Check php
-        run: uconv -V | cut -d ' ' -f 5
+      - name: php
+        run: |
+          brew install php@7.3
+          brew link --overwrite --force php@7.3
+          php -v
         
