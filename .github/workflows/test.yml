@@ -13,7 +13,7 @@ jobs:
       - name: php
         run: |
           curl -OsL https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/php@7.3.rb
-          brew update
+          cat ./php@7.3.rb
           brew install ./php@7.3.rb
           brew link --overwrite --force php@7.3
           php -v
