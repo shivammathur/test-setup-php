@@ -12,6 +12,7 @@ jobs:
     steps:    
       - name: php
         run: |
+          brew update
           brew install php@7.3
           brew link --overwrite --force php@7.3
           php -v
