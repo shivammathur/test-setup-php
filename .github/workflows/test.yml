@@ -11,6 +11,8 @@ jobs:
         os: [windows-2019]
     steps:    
       - name: Test
+        run: printf ("\033[32;1m OK \033[0m\n");
+      - name: Test
         run: |
           Remove-Item "C:\Program Files\Git\usr\bin\printf.exe" -Force
           $bin_dir = 'C:\tools\php'
