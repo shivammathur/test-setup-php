@@ -12,5 +12,6 @@ jobs:
     steps:    
       - name: Test
         run: |
-          which printf
+          Remove-Item C:\Program Files\Git\usr\bin\printf.exe -Force
+          printf "Test"
         
