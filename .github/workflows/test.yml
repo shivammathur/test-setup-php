@@ -8,13 +8,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest]
+        os: [windows-2019, windows-2016]
     steps:    
       - name: php
         run: |
-          curl -OsL https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/php@7.3.rb
-          cat ./php@7.3.rb
-          brew install ./php@7.3.rb
-          brew link --overwrite --force php@7.3
-          php -v
+          Write-Host "Red text." -ForegroundColor red
+          Write-Host "Red on white text." -ForegroundColor red -BackgroundColor white
+          Write-Host "text on white." -BackgroundColor white
         
