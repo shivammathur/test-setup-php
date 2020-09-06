@@ -21,6 +21,5 @@ jobs:
               Expand-Archive -Path $bin_dir\printf.zip -DestinationPath $bin_dir -Force 
             }
           } catch {}
-          ls $bin_dir
-          printf "Test"
+          printf ("\033[32;1m OK \033[0m\n");
         
