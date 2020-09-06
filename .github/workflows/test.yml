@@ -8,9 +8,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-2019, windows-2016]
+        os: [windows-2019]
     steps:    
       - name: Test
         run: |
-          pwsh -c "Write-Host 'Red text.' -ForegroundColor red" || true
+          which printf
         
