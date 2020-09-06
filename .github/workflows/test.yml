@@ -13,5 +13,12 @@ jobs:
       - name: Test
         run: |
           Remove-Item "C:\Program Files\Git\usr\bin\printf.exe" -Force
+          $bin_dir = 'C:\tools\php'
+          try {
+            if(-not(Get-Command printf)) {
+              Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/shivammathur/printf/releases/latest/download/printf-x64.zip" -OutFile "$bin_dir\printf.zip"
+              Expand-Archive -Path $bin_dir\printf.zip -DestinationPath $bin_dir -Force
+            }
+          } catch {}
           printf "Test"
         
