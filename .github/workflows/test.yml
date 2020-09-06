@@ -8,11 +8,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019, windows-2016]
+        os: [ubuntu-latest, macos-latest, windows-2019, windows-2016]
     steps:    
-      - name: php
+      - name: Test
         run: |
-          Write-Host "Red text." -ForegroundColor red
-          Write-Host "Red on white text." -ForegroundColor red -BackgroundColor white
-          Write-Host "text on white." -BackgroundColor white
+          pwsh -c "Write-Host 'Red text.' -ForegroundColor red" || true
         
