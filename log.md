@@ -19,3 +19,4 @@
 - Test 2.4.1 release.
 - Test 2.4.2 release.
 - Test 2.4.3 release.
+- Test 2.5.0 release.
