@@ -34,7 +34,7 @@ jobs:
           versions="7.4"
         elif [ "$DISTRIB_RELEASE" = "18.04" ]; then
           versions="7.1 7.2 7.3 7.4"
-        elif "$DISTRIB_RELEASE" = "16.04" ]; then
+        elif [ "$DISTRIB_RELEASE" = "16.04" ]; then
           versions="5.6 7.0 7.1 7.2 7.3 7.4"
         fi
         for i in $versions; do
