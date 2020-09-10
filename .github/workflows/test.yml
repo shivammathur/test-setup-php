@@ -19,11 +19,6 @@ jobs:
             php-version: '7.3'
             tools: phpunit, phpcs, phpmd
             extensions: mbstring, intl, sockets, sodium, zip
-      - name: Install dependencies
-        uses: php-actions/composer@master
-        with:
-            ssh_key: ${{ secrets.CI_SECRET }}
-            ssh_key_pub: ${{ secrets.CI_PUBLIC }}
       - name: Testing PHP
         run: |
           php -v
