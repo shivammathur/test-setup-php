@@ -22,7 +22,6 @@ jobs:
       - uses: php-actions/composer@master
         with:
           command: php -v && php -m
-      - command: your-command-here
       - name: Testing PHP
         run: |
           php -v
