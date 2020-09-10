@@ -21,7 +21,7 @@ jobs:
             extensions: mbstring, intl, sockets, sodium, zip
       - uses: php-actions/composer@master
         with:
-          command: php -v && php -m
+          command: -V && php -v && php -m && composer -V
       - name: Testing PHP
         run: |
           php -v
