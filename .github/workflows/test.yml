@@ -16,7 +16,7 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         extensions: xdebug, pcov
-        php-version: ${{ matrix }}
+        php-version: ${{ matrix.php }}
     - name: Test
       run: |
         php -v
