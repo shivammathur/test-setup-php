@@ -8,26 +8,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019]
+        os: [windows-2019, windows-2016]
     steps:    
       - name: Test
-        run: printf ("\033[32;1m OK \033[0m\n");
-      - name: Test
-        run: |
-          Remove-Item "C:\Program Files\Git\usr\bin\printf.exe" -Force
-          $bin_dir = 'C:\tools\php'
-          Function Add-Printf {
-            if (-not(Test-Path "C:\Program Files\Git\usr\bin\printf.exe")) {
-              if(Test-Path "C:\msys64\usr\bin\printf.exe") {
-                New-Item -Path $bin_dir\printf.exe -ItemType SymbolicLink -Value C:\msys64\usr\bin\printf.exe
-              } else {
-                Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/shivammathur/printf/releases/latest/download/printf-x64.zip" -OutFile "$bin_dir\printf.zip"
-                Expand-Archive -Path $bin_dir\printf.zip -DestinationPath $bin_dir -Force
-              }
-            } else {
-              New-Item -Path $bin_dir\printf.exe -ItemType SymbolicLink -Value "C:\Program Files\Git\usr\bin\printf.exe"
-            }
-          }
-          Measure-Command { Add-Printf }
-          printf ("\033[32;1m OK \033[0m\n");
+        run: dir C:\tools\php\ext
         
