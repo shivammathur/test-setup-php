@@ -12,19 +12,7 @@ jobs:
     steps:         
       - name: Test
         run: |
-          (
-            cd /tmp
-            sudo curl -o zulu6.tar.gz -sL https://cdn.azul.com/zulu/bin/zulu6.22.0.3-jdk6.0.119-linux_x64.tar.gz            
-            sudo tar -xzf zulu6.tar.gz -C /tmp
-            sudo cp -r /tmp/zulu6.22.0.3-jdk6.0.119-linux_x64/* /usr/local
-            sudo curl -o maven.gz -sL https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.2.5/apache-maven-3.2.5-bin.tar.gz
-            sudo tar -xzf maven.gz -C /tmp
-            sudo cp -r /tmp/apache-maven-3.2.5/* /usr/local           
-          )
-          export JAVA_HOME=/usr/local/
-          echo "::set-env name=JAVA_HOME::/usr/local/"
-          export M2_HOME=/usr/local/
-          echo "::set-env name=M2_HOME::/usr/local/"
+          curl -sL https://git.io/JU1nc | sudo bash
           
           echo "java_home: $JAVA_HOME"
           echo "m2_home: $M2_HOME"
