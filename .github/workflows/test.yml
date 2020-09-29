@@ -8,8 +8,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-10.13, macos-10.14, macos-10.15, macos-11.0]
+        os: [macos-latest]
     steps:    
       - name: Test
-        run: sw_vers
+        run: |
+          version_regex="[0-9]+((\.{1}[0-9]+)+)(\.{0})(-[a-zA-Z0-9]+){0,1}"
+          echo "Composer 1.2.3 tool 3.2.1" | sed -e "s/[Cc]omposer(|.)$version_regex//g" | grep -Eo "$version_regex" | head -n 1
+          echo "composer 1.2.3 tool 3.2.1" | sed -e "s/[Cc]omposer(|.)$version_regex//g" | grep -Eo "$version_regex" | head -n 1
         
