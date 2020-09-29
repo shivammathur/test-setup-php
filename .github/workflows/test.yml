@@ -19,12 +19,16 @@ jobs:
             sudo cp -r /tmp/zulu6.22.0.3-jdk6.0.119-linux_x64/* /usr/local
             sudo curl -o maven.gz -sL https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.2.5/apache-maven-3.2.5-bin.tar.gz
             sudo tar -xzf maven.gz -C /tmp
-            sudo cp -r /tmp/apache-maven-3.2.5/* /usr/local
-            export JAVA_HOME=/usr/local/
-            echo "::set-env name=JAVA_HOME::/usr/local/"
-            export M2_HOME=/usr/local/
-            echo "::set-env name=M2_HOME::/usr/local/"            
-          )          
+            sudo cp -r /tmp/apache-maven-3.2.5/* /usr/local           
+          )
+          export JAVA_HOME=/usr/local/
+          echo "::set-env name=JAVA_HOME::/usr/local/"
+          export M2_HOME=/usr/local/
+          echo "::set-env name=M2_HOME::/usr/local/"
+          
+          echo "java_home: $JAVA_HOME"
+          echo "m2_home: $M2_HOME"
+          
           java -version
           mvn -Dmaven.multiModuleProjectDirectory=$M2_HOME -v
         
