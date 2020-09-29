@@ -22,7 +22,7 @@ jobs:
             
             sudo curl -o maven.gz -sL https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.2.5/apache-maven-3.2.5-bin.tar.gz
             sudo tar -xzf maven.gz -C /tmp
-            sudo cp /tmp/apache-maven-3.2.5/* /usr/
+            sudo cp -r tmp/apache-maven-3.2.5/* /usr/
           )
           /usr/lib/jvm/zulu6.22.0.3-jdk6.0.119-linux_x64/bin/java -version          
           java -version
