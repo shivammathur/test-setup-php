@@ -8,12 +8,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest]
+        os: [ubuntu-latest]
     steps:  
       - uses: actions/setup-java@v1
         with:
           java-version: 1.6
           architecture: x64
       - name: Test
-        run: mvn -v
+        run: java -version && mvn -v
         
