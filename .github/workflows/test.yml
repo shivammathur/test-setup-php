@@ -12,7 +12,6 @@ jobs:
     steps:         
       - name: Test
         run: |
-          sudo apt-get install alien
           (
             cd /tmp
             sudo mkdir -p /usr/lib/jvm
