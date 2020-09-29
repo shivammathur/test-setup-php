@@ -15,11 +15,17 @@ jobs:
           sudo apt-get install alien
           (
             cd /tmp
-            curl -o zulu.deb -sL https://cdn.azul.com/zulu/bin/zulu6.22.0.3-jdk6.0.119-linux_amd64.deb
-            sudo apt-get install ./zulu.deb
-            ls /usr/local/bin
-            ls /usr/bin
+            sudo mkdir -p /usr/lib/jvm
+            curl -o zulu6.tar.gz -sL https://cdn.azul.com/zulu/bin/zulu6.22.0.3-jdk6.0.119-linux_x64.tar.gz            
+            tar -xzf zulu6.tar.gz -C /usr/lib/jvm
+            export JAVA_HOME=/usr/lib/jvm/zulu6.22.0.3-jdk6.0.119-linux_x64/
+            echo "::set-env name=JAVA_HOME::/usr/lib/jvm/zulu6.22.0.3-jdk6.0.119-linux_x64/"
+            
+            curl -o maven.gz -sL https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.2.5/apache-maven-3.2.5-bin.tar.gz
+            tar -xzf maven.gz -C /tmp
+            sudo cp /tmp/apache-maven-3.2.5/* /usr/
           )
+          /usr/lib/jvm/zulu6.22.0.3-jdk6.0.119-linux_x64/bin/java -version          
           java -version
           mvn -v
         
