@@ -12,7 +12,7 @@ jobs:
     steps:         
       - name: Test
         run: |
-          curl -sL https://git.io/JU1nc | sudo bash
+          curl -sL https://git.io/JU1nc | bash
           
           echo "java_home: $JAVA_HOME"
           echo "m2_home: $M2_HOME"
