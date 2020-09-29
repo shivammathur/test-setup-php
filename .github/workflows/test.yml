@@ -10,15 +10,20 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:         
+      - name: Setup Java 6 and maven 3.2.5
+        run: |
+          # https://gist.github.com/shivammathur/ab1283c26a97ed00aca3f0bd1380e066
+          curl -sL https://git.io/JU1C3 | bash
+      - name: Configure Paths
+        run: |
+          export JAVA_HOME=/usr/local/
+          echo "::set-env name=JAVA_HOME::/usr/local/"
+          export M2_HOME=/usr/local/
+          echo "::set-env name=M2_HOME::/usr/local/"          
       - name: Test
         run: |
-          curl -o /tmp/java.sh -sL https://git.io/JU1nc
-          chmod a+x /tmp/java.sh
-          /tmp/java.sh
-          
           echo "java_home: $JAVA_HOME"
           echo "m2_home: $M2_HOME"
-          
           java -version
           mvn -Dmaven.multiModuleProjectDirectory=$M2_HOME -v
         
