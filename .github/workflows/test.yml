@@ -9,10 +9,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest]
-    steps:    
+    steps:  
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 1.6
+          architecture: x64
       - name: Test
-        run: |
-          version_regex="[0-9]+((\.{1}[0-9]+)+)(\.{0})(-[a-zA-Z0-9]+){0,1}"
-          echo "Composer 1.2.3 tool 3.2.1" | sed "s/[Cc]omposer(|.)$version_regex//g" | grep -Eo "$version_regex" | head -n 1
-          echo "composer 1.2.3 tool 3.2.1" | sed "s/[Cc]omposer(|.)$version_regex//g" | grep -Eo "$version_regex" | head -n 1
+        run: mvn -v
         
