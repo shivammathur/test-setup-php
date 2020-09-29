@@ -24,7 +24,7 @@ jobs:
             sudo tar -xzf maven.gz -C /tmp
             sudo cp -r /tmp/apache-maven-3.2.5/* /usr/
           )
-          /usr/lib/jvm/zulu6.22.0.3-jdk6.0.119-linux_x64/bin/java -version          
+          /usr/local/jvm/zulu6.22.0.3-jdk6.0.119-linux_x64/bin/java -version          
           java -version
           mvn -v
         
