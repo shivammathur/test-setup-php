@@ -9,12 +9,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-    steps:  
-      - uses: actions/setup-java@v1
-        with:
-          java-version: 1.6          
+    steps:         
       - name: Test
         run: |
-          sudo apt-get install openjdk-6-jre
+          sudo apt-get install alien
+          (
+            cd /tmp
+            curl -o zulu.rpm -sL https://static.azul.com/zulu/bin/zulu1.6.0_49-6.4.0.6-x86lx64.rpm
+            sudo alien zulu.rpm
+            sudo dpkg –i zulu.deb
+          )
           mvn -v
         
