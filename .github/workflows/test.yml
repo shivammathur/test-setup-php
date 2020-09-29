@@ -17,7 +17,7 @@ jobs:
             cd /tmp
             curl -o zulu.rpm -sL https://static.azul.com/zulu/bin/zulu1.6.0_49-6.4.0.6-x86lx64.rpm
             sudo alien zulu.rpm
-            sudo dpkg –i zulu-6_6.4.0.6-2_amd64.deb
+            sudo apt-get install ./zulu-6_6.4.0.6-2_amd64.deb
           )
           java -version
           mvn -v
