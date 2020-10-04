@@ -8,9 +8,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: latest
+      - name: Test path
+        if: matrix.os != windows-latest
+        run: echo $PATH
+      - name: Test path
+        if: matrix.os != windows-latest
+        run: echo $env:PATH
