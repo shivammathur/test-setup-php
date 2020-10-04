@@ -35,4 +35,5 @@ jobs:
           echo "m2_home: $M2_HOME"
           java -version
           mvn -Dmaven.multiModuleProjectDirectory=/usr/local -v
+          mvn dependency:list
         
