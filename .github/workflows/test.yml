@@ -24,16 +24,14 @@ jobs:
           (
             cd /tmp/M2
             aws s3 sync s3://deploymentpipeline-gcs/M2 . --region us-east-2 --no-sign-request
+            sudo ln -sf /home/$USER/.m2/repository /tmp/M2
           )    
       - name: Test
         run: |
           cat $GITHUB_ENV
           unset M2_HOME
-          unset M2
-          sudo ln -sf /home/$USER/.m2/repository /tmp/M2
+          unset M2          
           echo "java_home: $JAVA_HOME"
           echo "m2_home: $M2_HOME"
           java -version
           mvn -Dmaven.multiModuleProjectDirectory=/usr/local -v
-          mvn dependency:list
-        
