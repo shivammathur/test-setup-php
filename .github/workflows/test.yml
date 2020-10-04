@@ -18,17 +18,19 @@ jobs:
         run: |
           export JAVA_HOME=/usr/local/
           echo "::set-env name=JAVA_HOME::/usr/local/"        
+      - name: Fetch jars
+        run: |
+          mkdir /tmp/M2
+          (
+            cd /tmp/M2
+            aws s3 sync s3://deploymentpipeline-gcs/M2 . --region us-east-2 --no-sign-request
+          )    
       - name: Test
         run: |
           cat $GITHUB_ENV
           unset M2_HOME
           unset M2
-          mkdir /tmp/M2
-          (
-            cd /tmp/M2
-            aws s3 sync s3://deploymentpipeline-gcs/M2 . --region us-east-2 --no-sign-request
-          )
-          sudo ln -sf /tmp/M2 /home/$USER/.m2/repository
+          sudo ln -sf /home/$USER/.m2/repository /tmp/M2
           echo "java_home: $JAVA_HOME"
           echo "m2_home: $M2_HOME"
           java -version
