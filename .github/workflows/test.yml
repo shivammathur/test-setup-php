@@ -11,6 +11,6 @@ jobs:
         os: [ubuntu-latest]
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: latest
