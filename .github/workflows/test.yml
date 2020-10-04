@@ -17,14 +17,20 @@ jobs:
       - name: Configure Paths
         run: |
           export JAVA_HOME=/usr/local/
-          echo "::set-env name=JAVA_HOME::/usr/local/"
-          export M2_HOME=/usr/local/
-          echo "::set-env name=M2_HOME::/usr/local/"          
+          echo "::set-env name=JAVA_HOME::/usr/local/"        
       - name: Test
         run: |
-          aws s3 sync s3://deploymentpipeline-gcs/M2 . --region us-east-2
+          cat $GITHUB_ENV
+          unset M2_HOME
+          unset M2
+          mkdir /tmp/M2
+          (
+            cd /tmp/M2
+            aws s3 sync s3://deploymentpipeline-gcs/M2 . --region us-east-2
+          )
+          sudo ln -sf /tmp/M2 /home/$USER/.m2/repository
           echo "java_home: $JAVA_HOME"
           echo "m2_home: $M2_HOME"
           java -version
-          mvn -Dmaven.multiModuleProjectDirectory=$M2_HOME -v
+          mvn -Dmaven.multiModuleProjectDirectory=/usr/local -v
         
