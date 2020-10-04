@@ -1,6 +1,8 @@
 name: Runner workflow
 on:
   push:
+env:
+  php-version: 7.3
 jobs:
   ubuntu:
     name: runner    
@@ -9,29 +11,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-    steps:         
-      - name: Setup Java 6 and maven 3.2.5
-        run: |
-          # https://gist.github.com/shivammathur/ab1283c26a97ed00aca3f0bd1380e066
-          curl -sL https://git.io/JU1C3 | bash
-      - name: Configure Paths
-        run: |
-          export JAVA_HOME=/usr/local/
-          echo "::set-env name=JAVA_HOME::/usr/local/"        
-      - name: Fetch jars
-        run: |
-          mkdir /tmp/M2
-          (
-            cd /tmp/M2
-            aws s3 sync s3://deploymentpipeline-gcs/M2 . --region us-east-2 --no-sign-request
-            sudo ln -sf /home/$USER/.m2/repository /tmp/M2
-          )    
-      - name: Test
-        run: |
-          cat $GITHUB_ENV
-          unset M2_HOME
-          unset M2          
-          echo "java_home: $JAVA_HOME"
-          echo "m2_home: $M2_HOME"
-          java -version
-          mvn -Dmaven.multiModuleProjectDirectory=/usr/local -v
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 7.4
