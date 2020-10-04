@@ -18,5 +18,5 @@ jobs:
         if: matrix.os != 'windows-latest'
         run: echo $PATH
       - name: Test path
-        if: matrix.os != 'windows-latest'
+        if: matrix.os == 'windows-latest'
         run: echo $env:PATH
