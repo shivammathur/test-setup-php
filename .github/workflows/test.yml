@@ -11,4 +11,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - name: Test
-        run: echo 'https://setup-php.com/support'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.4
+      - uses: mxschmitt/action-tmate@v3
