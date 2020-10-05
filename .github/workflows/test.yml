@@ -23,7 +23,8 @@ jobs:
           sudo apt-get install php$version-fpm
           # Copy php-fpm to a directory in PATH
           sudo cp /usr/sbin/php-fpm$version /usr/bin/php-fpm
-      - name: Test    
+      - name: Test
+        run: |
           sudo service php$version-fpm start
           sudo service php$version-fpm status
           php-fpm -v
