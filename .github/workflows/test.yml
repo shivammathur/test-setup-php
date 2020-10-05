@@ -17,7 +17,6 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
             php-version: ${{ matrix.php-versions }}
-            extensions: tokenizer
       - name: Testing tokenizer
         run: |
           php -r "if(! extension_loaded('tokenizer')) {throw new Exception('tokenizer not found');}"
