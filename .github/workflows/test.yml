@@ -24,6 +24,8 @@ jobs:
           # Copy php-fpm to a directory in PATH
           sudo cp /usr/sbin/php-fpm$version /usr/bin/php-fpm
       - name: Test
+        env:
+          version: ${{ matrix.php }}
         run: |
           sudo service php$version-fpm start
           sudo service php$version-fpm status
