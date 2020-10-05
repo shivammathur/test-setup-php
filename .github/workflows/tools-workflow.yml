@@ -24,7 +24,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: blackfire, blackfire-player, composer-require-checker, composer-normalize, composer-unused, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, cs2pr, codeception, phpunit, psalm, phing, phinx, phive, deployer, prestissimo, composer-prefetcher, protoc, pecl, phpize, php-config, symfony, vapor-cli
+          tools: behat, blackfire, blackfire-player, composer-require-checker, composer-normalize, composer-unused, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpspec, phpmd, cs2pr, codeception, phpunit, psalm, phing, phinx, phive, deployer, prestissimo, composer-prefetcher, protoc, pecl, phpize, php-config, symfony, vapor-cli
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Print php.ini
@@ -32,6 +32,7 @@ jobs:
         run: cat $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
       - name: Testing Tools
         run: |
+          behat -V
           blackfire-agent -v
           blackfire version -V
           blackfire-player -V
@@ -44,6 +45,7 @@ jobs:
           phpcs --version
           phpcbf --version
           phpcpd --version
+          phpspec -V
           phpstan -V
           codeception -V
           cs2pr version
@@ -96,11 +98,12 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: blackfire:1.31.0, blackfire-player:1.8.1, infection:0.16.1, flex:1.6.1, phan:2.7.2, php-cs-fixer:2.16.2, phpcs:3.5.2, phpcbf:3.5.2, phpcpd:4.0.0, phpstan:0.12.3, phpmd:2.8.0, codeception:3.1.2, cs2pr:1.0.2, phpunit:8.5.0, psalm:3.8.0, phing:2.16.3, phinx:0.11.3, phive:0.13.1, deployer:6.7.2, prestissimo:0.3.8, composer-prefetcher:0.13.0, composer:1.2.3, pecl:1.2.3, symfony:4.12.3, vapor-cli:1.6.1
+          tools: behat:3.6.1, blackfire:1.31.0, blackfire-player:1.8.1, infection:0.16.1, flex:1.6.1, phan:2.7.2, php-cs-fixer:2.16.2, phpcs:3.5.2, phpcbf:3.5.2, phpcpd:4.0.0, phpspec:6.2.0, phpstan:0.12.3, phpmd:2.8.0, codeception:3.1.2, cs2pr:1.0.2, phpunit:8.5.0, psalm:3.8.0, phing:2.16.3, phinx:0.11.3, phive:0.13.1, deployer:6.7.2, prestissimo:0.3.8, composer-prefetcher:0.13.0, composer:1.2.3, pecl:1.2.3, symfony:4.12.3, vapor-cli:1.6.1
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
         run: |
+          behat -V
           blackfire-agent -v
           blackfire version -V
           blackfire-player -V
@@ -111,6 +114,7 @@ jobs:
           phpcs --version
           phpcbf --version
           phpcpd -V
+          phpspec -V
           phpstan -V
           codeception -V
           cs2pr version
