@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, macos-latest]
         php-versions: ['8.0']
     steps:        
       - name: Checkout
@@ -16,11 +16,11 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: xdebug  
+          php-version: ${{ matrix.php-versions }}  
         
       - name: Testing PHP version
-        run: php -v
+        run: |
+          php-fpm -v || true
 
       - name: Testing PHP extensions
         run: php -m
