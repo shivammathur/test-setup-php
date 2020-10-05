@@ -9,14 +9,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        php: ['5.6', '7.0', '7.1', '7.2','7.3', '7.4', '8.0']
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     steps:
       - name: Test
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
       - name: Setup php-fpm
-        if: ${{ matrix.php }} != '8.0'
+        if: matrix.php != '8.0'
         env:
           version: ${{ matrix.php }}
         run: |
