@@ -15,7 +15,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-      - name: Setup PHP-FPM
+      - name: Setup php-fpm
         if: ${{ matrix.php }} != '8.0'
         env:
           version: ${{ matrix.php }}
@@ -23,10 +23,7 @@ jobs:
           sudo apt-get install php$version-fpm
           # Copy php-fpm to a directory in PATH
           sudo cp /usr/sbin/php-fpm$version /usr/bin/php-fpm
-      - name: Test
-        env:
-          version: ${{ matrix.php }}
-        run: |
           sudo service php$version-fpm start
           sudo service php$version-fpm status
-          php-fpm -v
+      - name: Test php-fpm
+        run: php-fpm -v
