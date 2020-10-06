@@ -9,21 +9,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     steps:
       - name: Test
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-      - name: Setup php-fpm
-        if: matrix.php != '8.0'
-        env:
-          version: ${{ matrix.php }}
-        run: |
-          sudo apt-get install php$version-fpm
-          # Copy php-fpm to a directory in PATH
-          sudo cp /usr/sbin/php-fpm$version /usr/bin/php-fpm
-          sudo service php$version-fpm start
-          sudo service php$version-fpm status
-      - name: Test php-fpm
-        run: php-fpm -v
+      - name: check int size
+        run: php -r "echo PHP_INT_SIZE;"
