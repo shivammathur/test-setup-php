@@ -3,15 +3,16 @@ on:
   push:
 jobs:
   ubuntu:
-    name: runner    
-    runs-on: ${{ matrix.os }}
+    name: multiarch    
+    runs-on: ubuntu-latest
+    container: shivammathur/node:${{ matrix.container }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+        container: [ubuntu:focal-amd64, ubuntu:focal-i386]
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     steps:
-      - name: Test
+      - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
