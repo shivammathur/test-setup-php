@@ -16,5 +16,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
+        env:
+          runner: self-hosted
       - name: check int size
         run: php -r "echo PHP_INT_SIZE;"
