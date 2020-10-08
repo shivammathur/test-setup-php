@@ -14,7 +14,8 @@ jobs:
         php: ['7.3', '7.4']
     steps:
       - name: Setup PHP
-        run: |          
+        run: |
+          sudo apt-get update && apt-get install -y sudo
           sudo curl -sL https://github.com/shivammathur/setup-php/archive/v2.tar.gz | sudo tar -xz -C /tmp
           node /tmp/setup-php-2/dist/index.js
         env:
