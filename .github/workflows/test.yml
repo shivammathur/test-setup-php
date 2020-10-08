@@ -19,7 +19,7 @@ jobs:
           sudo curl -sL https://github.com/shivammathur/setup-php/archive/v2.tar.gz | sudo tar -xz -C /tmp
           node /tmp/setup-php-2/dist/index.js
         env:
-          php-version: ${{ matrix.php-version }}
+          php-version: ${{ matrix.php }}
           extensions: intl
           runner: self-hosted
       - name: check int size
