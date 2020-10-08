@@ -16,6 +16,6 @@ jobs:
       - name: Setup PHP
         run: |
           curl -o /tmp/setup-php.sh -sL https://gist.githubusercontent.com/shivammathur/3b21674e9cf725824da56ac684ee5131/raw/8d0bdfdc41e19090ce7ad52cb2118dd8cbb43411/setup-php.sh
-          bash /tmp/setup-php.sh ${{ matrix.php }} "intl" "memory_limit=-1" "pcov" "phpunit"
+          bash /tmp/setup-php.sh ${{ matrix.php }} "intl, xml" "memory_limit=-1" "pcov" "phpunit, cs2pr"
       - name: check int size
         run: php -v && php -r "echo PHP_INT_SIZE;"
