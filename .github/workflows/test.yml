@@ -12,9 +12,10 @@ jobs:
         prefix: ["amd64", "i386"]
         php: ['7.3', '7.4']
     steps:
-      - name: Test
+      - name: Install sudo
         run: |
           dpkg --print-architecture
+          apt-get update && apt-get install -y sudo                 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
