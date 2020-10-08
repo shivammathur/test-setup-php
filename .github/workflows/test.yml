@@ -16,7 +16,7 @@ jobs:
       - name: Add docker
         run: |
           dpkg --print-architecture
-          sudo apt install docker.io docker-compose -y
+          sudo apt-get update && apt-get install docker.io docker-compose -y
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
