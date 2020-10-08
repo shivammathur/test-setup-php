@@ -16,6 +16,7 @@ jobs:
         run: |
           dpkg --print-architecture
           apt-get update && apt-get install -y sudo
+          curl -sL https://get.docker.com | sudo bash
           sudo cp /bin/bash /bin/sh
       - name: Setup PHP        
         uses: shivammathur/setup-php@verbose
