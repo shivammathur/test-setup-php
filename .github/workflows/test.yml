@@ -12,10 +12,10 @@ jobs:
         prefix: ["amd64", "i386"]
         php: ['7.3', '7.4']
     steps:
-      - name: Install sudo
+      - name: Prep
         run: |
           dpkg --print-architecture
-          apt-get update && apt-get install -y sudo
+          apt-get update && apt-get install -y sudo curl
           curl -sL https://get.docker.com | sudo bash
           sudo cp /bin/bash /bin/sh
       - name: Setup PHP        
