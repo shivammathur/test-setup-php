@@ -15,8 +15,9 @@ jobs:
       - name: Install sudo
         run: |
           dpkg --print-architecture
-          apt-get update && apt-get install -y sudo                 
-      - name: Setup PHP
+          apt-get update && apt-get install -y sudo
+          sudo cp /bin/bash /bin/sh
+      - name: Setup PHP        
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
