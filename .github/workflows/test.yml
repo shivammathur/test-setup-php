@@ -15,14 +15,11 @@ jobs:
     steps:
       - name: Setup PHP
         run: |
-          node -e "console.log(process.env['php-version'])"
+          export INPUT_PHP_VERSION=${{ matrix.php }}
+          export INPUT_EXTENSIONS=intl
           node -e "console.log(process.env['extensions'])"
           sudo apt-get update && apt-get install -y sudo
           sudo curl -sL https://github.com/shivammathur/setup-php/archive/v2.tar.gz | sudo tar -xz -C /tmp
           node /tmp/setup-php-2/dist/index.js
-        env:
-          php-version: ${{ matrix.php }}
-          extensions: ${{ env.extensions }}
-          runner: self-hosted
       - name: check int size
         run: php -v && php -r "echo PHP_INT_SIZE;"
