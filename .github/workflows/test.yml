@@ -3,22 +3,13 @@ on:
   push:
 jobs:
   ubuntu:
-    name: multiarch    
-    runs-on: ubuntu-20.04
-    container: ${{ matrix.prefix }}/ubuntu:bionic
+    name: Test
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        prefix: ["amd64", "i386"]
-        py: ['3.6', '3.7']
+        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
     steps:
-      - name: Prep
+      - name: Test
         run: |
-          dpkg --print-architecture
-          apt-get update && apt-get install -y sudo
-      - name: Setup Python        
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.py }}
-      - name: check version
-        run: python -V
+          docker version
