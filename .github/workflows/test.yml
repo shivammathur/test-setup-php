@@ -5,7 +5,7 @@ jobs:
   ubuntu:
     name: multiarch    
     runs-on: ubuntu-latest
-    container: ${{ matrix.tags }}/ubuntu:bionic
+    container: ${{ matrix.prefix }}/ubuntu:bionic
     strategy:
       fail-fast: false
       matrix:
