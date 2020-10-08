@@ -8,10 +8,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        container: ["latest-amd64", "latest-arm64v8", "latest-i386", "latest-arm32v7"]
+        image: ["latest-amd64", "latest-arm64v8", "latest-i386", "latest-arm32v7"]
         php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     steps:
-      - uses: docker://shivammathur/node:${{ matrix.container }}
+      - name: Start a container
+        uses: "docker://shivammathur/node:${{ matrix.image }}"
         with:
           args: 'dpkg --print-architecture'
       - name: Setup PHP
