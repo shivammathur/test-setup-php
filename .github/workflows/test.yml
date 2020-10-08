@@ -4,8 +4,6 @@ on:
   push:
 jobs:
   ubuntu:
-    env:
-      php-version: ${{ matrix.php }}
     name: multiarch    
     runs-on: ubuntu-latest
     container: shivammathur/node:bionic-${{ matrix.tag }}
@@ -19,6 +17,6 @@ jobs:
         run: |
           sudo apt-get update && apt-get install -y sudo
           sudo curl -sL https://github.com/shivammathur/setup-php/archive/v2.tar.gz | sudo tar -xz -C /tmp
-          node /tmp/setup-php-2/dist/index.js
+          env 'php-version=${{ matrix.php }}' node /tmp/setup-php-2/dist/index.js
       - name: check int size
         run: php -v && php -r "echo PHP_INT_SIZE;"
