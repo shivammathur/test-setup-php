@@ -10,19 +10,15 @@ jobs:
       fail-fast: false
       matrix:
         prefix: ["amd64", "i386"]
-        php: ['7.3', '7.4']
+        py: ['3.6', '3.7']
     steps:
       - name: Prep
         run: |
           dpkg --print-architecture
-          apt-get update && apt-get install -y sudo curl
-          curl -sL https://get.docker.com | sudo bash
-          sudo cp /bin/bash /bin/sh
-      - name: Setup PHP        
-        uses: shivammathur/setup-php@verbose
+          apt-get update && apt-get install -y sudo
+      - name: Setup Python        
+        uses: actions/setup-python
         with:
-          php-version: ${{ matrix.php }}
-        env:
-          runner: self-hosted
-      - name: check int size
-        run: php -r "echo PHP_INT_SIZE;"
+          python-version: ${{ matrix.py }}
+      - name: check version
+        run: python -V
