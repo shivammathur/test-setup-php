@@ -1,15 +1,23 @@
+  
 name: Runner workflow
 on:
   push:
 jobs:
   ubuntu:
-    name: Test
-    runs-on: ${{ matrix.os }}
+    name: multiarch    
+    runs-on: ubuntu-latest
+    container: shivammathur/node:bionic-${{ matrix.tag }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
+        tag: ["amd64", "i386"]
+        php: ['7.3', '7.4']
     steps:
-      - name: Test
+      - name: Install sudo
         run: |
-          docker version
+          dpkg --print-architecture
+          apt-get update && apt-get install -y sudo curl
+          curl -o ${{ runner.tool_cache }}/linux.sh -sL https://raw.githubusercontent.com/shivammathur/setup-php/master/src/scripts/linux.sh 
+          sudo /bin/bash ${{ runner.tool_cache }}/linux.sh ${{ matrix.php }} || true
+      - name: check int size
+        run: php -v && php -r "echo PHP_INT_SIZE;"
