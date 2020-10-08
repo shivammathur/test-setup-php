@@ -5,18 +5,16 @@ jobs:
   ubuntu:
     name: multiarch    
     runs-on: ubuntu-latest
-    container: shivammathur/node:${{ matrix.tags }}
+    container: ${{ matrix.tags }}/ubuntu:bionic
     strategy:
       fail-fast: false
       matrix:
-        tags: ["latest-amd64", "latest-i386"]
-        #php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        prefix: ["amd64", "i386"]
         php: ['7.3', '7.4']
     steps:
-      - name: Add docker
+      - name: Test
         run: |
           dpkg --print-architecture
-          sudo apt-get update && apt-get install docker.io docker-compose -y
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
