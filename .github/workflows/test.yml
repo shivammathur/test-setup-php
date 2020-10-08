@@ -5,16 +5,18 @@ jobs:
   ubuntu:
     name: multiarch    
     runs-on: ubuntu-latest
+    container: shivammathur/node:${{ matrix.tags }}
     strategy:
       fail-fast: false
       matrix:
-        #image: ["latest-amd64", "latest-arm64v8", "latest-i386", "latest-arm32v7"]
-        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        tags: ["latest-amd64", "latest-arm64v8", "latest-i386", "latest-arm32v7"]
+        #php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        php: ['7.3', '7.4']
     steps:
       - name: Start a container
-        uses: docker://shivammathur/node:latest-i386
-        with:
-          args: 'dpkg --print-architecture'
+        run: |
+          docker run shivammathur/node:latest-i386
+          dpkg --print-architecture'
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
