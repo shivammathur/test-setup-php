@@ -4,7 +4,7 @@ on:
 jobs:
   ubuntu:
     name: multiarch    
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     container: ${{ matrix.prefix }}/ubuntu:bionic
     strategy:
       fail-fast: false
