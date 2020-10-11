@@ -8,17 +8,15 @@ jobs:
       matrix:      
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
         php:
-          - 7.3
-          - null
+          - 8.0
 
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      env:
-        extensions: xdebug, pcov
+      uses: shivammathur/setup-php@verbose
+      with:
         php-version: ${{ matrix.php }}
     - name: Test
       run: |
