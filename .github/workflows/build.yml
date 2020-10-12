@@ -44,6 +44,8 @@ jobs:
             sudo bash /tmp/php.sh || true           
           fi
         done
+    - name: Patch
+      run: sudo DEBIAN_FRONTEND=noninteractive apt-get install -y php${{ matrix.php-versions }}-ast || true
 
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
