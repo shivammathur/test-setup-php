@@ -14,12 +14,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: phalcon4
-      - name: Print script
-        run: cat /opt/hostedtoolcache/linux.sh
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
