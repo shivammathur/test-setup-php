@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        operating-system: [ubuntu-latest]
         php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -22,6 +22,7 @@ jobs:
         run: php -v
       - name: Testing Extensions
         run: |
+          cat /opt/hostedtoolcache/linux.sh
           php -m
           php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
           php -r "if(! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
