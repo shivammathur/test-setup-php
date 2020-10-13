@@ -7,23 +7,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, macos-latest]
-        php-versions: ['8.0']
+        operating-system: [ubuntu-latest, macos-latest]
+        php-versions: ['8.0', '8.1']
     steps:        
       - name: Checkout
         uses: actions/checkout@v2        
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-versions }}  
-        
+          php-version: ${{ matrix.php-versions }}
+
       - name: Testing PHP version
-        run: |
-          php-fpm -v || true
+        run: php -v
 
       - name: Testing PHP extensions
-        run: php -m
-        
-      - name: Testing Composer
-        run: composer -V
+        run: |
+          php-config --extension-dir
+          php -m
