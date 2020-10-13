@@ -11,4 +11,10 @@ jobs:
     steps:
       - name: Test
         run: |
+          wget https://raw.githubusercontent.com/ilikenwf/apt-fast/master/apt-fast -O /usr/local/bin/apt-fast
+          chmod +x /usr/local/bin/apt-fast
+          if ! [[ -f /etc/apt-fast.conf ]]; then
+              wget https://raw.githubusercontent.com/ilikenwf/apt-fast/master/apt-fast.conf -O /etc/apt-fast.conf
+          fi
+          which apt-fast
           sudo apt-fast install -y php-pear || echo 'aaaa'
