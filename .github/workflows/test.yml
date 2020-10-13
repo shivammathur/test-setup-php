@@ -16,5 +16,3 @@ jobs:
           if ! [[ -f /etc/apt-fast.conf ]]; then
               sudo wget https://raw.githubusercontent.com/ilikenwf/apt-fast/master/apt-fast.conf -O /etc/apt-fast.conf
           fi
-          which apt-fast
-          sudo apt-fast install -y php-pear || echo 'aaaa'
