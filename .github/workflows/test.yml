@@ -20,7 +20,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           tools: pecl
-          extensions: mongodb-1.8.0
+          extensions: mongodb-1.8.1
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
