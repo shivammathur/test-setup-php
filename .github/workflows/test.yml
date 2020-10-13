@@ -22,4 +22,6 @@ jobs:
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
-        run: php -m
+        run: |
+          php -m
+          php -r "if(! extension_loaded('mongodb')) {throw new Exception('mongodb not found');}"
