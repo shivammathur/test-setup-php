@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Test
         run: |
-          sudo apt-fast install -y php-pear >/dev/null 2>&1 || echo 'aaaa'
+          sudo apt-fast install -y php-pear || echo 'aaaa'
