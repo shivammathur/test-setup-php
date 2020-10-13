@@ -9,11 +9,4 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - run: cat $(which apt-fast)
-      - run: |
-          sudo wget https://raw.githubusercontent.com/ilikenwf/apt-fast/master/apt-fast -O /usr/local/bin/apt-fast
-          sudo chmod +x /usr/local/bin/apt-fast
-          if ! [[ -f /etc/apt-fast.conf ]]; then
-              sudo wget https://raw.githubusercontent.com/ilikenwf/apt-fast/master/apt-fast.conf -O /etc/apt-fast.conf
-          fi
-      - run: cat $(which apt-fast)
+      - run: echo $(which apt-fast)
