@@ -14,14 +14,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
           tools: pecl
-          extensions: mongodb-1.8.1
+          extensions: pdo_sqlsrv
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
         run: |
           php -m
-          php -r "if(! extension_loaded('mongodb')) {throw new Exception('mongodb not found');}"
+          php -r "if(! extension_loaded('pdo_sqlsrv')) {throw new Exception('pdo_sqlsrv not found');}"
