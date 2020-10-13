@@ -11,8 +11,5 @@ jobs:
     steps:
       - name: Test
         run: |
-          sudo wget https://raw.githubusercontent.com/ilikenwf/apt-fast/master/apt-fast -O /usr/local/bin/apt-fast
+          sudo curl -sL https://raw.githubusercontent.com/ilikenwf/apt-fast/master/apt-fast -o /usr/local/bin/apt-fast
           sudo chmod +x /usr/local/bin/apt-fast
-          if ! [[ -f /etc/apt-fast.conf ]]; then
-              sudo wget https://raw.githubusercontent.com/ilikenwf/apt-fast/master/apt-fast.conf -O /etc/apt-fast.conf
-          fi
