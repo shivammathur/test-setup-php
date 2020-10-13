@@ -13,8 +13,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Update
-        run: sudo apt-get update  
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -24,6 +22,4 @@ jobs:
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
-        run: |
-          php -m
-          #php -r "if(! extension_loaded('ast')) {throw new Exception('ast not found');}"
+        run: php -m
