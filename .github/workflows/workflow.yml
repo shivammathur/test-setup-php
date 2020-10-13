@@ -24,4 +24,5 @@ jobs:
       - name: Testing PHP extensions
         run: |
           php-config --extension-dir
+          php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||"
           php -m
