@@ -14,11 +14,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
           tools: pecl
-          extensions: mongodb
+          extensions: mongodb-1.8.0
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
