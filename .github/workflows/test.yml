@@ -19,7 +19,6 @@ jobs:
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php }}
-        extensions: mongodb
     - name: Test
       run: |
         php -v
