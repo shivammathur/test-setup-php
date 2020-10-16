@@ -1,28 +1,104 @@
-name: Experimental workflow
-on: [push]
+name: Self-hosted develop workflow
+on:
+  repository_dispatch:
+  push:
 jobs:
-  run:
-    name: Run
-    runs-on: ${{ matrix.operating-system }}
+  ubuntu:
+    name: ubuntu
+    runs-on: ubuntu-latest
+    container: ubuntu:${{ matrix.containers }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, macos-latest]
+        containers: ["focal", "bionic", "xenial"]
         php-versions: ['8.0', '8.1']
-    steps:        
+    steps:
+      - name: Install sudo and git
+        run: |
+          apt-get update && apt-get install -y sudo software-properties-common
+          add-apt-repository ppa:git-core/ppa
+          apt-get update && apt-get install -y git
       - name: Checkout
-        uses: actions/checkout@v2        
-
-      - name: Setup PHP
+        uses: actions/checkout@v2
+      - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-
+          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+        env:
+          runner: self-hosted
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing PHP version
-        run: php -v
-
-      - name: Testing PHP extensions
         run: |
-          php-config --extension-dir
-          php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||"
-          php -m
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+      - name: Testing Composer version
+        run: php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
+      - name: Testing ini values
+        run: |
+          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
+          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
+          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
+  windows:
+    name: windows
+    needs: ubuntu
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-versions: ['8.0', '8.1']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+        env:
+          runner: self-hosted
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Testing PHP version
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+      - name: Testing Composer version
+        run: php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
+      - name: Testing ini values
+        run: |
+          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
+          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
+          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
+  darwin:
+    name: darwin
+    needs: windows
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-versions: ['8.0', '8.1']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+        env:
+          runner: self-hosted
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Testing PHP version
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+      - name: Testing Composer version
+        run: php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
+      - name: Testing ini values
+        run: |
+          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
+          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
+          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
