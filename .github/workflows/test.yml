@@ -8,19 +8,17 @@ jobs:
       matrix:      
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
         php:
-          - 8.0
+          - '8.0'
+          - '8.1'
 
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php }}
-        extensions: mbstring, xdebug, pcov, intl, gd
-        ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
-        coverage: none
     - name: Test
       run: |
         php -v
