@@ -9,23 +9,8 @@ jobs:
     strategy:
       matrix:
         operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
-        include:
-          - operating-system: ubuntu-20.04
-            libs: "libgccjit-10-dev"
-          - operating-system: ubuntu-18.04
-            libs: "libgccjit-8-dev"
-          - operating-system: ubuntu-16.04
-            libs: "libgccjit-6-dev"
       fail-fast: false
     steps:
       - run: |
-          debconf_fix="DEBIAN_FRONTEND=noninteractive"
-          sudo curl -o /tmp/libargon2.deb -sL https://github.com/shivammathur/php-builder/releases/latest/download/libargon2-0_0_20161029-1.1_amd64.deb
-          sudo "$debconf_fix" dpkg -i --force-conflicts /tmp/libargon2.deb          
-          if ! apt-cache policy | grep -q ondrej/php; then
-            LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y || true
-          fi
-          sudo "$debconf_fix" apt-get update || true
-          sudo "$debconf_fix" apt-get -y install gcc-7 g++-7 expect locales language-pack-de re2c mysql-server postgresql pkg-config libaspell-dev libbz2-dev libbison-dev libedit-dev libcurl4-gnutls-dev libenchant-dev libffi-dev libfreetype6-dev ${{ matrix.libs }} libgmp-dev libicu-dev libjpeg-dev libwebp-dev libkrb5-dev libldap-dev libonig-dev libmcrypt-dev libpng-dev libpq5 libpq-dev libreadline-dev libpspell-dev libsasl2-dev libsnmp-dev libssl-dev libsqlite3-dev libsodium-dev libtidy-dev libwebp-dev libxml2-dev libxpm-dev libxslt1-dev libzip-dev
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 7
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 7          
+          sudo apt-cache policy libzip
+          sudo apt-get install libzip
