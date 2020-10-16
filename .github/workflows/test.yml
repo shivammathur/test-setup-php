@@ -12,5 +12,5 @@ jobs:
       fail-fast: false
     steps:
       - run: |
-          sudo apt-cache policy libzip
-          sudo apt-get install libzip
+          sudo apt-cache policy libzip[0-9]
+          sudo apt-get install libzip[0-9]
