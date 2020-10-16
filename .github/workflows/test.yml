@@ -13,9 +13,9 @@ jobs:
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
+        continue-on-error: true
         with:
           php-version: ${{ matrix.php }}
-          tools: phing:2.16.2
-
-      - name: Test        
-        run: phing -v
+          tools: does_not_exist
+        env:
+          fail-fast: true
