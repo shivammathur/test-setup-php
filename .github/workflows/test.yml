@@ -7,21 +7,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4']
+        operating-system: [macos-latest]
+        php-versions: ['8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: pecl
-          extensions: mongodb-1.8.1
+          extensions: imagick, igbinary
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
-        run: |
-          php -m
-          php -r "if(! extension_loaded('mongodb')) {throw new Exception('mongodb not found');}"
+        run: php -m
