@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Set
         id: build
-        run: echo "::set-output name=build::true"
+        run: echo "::set-output name=build::false"
       - name: Test
         if: if ${{ steps.build.outputs.build }} == 'true'
         run: echo 'test'
