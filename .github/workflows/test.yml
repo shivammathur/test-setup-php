@@ -11,6 +11,6 @@ jobs:
       fail-fast: false
     steps:
       - run: |
-          echo 1
+          echo $((RANDOM))
           sleep $((10 + RANDOM % 11));
-          echo 2
+          echo $((RANDOM))
