@@ -1,19 +1,20 @@
-name: Self-hosted develop workflow
+name: nightly workflow
 on:
   repository_dispatch:
   push:
 jobs:
   ubuntu:
-    name: ubuntu
-    runs-on: ubuntu-latest
+    name: nightly
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [macos-10.15, macos-11.0]
         php-versions: ['8.0', '8.1']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@releases/v1
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
