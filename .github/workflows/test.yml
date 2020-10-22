@@ -4,7 +4,6 @@ jobs:
   run:    
     strategy:
       fail-fast: false
-      max-parallel: 3
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]      
     runs-on: ${{ matrix.os }}
