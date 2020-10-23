@@ -15,8 +15,11 @@ jobs:
         run: |
           echo "${ImageOS:?}\_${ImageVersion:?}"
           for formula in apr apr-util argon2 aspell autoconf curl-openssl freetds gd gettext glib gmp icu4c krb5 libffi libpq libsodium libzip oniguruma openldap openssl@1.1 pcre2 sqlite tidyp unixodbc; do
+            
             curl -o "$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/$formula.rb" -sL https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/$formula.rb &
+            to_wait+=( $! )
           done
+          wait "${to_wait[@]}"
           (
             cd "$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core" || exit
             git diff --name-only | cut -d '/' -f 2 | cut -d '.' -f 1
