@@ -8,13 +8,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest]
         php: [7.4]
     steps:
       - name: "Install PHP"
         uses: "shivammathur/setup-php@verbose"
         with:
           php-version: "7.4"
-          tools: composer:snapshot, composer-unused
+          tools: composer:snapshot
       - name: Test
-        run: composer -V
+        run: |
+          composer -V
+          composer global require icanhazstring/composer-unused --prefer-lowest
+          composer -V
