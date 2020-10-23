@@ -7,12 +7,17 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [macos-latest]
+        operating-system: [macos-10.15, macos-11.0]
       fail-fast: false
     steps:
       - name: Set
         id: build
-        run: echo "::set-output name=build::true"
-      - name: Test
-        if: steps.build.outputs.build == 'true'
-        run: echo 'test'
+        run: |
+          echo ${ImageOS:?}\_${ImageVersion:?}"
+          for formula in apr apr-util argon2 aspell autoconf curl-openssl freetds gd gettext glib gmp icu4c krb5 libffi libpq libsodium libzip oniguruma openldap openssl@1.1 pcre2 sqlite tidyp unixodbc; do
+            curl -o "$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/$formula.rb" -sL https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/$formula.rb &
+          done
+          (
+            cd "$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core" || exit
+            git diff --name-only | cut -d '/' -f 2 | cut -d '.' -f 1
+          )          
