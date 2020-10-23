@@ -15,9 +15,7 @@ jobs:
         uses: "shivammathur/setup-php@verbose"
         with:
           php-version: "7.4"
-          tools: composer:v2
+          tools: composer:v2, composer-unused
       - name: Test
         run: |
-          composer -V
-          composer global require icanhazstring/composer-unused
           composer -V
