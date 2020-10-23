@@ -24,7 +24,7 @@ jobs:
           wait "${to_wait[@]}"
           (
             cd "$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core" || exit
-            git diff --name-only | cut -d '/' -f 2 | cut -d '.' -f 1 > /tmp/runs/${ImageOS:?}_${ImageVersion:?}"
+            git diff --name-only | cut -d '/' -f 2 | cut -d '.' -f 1 > "/tmp/runs/${ImageOS:?}_${ImageVersion:?}"
           )
       - uses: actions/upload-artifact@v2
         with:
