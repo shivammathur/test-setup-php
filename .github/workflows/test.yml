@@ -10,13 +10,15 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         php: [7.4]
+        composer: [v1, v2, snapshot]
     steps:
       - name: "Install PHP"
-        uses: "shivammathur/setup-php@verbose"
+        uses: "shivammathur/setup-php@develop"
         with:
           php-version: "7.4"
-          tools: composer:v2, composer-unused
+          tools: composer:${{ matrix.composer }}, composer-unused
       - name: Test
         run: |
-          echo $PATH
+          composer global show icanhazstring/composer-unused
+          composer-unused || true
           composer -V
