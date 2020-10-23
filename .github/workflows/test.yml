@@ -19,5 +19,5 @@ jobs:
       - name: Test
         run: |
           composer -V
-          composer global require icanhazstring/composer-unused --prefer-lowest
+          composer global require icanhazstring/composer-unused
           composer -V
