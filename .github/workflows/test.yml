@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest]
         php: [7.4]
     steps:
       - name: "Install PHP"
@@ -18,4 +18,5 @@ jobs:
           tools: composer:v2, composer-unused
       - name: Test
         run: |
+          echo $PATH
           composer -V
