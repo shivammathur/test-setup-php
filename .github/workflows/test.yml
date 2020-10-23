@@ -22,3 +22,5 @@ jobs:
           composer -V
           composer global show icanhazstring/composer-unused
           composer-unused || true          
+          composer global require vimeo/psalm
+          psalm -v
