@@ -15,8 +15,8 @@ jobs:
         uses: "shivammathur/setup-php@develop"
         with:
           php-version: "7.4"
+          tools: flex
       - name: Test
         run: |
           composer -V
-          composer global require symfony/flex
           composer global show symfony/flex
