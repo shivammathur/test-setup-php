@@ -20,3 +20,4 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           tools: composer:${{ matrix.composer }}
+      - run: composer -V
