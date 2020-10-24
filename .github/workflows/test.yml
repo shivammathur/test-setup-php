@@ -13,5 +13,4 @@ jobs:
       - name: Set
         id: build
         run: |
-          ls ~/
-          ls ~/.composer
+          ls /home/"$USER"/.composer || ls /Users/"$USER"/.composer
