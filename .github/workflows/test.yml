@@ -10,17 +10,13 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         php: [7.4]
-        composer: [v1, v2, snapshot]
     steps:
       - name: "Install PHP"
         uses: "shivammathur/setup-php@v2"
         with:
           php-version: "7.4"
-          tools: composer:${{ matrix.composer }}, composer-unused
+          tools: flex
       - name: Test
         run: |
           composer -V
-          composer global show icanhazstring/composer-unused
-          composer-unused || true          
-          composer global require vimeo/psalm
-          psalm -v
+          composer global show symfony/flex
