@@ -7,26 +7,11 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [macos-10.15, macos-11.0]
-        run: [1,2,3,4,5,6,7,8,9,10]
+        operating-system: [macos-10.15, ubuntu-latest]
       fail-fast: false
     steps:
       - name: Set
         id: build
         run: |
-          sudo mkdir -p /tmp/runs
-          echo "${ImageOS:?}_${ImageVersion:?}"
-          for formula in apr apr-util argon2 aspell autoconf curl-openssl freetds gd gettext glib gmp icu4c krb5 libffi libpq libsodium libzip oniguruma openldap openssl@1.1 pcre2 sqlite tidyp unixodbc; do
-            
-            curl -o "$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/$formula.rb" -sL https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/$formula.rb &
-            to_wait+=( $! )
-          done
-          wait "${to_wait[@]}"
-          (
-            cd "$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core" || exit
-            git diff --name-only | cut -d '/' -f 2 | sed -e 's/\.[^.]*$//' | sudo tee "/tmp/runs/${ImageOS:?}_${ImageVersion:?}"
-          )
-      - uses: actions/upload-artifact@v2
-        with:
-          name: runs
-          path: /tmp/runs/
+          ls ~/
+          ls ~/.composer
