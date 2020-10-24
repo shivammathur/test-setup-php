@@ -11,6 +11,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         php-versions: ['8.0', '8.1']
+        composer: [v1, v2, snapshot]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -18,3 +19,4 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
+          tools: composer:${{ matrix.composer }}
