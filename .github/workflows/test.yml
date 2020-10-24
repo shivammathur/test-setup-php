@@ -15,7 +15,7 @@ jobs:
         uses: "shivammathur/setup-php@develop"
         with:
           php-version: "7.4"
-          tools: composer:v2, composer-unused, flex
+          tools: composer:snapshot, composer-unused, flex
       - name: Test
         run: |
           composer -V
