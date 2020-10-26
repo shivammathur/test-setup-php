@@ -20,7 +20,7 @@ jobs:
       - name: Create Cache
         run: |
           New-Item -ItemType Directory -Path C:\tools\cache -Force
-          Add-Content $Profile "Set-PhpDownloadCache -Path C:\tools\cache"
+          Add-Content "$PSHOME\Profile.ps1" "Set-PhpDownloadCache -Path C:\tools\cache"
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
