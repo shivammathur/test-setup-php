@@ -9,8 +9,7 @@ jobs:
       matrix:
         operating-system: [windows-latest]
         ts: [ts, nts]
-        php: [7.3, 7.4]
-        #php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
       fail-fast: false
     steps:
       - name: Setup PHP
@@ -19,6 +18,7 @@ jobs:
           php-version: latest
       - name: Create Cache
         run: |
+          Remove-Item C:\tools\php -Recurse -Force
           New-Item -ItemType Directory -Path C:\tools\cache -Force
           Add-Content "$PSHOME\Profile.ps1" "Set-PhpDownloadCache -Path C:\tools\cache"
       - name: Setup PHP
