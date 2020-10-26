@@ -3,7 +3,7 @@ on:
   - push
   - repository_dispatch
 jobs:
-  package:    
+  build:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
@@ -59,6 +59,7 @@ jobs:
       run: php -v && php -m
         
     - name: Upload
+      id: upload
       env:
         BINTRAY_KEY: ${{ SECRETS.BINTRAY_KEY }}
         BINTRAY_USER: shivammathur
@@ -94,4 +95,33 @@ jobs:
           curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst https://api.bintray.com/content/shivammathur/php/"$VERSION"-linux/"$VERSION"+ubuntu"$DISTRIB_RELEASE"/php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst || true
           curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php_"$SEMVER"+ubuntu"$DISTRIB_RELEASE".tar.zst https://api.bintray.com/content/shivammathur/php/"$VERSION"-linux/"$VERSION"+ubuntu"$DISTRIB_RELEASE"/php_"$SEMVER"+ubuntu"$DISTRIB_RELEASE".tar.zst || true
           curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X POST https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/"$VERSION"-linux/"$VERSION"+ubuntu"$DISTRIB_RELEASE"/publish || true
-        fi  
+        fi
+        mkdir builds
+        sudo mv *.zst ./builds
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.php-versions }}
+        path: builds
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      - run: mkdir builds
+      - uses: actions/download-artifact@v2
+        with:
+          path: builds
+      - name: Release
+        run: |
+          set -x
+          curl -sLO https://github.com/php-ubuntu/releases/latest/download/install.sh
+          assets=()
+          for asset in ./builds/*/*; do
+            assets+=("-a" "$asset")
+          done
+          assets+=("-a" "./install.sh")
+          version=$(date '+%Y.%m.%d')
+          hub release create "${assets[@]}" -m "$version" "$version"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
