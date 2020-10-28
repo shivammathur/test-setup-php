@@ -7,18 +7,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]
-        php-versions: ['7.4']
+        operating-system: [ubuntu-latest, macos-latest, windows-latest]
+        php-versions: ['8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-      - name: Install msgpack-beta
-        run: Install-PhpExtension -Extension xdebug -MinimumStability beta -MaximumStability beta -Path C:\tools\php
+          extensions: ds
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
