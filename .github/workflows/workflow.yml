@@ -10,12 +10,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        block: [github.com, dl.bintray.com]
         php-versions: ['8.0', '8.1']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - run: echo "127.0.0.1       ${{ matrix.block }}" | sudo tee -a /etc/hosts
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
