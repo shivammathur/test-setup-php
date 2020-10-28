@@ -18,7 +18,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
       - name: Install msgpack-beta
-        run: Install-PhpExtension -Extension msgpack -MinimumStability beta -MaximumStability beta -Path C:\tools\php
+        run: Install-PhpExtension -Extension xdebug -MinimumStability beta -MaximumStability beta -Path C:\tools\php
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
