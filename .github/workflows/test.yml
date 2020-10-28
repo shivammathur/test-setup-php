@@ -19,7 +19,9 @@ jobs:
           php-version: ${{ matrix.php-versions }}
       - name: Testing phalcon
         run: |
+          xcodebuild -version || true
+          curl -OsL https://dl.bintray.com/shivammathur/playground/phalcon-pecl.tgz
           export MAKEFLAGS="-j$(getconf _NPROCESSORS_ONLN)"
-          sudo pecl -v install phalcon
+          sudo pecl -v install ./phalcon-pecl.tgz
       - name: Testing Extensions
         run: php -m
