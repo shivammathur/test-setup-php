@@ -17,7 +17,9 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-      - name: Testing PHP version
-        run: sudo pecl install phalcon
+      - name: Testing phalcon
+        run: |
+          export MAKEFLAGS="-j$(getconf _NPROCESSORS_ONLN)"
+          sudo pecl -v install phalcon
       - name: Testing Extensions
         run: php -m
