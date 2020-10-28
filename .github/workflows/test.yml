@@ -8,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [macos-latest]
-        php-versions: ['8.1']
+        php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -17,8 +17,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: igbinary
       - name: Testing PHP version
-        run: php -v
+        run: sudo pecl install phalcon
       - name: Testing Extensions
         run: php -m
