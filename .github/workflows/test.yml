@@ -13,4 +13,4 @@ jobs:
       - name: Set
         id: build
         run: |
-          ls /home/"$USER"/.composer || ls /Users/"$USER"/.composer
+          echo $GITHUB_REPOSITORY_OWNER
