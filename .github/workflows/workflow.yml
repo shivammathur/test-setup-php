@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [macos-latest]
         php-versions: ['8.0', '8.1']
     steps:
       - name: Checkout
