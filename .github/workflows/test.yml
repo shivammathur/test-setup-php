@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
-        runs: [1,2,3,4,5,6,7,8,9]
+        runs: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26]
       fail-fast: false
     steps:
       - name: Check
