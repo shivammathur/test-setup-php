@@ -7,10 +7,14 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [macos-10.15, ubuntu-latest]
+        operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
+        runs: [1,2,3,4,5,6,7,8,9]
       fail-fast: false
     steps:
-      - name: Set
-        id: build
+      - name: Check
         run: |
-          echo $GITHUB_REPOSITORY_OWNER
+          aptfast_version=$(dpkg-query --showformat='${Version}' --show apt-fast | grep -Po [0-9]+.[0-9]+.[0-9]+ | head -n 1)
+          echo $aptfast_version
+          if [ "$aptfast_version" != "1.9.10" ]; then
+            exit 1;
+          fi  
