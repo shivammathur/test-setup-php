@@ -7,13 +7,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['8.0']
+        operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
+        php-versions: ['8.0', '8.1']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - run: sudo apt-get install -y libmagickcore-6.q16-3 libmagickwand-6.q16-3
+      - name: Install PHP
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: ${{ matrix.php-versions }}
+      - name: Compile and install imagick
+        run: |
+          install_dir=/usr/local/php/${{ matrix.php-versions }}
+          curl -o /tmp/imagick.tar.gz -sSL https://github.com/imagick/imagick/archive/master.tar.gz
+          tar xf /tmp/imagick.tar.gz -C /tmp
+          (
+            cd /tmp/imagick-master || exit 1
+            sudo "$install_dir"/bin/phpize
+            sudo ./configure --with-php-config="$install_dir"/bin/php-config
+            sudo make
+            sudo make install
+          )
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
