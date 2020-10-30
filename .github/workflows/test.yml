@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - run: sudo apt-get install -y libmagickwand-dev
+      - run: sudo apt-get install -y libmagickcore-6.q16-3 libmagickwand-6.q16-3
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
