@@ -17,24 +17,10 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-      - name: Compile and install imagick
-        run: |
-          install_dir=/usr/local/php/${{ matrix.php-versions }}
-          curl -o /tmp/imagick.tar.gz -sSL https://github.com/imagick/imagick/archive/master.tar.gz
-          tar xf /tmp/imagick.tar.gz -C /tmp
-          (
-            cd /tmp/imagick-master || exit 1
-            sudo "$install_dir"/bin/phpize
-            sudo ./configure --with-php-config="$install_dir"/bin/php-config
-            sudo make
-            sudo make install
-          )
-      - name: Install PHP
-        uses: shivammathur/setup-php@verbose
-        with:
-          php-version: ${{ matrix.php-versions }}
           extensions: imagick
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
-        run: php -m
+        run: |
+          php -m
+          php -r "if(! extension_loaded('imagick')) {throw new Exception('imagick not found');}"
