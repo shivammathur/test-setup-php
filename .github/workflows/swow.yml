@@ -23,8 +23,6 @@ jobs:
           php-version: ${{ matrix.php-versions }}
           tools: phpize
           coverage: none
-        env:
-          update: true
 
       - name: Setup Deps
         run:
