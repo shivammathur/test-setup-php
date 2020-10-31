@@ -7,6 +7,8 @@ jobs:
     name: ubuntu
     runs-on: ubuntu-latest
     container: ubuntu:${{ matrix.containers }}
+    env:
+      version: ${{ matrix.php-versions }}
     strategy:
       fail-fast: false
       matrix:
@@ -14,8 +16,6 @@ jobs:
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     steps:
       - name: Install requirements
-        env:
-          version: ${{ matrix.php-versions }}
         run: |
           DEBIAN_FRONTEND=noninteractive apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y sudo curl make software-properties-common unzip
@@ -28,4 +28,11 @@ jobs:
             fi
           done
       - run: php -v && php -m
-      - run: sudo pecl install -f xdebug
+      - run: |
+          if [ "$version" = "5.6" ]; then
+            sudo pecl install -f xdebug-2.5.5
+          elif [ "$version" = "7.0" ]; then
+            sudo pecl install -f xdebug-2.9.0
+          else
+            sudo pecl install -f xdebug
+          fi
