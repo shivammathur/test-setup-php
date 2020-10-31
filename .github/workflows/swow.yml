@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         # os: [ubuntu-latest, macos-latest, windows-latest]
-        os: [ubuntu-latest]
+        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
         php-versions: ['7.2', '7.3', '7.4', '8.0']
       max-parallel: 4
     steps:
