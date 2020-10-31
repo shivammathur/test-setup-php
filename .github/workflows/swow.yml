@@ -21,9 +21,9 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           tools: phpize
-          # ini-values: pcov.directory=lib
-          # coverage: pcov
           coverage: none
+        env:
+          update: true
 
       - name: Setup Deps
         run:
