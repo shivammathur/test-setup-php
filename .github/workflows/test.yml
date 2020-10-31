@@ -1,4 +1,4 @@
-name: Composer develop workflow
+name: Test PHP on runner
 on:
   repository_dispatch:
   push:
@@ -9,11 +9,127 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
-        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Testing
         run: |
-          sudo apt-cache policy php${{ matrix.php }}-dev
+          function isUbuntu16
+          {
+              lsb_release -d | grep -q 'Ubuntu 16'
+          }
+
+          function isUbuntu18
+          {
+              lsb_release -d | grep -q 'Ubuntu 18'
+          }
+
+          function isUbuntu20
+          {
+              lsb_release -d | grep -q 'Ubuntu 20'
+          }          
+          if isUbuntu16 ; then
+              php_versions="5.6 7.0 7.1 7.2 7.3 7.4"
+          fi
+
+          if isUbuntu18 ; then
+              php_versions="7.1 7.2 7.3 7.4"
+          fi
+
+          if isUbuntu20 ; then
+              php_versions="7.4"
+          fi
+
+          for version in $php_versions; do
+              echo "Installing PHP $version"
+              apt-fast install -y --no-install-recommends \
+                  php$version \
+                  php$version-bcmath \
+                  php$version-bz2 \
+                  php$version-cgi \
+                  php$version-cli \
+                  php$version-common \
+                  php$version-curl \
+                  php$version-dba \
+                  php$version-dev \
+                  php$version-enchant \
+                  php$version-fpm \
+                  php$version-gd \
+                  php$version-gmp \
+                  php$version-imap \
+                  php$version-interbase \
+                  php$version-intl \
+                  php$version-json \
+                  php$version-ldap \
+                  php$version-mbstring \
+                  php$version-mysql \
+                  php$version-odbc \
+                  php$version-opcache \
+                  php$version-pgsql \
+                  php$version-phpdbg \
+                  php$version-pspell \
+                  php$version-readline \
+                  php$version-snmp \
+                  php$version-soap \
+                  php$version-sqlite3 \
+                  php$version-sybase \
+                  php$version-tidy \
+                  php$version-xml \
+                  php$version-xmlrpc \
+                  php$version-xsl \
+                  php$version-zip
+
+              if [[ $version == "5.6" || $version == "7.0" || $version == "7.1" ]]; then
+                  apt-fast install -y --no-install-recommends php$version-mcrypt php$version-recode
+              fi
+
+              if [[ $version == "7.2" || $version == "7.3" ]]; then
+                  apt-fast install -y --no-install-recommends php$version-recode
+              fi
+          done
+
+          apt-fast install -y --no-install-recommends \
+              php-amqp \
+              php-apcu \
+              php-igbinary \
+              php-memcache \
+              php-memcached \
+              php-mongodb \
+              php-pear \
+              php-redis \
+              php-xdebug \
+              php-yaml \
+              php-zmq
+
+          apt-fast install -y --no-install-recommends snmp
+
+          # Install composer
+          php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+          php -r "if (hash_file('sha384', 'composer-setup.php') === file_get_contents('https://composer.github.io/installer.sig')) { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+          php composer-setup.php
+          sudo mv composer.phar /usr/bin/composer
+          php -r "unlink('composer-setup.php');"
+
+          # Install phpunit (for PHP)
+          wget -q -O phpunit https://phar.phpunit.de/phpunit-7.phar
+          chmod +x phpunit
+          mv phpunit /usr/local/bin/phpunit
+
+          # Run tests to determine that the software installed as expected
+          echo "Testing to make sure that script performed as expected, and basic scenarios work"
+          for cmd in composer pear pecl phpunit; do
+              if ! command -v $cmd; then
+                  echo "$cmd was not installed"
+                  exit 1
+              fi
+          done          
+          for version in $php_versions
+              if ! command -v php$version; then
+                  echo "php$version was not installed"
+                  exit 1
+              elif ! command -v php-config$version || ! command -v phpize$version; then
+                  echo "php$version-dev was not installed"
+                  exit 1
+              fi
+          done
