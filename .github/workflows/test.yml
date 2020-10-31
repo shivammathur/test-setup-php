@@ -22,5 +22,10 @@ jobs:
           sudo LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
           sudo DEBIAN_FRONTEND=noninteractive apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y php$version php$version-xml php$version-dev php-pear        
+          for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
+            if [ -e "/usr/bin/$tool$version" ]; then
+              sudo update-alternatives --set $tool /usr/bin/"$tool$version"
+            fi
+          done
       - run: php -v && php -m
       - run: sudo pecl install -f xdebug
