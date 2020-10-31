@@ -7,8 +7,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
-        php-versions: ['8.0', '8.1']
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        php-versions: ['7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -17,10 +17,8 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: imagick
+          extensions: sqlsrv-5.9.0preview1
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
-        run: |
-          php -m
-          php -r "if(! extension_loaded('imagick')) {throw new Exception('imagick not found');}"
+        run: php -m
