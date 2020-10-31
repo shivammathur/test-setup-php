@@ -43,7 +43,7 @@ jobs:
 
           for version in $php_versions; do
               echo "Installing PHP $version"
-              apt-fast install -y --no-install-recommends \
+              sudo apt-fast install -y --no-install-recommends \
                   php$version \
                   php$version-bcmath \
                   php$version-bz2 \
@@ -81,15 +81,15 @@ jobs:
                   php$version-zip
 
               if [[ $version == "5.6" || $version == "7.0" || $version == "7.1" ]]; then
-                  apt-fast install -y --no-install-recommends php$version-mcrypt php$version-recode
+                  sudo apt-fast install -y --no-install-recommends php$version-mcrypt php$version-recode
               fi
 
               if [[ $version == "7.2" || $version == "7.3" ]]; then
-                  apt-fast install -y --no-install-recommends php$version-recode
+                  sudo apt-fast install -y --no-install-recommends php$version-recode
               fi
           done
 
-          apt-fast install -y --no-install-recommends \
+          sudo apt-fast install -y --no-install-recommends \
               php-amqp \
               php-apcu \
               php-igbinary \
@@ -102,7 +102,7 @@ jobs:
               php-yaml \
               php-zmq
 
-          apt-fast install -y --no-install-recommends snmp
+          sudo apt-fast install -y --no-install-recommends snmp
 
           # Install composer
           php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
@@ -114,7 +114,7 @@ jobs:
           # Install phpunit (for PHP)
           wget -q -O phpunit https://phar.phpunit.de/phpunit-7.phar
           chmod +x phpunit
-          mv phpunit /usr/local/bin/phpunit
+          sudo mv phpunit /usr/local/bin/phpunit
 
           # Run tests to determine that the software installed as expected
           echo "Testing to make sure that script performed as expected, and basic scenarios work"
