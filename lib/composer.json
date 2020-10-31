@@ -1,0 +1,38 @@
+{
+    "name": "swow/swow-library",
+    "description": "Coroutine-based concurrency library for PHP",
+    "keywords": [
+        "swow",
+        "library"
+    ],
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "twose",
+            "email": "twosee@php.net"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/swow/swow"
+    },
+    "require": {
+        "php": ">=7.2",
+        "psr/http-client": "^1.0",
+        "psr/http-message": "^1.0"
+    },
+    "suggest": {
+        "ext-swow": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Swow\\": "src/Swow/"
+        },
+        "files": [
+            "src/Swow/Util/functions.php",
+            "src/Swow/Util/FileSystem/functions.php"
+        ]
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

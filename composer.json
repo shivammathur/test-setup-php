@@ -1,0 +1,69 @@
+{
+    "name": "swow/swow",
+    "description": "Coroutine-based concurrency library for PHP",
+    "keywords": [
+        "swow",
+        "coroutine",
+        "async",
+        "event",
+        "http",
+        "websocket",
+        "server",
+        "client",
+        "libcat",
+        "libuv"
+    ],
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "twose",
+            "email": "twosee@php.net"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/swow/swow"
+    },
+    "require": {
+        "php": ">=7.2",
+        "psr/http-client": "^1.0",
+        "psr/http-message": "^1.0"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^2.16",
+        "phpunit/phpunit": ">=8.0"
+    },
+    "suggest": {
+        "ext-swow": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Swow\\": "lib/src/Swow/"
+        },
+        "files": [
+            "lib/src/Swow/Util/functions.php",
+            "lib/src/Swow/Util/FileSystem/functions.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "SwowTest\\": "lib/tests/"
+        }
+    },
+    "config": {
+        "process-timeout": 0,
+        "sort-packages": true
+    },
+    "scripts": {
+        "cs-check": "/usr/bin/env php vendor/bin/php-cs-fixer fix --dry-run",
+        "cs-fix": "/usr/bin/env php vendor/bin/php-cs-fixer fix",
+        "sync-extension": "/usr/bin/env php -n tools/extension/sync.php",
+        "build-extension": "tools/builder/swow-builder",
+        "rebuild-extension": "tools/builder/swow-builder --rebuild",
+        "test-extension": "cd ext && NO_INTERACTION=1 /usr/bin/env php -n run-tests.php -P -d extension=swow $@",
+        "test-library": "/usr/bin/env php -dextension=swow vendor/bin/phpunit $@",
+        "ide-help": "/usr/bin/env php -n -d extension=swow tools/ide-helper/generator.php swow lib/src/Swow.php"
+    },
+    "bin": [
+        "tools/builder/swow-builder"
+    ]
+}
