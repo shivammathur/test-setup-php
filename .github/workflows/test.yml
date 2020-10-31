@@ -34,10 +34,17 @@ jobs:
           MSSQL_COLLATION: "${{ matrix.collation }}"
     steps:
       - name: Install reqs
+        env:
+          version: ${{ matrix.php-version }}
         run: |
           apt-get update && apt-get install -y sudo curl make software-properties-common unzip
           sudo LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
           sudo apt-get update
           sudo apt-get install -y php$version php$version-dev php$version-xml php-pear
+          for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
+            if [ -e "/usr/bin/$tool$version" ]; then
+              sudo update-alternatives --set $tool /usr/bin/"$tool$version"
+            fi
+          done          
       - run: sudo pecl install -f sqlsrv
       - run: php -v && php -m  
