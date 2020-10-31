@@ -11,6 +11,7 @@ jobs:
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    if: "!contains(github.event.head_commit.message, 'skip-build')"
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -115,7 +116,7 @@ jobs:
       - name: Release
         run: |
           set -x
-          curl -sLO https://github.com/php-ubuntu/releases/latest/download/install.sh
+          curl -sLO https://github.com/shivammathur/php-ubuntu/releases/latest/download/install.sh
           assets=()
           for asset in ./builds/*/*; do
             assets+=("-a" "$asset")
