@@ -5,46 +5,21 @@ on:
 jobs:
   ubuntu:
     name: ubuntu
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container: ubuntu:${{ matrix.containers }}
     strategy:
       fail-fast: false
       matrix:
-        php-version:
-          - "7.3"
-          - "7.4"
-          - "8.0"
-        extension:
-          - "sqlsrv"
-          - "pdo_sqlsrv"
-        collation:
-          - "Latin1_General_100_CI_AS"
-        include:
-          - collation: "Latin1_General_100_CS_AS"
-            php-version: "7.4"
-            extension: "sqlsrv"
-          - collation: "Latin1_General_100_CS_AS"
-            php-version: "7.4"
-            extension: "pdo_sqlsrv"
-    services:
-      mssql:
-        image: "microsoft/mssql-server-linux:2017-latest"
-        env:
-          ACCEPT_EULA: "Y"
-          SA_PASSWORD: "Doctrine2018"
-          MSSQL_COLLATION: "${{ matrix.collation }}"
+        containers: ["focal", "bionic", "xenial"]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     steps:
-      - name: Install reqs
+      - name: Install requirements
         env:
-          version: ${{ matrix.php-version }}
+          version: ${{ matrix.php-versions }}
         run: |
           apt-get update && apt-get install -y sudo curl make software-properties-common unzip
           sudo LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
           sudo apt-get update
-          sudo apt-get install -y php$version php$version-dev php$version-xml php-pear
-          for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
-            if [ -e "/usr/bin/$tool$version" ]; then
-              sudo update-alternatives --set $tool /usr/bin/"$tool$version"
-            fi
-          done          
-      - run: sudo pecl install -f sqlsrv
+          sudo apt-get install -y php$version php$version-dev php$version-xml php-pear        
+      - run: sudo pecl install -f xdebug
       - run: php -v && php -m  
