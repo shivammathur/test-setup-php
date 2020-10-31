@@ -10,10 +10,10 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Testing
         run: |
-          sudo apt-get update -y
-          sudo apt-cache policy php7.2-cli
+          sudo apt-cache policy php${{ matrix.php }}-dev
