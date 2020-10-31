@@ -6,11 +6,9 @@ jobs:
   ubuntu:
     name: ubuntu
     runs-on: ubuntu-20.04
-    container: ubuntu:${{ matrix.containers }}
     strategy:
       fail-fast: false
       matrix:
-        containers: ["focal", "bionic", "xenial"]
         php-version:
           - "7.3"
           - "7.4"
