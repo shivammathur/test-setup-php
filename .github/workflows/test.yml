@@ -1,28 +1,23 @@
-name: 'ext'
+name: Self-hosted develop workflow
 on:
+  repository_dispatch:
   push:
 jobs:
-  run:
-    runs-on: ${{ matrix.operating-system }}
+  ubuntu:
+    name: ubuntu
+    runs-on: ubuntu-latest
+    container: ubuntu:${{ matrix.containers }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, macos-latest]
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        containers: ["focal", "bionic", "xenial"]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
-        uses: shivammathur/setup-php@verbose
-        with:
-          php-version: 7.3
-          coverage: pcov
-          ini-values: zend.assertions=1
-          tools: pecl
-          extensions: pdo_sqlsrv-5.9.0preview1, sqlsrv-5.9.0preview1
-        env:
-          fail-fast: true
-      - name: Testing PHP version
-        run: php -v
-      - name: Testing Extensions
-        run: php -m
+      - name: Install sudo and git
+        run: |
+          apt-get update && apt-get install -y sudo curl make software-properties-common unzip
+          sudo add-apt-repository ppa:ondrej/php
+          sudo apt-get update
+          sudo apt-get install php$version php$version-dev php$version-xml
+      - run: sudo pecl install -f xdebug
+      - run: php -v && php -m  
