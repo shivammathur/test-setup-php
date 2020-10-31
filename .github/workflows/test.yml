@@ -124,7 +124,7 @@ jobs:
                   exit 1
               fi
           done          
-          for version in $php_versions
+          for version in $php_versions; do
               if ! command -v php$version; then
                   echo "php$version was not installed"
                   exit 1
