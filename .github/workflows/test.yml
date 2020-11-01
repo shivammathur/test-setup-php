@@ -16,7 +16,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: 8.0
-          extensions: sqlsrv-5.9.0preview1
+          extensions: pdo_sqlsrv-5.9.0preview1, sqlsrv-5.9.0preview1
         env:
           fail-fast: true
       - name: Testing PHP version
