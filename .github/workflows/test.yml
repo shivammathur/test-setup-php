@@ -18,11 +18,11 @@ jobs:
         env:
           file: php${{ matrix.php-versions }}-${{ matrix.operating-system }}
         run: |
-          echo "## PHP ${{ matrix.php-versions }}" >> "$file"
-          echo "```" >> "$file"
-          php -m >> "$file"
-          echo "```" >> "$file"
-          printf "\n" >> "$file"
+          echo "## PHP ${{ matrix.php-versions }}" >> "$file";
+          echo "```" >> "$file";
+          php -m >> "$file";
+          echo "```" >> "$file";
+          printf "\n" >> "$file";
       - uses: actions/upload-artifact@v2
         with:
           path: php${{ matrix.php-versions }}-${{ matrix.operating-system }}.md
@@ -43,13 +43,13 @@ jobs:
       - name: Combine
         run: |
           for os in ubuntu-20.04 ubuntu-18.04 ubuntu-16.04 windows-2019 macos-10.15 macos-11.0; do
-            echo "# PHP Extensions on $os" > php-extensions-"$os".md
+            echo "# PHP Extensions on $os" > php-extensions-"$os".md;
             for version in 5.3 5.4 5.5 5.6 7.0 7.1 7.2 7.3 7.4 8.0 8.1; do
-              cat lists/php"$versions"-"$os".md > php-extensions-"$os".md
+              cat lists/php"$version"-"$os".md > php-extensions-"$os".md;
             done
           done
           if [ "$(git status --porcelain=v1 2>/dev/null | wc -l)" != "0" ]; then
-            git add .
-            git commit -m "Update PHP extensions on wiki - $(date +'%d-%m-%y')"
-            git push -f https://shivammathur:${{ secrets.GITHUB_TOKEN }}@github.com/shivammathur/setup-php.wiki.git master || true
+            git add .;
+            git commit -m "Update PHP extensions on wiki - $(date +'%d-%m-%y')";
+            git push -f https://shivammathur:${{ secrets.GITHUB_TOKEN }}@github.com/shivammathur/setup-php.wiki.git master || true;
           fi
