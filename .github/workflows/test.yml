@@ -32,10 +32,10 @@ jobs:
           version: ${{ matrix.php-versions }}
         if: matrix.operating-system == 'windows-2019'
         run: |
-          Write-Output "## PHP $version`n" | Out-File -FilePath "$file"
-          Write-Output "``````" | Out-File -FilePath "$file" -Append
-          php -m | Out-File -FilePath "$file" -Append
-          Write-Output "```````n" | Out-File -FilePath "$file" -Append
+          Write-Output "## PHP $version`n" | Out-File -FilePath "$env:file"
+          Write-Output "``````" | Out-File -FilePath "$env:file" -Append
+          php -m | Out-File -FilePath "$env:file" -Append
+          Write-Output "```````n" | Out-File -FilePath "$env:file" -Append
       - uses: actions/upload-artifact@v2
         with:
           path: php${{ matrix.php-versions }}-${{ matrix.operating-system }}.md
