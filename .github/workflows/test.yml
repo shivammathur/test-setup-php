@@ -14,17 +14,28 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-      - name: Save
+      - name: Save unix
         env:
           file: php${{ matrix.php-versions }}-${{ matrix.operating-system }}.md
           version: ${{ matrix.php-versions }}
+        if: matrix.operating-system != 'windows-2019'
         run: |
           echo "## PHP $version" >> "$file"
-          echo "\`\`\`" >> "$file"
           printf "\n" >> "$file"
+          echo "\`\`\`" >> "$file"
           php -m >> "$file"
           echo "\`\`\`" >> "$file"
           printf "\n" >> "$file"
+      - name: Save Windows
+        env:
+          file: php${{ matrix.php-versions }}-${{ matrix.operating-system }}.md
+          version: ${{ matrix.php-versions }}
+        if: matrix.operating-system == 'windows-2019'
+        run: |
+          Write-Output "## PHP $version`n" | Out-File -FilePath "$file"
+          Write-Output "``````" | Out-File -FilePath "$file" -Append
+          php -m | Out-File -FilePath "$file" -Append
+          Write-Output "```````n" | Out-File -FilePath "$file" -Append
       - uses: actions/upload-artifact@v2
         with:
           path: php${{ matrix.php-versions }}-${{ matrix.operating-system }}.md
@@ -36,7 +47,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          repository: shivammathur/setup-php.wiki
+          repository: ${{ github.repository }}.wiki
       - name: Save
         run: mkdir lists
       - uses: actions/download-artifact@v2
@@ -53,5 +64,5 @@ jobs:
           if [ "$(git status --porcelain=v1 2>/dev/null | wc -l)" != "0" ]; then
             git add .
             git commit -m "Update PHP extensions on wiki - $(date +'%d-%m-%y')"
-            git push -f https://shivammathur:${{ secrets.GITHUB_TOKEN }}@github.com/shivammathur/setup-php.wiki.git master || true
+            git push -f https://${{ github.repository_owner }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git master || true
           fi
