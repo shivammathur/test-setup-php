@@ -1,38 +1,25 @@
-name: Container setup
+name: 'ext'
 on:
-  repository_dispatch:
   push:
 jobs:
-  ubuntu:
-    name: ubuntu
-    runs-on: ubuntu-latest
-    container: ubuntu:${{ matrix.containers }}
-    env:
-      version: ${{ matrix.php-versions }}
+  run:
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        containers: ["focal", "bionic", "xenial"]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-      - name: Install requirements
-        run: |
-          DEBIAN_FRONTEND=noninteractive apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y sudo curl make software-properties-common unzip
-          sudo LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
-          sudo DEBIAN_FRONTEND=noninteractive apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y php$version php$version-xml php$version-dev php-pear        
-          for tool in pear pecl php phar phar.phar php-cgi php-config phpize phpdbg; do
-            if [ -e "/usr/bin/$tool$version" ]; then
-              sudo update-alternatives --set $tool /usr/bin/"$tool$version"
-            fi
-          done
-      - run: php -v && php -m
-      - run: |
-          if [ "$version" = "5.6" ]; then
-            sudo pecl install -f xdebug-2.5.5
-          elif [ "$version" = "7.0" ]; then
-            sudo pecl install -f xdebug-2.9.0
-          else
-            sudo pecl install -f xdebug
-          fi
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 8.0
+          extensions: sqlsrv-5.9.0preview1
+        env:
+          fail-fast: true
+      - name: Testing PHP version
+        run: php -v
+      - name: Testing Extensions
+        run: php -m
