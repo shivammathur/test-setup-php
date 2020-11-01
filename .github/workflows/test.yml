@@ -16,7 +16,7 @@ jobs:
           php-version: ${{ matrix.php-versions }}
       - name: Save
         env:
-          file: php${{ matrix.php-versions }}-${{ matrix.operating-system }}
+          file: php${{ matrix.php-versions }}-${{ matrix.operating-system }}.md
           version: ${{ matrix.php-versions }}
         run: |
           echo "## PHP $version" >> "$file"
