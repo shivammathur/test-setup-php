@@ -12,13 +12,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
+      - name: Install imagemagick-7
+        run: |
+          curl -o /tmp/ImageMagick.tar.gz -sL https://www.imagemagick.org/download/ImageMagick.tar.gz
+          (
+            cd /tmp || exit 1
+            tar xf ImageMagick.tar.gz
+            cd ImageMagick-7*
+            ./configure --prefix=/usr
+            make
+            sudo make install
+          )
+      - name: PHP Setup
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.0
-          extensions: pdo_sqlsrv-5.9.0preview1, sqlsrv-5.9.0preview1
-        env:
-          fail-fast: true
+          php-version: '7.4'
+          extensions: imagick
+      - name: Which Imagick Version
+        run: php -r 'var_dump(Imagick::getVersion());'
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
