@@ -15,5 +15,5 @@ jobs:
           latest_url="https://github.com/phpstan/phpstan/releases/latest/download/phpstan.phar"
           repo=$(echo "$latest_url" | cut -d '/' -f '1-5')
           file=$(echo "$latest_url" | sed -e "s/.*\///")
-          asset_release=$(curl "${curl_opts[@]}" "$repo/releases" | grep -Eo -m 1 "([0-9]+\.[0-9]+\.[0-9]+)/$file" | cut -d '/' -f 1)
+          asset_release=$(curl -sL "$repo/releases" | grep -Eo -m 1 "([0-9]+\.[0-9]+\.[0-9]+)/$file" | cut -d '/' -f 1)
           echo "${url/releases\/latest\/download/releases\/download\/$asset_release}"          
