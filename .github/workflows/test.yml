@@ -19,15 +19,15 @@ jobs:
             cd /tmp || exit 1
             tar xf ImageMagick.tar.gz
             cd ImageMagick-7*
-            ./configure --prefix=/usr
-            make
+            sudo ./configure --prefix=/usr
+            sudo make -j$(nproc)
             sudo make install
           )
       - name: PHP Setup
         uses: shivammathur/setup-php@v2
         with:
           php-version: '7.4'
-          extensions: imagick
+          extensions: imagick-3.4.4
       - name: Which Imagick Version
         run: php -r 'var_dump(Imagick::getVersion());'
       - name: Testing PHP version
