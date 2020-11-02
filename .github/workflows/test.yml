@@ -19,7 +19,7 @@ jobs:
           docker run --rm --tty --privileged \
             --volume "$GITHUB_WORKSPACE":"$GITHUB_WORKSPACE" \
             --workdir "$GITHUB_WORKSPACE" \
-            shivammathur/node:bionic-${{ matrix.tag }}
+            shivammathur/node:bionic-${{ matrix.tag }} php -r "echo PHP_INT_SIZE;"
       - name: Setup PHP
         # Inputs to manual.sh are in this order - php-versions, extensions, ini-values, coverage, tools
         run: curl -sL https://setup-php.com/manual.sh | bash -s ${{ matrix.php }} "intl" "memory_limit=-1" "pcov" "phpunit"
