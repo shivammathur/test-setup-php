@@ -12,8 +12,5 @@ jobs:
     steps:
       - name: Test
         run: |
-          latest_url="https://github.com/phpstan/phpstan/releases/latest/download/phpstan.phar"
-          repo=$(echo "$latest_url" | cut -d '/' -f '1-5')
-          file=$(echo "$latest_url" | sed -e "s/.*\///")
-          asset_release=$(curl -sL "$repo/releases" | grep -Eo -m 1 "([0-9]+\.[0-9]+\.[0-9]+)/$file" | cut -d '/' -f 1)
-          echo $latest_url | sed -e "s|releases/latest/download|releases/download/$asset_release|"
+          url="https://github.com/phpstan/phpstan/releases/latest/download/phpstan.phar"
+          [[ $url =~ .*github.com.*releases.*latest.* ]] && echo 'test'
