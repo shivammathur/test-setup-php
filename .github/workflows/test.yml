@@ -13,7 +13,13 @@ jobs:
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
-      - run: docker run --rm --privileged shivammathur/node:bionic-${{ matrix.tag }}
+      - run: |
+          echo '{"experimental": true}' | sudo tee /etc/docker/daemon.json > /dev/null
+          sudo systemctl restart docker
+          docker run --rm --tty --privileged \
+            --volume "$GITHUB_WORKSPACE":"$GITHUB_WORKSPACE" \
+            --workdir "$GITHUB_WORKSPACE" \
+            shivammathur/node:bionic-${{ matrix.tag }}
       - name: Setup PHP
         # Inputs to manual.sh are in this order - php-versions, extensions, ini-values, coverage, tools
         run: curl -sL https://setup-php.com/manual.sh | bash -s ${{ matrix.php }} "intl" "memory_limit=-1" "pcov" "phpunit"
