@@ -20,7 +20,9 @@ jobs:
           cid=$(docker create --name setup_php$GITHUB_SHA$GITHUB_RUN_ID --label $GITHUB_RUN_ID --workdir /__w/$repo_name/$repo_name -e "HOME=/github/home" -e GITHUB_ACTIONS=true -e CI=true -v "/var/run/docker.sock":"/var/run/docker.sock" -v "/home/runner/work":"/__w" -v "/home/runner/work/_temp":"/__w/_temp" -v "/home/runner/work/_actions":"/__w/_actions" -v "/opt/hostedtoolcache":"/__t" -v "/home/runner/work/_temp/_github_home":"/github/home" -v "/home/runner/work/_temp/_github_workflow":"/github/workflow" --entrypoint "tail" shivammathur/node:bionic-${{ matrix.tag }} "-f" "/dev/null")
           echo $cid
           docker start $cid
-          echo "echo 'welcome'; docker exec $cid sh -c 'cat /etc/*release | grep ^ID'" | sudo tee /etc/profile
+          sudo cp -p /bin/bash /usr/local/bin/bash          
+          echo "docker exec $cid sh -c $@" | sudo tee /bin/bash
+          sudo chmod a+x /bin/bash
       - name: Setup PHP
         # Inputs to manual.sh are in this order - php-versions, extensions, ini-values, coverage, tools
         run: curl -sL https://setup-php.com/manual.sh | bash -s ${{ matrix.php }} "intl" "memory_limit=-1" "pcov" "phpunit"
