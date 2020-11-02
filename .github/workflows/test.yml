@@ -5,7 +5,6 @@ jobs:
   ubuntu:
     name: multiarch    
     runs-on: ubuntu-latest
-    container: shivammathur/node:bionic-${{ matrix.tag }}
     strategy:
       fail-fast: false
       matrix:
@@ -14,6 +13,8 @@ jobs:
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
+        with:
+          image: shivammathur/node:bionic-${{ matrix.tag }}
       - name: Setup PHP
         # Inputs to manual.sh are in this order - php-versions, extensions, ini-values, coverage, tools
         run: curl -sL https://setup-php.com/manual.sh | bash -s ${{ matrix.php }} "intl" "memory_limit=-1" "pcov" "phpunit"
