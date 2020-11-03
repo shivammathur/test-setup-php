@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         php: ['7.4']
     name: Intl workflow
     steps:
@@ -20,4 +20,6 @@ jobs:
         env:
           COMPOSER_TOKEN: testtesttest
       - name: Testing compsoer token
-        run: composer global config -l --auth
+        run: |
+          compser -V
+          composer global config -l | grep github-oauth.github.com
