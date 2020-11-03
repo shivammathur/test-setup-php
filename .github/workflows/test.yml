@@ -1,6 +1,8 @@
 name: 'Runner workflow'
 on:
   push:
+env:
+  COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 jobs:
   run:
     runs-on: ${{ matrix.os }}
@@ -17,8 +19,6 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-        env:
-          COMPOSER_TOKEN: testtesttest
       - name: Testing compsoer token
         run: |
           composer -V
