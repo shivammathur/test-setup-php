@@ -1,4 +1,4 @@
-name: 'Intl workflow'
+name: 'Runner workflow'
 on:
   push:
 jobs:
@@ -20,4 +20,4 @@ jobs:
         env:
           COMPOSER_TOKEN: testtesttest
       - name: Testing compsoer token
-        run: cat ~/.config/composer/auth.json"
+        run: cat ~/.config/composer/auth.json
