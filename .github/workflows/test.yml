@@ -20,4 +20,4 @@ jobs:
         env:
           COMPOSER_TOKEN: testtesttest
       - name: Testing compsoer token
-        run: cat ~/.config/composer/auth.json
+        run: composer global config -l --auth
