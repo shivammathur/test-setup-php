@@ -9,7 +9,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         php: ['7.4']
-    name: Intl workflow
+    name: Runner workflow
     steps:
       - name: Checkout
         uses: actions/checkout@v2
