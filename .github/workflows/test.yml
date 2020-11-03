@@ -7,9 +7,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-16.04]
-        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
-        icu: [68.1]
+        os: [ubuntu-latest, macos-latest]
+        php: ['7.4']
     name: Intl workflow
     steps:
       - name: Checkout
@@ -18,11 +17,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: intl-${{ matrix.icu }}
-      - name: Testing PHP
-        run: |
-          icu_version=$(php -i | grep "ICU version =>" | sed -e "s|.*=> s*||")
-          echo $icu_version
-          [ "$icu_version" != "${{ matrix.icu }}" ] && exit 1
-          php -v
-          php -m
+        env:
+          COMPOSER_TOKEN: testtesttest
+      - name: Testing compsoer token
+        run: cat ~/.config/composer/auth.json"
