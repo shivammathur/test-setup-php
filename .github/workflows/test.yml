@@ -14,10 +14,6 @@ jobs:
         run: |
           brew update-reset
           brew tap shivammathur/php
-          (
-            cd ./Aliases || exit 1
-            for ln_cmd in $(brew audit --tap=shivammathur/php | grep "ln -s"); do
-              echo "$ln_cmd"
-              eval "$ln_cmd" || true
-            done
-          )
+          for ln_cmd in $(brew audit --tap=shivammathur/php | grep "ln -s"); do
+            echo "$ln_cmd"
+          done
