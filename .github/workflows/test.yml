@@ -8,9 +8,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [macos-latest]
     steps:
       - name: Test
         run: |
-          url="https://github.com/phpstan/phpstan/releases/latest/download/phpstan.phar"
-          [[ $url =~ .*github.com.*releases.*latest.* ]] && echo 'test'
+          brew update-reset
+          brew tap shivammathur/php
+          (
+            cd ./Aliases || exit 1
+            for ln_cmd in $(brew audit --tap=shivammathur/php | grep "ln -s"); do
+              eval "$ln_cmd" || true
+            done
+          )
