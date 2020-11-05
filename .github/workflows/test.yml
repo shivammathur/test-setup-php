@@ -12,5 +12,5 @@ jobs:
     steps:
       - name: Test
         run: |
-          [ "$(command -v brew)" ] && echo 'brew'
-          [ "$(command -v not_brew)" ] && echo 'not_brew'
+          [ "$(command -v brew 2>/dev/null)" ] && echo 'brew'
+          [ "$(command -v not_brew 2>/dev/null)" ] && echo 'not_brew'
