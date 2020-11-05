@@ -12,5 +12,5 @@ jobs:
     steps:
       - name: Test
         run: |
-          which pear
-          which pecl
+          [ "$(command -v brew)" ] && echo 'brew'
+          [ "$(command -v not_brew)" ] && echo 'not_brew'
