@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Test
         run: |
-          rm /etc/apt/sources.list.d/ondrej*
+          sudo rm /etc/apt/sources.list.d/ondrej*
           sudo dpkg --add-architecture i386
           echo "deb [arch=i386] http://ppa.launchpad.net/ondrej/php/ubuntu bionic main" | sudo tee ondrej-php.list          
           sudo apt-get update
