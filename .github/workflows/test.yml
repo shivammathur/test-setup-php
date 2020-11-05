@@ -12,6 +12,6 @@ jobs:
     steps:
       - name: Test
         run: |
-          dpkg --add-architecture i386
+          sudo dpkg --add-architecture i386
           sudo apt-get install php7.2:i386
           php -r "echo PHP_INT_SIZE";
