@@ -12,8 +12,5 @@ jobs:
     steps:
       - name: Test
         run: |
-          brew update-reset
-          brew tap shivammathur/php
-          for ln_cmd in $(brew audit --tap=shivammathur/php | grep "ln -s"); do
-            echo "${ln_cmd[@]}"
-          done
+          which pear
+          which pecl
