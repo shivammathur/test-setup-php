@@ -12,5 +12,5 @@ jobs:
     steps:
       - name: Test
         run: |
-          [ "$(command -v brew)" ] && echo 'brew'
-          [ "$(command -v not_brew)" ] && echo 'not_brew'
+          sudo apt-get install php7.2:i386
+          php -r "echo PHP_INT_SIZE";
