@@ -17,6 +17,6 @@ jobs:
           echo "deb [arch=i386] http://ppa.launchpad.net/ondrej/php/ubuntu bionic main" | sudo tee ondrej-php.list          
           sudo apt-get update
           dpkg --print-foreign-architectures
-          sudo apt-get install php7.3-common:i386 php7.3-cli:i386
+          sudo apt-get install -f php7.3-common:i386 php7.3-cli:i386
           php -v
           php -r "echo PHP_INT_SIZE";
