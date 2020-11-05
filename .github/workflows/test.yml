@@ -15,5 +15,6 @@ jobs:
           ls /etc/apt/sources.list.d
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install php7.2:i386
+          sudo apt-get install php7.3-common:i386 php7.3-cli:i386
+          php -v
           php -r "echo PHP_INT_SIZE";
