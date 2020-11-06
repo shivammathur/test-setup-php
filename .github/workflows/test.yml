@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        php: ['7.4']
+        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     name: Runner workflow
     steps:
       - name: Checkout
@@ -19,7 +19,11 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
+          extensions: pdo_mysql, pdo_sqlite, pdo_pgsql, pdo
       - name: Testing compsoer token
         run: |
           composer -V
-          composer global config -l | grep github-oauth.github.com
+          php -r "if(! extension_loaded('pdo_mysql')) {throw new Exception('pdo_mysql not found');}"
+          php -r "if(! extension_loaded('pdo_sqlite')) {throw new Exception('pdo_sqlite not found');}"
+          php -r "if(! extension_loaded('pdo_pgsql')) {throw new Exception('pdo_pgsql not found');}"
+          php -r "if(! extension_loaded('pdo')) {throw new Exception('pdo not found');}"
