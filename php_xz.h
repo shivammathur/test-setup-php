@@ -40,7 +40,7 @@ PHP_FUNCTION(xzdecode);
 
 php_stream *php_stream_xzopen(php_stream_wrapper *wrapper, const char *path,
 	const char *mode_pass, int options, char **opened_path,
-	php_stream_context *context STREAMS_DC TSRMLS_DC);
+	php_stream_context *context STREAMS_DC);
 
 #ifdef ZTS
 #	define XZ_G(v) TSRMG(xz_globals_id, zend_xz_globals *, v)

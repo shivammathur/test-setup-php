@@ -103,7 +103,7 @@ PHP_INI_END()
 PHP_MINIT_FUNCTION(xz)
 {
 	REGISTER_INI_ENTRIES();
-	php_register_url_stream_wrapper("compress.lzma", &php_stream_xz_wrapper TSRMLS_CC);
+	php_register_url_stream_wrapper("compress.lzma", &php_stream_xz_wrapper);
 	return SUCCESS;
 }
 /* }}} */
@@ -111,7 +111,7 @@ PHP_MINIT_FUNCTION(xz)
 /* {{{ MSHUTDOWN */
 PHP_MSHUTDOWN_FUNCTION(xz)
 {
-	php_unregister_url_stream_wrapper("compress.lzma" TSRMLS_CC);
+	php_unregister_url_stream_wrapper("compress.lzma");
 	UNREGISTER_INI_ENTRIES();
 	return SUCCESS;
 }
@@ -137,14 +137,14 @@ PHP_FUNCTION(xzopen)
 	size_t filename_len = 0, mode_len = 0;
 	unsigned long compression_level = INI_INT("xz.compression_level");
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss|l", &filename, &filename_len, &mode, &mode_len, &compression_level) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "ss|l", &filename, &filename_len, &mode, &mode_len, &compression_level) == FAILURE) {
 		return;
 	}
 
 	char *mode_to_pass = emalloc(mode_len + 32);
 	snprintf(mode_to_pass, mode_len + 32, "%s:%lu", mode, compression_level);
 
-	php_stream *stream = php_stream_xzopen(NULL, filename, mode_to_pass, 0, NULL, NULL STREAMS_CC TSRMLS_CC);
+	php_stream *stream = php_stream_xzopen(NULL, filename, mode_to_pass, 0, NULL, NULL STREAMS_CC);
 
 	if (!stream) {
 		RETURN_BOOL(0);
@@ -163,7 +163,7 @@ PHP_FUNCTION(xzencode)
 	/* The length of the string to be encoded */
 	size_t in_len = 0;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &in, &in_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "s", &in, &in_len) == FAILURE) {
 		return;
 	}
 
@@ -248,7 +248,7 @@ PHP_FUNCTION(xzdecode)
 	/* The length of the string to be encoded */
 	size_t in_len = 0;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &in, &in_len) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "s", &in, &in_len) == FAILURE) {
 		return;
 	}
 

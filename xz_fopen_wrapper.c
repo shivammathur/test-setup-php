@@ -63,7 +63,7 @@ struct php_xz_stream_data_t {
 
 /* {{{ php_xz_decompress
    Decompresses the stream. */
-static int php_xz_decompress(struct php_xz_stream_data_t *self TSRMLS_DC)
+static int php_xz_decompress(struct php_xz_stream_data_t *self)
 {
 	lzma_stream *strm = &self->strm;
 	lzma_action action = LZMA_RUN;
@@ -89,7 +89,7 @@ static int php_xz_decompress(struct php_xz_stream_data_t *self TSRMLS_DC)
    Compresses the stream by consuming all bytes in `lzma_stream->next_in` and
    writing them into the file.
    Returns the number of bytes to be written. */
-static int php_xz_compress(struct php_xz_stream_data_t *self TSRMLS_DC)
+static int php_xz_compress(struct php_xz_stream_data_t *self)
 {
 	lzma_stream *strm = &self->strm;
 	lzma_action action = LZMA_RUN;
@@ -173,7 +173,7 @@ static int php_xz_init_encoder(struct php_xz_stream_data_t *self)
 
 /* {{{ php_xziop_read
    Reads from the stream. */
-static size_t php_xziop_read(php_stream *stream, char *buf, size_t count TSRMLS_DC)
+static size_t php_xziop_read(php_stream *stream, char *buf, size_t count)
 {
 	struct php_xz_stream_data_t *self = (struct php_xz_stream_data_t *) stream->abstract;
 	lzma_stream *strm = &self->strm;
@@ -202,7 +202,7 @@ static size_t php_xziop_read(php_stream *stream, char *buf, size_t count TSRMLS_
 			return have_read;
 		}
 
-		php_xz_decompress(self TSRMLS_CC);
+		php_xz_decompress(self);
 	}
 
 	return have_read;
@@ -211,7 +211,7 @@ static size_t php_xziop_read(php_stream *stream, char *buf, size_t count TSRMLS_
 
 /* {{{ php_xziop_write
    Writes to the stream. */
-static size_t php_xziop_write(php_stream *stream, const char *buf, size_t count TSRMLS_DC)
+static size_t php_xziop_write(php_stream *stream, const char *buf, size_t count)
 {
 	struct php_xz_stream_data_t *self = (struct php_xz_stream_data_t *) stream->abstract;
 	int wrote = 0, bytes_consumed = 0;
@@ -223,7 +223,7 @@ static size_t php_xziop_write(php_stream *stream, const char *buf, size_t count 
 		memcpy((void *)self->in_buf + strm->avail_in, buf + wrote, self->in_buf_sz - strm->avail_in);
 		wrote += self->in_buf_sz - strm->avail_in;
 		strm->avail_in = self->in_buf_sz;
-		bytes_consumed = php_xz_compress(self TSRMLS_CC);
+		bytes_consumed = php_xz_compress(self);
 		if (bytes_consumed < 0) {
 			break;
 		}
@@ -240,7 +240,7 @@ static size_t php_xziop_write(php_stream *stream, const char *buf, size_t count 
 
 /* {{{ php_xziop_close
    Closes the stream. */
-static int php_xziop_close(php_stream *stream, int close_handle TSRMLS_DC)
+static int php_xziop_close(php_stream *stream, int close_handle)
 {
 	struct php_xz_stream_data_t *self = (struct php_xz_stream_data_t *) stream->abstract;
 	int ret = EOF;
@@ -283,11 +283,11 @@ static int php_xziop_close(php_stream *stream, int close_handle TSRMLS_DC)
 
 /* {{{ php_xziop_flush
    Flushes the stream. */
-static int php_xziop_flush(php_stream *stream TSRMLS_DC)
+static int php_xziop_flush(php_stream *stream)
 {
 	struct php_xz_stream_data_t *self = (struct php_xz_stream_data_t *) stream->abstract;
 	if (strcmp(self->mode, "w") == 0 || strcmp(self->mode, "wb") == 0) {
-		php_xz_compress(self TSRMLS_CC);
+		php_xz_compress(self);
 	}
 	php_stream_flush(self->stream);
 	return 0;
@@ -313,7 +313,7 @@ php_stream_ops php_stream_xzio_ops = {
    Opens a stream. */
 php_stream *php_stream_xzopen(php_stream_wrapper *wrapper, const char *path,
 	const char *mode_pass, int options, char **opened_path,
-	php_stream_context *context STREAMS_DC TSRMLS_DC)
+	php_stream_context *context STREAMS_DC)
 {
 	char mode[64];
 	unsigned long level = 6;
@@ -334,12 +334,12 @@ php_stream *php_stream_xzopen(php_stream_wrapper *wrapper, const char *path,
 	}
 
 	if ((strchr(mode, '+')) || ((strchr(mode, 'r')) && (strchr(mode, 'w')))) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "cannot open xz stream for reading and writing at the same time.");
+		php_error_docref(NULL, E_ERROR, "cannot open xz stream for reading and writing at the same time.");
 		return NULL;
 	}
 
 	if ((level < 0) || (level > 9)) {
-		php_error_docref(NULL TSRMLS_CC, E_ERROR, "Invalid compression level");
+		php_error_docref(NULL, E_ERROR, "Invalid compression level");
 		return NULL;
 	}
 
@@ -363,20 +363,20 @@ php_stream *php_stream_xzopen(php_stream_wrapper *wrapper, const char *path,
 				stream->flags |= PHP_STREAM_FLAG_NO_BUFFER;
 				if ((strcmp(mode, "w") == 0) || (strcmp(mode, "wb") == 0)) {
 					if (!php_xz_init_encoder(self)) {
-						php_error_docref(NULL TSRMLS_CC, E_WARNING, "Could not initialize xz encoder.");
+						php_error_docref(NULL, E_WARNING, "Could not initialize xz encoder.");
 						efree(self);
 						php_stream_close(stream);
 						return NULL;
 					}
 				} else if ((strcmp(mode, "r") == 0) || (strcmp(mode, "rb") == 0)) {
 					if (!php_xz_init_decoder(self)) {
-						php_error_docref(NULL TSRMLS_CC, E_WARNING, "Could not initialize xz decoder");
+						php_error_docref(NULL, E_WARNING, "Could not initialize xz decoder");
 						efree(self);
 						php_stream_close(stream);
 						return NULL;
 					}
 				} else {
-					php_error_docref(NULL TSRMLS_CC, E_WARNING, "Can only open in read (r) or write (w) mode.");
+					php_error_docref(NULL, E_WARNING, "Can only open in read (r) or write (w) mode.");
 					efree(self);
 					php_stream_close(stream);
 					return NULL;
@@ -384,7 +384,7 @@ php_stream *php_stream_xzopen(php_stream_wrapper *wrapper, const char *path,
 				return stream;
 			}
 			efree(self);
-			php_error_docref(NULL TSRMLS_CC, E_WARNING, "failed opening xz stream");
+			php_error_docref(NULL, E_WARNING, "failed opening xz stream");
 		}
 		php_stream_close(innerstream);
 	}
