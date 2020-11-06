@@ -21,6 +21,7 @@ jobs:
       - name: Test
         continue-on-error: true 
         run: |
+          php -r "echo exec('composer -V');"
           composer -V
           php -r "if(strpos(exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
           
