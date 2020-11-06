@@ -8,9 +8,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]
+        operating-system: [ubuntu-latest]
         php-versions: ['7.4']
-        tools: [composer-require-checker, composer-normalize, composer-unused]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -18,11 +17,9 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: ${{ matrix.tools }}
         env:
           update: true
       - name: Test
-        continue-on-error: true 
         run: |
-          composer -V
-          php -r "echo exec('composer -V');"          
+          composer global require symfony/flex:1.6.1
+          composer global show symfony/flex
