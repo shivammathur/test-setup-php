@@ -8,13 +8,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [macos-latest, ubuntu-latest]
     steps:
       - name: Test
         run: |
-          sudo dpkg --add-architecture i386
-          sudo apt-get update
-          dpkg --print-foreign-architectures
-          sudo apt-get install -f php7.3-common:i386 php7.3-cli:i386
-          php -v
-          php -r "echo PHP_INT_SIZE";
+         echo "home: $HOME"
