@@ -16,15 +16,17 @@ jobs:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-versions }}          
+          php-version: ${{ matrix.php-versions }}
+          tools: behat, blackfire, blackfire-player, composer-require-checker, composer-normalize, composer-unused, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpspec, phpmd, cs2pr, codeception, phpunit, psalm, phing, phinx, phive, deployer, protoc, pecl, phpize, php-config, symfony, vapor-cli
       - name: Test
         continue-on-error: true 
         run: |
-          php -r "echo exec('composer -V');"
-          php -r "echo exec('composer -V');"
-          php -r "echo exec('composer -V');"
-          php -r "echo exec('composer -V');"
-          php -r "echo exec('composer -V');"
+          php -r "echo exec('composer -V') . '\n';"
+          php -r "echo exec('composer -V') . '\n';"
+          php -r "echo exec('composer -V') . '\n';"
+          php -r "echo exec('composer -V') . '\n';"
+          php -r "echo exec('composer -V') . '\n';"
+          composer -V
           composer -V
           composer -V
           composer -V
