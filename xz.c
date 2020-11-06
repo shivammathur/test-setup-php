@@ -52,9 +52,9 @@ ZEND_END_ARG_INFO()
 
 /* {{{ xz_functions[] */
 static const zend_function_entry xz_functions[] = {
-	PHP_FE(xzdecode, NULL)
-	PHP_FE(xzopen, NULL)
-	PHP_FE(xzencode, NULL)
+	PHP_FE(xzdecode, arginfo_void)
+	PHP_FE(xzopen, arginfo_void)
+	PHP_FE(xzencode, arginfo_void)
 	PHP_FALIAS(xzread, fread, arginfo_xzread)
 	PHP_FALIAS(xzwrite, fwrite, arginfo_xzwrite)
 	PHP_FALIAS(xzclose, fclose, arginfo_xzclose)
