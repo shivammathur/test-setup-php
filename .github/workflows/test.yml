@@ -19,6 +19,8 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           tools: ${{ matrix.tools }}
+        env:
+          update: true
       - name: Test
         continue-on-error: true 
         run: |
