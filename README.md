@@ -2,6 +2,7 @@ php-xz
 ======
 
 [![Build Status](https://travis-ci.org/codemasher/php-ext-xz.svg?branch=master)](https://travis-ci.org/codemasher/php-ext-xz)
+[![Continuous Integration][https://github.com/codemasher/php-ext-xz/workflows/Continuous%20Integration/badge.svg]][https://github.com/codemasher/php-ext-xz/actions]
 
 PHP Extension providing XZ (LZMA2) compression/decompression functions.
 
@@ -10,18 +11,18 @@ PHP Extension providing XZ (LZMA2) compression/decompression functions.
 To install as module, perform the following steps:
 
 ```bash
-git clone https://github.com/codemasher/php-xz
-cd php-xz && phpize && ./configure && make && sudo make install
+git clone https://github.com/codemasher/php-ext-xz.git
+cd php-ext-xz && phpize && ./configure && make && sudo make install
 ```
 
 Do not forget to add `extension = xz.so` to your `php.ini`.
 
 ## Requirements
 
-This module requires `git` and `liblzma-dev` as well as php7-dev. If you are using Ubuntu, you can easily install all of them by typing the following command in your terminal:
+This module requires `git` and [`liblzma-dev`](https://packages.ubuntu.com/search?lang=de&keywords=liblzma-dev&searchon=names) (https://tukaani.org/xz/) as well as php7-dev. If you are using Ubuntu, you can easily install all of them by typing the following command in your terminal:
 
 ```bash
-sudo apt-get install git php7.2-dev liblzma-dev
+sudo apt-get install git php7.4-dev liblzma-dev
 ```
 
 ## Basic usage
