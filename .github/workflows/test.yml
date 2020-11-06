@@ -10,6 +10,7 @@ jobs:
       matrix:
         operating-system: [windows-latest]
         php-versions: ['7.4']
+        tools: [composer-require-checker, composer-normalize, composer-unused]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -17,7 +18,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: behat, blackfire, blackfire-player, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpspec, phpmd, cs2pr, codeception, phpunit, psalm, phing, phinx, phive, deployer, protoc, pecl, phpize, php-config, symfony, vapor-cli
+          tools: ${{ matrix.tools }}
       - name: Test
         continue-on-error: true 
         run: |
