@@ -20,16 +20,11 @@ jobs:
         os:
           - ubuntu-latest
 #          - windows-latest
-        php-version:
-#          - "7.0" # i have no idea why this breaks and i couldn't care less
-          - "7.1"
-          - "7.2"
-          - "7.3"
-          - "7.4"
-          - "8.0"
+        php-version: ["7.2", "7.3", "7.4", "8.0", "8.1"]
 
     steps:
       - name: "Remove current PHP"
+        # this could be done smarter, e.g. remove all except matrix.php-version
         run: sudo apt-get purge php7.* php8.*
 
       - name: "Install liblzma"
@@ -42,7 +37,7 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2
 
-      - name: "Install PHP"
+      - name: "Install PHP ${{ matrix.php-version }}"
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
@@ -52,7 +47,7 @@ jobs:
         run: |
           echo "TEST_PHP_ARGS=-q" >> $GITHUB_ENV
           phpize && ./configure && make && sudo make install
-          echo "extension=xz.so" >> `php${{ matrix.php-version }} --ini | grep "Loaded Configuration File:" | sed -e "s/.*:\s*//"`
+          echo "extension=xz.so" >> `php --ini | grep "Loaded Configuration File:" | sed -e "s/.*:\s*//"`
 
       - name: "Run tests (Linux)"
         if: matrix.os == 'ubuntu-latest'
