@@ -22,6 +22,9 @@
 #endif
 
 /* {{{ arginfo */
+ZEND_BEGIN_ARG_INFO(arginfo_void, 0)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO(arginfo_xzread, 0)
 	ZEND_ARG_INFO(0, fp)
 	ZEND_ARG_INFO(0, length)
