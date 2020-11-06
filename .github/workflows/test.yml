@@ -18,8 +18,12 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           tools: behat, blackfire, blackfire-player, composer-require-checker, composer-normalize, composer-unused, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpspec, phpmd, cs2pr, codeception, phpunit, psalm, phing, phinx, phive, deployer, protoc, pecl, phpize, php-config, symfony, vapor-cli
+      - run: |
+          composer -V
+          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
       - name: Testing Tools
         run: |
+          composer 
           behat -V
           blackfire-agent -v
           blackfire version -V
@@ -45,6 +49,4 @@ jobs:
           protoc --version
           deployer -V
           symfony version
-          vapor -V          
-          composer -V
-          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
+          vapor -V
