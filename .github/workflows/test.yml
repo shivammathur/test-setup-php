@@ -1,23 +1,23 @@
-name: Test tools
-on: [push]
+name: Tools develop workflow
+on:
+  push:
 jobs:
-  run:
-    name: Run
+  latest:
+    name: latest
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['5.5']
+        operating-system: [windows-latest]
+        php-versions: ['7.4']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-
-      - name: Setup PHP
+      - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: cs2pr:1.0.2
-
-      - name: Testing cs2pr version
-        run: cs2pr version
+      - name: Testing Tools
+        run: |
+          composer -V
+          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
