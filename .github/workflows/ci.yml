@@ -29,6 +29,9 @@ jobs:
           - "8.0"
 
     steps:
+      - name: "Remove current PHP"
+        run: sudo apt-get purge php*
+
       - name: "Install liblzma"
         run: sudo apt-get install -y liblzma-dev
 
@@ -48,8 +51,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           echo "TEST_PHP_ARGS=-q" >> $GITHUB_ENV
-          phpize && ./configure
-          make && sudo make install
+          phpize && ./configure && make && sudo make install
           echo "extension=xz.so" >> `php --ini | grep "Loaded Configuration File:" | sed -e "s/.*:\s*//"`
 
       - name: "Run tests (Linux)"
