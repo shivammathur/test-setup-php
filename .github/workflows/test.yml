@@ -23,7 +23,7 @@ jobs:
           composer -V
       - name: Testing Tools
         run: |
-          composer 
+          composer -V 
           behat -V
           blackfire-agent -v
           blackfire version -V
