@@ -17,5 +17,9 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-      - run: composer -V
-      - run: php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
+      - run: |
+          composer -V
+          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
+      - run: |
+          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
+          composer -V
