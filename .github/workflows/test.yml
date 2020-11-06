@@ -21,5 +21,5 @@ jobs:
           update: true
       - name: Test
         run: |
-          composer global require symfony/flex:1.6.1
+          composer global require symfony/flex:1.9.10
           composer global show symfony/flex
