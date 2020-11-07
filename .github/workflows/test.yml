@@ -15,7 +15,8 @@ jobs:
       - name: Test
         run: |
           apt-get update
-          apt-get install sudo curl
+          apt-get install -y sudo curl
           curl -sSLO https://github.com/shivammathur/php-builder/releases/latest/download/install.sh
           chmod a+x ./install.sh
           ./install.sh local ${{ matrix.php }}
+          php -v
