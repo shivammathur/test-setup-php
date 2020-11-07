@@ -4,12 +4,18 @@ on:
 jobs:
   ubuntu:
     name: runner
+    container: ubuntu:bionic
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        os: [ubuntu-latest]
+        php: [8.0, 8.1]
     steps:
       - name: Test
         run: |
-         echo "home: $HOME"
+          apt-get update
+          apt-get install sudo curl
+          curl -sSLO https://github.com/shivammathur/php-builder/releases/latest/download/install.sh
+          chmod a+x ./install.sh
+          ./install.sh local ${{ matrix.php }}
