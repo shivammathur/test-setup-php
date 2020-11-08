@@ -33,11 +33,7 @@ jobs:
       with:        
         php-version: ${{ matrix.php-versions }}
         tools: pecl
-    
-    - name: Install couchbase
-      run: |
-        sudo pecl config-get php_ini
-        yes '' | sudo pecl install -f couchbase
+        extensions: couchbase
       
     - name: Check PHP version
       run: php -v
