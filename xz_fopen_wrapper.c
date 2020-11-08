@@ -350,7 +350,7 @@ php_stream *php_stream_xzopen(php_stream_wrapper *wrapper, const char *path,
 	innerstream = php_stream_open_wrapper_ex(path, mode, STREAM_MUST_SEEK | options | STREAM_WILL_CAST, opened_path, context);
 
 	if (innerstream) {
-		php_socket_t fd;
+		int fd;
 		if (php_stream_cast(innerstream, PHP_STREAM_AS_FD, (void **) &fd, REPORT_ERRORS) == SUCCESS) {
 			struct php_xz_stream_data_t *self = ecalloc(1, sizeof(struct php_xz_stream_data_t));
 			self->stream = innerstream;
