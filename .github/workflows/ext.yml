@@ -1,0 +1,43 @@
+name: Test extensions
+on: [push]
+jobs:
+  run:
+    runs-on: ${{ matrix.operating-systems }}
+    strategy:
+      fail-fast: false
+      matrix:
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+        operating-systems: [ubuntu-16.04, windows-latest, macos-latest]
+    name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-systems }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ast, gd, sodium, msgpack, redis, xml, imagick
+
+      - name: Check PHP version
+        run: php -v
+
+      - name: Check ini files
+        run: php --ini
+
+      - name: Check PHP extensions
+        if: matrix.php-versions != '8.0' && matrix.operating-systems != 'windows-latest'
+        run: |
+          php -m
+          for ext in gd imagick msgpack sodium redis xml; do
+            php -r "if(! extension_loaded('$ext')) {throw new Exception('$ext not found');}";
+          done
+          php -r "if(phpversion()<=7.0 && ! extension_loaded('ast')) {throw new Exception('ast not found');}"
+
+      - name: Check PHP extensions
+        if: matrix.php-versions == '8.0' && matrix.operating-systems != 'windows-latest'
+        run: |
+          php -m
+          for ext in imagick; do
+            php -r "if(! extension_loaded('$ext')) {throw new Exception('$ext not found');}";
+          done

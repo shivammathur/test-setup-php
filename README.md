@@ -1,5 +1,3 @@
 # test-setup-php
 
-Testing php extensions
-
-Test cache: 2
+Regression Tests
