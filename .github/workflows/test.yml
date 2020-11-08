@@ -6,8 +6,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php_versions: [7.4]
-        #php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        # php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        php-versions: [7.4]        
         operating-system: [ubuntu-latest, macos-latest]
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
     steps:
