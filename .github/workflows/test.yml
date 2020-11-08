@@ -11,13 +11,12 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         php: ['7.4']
-        sp_ver: [v2, develop]
     name: Runner workflow
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup PHP
-        uses: shivammathur/setup-php@${{ matrix.sp_ver }}
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
           extensions: dne
