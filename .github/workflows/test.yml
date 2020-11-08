@@ -24,7 +24,7 @@ jobs:
             
     -   name: Install system dependencies
         if: matrix.operating-system == 'macos-latest'
-        run: brew install libcouchbase
+        run: brew install libcouchbase@2
 
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
