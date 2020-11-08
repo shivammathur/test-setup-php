@@ -9,21 +9,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        os: [ubuntu-latest]
+        php: ['7.4']
+        sp_ver: [v2, develop]
     name: Runner workflow
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@${{ matrix.sp_ver }}
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo_mysql, pdo_sqlite, pdo_pgsql, pdo
+          extensions: dne
+        env:
+          fail-fast: true
       - name: Testing compsoer token
         run: |
           composer -V
-          php -r "if(! extension_loaded('pdo_mysql')) {throw new Exception('pdo_mysql not found');}"
-          php -r "if(! extension_loaded('pdo_sqlite')) {throw new Exception('pdo_sqlite not found');}"
-          php -r "if(! extension_loaded('pdo_pgsql')) {throw new Exception('pdo_pgsql not found');}"
-          php -r "if(! extension_loaded('pdo')) {throw new Exception('pdo not found');}"
