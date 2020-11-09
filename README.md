@@ -5,7 +5,9 @@ PHP Extension providing XZ (LZMA2) compression/decompression functions.
 [![Build Status](https://travis-ci.org/codemasher/php-ext-xz.svg?branch=master)](https://travis-ci.org/codemasher/php-ext-xz)
 [![Continuous Integration](https://github.com/codemasher/php-ext-xz/workflows/Continuous%20Integration/badge.svg)](https://github.com/codemasher/php-ext-xz/actions)
 
-## Requirements
+## Build & Installation
+
+### Linux
 
 This module requires [`liblzma-dev`](https://packages.ubuntu.com/search?lang=de&keywords=liblzma-dev&searchon=names) (https://tukaani.org/xz/) as well as php7-dev or php8-dev.
 If you are using Ubuntu, you can easily install all of them by typing the following command in your terminal:
@@ -14,16 +16,39 @@ If you are using Ubuntu, you can easily install all of them by typing the follow
 sudo apt-get install git php7.4-dev liblzma-dev
 ```
 
-## Installation
-
-To install as module, perform the following steps:
+To build and install as module, perform the following steps:
 
 ```bash
 git clone https://github.com/codemasher/php-ext-xz.git
-cd php-ext-xz && phpize && ./configure && make && sudo make install
+cd php-ext-xz
+phpize
+./configure
+make
+sudo make install
 ```
 
 Do not forget to add `extension = xz.so` to your `php.ini`.
+
+
+### Windows
+
+Follow the steps under ""[Build your own PHP on Windows](https://wiki.php.net/internals/windows/stepbystepbuild)" to setup your build environment.
+Before the compilation step, clone this repository to `[...]\php-src\ext\xz` and proceed.
+
+```bat
+git clone https://github.com/Microsoft/php-sdk-binary-tools.git c:\php-sdk
+cd c:\php-sdk
+phpsdk-vs16-x64.bat
+phpsdk_buildtree php-8.0
+git clone https://github.com/php/php-src.git
+cd php-src
+git checkout PHP-8.0
+git clone https://github.com/codemasher/php-ext-xz .\ext\xz
+phpsdk_deps -u
+buildconf --force
+configure --disable-all --enable-cli --enable-xz
+nmake snap
+```
 
 ## Basic usage
 
@@ -43,3 +68,6 @@ $str = 'Data you would like compressed.';
 $encoded = xzencode($str);
 $decoded = xzdecode($encoded);
 ```
+
+## Disclaimer
+May or may not contain bugs. Use at your own risk.
