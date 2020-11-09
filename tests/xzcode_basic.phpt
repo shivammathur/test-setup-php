@@ -20,7 +20,7 @@ In the Land of Mordor where the Shadows lie";
 $encoded = xzencode($str);
 $decoded = xzdecode($encoded);
 
-var_dump($str == $decoded);
+var_dump($str === $decoded);
 ?>
 --EXPECTF--
 bool(true)

@@ -43,12 +43,12 @@ for ($i = 0; $i < $chunkNumber; ++$i) {
 	$str .= $chunk;
 }
 
-var_dump($chunkSize * $chunkNumber == strlen($str));
+var_dump(($chunkSize * $chunkNumber) === strlen($str));
 $encoded = xzencode($str);
 print("encoding finished\n");
 $decoded = xzdecode($encoded);
 print("decoding finished\n");
-var_dump($str == $decoded);
+var_dump($str === $decoded);
 
 ?>
 --EXPECTF--
