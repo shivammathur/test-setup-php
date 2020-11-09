@@ -1,7 +1,18 @@
-ARG_WITH('xz', 'xz support', 'no');
+// vim:ft=javascript
+
+ARG_ENABLE('xz', 'xz support', 'no');
 
 if (PHP_XZ != 'no') {
-	AC_DEFINE('HAVE_XZ', 1, 'xz support enabled');
 
-	EXTENSION('xz', 'xz.c', null, '/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1');
+	// liblzma is included with the ext-zip dependencies
+	if(CHECK_LIB('liblzma_a.lib', 'xz', PHP_PHP_BUILD + '\\lib') &&
+	   CHECK_HEADER_ADD_INCLUDE('lzma.h', 'CFLAGS_XZ', PHP_PHP_BUILD + '\\include')
+	){
+		AC_DEFINE('HAVE_XZ', 1, 'xz support enabled');
+
+		EXTENSION('xz', 'xz.c xz_fopen_wrapper.c utils.c', true, '/D LZMA_API_STATIC /DZEND_ENABLE_STATIC_TSRMLS_CACHE=1');
+	}
+	else{
+		WARNING('xz not enabled; libraries and headers not found');
+	}
 }
