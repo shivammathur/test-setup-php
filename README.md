@@ -39,10 +39,16 @@ Before the compilation step, clone this repository to `[...]\php-src\ext\xz` and
 git clone https://github.com/Microsoft/php-sdk-binary-tools.git c:\php-sdk
 cd c:\php-sdk
 phpsdk-vs16-x64.bat
+```
+Run the buildtree script and check out the php source:
+```bat
 phpsdk_buildtree php-8.0
 git clone https://github.com/php/php-src.git
 cd php-src
 git checkout PHP-8.0
+```
+Clone the xz extension and run the build:
+```bat
 git clone https://github.com/codemasher/php-ext-xz .\ext\xz
 phpsdk_deps -u
 buildconf --force
