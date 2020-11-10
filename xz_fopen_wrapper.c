@@ -20,8 +20,8 @@
 #include <lzma.h>
 
 #include "php.h"
+#include "php_streams.h"
 #include "fopen_wrappers.h"
-
 #include "php_xz.h"
 
 /* {{{ php_xz_stream_data_t */

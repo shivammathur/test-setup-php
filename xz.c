@@ -18,7 +18,6 @@
 */
 
 #include <lzma.h>
-//#include "./xz-5.2.4/src/liblzma/api/lzma.h"
 
 #ifdef HAVE_CONFIG_H
 # include "config.h"
@@ -90,20 +89,13 @@ zend_module_entry xz_module_entry = {
 	xz_functions,
 	PHP_MINIT(xz),
 	PHP_MSHUTDOWN(xz),
-	NULL, /* PHP_RINIT */
-	NULL, /* PHP_RSHUTDOWN */
+	NULL, /* PHP_RINIT(xz) */
+	NULL, /* PHP_RSHUTDOWN(xz) */
 	PHP_MINFO(xz),
-	PHP_XZ_VERSION,
+	PHP_VERSION,
 	STANDARD_MODULE_PROPERTIES
 };
 /* }}} */
-
-#ifdef COMPILE_DL_XZ
-# ifdef ZTS
-ZEND_TSRMLS_CACHE_DEFINE()
-# endif
-ZEND_GET_MODULE(xz)
-#endif
 
 /* {{{ INI entries. */
 PHP_INI_BEGIN()
@@ -317,6 +309,13 @@ PHP_FUNCTION(xzdecode)
 	RETURN_STRINGL(out, out_len);
 }
 /* }}} */
+
+#ifdef COMPILE_DL_XZ
+#ifdef ZTS
+    ZEND_TSRMLS_CACHE_DEFINE();
+#endif
+ZEND_GET_MODULE(xz)
+#endif
 
 /*
  * Local variables:
