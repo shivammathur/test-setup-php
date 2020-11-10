@@ -172,7 +172,11 @@ static int php_xz_init_encoder(struct php_xz_stream_data_t *self)
 
 /* {{{ php_xziop_read
    Reads from the stream. */
+#if PHP_VERSION_ID >= 70400
 static ssize_t php_xziop_read(php_stream *stream, char *buf, size_t count)
+#else
+static size_t php_xziop_read(php_stream *stream, char *buf, size_t count)
+#endif
 {
 	struct php_xz_stream_data_t *self = (struct php_xz_stream_data_t *) stream->abstract;
 	lzma_stream *strm = &self->strm;
@@ -210,7 +214,11 @@ static ssize_t php_xziop_read(php_stream *stream, char *buf, size_t count)
 
 /* {{{ php_xziop_write
    Writes to the stream. */
+#if PHP_VERSION_ID >= 70400
 static ssize_t php_xziop_write(php_stream *stream, const char *buf, size_t count)
+#else
+static size_t php_xziop_write(php_stream *stream, const char *buf, size_t count)
+#endif
 {
 	struct php_xz_stream_data_t *self = (struct php_xz_stream_data_t *) stream->abstract;
 	int wrote = 0, bytes_consumed = 0;
@@ -305,14 +313,21 @@ php_stream_ops php_stream_xzio_ops = {
 	NULL, /* cast */
 	NULL, /* stat */
 	NULL  /* set_option */
+	.label = "XZ",
+	.write = php_xziop_write,
+	.read = php_xziop_read,
+	.close = php_xziop_close,
+	.flush = php_xziop_flush,
+	.seek = NULL,
+	.cast = NULL,
+	.stat = NULL,
+	.set_option = NULL
 };
 /* }}} */
 
 /* {{{ php_stream_xzopen
    Opens a stream. */
-php_stream *php_stream_xzopen(php_stream_wrapper *wrapper, const char *path,
-	const char *mode_pass, int options, zend_string **opened_path,
-	php_stream_context *context STREAMS_DC)
+php_stream *php_stream_xzopen(php_stream_wrapper *wrapper, const char *path, const char *mode_pass, int options, zend_string **opened_path, php_stream_context *context STREAMS_DC)
 {
 	char mode[64];
 	unsigned long level = 6;
@@ -323,7 +338,7 @@ php_stream *php_stream_xzopen(php_stream_wrapper *wrapper, const char *path,
 
 	/* The pointer below is freed even though it is `const` because it was
 	   manually allocated in `xzopen`.. */
-	efree((void *) mode_pass);
+	efree((char *) mode_pass);
 
 	/* Split compression level and mode. */
 	char *colonp = strchr(mode, ':');

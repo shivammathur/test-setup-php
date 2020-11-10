@@ -146,8 +146,8 @@ PHP_MINFO_FUNCTION(xz)
 PHP_FUNCTION(xzopen)
 {
 	char *filename = NULL, *mode = NULL;
-	size_t filename_len = 0, mode_len = 0;
-	unsigned long compression_level = INI_INT("xz.compression_level");
+	zend_long filename_len = 0, mode_len = 0;
+	zend_ulong compression_level = INI_INT("xz.compression_level");
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "ss|l", &filename, &filename_len, &mode, &mode_len, &compression_level) == FAILURE) {
 		return;

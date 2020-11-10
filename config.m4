@@ -21,5 +21,5 @@ if test "$PHP_XZ" != "no"; then
   ])
   PHP_SUBST(XZ_SHARED_LIBADD)
 
-  PHP_NEW_EXTENSION(xz, xz.c xz_fopen_wrapper.c utils.c, $ext_shared)
+  PHP_NEW_EXTENSION(xz, xz.c xz_fopen_wrapper.c utils.c, $ext_shared, -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1)
 fi

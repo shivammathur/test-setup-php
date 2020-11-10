@@ -36,10 +36,6 @@ extern php_stream_wrapper php_stream_xz_wrapper;
 #	define PHP_XZ_API
 #endif
 
-# if defined(ZTS) && defined(COMPILE_DL_XZ)
-ZEND_TSRMLS_CACHE_EXTERN()
-# endif
-
 #ifdef ZTS
 #	include "TSRM.h"
 #endif
@@ -53,15 +49,7 @@ PHP_FUNCTION(xzopen);
 PHP_FUNCTION(xzencode);
 PHP_FUNCTION(xzdecode);
 
-php_stream *php_stream_xzopen(php_stream_wrapper *wrapper, const char *path,
-	const char *mode_pass, int options, zend_string **opened_path,
-	php_stream_context *context STREAMS_DC);
-
-#ifdef ZTS
-#	define XZ_G(v) TSRMG(xz_globals_id, zend_xz_globals *, v)
-#else
-#	define XZ_G(v) (xz_globals.v)
-#endif
+php_stream *php_stream_xzopen(php_stream_wrapper *wrapper, const char *path, const char *mode_pass, int options, zend_string **opened_path, php_stream_context *context STREAMS_DC);
 
 #endif	/* PHP_XZ_H */
 
