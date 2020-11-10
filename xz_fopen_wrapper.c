@@ -1,8 +1,6 @@
 /*
 	+----------------------------------------------------------------------+
-	| PHP Version 5                                                        |
-	+----------------------------------------------------------------------+
-	| Copyright (c) 1997-2015 The PHP Group                                |
+	| Copyright (c) 2019 The PHP Group                                     |
 	+----------------------------------------------------------------------+
 	| This source file is subject to version 3.01 of the PHP license,      |
 	| that is bundled with this package in the file LICENSE, and is        |
@@ -15,6 +13,7 @@
 	| Authors: Payden Sutherland <payden@paydensutherland.com>             |
 	|          Dan Ungureanu <udan1107@gmail.com>                          |
 	|          authors of the `zlib` extension (for guidance)              |
+	|          krakjoe (updated for PHP 7)                                 |
 	+----------------------------------------------------------------------+
 */
 
