@@ -312,7 +312,7 @@ php_stream_ops php_stream_xzio_ops = {
 	NULL, /* seek */
 	NULL, /* cast */
 	NULL, /* stat */
-	NULL  /* set_option */
+	NULL,  /* set_option */
 	.label = "XZ",
 	.write = php_xziop_write,
 	.read = php_xziop_read,
