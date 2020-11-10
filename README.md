@@ -1,6 +1,6 @@
 # php-ext-xz
 
-PHP Extension providing XZ (LZMA2) compression/decompression functions. (see also [Implement lzma (xz?) compression](https://news-web.php.net/php.internals/106654))
+PHP Extension providing XZ (LZMA2) compression/decompression functions. ([Implement lzma (xz?) compression](https://news-web.php.net/php.internals/106654))
 
 [![Build Status](https://travis-ci.org/codemasher/php-ext-xz.svg?branch=main)](https://travis-ci.org/codemasher/php-ext-xz)
 [![Continuous Integration](https://github.com/codemasher/php-ext-xz/workflows/Continuous%20Integration/badge.svg)](https://github.com/codemasher/php-ext-xz/actions)
@@ -28,7 +28,7 @@ Do not forget to add `extension=xz.so` to your `php.ini`.
 
 ### Windows
 
-Follow the steps under ""[Build your own PHP on Windows](https://wiki.php.net/internals/windows/stepbystepbuild)" to setup your build environment.
+Follow the steps under "[Build your own PHP on Windows](https://wiki.php.net/internals/windows/stepbystepbuild)" to setup your build environment.
 Before the compilation step, clone this repository to `[...]\php-src\ext\xz` and proceed.
 
 ```bat
