@@ -26,7 +26,7 @@ extern php_stream_wrapper php_stream_xz_wrapper;
 # define phpext_xz_ptr &xz_module_entry
 
 /* The default size of the buffer used for compression and decompression. */
-#define XZ_BUFFER_SIZE                  4096
+#define XZ_BUFFER_SIZE 4096
 
 #ifdef PHP_WIN32
 #	define PHP_XZ_API __declspec(dllexport)
