@@ -1,22 +1,5 @@
 name: Main workflow
-on:
-  workflow_dispatch:
-  pull_request:
-    branches:
-      - master
-      - develop
-      - verbose
-    paths-ignore:
-      - '**.md'
-      - 'examples/**'
-  push:
-    branches:
-      - master
-      - develop
-      - verbose
-    paths-ignore:
-      - '**.md'
-      - 'examples/**'
+on: [push]
 jobs:
   run:
     name: Run
