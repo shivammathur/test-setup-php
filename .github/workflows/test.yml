@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Setup PHP with extensions and custom config
-        uses: shivammathur/shivammathur@verbose
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: ${{ env.extensions }}
