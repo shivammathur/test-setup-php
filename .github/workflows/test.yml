@@ -4,7 +4,6 @@ on:
 jobs:
   ubuntu:
     name: runner
-    container: ubuntu:bionic
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
