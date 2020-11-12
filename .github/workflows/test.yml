@@ -9,14 +9,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        php: ['8.0', '8.1']
+        os: [macos-latest]
+        php: ['54', '55']
     steps:
       - name: Test
         run: |
-          apt-get update
-          apt-get install -y sudo curl
-          curl -sSLO https://github.com/shivammathur/php-builder/releases/latest/download/install.sh
-          chmod a+x ./install.sh
-          ./install.sh local ${{ matrix.php }}
-          php -v
+          php_version=php${{ matrix.php }}
+          github_link="https://github.com/"
+          github_repo="$github_link/shivammathur/php5-darwin"          
+          curl -o "$tmp_path".tar.zst -sSL "$github_repo"/releases/latest/download/"$php_version".tar.zst
+          zstd -cd "$tmp_path".tar.zst - | tar -xf - -C /tmp
+          ls /tmp/$php_version
+
