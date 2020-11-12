@@ -18,6 +18,6 @@ jobs:
           github_link="https://github.com/"
           github_repo="$github_link/shivammathur/php5-darwin"          
           curl -o "$tmp_path".tar.zst -sSL "$github_repo"/releases/latest/download/"$php_version".tar.zst
-          zstd -cd "$tmp_path".tar.zst - | tar -xf - -C /tmp
+          sudo tar -I zstd -xf "$tmp_path".tar.zst -C /tmp
           ls /tmp/$php_version
 
