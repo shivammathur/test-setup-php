@@ -10,24 +10,36 @@ jobs:
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
         php-versions: ['5.3', '5.4', '5.5']
     env:
-      extensions: xml, opcache, xdebug, pcov
-      key: cache-v3
+      extensions: xml, opcache, xdebug, pcov    
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
       - name: Setup PHP with extensions and custom config
-        run: |
-          curl -OsL https://github.com/shivammathur/php5-ubuntu/releases/download/builds/php5-ubuntu.sh
-          bash php5-ubuntu.sh ${{ matrix.php-versions }}
-
-#        uses: shivammathur/setup-php@verbose
-#        with:
-#          php-version: ${{ matrix.php-versions }}
-#          extensions: ${{ env.extensions }}
-#          ini-values: post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata
+        uses: shivammathur/shivammathur@verbose
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.extensions }}
+          ini-values: post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata
 
       - name: Testing PHP version
         run: |
           php -v
           php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+
+      - name: Testing Composer version
+        run: |
+          composer -V
+          php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
+      - name: Testing Extensions
+        run: |
+          php -m
+          php -r "if(! extension_loaded('xml')) {throw new Exception('xml not found');}"
+          php -r "if(! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
+          php -r "if(phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
+      - name: Testing ini values
+        run: |
+          php -r "if(ini_get('memory_limit')!='-1') {throw new Exception('memory_limit not disabled');}"
+          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
+          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
+          php -r "if(
