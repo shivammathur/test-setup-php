@@ -42,4 +42,4 @@ jobs:
           php -r "if(ini_get('memory_limit')!='-1') {throw new Exception('memory_limit not disabled');}"
           php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
           php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
-          php -r "if(
+          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
