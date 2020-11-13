@@ -14,11 +14,6 @@ jobs:
     steps:
       - name: Test
         run: |
-          node -e "console.log('php-version' + process.env['php-version']);"
-          node -e "console.log('php_version' + process.env['php_version']);"
-          node -e "console.log('extensions' + process.env['extensions']);"
-          node -e "console.log('tools' + process.env['tools']);"
-        env:
-          php_version: ${{ matrix.php }}
-          extensions: pcov
-          tools: cs2pr
+          sudo curl -o /usr/local/bin/setup-php -sL https://setup-php.com/setup-php
+          sudo chmod a+x /usr/local/bin/setup-php
+          setup-php --help
