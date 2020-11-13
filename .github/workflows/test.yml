@@ -14,8 +14,7 @@ jobs:
     steps:
       - name: Test
         run: |
-          sudo curl -o /usr/local/bin/setup-php -sL https://setup-php.com/setup-php && sudo chmod a+x /usr/local/bin/setup-php
-          setup-php --php-version ${{ matrix.php }} \
+          setup-php -v --php-version ${{ matrix.php }} \
             --extensions "intl, xml" \
             --coverage "pcov" \
             --tools "cs2pr, phpunit"
