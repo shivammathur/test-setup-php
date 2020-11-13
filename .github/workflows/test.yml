@@ -14,9 +14,8 @@ jobs:
     steps:
       - name: Test
         run: |
-          ls /__t/
-          ls /__w/_actions/shivammathur/setup-php/v2/
-        
+          which node
+          ldd /__e/node12/bin/node        
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
