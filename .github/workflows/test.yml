@@ -9,12 +9,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tag: ["amd64", "i386"]
+        tag: ["i386"]
         php: ['7.3', '7.4']
     steps:
       - name: Test
         run: |
           echo $PATH
+          ln -sf /lib/i386-linux-gnu /lib/x86_64-linux-gnu
+          ln -sf /usr/lib/i386-linux-gnu /usr/lib/x86_64-linux-gnu
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
