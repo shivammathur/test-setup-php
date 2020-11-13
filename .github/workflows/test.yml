@@ -5,7 +5,7 @@ jobs:
   ubuntu:
     name: multiarch    
     runs-on: ubuntu-latest
-    container: i386/ubuntu:bionic
+    container: shivammathur/node:bionic-${{ matrix.tag }}
     strategy:
       fail-fast: false
       matrix:
@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
-        with:
+        env:
           php-version: ${{ matrix.php }}
           extensions: pcov
           tools: cs2pr
