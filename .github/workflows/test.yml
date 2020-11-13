@@ -1,26 +1,24 @@
-name: Main workflow
-on: [push]
+name: Multiarch workflow
+on:
+  push:
 jobs:
-  run:
-    name: Run
-    runs-on: ${{ matrix.operating-system }}
+  ubuntu:
+    name: multiarch    
+    runs-on: ubuntu-latest
+    container: shivammathur/node:bionic-${{ matrix.tag }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest, macos-11.0]
-        php-versions: ['8.0', '8.1'] 
+        tag: ["amd64", "i386"]
+        php: ['7.3', '7.4']
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      
-      - run: echo "127.0.0.1	ocsp.apple.com" | sudo tee -a /etc/hosts
-
-      - name: Setup PHP with extensions and custom config
-        uses: shivammathur/setup-php@verbose
-        with:
-          php-version: ${{ matrix.php-versions }}
-
-      - name: Testing PHP version
-        run: |
-          php -v
-          sudo cat /etc/hosts
+      - name: Setup PHP
+        # Inputs to manual.sh are in this order - php-versions, extensions, ini-values, coverage, tools
+        run: curl -sL https://setup-php.com/manual.sh | bash
+        env:
+          php-version: ${{ matrix.php }}
+          extensions: pcov
+          tools: cs2pr
+      - name: check int size
+        # PHP_INT_SIZE is 4 for 32 bit and 8 for 64 bit
+        run: php -r "echo PHP_INT_SIZE;"
