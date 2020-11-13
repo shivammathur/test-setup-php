@@ -14,8 +14,7 @@ jobs:
     steps:
       - name: Test
         run: |
-          which node
-          ldd /__e/node12/bin/node        
+          sudo rm -rf /__e/node12
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
