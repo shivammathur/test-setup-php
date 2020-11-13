@@ -18,6 +18,7 @@ jobs:
           ln -sf /lib /lib64
           ln -sf /lib/i386-linux-gnu /lib/x86_64-linux-gnu
           ln -sf /usr/lib/i386-linux-gnu /usr/lib/x86_64-linux-gnu
+          /__e/node12/bin/node --version
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
