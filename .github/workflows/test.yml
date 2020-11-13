@@ -9,11 +9,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tag: ["amd64", "i386"]
+   #     tag: ["amd64", "i386"]
         php: ['7.3', '7.4']
     steps:
       - name: Setup PHP
-        run: node -e "console.log(process.env);
+        run: node -e "console.log(process.env);"
         env:
           php-version: ${{ matrix.php }}
           extensions: pcov
