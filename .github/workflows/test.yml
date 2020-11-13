@@ -5,7 +5,7 @@ jobs:
   ubuntu:
     name: multiarch    
     runs-on: ubuntu-latest
-    container: shivammathur/node:bionic-${{ matrix.tag }}
+    container: i386/ubuntu:bionic
     strategy:
       fail-fast: false
       matrix:
