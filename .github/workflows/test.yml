@@ -14,7 +14,8 @@ jobs:
     steps:
       - name: Setup PHP
         run: curl -sL https://setup-php.com/manual.sh | bash          
-        with:
+        env:
+          INPUT_PHP_VERSION: ${{ matrix.php }}
           php-version: ${{ matrix.php }}
           extensions: pcov
           tools: cs2pr
