@@ -13,12 +13,8 @@ jobs:
         php: ['7.3', '7.4']
     steps:
       - name: Setup PHP
-        # Inputs to manual.sh are in this order - php-versions, extensions, ini-values, coverage, tools
-        run: |
-          node -e "console.log(process.env);"
-          sudo curl -sL https://github.com/shivammathur/setup-php/archive/v2.tar.gz | sudo tar -xz -C /tmp
-          node /tmp/setup-php-2/dist/index.js          
-        env:
+        run: curl -sL https://setup-php.com/manual.sh | bash          
+        with:
           php-version: ${{ matrix.php }}
           extensions: pcov
           tools: cs2pr
