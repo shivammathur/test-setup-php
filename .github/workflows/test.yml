@@ -12,9 +12,14 @@ jobs:
         tag: ["amd64", "i386"]
         php: ['7.3', '7.4']
     steps:
+      - name: Test
+        run: |
+          ls /__t/
+          ls /__w/_actions/shivammathur/setup-php/v2/
+        
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
-        env:
+        with:
           php-version: ${{ matrix.php }}
           extensions: pcov
           tools: cs2pr
