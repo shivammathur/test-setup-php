@@ -15,7 +15,7 @@ jobs:
       - name: Setup PHP
         # Inputs to manual.sh are in this order - php-versions, extensions, ini-values, coverage, tools
         run: |
-          node -e "console.log(process.env);
+          node -e "console.log(process.env);"
           sudo curl -sL https://github.com/shivammathur/setup-php/archive/v2.tar.gz | sudo tar -xz -C /tmp
           node /tmp/setup-php-2/dist/index.js          
         env:
