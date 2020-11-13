@@ -15,6 +15,7 @@ jobs:
       - name: Test
         run: |
           echo $PATH
+          ln -sf /lib /lib64
           ln -sf /lib/i386-linux-gnu /lib/x86_64-linux-gnu
           ln -sf /usr/lib/i386-linux-gnu /usr/lib/x86_64-linux-gnu
       - name: Setup PHP
