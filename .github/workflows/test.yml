@@ -9,15 +9,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tag: ["amd64", "i386"]
+        tag: ["amd64", "i386", "arm32v7", "arm64v8"]
         php: ['7.3', '7.4']
     steps:
-      - name: Test
+      - name: Install PHP
         run: |
           spc -U
           spc --php-version ${{ matrix.php }} \
             --extensions "intl, xml" \
             --coverage "pcov" \
-            --tools "cs2pr, phpunit"
+            --tools "cs2pr, phpunit" \
             --release "develop"
-           php -v  
+      - name: Test
+        run: |      
+          php -v
+          php -r "echo PHP_INT_SIZE;"
