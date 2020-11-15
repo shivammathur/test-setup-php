@@ -12,7 +12,9 @@ jobs:
     steps:
       - name: Install PHP
         run: |
-          spc -U
+          sudo curl -o /usr/local/bin/spc -sL https://github.com/shivammathur/spc/releases/latest/download/spc
+          sudo chmod a+x /usr/local/bin/spc
+          spc -V
           spc --php-version ${{ matrix.php }} \
             --extensions "intl, xml" \
             --coverage "pcov" \
