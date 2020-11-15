@@ -4,13 +4,15 @@ on:
 jobs:
   ubuntu:
     name: spc
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        php: ['7.4', '8.0', '8.1']
+        php: ['7.4']
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - name: Install PHP
+        shell: bash
         run: |
           sudo curl -o /usr/local/bin/spc -sL https://github.com/shivammathur/spc/releases/latest/download/spc
           sudo chmod a+x /usr/local/bin/spc
