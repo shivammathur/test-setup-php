@@ -24,4 +24,4 @@ jobs:
         run: |      
           php -v
           php -r "echo PHP_INT_SIZE;"
-          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"          
+          php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"          
