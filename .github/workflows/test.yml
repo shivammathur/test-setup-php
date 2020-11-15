@@ -15,7 +15,11 @@ jobs:
       - name: Install reqs
         run: |
           apt-get update
-          apt-get install -y sudo curl nodejs
+          apt-get install -y sudo curl
+      - name: Setup Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14'
       - name: Install PHP
         run: |
           curl -o /tmp/spc -sL https://github.com/shivammathur/spc/releases/latest/download/spc
