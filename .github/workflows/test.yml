@@ -15,7 +15,7 @@ jobs:
       - name: Test
         run: |
           spc -U
-          spc -v --php-version ${{ matrix.php }} \
+          spc --php-version ${{ matrix.php }} \
             --extensions "intl, xml" \
             --coverage "pcov" \
             --tools "cs2pr, phpunit"
