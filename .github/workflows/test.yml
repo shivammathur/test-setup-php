@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tag: ["amd64", "i386", "arm32v7", "arm64v8"]
+        tag: ["amd64", "i386"]
         php: ['7.3', '7.4']
     steps:
       - name: Install reqs
@@ -18,7 +18,9 @@ jobs:
           apt-get install -y sudo curl nodejs
       - name: Install PHP
         run: |
-          spc -U
+          curl -o /tmp/spc -sL https://github.com/shivammathur/spc/releases/latest/download/spc
+          sudo mv /tmp/spc /usr/local/bin/spc
+          sudo chmod a+x /usr/local/bin/spc          
           spc --php-version ${{ matrix.php }} \
             --extensions "intl, xml" \
             --coverage "pcov" \
