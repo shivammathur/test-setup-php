@@ -9,15 +9,18 @@ jobs:
       fail-fast: false
       matrix:
         php: ['7.4']
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
+        run_path: [/usr/local/bin]
+        include:
+          - os: windows-latest
+            run_path: C:/tools/php
     steps:
+      - name: Install SPC
+        run: curl -o ${{ matrix.run_path }}/spc -sL https://github.com/shivammathur/spc/releases/latest/download/spc
       - name: Install PHP
-        shell: bash
         run: |
-          sudo curl -o /usr/local/bin/spc -sL https://github.com/shivammathur/spc/releases/latest/download/spc
-          sudo chmod a+x /usr/local/bin/spc
-          spc -V
-          spc --php-version ${{ matrix.php }} \
+          bash spc -V
+          bash spc --php-version ${{ matrix.php }} \
             --extensions "intl, xml" \
             --coverage "pcov" \
             --tools "cs2pr, phpunit" \
