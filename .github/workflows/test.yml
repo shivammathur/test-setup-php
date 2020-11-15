@@ -5,28 +5,16 @@ jobs:
   ubuntu:
     name: multiarch    
     runs-on: ubuntu-latest
-    container: ${{ matrix.tag }}/ubuntu:bionic
+    container: shivammathur/node:latest-${{ matrix.tag }}
     strategy:
       fail-fast: false
       matrix:
         tag: ["amd64", "i386"]
         php: ['7.3', '7.4']
     steps:
-      - name: Install reqs
-        run: |
-          apt-get update          
-          apt-get install -y sudo curl
-          curl -sL https://deb.nodesource.com/setup_14.x | sudo bash -
-          apt-get install -y nodejs
-      - name: Setup Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: '14'
       - name: Install PHP
         run: |
-          curl -o /tmp/spc -sL https://github.com/shivammathur/spc/releases/latest/download/spc
-          sudo mv /tmp/spc /usr/local/bin/spc
-          sudo chmod a+x /usr/local/bin/spc          
+          spc -U
           spc --php-version ${{ matrix.php }} \
             --extensions "intl, xml" \
             --coverage "pcov" \
