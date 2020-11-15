@@ -14,8 +14,10 @@ jobs:
     steps:
       - name: Install reqs
         run: |
-          apt-get update
+          apt-get update          
           apt-get install -y sudo curl
+          curl -sL https://deb.nodesource.com/setup_14.x | sudo bash -
+          apt-get install -y nodejs
       - name: Setup Node
         uses: actions/setup-node@v1
         with:
