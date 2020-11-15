@@ -19,7 +19,7 @@ jobs:
         uses: shivammathur/setup-php@releases/v1
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, codeception, cs2pr, phpunit, psalm, phinx, phive, deployer, prestissimo, composer-prefetcher, pecl, phpize, php-config, symfony
+          tools: php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, codeception, cs2pr, phpunit, psalm, phinx, phive, deployer, pecl, phpize, php-config, symfony
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
@@ -38,12 +38,7 @@ jobs:
           phive status
           deployer -V
           symfony version
-      - name: Test prestissimo
-        run: composer global show hirak/prestissimo
-        continue-on-error: true
-      - name: Test composer-prefetcher
-        run: composer global show narrowspark/automatic-composer-prefetcher
-        continue-on-error: true
+          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
       - name: Test pecl, phpize, php-config
         if: matrix.operating-system != 'windows-latest'
         run: |
@@ -75,7 +70,7 @@ jobs:
         uses: shivammathur/setup-php@releases/v1
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: php-cs-fixer:2.16.2, phpcs:3.5.2, phpcbf:3.5.2, phpcpd:4.0.0, phpstan:0.12.3, phpmd:2.8.0, codeception:3.1.2, cs2pr:1.0.1, phpunit:8.5.0, psalm:3.8.0, phinx:0.11.3, phive:0.13.1, deployer:6.7.2, prestissimo:0.3.8, composer-prefetcher:0.13.0, composer:1.2.3, pecl:1.2.3, symfony:4.12.3
+          tools: php-cs-fixer:2.16.2, phpcs:3.5.2, phpcbf:3.5.2, phpcpd:4.0.0, phpstan:0.12.3, phpmd:2.8.0, codeception:3.1.2, cs2pr:1.0.1, phpunit:8.5.0, psalm:3.8.0, phinx:0.11.3, phive:0.13.1, deployer:6.7.2, composer:2.0.4, pecl:1.2.3, symfony:4.12.3
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
@@ -94,12 +89,7 @@ jobs:
           phive status
           deployer -V
           symfony version
-      - name: Test prestissimo
-        run: composer global show hirak/prestissimo
-        continue-on-error: true
-      - name: Test composer-prefetcher
-        run: composer global show narrowspark/automatic-composer-prefetcher
-        continue-on-error: true
+          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
       - name: Test pecl
         if: matrix.operating-system != 'windows-latest'
         run: pecl -V
@@ -128,7 +118,7 @@ jobs:
         uses: shivammathur/setup-php@releases/v1
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: php-cs-fixer:100.100.100, phpcs:^3.5.2, phpcbf:>=3.5.2, phpcpd:<=4.0.0, phpstan:^0.12.3, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, composer
+          tools: php-cs-fixer:100.100.100, phpcs:^3.5.2, phpcbf:>=3.5.2, phpcpd:<=4.0.0, phpstan:^0.12.3, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, composer, composer-prefetcher
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
@@ -138,5 +128,8 @@ jobs:
           phpcbf --version
           phpcpd -V
           phpstan -V
+          php -r "if(strpos(@exec('composer -V'), 'Composer version 1') === false) {throw new Exception('Wrong composer version');}"
       - name: Test prestissimo
-        run: composer global show hirak/prestissimo
+        run: |
+          composer global show hirak/prestissimo
+          composer global show narrowspark/automatic-composer-prefetcher
