@@ -5,13 +5,17 @@ jobs:
   ubuntu:
     name: multiarch    
     runs-on: ubuntu-latest
-    container: shivammathur/node:bionic-${{ matrix.tag }}
+    container: ${{ matrix.tag }}/ubuntu:bionic
     strategy:
       fail-fast: false
       matrix:
         tag: ["amd64", "i386", "arm32v7", "arm64v8"]
         php: ['7.3', '7.4']
     steps:
+      - name: Install reqs
+        run: |
+          apt-get update
+          apt-get install -y sudo curl nodejs
       - name: Install PHP
         run: |
           spc -U
