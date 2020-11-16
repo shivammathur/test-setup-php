@@ -14,7 +14,7 @@ jobs:
         uses: actions/checkout@v2
 
       -   name: Install system dependencies
-          if: matrix.operating-system == 'ubuntu-16.04'
+          if: matrix.operating-system == 'ubuntu-18.04'
           run: |
             sudo wget -O - http://packages.couchbase.com/ubuntu/couchbase.key | sudo apt-key add -
             echo "deb http://packages.couchbase.com/ubuntu bionic bionic/main" | sudo tee /etc/apt/sources.list.d/couchbase.list
@@ -27,7 +27,7 @@ jobs:
             brew install libcouchbase
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
           tools: pecl
