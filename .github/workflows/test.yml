@@ -3,12 +3,14 @@ on:
   push:
 jobs:
   run:
-    runs-on: ${{ matrix.operating-system }}
+    runs-on: ubuntu-latest
+    # runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, windows-latest, macos-latest]
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        php-versions: ['7.2', '7.3', '7.4', '8.0', '8.1']
+        # operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, windows-latest, macos-latest]
+        # php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
