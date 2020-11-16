@@ -13,25 +13,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      -   name: Install system dependencies
-          if: startsWith(matrix.operating-system, 'ubuntu')
-          run: |
-            . /etc/lsb-release
-            sudo curl -sL https://packages.couchbase.com/clients/c/repos/deb/couchbase.key | sudo apt-key add
-            echo "deb https://packages.couchbase.com/clients/c/repos/deb/ubuntu${DISTRIB_RELEASE/./} $DISTRIB_CODENAME $DISTRIB_CODENAME/main" | sudo tee /etc/apt/sources.list.d/couchbase.list
-            sudo apt-get update
-            sudo apt-get install libcouchbase-dev
-
-      -   name: Install system dependencies
-          if: matrix.operating-system == 'macos-latest'
-          run: |
-            brew install libcouchbase
-
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: pecl
           extensions: couchbase
 
       - name: Check PHP version
