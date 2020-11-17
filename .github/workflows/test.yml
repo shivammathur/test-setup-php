@@ -14,7 +14,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: tidy
@@ -25,4 +25,4 @@ jobs:
       - name: Check PHP extensions
         run: |
           php -m
-          php -r "if(! extension_loaded('tidy')) {throw new Exception('couchbase not found');}"
+          php -r "if(! extension_loaded('tidy')) {throw new Exception('tidy not found');}"
