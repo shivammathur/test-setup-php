@@ -3,13 +3,13 @@ on:
   push:
 jobs:
   old_versions:
-    name: old_versions
+    name: tools
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
-        php-versions: ['5.5']
+        operating-system: [ubuntu-latest, windows-latest, macOS-latest]
+        php-versions: ['7.4']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -17,24 +17,4 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: blackfire, blackfire-player, php-cs-fixer:2.2.20, phpcs:2.9.2, phpcbf:2.9.2, phpcpd:2.0.4, phpmd:2.8.0, codeception:2.3.5, cs2pr:1.0.2, phpunit:4.8.36, phing:2.16.2, phinx:0.5.0, deployer:2.0.0, symfony:4.12.3
-      - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
-      - name: Testing Tools
-        run: |
-          blackfire-agent -v
-          blackfire version -V
-          blackfire-player -V
-          composer -V
-          php-cs-fixer -V
-          phpcs --version
-          phpcbf --version
-          phpcpd -V
-          codeception -V
-          phpunit --version
-          cs2pr version
-          phing -v
-          phinx -V
-          deployer -V
-          symfony version
-          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
+          tools: prestissimo, composer-prefetcher
