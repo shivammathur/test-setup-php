@@ -9,33 +9,23 @@ class PMTest extends TestCase
     }
 
     public function testTwo()
-    {        
-        $this->assertEquals(0, 1);
-    }    
-
-    public function testThree()
-    {                
-		$this->markTestSkipped('skip');
-		$this->assertEquals(0, 1);
+    {
+        $arr1 = [
+            "apple" => "fruit",
+            "mango" => "fruit"
+        ];
+        $arr2 = [
+            "apple" => "fruit",
+            "berries" => "fruit"
+        ];
+        $this->assertJsonStringEqualsJsonString(json_encode($arr1), json_encode($arr2));
     }
-
-    public function testFour()
-    {        
-        $this->assertEquals(0, 1);
-    }  
-
-    public function testFive()
-    {        
-        $this->assertEquals(0, 0);
-    }  
-
-    public function testSix()
-    {        
-		$this->markTestSkipped('skip');
-		$this->assertEquals(0, 1);
-    }     
-    public function testSeven()
-    {            	
-        file_get_contents('/nonexistent_file'); 
-    }              
+    public function testThree()
+    {
+        $arr = [
+            "apple" => "fruit",
+            "mango" => "fruit"
+        ];
+        $this->assertJsonStringEqualsJsonFile('fruit.json', json_encode($arr));
+    }
 }

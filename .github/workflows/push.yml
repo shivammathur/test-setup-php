@@ -5,18 +5,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: shivammathur/setup-php@v2
+    - uses: shivammathur/setup-php@fix-339
       with:
         php-version: '7.4'
     - name: Setup Problem Matchers for PHPUnit
       run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+    - name: Composer dependencies
+      run: composer install --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
     - name: Run Tests
       run: |
-        php -r "echo 'test;" || true
-        php -r "echo 'test;" || true
-        php -r "noecho();" || true
-        php -r "trigger_error('E_USER_WARNING', E_USER_WARNING);" || true
-        php -r "trigger_error('E_USER_NOTICE', E_USER_NOTICE);" || true
-        php -r "trigger_error('E_USER_ERROR', E_USER_ERROR);" || true
-        php -r "trigger_error('E_USER_DEPRECATED', E_USER_DEPRECATED);" || true
+        ./vendor/bin/phpunit
          
