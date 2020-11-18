@@ -7,11 +7,20 @@
           "regexp": "^\\d+\\)\\s.*$"
         },
         {
-          "regexp": "(.*)|(.*Failed\\sasserting\\sthat.*(?:\\r\\n|\\n(?!^\\s*$).*)*)$|^\\s*$|(.*):(\\d+)",
-          "message": 1,
+          "regexp": "^(.*Failed\\sasserting\\sthat.*(?:\\r\\n|\\n(?!^\\s*$).*)*)$",
+          "message": 1
+        },
+        {
+          "regexp": "^((^[@ +-]+|^[}\"\\]]).*)$",
+          "message": 1
+        },
+        {
+          "regexp": "^\\s*$"
+        },
+        {
+          "regexp": "^(.*):(\\d+)$",
           "file": 1,
-          "line": 2,
-          "loop": true
+          "line": 2
         }
       ]
     }
