@@ -5,11 +5,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: shivammathur/setup-php@fix-339
+    - uses: shivammathur/setup-php@v2
       with:
         php-version: '7.4'
-    - name: Setup Problem Matchers for PHPUnit
-      run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+    - name: Setup Problem Matchers
+      run: echo "::add-matcher::./.github/pm.json"
     - name: Composer dependencies
       run: composer install --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
     - name: Run Tests

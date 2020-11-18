@@ -7,8 +7,9 @@
           "regexp": "^\\d+\\)\\s.*$"
         },
         {
-          "regexp": "^(.*Failed\\sasserting\\sthat.*)$",
-          "message": 1
+          "regexp": "^(.*Failed\\sasserting\\sthat.*(?:\\r\\n|\\n(?!^\\s*$).*)*)$",
+          "message": 1,
+          "loop": true
         },
         {
           "regexp": "^\\s*$"
