@@ -4,10 +4,19 @@
       "owner": "phpunit",
       "pattern": [
         {
-          "regexp": ".",
+          "regexp": "^\\d+\\)\\s.*$"
+        },
+        {
+          "regexp": "^(.*)$",
+          "message": 1
+        },
+        {
+          "regexp": "^\\s*$"
+        },
+        {
+          "regexp": "^(.*):(\\d+)$",
           "file": 1,
-          "location": 2,
-          "message": 3
+          "line": 2
         }
       ]
     }
