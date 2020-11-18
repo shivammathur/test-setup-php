@@ -24,7 +24,7 @@ class PMTest extends TestCase
     {
         $arr = [
             "apple" => "fruit",
-            "mango" => "fruit"
+            "berries" => "fruit"
         ];
         $this->assertJsonStringEqualsJsonFile('fruit.json', json_encode($arr));
     }
