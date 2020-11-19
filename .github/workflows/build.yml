@@ -50,6 +50,7 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
+        tools: pecl
       env:
         update: true
         use_package_cache: false    
