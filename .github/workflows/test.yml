@@ -6,18 +6,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
-        operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, windows-latest, macos-latest]
+        php-versions: ['8.0', '8.1']
+        operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, macos-latest]
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: tidy
+          extensions: apcu
 
       - name: Check PHP version
         run: php -v
@@ -25,4 +25,4 @@ jobs:
       - name: Check PHP extensions
         run: |
           php -m
-          php -r "if(! extension_loaded('tidy')) {throw new Exception('tidy not found');}"
+          php -r "if(! extension_loaded('apcu')) {throw new Exception('apcu not found');}"
