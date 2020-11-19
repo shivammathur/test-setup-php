@@ -3,10 +3,10 @@ on:
   push:
 jobs:
   run:
-    runs-on: windows-latest
+    runs-on: ubuntu-16.04
     steps:
       - name: Test
         run: |
-          dir "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
+          sudo apt-cache policy php-pear php[0-9].[0-9]-dev
                  
                
