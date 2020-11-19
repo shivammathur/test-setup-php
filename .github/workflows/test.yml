@@ -3,24 +3,10 @@ on:
   push:
 jobs:
   run:
-    runs-on: ubuntu-latest
-    container: shivammathur/node:latest-${{ matrix.tag }}
-    strategy:
-      matrix:
-        tag: ["amd64", "i386"]
+    runs-on: windows-latest
     steps:
-      - name: Install PHP
-        run: |
-          # Update spc (See https://github.com/shivammathur/spc for options)
-          spc -U
-
-          # Install PHP
-          spc --php-version "7.4" \
-              --extensions "mbstring, intl" \
-              --ini-values "post_max_size=256M, short_open_tag=On" \
-              --coverage "xdebug" \
-              --tools "php-cs-fixer, phpunit"
       - name: Test
-        run: php -v
+        run: |
+          dir "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
                  
                
