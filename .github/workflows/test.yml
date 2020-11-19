@@ -7,14 +7,14 @@ jobs:
       fail-fast: false
       matrix:
         php-versions: ['8.0', '8.1']
-        operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, macos-latest]
+        operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: apcu
