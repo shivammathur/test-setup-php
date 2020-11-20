@@ -14,7 +14,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: xdebug
@@ -25,4 +25,3 @@ jobs:
       - name: Check PHP extensions
         run: |
           php -m
-          php -r "if(! extension_loaded('apcu')) {throw new Exception('apcu not found');}"
