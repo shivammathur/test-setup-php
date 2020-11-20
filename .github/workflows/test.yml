@@ -34,7 +34,7 @@ jobs:
           }
           url='https://github.com/vimeo/psalm/releases/latest/download/psalm.phar'
           IFS="," read -r -a url <<< "$url"
-          url[0]="${url[0]//releases\/latest\/download/releases\/download/$(get -s -n "" "$(echo "${url[0]}" | cut -d '/' -f '1-5')/releases" | grep -Eo -m 1 "([0-9]+\.[0-9]+\.[0-9]+)/$(echo "${url[0]}" | sed -e "s/.*\///")" | cut -d '/' -f 1)}"
+          url[0]="${url[0]//releases\/latest\/download/releases/download/$(get -s -n "" "$(echo "${url[0]}" | cut -d '/' -f '1-5')/releases" | grep -Eo -m 1 "([0-9]+\.[0-9]+\.[0-9]+)/$(echo "${url[0]}" | sed -e "s/.*\///")" | cut -d '/' -f 1)}"
           echo "${url[0]}"
           get -v -e ./psalm "${url[0]}"
                
