@@ -17,4 +17,4 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: prestissimo
+          tools: composer:v1, prestissimo
