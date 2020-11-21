@@ -18,4 +18,6 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-      - run: php -v
+      - run: |
+          php -v
+          php -r "var_dump(opcache_get_status());"
