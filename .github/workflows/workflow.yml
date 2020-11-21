@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019, macos-10.15]
+        os: [ubuntu-latest, windows-latest, macos-10.15]
         php-versions: ['8.0']
     steps:
       - name: Checkout
@@ -19,9 +19,9 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: mbstring, xdebug, pcov, intl, gd
-          ini-values: opcache.enable=0, opcache.enable_cli=0
           coverage: pcov      
       - name: Test
         run: |
           composer -V
           composer global require vimeo/psalm
+          composer global show vimeo/psalm
