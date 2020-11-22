@@ -7,34 +7,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [macos-latest]
     steps:
       - name: Test
         run: |
-          export curl_opts=(-sL)
-          get() {
-            mode=$1
-            execute=$2
-            file_path=$3
-            shift 3
-            links=("$@")
-            echo "mode: $mode"
-            echo "ex: $execute"
-            echo "path: $file_oath"
-            if [ "$mode" = "-s" ]; then
-              sudo curl "${curl_opts[@]}" "${links[0]}"
-            else
-              for link in "${links[@]}"; do
-                status_code=$(sudo curl -w "%{http_code}" -o "$file_path" "${curl_opts[@]}" "$link")
-                [ "$status_code" = "200" ] && break
-              done
-              [ "$execute" = "-e" ] && sudo chmod a+x "$file_path"
-              [ "$mode" = "-v" ] && echo "$status_code"
-            fi
-          }
-          url='https://github.com/vimeo/psalm/releases/latest/download/psalm.phar'
-          IFS="," read -r -a url <<< "$url"
-          url[0]="${url[0]//releases\/latest\/download/releases/download/$(get -s -n "" "$(echo "${url[0]}" | cut -d '/' -f '1-5')/releases" | grep -Eo -m 1 "([0-9]+\.[0-9]+\.[0-9]+)/$(echo "${url[0]}" | sed -e "s/.*\///")" | cut -d '/' -f 1)}"
-          echo "${url[0]}"
-          get -v -e ./psalm "${url[0]}"
-               
+          brew tap shivammathur/openssl-deprecated
+          brew install openssl@1.0
+          brew link --force --overwrite openssl@1.0
+          openssl version               
