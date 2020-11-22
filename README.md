@@ -4,7 +4,7 @@
 <a href="https://github.com/shivammathur/php-ubuntu/blob/main/LICENSE" title="license"><img alt="LICENSE" src="https://img.shields.io/badge/license-MIT-428f7e.svg"></a>
 <a href="https://github.com/shivammathur/php-ubuntu/tree/main/builds" title="builds"><img alt="PHP Versions Supported" src="https://img.shields.io/badge/php-5.6%20to%207.4-8892BF.svg"></a>
 
-> Cache PHP packages for installaing on GitHub Actions
+> Cache PHP packages for installing on GitHub Actions
 
 ## License
 
