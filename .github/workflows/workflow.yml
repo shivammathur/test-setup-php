@@ -21,6 +21,7 @@ jobs:
       - name: Test
         run: |
           sudo tee test.php > /dev/null <<EOT
+          <?php
           $firstRowColumns  = 63;
           var_dump([
               $firstRowColumns,
