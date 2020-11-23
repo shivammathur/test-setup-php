@@ -11,12 +11,7 @@ jobs:
     steps:
       - name: Test
         run: |
-          brew tap shivammathur/openssl-deprecated
-          brew install openssl@1.0
-          brew link --force --overwrite openssl@1.0
-          echo 'export PATH="/usr/local/opt/openssl@1.0/bin:$PATH"' >> "$HOME/.bash_profile"
-          export LDFLAGS="-L/usr/local/opt/openssl@1.0/lib"
-          export CPPFLAGS="-I/usr/local/opt/openssl@1.0/include"
-          export PKG_CONFIG_PATH="/usr/local/opt/openssl@1.0/lib/pkgconfig"
-          source "$HOME/.bash_profile"
-          openssl version               
+          brew tap shivammathur/extensions
+          brew install xdebug@7.4
+          php -v
+          php -m
