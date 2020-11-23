@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
+        os: [ubuntu-18.04]
         php-versions: ['7.4', '8.0', '8.1']
     steps:
       - name: Checkout
@@ -21,4 +21,5 @@ jobs:
       - name: Test
         run: |
           curl -o test.php -H Accept:text/plain -sL https://3v4l.org/kkRIE
+          php test.php
           php test.php
