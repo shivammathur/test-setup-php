@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-18.04]
-        php-versions: ['7.4', '8.0', '8.1']
+        php-versions: ['8.0']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -21,5 +21,8 @@ jobs:
       - name: Test
         run: |
           curl -o test.php -H Accept:text/plain -sL https://3v4l.org/kkRIE
-          php test.php
-          php test.php
+          for ((i=1;i<=10;i++)); 
+          do 
+             echo $i
+             php test.php
+          done
