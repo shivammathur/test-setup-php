@@ -9,15 +9,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-10.15]
-        php-versions: ['8.0']
+        os: [ubuntu-18.04, windows-latest, macos-latest]
+        php-versions: ['7.4', '8.0', '8.1']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}        
       - name: Test
         run: |
-          cat /usr/local/etc/php/8.0/php.ini
+          sudo tee test.php > /dev/null <<EOT
+          $firstRowColumns  = 63;
+          var_dump([
+              $firstRowColumns,
+              ($firstRowColumns / 120),
+              ($firstRowColumns / 120 * 100),
+              (int) ($firstRowColumns / 120 * 100),
+          ]);"
+          EOT
+          php test.php
