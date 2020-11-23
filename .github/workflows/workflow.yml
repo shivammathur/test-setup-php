@@ -20,11 +20,14 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           ini-values: ${{ matrix.opcache }}
+      - name: Check PHP
+        run: php -v
+      - name: Check opcache
+        run: php -r "var_dump(opcache_get_status());"
       - name: Test
-        run: |
-          php -r "var_dump(opcache_get_status());"
+        run: |          
           curl -o test.php -H Accept:text/plain -sL https://3v4l.org/kkRIE
-          for ((i=1;i<=10;i++)); 
+          for ((i=1;i<=5;i++)); 
           do 
              echo $i
              php test.php
