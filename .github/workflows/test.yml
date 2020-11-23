@@ -12,6 +12,6 @@ jobs:
       - name: Test
         run: |
           brew tap shivammathur/extensions
-          brew install xdebug@7.4
+          brew install xdebug@7.4 pcov@7.4 imagick@7.4
           php -v
           php -m
