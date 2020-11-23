@@ -22,12 +22,12 @@ jobs:
         run: |
           sudo tee test.php > /dev/null <<EOT
           <?php
-          $firstRowColumns  = 63;
+          \$firstRowColumns = 63;
           var_dump([
-              $firstRowColumns,
-              ($firstRowColumns / 120),
-              ($firstRowColumns / 120 * 100),
-              (int) ($firstRowColumns / 120 * 100),
-          ]);"
+              \$firstRowColumns,
+              (\$firstRowColumns / 120),
+              (\$firstRowColumns / 120 * 100),
+              (int) (\$firstRowColumns / 120 * 100),
+          ]);
           EOT
           php test.php
