@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-18.04]
-        php-versions: ['7.4', '8.0']
+        php-versions: ['7.4', '8.0', '8.1']
         opcache: ['opcache.enable=1', 'opcache.enable=0']
     steps:
       - name: Checkout
