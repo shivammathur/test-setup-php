@@ -19,7 +19,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          ini_values: ${{ matrix.opcache }}
+          ini-values: ${{ matrix.opcache }}
       - name: Test
         run: |
           php -r "var_dump(opcache_get_status());"
