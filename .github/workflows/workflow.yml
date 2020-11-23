@@ -10,14 +10,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-18.04]
-        php-versions: ['8.0']
+        php-versions: ['7.4', '8.0']
+        opcache: ['opcache.enable=1', 'opcache.enable=0']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-versions }}        
+          php-version: ${{ matrix.php-versions }}
+          ini_values: ${{ matrix.opcache }}
       - name: Test
         run: |
           php -r "var_dump(opcache_get_status());"
