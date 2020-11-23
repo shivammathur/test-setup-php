@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
         php-versions: ['7.4', '8.0', '8.1']
     steps:
       - name: Checkout
@@ -20,14 +20,5 @@ jobs:
           php-version: ${{ matrix.php-versions }}        
       - name: Test
         run: |
-          sudo tee test.php > /dev/null <<EOT
-          <?php
-          \$firstRowColumns = 63;
-          var_dump([
-              \$firstRowColumns,
-              (\$firstRowColumns / 120),
-              (\$firstRowColumns / 120 * 100),
-              (int) (\$firstRowColumns / 120 * 100),
-          ]);
-          EOT
+          curl -o test.php -H Accept:text/plain -sL https://3v4l.org/kkRIE
           php test.php
