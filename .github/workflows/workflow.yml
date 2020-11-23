@@ -19,7 +19,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          ini-values: ${{ matrix.opcache }}
+          ini-values: opcache.jit=off, ${{ matrix.opcache }}
       - name: Check PHP
         run: php -v
       - name: Check opcache
