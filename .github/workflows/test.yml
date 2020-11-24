@@ -22,7 +22,7 @@ jobs:
         run: |
           pear config-get php_ini
           pecl config-get php_ini
-          cat /usr/local/php/8.0/etc/conf.d/99-pecl.ini
+          cat /usr/local/php/8.0/etc/php.ini
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
