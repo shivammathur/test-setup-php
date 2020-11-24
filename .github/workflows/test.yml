@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-latest]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -17,8 +17,8 @@ jobs:
         with:
           php-version: 8.0
           extensions: pdo_sqlsrv-5.9.0preview1, sqlsrv-5.9.0preview1
-        env:
-          fail-fast: true
+      - run: cat /opt/hostedtoolcache/linux.sh
+      - run: cat    
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
