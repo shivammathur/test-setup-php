@@ -9,27 +9,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04]
-        php-versions: ['7.4', '8.0', '8.1']
-        opcache: ['opcache.enable=1', 'opcache.enable=0']
+        os: [macos-10.15, macos-11.0]
+        php-versions: ['8.0', '8.1']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          ini-values: opcache.jit=off, ${{ matrix.opcache }}
-      - name: Check PHP
+      - name: Check PHP version
         run: php -v
-      - name: Check opcache
-        run: php -r "var_dump(opcache_get_status());"
-      - name: Test
-        run: |          
-          curl -o test.php -H Accept:text/plain -sL https://3v4l.org/kkRIE
-          for ((i=1;i<=5;i++)); 
-          do 
-             echo $i
-             php test.php
-             sleep 1
-          done
+      - name: Check PHP extensions
+        run: php -m
