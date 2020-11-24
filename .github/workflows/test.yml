@@ -17,11 +17,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo_sqlsrv-5.9.0preview1, sqlsrv-5.9.0preview1
-      - name: Test config
-        run: |
-          pecl config-get php_ini
-          cat $(pecl config-get php_ini)
+          extensions: :opcache
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
