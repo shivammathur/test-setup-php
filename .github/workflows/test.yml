@@ -8,6 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
+        php: [7.4, 8.0]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -15,11 +16,10 @@ jobs:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: 7.4
+          php-version: ${{ matrix.php }}
           extensions: pdo_sqlsrv-5.9.0preview1, sqlsrv-5.9.0preview1
       - name: Test config
-        run: |        
-          pear config-get php_ini
+        run: |
           pecl config-get php_ini
           cat $(pecl config-get php_ini)
       - name: Testing PHP version
