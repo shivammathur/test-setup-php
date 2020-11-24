@@ -19,9 +19,12 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
+          ini-values: ${{ matrix.opcache }}
       - name: Test opcache
         run: php -r "var_dump(opcache_get_status());"
       - name: Check PHP version
-        run: php -v
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
       - name: Check PHP extensions
         run: php -m
