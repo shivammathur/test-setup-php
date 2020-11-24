@@ -16,13 +16,11 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: 8.0
+          extensions: pdo_sqlsrv-5.9.0preview1, sqlsrv-5.9.0preview1
       - name: Test config
         run: |        
           pear config-get php_ini
           pecl config-get php_ini
-          sudo pecl install -f pdo_sqlsrv-5.9.0preview1
-          cat /usr/local/php/8.0/etc/conf.d/99-pecl.ini
-          sudo pecl install -f sqlsrv-5.9.0preview1
           cat /usr/local/php/8.0/etc/conf.d/99-pecl.ini          
       - name: Testing PHP version
         run: php -v
