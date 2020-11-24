@@ -8,7 +8,6 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        ext: ['pdo_sqlsrv-5.9.0preview1, sqlsrv-5.9.0preview1', 'pdo_sqlsrv-5.9.0preview1']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -17,12 +16,15 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: 8.0
-          extensions: ${{ matrix.ext }}
       - name: Test config
         run: |
+          sed -i "s/\$fp = @fopen(\$phpini, 'wb');/var_dump(\$newini);\$fp = @fopen(\$phpini, 'wb');/g" /usr/local/php/8.0/share/pear/PEAR/Command/Install.php
           pear config-get php_ini
           pecl config-get php_ini
-          cat /usr/local/php/8.0/etc/php.ini
+          sudo pecl install -f pdo_sqlsrv-5.9.0preview1
+          cat /usr/local/php/8.0/etc/conf.d/99-pecl.ini
+          sudo pecl install -f sqlsrv-5.9.0preview1
+          cat /usr/local/php/8.0/etc/conf.d/99-pecl.ini
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
