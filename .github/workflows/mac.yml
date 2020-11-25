@@ -15,7 +15,7 @@ jobs:
     
 
     - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@darwin
       with:
         php-version: ${{ matrix.php }}
 
