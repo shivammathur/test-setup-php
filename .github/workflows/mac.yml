@@ -7,13 +7,12 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [macos-10.15]
-        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        php: ['7.4', '8.0']
     name: Test macOS
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     
-    - run: brew remove php
 
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
