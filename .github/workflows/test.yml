@@ -7,8 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php: [7.4, 8.0]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -16,9 +15,14 @@ jobs:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php }}
-          extensions: :opcache
+          php-version: 8.0
+          extensions: pdo_sqlsrv-5.9.0preview1, sqlsrv-5.9.0preview1
+        env:
+          fail-fast: true
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
-        run: php -m
+        run: |
+          php -m
+          php -r "if(! extension_loaded('pdo_sqlsrv')) {throw new Exception('pdo_sqlsrv not found');}"
+          php -r "if(! extension_loaded('sqlsrv')) {throw new Exception('sqlsrv not found');}"
