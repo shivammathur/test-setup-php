@@ -13,7 +13,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     
-    - run: brew update
+    - run: brew remove php
 
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
