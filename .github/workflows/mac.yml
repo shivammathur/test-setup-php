@@ -6,8 +6,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-10.15]
-        php: ['7.4', '8.0']
+        operating-system: [macos-10.15, macos-11.0]
+        php: ['8.1']
     name: Test macOS
     steps:
     - name: Checkout
