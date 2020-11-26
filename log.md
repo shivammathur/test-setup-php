@@ -22,3 +22,5 @@
 - Test 2.5.0 release.
 - Test 2.6.0 release.
 - Test 2.7.0 release.
+- Test 2.8.0 release.
+- Test 2.9.0 release.

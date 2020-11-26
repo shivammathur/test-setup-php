@@ -206,7 +206,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: php-cs-fixer:100.100.100, phpcs:^3.5.2, phpcbf:>=3.5.2, phpcpd:<=4.0.0, phpstan:^0.12.3, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, symfony/flex, composer, composer-prefetcher
+          tools: composer:v1, php-cs-fixer:100.100.100, phpcs:^3.5.2, phpcbf:>=3.5.2, phpcpd:<=4.0.0, phpstan:^0.12.3, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, symfony/flex, composer-prefetcher
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools

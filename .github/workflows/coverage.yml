@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-16.04, windows-latest, macos-latest]
-        php-versions: ['5.3', '5.5', '5.6', '7.4', '8.0', '8.1']
+        php-versions: ['5.3', '5.5', '5.6', '7.2', '7.4', '8.0', '8.1']
         coverage: [xdebug, pcov, none]
         include:
           - operating-system: ubuntu-18.04
@@ -48,7 +48,7 @@ jobs:
           php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}"
       - name: Testing Xdebug
         if: matrix.coverage == 'xdebug3' || matrix.php-version == '8.0'
-        run: php -r "if(strpos(phpversion('xdebug'), '3.0') === false) {throw new Exception('Wrong Xdebug version Installed');}"
+        run: php -r "if(strpos(phpversion('xdebug'), '3.') === false) {throw new Exception('Wrong Xdebug version Installed');}"
       - name: Testing ini values
         run: |
           php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
