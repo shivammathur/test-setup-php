@@ -7,22 +7,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [macos-latest]
+        php: [8.0, 8.1]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
-          php-version: 8.0
-          extensions: pdo_sqlsrv-5.9.0preview1, sqlsrv-5.9.0preview1
+          php-version: ${{ matrix.php }}
+          extensions: grpc, imagick, protobuf, swoole
         env:
           fail-fast: true
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
-        run: |
-          php -m
-          php -r "if(! extension_loaded('pdo_sqlsrv')) {throw new Exception('pdo_sqlsrv not found');}"
-          php -r "if(! extension_loaded('sqlsrv')) {throw new Exception('sqlsrv not found');}"
+        run: php -m
