@@ -25,10 +25,11 @@ jobs:
         (
           cd $tap_dir/shivammathur/homebrew-php/Aliases
           sudo ln -sf ../Formula/php.rb php@8.0
+          sudo rm -rf ./php@7.4
         )
         ls $tap_dir/shivammathur/homebrew-php/Formula
         ls $tap_dir/shivammathur/homebrew-php/Aliases
-
+    
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
