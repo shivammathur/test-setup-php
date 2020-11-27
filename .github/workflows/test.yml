@@ -17,9 +17,8 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: grpc, imagick, protobuf, swoole
-        env:
-          fail-fast: true
+          extensions: imagick, protobuf, swoole
+
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
