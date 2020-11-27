@@ -12,6 +12,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+    
+    - run: brew remove php
  
     - name: Patch
       run: |
@@ -33,9 +35,7 @@ jobs:
         ls -la $tap_dir/shivammathur/homebrew-php/Aliases
        
     - name: Setup PHP
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php }}
+      run: brew upgrade shivammathur/php/php@${{ matrix.php }} 2>/dev/null || brew install shivammathur/php/php@${{ matrix.php }}
 
     - name: Test PHP version
       run: |
