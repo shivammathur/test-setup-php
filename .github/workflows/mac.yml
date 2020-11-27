@@ -15,7 +15,7 @@ jobs:
     
     - run: |
         brew remove php
-        brew unlink php
+        sudo rm -rf /usr/local/etc/php
        
     - name: Setup PHP
       run: |
