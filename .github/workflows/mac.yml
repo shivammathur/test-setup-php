@@ -11,7 +11,9 @@ jobs:
     name: Test macOS
     steps:
     - name: Checkout
-      uses: actions/checkout@v2 
+      uses: actions/checkout@v2
+    
+    - run: brew remove php
  
     - name: Patch
       run: |
