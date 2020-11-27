@@ -22,14 +22,16 @@ jobs:
         mv $tap_dir/shivammathur/homebrew-php/Formula/php@8.0.rb $tap_dir/shivammathur/homebrew-php/Formula/php.rb
         sudo sed -i '' "s/class PhpAT80/class Php/" $tap_dir/shivammathur/homebrew-php/Formula/php.rb
         sudo sed -i '' "s/class Php/Class PhpAT74/" $tap_dir/shivammathur/homebrew-php/Formula/php@7.4.rb
+        head -n 5 $tap_dir/shivammathur/homebrew-php/Formula/php@7.4.rb
+        head -n 5 $tap_dir/shivammathur/homebrew-php/Formula/php.rb
         (
           cd $tap_dir/shivammathur/homebrew-php/Aliases
           sudo ln -sf ../Formula/php.rb php@8.0
           sudo rm -rf ./php@7.4
         )
-        ls $tap_dir/shivammathur/homebrew-php/Formula
-        ls $tap_dir/shivammathur/homebrew-php/Aliases
-    
+        ls -la $tap_dir/shivammathur/homebrew-php/Formula
+        ls -la $tap_dir/shivammathur/homebrew-php/Aliases    
+    - uses: mxschmitt/action-tmate@v3
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
