@@ -31,7 +31,7 @@ jobs:
         )
         ls -la $tap_dir/shivammathur/homebrew-php/Formula
         ls -la $tap_dir/shivammathur/homebrew-php/Aliases    
-    - uses: mxschmitt/action-tmate@v3    
+#    - uses: mxschmitt/action-tmate@v3    
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
