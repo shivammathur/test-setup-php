@@ -11,7 +11,19 @@ jobs:
     name: Test macOS
     steps:
     - name: Checkout
-      uses: actions/checkout@v2    
+      uses: actions/checkout@v2 
+ 
+    - name: Patch
+      run: |
+        brew tap shivammathur/php
+        brew_prefix="$(brew --prefix)"
+        tap_dir="$brew_prefix"/Homebrew/Library/Taps
+        mv $tap_dir/shivammathur/homebrew-php/Formula/php.rb $tap_dir/shivammathur/homebrew-php/Formula/php@7.4.rb
+        mv $tap_dir/shivammathur/homebrew-php/Formula/php@8.0.rb $tap_dir/shivammathur/homebrew-php/Formula/php.rb
+        (
+          cd $tap_dir/shivammathur/homebrew-php/Aliases
+          sudo ln -sf ../Formula/php.rb php@8.0
+        )   
 
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
