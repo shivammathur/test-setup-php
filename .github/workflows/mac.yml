@@ -6,40 +6,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-10.15]
+        operating-system: [macos-10.15, macos-11.0]
         php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     name: Test macOS
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     
-    - run: brew remove php
- 
-    - name: Patch
-      run: |
-        brew tap shivammathur/php
-        brew_prefix="$(brew --prefix)"
-        tap_dir="$brew_prefix"/Homebrew/Library/Taps
-        mv $tap_dir/shivammathur/homebrew-php/Formula/php.rb $tap_dir/shivammathur/homebrew-php/Formula/php@7.4.rb
-        mv $tap_dir/shivammathur/homebrew-php/Formula/php@8.0.rb $tap_dir/shivammathur/homebrew-php/Formula/php.rb
-        sudo sed -i '' "s/class PhpAT80/class Php/" $tap_dir/shivammathur/homebrew-php/Formula/php.rb
-        sudo sed -i '' "s/class Php/Class PhpAT74/" $tap_dir/shivammathur/homebrew-php/Formula/php@7.4.rb
-        head -n 5 $tap_dir/shivammathur/homebrew-php/Formula/php@7.4.rb
-        head -n 5 $tap_dir/shivammathur/homebrew-php/Formula/php.rb
-        (
-          cd $tap_dir/shivammathur/homebrew-php/Aliases
-          sudo ln -sf ../Formula/php.rb php@8.0
-          sudo rm -rf ./php@7.4
-        )
-        ls -la $tap_dir/shivammathur/homebrew-php/Formula
-        ls -la $tap_dir/shivammathur/homebrew-php/Aliases
+    - run: |
+        brew remove php
+        brew unlink php
        
     - name: Setup PHP
-      run: brew upgrade shivammathur/php/php@${{ matrix.php }} 2>/dev/null || brew install shivammathur/php/php@${{ matrix.php }}
+      run: |
+        brew tap shivammathur/php
+        brew install shivammathur/php/php@${{ matrix.php }}
+        brew link --force --overwrite shivammathur/php/php@${{ matrix.php }}
 
     - name: Test PHP version
-      run: |
-        php -v
+      run: php -v
       
     - name: Test PHP extensions
       run: php -m
