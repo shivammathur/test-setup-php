@@ -1,25 +1,28 @@
-name: 'ext'
+name: 'Intl workflow'
 on:
   push:
 jobs:
   run:
-    runs-on: ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php: [7.2, 7.3, 7.4]
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        os: [ubuntu-18.04]
+        php: ['8.0']
+        icu: [68.1, 67.1, 66.1, 65.1, 64.2, 63.2, 62.2, 61.2, 60.3, 59.2, 58.3, 57.2, 56.2, 55.2, 54.2, 53.2, 52.2, 51.3, 50.2]
+    name: Intl workflow
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Install PHP
+      - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: mongodb-stable
-
-      - name: Testing PHP version
-        run: php -v
-      - name: Testing Extensions
-        run: php -m
+          extensions: intl-${{ matrix.icu }}
+      - name: Testing PHP
+        run: |
+          icu_version=$(php -i | grep "ICU version =>" | sed -e "s|.*=> s*||")
+          echo $icu_version
+          [ "$icu_version" != "${{ matrix.icu }}" ] && exit 1
+          php -v
+          php -m
