@@ -17,8 +17,43 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          coverage: none
-      - name: Testing PHP
+          extensions: xdebug
+      - name: Testing Xdebug
         run: |
           php -v
+          php -m
+       - name: Disable Xdebug
+         run: name: 'Extension workflow'
+on:
+  push:
+jobs:
+  run:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-18.04]
+        php: ['8.0']
+    name: Install PHP with Xdebug
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extension: xdebug
+      - name: Unload Xdebug
+        run: |
+          scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
+          ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+          pecl_file="$scan_dir"/99-pecl.ini
+          sudo sed -Ei "/xdebug/d" "${ini_file:?}"
+          sudo sed -Ei "/xdebug/d" "${pecl_file:?}"
+          sudo rm -rf "$scan_dir"/xdebug*
+          php -m
+      - name: Enable Xdebug Again and Test
+        run: |
+          scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
+          echo "zend_extension=xdebug" | sudo tee "$scan_dir"/xdebug.ini
           php -m
