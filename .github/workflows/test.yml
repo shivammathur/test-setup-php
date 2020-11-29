@@ -9,31 +9,6 @@ jobs:
       matrix:
         os: [ubuntu-18.04]
         php: ['8.0']
-    name: Xdebug disable
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: xdebug
-      - name: Testing Xdebug
-        run: |
-          php -v
-          php -m
-       - name: Disable Xdebug
-         run: name: 'Extension workflow'
-on:
-  push:
-jobs:
-  run:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-18.04]
-        php: ['8.0']
     name: Install PHP with Xdebug
     steps:
       - name: Checkout
