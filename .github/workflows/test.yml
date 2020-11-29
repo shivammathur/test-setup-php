@@ -13,11 +13,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Setup PHP
+      - name: Setup PHP with Xdebug
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extension: xdebug
+          extensions: xdebug
       - name: Unload Xdebug
         run: |
           scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
