@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     if: "!contains(github.event.head_commit.message, 'skip-build')"
     steps:
@@ -32,11 +32,11 @@ jobs:
         version='${{ matrix.php-versions }}'
         versions=""
         if [ "$DISTRIB_RELEASE" = "20.04" ]; then
-          versions="7.4"
+          versions="7.4 8.0"
         elif [ "$DISTRIB_RELEASE" = "18.04" ]; then
-          versions="7.1 7.2 7.3 7.4"
+          versions="7.1 7.2 7.3 7.4 8.0"
         elif [ "$DISTRIB_RELEASE" = "16.04" ]; then
-          versions="5.6 7.0 7.1 7.2 7.3 7.4"
+          versions="5.6 7.0 7.1 7.2 7.3 7.4 8.0"
         fi
         for i in $versions; do
           if [ "$i" = "$version" ]; then
