@@ -7,11 +7,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, macos-10.15]
+        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
     steps:
       - name: Test
         run: |
-          echo $GITHUB_ENV || true
-          echo $GITHUB_PATH || true
-          cat $GITHUB_ENV || true
-          cat $GITHUB_PATH || true
+          if ! apt-cache policy | grep -q ondrej/php; then
+            LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
+          fi          
+          sudo apt-get update
+          sudo apt-get install php8.0-cli php8.0-xml php8.0-dev
+          sudo apt-get install php8.0-imap
+          php -v
+          php -m
+          
