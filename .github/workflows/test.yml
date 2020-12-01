@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Set compiler    
         run: |
-          if [ "$compiler" = *"gcc"* ]; then
+          if [[ "$compiler" =~ ^gcc* ]]; then
               echo "gcc-${compiler:4}"
               echo "g++-${compiler:4}"
           else
