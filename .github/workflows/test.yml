@@ -4,13 +4,12 @@ on: [push, pull_request]
 
 jobs:
   oldphp-ubuntu:
-    name: ubuntu
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         php-versions: ['5.3', '5.4', '5.5', '7.4']
-        os: [ubuntu-latest]
+        os: [macos-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
