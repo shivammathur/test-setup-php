@@ -10,9 +10,8 @@ jobs:
         os: [ubuntu-latest]
         compiler: [gcc-5, gcc-6, clang-7, clang-8]
     steps:
-      - name: Test
-    
-      - run: |
+      - name: Set compiler    
+        run: |
           if [ "$compiler" = *"gcc"* ]; then
               echo "gcc-${compiler:4}"
               echo "g++-${compiler:4}"
