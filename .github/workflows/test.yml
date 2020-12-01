@@ -13,10 +13,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Install libmemcached
+        run: sudo apt-get install libmemcached-dev -y
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
-          extensions: imagick, sqlsrv
+          php-version: '8.0'
+          extensions: memcached
       - name: Test extensions
         run: php -m
