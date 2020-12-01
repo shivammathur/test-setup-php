@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['5.3', '5.4', '5.5']
+        php-versions: ['5.3', '5.4', '5.5', '7.4']
         os: [ubuntu-latest]
     steps:
       - name: Checkout
@@ -20,8 +20,8 @@ jobs:
           php-version: ${{ matrix.php-versions }}
       - run: |
           php --ini
-          php-cgi -i | grep "php.ini"
+          php-cgi -i | grep "php.ini" || true
       - run: |
           scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
           echo "scan_dir: $scan_dir"
-          sudo find "$scan_dir/../.." -name "php.ini"          
+          sudo find "$scan_dir/../.." -maxdepth 2 -name "php.ini"          
