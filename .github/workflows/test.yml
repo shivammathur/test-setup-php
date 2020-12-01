@@ -5,39 +5,19 @@ on: [push, pull_request]
 jobs:
   oldphp-ubuntu:
     name: ubuntu
-    runs-on: ubuntu-latest
-    container: ${{ matrix.containers }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         php-versions: ['5.3', '5.4', '5.5']
-        containers: ["ubuntu:20.04", "ubuntu:18.04", "ubuntu:16.04"]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install sudo
-        run: apt-get update && apt-get install -y sudo git
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        continue-on-error: true
-        with:
-          php-version: ${{ matrix.php-versions }}
-        env:
-          runner: self-hosted
-  oldphp-windows:
-    name: windows
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        php-versions: ['5.3', '5.4', '5.5']
+        os: ["ubuntu-20.04", "ubuntu-18.04", "ubuntu-16.04"]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
         uses: shivammathur/setup-php@develop
-        continue-on-error: true
         with:
           php-version: ${{ matrix.php-versions }}
-        env:
-          runner: self-hosted
+      - run: |
+          php --ini
+          php-cgi -i | grep "php.ini"
