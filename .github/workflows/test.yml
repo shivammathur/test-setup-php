@@ -23,4 +23,5 @@ jobs:
           php-cgi -i | grep "php.ini"
       - run: |
           scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
-          sudo find "$scan_dir"/../.. -name "php.ini"          
+          echo "scan_dir: $scan_dir"
+          sudo find "$scan_dir/../.." -name "php.ini"          
