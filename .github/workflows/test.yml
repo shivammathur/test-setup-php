@@ -10,15 +10,15 @@ jobs:
         os: [ubuntu-latest]
         compiler: [gcc-5, gcc-6, clang-7, clang-8]
     steps:
-      - name: Set compiler    
-        run: |
-          if [[ "$compiler" =~ ^gcc* ]]; then
-              echo "gcc-${compiler:4}"
-              echo "g++-${compiler:4}"
-          else
-              echo "clang-${compiler:6}"
-              echo "clang++-${compiler:6}"
-          fi
-        env:
-          compiler: ${{ matrix.compiler }}
+    - name: Set compiler    
+      run: |
+        if [[ "$compiler" =~ ^gcc* ]]; then
+          echo "CC=gcc-${compiler:4}"
+          echo "CXX=g++-${compiler:4}"
+        else
+          echo "CC=clang-${compiler:6}"
+          echo "CXX=clang++-${compiler:6}"
+        fi
+      env:
+        compiler: ${{ matrix.compiler }}
           
