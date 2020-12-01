@@ -7,16 +7,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        os: [macos-10.15, macos-11.0]
     steps:
       - name: Test
         run: |
-          if ! apt-cache policy | grep -q ondrej/php; then
-            LC_ALL=C.UTF-8 sudo apt-add-repository ppa:ondrej/php -y
-          fi          
-          sudo apt-get update
-          sudo apt-get install php8.0-cli php8.0-xml php8.0-dev
-          sudo apt-get install php8.0-imap
+          xcodebuild -version
           php -v
-          php -m
+          sudo pecl install -f xdebug
+          php -v
           
