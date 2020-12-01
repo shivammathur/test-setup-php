@@ -18,5 +18,6 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
       - run: |
-          mapfile -d $'\0' ini_file < <(sudo find "$scan_dir/../.." -name "php.ini" -print0)
+          scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
+          mapfile -d $'\0' ini_file < <(sudo find "$scan_dir/../.." -maxdepth 3 -name "php.ini" -print0)
           echo "${ini_file[@]}"
