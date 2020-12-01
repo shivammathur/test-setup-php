@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['5.3', '5.4', '5.5', '7.4']
+        php-versions: ['5.3', '5.4', '5.5']
         os: [ubuntu-16.04]
     steps:
       - name: Checkout
