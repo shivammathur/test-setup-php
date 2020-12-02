@@ -23,14 +23,18 @@ jobs:
     - name: Testing PHP version
       run: php -v  
     - name: Testing ini values
-      shell: bash
+      shell: sh
       run: |
         echo "<?php echo ini_get('session.name');" > /tmp/test.php
         # php -v || true
         # php-cgi -v || true
-        val=$(php -q /tmp/test.php)
-        echo "php: __ $val __"
-        [ "$val" != "apple" ] && exit 1;
-        val=$(php-cgi -q /tmp/test.php)
+        php_ini=$(php -q /tmp/test.php)
+        echo "php: __ $php_ini __"
+        if [ "$php_ini" != "apple" ]; then
+          exit 1;
+        fi  
+        cgi_ini=$(php-cgi -q /tmp/test.php)
         echo "php-cgi: __ $val __"
-        [ "$val" != "apple" ] && exit 1;
+        if [ "$cgi_ini" != "apple" ]; then
+          exit 1;
+        fi
