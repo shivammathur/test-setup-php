@@ -1,30 +1,48 @@
-name: Test phalcon extension v4 # Test 4.1.0
+name: Test phalcon extension v3 #test cache
 on: [push]
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false      
-      matrix:        
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
-        php-versions: ['7.2', '7.3', '7.4']
+      matrix:
+        operating-system: [macos-latest]
+        #operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        php-versions: ['7.0', '7.1', '7.2', '7.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    env:
+      extensions: psr, phalcon3
+      key: cache-phalcon3-v2
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+
+    - name: Setup cache environment
+      id: cache-env
+      uses: shivammathur/cache-extensions@develop
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.extensions }}
+        key: ${{ env.key }}
+
+    - name: Cache extensions
+      uses: actions/cache@v1
+      with:
+        path: ${{ steps.cache-env.outputs.dir }}
+        key: ${{ steps.cache-env.outputs.key }}
+        restore-keys: ${{ steps.cache-env.outputs.key }}
 
     - name: Install PHP
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: phalcon4
+        extensions: ${{ env.extensions }}
     - name: Testing PHP version
       run: php -v
     - name: Testing Extensions
       run: |
-        php -r 'var_dump(new class(new Phalcon\Di\FactoryDefault) extends Phalcon\Mvc\Model {});'
         php -r "echo 'psr: ' . phpversion('psr').', ';"
         php -r "echo 'phalcon: ' . phpversion('phalcon');"
         php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
         php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
-        php -r "if(phpversion('phalcon')[0]!='4') {throw new Exception('Wrong phalcon version Installed');}"
+        php -r "if(phpversion('phalcon')[0]!='3') {throw new Exception('Wrong phalcon version Installed');}"
