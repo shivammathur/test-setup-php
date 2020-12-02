@@ -25,7 +25,7 @@ jobs:
         echo "<?php echo ini_get('memory_limit');" > /tmp/test.php
         for sapi in php php-cgi; do
           printf "\nsapi: $sapi\n"
-          "$sapi" -q /tmp/test.php
-          printf "\n"
-          [ $("$sapi" -q /tmp/test.php) != "1G" ] && exit 1;
+          val=$("$sapi" -q /tmp/test.php | grep "1G")
+          printf "$val\n"
+          [ "$val" != "1G" ]
         done
