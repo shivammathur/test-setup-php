@@ -7,8 +7,7 @@ jobs:
       fail-fast: false
       matrix:
         #operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
-        #php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
-        php-versions: [7.4]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
         os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
     steps:
     - name: Checkout
@@ -25,8 +24,8 @@ jobs:
       shell: bash
       run: |
         echo "<?php echo ini_get('session.name');" > /tmp/test.php
-        php -v || true
-        php-cgi -v || true
+        # php -v || true
+        # php-cgi -v || true
         val=$(php -q /tmp/test.php)
         echo "php: __ $val __"
         # [ "$val" != "apple" ] && exit 1;
