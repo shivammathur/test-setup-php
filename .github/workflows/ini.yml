@@ -17,14 +17,16 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: cgi
-        ini-values: post_max_size=100
+        ini-values: session.name=apple
     - name: Testing PHP version
       run: php -v    
     - name: Testing ini values
       shell: bash
       run: |
-        echo "<?php echo ini_get('post_max_size');" > /tmp/test.php
+        echo "<?php echo ini_get('session.name');" > /tmp/test.php
         php -v || true
         php-cgi -v || true
-        php /tmp/test.php || true
-        php-cgi /tmp/test.php || true
+        val=$(php -q /tmp/test.php)
+        [ "$val" != "apple" ] && exit 1;
+        val=$(php-cgi -q /tmp/test.php)
+        [ "$val" != "apple" ] && exit 1;
