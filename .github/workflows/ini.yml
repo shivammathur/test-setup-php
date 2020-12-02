@@ -27,5 +27,5 @@ jobs:
           printf "\nsapi: $sapi\n"
           val=$("$sapi" -q /tmp/test.php | grep "1G")
           printf "$val\n"
-          [ "$val" != "1G" ]
+          [ "$val" != "1G" ] && exit 1;
         done
