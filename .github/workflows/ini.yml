@@ -21,14 +21,14 @@ jobs:
     - name: Testing PHP version
       run: php -v    
     - name: Testing ini values
+      shell: bash
       run: |
         echo "<?php echo ini_get('post_max_size');" > /tmp/test.php
         for sapi in php php-cgi; do
-          printf "\nsapi: $sapi -v\n"
+          printf "\nsapi: $($sapi -v)\n"
           val=$("$sapi" -q /tmp/test.php | grep "1G")
           printf "$val\n"
           if [ "$val" != "100" ]; then
             echo "-----error $val ------"
-            exit 1;
           fi  
         done
