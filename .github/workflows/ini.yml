@@ -2,7 +2,7 @@ name: Test workflow
 on: [push]
 jobs:
   run:    
-    runs-on: ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         #operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
