@@ -13,7 +13,7 @@ jobs:
         runs: [1,2,3,4,5]
     steps: 
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         id: php
         with:
           php-version: ${{ matrix.php }}
