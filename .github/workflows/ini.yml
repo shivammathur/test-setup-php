@@ -22,5 +22,9 @@ jobs:
       run: php -v    
     - name: Testing ini values
       run: |
-        php-cgi -i | grep "memory_limit"
-        php -i | grep "memory_limit"
+        echo "<?php echo ini_get('memory_limit');" > /tmp/test.php
+        for sapi in php php-cgi; do
+          echo "sapi: $sapi"
+          "$sapi" -q /tmp/test.php
+          [ $("$sapi" -q /tmp/test.php) != '1G' ] && exit 1;
+        done
