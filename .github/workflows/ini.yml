@@ -12,6 +12,9 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@master
+    - name: Set SAPI
+      if: startsWith(matrix.os, 'ubuntu')
+      run: sudo apt-get install php${{ matrix.php-versions }}-cgi -y
     - name: Install PHP
       uses: shivammathur/setup-php@develop
       with:
@@ -19,8 +22,6 @@ jobs:
         ini-values: session.name=apple
     - name: Testing PHP version
       run: php -v  
-    - name: Set SAPI    
-      run: sudo apt-get install php${{ matrix.php-versions }}-cgi -y
     - name: Testing ini values
       shell: bash
       run: |
