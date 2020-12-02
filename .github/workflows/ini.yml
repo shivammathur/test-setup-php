@@ -16,10 +16,11 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: cgi
         ini-values: session.name=apple
     - name: Testing PHP version
-      run: php -v    
+      run: php -v  
+    - name: Set SAPI    
+      run: sudo apt-get install php${{ matrix.php-versions }}-cgi -y
     - name: Testing ini values
       shell: bash
       run: |
@@ -28,7 +29,7 @@ jobs:
         # php-cgi -v || true
         val=$(php -q /tmp/test.php)
         echo "php: __ $val __"
-        # [ "$val" != "apple" ] && exit 1;
+        [ "$val" != "apple" ] && exit 1;
         val=$(php-cgi -q /tmp/test.php)
         echo "php-cgi: __ $val __"
-        # [ "$val" != "apple" ] && exit 1;
+        [ "$val" != "apple" ] && exit 1;
