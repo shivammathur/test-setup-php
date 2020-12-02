@@ -17,15 +17,18 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: cgi
-        ini-values: memory_limit=1G
+        ini-values: post_max_size=100
     - name: Testing PHP version
       run: php -v    
     - name: Testing ini values
       run: |
-        echo "<?php echo ini_get('memory_limit');" > /tmp/test.php
+        echo "<?php echo ini_get('post_max_size');" > /tmp/test.php
         for sapi in php php-cgi; do
-          printf "\nsapi: $sapi\n"
+          printf "\nsapi: $sapi -v\n"
           val=$("$sapi" -q /tmp/test.php | grep "1G")
           printf "$val\n"
-          [ "$val" != "1G" ] && exit 1;
+          if [ "$val" != "100" ]; then
+            echo "-----error $val ------"
+            exit 1;
+          fi  
         done
