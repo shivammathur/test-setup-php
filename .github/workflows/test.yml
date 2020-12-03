@@ -11,11 +11,28 @@ jobs:
     steps:
     - name: Set compiler    
       run: |
+        PHP_VERSIONS="7.2 7.3 7.4 8.0"
+
+        echo "Add taps"
         brew tap shivammathur/php
         brew tap shivammathur/extensions
-        brew install shivammathur/php/php@7.1
-        brew link --force --overwrite php@7.1
-        php -v
-        brew install shivammathur/extensions/imap@7.1
-        php -m
+
+        echo "Remove all available PHP configs"
+        rm -rf /usr/local/etc/php/*
+
+        for version in $PHP_VERSIONS
+        do
+            echo "Install PHP $version"
+
+            brew reinstall shivammathur/php/php@$version
+            brew link --overwrite --force php@$version
+
+            echo "Extension: imagick"
+            brew reinstall shivammathur/extensions/imagick@$version
+            brew reinstall shivammathur/extensions/imap@$version
+
+            php -v
+            php -m | grep imagick
+            php -m | grep imap
+        done
           
