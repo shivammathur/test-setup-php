@@ -20,6 +20,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: amqp
       - name: Test extensions
-        run: php -m
+        run: |
+          yes '/usr' | sudo pecl install -f amqp
+          php -m
