@@ -22,9 +22,7 @@ jobs:
       - name: Check PHP version
         run: |
           php -v
-          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
-          sudo systemctl restart php${{ matrix.php-versions }}-fpm
-          sudo systemctl status php${{ matrix.php-versions }}-fpm
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"          
       - name: Check PHP extensions
         run: php -m
       - uses: mxschmitt/action-tmate@v3
