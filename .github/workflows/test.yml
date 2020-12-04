@@ -8,19 +8,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-18.04]
-        php: ['8.0', '8.1']
+        php: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     name: Install PHP
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Install libmemcached
-        run: sudo apt-get install librabbitmq-dev -y
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
       - name: Test extensions
         run: |
-          yes '/usr' | sudo pecl install -f amqp
-          php -m
+          command -v php-fpm || true
