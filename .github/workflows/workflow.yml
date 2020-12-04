@@ -18,10 +18,10 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: imap
       - name: Check PHP version
         run: |
           php -v
           php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+          sudo systemctl restart php${{ matrix.php-versions }}-fpm
       - name: Check PHP extensions
         run: php -m
