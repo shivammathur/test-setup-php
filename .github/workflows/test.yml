@@ -1,22 +1,35 @@
-name: 'Extension workflow'
-on:
-  push:
+name: 'Test Formulae'
+on: [push]
 jobs:
-  run:
-    runs-on: ${{ matrix.os }}
+  tests:
+    runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04]
-        php: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
-    name: Install PHP
+        php-versions: ['7.3']
+        extensions: ['amqp, grpc, igbinary, imagick, imap, pcov, protobuf, swoole, xdebug']
+    name: PHP ${{ matrix.php-versions }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php }}
-      - name: Test extensions
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ matrix.extensions }}
+      - name: Testing PHP version
         run: |
-          command -v php-fpm || true
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+      - name: Testing Extensions
+        run: |
+          php -m
+          php -r "if(substr(phpversion(), 0, 3)<8.0 && ! extension_loaded('amqp')) {throw new Exception('amqp not found');}"
+          php -r "if(substr(phpversion(), 0, 3)<8.0 && ! extension_loaded('grpc')) {throw new Exception('grpc not found');}"
+          php -r "if(substr(phpversion(), 0, 3)<8.0 && ! extension_loaded('imagick')) {throw new Exception('imagick not found');}"
+          php -r "if(substr(phpversion(), 0, 3)<8.0 && ! extension_loaded('protobuf')) {throw new Exception('protobuf not found');}"
+          php -r "if(substr(phpversion(), 0, 3)<8.0 && ! extension_loaded('swoole')) {throw new Exception('swoole not found');}"
+          php -r "if(phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('pcov not found');}"
+          php -r "if(! extension_loaded('igbinary')) {throw new Exception('igbinary not found');}"
+          php -r "if(! extension_loaded('imap')) {throw new Exception('imap not found');}"
+          php -r "if(! extension_loaded('xdebug')) {throw new Exception('xdebug not found');}"
