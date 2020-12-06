@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['5.3']
+        php-versions: ['5.4', '5.5']
         os: [ubuntu-16.04]
     steps:
       - name: Checkout
@@ -20,5 +20,4 @@ jobs:
       - run: php -v
       - run: php -m
       - run: |
-          sudo service php5.3-fpm start
-          sudo service php5.3-fpm status
+          sudo service php5-fpm status
