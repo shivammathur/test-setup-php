@@ -24,6 +24,9 @@ jobs:
           sudo mkdir -p /usr/lib/systemd/system
           sudo cp -f ~/php/5.3.29/etc/init.d/php-fpm /etc/init.d/php5.3-fpm
           sudo cp -f ~/php/5.3.29/etc/systemd/system/php-fpm.service /usr/lib/systemd/system/php5.3-fpm.service
-          sudo chmod a+x ~/php/5.3.29/bin/php-fpm-socket-helper
+          ls -la /home/runner
+          ls -la /home/runner/php/5.3.29
+          ls -la /home/runner/php/5.3.29/bin
+          sudo chmod a+x ~/php/5.3.29/bin/php-fpm-socket-helper || true
           sudo service php5.3-fpm start
           sudo service php5.3-fpm status
