@@ -17,16 +17,8 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: xml, opcache, xdebug, pcov
       - run: php -v
       - run: php -m
       - run: |
-          sudo mkdir -p /usr/lib/systemd/system
-          sudo cp -f ~/php/5.3.29/etc/init.d/php-fpm /etc/init.d/php5.3-fpm
-          sudo cp -f ~/php/5.3.29/etc/systemd/system/php-fpm.service /usr/lib/systemd/system/php5.3-fpm.service
-          ls -la /home/runner
-          ls -la /home/runner/php/5.3.29
-          ls -la /home/runner/php/5.3.29/bin
-          sudo chmod a+x ~/php/5.3.29/bin/php-fpm-socket-helper || true
           sudo service php5.3-fpm start
           sudo service php5.3-fpm status
