@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['5.3', '5.4', '5.5']
+        php-versions: ['5.3']
         os: [ubuntu-16.04]
     steps:
       - name: Checkout
@@ -17,4 +17,6 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-      - uses: mxschmitt/action-tmate@v3
+      - run: |
+          php -v
+          php -m
