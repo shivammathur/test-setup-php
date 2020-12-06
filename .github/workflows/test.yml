@@ -17,6 +17,6 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-      - run: |
-          php -v
-          php -m
+          extensions: xml, opcache, xdebug, pcov
+      - run: php -v
+      - run: php -m
