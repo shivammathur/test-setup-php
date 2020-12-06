@@ -20,5 +20,6 @@ jobs:
           extensions: fpm
       - run: php -v
       - run: php -m
+      - uses: mxschmitt/action-tmate@v3  
       - run: |
           sudo service php5-fpm status
