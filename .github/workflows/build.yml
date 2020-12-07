@@ -16,7 +16,10 @@ jobs:
         uses: docker/build-push-action@v2.2.1
         with:
           context: .
+          push: false
           file: ./.github/workflows/Dockerfile
           load: true
           build-args: |
             PHP_VERSION=${{ matrix.php-version }}
+      - name: Setup WP
+
