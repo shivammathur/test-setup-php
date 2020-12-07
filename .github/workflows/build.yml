@@ -14,9 +14,9 @@ jobs:
         uses: actions/checkout@v2
       - name: Create WP Server
         uses: ./.github/actions/build-wp-container
-          with:
-            PHP_VERSION: ${{ matrix.php-version }}
-            WP_VERSION: ${{ matrix.wp-version }}
+        with:
+          PHP_VERSION: ${{ matrix.php-version }}
+          WP_VERSION: ${{ matrix.wp-version }}
       - name: Build
         run: |
           pwd
