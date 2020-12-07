@@ -22,6 +22,7 @@ jobs:
             PHP_VERSION=${{ matrix.php-version }}
       - name: Do it
         run: |
+          mkdir /usr/src/wordpress/
           cd /usr/src/wordpress/
           pwd
           wp config create --dbname=$1 --dbuser=$2 --dbpass=$3 --dbhost=$4 --allow-root
