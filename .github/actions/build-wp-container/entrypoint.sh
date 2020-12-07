@@ -3,8 +3,8 @@
 # Setup WordPress installation and add WooCommerce plugin
 cd /usr/src/wordpress/
 
-wp config create --dbname=$1 --dbuser=$2 --dbpass=$3 --dbhost=$4 --allow-root
-wp core install --url=http://localhost:8080 --title=Test --admin_user=$5 --admin_password=$6 --admin_email=admin@local.test --skip-email --allow-root
+wp config create --dbname=wordpress --dbuser=wordpress --dbpass=wordpress --dbhost=mysql --allow-root
+wp core install --url=http://localhost:8080 --title=Test --admin_user=wordpress --admin_password=wordpress --admin_email=admin@local.test --skip-email --allow-root
 # wp plugin install woocommerce --activate --allow-root
 
 # Prepare the plugin
