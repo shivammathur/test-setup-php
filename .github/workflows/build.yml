@@ -19,7 +19,7 @@ jobs:
           push: false
           build-args: |
             PHP_VERSION=${{ matrix.php-version }}
-            WP_VERSION=${{ martix.wp-version }}
+            WP_VERSION=${{ matrix.wp-version }}
       - name: Build
         run: |
           pwd
