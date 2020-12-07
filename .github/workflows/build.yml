@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-version: [7.1],
+        php-version: [7.1]
         wp-version: [5.2]
     steps:
       - name: Checkout
