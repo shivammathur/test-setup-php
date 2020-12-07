@@ -6,8 +6,12 @@ COPY --from=composer /usr/bin/composer /usr/bin/composer
 RUN composer --version
 
 # Node setup
-RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - \
-  && apt-get install -yq nodejs build-essential
+RUN apt-get install git-core curl build-essential openssl libssl-dev \
+ && git clone https://github.com/nodejs/node.git \
+ && cd node \
+ && ./configure \
+ && make \
+ && sudo make install
 
 # Install npm
 RUN npm install -g npm
