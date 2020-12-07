@@ -24,3 +24,4 @@ jobs:
       - run: php-cgi -v
       - run: php-fpm -v  
       - run: sudo service php${{ matrix.php-versions }}-fpm status
+      - uses: mxschmitt/action-tmate@v3
