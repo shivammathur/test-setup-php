@@ -51,9 +51,9 @@ jobs:
           EOF
           sudo cat /etc/nginx/sites-available/default
       - run: |  
-          sudo service php${{ matrix.php-version }}-fpm restart
+          sudo service php${{ matrix.php-versions }}-fpm restart
           sudo nginx -s reload
-          sudo service php${{ matrix.php-version }}-fpm status
+          sudo service php${{ matrix.php-versions }}-fpm status
           sudo service nginx status
       - run: |   
           cat <<EOF | sudo tee /var/www/html/info.php
