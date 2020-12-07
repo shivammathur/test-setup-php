@@ -3,3 +3,6 @@ description: 'tbd'
 runs:
   using: 'docker'
   image: 'Dockerfile'
+  # args:
+  #   - ${{ inputs.php-version }}
+  #   - ${{ inputs.wp-version }}

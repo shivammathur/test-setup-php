@@ -1,6 +1,7 @@
 ARG PHP_VERSION=7.4
+ARG WP_VERSION=5.5
 
-FROM wordpress:5.1-php${PHP_VERSION}
+FROM wordpress:${WP_VERSION}-php${PHP_VERSION}
 
 COPY --from=composer /usr/bin/composer /usr/bin/composer
 RUN composer --version
