@@ -15,7 +15,7 @@ jobs:
       - name: Build container
         uses: docker/build-push-action@v2
         with:
-          path: .github/actions/build-wp-container
+          file: .github/actions/build-wp-container
           push: false
           build-args: |
             PHP_VERSION=${{ matrix.php-version }}
