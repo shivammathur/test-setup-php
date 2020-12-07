@@ -18,5 +18,3 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           tools: blackfire
-      - run: sudo apt-get -f install
-      - uses: mxschmitt/action-tmate@v3
