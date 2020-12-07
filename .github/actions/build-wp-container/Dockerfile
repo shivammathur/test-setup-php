@@ -26,7 +26,6 @@ RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli
 
 
 COPY entrypoint.sh .
-RUN chmod +x ./entrypoint.sh
 
 WORKDIR /usr/src/wordpress
 
