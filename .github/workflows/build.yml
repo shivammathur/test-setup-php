@@ -15,9 +15,9 @@ jobs:
       - name: Create WP Server
         uses: ./.github/actions/build-wp-container
         with:
-        args: |
-          PHP_VERSION=${{ matrix.php-version }}
-          WP_VERSION=${{ matrix.wp-version }}
+          args: |
+            PHP_VERSION=${{ matrix.php-version }}
+            WP_VERSION=${{ matrix.wp-version }}
       - name: Build
         run: |
           pwd
