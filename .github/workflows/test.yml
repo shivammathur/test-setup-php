@@ -33,7 +33,7 @@ jobs:
               root /var/www/html;
               index index.php index.html index.htm index.nginx-debian.html;
 
-              server_name 127.0.0.1;
+              server_name localhost;
 
               location / {
                   try_files $uri $uri/ =404;
@@ -62,9 +62,6 @@ jobs:
           echo "\nHello World";
           EOF
           sudo cat /var/www/html/info.php
-      - run: |
-          curl http://127.0.0.1/info.php
-          sudo cat /var/log/nginx/error.log
-      - uses: mxschmitt/action-tmate@v3
-          
-
+      - run: php /var/www/html/info.php
+      - run: sudo curl http://localhost/info.php
+      - run: sudo cat /var/log/nginx/error.log
