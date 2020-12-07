@@ -27,3 +27,5 @@ jobs:
           restore-keys: ${{ runner.os }}-composer-
       - name: Install Composer dependencies
         run: composer init -n --name "extendify/wp-t"  && composer config extra.wordpress-install-dir public && composer require composer/installers johnpbloch/wordpress-core-installer johnpbloch/wordpress-core
+      - name: Add router
+        run: pwd
