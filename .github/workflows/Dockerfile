@@ -24,7 +24,8 @@ RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli
   && mv wp-cli.phar /usr/local/bin/wp
 
 
-COPY .github/workflows/entrypoint.sh /entrypoint.sh
+COPY .github/workflows/entrypoint.sh .
+RUN chmod +x ./entrypoint.sh
 
 WORKDIR /usr/src/wordpress
 
