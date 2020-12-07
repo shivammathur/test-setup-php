@@ -7,7 +7,7 @@ RUN composer --version
 
 # Node setup
 RUN curl -sL https://deb.nodesource.com/setup_current.x | bash - \
- && apt-get install -yq nodejs build-essential
+  && apt-get install -yq nodejs build-essential
 
 # Install npm
 RUN npm install -g npm
