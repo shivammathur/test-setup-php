@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['5.3', '5.4', '5.5', '7.4']
+        php-versions: ['5.3']
         os: [ubuntu-16.04]
     steps:
       - name: Checkout
@@ -23,4 +23,4 @@ jobs:
       - run: php-cgi -v
       - run: php-fpm -v  
       - run: sudo service php${{ matrix.php-versions }}-fpm status
-      # - uses: mxschmitt/action-tmate@v3
+      - uses: mxschmitt/action-tmate@v3
