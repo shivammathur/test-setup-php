@@ -25,7 +25,7 @@ jobs:
       - run: sudo service php${{ matrix.php-versions }}-fpm status
       - run: |
           sudo apt-get install nginx -y      
-          cat <<<
+          cat <<EOF | sudo tee /etc/nginx/sites-available/default
           server {
               listen 80 default_server;
               listen [::]:80 default_server;
@@ -47,13 +47,15 @@ jobs:
               location ~ /\.ht {
                   deny all;
               }
-          } | sudo tee /etc/nginx/sites-available/default
+          }
+          EOF 
           sudo systemctl restart php${{ matrix.php-version }}-fpm
           sudo nginx -s reload
-          cat <<<
+          cat <<EOF | sudo tee /var/www/html/info.php
           <?php
           echo phpversion();
-          echo "\nHello World"; | sudo tee /var/www/html/info.php
+          echo "\nHello World";
+          EOF
           curl http://127.0.0.1/info.php
           sudo cat /var/log/nginx/error.log
           
