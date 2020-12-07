@@ -8,18 +8,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['5.4', '5.5']
-        os: [ubuntu-16.04]
+        php-versions: ['5.3', '5.4', '5.5']
+        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: fpm
       - run: php -v
       - run: php -m
-      - uses: mxschmitt/action-tmate@v3  
-      - run: |
-          sudo service php5-fpm status
+      - run: php-cgi -v
+      - run: php-fpm -v  
+      - run: sudo service php${{ matrix.php-versions }}-fpm status
