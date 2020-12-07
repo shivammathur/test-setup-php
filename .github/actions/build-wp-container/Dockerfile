@@ -30,4 +30,4 @@ RUN chmod +x ./entrypoint.sh
 
 WORKDIR /usr/src/wordpress
 
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
