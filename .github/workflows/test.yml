@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
       matrix:
         php-versions: ['5.3', '5.4', '5.5']
-        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
+        os: [ubuntu-16.04]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -23,4 +23,38 @@ jobs:
       - run: php-cgi -v
       - run: php-fpm -v  
       - run: sudo service php${{ matrix.php-versions }}-fpm status
-      - uses: mxschmitt/action-tmate@v3
+      - run: |
+          sudo apt-get install nginx -y      
+          cat <<<
+          server {
+              listen 80 default_server;
+              listen [::]:80 default_server;
+
+              root /var/www/html;
+              index index.php index.html index.htm index.nginx-debian.html;
+
+              server_name 127.0.0.1;
+
+              location / {
+                  try_files $uri $uri/ =404;
+              }
+
+              location ~ \.php$ {
+                  include snippets/fastcgi-php.conf;
+                  fastcgi_pass unix:/run/php/php${{ matrix.php-versions }}-fpm.sock;
+              }
+
+              location ~ /\.ht {
+                  deny all;
+              }
+          } | sudo tee /etc/nginx/sites-available/default
+          sudo systemctl restart php${{ matrix.php-version }}-fpm
+          sudo nginx -s reload
+          cat <<<
+          <?php
+          echo phpversion();
+          echo "\nHello World"; | sudo tee /var/www/html/info.php
+          curl http://127.0.0.1/info.php
+          sudo cat /var/log/nginx/error.log
+          
+
