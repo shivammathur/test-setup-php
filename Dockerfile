@@ -7,6 +7,7 @@ RUN composer --version
 
 # Node setup
 ENV NODE_VERSION=8.10.0
+RUN apt-get install wget -y
 RUN wget -qO- https://raw.githubusercontent.com/creationix/nvm/v0.33.2/install.sh | bash
 ENV NVM_DIR=/root/.nvm
 RUN . "$NVM_DIR/nvm.sh" && nvm install ${NODE_VERSION}
