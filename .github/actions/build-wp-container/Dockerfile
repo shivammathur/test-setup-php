@@ -11,7 +11,7 @@ RUN curl -sL https://deb.nodesource.com/setup_current.x | bash - \
   && apt-get install -yq nodejs build-essential
 
 # Install npm
-RUN npm install -g npm
+# RUN npm install -g npm
 
 # Install requirements for wp-cli support
 RUN apt-get update \

@@ -10,16 +10,18 @@ jobs:
         php-version: [7.3]
         wp-version: [5.5]
     services:
-        mysql:
-            image: mysql:5.7
-            env:
-                MYSQL_ALLOW_EMPTY_PASSWORD: yes
-                MYSQL_DATABASE: wordpress
-                MYSQL_USER: wordpress
-                MYSQL_PASSWORD: wordpress
-            ports:
-                - 3306
-            options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+      nginx:
+        image: nginx
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: wordpress
+          MYSQL_USER: wordpress
+          MYSQL_PASSWORD: wordpress
+        ports:
+          - 3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -29,10 +31,9 @@ jobs:
           args: |
             PHP_VERSION=${{ matrix.php-version }}
             WP_VERSION=${{ matrix.wp-version }}
-      - name: Start test server
-        run: docker-compose up
       - name: Build
         run: |
+          npm run cy:run
           pwd
           ls
           npm -v
