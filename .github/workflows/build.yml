@@ -65,6 +65,7 @@ jobs:
         uses: wei/curl@v1
         with:
           args: -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+
       - name: Install WP-CLI
       - run: |
           sudo chmod +x wp-cli.phar && mv wp-cli.phar /usr/local/bin/wp && wp --info
@@ -78,11 +79,6 @@ jobs:
           wp config create --dbname=wordpress --dbuser=root --dbpass=root --allow-root --debug
           wp core install --url=http://localhost:8080 --title=Test --admin_user=wordpress --admin_password=wordpress \
             --admin_email=admin@local.test --skip-email --allow-root
-          cd ${{ env.GITHUB_WORKSPACE }}
-          pwd
-          cp -R ${{ env.GITHUB_WORKSPACE }} /usr/src/wordpress/wp-content/plugins/metagallery
-          la -l
-          la -l /usr/src/wordpress/wp-content/plugins/metagallery
         env:
           WP_VERSION: ${{ matrix.wp }}
       - name: Restart nginx
