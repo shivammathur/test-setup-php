@@ -60,10 +60,10 @@ jobs:
         if: steps.check_files.outputs.files_exists == 'true'
         run: sudo service mysql start
       - name: Install WP-CLI
-            uses: wei/curl@v1
-            with:
-              args: |
-                -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
-                && php wp-cli.phar --info \
-                && chmod +x wp-cli.phar \
-                && mv wp-cli.phar /usr/local/bin/wp
+          uses: wei/curl@v1
+          with:
+            args: |
+              -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
+              && php wp-cli.phar --info \
+              && chmod +x wp-cli.phar \
+              && mv wp-cli.phar /usr/local/bin/wp
