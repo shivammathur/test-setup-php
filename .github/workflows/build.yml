@@ -34,21 +34,21 @@ jobs:
           coverage: none
           tools: composer
 
-      # - name: Get Composer cache Directory
-      #   id: composer-cache
-      #   run: |
-      #     echo "::set-output name=dir::$(composer config cache-files-dir)"
+      - name: Get Composer cache Directory
+        id: composer-cache
+        run: |
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
 
-      # - name: Use Composer cache
-      #   uses: actions/cache@master
-      #   with:
-      #     path: ${{ steps['composer-cache'].outputs.dir }}
-      #     key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-composer-
+      - name: Use Composer cache
+        uses: actions/cache@master
+        with:
+          path: ${{ steps['composer-cache'].outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
 
-      # - name: Install dependencies
-      #   run: COMPOSER_ROOT_VERSION=dev-master composer install --prefer-dist --no-progress --no-suggest
+      - name: Install dependencies
+        run: COMPOSER_ROOT_VERSION=dev-master composer install --prefer-dist --no-progress --no-suggest
 
       - name: Start MySQL server
         run: sudo service mysql start
