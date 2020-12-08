@@ -80,11 +80,11 @@ jobs:
           wp core install --url=http://localhost:8080 --title=Test --admin_user=wordpress --admin_password=wordpress \
             --admin_email=admin@local.test --skip-email --allow-root
           pwd
-          echo ${{ env.GITHUB_WORKSPACE }}
+          echo ${{ github.workspace }}
           ls -l
-          cd ${{ env.GITHUB_WORKSPACE }}/work
+          cd ${{ github.workspace }}/work
           ls -l
-          cp -R ${{ env.GITHUB_WORKSPACE }} /usr/src/wordpress/wp-content/plugins/metagallery
+          cp -R ${{ github.workspace }} /usr/src/wordpress/wp-content/plugins/metagallery
           ls -l /usr/src/wordpress/wp-content/plugins/metagallery
         env:
           WP_VERSION: ${{ matrix.wp }}
