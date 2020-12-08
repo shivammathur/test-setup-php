@@ -10,6 +10,13 @@ jobs:
         php-version: [7.3]
         wp-version: [5.5]
     services:
+      nginx:
+        container_name: docker
+        image: nginx
+        ports:
+          - 80:8080
+        volumes:
+          - ./public:/usr/src/wordpress
       mysql:
         image: mysql:5.7
         env:
