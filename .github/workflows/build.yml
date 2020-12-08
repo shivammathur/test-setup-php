@@ -65,3 +65,6 @@ jobs:
           args: -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
       - run: |
           sudo chmod +x wp-cli.phar && mv wp-cli.phar /usr/local/bin/wp && wp --info
+      - name: Install WordPress
+        run: |
+          pwd
