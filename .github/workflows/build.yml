@@ -27,6 +27,11 @@ jobs:
       - name: Check out source code
         uses: actions/checkout@v2
 
+      - name: Verify MySQL connection from host
+        run: |
+          sudo apt-get install -y mysql-client
+          mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports['3306'] }} -uroot -ppassword -e "SHOW DATABASES"
+
       - name: Check existence of composer.json file
         id: check_files
         uses: andstor/file-existence-action@v1
