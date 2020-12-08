@@ -40,6 +40,7 @@ jobs:
           extensions: mysql, zip
           coverage: none
           tools: composer
+
       - name: Get Composer cache Directory
         if: steps.check_files.outputs.files_exists == 'true'
         id: composer-cache
@@ -59,8 +60,8 @@ jobs:
         if: steps.check_files.outputs.files_exists == 'true'
         run: COMPOSER_ROOT_VERSION=dev-master composer install --prefer-dist --no-progress --no-suggest
 
-      - name: Start MySQL server
-        run: sudo service mysql start
+      # - name: Start MySQL server
+      #   run: sudo service mysql start
 
       - name: Install WP-CLI
         uses: wei/curl@v1
@@ -88,12 +89,3 @@ jobs:
         uses: docker://docker
         with:
           args: docker restart nginx
-
-
-
-
-
-
-
-
-
