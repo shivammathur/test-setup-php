@@ -10,8 +10,6 @@ jobs:
         php-version: [7.3]
         wp-version: [5.5]
     services:
-      nginx:
-        image: nginx
       mysql:
         image: mysql:5.7
         env:
