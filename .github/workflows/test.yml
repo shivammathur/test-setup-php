@@ -1,4 +1,4 @@
-name: oldphp on windows
+name: oldphp
 
 on: [push, pull_request]
 
@@ -18,6 +18,5 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: amqp, memcache, redis, mongodb, mongo, memcached, xdebug
-      - run: ls $(php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
       - run: php -v
       - run: php -m  
