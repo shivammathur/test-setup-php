@@ -83,8 +83,10 @@ jobs:
             --admin_email=admin@local.test --skip-email --allow-root
           cd ${{ github.workspace }}
           ls -l
-          cp -R ${{ github.workspace }} /usr/src/wordpress/wp-content/plugins/metagallery
+          mv -rf ${{ github.workspace }} /usr/src/wordpress/wp-content/plugins/metagallery
           ls -l /usr/src/wordpress/wp-content/plugins/metagallery
+          mv -rf /usr/src/wordpress ${{ github.workspace }}
+
         env:
           WP_VERSION: ${{ matrix.wp }}
       # - name: Restart nginx
@@ -101,7 +103,7 @@ jobs:
           path: ~/.cache/Cypress
           key: cypress-cache-v1-${{ runner.os }}-${{ hashFiles('**/package.json') }}
       # install Cypress binary
-      - run: cd /usr/src/wordpress && npx cypress install && npx cypress cache list
+      - run: cd ${{ github.workspace }}/wp-content/plugins/metagallery && npx cypress install && npx cypress cache list
       - uses: cypress-io/github-action@v2
         with:
           command: npm run cy:run
