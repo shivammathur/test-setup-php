@@ -53,18 +53,36 @@ jobs:
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
             ${{ runner.os }}-composer-
+
       - name: Install dependencies
         if: steps.check_files.outputs.files_exists == 'true'
         run: COMPOSER_ROOT_VERSION=dev-master composer install --prefer-dist --no-progress --no-suggest
+
       - name: Start MySQL server
-        if: steps.check_files.outputs.files_exists == 'true'
         run: sudo service mysql start
+
       - name: Install WP-CLI
         uses: wei/curl@v1
         with:
           args: -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
       - run: |
           sudo chmod +x wp-cli.phar && mv wp-cli.phar /usr/local/bin/wp && wp --info
+
       - name: Install WordPress
         run: |
-          pwd
+          cd /usr/src/wordpress/
+          wp config create --dbname=wordpress --dbuser=wordpress --dbpass=wordpress --dbhost=mysql --allow-root --debug
+          wp core install --url=http://localhost:8080 --title=Test --admin_user=wordpress --admin_password=wordpress \
+            --admin_email=admin@local.test --skip-email --allow-root
+          cd /github/workspace
+          cp -R /github/workspace /usr/src/wordpress/wp-content/plugins/metagallery
+
+
+
+
+
+
+
+
+
+
