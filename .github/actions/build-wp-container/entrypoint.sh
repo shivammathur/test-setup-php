@@ -17,7 +17,7 @@ cd /github/workspace
 # Copy plugin from the workspace in the WordPress plugins folder and run everything from there
 cp -R /github/workspace /var/www/public/wp-content/plugins/metagallery
 
-cd /usr/src/wordpress/wp-content/plugins/metagallery
+cd /var/www/public/wp-content/plugins/metagallery
 
 pwd
 la -l
