@@ -97,6 +97,7 @@ jobs:
       - name: Cache Cypress
         id: cache-cypress
         uses: actions/cache@v1
+        working-dir: /usr/src/wordpress
         with:
           path: ~/.cache/Cypress
           key: cypress-cache-v1-${{ runner.os }}-${{ hashFiles('**/package.json') }}
