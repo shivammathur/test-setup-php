@@ -69,6 +69,8 @@ jobs:
           mysql root password: 'password'
           mysql user: 'user'
           mysql password: 'password'
+      - name: Start MySQL server
+        run: sudo service mysql start
 
       - name: Install WP-CLI
         uses: wei/curl@v1
