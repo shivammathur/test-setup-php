@@ -59,11 +59,12 @@ jobs:
       - name: Start MySQL server
         if: steps.check_files.outputs.files_exists == 'true'
         run: sudo service mysql start
-      - name: Install WP-CLI
+      - name: Download WP-CLI
         uses: wei/curl@v1
         with:
-          args: |
-            -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
-            && php wp-cli.phar --info \
+          args: -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+      - name: Install WP-CLI
+        run: |
+          php wp-cli.phar --info \
             && chmod +x wp-cli.phar \
             && mv wp-cli.phar /usr/local/bin/wp
