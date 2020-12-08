@@ -24,9 +24,6 @@ jobs:
           - 3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
-      - name: Install sudo package
-        run: apt update && apt install sudo
-
       - name: Check out source code
         uses: actions/checkout@v2
 
@@ -63,8 +60,8 @@ jobs:
         if: steps.check_files.outputs.files_exists == 'true'
         run: COMPOSER_ROOT_VERSION=dev-master composer install --prefer-dist --no-progress --no-suggest
 
-      # - name: Start MySQL server
-      #   run: sudo service mysql start
+      - name: Start MySQL server
+        run: sudo service mysql start
 
       - name: Install WP-CLI
         uses: wei/curl@v1
