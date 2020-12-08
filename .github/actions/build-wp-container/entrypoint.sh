@@ -19,6 +19,9 @@ cp -R /github/workspace /usr/src/wordpress/wp-content/plugins/metagallery
 
 cp -R /usr/src/wordpress/wp-content/plugins/metagallery/cypress /usr/src/wordpress
 
+echo 'hmmm'
+ls -l /var/www/public
+
 # cd /usr/src/wordpress/wp-content/plugins/metagallery
 
 # Install npm packages
