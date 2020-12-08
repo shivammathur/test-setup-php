@@ -83,9 +83,9 @@ jobs:
             --admin_email=admin@local.test --skip-email --allow-root
           cd ${{ github.workspace }}
           ls -l
-          mv -rf ${{ github.workspace }} /usr/src/wordpress/wp-content/plugins/metagallery
+          mv ${{ github.workspace }} /usr/src/wordpress/wp-content/plugins/metagallery
           ls -l /usr/src/wordpress/wp-content/plugins/metagallery
-          mv -rf /usr/src/wordpress ${{ github.workspace }}
+          mv /usr/src/wordpress ${{ github.workspace }}
 
         env:
           WP_VERSION: ${{ matrix.wp }}
