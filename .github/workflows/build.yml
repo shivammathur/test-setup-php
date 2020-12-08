@@ -14,18 +14,27 @@ jobs:
         image: nginx
         options: -v /usr/src/wordpress:/usr/share/nginx/html --name nginx
       mysql:
-        image: mysql:5.7
+        image: mariadb:latest
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: yes
           MYSQL_DATABASE: wordpress
-          MYSQL_USER: wordpress
-          MYSQL_PASSWORD: wordpress
+          MYSQL_USER: user
+          MYSQL_PASSWORD: password
+          MYSQL_ROOT_PASSWORD: password
         ports:
           - 3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
       - name: Check out source code
         uses: actions/checkout@v2
+
+      - name: Verify MariaDB connection
+        env:
+          PORT: ${{ job.services.mariadb.ports[3306] }}
+        run: |
+          while ! mysqladmin ping -h"127.0.0.1" -P"$PORT" --silent; do
+            sleep 1
+          done
 
       - name: Check existence of composer.json file
         id: check_files
@@ -76,7 +85,7 @@ jobs:
           sudo chmod o+w /usr/src/wordpress/
           cd /usr/src/wordpress/
           wp core download --version=${{ env.WP_VERSION }}
-          wp config create --dbname=wordpress --dbuser=wordpress --dbpass=wordpress --dbhost=127.0.0.1 --allow-root --debug
+          wp config create --dbname=wordpress --dbuser=user --dbpass=password --allow-root --debug
           wp core install --url=http://localhost:8080 --title=Test --admin_user=wordpress --admin_password=wordpress \
             --admin_email=admin@local.test --skip-email --allow-root
           cd /github/workspace
