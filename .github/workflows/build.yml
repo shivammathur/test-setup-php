@@ -39,11 +39,11 @@ jobs:
           extensions: mysql, zip
           coverage: none
           tools: composer
-        - name: Get Composer cache Directory
-          if: steps.check_files.outputs.files_exists == 'true'
-          id: composer-cache
-          run: |
-            echo "::set-output name=dir::$(composer config cache-files-dir)"
+      - name: Get Composer cache Directory
+        if: steps.check_files.outputs.files_exists == 'true'
+        id: composer-cache
+        run: |
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
 
       - name: Use Composer cache
         if: steps.check_files.outputs.files_exists == 'true'
