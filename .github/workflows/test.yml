@@ -3,13 +3,13 @@ name: oldphp
 on: [push, pull_request]
 
 jobs:
-  oldphp-ubuntu:
+  oldphp:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         php-versions: ['5.3']
-        os: [ubuntu-18.04]
+        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -17,6 +17,14 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: amqp, memcache, redis, mongodb, mongo, memcached, xdebug
+          extensions: amqp, memcache, memcached, mongo, mongodb, redis, xdebug
       - run: php -v
-      - run: php -m  
+      - run: |
+          php -m  
+          php -r "if(! extension_loaded('amqp')) {throw new Exception('amqp not found');}"
+          php -r "if(! extension_loaded('memcache')) {throw new Exception('memcache not found');}"
+          php -r "if(! extension_loaded('memcached')) {throw new Exception('memcached not found');}"
+          php -r "if(! extension_loaded('mongo')) {throw new Exception('mongo not found');}"
+          php -r "if(! extension_loaded('mongodb')) {throw new Exception('mongodb not found');}"
+          php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
+          php -r "if(! extension_loaded('xdebug')) {throw new Exception('xdebug not found');}"
