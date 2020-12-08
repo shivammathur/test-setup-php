@@ -24,13 +24,16 @@ jobs:
           - 3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
+      # - name: Install sudo package
+      #   run: apt update && apt install sudo
+
       - name: Check out source code
         uses: actions/checkout@v2
 
       - name: Verify MySQL connection from host
         run: |
           sudo apt-get install -y mysql-client
-          mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports['3306'] }} -uwordpress -e "SHOW DATABASES"
+          mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports['3306'] }} -uwordpress -pwordpress -e "SHOW DATABASES"
 
       - name: Check existence of composer.json file
         id: check_files
