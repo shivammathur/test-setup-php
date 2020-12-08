@@ -48,6 +48,6 @@ jobs:
         with:
           command: npm run cy:run
           install: false
-          env:
-            CYPRESS_host: docker
-            CYPRESS_port: 8080
+        env:
+          CYPRESS_host: docker
+          CYPRESS_port: 8080
