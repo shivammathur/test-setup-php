@@ -13,7 +13,7 @@ jobs:
       nginx:
         image: nginx
         ports:
-          8080:8080
+          - 8080:8080
         options: -v /usr/src/wordpress:/usr/share/nginx/html --name nginx
       mysql:
         image: mysql:5.7
