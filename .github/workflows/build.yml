@@ -72,7 +72,7 @@ jobs:
       - name: Install WordPress
         run: |
           sudo mkdir -p /usr/src/wordpress/
-          sudo chmod +x /usr/src/wordpress/
+          sudo chmod o+w /usr/src/wordpress/
           cd /usr/src/wordpress/
           wp core download --version=${{ env.WP_VERSION }}
           wp config create --dbname=wordpress --dbuser=wordpress --dbpass=wordpress --dbhost=mysql --allow-root --debug
