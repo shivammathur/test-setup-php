@@ -20,11 +20,11 @@ cp -R /github/workspace /usr/src/wordpress/wp-content/plugins/metagallery
 cd /usr/src/wordpress/wp-content/plugins/metagallery
 
 # Install npm packages
-npm install
-npm run build
+# npm install
+# npm run build
 
 # Setup Composer
-composer install --no-progress
+# composer install --no-progress
 
 # Run integration tests
 # composer test:integration
