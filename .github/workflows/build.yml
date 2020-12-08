@@ -10,11 +10,8 @@ jobs:
         php-version: [7.3]
         wp-version: [5.5]
     services:
-      # nginx:
-      #   # container_name: docker
-      #   image: nginx
-      #   ports:
-      #     - 8080:8080
+      nginx:
+        image: nginx
       mysql:
         image: mysql:5.7
         env:
@@ -26,42 +23,47 @@ jobs:
           - 3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
-      - name: Checkout
+      - name: Check out source code
         uses: actions/checkout@v2
-      - name: Create WP Server
-        uses: ./.github/actions/build-wp-container
-        # with:
-        #   args: |
-        #     PHP_VERSION=${{ matrix.php-version }}
-        #     WP_VERSION=${{ matrix.wp-version }}
 
-      # see https://github.com/bahmutov/cypress-gh-action-split-install
-      - run: npx cypress cache path && npx cypress cache list
-      # restore / cache the binary ourselves on Linux
-      # see https://github.com/actions/cache
-      - name: Cache Cypress
-        id: cache-cypress
-        uses: actions/cache@v1
+      - name: Check existence of composer.json file
+        id: check_files
+        uses: andstor/file-existence-action@v1
         with:
-          path: ~/.cache/Cypress
-          key: cypress-cache-v1-${{ runner.os }}-${{ hashFiles('**/package.json') }}
-      # install Cypress binary
-      - run: npx cypress install && npx cypress cache list
-      - uses: cypress-io/github-action@v2
+          files: "composer.json"
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
-          command: npm run cy:run
-          install: false
-        env:
-          CYPRESS_host: docker
-          CYPRESS_port: 8080
-      - uses: actions/upload-artifact@v1
-        if: failure()
+          php-version: '${{ matrix.php }}'
+          extensions: mysql, zip
+          coverage: none
+          tools: composer
+            - name: Get Composer cache Directory
+        if: steps.check_files.outputs.files_exists == 'true'
+        id: composer-cache
+        run: |
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+      - name: Use Composer cache
+        if: steps.check_files.outputs.files_exists == 'true'
+        uses: actions/cache@master
         with:
-          name: cypress-screenshots
-          path: cypress/screenshots
-      # Test run video was always captured, so this action uses "always()" condition
-      - uses: actions/upload-artifact@v1
-        if: always()
-        with:
-          name: cypress-videos
-          path: cypress/videos
+          path: ${{ steps['composer-cache'].outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+      - name: Install dependencies
+        if: steps.check_files.outputs.files_exists == 'true'
+        run: COMPOSER_ROOT_VERSION=dev-master composer install --prefer-dist --no-progress --no-suggest
+      - name: Start MySQL server
+        if: steps.check_files.outputs.files_exists == 'true'
+        run: sudo service mysql start
+      - name: Install WP-CLI
+            uses: wei/curl@v1
+            with:
+              args: |
+                -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
+                && php wp-cli.phar --info \
+                && chmod +x wp-cli.phar \
+                && mv wp-cli.phar /usr/local/bin/wp
