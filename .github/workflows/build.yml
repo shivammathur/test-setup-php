@@ -34,22 +34,22 @@ jobs:
             WP_VERSION=${{ matrix.wp-version }}
 
       # see https://github.com/bahmutov/cypress-gh-action-split-install
-      # - run: npx cypress cache path && npx cypress cache list
-      # # restore / cache the binary ourselves on Linux
-      # # see https://github.com/actions/cache
-      # - name: Cache Cypress
-      #   id: cache-cypress
-      #   uses: actions/cache@v1
-      #   with:
-      #     path: ~/.cache/Cypress
-      #     key: cypress-cache-v1-${{ runner.os }}-${{ hashFiles('**/package.json') }}
-      # # install Cypress binary
-      # - run: npx cypress install && npx cypress cache list
-      # - uses: cypress-io/github-action@v2
-      #   with:
-      #     command: npm run cy:run
-      #     install: false
-      #   env:
-      #     CYPRESS_host: docker
-      #     CYPRESS_port: 8080
-      #     CYPRESS_fileServerFolder: wp-content/plugins/metagallery
+      - run: npx cypress cache path && npx cypress cache list
+      # restore / cache the binary ourselves on Linux
+      # see https://github.com/actions/cache
+      - name: Cache Cypress
+        id: cache-cypress
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-cache-v1-${{ runner.os }}-${{ hashFiles('**/package.json') }}
+      # install Cypress binary
+      - run: npx cypress install && npx cypress cache list
+      - uses: cypress-io/github-action@v2
+        with:
+          command: npm run cy:run
+          install: false
+        env:
+          CYPRESS_host: docker
+          CYPRESS_port: 8080
+          CYPRESS_fileServerFolder: wp-content/plugins/metagallery

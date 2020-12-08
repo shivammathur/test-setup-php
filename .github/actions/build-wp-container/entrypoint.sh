@@ -17,12 +17,12 @@ cd /github/workspace
 # Copy plugin from the workspace in the WordPress plugins folder and run everything from there
 cp -R /github/workspace /usr/src/wordpress/wp-content/plugins/metagallery
 
-cd /usr/src/wordpress/wp-content/plugins/metagallery
+# cd /usr/src/wordpress/wp-content/plugins/metagallery
 
 # Install npm packages
-npm install
+# npm install
 # npm run build
-npm run cy:run
+# npm run cy:run
 
 # Setup Composer
 # composer install --no-progress
