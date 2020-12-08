@@ -22,7 +22,7 @@ cd /usr/src/wordpress/wp-content/plugins/metagallery
 # Install npm packages
 npm install
 npm run build
-npm start & wait-on http://localhost:8080
+npm run cy:run
 
 # Setup Composer
 # composer install --no-progress
