@@ -12,6 +12,7 @@ jobs:
     services:
       nginx:
         image: nginx
+        options: -v /usr/src/wordpress:/usr/share/nginx/html --name nginx
       mysql:
         image: mysql:5.7
         env:
@@ -70,7 +71,7 @@ jobs:
 
       - name: Install WordPress
         run: |
-          mkdir -p /usr/src/wordpress/
+          sudo mkdir -p /usr/src/wordpress/
           cd /usr/src/wordpress/
           wp config create --dbname=wordpress --dbuser=wordpress --dbpass=wordpress --dbhost=mysql --allow-root --debug
           wp core install --url=http://localhost:8080 --title=Test --admin_user=wordpress --admin_password=wordpress \
@@ -79,7 +80,10 @@ jobs:
           cp -R /github/workspace /usr/src/wordpress/wp-content/plugins/metagallery
           la -l
           la -l /usr/src/wordpress/wp-content/plugins/metagallery
-
+      - name: Restart nginx
+        uses: docker://docker
+        with:
+          args: docker restart nginx
 
 
 
