@@ -12,6 +12,8 @@ jobs:
     services:
       nginx:
         image: nginx
+        ports:
+          8080:8080
         options: -v /usr/src/wordpress:/usr/share/nginx/html --name nginx
       mysql:
         image: mysql:5.7
@@ -104,9 +106,9 @@ jobs:
         with:
           command: npm run cy:run
           install: false
-        env:
-          CYPRESS_host: 127.0.0.1
-          CYPRESS_port: 8080
+        # env:
+          # CYPRESS_host: 127.0.0.1
+          # CYPRESS_port: 8080
       - uses: actions/upload-artifact@v1
         if: failure()
         with:
