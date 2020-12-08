@@ -10,9 +10,9 @@ jobs:
         php-version: [7.3]
         wp-version: [5.5]
     services:
-      # nginx:
-      #   # container_name: docker
-      #   image: nginx
+      nginx:
+        # container_name: docker
+        image: nginx
       mysql:
         image: mysql:5.7
         env:
@@ -51,6 +51,7 @@ jobs:
           install: false
         env:
           CYPRESS_host: docker
+          CYPRESS_BASE_URL: http://docker:8080
           CYPRESS_port: 8080
       - uses: actions/upload-artifact@v1
         if: failure()
