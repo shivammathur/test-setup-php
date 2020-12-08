@@ -29,6 +29,8 @@ jobs:
           args: |
             PHP_VERSION=${{ matrix.php-version }}
             WP_VERSION=${{ matrix.wp-version }}
+      - name: Start test server
+        run: docker-compose up
       - name: Build
         run: |
           pwd
