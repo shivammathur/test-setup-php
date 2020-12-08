@@ -13,28 +13,20 @@ jobs:
       nginx:
         image: nginx
         options: -v /usr/src/wordpress:/usr/share/nginx/html --name nginx
-      mysql:
-        image: mariadb:latest
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_DATABASE: wordpress
-          MYSQL_USER: user
-          MYSQL_PASSWORD: password
-          MYSQL_ROOT_PASSWORD: password
-        ports:
-          - 3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+      # mysql:
+      #   image: mariadb:latest
+      #   env:
+      #     MYSQL_ALLOW_EMPTY_PASSWORD: yes
+      #     MYSQL_DATABASE: wordpress
+      #     MYSQL_USER: user
+      #     MYSQL_PASSWORD: password
+      #     MYSQL_ROOT_PASSWORD: password
+      #   ports:
+      #     - 3306
+      #   options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
     steps:
       - name: Check out source code
         uses: actions/checkout@v2
-
-      - name: Verify MariaDB connection
-        env:
-          PORT: ${{ job.services.mariadb.ports[3306] }}
-        run: |
-          while ! mysqladmin ping -h"127.0.0.1" -P"$PORT" --silent; do
-            sleep 1
-          done
 
       - name: Check existence of composer.json file
         id: check_files
@@ -69,8 +61,14 @@ jobs:
         if: steps.check_files.outputs.files_exists == 'true'
         run: COMPOSER_ROOT_VERSION=dev-master composer install --prefer-dist --no-progress --no-suggest
 
-      - name: Start MySQL server
-        run: sudo service mysql start
+      - name: Shutdown Ubuntu MySQL (SUDO)
+        run: sudo service mysql stop
+      - uses: getong/mariadb-action@v1.1
+        with:
+          mysql database: 'wordpress'
+          mysql root password: 'password'
+          mysql user: 'user'
+          mysql password: 'password'
 
       - name: Install WP-CLI
         uses: wei/curl@v1
