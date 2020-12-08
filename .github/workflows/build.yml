@@ -105,7 +105,7 @@ jobs:
           command: npm run cy:run
           install: false
         env:
-          CYPRESS_host: docker://docker
+          CYPRESS_host: 127.0.0.1
           CYPRESS_port: 8080
       - uses: actions/upload-artifact@v1
         if: failure()
