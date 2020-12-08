@@ -74,7 +74,7 @@ jobs:
           sudo chmod o+w /usr/src/wordpress/
           cd /usr/src/wordpress/
           wp core download --version=${{ env.WP_VERSION }}
-          wp config create --dbname=wordpress --dbuser=root --allow-root --debug
+          wp config create --dbname=wordpress --dbuser=root --dbhost=127.0.0.1 --allow-root --debug
           wp core install --url=http://localhost:8080 --title=Test --admin_user=wordpress --admin_password=wordpress \
             --admin_email=admin@local.test --skip-email --allow-root
           cd /github/workspace
