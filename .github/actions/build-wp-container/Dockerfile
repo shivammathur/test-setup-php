@@ -29,6 +29,23 @@ RUN apt-get update && apt-get install -y \
     libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libgconf-2-4 \
     libnss3 libxss1 libasound2 libxtst6 xauth xvfb
 
+
+RUN apt-get install -y nginx
+# Remove the default Nginx configuration file
+RUN rm -v /etc/nginx/nginx.conf
+
+# Copy a configuration file from the current directory
+ADD nginx.conf /etc/nginx/
+
+ADD web /usr/share/nginx/html/
+ADD web /var/www/html/
+
+# Append "daemon off;" to the beginning of the configuration
+RUN echo "daemon off;" >> /etc/nginx/nginx.conf
+# Expose ports
+EXPOSE 8080
+CMD service nginx start
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
