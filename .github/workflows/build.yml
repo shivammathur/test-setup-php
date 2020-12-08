@@ -97,12 +97,11 @@ jobs:
       - name: Cache Cypress
         id: cache-cypress
         uses: actions/cache@v1
-        working-directory: /usr/src/wordpress
         with:
           path: ~/.cache/Cypress
           key: cypress-cache-v1-${{ runner.os }}-${{ hashFiles('**/package.json') }}
       # install Cypress binary
-      - run: npx cypress install && npx cypress cache list
+      - run: cd /usr/src/wordpress && npx cypress install && npx cypress cache list
       - uses: cypress-io/github-action@v2
         with:
           command: npm run cy:run
