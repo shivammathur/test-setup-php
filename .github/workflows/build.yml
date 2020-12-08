@@ -26,12 +26,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Create WP Server
-        uses: ./.github/actions/build-wp-container
-        with:
-          args: |
-            PHP_VERSION=${{ matrix.php-version }}
-            WP_VERSION=${{ matrix.wp-version }}
+      # - name: Create WP Server
+      #   uses: ./.github/actions/build-wp-container
+        # with:
+        #   args: |
+        #     PHP_VERSION=${{ matrix.php-version }}
+        #     WP_VERSION=${{ matrix.wp-version }}
 
       # see https://github.com/bahmutov/cypress-gh-action-split-install
       - run: npx cypress cache path && npx cypress cache list
@@ -52,4 +52,3 @@ jobs:
         env:
           CYPRESS_host: docker
           CYPRESS_port: 8080
-          CYPRESS_fileServerFolder: wp-content/plugins/metagallery
