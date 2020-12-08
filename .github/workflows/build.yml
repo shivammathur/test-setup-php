@@ -2,13 +2,13 @@ name: Build And Test
 on: [push, pull_request]
 jobs:
   plugin:
-    name: Plugin (PHP ${{ matrix.php-versions }})
+    name: Plugin (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php-version: [7.3]
-        wp-version: [5.5]
+        php: [7.3]
+        wp: [5.5]
     services:
       nginx:
         image: nginx
