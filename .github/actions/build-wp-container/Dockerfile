@@ -36,6 +36,7 @@ RUN rm -v /etc/nginx/nginx.conf
 
 # Copy a configuration file from the current directory
 ADD nginx.conf /etc/nginx/
+RUN chmod +x /etc/nginx/nginx.conf
 
 ADD /web /usr/src/wordpress
 
