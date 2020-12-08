@@ -116,7 +116,7 @@ jobs:
           CYPRESS_integrationFolder: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/integration
           CYPRESS_pluginsFile: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/plugins/index.js
           CYPRESS_supportFile: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/support/index.js
-          # CYPRESS_host: 127.0.0.1
+          CYPRESS_host: 127.0.0.1
       - uses: actions/upload-artifact@v1
         if: failure()
         with:
