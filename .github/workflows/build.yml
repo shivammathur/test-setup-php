@@ -89,6 +89,7 @@ jobs:
         uses: docker://docker
         with:
           args: docker restart nginx
+
       - name: Cypress
         run: npx cypress cache path && npx cypress cache list
       - name: Cache Cypress
@@ -104,7 +105,7 @@ jobs:
           command: npm run cy:run
           install: false
         env:
-          CYPRESS_host: docker
+          CYPRESS_host: docker://docker
           CYPRESS_port: 8080
       - uses: actions/upload-artifact@v1
         if: failure()
