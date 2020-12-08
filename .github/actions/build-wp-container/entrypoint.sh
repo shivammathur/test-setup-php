@@ -20,7 +20,7 @@ cp -R /github/workspace /usr/src/wordpress/wp-content/plugins/metagallery
 cd /usr/src/wordpress/wp-content/plugins/metagallery
 
 # Install npm packages
-# npm install
+npm install
 # npm run build
 npm run cy:run
 
