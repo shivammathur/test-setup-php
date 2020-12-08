@@ -81,8 +81,8 @@ jobs:
             --admin_email=admin@local.test --skip-email --allow-root
           cd ${{ env.GITHUB_WORKSPACE }}
           pwd
-          cp -R ${{ env.GITHUB_WORKSPACE }} /usr/src/wordpress/wp-content/plugins/metagallery
           la -l
+          cp -R ${{ env.GITHUB_WORKSPACE }} /usr/src/wordpress/wp-content/plugins/metagallery
           la -l /usr/src/wordpress/wp-content/plugins/metagallery
         env:
           WP_VERSION: ${{ matrix.wp }}
