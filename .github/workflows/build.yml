@@ -13,10 +13,6 @@ jobs:
       nginx:
         # container_name: docker
         image: nginx
-        ports:
-          - 80:8080
-        volumes:
-          - /var/www/public:/usr/src/wordpress
       mysql:
         image: mysql:5.7
         env:
@@ -56,3 +52,4 @@ jobs:
         env:
           CYPRESS_host: docker
           CYPRESS_port: 8080
+          CYPRESS_fileServerFolder: wp-content/plugins/metagallery
