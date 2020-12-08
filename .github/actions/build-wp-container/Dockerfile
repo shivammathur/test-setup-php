@@ -32,6 +32,6 @@ RUN apt-get update && apt-get install -y \
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-WORKDIR /var/www/public
+WORKDIR /usr/src/wordpress
 
 ENTRYPOINT ["/entrypoint.sh"]
