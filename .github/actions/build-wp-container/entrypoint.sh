@@ -1,7 +1,7 @@
 #!/bin/sh -l
 
 # Setup WordPress installation and add WooCommerce plugin
-cd /var/www/public
+cd /usr/src/wordpress/
 
 pwd
 wp --info
@@ -15,19 +15,14 @@ wp core install --url=http://localhost:8080 --title=Test --admin_user=wordpress 
 cd /github/workspace
 
 # Copy plugin from the workspace in the WordPress plugins folder and run everything from there
-cp -R /github/workspace /var/www/public/wp-content/plugins/metagallery
+cp -R /github/workspace /usr/src/wordpress/wp-content/plugins/metagallery
 
-cd /var/www/public/wp-content/plugins/metagallery
-
-pwd
-la -l
-la -l /
-la -l
+cd /usr/src/wordpress/wp-content/plugins/metagallery
 
 # Install npm packages
 # npm install
 # npm run build
-# npm run cy:run
+npm run cy:run
 
 # Setup Composer
 # composer install --no-progress
