@@ -83,9 +83,9 @@ jobs:
             --admin_email=admin@local.test --skip-email --allow-root
           cd ${{ github.workspace }}
           ls -l
-          cp -R ${{ github.workspace }} /usr/src/wordpress/wp-content/plugins/metagallery
-          sudo rm -rf /usr/src/wordpress/wp-content/plugins/metagallery/cypress
-          ls -l /usr/src/wordpress/wp-content/plugins/metagallery
+          cp -R ${{ github.workspace }} /usr/src/wordpress/wp-content/plugins/testing-wp-install
+          sudo rm -rf /usr/src/wordpress/wp-content/plugins/testing-wp-install/cypress
+          ls -l /usr/src/wordpress/wp-content/plugins/testing-wp-install
           sudo mv /usr/src/wordpress/* ${{ github.workspace }}
           ls -l
 
@@ -111,14 +111,14 @@ jobs:
           # start: php -S localhost:8080
           # command: npm run cy:run
           install: false
-          # working-directory: wp-content/plugins/metagallery
+          # working-directory: wp-content/plugins/testing-wp-install
         env:
           CYPRESS_port: 8080
           # CYPRESS_fileServerFolder: ${{ github.workspace }}
-          # CYPRESS_fixturesFolder: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/fixtures
-          # CYPRESS_integrationFolder: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/integration
-          # CYPRESS_pluginsFile: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/plugins/index.js
-          # CYPRESS_supportFile: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/support/index.js
+          # CYPRESS_fixturesFolder: ${{ github.workspace }}/wp-content/plugins/testing-wp-install/cypress/fixtures
+          # CYPRESS_integrationFolder: ${{ github.workspace }}/wp-content/plugins/testing-wp-install/cypress/integration
+          # CYPRESS_pluginsFile: ${{ github.workspace }}/wp-content/plugins/testing-wp-install/cypress/plugins/index.js
+          # CYPRESS_supportFile: ${{ github.workspace }}/wp-content/plugins/testing-wp-install/cypress/support/index.js
           # CYPRESS_host: 127.0.0.1
       - uses: actions/upload-artifact@v1
         if: failure()
