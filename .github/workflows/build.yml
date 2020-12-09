@@ -84,6 +84,7 @@ jobs:
           cd ${{ github.workspace }}
           ls -l
           cp -R ${{ github.workspace }} /usr/src/wordpress/wp-content/plugins/metagallery
+          sudo rm -rf /usr/src/wordpress/wp-content/plugins/metagallery/cypress
           ls -l /usr/src/wordpress/wp-content/plugins/metagallery
           sudo mv /usr/src/wordpress/* ${{ github.workspace }}
           ls -l
