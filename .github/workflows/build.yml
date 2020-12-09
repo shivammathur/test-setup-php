@@ -83,7 +83,7 @@ jobs:
             --admin_email=admin@local.test --skip-email --allow-root
           cd ${{ github.workspace }}
           ls -l
-          sudo mv ${{ github.workspace }} /usr/src/wordpress/wp-content/plugins/metagallery
+          cp -R ${{ github.workspace }} /usr/src/wordpress/wp-content/plugins/metagallery
           ls -l /usr/src/wordpress/wp-content/plugins/metagallery
           sudo mv /usr/src/wordpress/* ${{ github.workspace }}
 
