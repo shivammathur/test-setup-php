@@ -108,7 +108,7 @@ jobs:
       - uses: cypress-io/github-action@v2
         with:
           start: php -S localhost:8080
-          command: npm run cy:run
+          # command: npm run cy:run
           install: false
           # working-directory: wp-content/plugins/metagallery
         env:
