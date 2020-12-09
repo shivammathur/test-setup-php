@@ -108,7 +108,7 @@ jobs:
       - run: npx cypress install && npx cypress cache list
       - uses: cypress-io/github-action@v2
         with:
-          start: php -S localhost:8080
+          # start: php -S localhost:8080
           # command: npm run cy:run
           install: false
           # working-directory: wp-content/plugins/metagallery
