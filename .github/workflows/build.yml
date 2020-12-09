@@ -104,7 +104,7 @@ jobs:
           path: ~/.cache/Cypress
           key: cypress-cache-v1-${{ runner.os }}-${{ hashFiles('**/package.json') }}
       # install Cypress binary
-      - run: cd ${{ github.workspace }}/wp-content/plugins/metagallery && npx cypress install && npx cypress cache list
+      - run: npx cypress install && npx cypress cache list
       - uses: cypress-io/github-action@v2
         with:
           start: php -S localhost:8080
