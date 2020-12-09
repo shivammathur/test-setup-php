@@ -13,7 +13,7 @@ jobs:
       # nginx:
       #   image: nginx
       #   ports:
-      #     - 8000:8000
+      #     - 8080:8080
       #   options: -v /usr/src/wordpress:/usr/share/nginx/html --name nginx
       mysql:
         image: mysql:5.7
@@ -79,7 +79,7 @@ jobs:
           cd /usr/src/wordpress/
           wp core download --version=${{ env.WP_VERSION }}
           wp config create --dbname=wordpress --dbuser=root --dbpass=root --allow-root --debug
-          wp core install --url=http://localhost:8000 --title=Test --admin_user=wordpress --admin_password=wordpress \
+          wp core install --url=http://localhost:8080 --title=Test --admin_user=wordpress --admin_password=wordpress \
             --admin_email=admin@local.test --skip-email --allow-root
           cd ${{ github.workspace }}
           ls -l
@@ -106,17 +106,18 @@ jobs:
       - run: cd ${{ github.workspace }}/wp-content/plugins/metagallery && npx cypress install && npx cypress cache list
       - uses: cypress-io/github-action@v2
         with:
+          start: php -S localhost:8080
           command: npm run cy:run
           install: false
           working-directory: wp-content/plugins/metagallery
         env:
-          CYPRESS_port: 8000
+          CYPRESS_port: 8080
           CYPRESS_fileServerFolder: ${{ github.workspace }}
           CYPRESS_fixturesFolder: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/fixtures
           CYPRESS_integrationFolder: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/integration
           CYPRESS_pluginsFile: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/plugins/index.js
           CYPRESS_supportFile: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/support/index.js
-          CYPRESS_host: 127.0.0.1
+          # CYPRESS_host: 127.0.0.1
       - uses: actions/upload-artifact@v1
         if: failure()
         with:
