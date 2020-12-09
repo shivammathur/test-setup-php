@@ -86,6 +86,7 @@ jobs:
           cp -R ${{ github.workspace }} /usr/src/wordpress/wp-content/plugins/metagallery
           ls -l /usr/src/wordpress/wp-content/plugins/metagallery
           sudo mv /usr/src/wordpress/* ${{ github.workspace }}
+          ls -l
 
         env:
           WP_VERSION: ${{ matrix.wp }}
@@ -109,14 +110,14 @@ jobs:
           start: php -S localhost:8080
           command: npm run cy:run
           install: false
-          working-directory: wp-content/plugins/metagallery
+          # working-directory: wp-content/plugins/metagallery
         env:
           CYPRESS_port: 8080
-          CYPRESS_fileServerFolder: ${{ github.workspace }}
-          CYPRESS_fixturesFolder: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/fixtures
-          CYPRESS_integrationFolder: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/integration
-          CYPRESS_pluginsFile: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/plugins/index.js
-          CYPRESS_supportFile: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/support/index.js
+          # CYPRESS_fileServerFolder: ${{ github.workspace }}
+          # CYPRESS_fixturesFolder: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/fixtures
+          # CYPRESS_integrationFolder: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/integration
+          # CYPRESS_pluginsFile: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/plugins/index.js
+          # CYPRESS_supportFile: ${{ github.workspace }}/wp-content/plugins/metagallery/cypress/support/index.js
           # CYPRESS_host: 127.0.0.1
       - uses: actions/upload-artifact@v1
         if: failure()
