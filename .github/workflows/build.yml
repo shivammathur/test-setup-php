@@ -34,7 +34,7 @@ jobs:
           php-version: '${{ matrix.php }}'
           extensions: mysql, zip
           coverage: none
-          tools: composer
+          tools: composer, wp-cli
 
       - name: Get Composer cache Directory
         id: composer-cache
@@ -63,15 +63,6 @@ jobs:
           mysql -e 'GRANT ALL PRIVILEGES ON wordpress.* TO "wordpress"@"127.0.0.1" IDENTIFIED BY "password1"' -uroot -proot
           mysql -e 'GRANT ALL PRIVILEGES ON wordpress_scaffold.* TO "wordpress"@"127.0.0.1" IDENTIFIED BY "password1"' -uroot -proot
 
-      - name: Download WP-CLI
-        uses: wei/curl@v1
-        with:
-          args: -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
-
-      - name: Install WP-CLI
-        run: |
-          sudo chmod +x wp-cli.phar && mv wp-cli.phar /usr/local/bin/wp && wp --info
-
       - name: Install WordPress
         run: |
           sudo mkdir -p /usr/src/wordpress/
@@ -96,6 +87,8 @@ jobs:
       #   with:
       #     args: docker restart nginx
 
+      - run: nohup php -S localhost:8080 > php.log 2>&1 &
+
       - name: Cypress
         run: npx cypress cache path && npx cypress cache list
       - name: Cache Cypress
@@ -113,7 +106,7 @@ jobs:
           install: false
           # working-directory: wp-content/plugins/testing-wp-install
         env:
-          CYPRESS_port: 8080
+          CYPRESS_baseUrl: http://localhost:8080/index.php
           # CYPRESS_fileServerFolder: ${{ github.workspace }}
           # CYPRESS_fixturesFolder: ${{ github.workspace }}/wp-content/plugins/testing-wp-install/cypress/fixtures
           # CYPRESS_integrationFolder: ${{ github.workspace }}/wp-content/plugins/testing-wp-install/cypress/integration
