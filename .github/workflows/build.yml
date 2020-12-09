@@ -85,7 +85,7 @@ jobs:
           ls -l
           sudo mv ${{ github.workspace }} /usr/src/wordpress/wp-content/plugins/metagallery
           ls -l /usr/src/wordpress/wp-content/plugins/metagallery
-          sudo mv /usr/src/wordpress ${{ github.workspace }}
+          sudo mv /usr/src/wordpress/* ${{ github.workspace }}
 
         env:
           WP_VERSION: ${{ matrix.wp }}
