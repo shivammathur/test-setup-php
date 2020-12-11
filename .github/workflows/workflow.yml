@@ -25,5 +25,4 @@ jobs:
           sudo systemctl restart php${{ matrix.php-versions }}-fpm
           sudo systemctl status php${{ matrix.php-versions }}-fpm
       - name: Check PHP extensions
-        run: php -m
-      - uses: mxschmitt/action-tmate@v3
+        run: php -m    
