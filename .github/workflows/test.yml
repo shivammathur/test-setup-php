@@ -1,9 +1,14 @@
 name: Test
 on:
   push:
-jobs:
+jobs:     
   run:
+    strategy:
+      matrix:
+        server: [nginx, apache2]
     runs-on: ubuntu-latest
     steps:
     - name: Test
-      run: sudo apt-fast install apache2 nginx -y
+      run: |
+        sudo apt-fast install ${{ matrix.server }} -y
+        sudo service ${{ matrix.server }} status
