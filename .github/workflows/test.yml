@@ -4,17 +4,14 @@ on:
 jobs:
   run:
     runs-on: ${{ matrix.os }}
-    container: ubuntu:precise
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
     steps:
     - name: Test
-      run: |
-        apt-get update
-        apt-get install lsb-release -y
-        lsb_release -a
+      run: |        
+        sudo apt-get install libldap-dev
         
 
           
