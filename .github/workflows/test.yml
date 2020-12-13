@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:      
-        php: ['7.1', '7.2']
+        php-versions: ['7.1', '7.2']
         phive-versions: ['latest']
         include:
         - php-versions: '7.1'
