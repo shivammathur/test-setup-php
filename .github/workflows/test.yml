@@ -6,7 +6,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Test
-      run: sudo apt-fast install apache2 nginx
-        
-
-          
+      run: sudo apt-fast install apache2 nginx -y
