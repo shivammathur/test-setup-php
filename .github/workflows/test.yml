@@ -4,21 +4,9 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:      
-        php-versions: ['7.2', '7.3']
-        phive-versions: ['latest']
-        
-        # Include special cases
-        include:
-        - php-versions: '7.1'
-          phive-versions: '0.13.5'
     steps:
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: ${{ matrix.php-versions }}
-        tools: phive:${{ matrix.phive-versions }}
+    - name: Test
+      run: sudo apt-fast install apache2 nginx
         
 
           
