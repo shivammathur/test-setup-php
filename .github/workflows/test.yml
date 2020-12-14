@@ -7,16 +7,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, macos-latest]
-        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php }}        
-        tools: phive
     - name: Test
       run: |
-        phive status || true
         php -v
-        php -m
+        apt-get install php7.4-xdebug -y
+        php -v
