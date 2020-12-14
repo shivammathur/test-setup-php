@@ -5,10 +5,24 @@ jobs:
   run:
     strategy:
       matrix:
-        server: [nginx, apache2]
+        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     runs-on: ubuntu-latest
     steps:
+    - uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php }}
     - name: Test
       run: |
-        sudo apt-fast install ${{ matrix.server }} -y
-        sudo service ${{ matrix.server }} status
+        sudo apt-get install libgeos-dev
+        curl -o /tmp/geos.tar.gz -sL https://git.osgeo.org/gitea/geos/php-geos/archive/master.tar.gz
+        tar -xzf /tmp/geos.tar.gz -C /tmp/geos
+        (
+          cd /tmp/geos
+          phpize
+          ./configure --enable-geos --with-geos-config=/usr/config
+          sudo make
+          ls ./modules
+          sudo make install
+        )
+        php -v
+        php -m
