@@ -16,7 +16,6 @@ jobs:
     - name: Test
       run: |
         scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
-        ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
         if [ "$(uname -s)" = "Darwin" ]; then
           brew install geos
         else
@@ -27,11 +26,11 @@ jobs:
         (
           cd /tmp/php-geos
           phpize
-          ./configure --enable-geos --with-geos-config=/usr/bin/geos-config
+          ./configure --enable-geos --with-geos-config=$(command -v geos-config)
           sudo make
           ls ./modules
           sudo make install
-          echo "extension=$ext_dir/geos.so" | sudo tee -a "$scan_dir/50-geos.ini"
+          echo "extension=geos.so" | sudo tee -a "$scan_dir/50-geos.ini"
         )
         php -v
         php -m
