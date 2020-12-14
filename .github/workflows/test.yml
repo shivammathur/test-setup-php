@@ -3,7 +3,7 @@ on:
   push:
 jobs:     
   run:
-    runs-on: ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.operating-systems }}
     strategy:
       matrix:
         operating-systems: [ubuntu-latest, windows-latest, macos-latest]
