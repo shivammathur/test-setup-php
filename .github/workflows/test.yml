@@ -19,7 +19,7 @@ jobs:
         (
           cd /tmp/geos
           phpize
-          ./configure --enable-geos --with-geos-config=/usr/config
+          ./configure --enable-geos --with-geos-config=/usr/bin
           sudo make
           ls ./modules
           sudo make install
