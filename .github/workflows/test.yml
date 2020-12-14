@@ -11,7 +11,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Test
-      run: |
-        php -v
-        apt-get install php7.4-xdebug -y
-        php -v
+    - run: php -v
+    - run: sudo apt-get install php7.4-xdebug -y
+    - run: php -v
+    - run: sudo apt-get update && sudo apt-get install php7.4-xdebug -y
+    - run: php -v
