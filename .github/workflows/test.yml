@@ -21,12 +21,14 @@ jobs:
         if [ "$(uname -s)" = "Darwin" ]; then
           brew install geos
           if [ "$(php -r "echo PHP_VERSION_ID;")" -ge 70000 ]; then
-            sed -i '' "s/ce->name/ZSTR_VAL(ce->name)/" /tmp/php-geos/geos.c
+            sed -i '' "s/, ce->name/, ZSTR_VAL(ce->name)/" /tmp/php-geos/geos.c
+            sed -i '' "s/ulong /zend_ulong /" /tmp/php-geos/geos.c
           fi          
         else
           sudo apt-get install libgeos-dev
           if [ "$(php -r "echo PHP_VERSION_ID;")" -ge 70000 ]; then
-            sed -i "s/ce->name/ZSTR_VAL(ce->name)/" /tmp/php-geos/geos.c
+            sed -i "s/, ce->name/, ZSTR_VAL(ce->name)/" /tmp/php-geos/geos.c
+            sed -i "s/ulong /zend_ulong /" /tmp/php-geos/geos.c
           fi          
         fi        
         (
