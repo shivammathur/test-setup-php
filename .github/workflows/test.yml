@@ -4,16 +4,24 @@ on:
 jobs:     
   run:
     strategy:
+      fail-fast: false
       matrix:
         php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
-    runs-on: ubuntu-latest
+        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, macos-latest]
+    runs-on: ${{ matix.os }}
     steps:
     - uses: shivammathur/setup-php@v2
       with:
-        php-version: ${{ matrix.php }}
+        php-version: ${{ matrix.php }}        
     - name: Test
       run: |
-        sudo apt-get install libgeos-dev
+        scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
+        ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
+        if [ "$(uname -s)" = "Darwin" ]; then
+          brew install geos
+        else
+          sudo apt-get install libgeos-dev        
+        fi  
         curl -o /tmp/geos.tar.gz -sL https://git.osgeo.org/gitea/geos/php-geos/archive/master.tar.gz
         tar -xzf /tmp/geos.tar.gz -C /tmp
         (
@@ -23,6 +31,8 @@ jobs:
           sudo make
           ls ./modules
           sudo make install
+          echo "extension=$ext_dir/geos.so" | sudo tee -a "$scan_dir/50-geos.ini"
         )
         php -v
         php -m
+        php -r "if(! extension_loaded('geos')) {throw new Exception('geos not found');}"
