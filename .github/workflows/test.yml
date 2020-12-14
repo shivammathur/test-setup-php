@@ -6,8 +6,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
-        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, macos-latest]
+        php: ['5.6', '7.3', '7.4']
+        os: [ubuntu-18.04, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: shivammathur/setup-php@v2
@@ -15,14 +15,20 @@ jobs:
         php-version: ${{ matrix.php }}        
     - name: Test
       run: |
-        scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
-        if [ "$(uname -s)" = "Darwin" ]; then
-          brew install geos
-        else
-          sudo apt-get install libgeos-dev        
-        fi  
+        scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")  
         curl -o /tmp/geos.tar.gz -sL https://git.osgeo.org/gitea/geos/php-geos/archive/master.tar.gz
         tar -xzf /tmp/geos.tar.gz -C /tmp
+        if [ "$(uname -s)" = "Darwin" ]; then
+          brew install geos
+          if (( "$(php -r "echo PHP_VERSION_ID;")" < 70000 )); then
+            sed -i '' "s/ce->name/ZSTR_VAL(ce->name)/" geos.c
+          fi          
+        else
+          sudo apt-get install libgeos-dev
+          if (( "$(php -r "echo PHP_VERSION_ID;")" < 70000 )); then
+            sed -i "s/ce->name/ZSTR_VAL(ce->name)/" geos.c
+          fi          
+        fi        
         (
           cd /tmp/php-geos
           phpize
