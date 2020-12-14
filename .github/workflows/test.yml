@@ -6,11 +6,12 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-systems: [ubuntu-latest, windows-latest, macos-latest]
         php-versions: ['7.3', '7.4']
         phpunit-versions: ['latest']
         include:
-        - php-versions: '7.2'
+        - operating-systems: 'ubuntu-latest'
+          php-versions: '7.2'
           phpunit-versions: '8.5.13'
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
