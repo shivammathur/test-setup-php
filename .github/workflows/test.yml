@@ -20,13 +20,13 @@ jobs:
         tar -xzf /tmp/geos.tar.gz -C /tmp
         if [ "$(uname -s)" = "Darwin" ]; then
           brew install geos
-          if (( "$(php -r "echo PHP_VERSION_ID;")" < 70000 )); then
-            sed -i '' "s/ce->name/ZSTR_VAL(ce->name)/" geos.c
+          if [ "$(php -r "echo PHP_VERSION_ID;")" -ge 70000 ]; then
+            sed -i '' "s/ce->name/ZSTR_VAL(ce->name)/" /tmp/geos-php/geos.c
           fi          
         else
           sudo apt-get install libgeos-dev
           if (( "$(php -r "echo PHP_VERSION_ID;")" < 70000 )); then
-            sed -i "s/ce->name/ZSTR_VAL(ce->name)/" geos.c
+            sed -i "s/ce->name/ZSTR_VAL(ce->name)/" /tmp/geos-php/geos.c
           fi          
         fi        
         (
