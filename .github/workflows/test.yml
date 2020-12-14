@@ -15,9 +15,9 @@ jobs:
       run: |
         sudo apt-get install libgeos-dev
         curl -o /tmp/geos.tar.gz -sL https://git.osgeo.org/gitea/geos/php-geos/archive/master.tar.gz
-        tar -xzf /tmp/geos.tar.gz -C /tmp/geos
+        tar -xzf /tmp/geos.tar.gz -C /tmp
         (
-          cd /tmp/geos
+          cd /tmp/php-geos
           phpize
           ./configure --enable-geos --with-geos-config=/usr/bin
           sudo make
