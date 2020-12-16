@@ -1,17 +1,17 @@
 
 name: Test
 on:
-  push:
+  pull_request:  
 jobs:     
   run:
+    if: github.event.pull_request.user.login == github.repository_owner
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        os: [ubuntu-20.04]
     runs-on: ${{ matrix.os }}
     steps:
-    - run: php -v
-    - run: sudo apt-get install php7.4-xdebug -y
-    - run: php -v
-    - run: sudo apt-get update && sudo apt-get install php7.4-xdebug -y
-    - run: php -v
+    - run: echo 'test equal'
+      if: github.event.pull_request.user.login == github.repository_owner
+    - run: echo 'test unequal'
+      if: github.event.pull_request.user.login != github.repository_owner
