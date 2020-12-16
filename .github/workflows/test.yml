@@ -7,11 +7,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - run: php -v
-    - run: sudo apt-get install php7.4-xdebug -y
-    - run: php -v
-    - run: sudo apt-get update && sudo apt-get install php7.4-xdebug -y
-    - run: php -v
+    - uses: shivammathur/setup-php@v2
+      continue-on-error: true
+      with:
+        php-version: '7.5'
