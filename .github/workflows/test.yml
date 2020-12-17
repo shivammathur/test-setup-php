@@ -3,6 +3,7 @@ on: [push]
 jobs:
   tests:
     runs-on: ubuntu-20.04
+    container: ubuntu:focal
     strategy:
       fail-fast: false
       matrix:
@@ -10,13 +11,18 @@ jobs:
         xdebug: [xdebug, xdebug-beta, xdebug-2.9.8]
     name: PHP ${{ matrix.php-versions }}
     steps:
+      - name: Install sudo and git
+        run: |
+          apt-get update && apt-get install -y sudo software-properties-common
+          add-apt-repository ppa:git-core/ppa
+          apt-get update && apt-get install -y git
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: imagick, swoole, ${{ matrix.xdebug }}
+          extensions: psr, ${{ matrix.xdebug }}
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
