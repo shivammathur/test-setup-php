@@ -21,7 +21,7 @@ jobs:
           extensions: ast  
       - name: Install dependencies
         run: composer install --no-progress --no-suggest --prefer-dist
-      - name: Test with composer phpunit
-        run: |
+      - run: |
           composer require phan/phan
-          vendor/bin/phan
+          vendor/bin/phan --init --init-level=3 --init-analyze-dir=src
+      - run: vendor/bin/phan
