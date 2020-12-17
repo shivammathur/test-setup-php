@@ -23,6 +23,8 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: psr, ${{ matrix.xdebug }}
+        env:
+          runner: self-hosted    
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
