@@ -15,7 +15,7 @@ jobs:
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
-        env:
+        with:
           php-version: ${{ matrix.php-versions }}
           coverage: xdebug
           tools: phan
