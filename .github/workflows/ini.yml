@@ -7,7 +7,7 @@ jobs:
       fail-fast: false
       matrix:      
         php-versions: ['7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
-        os: [ubuntu-18.04]
+        os: [ubuntu-18.04, macos-latest]
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -15,12 +15,13 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
+        extensions: xdebug
 
     - name: Testing PHP version
       run: php -v
-    - run: |
-        scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
-        cat $scan_dir/99-pecl.ini  
+ 
     - name: Testing ini values
-      run: php -i
+      run: |
+        php -i | grep "xdebug.mode" | sed -e "s|.*=> s*||"
+        [ $(php -i | grep "xdebug.mode" | sed -e "s|.*=> s*||") != "coverage" ] && exit 1
 
