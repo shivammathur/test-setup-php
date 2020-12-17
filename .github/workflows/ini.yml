@@ -5,38 +5,23 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      matrix:
-        #operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+      matrix:      
+        php-versions: ['7.2', '7.3', '7.4', '8.0', '8.1']
         os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
     steps:
     - name: Checkout
-      uses: actions/checkout@master
-    - name: Set SAPI
-      if: startsWith(matrix.os, 'ubuntu')
-      run: |
-        LC_ALL=C.UTF-8 sudo DEBIAN_FRONTEND=noninteractive add-apt-repository ppa:ondrej/php -y
-        sudo apt-get install php${{ matrix.php-versions }}-cgi -y || true
+      uses: actions/checkout@v2
     - name: Install PHP
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        ini-values: session.name=apple
+
     - name: Testing PHP version
       run: php -v  
     - name: Testing ini values
-      shell: sh
-      run: |
-        echo "<?php echo ini_get('session.name');" > /tmp/test.php
-        # php -v || true
-        # php-cgi -v || true
-        php_ini=$(php -q /tmp/test.php)
-        echo "php: __ $php_ini __"
-        if [ "$php_ini" != "apple" ]; then
-          exit 1;
-        fi  
-        cgi_ini=$(php-cgi -q /tmp/test.php)
-        echo "php-cgi: __ $val __"
-        if [ "$cgi_ini" != "apple" ]; then
-          exit 1;
-        fi
+      if: matrix.os != 'windows-latest'
+      run: php -i | grep "xdebug.mode"
+    - name: Testing ini values
+      if: matrix.os != 'windows-latest'
+      run: php -i | findstr "xdebug.mode"
+
