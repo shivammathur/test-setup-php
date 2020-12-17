@@ -1,18 +1,26 @@
-
-name: Test
-on:
-  push:
-jobs:     
+name: Runner workflow
+on: [push]
+jobs:
   run:
+    name: Run
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
-    runs-on: ${{ matrix.os }}
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
+        php-versions: ['7.3', '7.4', '8.0', '8.1']
     steps:
-    - run: php -v
-    - uses: shivammathur/setup-php@develop
-      continue-on-error: true
-      with:
-        php-version: '8.0'
-    - run: php -v  
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup PHP with extensions and custom config
+        uses: shivammathur/setup-php@v2
+        env:
+          php-version: ${{ matrix.php-versions }}
+          coverage: none
+      - name: Testing PHP version
+        run: |
+          php -v
+      - name: Testing Extensions
+        run: |
+          php -m
