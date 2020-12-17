@@ -2,29 +2,20 @@ name: 'Test Formulae'
 on: [push]
 jobs:
   tests:
-    runs-on: ubuntu-20.04
-    container: ubuntu:focal
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['7.3', '7.4']
-        xdebug: [xdebug, xdebug-beta, xdebug-2.9.8]
-    name: PHP ${{ matrix.php-versions }}
+        php-versions: ['7.2']
+        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
     steps:
-      - name: Install sudo and git
-        run: |
-          apt-get update && apt-get install -y sudo software-properties-common
-          add-apt-repository ppa:git-core/ppa
-          apt-get update && apt-get install -y git
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: psr, ${{ matrix.xdebug }}
-        env:
-          runner: self-hosted    
+          extensions: couchbase 
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
