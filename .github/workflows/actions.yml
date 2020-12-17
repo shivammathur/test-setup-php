@@ -18,6 +18,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           coverage: ${{ matrix.coverage }}
+          extensions: ast  
       - name: Install dependencies
         run: composer install --no-progress --no-suggest --prefer-dist
       - name: Test with composer phpunit
