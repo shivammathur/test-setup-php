@@ -22,6 +22,6 @@ jobs:
       if: matrix.os != 'windows-latest'
       run: php -i | grep "xdebug.mode"
     - name: Testing ini values
-      if: matrix.os != 'windows-latest'
+      if: matrix.os == 'windows-latest'
       run: php -i | findstr "xdebug.mode"
 
