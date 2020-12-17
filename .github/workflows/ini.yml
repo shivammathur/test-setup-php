@@ -23,5 +23,6 @@ jobs:
     - name: Testing ini values
       run: |
         mode=$(php -i | grep "xdebug.mode" | sed -e "s/.*=> s*//")
+        echo "mode: $mode"
         [ "$mode" != "coverage" ] && exit 1
 
