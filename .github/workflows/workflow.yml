@@ -25,4 +25,4 @@ jobs:
       - name: Check PHP extensions
         run: |
           php -m
-          php -r "if(extension_loaded('ldap')) {throw new Exception('memcached found');}"
+          php -r "if(extension_loaded('memcached')) {throw new Exception('memcached found');}"
