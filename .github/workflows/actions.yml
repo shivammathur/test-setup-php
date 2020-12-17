@@ -8,7 +8,7 @@ jobs:
       matrix:
         operating-system: [ubuntu-latest]
         php-versions: ['7.4']
-        coverage: [pcov]
+        coverage: [pcov, xdebug, none]
     runs-on: ${{ matrix.operating-system }}
     steps:
       - name: Checkout
@@ -17,16 +17,10 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, ${{ matrix.extensions }}
-          tools: phpunit
+          coverage: none
       - name: Install dependencies
-        run: composer install --no-progress --no-suggest --prefer-dist --ignore-platform-reqs
+        run: composer install --no-progress --no-suggest --prefer-dist
       - name: Test with composer phpunit
         run: |
-          vendor/bin/phpunit --version || true
-          vendor/bin/phpunit --coverage-clover build/logs/clover.xml --coverage-text
-      - name: Test with composer phpunit
-        run: |
-          composer remove --dev phpunit/phpunit
-          phpunit --version || true
-          phpunit --coverage-clover build/logs/clover.xml --coverage-text
+          composer require phan/phan
+          vendor/bin/phan
