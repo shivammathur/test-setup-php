@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
         php-versions: ['7.4']
     steps:
       - name: Checkout
@@ -18,12 +18,12 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           coverage: none
-          tools: phan
-      - run: cat /opt/hostedtoolcache/linux.sh  
-      - run: phan -v  
       - name: Testing PHP version
         run: |
           php -v
       - name: Testing Extensions
         run: |
           php -m
+      - run: |
+          composer global require phan/phan
+          phan -v
