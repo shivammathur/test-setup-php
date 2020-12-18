@@ -10,10 +10,10 @@ jobs:
         operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
     steps:
     - name: Setup PHP Action
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: 8.0
-        extensions: ds
+        extensions: imagick
 
     - name: PHP version
       run: php -v
