@@ -23,10 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          coverage: xdebug
+          extensions: xdebug
+
       - run: composer install
       - run: vendor/bin/phpunit --coverage-text
         if: ${{ matrix.php >= 7.3 }}
