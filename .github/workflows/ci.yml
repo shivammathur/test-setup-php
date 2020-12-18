@@ -26,7 +26,6 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: xdebug
 
       - run: composer install
       - run: vendor/bin/phpunit --coverage-text
