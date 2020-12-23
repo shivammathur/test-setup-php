@@ -1,22 +1,48 @@
 name: 'Test Formulae'
-on: [push]
+on:
+  pull_request:
+    paths-ignore:
+      - '**.md'
+  push:
+    paths-ignore:
+      - '**.md'
+  repository_dispatch:
+  schedule:
+    - cron: '30 4 * * *'
 jobs:
   tests:
-    runs-on: ${{ matrix.os }}
+    if: "!contains(github.event.head_commit.message, 'skip-test')"
+    runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['7.2']
-        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
+        php-versions: ['7.4']
+        extensions: ['amqp, grpc, igbinary, imagick, imap, pcov, protobuf, swoole, xdebug']
+        include:
+          - php-versions: '8.0'
+            extensions: 'pcov, xdebug, igbinary, imap'
+    name: PHP ${{ matrix.php-versions }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: couchbase 
+          extensions: ${{ matrix.extensions }}
       - name: Testing PHP version
-        run: php -v
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
       - name: Testing Extensions
-        run: php -m
+        run: |
+          php -m
+          php -r "if(substr(phpversion(), 0, 3)<8.0 && ! extension_loaded('amqp')) {throw new Exception('amqp not found');}"
+          php -r "if(substr(phpversion(), 0, 3)<8.0 && ! extension_loaded('grpc')) {throw new Exception('grpc not found');}"
+          php -r "if(substr(phpversion(), 0, 3)<8.0 && ! extension_loaded('imagick')) {throw new Exception('imagick not found');}"
+          php -r "if(substr(phpversion(), 0, 3)<8.0 && ! extension_loaded('protobuf')) {throw new Exception('protobuf not found');}"
+          php -r "if(substr(phpversion(), 0, 3)<8.0 && ! extension_loaded('swoole')) {throw new Exception('swoole not found');}"
+          php -r "if(phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('pcov not found');}"
+          php -r "if(! extension_loaded('igbinary')) {throw new Exception('igbinary not found');}"
+          php -r "if(! extension_loaded('imap')) {throw new Exception('imap not found');}"
+          php -r "if(! extension_loaded('xdebug')) {throw new Exception('xdebug not found');}"
