@@ -13,10 +13,11 @@ jobs:
       uses: shivammathur/setup-php@verbose
       with:
         php-version: 7.0
-        extensions: phpdbg
 
     - name: PHP version
-      run: phpdbg -V
+      run: |
+        sudo update-alternatives --set phpdbg /usr/bin/phpdbg7.0
+        phpdbg -V
 
     - name: Check extension
       run: php -m
