@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [ubuntu-16.04]
     steps:
     - name: Setup PHP Action
       uses: shivammathur/setup-php@verbose
@@ -15,9 +15,7 @@ jobs:
         php-version: 7.0
 
     - name: PHP version
-      run: |
-        sudo update-alternatives --set phpdbg /usr/bin/phpdbg7.0
-        phpdbg -V
+      run: phpdbg -V
 
     - name: Check extension
       run: php -m
