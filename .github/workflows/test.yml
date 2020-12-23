@@ -12,7 +12,8 @@ jobs:
     - name: Setup PHP Action
       uses: shivammathur/setup-php@v2
       with:
-        php-version: 7.0        
+        php-version: 7.0
+        extensions: phpdbg
 
     - name: PHP version
       run: phpdbg -V
