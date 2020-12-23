@@ -10,7 +10,7 @@ jobs:
         operating-system: [ubuntu-latest]
     steps:
     - name: Setup PHP Action
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: 7.0
         extensions: phpdbg
