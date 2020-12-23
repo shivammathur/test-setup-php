@@ -7,16 +7,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
+        operating-system: [ubuntu-latest]
     steps:
     - name: Setup PHP Action
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@v2
       with:
-        php-version: 8.0
-        extensions: imagick
+        php-version: 7.0        
 
     - name: PHP version
-      run: php -v
+      run: phpdbg -V
 
     - name: Check extension
       run: php -m
