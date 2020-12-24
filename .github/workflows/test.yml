@@ -15,7 +15,16 @@ jobs:
       with:
         php-version: ${{ matrix.php }}
         
-    - run: pecl install -f swoole
+    - run: |
+          curl -sL "https://github.com/protocolbuffers/protobuf/archive/823f351448f7c432bed40b89ee3309e0a94c1855.tar.gz" | sudo tar -xzf - -C /tmp
+          cd /tmp/protobuf-823f351448f7c432bed40b89ee3309e0a94c1855/php/ext/google/protobuf || exit 1          
+          phpize
+          ./configure --enable-protobuf
+          make
+          ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
+          ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
+          sudo cp ./modules/protobuf.so $ext_dir/
+          echo "extension=protobuf" | sudo tee -a $ini_file        
 
     - name: PHP version
       run: php -v
