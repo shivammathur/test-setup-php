@@ -18,7 +18,7 @@ jobs:
     - run: |
           brew install rabbitmq-c
           curl -sL "https://github.com/php-amqp/php-amqp/archive/master.tar.gz" | sudo tar -xzf - -C /tmp
-          cd /tmp/amqp-master || exit 1          
+          cd /tmp/php-amqp-master || exit 1          
           ./configure phpconfig --with-amqp=shared --with-librabbitmq-dir=#{Formula["rabbitmq-c"].opt_prefix}
           make
           ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
