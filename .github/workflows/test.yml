@@ -16,7 +16,7 @@ jobs:
         php-version: ${{ matrix.php }}
         
     - run: |
-          brew install librabbitmq-c
+          brew install rabbitmq-c
           curl -sL "https://github.com/php-amqp/php-amqp/archive/master.tar.gz" | sudo tar -xzf - -C /tmp
           cd /tmp/amqp-master || exit 1          
           ./configure phpconfig --with-amqp=shared --with-librabbitmq-dir=#{Formula["rabbitmq-c"].opt_prefix}
