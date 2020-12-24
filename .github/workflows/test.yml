@@ -18,7 +18,7 @@ jobs:
     - run: |
           curl -sL "https://github.com/protocolbuffers/protobuf/archive/776406c36f6a07a77854702e7865ce26535a8f7c.tar.gz" | sudo tar -xzf - -C /tmp
           cd /tmp/protobuf-776406c36f6a07a77854702e7865ce26535a8f7c/php/ext/google/protobuf || exit 1
-          cp -a ../../../../third_party ./php/ext/google/protobuf
+          cp -a ../../../../third_party ./
           phpize
           ./configure --enable-protobuf
           make
