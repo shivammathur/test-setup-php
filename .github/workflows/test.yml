@@ -16,8 +16,8 @@ jobs:
         php-version: ${{ matrix.php }}
         
     - run: |
-          curl -sL "https://github.com/protocolbuffers/protobuf/archive/823f351448f7c432bed40b89ee3309e0a94c1855.tar.gz" | sudo tar -xzf - -C /tmp
-          cd /tmp/protobuf-823f351448f7c432bed40b89ee3309e0a94c1855/php/ext/google/protobuf || exit 1          
+          curl -sL "https://github.com/protocolbuffers/protobuf/archive/776406c36f6a07a77854702e7865ce26535a8f7c.tar.gz" | sudo tar -xzf - -C /tmp
+          cd /tmp/protobuf-776406c36f6a07a77854702e7865ce26535a8f7c/php/ext/google/protobuf || exit 1          
           phpize
           ./configure --enable-protobuf
           make
