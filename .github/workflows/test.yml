@@ -15,17 +15,7 @@ jobs:
       with:
         php-version: ${{ matrix.php }}
         
-    - run: |
-          brew install imagemagick
-          curl -sL "https://github.com/Imagick/imagick/archive/master.tar.gz" | sudo tar -xzf - -C /tmp
-          cd /tmp/imagick-master || exit 1          
-          phpize
-          ./configure
-          make
-          ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-          ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
-          sudo cp ./modules/imagick.so $ext_dir/
-          echo "extension=imagick" | sudo tee -a $ini_file
+    - run: pecl install -f swoole
 
     - name: PHP version
       run: php -v
