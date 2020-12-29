@@ -14,6 +14,10 @@ jobs:
         semver: ['5.3.29']
         type: ['cgi', 'fpm']
     steps:
+      - uses: actions/setup-node@v2
+        with:
+          - node-version: '8'
+
       - name: Install required packages
         run: |
           debconf_fix="DEBIAN_FRONTEND=noninteractive"
