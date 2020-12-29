@@ -4,15 +4,15 @@ setup_phpbuild() {
     git clone git://github.com/php-build/php-build
     cd php-build || exit
     sudo ./install.sh
-    sudo cp ./.github/scripts 5.3.29 /usr/local/share/php-build/definitions/5.3.29
+    sudo cp ./.github/scripts/5.3.29 /usr/local/share/php-build/definitions/5.3.29
     if [ "$TYPE" = "cgi" ]; then
       sudo sed -i "/fpm/d" /usr/local/share/php-build/default_configure_options
-      echo "--enable-cgi" | sudo tee -a /usr/local/share/php-build/default_configure_options
+      echo "--enable-cgi" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
     else
       sudo sed -i "/cgi/d" /usr/local/share/php-build/default_configure_options
-      echo "--enable-fpm" | sudo tee -a /usr/local/share/php-build/default_configure_options
-      echo "--with-fpm-user=www-data" | sudo tee -a /usr/local/share/php-build/default_configure_options
-      echo "--with-fpm-group=www-data" | sudo tee -a /usr/local/share/php-build/default_configure_options
+      echo "--enable-fpm" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
+      echo "--with-fpm-user=www-data" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
+      echo "--with-fpm-group=www-data" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
     fi
   )
 }
