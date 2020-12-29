@@ -1,7 +1,7 @@
 install_pkg() {
   pkg_dir=$1
   (
-    cd /tmp/$pkg_dir
+    cd $pkg_dir || exit 1
     sudo ./configure --prefix=/usr
     sudo make -j$(nproc)
     sudo make install
@@ -11,7 +11,7 @@ install_pkg() {
 add_autoconf() {
   curl -o /tmp/autoconf.tar.gz -sL https://ftp.gnu.org/gnu/autoconf/autoconf-2.59.tar.gz
   tar -xzf /tmp/autoconf.tar.gz -C /tmp
-  install_pkg autoconf-2.59
+  install_pkg /tmp/autoconf-2.59
 }
 
 add_icu() {
