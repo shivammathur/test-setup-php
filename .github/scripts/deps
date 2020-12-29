@@ -26,6 +26,19 @@ add_bison() {
   install_pkg /tmp/bison-1.75
 }
 
+add_openssl() {
+  curl -o /tmp/openssl.tar.gz -sL https://www.openssl.org/source/openssl-1.0.2u.tar.gz
+  tar -xzf /tmp/openssl.tar.gz -C /tmp
+  (
+    cd /tmp/openssl-1.0.2u
+    ./config --prefix=/usr --openssldir=/etc/ssl --libdir=lib/openssl-1.0 shared zlib-dynamic
+    make depend
+    sudo make -j$(nproc)
+    sudo make install
+  )
+}
+
 add_autoconf
 add_icu
 add_bison
+add_openssl
