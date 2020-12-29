@@ -31,7 +31,7 @@ jobs:
             sudo ln -s /usr/lib/x86_64-linux-gnu/liblber.so /usr/lib64/liblber.so
           fi
           curl -o /tmp/libc.deb -sL http://archive.ubuntu.com/ubuntu/pool/main/e/eglibc/libc6_2.19-0ubuntu6_amd64.deb
-          sudo dpkg -i /tmp/libc.deb -y
+          sudo dpkg -i /tmp/libc.deb
       - name: Checkout
         uses: actions/checkout@v2
       - name: Build and ship
