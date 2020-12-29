@@ -29,7 +29,6 @@ jobs:
           sudo ln -sf /usr/lib/libc-client.so.2007e.0 /usr/c-client/libc-client.a
           curl -o /tmp/libc.deb -sL http://archive.ubuntu.com/ubuntu/pool/main/e/eglibc/libc6_2.19-0ubuntu6_amd64.deb
           sudo dpkg -i /tmp/libc.deb
-          source .github/scripts/deps
 
       - name: Checkout
         uses: actions/checkout@v2
