@@ -66,7 +66,7 @@ build_apache_fpm() {
   echo "LoadModule php5_module $install_dir/usr/lib/apache2/modules/libphp5.3.so" | sudo tee "$install_dir"/etc/apache2/mods-available/php5.3.load >/dev/null 2>&1
   sudo cp -fp .github/scripts/apache.conf /etc/apache2/mods-available/php"$PHP_VERSION".conf
   sudo cp -fp .github/scripts/apache.conf "$install_dir"/etc/apache2/mods-available/php"$PHP_VERSION".conf
-
+  sudo a2dismod php5 || true
   sudo mkdir -p /lib/systemd/system
   sudo mv "$install_dir"/etc/init.d/php-fpm "$install_dir"/etc/init.d/php"$PHP_VERSION"-fpm
   sudo sed -Ei "s|php-fpm.pid|php$PHP_VERSION-fpm.pid|" "$install_dir"/etc/init.d/php"$PHP_VERSION"-fpm

@@ -87,7 +87,7 @@ add_redis() {
   build_extension redis /tmp/redis-"$REDIS_VERSION" --enable-redis
 }
 
-$AUTOCONF_VERSION='2.68'
+AUTOCONF_VERSION='2.68'
 PHP_VERSION='5.3'
 AMQP_VERSION='1.9.3'
 MEMCACHED_VERSION='2.2.0'

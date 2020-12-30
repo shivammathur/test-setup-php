@@ -44,6 +44,7 @@ jobs:
           PHP_VERSION: ${{ matrix.php-version }}
           BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
           BINTRAY_KEY: ${{ secrets.BINTRAY_KEY }}
+          BINTRAY_REPO: php
 
       - name: Check php-cli version
         run: php -v
@@ -66,6 +67,7 @@ jobs:
 
       - name: Check apache service
         run: |
+          echo "ServerName localhost" | sudo tee -a /etc/apache2/httpd.conf
           sudo a2enmod php${{ matrix.php-version }} || true
           sudo /etc/init.d/apache2 restart || true
           sudo service --status-all 2>&1 | grep "apache"
