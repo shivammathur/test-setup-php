@@ -94,7 +94,7 @@ MEMCACHED_VERSION='2.2.0'
 MEMCACHE_VERSION='3.0.8'
 MONGODB_VERSION='1.1.0'
 REDIS_VERSION='2.2.8'
-LIBMEMCACHED_VERSION=1'.0.18'
+LIBMEMCACHED_VERSION='1.0.18'
 LIBRABBITMQ_VERSION='0.8.0'
 install_dir=/usr/local/php/"$PHP_VERSION"
 ext_dir=$("$install_dir"/bin/php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
