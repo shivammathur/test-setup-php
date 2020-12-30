@@ -59,7 +59,9 @@ build_apache_fpm() {
   sudo cp -fp .github/scripts/apache.conf "$install_dir"/etc/apache2/mods-available/php"$PHP_VERSION".conf
 
   sudo mkdir -p /lib/systemd/system
-  sudo cp -f "$install_dir"/etc/init.d/php-fpm /etc/init.d/php"$PHP_VERSION"-fpm
+  sudo cp -f .github/scripts/init.d "$install_dir"/etc/init.d/php"$PHP_VERSION"-fpm
+  sudo cp -f .github/scripts/init.d /etc/init.d/php"$PHP_VERSION"-fpm
+  sudo chmod a+x /etc/init.d/php"$PHP_VERSION"-fpm "$install_dir"/etc/init.d/php"$PHP_VERSION"-fpm
   sudo cp -f "$install_dir"/etc/systemd/system/php-fpm.service /lib/systemd/system/php"$PHP_VERSION"-fpm.service
   sudo /etc/init.d/php"$PHP_VERSION"-fpm start
   mv "$install_dir" "$install_dir-fpm"

@@ -80,7 +80,7 @@ LIBMEMCACHED_VERSION=1'.0.18'
 LIBRABBITMQ_VERSION='0.8.0'
 install_dir=/usr/local/php/"$PHP_VERSION"
 ext_dir=$("$install_dir"/bin/php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
-
+sudo apt-get install autoconf -y
 add_amqp
 add_memcached
 add_memcache
