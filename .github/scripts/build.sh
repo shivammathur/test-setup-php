@@ -33,6 +33,8 @@ build_embed() {
 
 build_apache_fpm() {
   cp /usr/local/share/php-build/default_configure_options.bak /usr/local/share/php-build/default_configure_options
+  sudo mkdir -p "$install_dir" "$install_dir"/"$(apxs -q SYSCONFDIR)"/mods-available /usr/local/ssl /var/lib/apache2
+  sudo chmod -R 777 /usr/local/php /usr/local/ssl /usr/include/apache2 /usr/lib/apache2 /etc/apache2/ /var/lib/apache2 /var/log/apache2
   sudo sed -i "/cgi/d" /usr/local/share/php-build/default_configure_options
   echo "--with-apxs2=/usr/bin/apxs2" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
   echo "--enable-cgi" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
@@ -51,6 +53,16 @@ build_apache_fpm() {
   sudo cp -fp .github/scripts/fpm.service "$install_dir"/etc/systemd/system/php-fpm.service
   sudo cp -fp .github/scripts/php-fpm-socket-helper "$install_dir"/bin/
   sudo chmod a+x "$install_dir"/bin/php-fpm-socket-helper
+  sudo a2dismod php
+  sudo mv /etc/apache2/mods-available/php.load /etc/apache2/mods-available/php"$PHP_VERSION".load
+  sudo cp -fp /etc/apache2/mods-available/php"$PHP_VERSION".load "$install_dir"/etc/apache2/mods-available/
+  sudo cp -fp .github/scripts/apache.conf /etc/apache2/mods-available/php"$PHP_VERSION".conf
+  sudo cp -fp .github/scripts/apache.conf "$install_dir"/etc/apache2/mods-available/php"$PHP_VERSION".conf
+
+  sudo mkdir -p /lib/systemd/system
+  sudo cp -f "$install_dir"/etc/init.d/php-fpm /etc/init.d/php"$PHP_VERSION"-fpm
+  sudo cp -f "$install_dir"/etc/systemd/system/php-fpm.service /lib/systemd/system/php"$PHP_VERSION"-fpm.service
+  sudo service php"$PHP_VERSION"-fpm start
   mv "$install_dir" "$install_dir-fpm"
 }
 
@@ -79,8 +91,7 @@ configure_php() {
 }
 
 build_extensions() {
-  chmod a+x .github/scripts/build_extensions
-  .github/scripts/build_extensions
+  chmod a+x .github/scripts/build_extensions.sh && .github/scripts/build_extensions.sh
 }
 
 build_and_ship_package() {
