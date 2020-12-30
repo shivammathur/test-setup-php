@@ -6,16 +6,8 @@ setup_phpbuild() {
     sudo ./install.sh
   )
   sudo cp .github/scripts/5.3 /usr/local/share/php-build/definitions/
-  if [ "$TYPE" = "cgi" ]; then
-    sudo sed -i "/fpm/d" /usr/local/share/php-build/default_configure_options
-    echo "--enable-cgi" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
-  elif [ "$TYPE" = "fpm" ]; then
-    sudo sed -i "/cgi/d" /usr/local/share/php-build/default_configure_options
-    echo '"--with-apxs2" "/usr/bin/apxs2"' | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
-    echo "--enable-fpm" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
-    echo "--with-fpm-user=www-data" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
-    echo "--with-fpm-group=www-data" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
-  fi
+  sudo cp .github/scripts/php-5.3.29-multi-sapi.patch /usr/local/share/php-build/patches/
+  cp /usr/local/share/php-build/default_configure_options /usr/local/share/php-build/default_configure_options.bak
 }
 
 setup_pear() {
@@ -29,7 +21,25 @@ setup_pear() {
   sudo "$install_dir"/bin/pear channel-update pear.php.net
 }
 
-configure_php_fpm() {
+build_embed() {
+  cp /usr/local/share/php-build/default_configure_options.bak /usr/local/share/php-build/default_configure_options
+  sudo sed -i "/apxs2/d" /usr/local/share/php-build/default_configure_options
+  sudo sed -i "/fpm/d" /usr/local/share/php-build/default_configure_options
+  sudo sed -i "/cgi/d" /usr/local/share/php-build/default_configure_options
+  echo "--enable-embed=shared" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
+  build_php
+  mv "$install_dir" "$install_dir-embed"
+}
+
+build_apache_fpm() {
+  cp /usr/local/share/php-build/default_configure_options.bak /usr/local/share/php-build/default_configure_options
+  sudo sed -i "/cgi/d" /usr/local/share/php-build/default_configure_options
+  echo '"--with-apxs2" "/usr/bin/apxs2"' | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
+  echo "--enable-cgi" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
+  echo "--enable-fpm" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
+  echo "--with-fpm-user=www-data" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
+  echo "--with-fpm-group=www-data" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
+  build_php
   sudo ln -sv "$install_dir"/sbin/php-fpm "$install_dir"/bin/php-fpm
   sudo mkdir -p "$install_dir"/etc/systemd/system
   sudo sed -Ei "s|^listen = .*|listen = /run/php/php$PHP_VERSION-fpm.sock|" "$install_dir"/etc/php-fpm.conf
@@ -41,6 +51,7 @@ configure_php_fpm() {
   sudo cp -fp .github/scripts/fpm.service "$install_dir"/etc/systemd/system/php-fpm.service
   sudo cp -fp .github/scripts/php-fpm-socket-helper "$install_dir"/bin/
   sudo chmod a+x "$install_dir"/bin/php-fpm-socket-helper
+  mv "$install_dir" "$install_dir-fpm"
 }
 
 build_php() {
@@ -48,7 +59,15 @@ build_php() {
     echo 'Failed to build PHP'
     exit 1
   fi
+}
 
+merge_sapi() {
+  mv "$install_dir-fpm" "$install_dir"
+  cp "$install_dir-embed/lib/libphp5.so" "$install_dir/lib/"
+  cp -a "$install_dir-embed/include/php/sapi" "$install_dir/include/php"
+}
+
+configure_php() {
   sudo chmod 777 "$install_dir"/etc/php.ini
   (
     echo "date.timezone=UTC"
@@ -57,9 +76,19 @@ build_php() {
   setup_pear
   sudo ln -sf "$install_dir"/bin/* /usr/bin/
   sudo ln -sf "$install_dir"/etc/php.ini /etc/php.ini
-  if [ "$TYPE" = "fpm" ]; then
-    configure_php_fpm
-  fi
+}
+
+build_extensions() {
+  chmod a+x .github/scripts/build_extensions
+  .github/scripts/build_extensions
+}
+
+build_and_ship_package() {
+  cd "$install_dir"/.. || exit
+  tar -czf php53.tar.gz "$PHP_VERSION"
+  curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php53.tar.gz || true
+  curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php53.tar.gz https://api.bintray.com/content/shivammathur/php/5.3-linux/5.3/php53.tar.gz || true
+  curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X POST https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/5.3-linux/5.3/publish || true
 }
 
 install_dir=/usr/local/php/"$PHP_VERSION"
@@ -67,5 +96,9 @@ tries=10
 sudo mkdir -p "$install_dir" /usr/local/ssl
 sudo chmod -R 777 /usr/local/php /usr/local/ssl
 setup_phpbuild
-build_php
-ls -la "$install_dir"/bin
+build_apache_fpm
+build_embed
+merge_sapi
+configure_php
+build_extensions
+build_and_ship_package
