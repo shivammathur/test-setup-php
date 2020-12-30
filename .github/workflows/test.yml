@@ -8,13 +8,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['5.3']
+        php-versions: ['5.3', '5.4', '5.5']
         os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: amqp, memcache, memcached, mongo, mongodb, redis, xdebug
