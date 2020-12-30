@@ -21,6 +21,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: amqp, memcache, memcached, mongo, mongodb, redis, xdebug
+      - uses: mxschmitt/action-tmate@v3  
       - run: php -v
       - run: |
           php -m  
