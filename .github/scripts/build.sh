@@ -34,7 +34,7 @@ build_embed() {
 build_apache_fpm() {
   cp /usr/local/share/php-build/default_configure_options.bak /usr/local/share/php-build/default_configure_options
   sudo sed -i "/cgi/d" /usr/local/share/php-build/default_configure_options
-  echo '"--with-apxs2" "/usr/bin/apxs2"' | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
+  echo "--with-apxs2=/usr/bin/apxs2" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
   echo "--enable-cgi" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
   echo "--enable-fpm" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
   echo "--with-fpm-user=www-data" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
