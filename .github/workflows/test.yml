@@ -13,7 +13,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - run: sudo apt-get install libdata-dumper-simple-perl -y  
+      - run: |
+          curl -o /tmp/dumper.deb -sL http://ports.ubuntu.com/pool/universe/libd/libdata-dumper-simple-perl/libdata-dumper-simple-perl_0.11-4_all.deb
+          sudo DEBIAN_FRONTEND=noninteractive dpkg -i /tmp/dumper.deb
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
