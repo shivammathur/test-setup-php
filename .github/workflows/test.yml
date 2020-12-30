@@ -13,15 +13,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - run: |
-          curl -o /tmp/dumper.deb -sL http://ports.ubuntu.com/pool/universe/libd/libdata-dumper-simple-perl/libdata-dumper-simple-perl_0.11-4_all.deb
-          sudo DEBIAN_FRONTEND=noninteractive dpkg -i /tmp/dumper.deb
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: amqp, memcache, memcached, mongo, mongodb, redis, xdebug
-      - uses: mxschmitt/action-tmate@v3  
       - run: php -v
       - run: |
           php -m  
