@@ -23,9 +23,9 @@ setup_pear() {
 
 build_embed() {
   cp /usr/local/share/php-build/default_configure_options.bak /usr/local/share/php-build/default_configure_options
-  sudo sed -i "/apxs2/d" /usr/local/share/php-build/default_configure_options
-  sudo sed -i "/fpm/d" /usr/local/share/php-build/default_configure_options
-  sudo sed -i "/cgi/d" /usr/local/share/php-build/default_configure_options
+  sudo sed -i "/apxs2/d" /usr/local/share/php-build/definitions/"$PHP_VERSION" || true
+  sudo sed -i "/fpm/d" /usr/local/share/php-build/default_configure_options || true
+  sudo sed -i "/cgi/d" /usr/local/share/php-build/default_configure_options || true
   echo "--enable-embed=shared" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
   build_php
   mv "$install_dir" "$install_dir-embed"
@@ -33,10 +33,10 @@ build_embed() {
 
 build_apache_fpm() {
   cp /usr/local/share/php-build/default_configure_options.bak /usr/local/share/php-build/default_configure_options
-  sudo mkdir -p "$install_dir" "$install_dir"/"$(apxs -q SYSCONFDIR)"/mods-available /usr/local/ssl /var/lib/apache2
+  sudo mkdir -p "$install_dir" "$install_dir"/etc/apache2/mods-available /usr/local/ssl /var/lib/apache2 /run/php/
   sudo chmod -R 777 /usr/local/php /usr/local/ssl /usr/include/apache2 /usr/lib/apache2 /etc/apache2/ /var/lib/apache2 /var/log/apache2
   sudo sed -i "/cgi/d" /usr/local/share/php-build/default_configure_options
-  echo "--with-apxs2=/usr/bin/apxs2" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
+  sudo sed -i '1iconfigure_option "--with-apxs2" "/usr/bin/apxs2"' /usr/local/share/php-build/definitions/"$PHP_VERSION"
   echo "--enable-cgi" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
   echo "--enable-fpm" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
   echo "--with-fpm-user=www-data" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
@@ -53,16 +53,15 @@ build_apache_fpm() {
   sudo cp -fp .github/scripts/fpm.service "$install_dir"/etc/systemd/system/php-fpm.service
   sudo cp -fp .github/scripts/php-fpm-socket-helper "$install_dir"/bin/
   sudo chmod a+x "$install_dir"/bin/php-fpm-socket-helper
-  sudo a2dismod php
-  sudo mv /etc/apache2/mods-available/php.load /etc/apache2/mods-available/php"$PHP_VERSION".load
-  sudo cp -fp /etc/apache2/mods-available/php"$PHP_VERSION".load "$install_dir"/etc/apache2/mods-available/
+  echo "LoadModule php5_module $install_dir/usr/lib/apache2/modules/libphp5.3.so" | sudo tee /etc/apache2/mods-available/php5.3.load >/dev/null 2>&1
+  echo "LoadModule php5_module $install_dir/usr/lib/apache2/modules/libphp5.3.so" | sudo tee "$install_dir"/etc/apache2/mods-available/php5.3.load >/dev/null 2>&1
   sudo cp -fp .github/scripts/apache.conf /etc/apache2/mods-available/php"$PHP_VERSION".conf
   sudo cp -fp .github/scripts/apache.conf "$install_dir"/etc/apache2/mods-available/php"$PHP_VERSION".conf
 
   sudo mkdir -p /lib/systemd/system
   sudo cp -f "$install_dir"/etc/init.d/php-fpm /etc/init.d/php"$PHP_VERSION"-fpm
   sudo cp -f "$install_dir"/etc/systemd/system/php-fpm.service /lib/systemd/system/php"$PHP_VERSION"-fpm.service
-  sudo service php"$PHP_VERSION"-fpm start
+  sudo /etc/init.d/php"$PHP_VERSION"-fpm start
   mv "$install_dir" "$install_dir-fpm"
 }
 
@@ -108,8 +107,8 @@ tries=10
 sudo mkdir -p "$install_dir" /usr/local/ssl
 sudo chmod -R 777 /usr/local/php /usr/local/ssl
 setup_phpbuild
-build_apache_fpm
 build_embed
+build_apache_fpm
 merge_sapi
 configure_php
 build_extensions

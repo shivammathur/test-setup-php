@@ -42,29 +42,43 @@ jobs:
         run: chmod a+x .github/scripts/build.sh && bash .github/scripts/build.sh
         env:
           PHP_VERSION: ${{ matrix.php-version }}
-          TYPE: ${{ matrix.type }}
+          BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
+          BINTRAY_KEY: ${{ secrets.BINTRAY_KEY }}
+
       - name: Check php-cli version
         run: php -v
+
       - name: Check php extensions
-        run: php -m
+        run: |
+          scan_dir=$(php --ini | grep additional | sed -e "s|.*: s*||")
+          for extension in amqp memcached memcache mongodb redis; do
+            echo "extension=$extension" >> "$scan_dir/$extension.ini"
+          done
+          php -m
+
       - name: Check php-cgi version
         run: php-cgi -v
+
       - name: Check php-fpm version
         run: |
           php-fpm -v
           sudo service --status-all 2>&1 | grep "fpm"
+
       - name: Check apache service
         run: |
-          sudo a2dismod mpm_event
           sudo a2enmod mpm_prefork php${{ matrix.php-version }}
-          sudo service apache2 restart
+          sudo /etc/init.d/apache2 restart
           sudo service --status-all 2>&1 | grep "apache"
+
       - name: Check pecl version
         run: pecl -V
+
       - name: Check php-config version
         run: php-config --version
+
       - name: Check phpize version
         run: phpize -v
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
