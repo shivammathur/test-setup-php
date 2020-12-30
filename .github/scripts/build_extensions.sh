@@ -2,7 +2,7 @@ build_extension() {
   extension=$1
   source_dir=$2
   shift 2
-  args=( "$@" )
+  args=("$@")
   (
     cd "$source_dir" || exit
     phpize
@@ -16,7 +16,7 @@ build_lib() {
   lib=$1
   source_dir=$2
   shift 2
-  args=( "$@" )
+  args=("$@")
   mkdir "$install_dir"/lib/"$lib"
   (
     cd "$source_dir" || exit

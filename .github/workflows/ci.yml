@@ -36,10 +36,10 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Compile and install packages
-        run: chmod a+x .github/scripts/build_deps.sh && .github/scripts/build_deps.sh
+        run: chmod a+x .github/scripts/build_deps.sh && bash .github/scripts/build_deps.sh
 
       - name: Build and ship
-        run: chmod a+x .github/scripts/build.sh && .github/scripts/build.sh
+        run: chmod a+x .github/scripts/build.sh && bash .github/scripts/build.sh
         env:
           PHP_VERSION: ${{ matrix.php-version }}
           TYPE: ${{ matrix.type }}
@@ -52,13 +52,13 @@ jobs:
       - name: Check php-fpm version
         run: |
           php-fpm -v
-          sudo service php${{ matrix.php-version }}-fpm status
+          sudo service --status-all 2>&1 | grep "fpm"
       - name: Check apache service
         run: |
           sudo a2dismod mpm_event
           sudo a2enmod mpm_prefork php${{ matrix.php-version }}
           sudo service apache2 restart
-          sudo service apache2 status
+          sudo service --status-all 2>&1 | grep "apache"
       - name: Check pecl version
         run: pecl -V
       - name: Check php-config version

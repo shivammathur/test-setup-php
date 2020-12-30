@@ -1,9 +1,9 @@
 install_pkg() {
   pkg_dir=$1
   (
-    cd $pkg_dir || exit 1
+    cd "$pkg_dir" || exit 1
     sudo ./configure --prefix=/usr
-    sudo make -j$(nproc)
+    sudo make -j"$(nproc)"
     sudo make install
   )
 }
@@ -30,10 +30,10 @@ add_openssl() {
   curl -o /tmp/openssl.tar.gz -sL https://www.openssl.org/source/openssl-1.0.2u.tar.gz
   tar -xzf /tmp/openssl.tar.gz -C /tmp
   (
-    cd /tmp/openssl-1.0.2u
+    cd /tmp/openssl-1.0.2u || exit 1
     ./config --prefix=/usr --openssldir=/etc/ssl --libdir=lib/openssl-1.0 shared zlib-dynamic
     make depend
-    sudo make -j$(nproc)
+    sudo make -j"$(nproc)"
     sudo make install
   )
 }
