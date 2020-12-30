@@ -3,6 +3,7 @@ build_extension() {
   source_dir=$2
   shift 2
   args=("$@")
+  echo "::group::$extension"
   (
     cd "$source_dir" || exit
     phpize
@@ -10,6 +11,7 @@ build_extension() {
     sudo make -j"$(nproc)"
     sudo cp ./modules/"$extension".so "$ext_dir"/"$extension".so
   )
+  echo "::endgroup::"
 }
 
 build_lib() {
@@ -17,6 +19,7 @@ build_lib() {
   source_dir=$2
   shift 2
   args=("$@")
+  echo "::group::$lib"
   mkdir "$install_dir"/lib/"$lib"
   (
     cd "$source_dir" || exit
@@ -24,6 +27,20 @@ build_lib() {
     sudo make -j"$(nproc)"
     sudo make install
   )
+  echo "::endgroup::"
+}
+
+add_autoconf() {
+  curl -o /tmp/autoconf.tar.gz -sL https://ftp.gnu.org/gnu/autoconf/autoconf-"$AUTOCONF_VERSION".tar.gz
+  tar -xzf /tmp/autoconf.tar.gz -C /tmp
+  echo "::group::autoconf"
+  (
+    cd /tmp/autoconf-"$AUTOCONF_VERSION" || exit 1
+    sudo ./configure --prefix=/usr
+    sudo make -j"$(nproc)"
+    sudo make install
+  )
+  echo "::endgroup::"
 }
 
 add_librabbitmq() {
@@ -70,6 +87,7 @@ add_redis() {
   build_extension redis /tmp/redis-"$REDIS_VERSION" --enable-redis
 }
 
+$AUTOCONF_VERSION='2.68'
 PHP_VERSION='5.3'
 AMQP_VERSION='1.9.3'
 MEMCACHED_VERSION='2.2.0'
@@ -80,7 +98,7 @@ LIBMEMCACHED_VERSION=1'.0.18'
 LIBRABBITMQ_VERSION='0.8.0'
 install_dir=/usr/local/php/"$PHP_VERSION"
 ext_dir=$("$install_dir"/bin/php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||")
-sudo apt-get install autoconf -y
+add_autoconf
 add_amqp
 add_memcached
 add_memcache

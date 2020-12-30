@@ -82,5 +82,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: php_${{ matrix.php-version }}+${{ matrix.operating-system }}
+          name: php53
           path: /usr/local/php/php53.tar.gz
