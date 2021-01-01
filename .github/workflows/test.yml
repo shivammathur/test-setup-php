@@ -18,6 +18,9 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: amqp, memcache, memcached, mongo, mongodb, redis, xdebug
+      - run: |
+          php -i | grep Thread
+          php -i | grep Architecture
       - run: php -v
       - run: |
           php -m  
