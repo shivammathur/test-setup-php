@@ -8,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04]
-        php: [7.3]
+        php: [7.2, 7.3, 7.4]
         extensions: [pdo_sqlite, pdo_pgsql, pdo_mysql]
     steps:
     - name: Setup PHP Action
@@ -16,8 +16,6 @@ jobs:
       with:
         php-version: ${{ matrix.php }}
         extensions: ${{ matrix.extensions }}
-        
-    - uses: mxschmitt/action-tmate@v3.1
 
     - name: PHP version
       run: php -v
