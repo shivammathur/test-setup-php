@@ -17,7 +17,7 @@ jobs:
         php-version: ${{ matrix.php }}
         extensions: ${{ matrix.extensions }}
         
-    - run: grep -r 'extension=pdo' /etc/php/${{ matrix.php }}
+    - uses: mxschmitt/action-tmate@v3.1
 
     - name: PHP version
       run: php -v
