@@ -16,12 +16,23 @@ setup_pear() {
   echo "::group::pear"
   sudo rm -rf "$install_dir"/bin/pear "$install_dir"/bin/pecl
   sudo curl -fsSL --retry "$tries" -o /usr/local/ssl/cert.pem https://curl.haxx.se/ca/cacert.pem
-  sudo curl -fsSL --retry "$tries" -O https://github.com/pear/pearweb_phars/raw/v1.9.5/go-pear.phar
+  sudo curl -fsSL --retry "$tries" -O https://github.com/pear/pearweb_phars/raw/v1.9.7/go-pear.phar
   sudo chmod a+x .github/scripts/install-pear.expect
   .github/scripts/install-pear.expect "$install_dir"
   rm go-pear.phar
   sudo "$install_dir"/bin/pear config-set php_ini "$install_dir"/etc/php.ini system
   sudo "$install_dir"/bin/pear channel-update pear.php.net
+  echo "::endgroup::"
+}
+
+build_cgi() {
+  echo "::group::cgi"
+  cp /usr/local/share/php-build/default_configure_options.bak /usr/local/share/php-build/default_configure_options
+  sudo sed -i "/apxs2/d" /usr/local/share/php-build/definitions/"$PHP_VERSION" || true
+  sudo sed -i "/fpm/d" /usr/local/share/php-build/default_configure_options || true
+  echo "--enable-cgi" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
+  build_php
+  mv "$install_dir" "$install_dir-cgi"
   echo "::endgroup::"
 }
 
@@ -37,15 +48,31 @@ build_embed() {
   echo "::endgroup::"
 }
 
-build_apache_fpm() {
-  echo "::group::apachefpm"
+build_apache() {
+  echo "::group::apache"
   export PHP_BUILD_APXS="/usr/bin/apxs2"
   cp /usr/local/share/php-build/default_configure_options.bak /usr/local/share/php-build/default_configure_options
-  sudo mkdir -p "$install_dir" "$install_dir"/etc/apache2/mods-available /usr/local/ssl /var/lib/apache2 /run/php/
+  sudo mkdir -p "$install_dir" "$install_dir"/etc/apache2/mods-available /usr/local/ssl /var/lib/apache2
   sudo chmod -R 777 /usr/local/php /usr/local/ssl /usr/include/apache2 /usr/lib/apache2 /etc/apache2/ /var/lib/apache2 /var/log/apache2
   sudo sed -i "/cgi/d" /usr/local/share/php-build/default_configure_options
+  sudo sed -i "/fpm/d" /usr/local/share/php-build/default_configure_options
   sudo sed -i '1iconfigure_option "--with-apxs2" "/usr/bin/apxs2"' /usr/local/share/php-build/definitions/"$PHP_VERSION"
-  echo "--enable-cgi" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
+  build_php
+  sudo mv "$install_dir/usr/lib/apache2/modules/libphp5.so" "$install_dir/usr/lib/apache2/modules/libphp5.3.so"
+  echo "LoadModule php5_module $install_dir/usr/lib/apache2/modules/libphp5.3.so" | sudo tee /etc/apache2/mods-available/php5.3.load >/dev/null 2>&1
+  echo "LoadModule php5_module $install_dir/usr/lib/apache2/modules/libphp5.3.so" | sudo tee "$install_dir"/etc/apache2/mods-available/php5.3.load >/dev/null 2>&1
+  sudo cp -fp .github/scripts/apache.conf /etc/apache2/mods-available/php"$PHP_VERSION".conf
+  sudo cp -fp .github/scripts/apache.conf "$install_dir"/etc/apache2/mods-available/php"$PHP_VERSION".conf
+  sudo a2dismod php5 || true
+  mv "$install_dir" "$install_dir-apache"
+  echo "::endgroup::"
+}
+
+build_fpm() {
+  echo "::group::fpm"
+  cp /usr/local/share/php-build/default_configure_options.bak /usr/local/share/php-build/default_configure_options
+  sudo mkdir -p "$install_dir" /run/php/
+  sudo sed -i "/cgi/d" /usr/local/share/php-build/default_configure_options
   echo "--enable-fpm" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
   echo "--with-fpm-user=www-data" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
   echo "--with-fpm-group=www-data" | sudo tee -a /usr/local/share/php-build/default_configure_options >/dev/null 2>&1
@@ -61,12 +88,6 @@ build_apache_fpm() {
   sudo cp -fp .github/scripts/fpm.service "$install_dir"/etc/systemd/system/php-fpm.service
   sudo cp -fp .github/scripts/php-fpm-socket-helper "$install_dir"/bin/
   sudo chmod a+x "$install_dir"/bin/php-fpm-socket-helper
-  sudo mv "$install_dir/usr/lib/apache2/modules/libphp5.so" "$install_dir/usr/lib/apache2/modules/libphp5.3.so"
-  echo "LoadModule php5_module $install_dir/usr/lib/apache2/modules/libphp5.3.so" | sudo tee /etc/apache2/mods-available/php5.3.load >/dev/null 2>&1
-  echo "LoadModule php5_module $install_dir/usr/lib/apache2/modules/libphp5.3.so" | sudo tee "$install_dir"/etc/apache2/mods-available/php5.3.load >/dev/null 2>&1
-  sudo cp -fp .github/scripts/apache.conf /etc/apache2/mods-available/php"$PHP_VERSION".conf
-  sudo cp -fp .github/scripts/apache.conf "$install_dir"/etc/apache2/mods-available/php"$PHP_VERSION".conf
-  sudo a2dismod php5 || true
   sudo mkdir -p /lib/systemd/system
   sudo mv "$install_dir"/etc/init.d/php-fpm "$install_dir"/etc/init.d/php"$PHP_VERSION"-fpm
   sudo sed -Ei "s|php-fpm.pid|php$PHP_VERSION-fpm.pid|" "$install_dir"/etc/init.d/php"$PHP_VERSION"-fpm
@@ -78,6 +99,7 @@ build_apache_fpm() {
 }
 
 build_php() {
+  export PHP_BUILD_ZTS_ENABLE=off
   if ! php-build -v -i production "$PHP_VERSION" "$install_dir"; then
     echo 'Failed to build PHP'
     exit 1
@@ -85,9 +107,18 @@ build_php() {
 }
 
 merge_sapi() {
-  mv "$install_dir-fpm" "$install_dir"
-  cp "$install_dir-embed/lib/libphp5.so" "$install_dir/lib/"
+  mv "$install_dir-apache" "$install_dir"
+  cp -a "$install_dir-cgi/bin/php-cgi" "$install_dir/bin/"
+  cp -a "$install_dir-embed/lib/libphp5.so" "$install_dir/lib/"
   cp -a "$install_dir-embed/include/php/sapi" "$install_dir/include/php"
+  cp -a "$install_dir-fpm/bin/php-fpm" "$install_dir/bin/php-fpm"
+  cp -a "$install_dir-fpm/sbin/php-fpm" "$install_dir/sbin/php-fpm"
+  cp -a "$install_dir-fpm/etc/init.d" "$install_dir/etc"
+  cp -a "$install_dir-fpm/etc/systemd" "$install_dir/etc"
+  cp -a "$install_dir-fpm"/etc/php-fpm* "$install_dir/etc"
+  cp -a "$install_dir-fpm/share/php" "$install_dir/share"
+  cp -a "$install_dir-fpm/share/man/man8/php-fpm.8" "$install_dir/share/man/man8"
+  sudo mkdir -p "$install_dir/var/run" "$install_dir/var/log"
 }
 
 configure_php() {
@@ -108,6 +139,7 @@ build_extensions() {
 
 build_and_ship_package() {
   cd "$install_dir"/.. || exit
+  export GZIP=-9
   tar -czf php53.tar.gz "$PHP_VERSION"
   curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -X DELETE https://api.bintray.com/content/"$BINTRAY_USER"/"$BINTRAY_REPO"/php53.tar.gz || true
   curl --user "$BINTRAY_USER":"$BINTRAY_KEY" -T php53.tar.gz https://api.bintray.com/content/shivammathur/php/5.3-linux/5.3/php53.tar.gz || true
@@ -120,7 +152,9 @@ sudo mkdir -p "$install_dir" /usr/local/ssl
 sudo chmod -R 777 /usr/local/php /usr/local/ssl
 setup_phpbuild
 build_embed
-build_apache_fpm
+build_cgi
+build_fpm
+build_apache
 merge_sapi
 configure_php
 build_extensions
