@@ -9,7 +9,7 @@ jobs:
       matrix:
         operating-system: [ubuntu-20.04]
         php: [7.3]
-        extensions: [pdo_sqlite, pdo_pgsql]
+        extensions: [pdo_sqlite, pdo_pgsql, pdo_mysql]
     steps:
     - name: Setup PHP Action
       uses: shivammathur/setup-php@develop
