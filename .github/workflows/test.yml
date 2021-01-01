@@ -16,6 +16,8 @@ jobs:
       with:
         php-version: ${{ matrix.php }}
         extensions: ${{ matrix.extensions }}
+        
+    - run: grep -r 'extension=pdo' /etc/php/${{ matrix.php }}
 
     - name: PHP version
       run: php -v
