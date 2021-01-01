@@ -7,25 +7,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
-        php: [8.0, 8.1]
+        operating-system: [ubuntu-20.04]
+        php: [7.3]
+        extensions: [pdo_sqlite, pdo_pgsql]
     steps:
     - name: Setup PHP Action
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php }}
-        
-    - run: |
-          curl -sL "https://github.com/protocolbuffers/protobuf/archive/776406c36f6a07a77854702e7865ce26535a8f7c.tar.gz" | sudo tar -xzf - -C /tmp
-          cd /tmp/protobuf-776406c36f6a07a77854702e7865ce26535a8f7c/php/ext/google/protobuf || exit 1
-          cp -a ../../../../third_party ./
-          phpize
-          ./configure --enable-protobuf
-          make
-          ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-          ext_dir=$(php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||")
-          sudo cp ./modules/protobuf.so $ext_dir/
-          echo "extension=protobuf" | sudo tee -a $ini_file        
+        extensions: ${{ matrix.extensions }}
 
     - name: PHP version
       run: php -v
