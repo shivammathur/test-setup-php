@@ -19,7 +19,6 @@ jobs:
           php-version: ${{ matrix.php-versions }}
       - run: |
           php -i | grep Thread || true
-          php -i | grep Architecture || true
       - run: php -v
       - run: |
           php -m  
