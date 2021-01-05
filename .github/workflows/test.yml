@@ -17,8 +17,7 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-      - run: |
-          php -i | grep Thread || true
+      - uses: mxschmitt/action-tmate@v3.1
       - run: php -v
       - run: |
           php -m  
