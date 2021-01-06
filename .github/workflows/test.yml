@@ -8,13 +8,13 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04]
-        php: [7.2, 7.3, 7.4]
-        extensions: [pdo_sqlite, pdo_pgsql, pdo_mysql]
+        php: [7.4]
+        node: [8, 10, 12, 14]
     steps:
     - uses: actions/setup-node@v2
       with:
-        node-version: '12'
-    - uses: shivammathur/setup-php@v2
+        node-version: ${{ matrix.node }}
+    - uses: shivammathur/setup-php@develop
       with:
         php-version: '7.4'
         tools: composer
