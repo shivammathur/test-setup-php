@@ -7,23 +7,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, macos-latest]
+        operating-system: [ubuntu-20.04, windows-latest, macos-latest]
         php: [7.4]
         node: [8, 10, 12, 14]
     steps:
-    - run: |
-        mkdir /tmp/testpath
-        echo "PATH=$PATH:/tmp/testpath" >> "$GITHUB_ENV"
     - uses: actions/setup-node@v2
       with:
         node-version: ${{ matrix.node }}
-    - uses: shivammathur/setup-php@develop
+    - uses: shivammathur/setup-php@v2
       with:
         php-version: '7.4'
-        tools: composer
-        coverage: none
     - name: Tool versions
-      run: |
-        echo $PATH
-        which node
-        node --version
+      run: node --version
