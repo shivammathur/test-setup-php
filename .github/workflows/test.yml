@@ -22,5 +22,6 @@ jobs:
     - name: Tool versions
       run: |
         echo $PATH
+        echo $env:PATH
         which node
         node --version
