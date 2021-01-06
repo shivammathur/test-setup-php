@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['5.3']
+        php-versions: ['5.3', '5.4', '5.5']
         os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
     steps:
       - name: Checkout
@@ -18,7 +18,9 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
       - run: php -v
-      - run: |
+      - name: Test extensions on PHP 5.3
+        if: matrix.php-versions == '5.3'
+        run: |
           php -m  
           php -r "if(! extension_loaded('amqp')) {throw new Exception('amqp not found');}"
           php -r "if(! extension_loaded('memcache')) {throw new Exception('memcache not found');}"
