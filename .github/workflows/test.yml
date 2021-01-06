@@ -11,14 +11,15 @@ jobs:
         php: [7.2, 7.3, 7.4]
         extensions: [pdo_sqlite, pdo_pgsql, pdo_mysql]
     steps:
-    - name: Setup PHP Action
-      uses: shivammathur/setup-php@develop
+    - uses: actions/setup-node@v2
       with:
-        php-version: ${{ matrix.php }}
-        extensions: ${{ matrix.extensions }}
-
-    - name: PHP version
-      run: php -v
-
-    - name: Check extension
-      run: php -m
+        node-version: '12'
+    - uses: shivammathur/setup-php@v2
+      with:
+        php-version: '7.4'
+        tools: composer
+        coverage: none
+    - name: Tool versions
+      run: |
+        which node
+        node --version
