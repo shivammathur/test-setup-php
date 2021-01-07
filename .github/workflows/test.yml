@@ -10,11 +10,9 @@ jobs:
         operating-system: [ubuntu-20.04, macos-latest]
     steps:
     - run: |
-        sudo mkdir /tmp/test_path
-        [ -d /etc/paths.d ] && echo '/tmp/test_path' | sudo tee /etc/paths.d/tools && cat /etc/paths.d/tools
         test_path=/tmp/test_path
-        [ -d /etc/profile.d ] && echo 'export PATH=$PATH:'"$test_path" | sudo tee /etc/profile.d/99-tools.sh && cat /etc/profile.d/99-tools.sh
+        sudo mkdir /tmp/test_path
+        echo 'export PATH=$PATH:'"$test_path" | sudo tee -a $HOME/.bashrc
+        source $HOME/.bashrc
     - run: |
-        [ -d /etc/profile.d ] && cat /etc/profile.d/99-tools.sh
-        [ -d /etc/paths.d ] && cat /etc/paths.d/tools
         echo $PATH
