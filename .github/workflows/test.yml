@@ -12,7 +12,8 @@ jobs:
     - run: |
         test_path=/tmp/test_path
         sudo mkdir /tmp/test_path
-        echo 'export PATH=$PATH:'"$test_path" | sudo tee -a $HOME/.bashrc
-        source $HOME/.bashrc
+        echo 'export PATH=$PATH:'"$test_path" | sudo tee -a $HOME/.bash_profile
+        source $HOME/.bash_profile
+        echo $PATH
     - run: |
         echo $PATH
