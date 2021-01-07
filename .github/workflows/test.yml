@@ -8,12 +8,14 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04, macos-latest]
+        php: [7.4]
+        node: [8, 10, 12, 14]
     steps:
-    - run: |
-        test_path=/tmp/test_path
-        sudo mkdir /tmp/test_path
-        echo 'export PATH=$PATH:'"$test_path" | sudo tee -a $HOME/.bash_profile
-        source $HOME/.bash_profile
-        echo $PATH
-    - run: |
-        echo $PATH
+    - uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node }}
+    - uses: shivammathur/setup-php@develop
+      with:
+        php-version: '7.4'
+    - name: Tool versions
+      run: node --version
