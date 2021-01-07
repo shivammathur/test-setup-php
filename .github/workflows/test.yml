@@ -9,5 +9,9 @@ jobs:
       matrix:
         operating-system: [ubuntu-20.04, macos-latest]
     steps:
-    - run: echo 'echo "welcome"' | sudo tee -a /etc/paths /etc/profile
-    - run: echo 'Test'
+    - run: |
+        sudo mkdir /tmp/test_path
+        echo '/tmp/test_path' | sudo tee -a /etc/paths /etc/profile
+        cat /etc/paths
+        cat /etc/profile
+    - run: echo $PATH
