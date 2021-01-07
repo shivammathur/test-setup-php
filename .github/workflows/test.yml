@@ -11,8 +11,8 @@ jobs:
     steps:
     - run: |
         sudo mkdir /tmp/test_path
-        echo '/tmp/test_path' | sudo tee /etc/paths.d/tools
+        [ -d /etc/paths.d ] && echo '/tmp/test_path' | sudo tee /etc/paths.d/tools || true
         test_path=/tmp/test_path
-        echo 'export PATH=$PATH:'"$test_path" | sudo tee /etc/profile.d/tools.sh
+        [ -d /etc/profile.d ] && echo 'export PATH=$PATH:'"$test_path" | sudo tee /etc/profile.d/tools.sh || true
     - run: |
         echo $PATH
