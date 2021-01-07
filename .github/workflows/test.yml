@@ -21,4 +21,6 @@ jobs:
       env:
         PATH: /usr/bin
     - name: Tool versions
-      run: node --version
+      run: |
+        node --version
+        phpcs --version
