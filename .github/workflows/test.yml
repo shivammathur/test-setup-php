@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, macos-latest]
+        operating-system: [ubuntu-20.04]
         php: [7.4]
         node: [8, 10, 12, 14]
     steps:
@@ -17,5 +17,7 @@ jobs:
     - uses: shivammathur/setup-php@develop
       with:
         php-version: '7.4'
+      env:
+        PATH: /usr/bin
     - name: Tool versions
       run: node --version
