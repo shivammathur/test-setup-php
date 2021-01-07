@@ -7,17 +7,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, windows-latest, macos-latest]
-        php: [7.4]
-        node: [8, 10, 12, 14]
+        operating-system: [ubuntu-20.04, macos-latest]
+#       node: [8, 10, 12, 14]
     steps:
-    - run: echo 'echo "welcome"' | sudo tee -a $HOME/.bash_profile
-    - run: Test
-    - uses: actions/setup-node@v2
-      with:
-        node-version: ${{ matrix.node }}
-    - uses: shivammathur/setup-php@v2
-      with:
-        php-version: '7.4'
-    - name: Tool versions
-      run: node --version
+    - run: echo 'echo "welcome"' | sudo tee -a $HOME/.bashrc
+    - run: echo 'Test'
