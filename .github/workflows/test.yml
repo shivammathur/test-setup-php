@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-latest]
         php-versions: ['5.3', '5.4', '5.5']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
@@ -22,12 +22,7 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         tools: blackfire
-        extensions: blackfire
+    - run: |
+        sudo apt --fix-broken install
     - name: Testing PHP version
       run: php -v
-    - name: Testing extension
-      run: |
-        php -m
-        php -r "if(phpversion()>=5.4 && ! extension_loaded('blackfire')) {throw new Exception('blackfire not found');}"
-        blackfire-agent -v
-        blackfire version -V
