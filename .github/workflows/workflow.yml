@@ -31,5 +31,8 @@ jobs:
         run: |
           sudo service php${{ matrix.php-versions }}-fpm status
           sudo a2enmod php${{ matrix.php-versions }}
-          sudo service apache2 restart
-          sudo service apache2 status
+          sudo service apache2 restart || true
+          sudo service apache2 status || true
+          apachectl configtest
+          systemctl status apache2.service
+          journalctl -xe
