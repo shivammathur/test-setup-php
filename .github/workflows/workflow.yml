@@ -36,3 +36,8 @@ jobs:
           sudo service apache2 restart || true
           sudo service apache2 status || true
           apachectl -M
+      - name: Check server
+        run: | 
+          sudo rm -rf /var/www/html/index.html
+          echo "<?php phpinfo(); ?>" | sudo tee /var/www/html/index.php
+          curl http://localhost
