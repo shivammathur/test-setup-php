@@ -26,13 +26,13 @@ jobs:
           php -m
           php -r "if(extension_loaded('memcached')) {throw new Exception('memcached found');}"
       - name: Install apache2
-        run: sudo apt-get install apache2 -y    
+        run: sudo apt-get install apache2 libapache2-mod-fcgid -y    
       - name: Check service
         run: |
           sudo service php${{ matrix.php-versions }}-fpm status
-          sudo a2enmod php${{ matrix.php-versions }}
+          #sudo a2enmod php${{ matrix.php-versions }}
+          sudo a2enconf php${{ matrix.php-versions }}-fpm
+          sudo a2enmod proxy proxy_fcgi
           sudo service apache2 restart || true
           sudo service apache2 status || true
-          apachectl configtest
-          systemctl status apache2.service
-          journalctl -xe
+          apachectl -M
