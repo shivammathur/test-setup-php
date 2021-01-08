@@ -30,12 +30,10 @@ jobs:
       - name: Check service
         run: |
           sudo service php${{ matrix.php-versions }}-fpm status
-          #sudo a2enmod php${{ matrix.php-versions }}
-          sudo a2enconf php${{ matrix.php-versions }}-fpm
-          sudo a2enmod proxy proxy_fcgi
-          sudo service apache2 restart || true
-          sudo service apache2 status || true
-          apachectl -M
+          sudo a2dismod mpm_event
+          sudo a2enmod php${{ matrix.php-versions }}        
+          sudo service apache2 restart
+          sudo service apache2 status
       - name: Check server
         run: | 
           sudo rm -rf /var/www/html/index.html
