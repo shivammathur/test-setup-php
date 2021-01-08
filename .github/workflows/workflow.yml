@@ -31,7 +31,7 @@ jobs:
         run: |
           sudo service php${{ matrix.php-versions }}-fpm status
           sudo a2dismod mpm_event
-          sudo a2enmod php${{ matrix.php-versions }}        
+          sudo a2enmod mpm_prefork php${{ matrix.php-versions }}        
           sudo service apache2 restart
           sudo service apache2 status
       - name: Check server
