@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
-        php-versions: ['8.0']
+        php-versions: ['8.1']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -18,7 +18,6 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: :memcached  
       - name: Check PHP version
         run: |
           php -v
@@ -26,3 +25,11 @@ jobs:
         run: |
           php -m
           php -r "if(extension_loaded('memcached')) {throw new Exception('memcached found');}"
+      - name: Install apache2
+        run: sudo apt-get install apache2 -y    
+      - name: Check service
+        run: |
+          sudo service php${{ matrix.php-versions }}-fpm status
+          sudo a2enmod php${{ matrix.php-versions }}
+          sudo service apache2 restart
+          sudo service apache2 status
