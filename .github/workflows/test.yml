@@ -20,6 +20,7 @@ jobs:
       - run: php -v
       - run: sudo service php${{ matrix.php-versions }}-fpm status
       - run: sudo service apache2 start && sudo service apache2 status
+      - uses: mxschmitt/action-tmate@v3.1
       - name: Test extensions on PHP 5.3
         if: matrix.php-versions == '5.3'
         run: |
