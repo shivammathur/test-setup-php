@@ -14,13 +14,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
       - run: php -v
       - run: sudo service php${{ matrix.php-versions }}-fpm status
-      - run: sudo service apache2 start && sudo service apache2 status
-      - uses: mxschmitt/action-tmate@v3.1
+      - name: Test SAPI
+        run: |
+          sudo rm -rf /var/www/html/index.html
+          echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" | sudo tee /var/www/html/index.php >/dev/null
+          for sapi in apache2handler:apache fpm:apache cgi:apache fpm:nginx; do
+            echo "::group::Test $sapi"
+            sudo switch_sapi $sapi >/dev/null
+            curl -s http://localhost
+            [ "$(curl -s http://localhost)" != "$sapi" ] && exit 1
+            echo "::endgroup::"
+          done    
       - name: Test extensions on PHP 5.3
         if: matrix.php-versions == '5.3'
         run: |
