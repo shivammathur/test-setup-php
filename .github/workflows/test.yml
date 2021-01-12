@@ -13,7 +13,7 @@ jobs:
     - uses: shivammathur/setup-php@develop
       with:
         php-version: '7.4'
-        ini-values: xdebug.mode="develop, gcstats,coverage", date.timezone=UTC
+        ini-values: "xdebug.mode=develop, gcstats,coverage, date.timezone=UTC"
     - uses: shivammathur/setup-php@develop
       with:
         php-version: '7.4'
