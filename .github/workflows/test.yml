@@ -8,19 +8,21 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04]
-        php: [7.4]
-        node: [8, 10, 12, 14]
+        php: [7.4]      
     steps:
-    - uses: actions/setup-node@v2
-      with:
-        node-version: ${{ matrix.node }}
-    - uses: shivammathur/setup-php@2.9.0
+    - uses: shivammathur/setup-php@develop
       with:
         php-version: '7.4'
-        tools: phpcs  
-      env:
-        PATH: /usr/bin
-    - name: Tool versions
-      run: |
-        node --version
-        phpcs --version
+        ini-values: xdebug.mode="develop, gcstats,coverage", date.timezone=UTC
+    - uses: shivammathur/setup-php@develop
+      with:
+        php-version: '7.4'
+        ini-values: xdebug.mode='develop,gcstats, coverage', date.timezone=UTC
+    - uses: shivammathur/setup-php@develop
+      with:
+        php-version: '7.4'
+        ini-values: "'xdebug.mode=develop,gcstats,coverage', date.timezone=UTC"
+    - uses: shivammathur/setup-php@develop
+      with:
+        php-version: '7.4'
+        ini-values: '"xdebug.mode=develop,gcstats,coverage'", date.timezone=UTC'
