@@ -31,7 +31,7 @@ jobs:
           echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" | sudo tee /var/www/html/index.php >/dev/null
           for sapi in apache2handler:apache fpm:apache cgi:apache fpm:nginx; do
             echo "::group::Test $sapi"
-            sudo switch_sapi $sapi
+            sudo switch_sapi "$sapi" >/dev/null 2>&1
             curl -s http://localhost
             [ "$(curl -s http://localhost)" != "$sapi" ] && exit 1
             echo "::endgroup::"
