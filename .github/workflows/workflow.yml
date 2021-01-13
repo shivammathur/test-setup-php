@@ -24,10 +24,10 @@ jobs:
       - name: Check PHP extensions
         run: |
           php -m
-          php -r "if(extension_loaded('memcached')) {throw new Exception('memcached found');}"
       - name: Check SAPI
         if: steps.check.outputs.build != 'no'
         run: |
+          sudo mkdir -p /var/www/html/
           sudo rm -rf /var/www/html/index.html
           echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" | sudo tee /var/www/html/index.php >/dev/null
           for sapi in apache2handler:apache fpm:apache cgi:apache fpm:nginx; do
