@@ -15,6 +15,5 @@ jobs:
           curl -o "$(brew --repository)"/Library/Taps/homebrew/homebrew-core/Formula/"$formula".rb -sL https://raw.githubusercontent.com/Homebrew/linuxbrew-core/master/Formula/"$formula".rb
         done
         HOMEBREW_NO_AUTO_UPDATE=1 brew install zstd
-        sudo rm -rf /usr/bin/zstd
-        sudo ln -sf "$HOME"/.linuxbrew/bin/zstd /usr/bin/zstd
+        sudo ln -sf "$HOME"/.linuxbrew/bin/zstd /usr/local/bin/zstd
         zstd -V
