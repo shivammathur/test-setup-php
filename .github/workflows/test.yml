@@ -10,5 +10,5 @@ jobs:
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]      
     steps:
     - run: |
-        brew install zstd
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install zstd
         zstd -V
