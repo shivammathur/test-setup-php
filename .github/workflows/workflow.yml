@@ -24,7 +24,6 @@ jobs:
       - name: Check PHP extensions
         run: |
           php -m
-      - uses: mxschmitt/action-tmate@v3.1    
       - name: Check SAPI      
         run: |
           sudo mkdir -p /var/www/html/
