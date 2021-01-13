@@ -10,6 +10,7 @@ jobs:
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]      
     steps:
     - run: |
+        zstd -V
         for formula in zstd zlib patchelf; do
           curl -o "$(brew --repository)"/Library/Taps/homebrew/homebrew-core/Formula/"$formula".rb -sL https://raw.githubusercontent.com/Homebrew/linuxbrew-core/master/Formula/"$formula".rb
         done
