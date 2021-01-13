@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
-        php-versions: ['8.1']
+        php-versions: ['8.0', '8.1']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -25,17 +25,15 @@ jobs:
         run: |
           php -m
           php -r "if(extension_loaded('memcached')) {throw new Exception('memcached found');}"
-      - name: Install apache2
-        run: sudo apt-get install apache2 libapache2-mod-fcgid -y    
-      - name: Check service
+      - name: Check SAPI
+        if: steps.check.outputs.build != 'no'
         run: |
-          sudo service php${{ matrix.php-versions }}-fpm status
-          sudo a2dismod mpm_event
-          sudo a2enmod mpm_prefork php${{ matrix.php-versions }}        
-          sudo service apache2 restart
-          sudo service apache2 status
-      - name: Check server
-        run: | 
           sudo rm -rf /var/www/html/index.html
-          echo "<?php phpinfo(); ?>" | sudo tee /var/www/html/index.php
-          curl http://localhost
+          echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" | sudo tee /var/www/html/index.php >/dev/null
+          for sapi in apache2handler:apache fpm:apache cgi:apache fpm:nginx; do
+            echo "::group::Test $sapi"
+            sudo switch_sapi $sapi >/dev/null 2>&1
+            curl -s http://localhost
+            [ "$(curl -s http://localhost)" != "$sapi" ] && exit 1
+            echo "::endgroup::"
+          done
