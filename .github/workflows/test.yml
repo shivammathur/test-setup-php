@@ -7,22 +7,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04]
-        php: [7.4]      
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]      
     steps:
-    - uses: shivammathur/setup-php@develop
-      with:
-        php-version: '7.4'
-        ini-values: "xdebug.mode=develop, gcstats,coverage, date.timezone=UTC"
-    - uses: shivammathur/setup-php@develop
-      with:
-        php-version: '7.4'
-        ini-values: xdebug.mode='develop,gcstats, coverage', date.timezone=UTC
-    - uses: shivammathur/setup-php@develop
-      with:
-        php-version: '7.4'
-        ini-values: "'xdebug.mode=develop,gcstats,coverage', date.timezone=UTC"
-    - uses: shivammathur/setup-php@develop
-      with:
-        php-version: '7.4'
-        ini-values: '"xdebug.mode=develop,gcstats,coverage", date.timezone=UTC'
+    - run: |
+        brew install zstd
+        zstd -V
