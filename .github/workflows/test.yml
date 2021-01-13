@@ -11,7 +11,7 @@ jobs:
     steps:
     - run: |
         for formula in zstd zlib patchelf; do
-          curl "$(brew --repository)"/Library/Taps/homebrew/homebrew-core/Formula/"$formula".rb https://raw.githubusercontent.com/Homebrew/linuxbrew-core/master/Formula/"$formula".rb
+          curl -o "$(brew --repository)"/Library/Taps/homebrew/homebrew-core/Formula/"$formula".rb -sL https://raw.githubusercontent.com/Homebrew/linuxbrew-core/master/Formula/"$formula".rb
         done
         HOMEBREW_NO_AUTO_UPDATE=1 brew install zstd
         zstd -V
