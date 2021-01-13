@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
-        php-versions: ['8.0', '8.1']
+        php-versions: ['8.1']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -24,8 +24,8 @@ jobs:
       - name: Check PHP extensions
         run: |
           php -m
-      - name: Check SAPI
-        if: steps.check.outputs.build != 'no'
+      - uses: mxschmitt/action-tmate@v3.1    
+      - name: Check SAPI      
         run: |
           sudo mkdir -p /var/www/html/
           sudo rm -rf /var/www/html/index.html
