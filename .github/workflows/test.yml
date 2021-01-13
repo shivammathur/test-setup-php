@@ -11,6 +11,8 @@ jobs:
     steps:
     - run: |
         zstd -V
+        export PATH="$HOME/.linuxbrew/bin:$PATH"
+        echo 'export PATH="$HOME/.linuxbrew/bin:$PATH"' >> $GITHUB_ENV
         for formula in zstd zlib patchelf; do
           curl -o "$(brew --repository)"/Library/Taps/homebrew/homebrew-core/Formula/"$formula".rb -sL https://raw.githubusercontent.com/Homebrew/linuxbrew-core/master/Formula/"$formula".rb
         done
