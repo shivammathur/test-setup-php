@@ -2,6 +2,7 @@ name: Cache PHP
 on:
   - push
   - repository_dispatch
+  - workflow_dispatch
 jobs:
   build:
     runs-on: ${{ matrix.operating-system }}
@@ -41,7 +42,10 @@ jobs:
         for i in $versions; do
           if [ "$i" = "$version" ]; then
             curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/actions/virtual-environments/main/images/linux/scripts/installers/php.sh
-            sed -i "s/\$php_versions/${{ matrix.php-versions }}/g" /tmp/php.sh
+            sed -i "s/\$(jq -r '.php.versions\[\]' \$toolset)/\"$version\"/" /tmp/php.sh
+            sed -i 's/php-/php$version-/' /tmp/php.sh
+            sed -i 's/php$version-pear/php-pear/' /tmp/php.sh
+            grep 'php_versions=' /tmp/php.sh
             sudo bash /tmp/php.sh || true           
           fi
         done
@@ -80,12 +84,9 @@ jobs:
           \"public_stats\": true \
           }" \
         https://api.bintray.com/packages/"$BINTRAY_USER"/"$BINTRAY_REPO" || true
-        curl -sSLO http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-10/gcc-10-base_10-20200411-0ubuntu1_amd64.deb
-        curl -sSLO http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-10/libgcc-s1_10-20200411-0ubuntu1_amd64.deb
-        curl -sSLO http://archive.ubuntu.com/ubuntu/pool/universe/libz/libzstd/zstd_1.4.4+dfsg-3_amd64.deb
-        sudo DEBIAN_FRONTEND=noninteractive dpkg -i --force-conflicts ./*.deb
-        sudo rm -rf ./*.deb
-        zstd -V
+        export PATH="$HOME/.linuxbrew/bin:$PATH"
+        echo "export PATH=$HOME/.linuxbrew/bin:\$PATH" >> "$GITHUB_ENV"
+        brew install zstd >/dev/null 2>&1 && zstd -V
         mkdir "$VERSION" && sudo mv /var/cache/apt/archives/*.deb ./"$VERSION"/
         if [ -e ./"$VERSION"/php"$VERSION"-cli* ]; then
           sudo tar cf - "$VERSION" | zstd -22 -T0 --ultra > php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst
