@@ -7,7 +7,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-2016, windows-2019]      
+        operating-system: [ubuntu-latest]      
     steps:
-    - run: |
-        type C:\tools\php\php.ini
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.0'
+        env:
+          update: true
+      - name: Test PHP version
+        run: php -v  
