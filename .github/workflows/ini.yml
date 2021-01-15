@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [windows-latest]
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -24,4 +24,5 @@ jobs:
         php -r "echo ini_get('pcov.directory');"
         echo ' '
         php -r "echo ini_get('pcov.exclude');"
+        type C:\tools\php\php.ini
 
