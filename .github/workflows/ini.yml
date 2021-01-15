@@ -5,24 +5,23 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      matrix:      
-        php-versions: ['7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
-        os: [ubuntu-18.04, macos-latest]
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Install PHP
-      uses: shivammathur/setup-php@develop
+    - uses: shivammathur/setup-php@develop
       with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: xdebug
+        php-version: '8.0'
+        coverage: pcov
+        ini-values: pcov.directory=/home/runner/work/jobname/jobname, pcov.exclude="~(.tests|vendor)~"      
 
     - name: Testing PHP version
       run: php -v
  
     - name: Testing ini values
       run: |
-        mode=$(php -i | grep "xdebug.mode" | sed -e "s/.*=> s*//")
-        echo "mode: $mode"
-        [ "$mode" != "coverage" ] && exit 1
+        php -r "echo ini_get('pcov.directory');"
+        echo ' '
+        php -r "echo ini_get('pcov.exclude');"
 
