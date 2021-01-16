@@ -11,7 +11,7 @@ jobs:
         php: ['latest', '7.4', '5.x', '7.x', '8.x', '4.x']
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
       - name: Test PHP version
