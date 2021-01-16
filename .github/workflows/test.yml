@@ -1,8 +1,7 @@
 name: 'Test Formulae'
 on: [push]
 jobs:
-  tests:
-    name: Test ${{ matrix.swoole-version }} against php ${{ matrix.php-version }}
+  tests:  
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -12,12 +11,11 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v2
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           extensions: raphf, propro, http
       - name: Verify PHP environment
-        run: |          
-          php -r "echo phpversion('http');"
+        run: |
           php -v
           php -m
