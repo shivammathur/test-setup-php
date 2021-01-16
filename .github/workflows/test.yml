@@ -7,18 +7,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-version: ['7.1']
-        swoole-version:
-          - swoole
+        include:
+          - php: '7.4'
+            extensions: 'pecl_http-3.2.4'
+          - php: '8.0'
+            extensions: 'pecl_http-4.0.0'
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
-      - name: Setup PHP environment
+      - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
-          php-version: ${{ matrix.php-version }}
-          extensions: ${{ matrix.swoole-version }}
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.extensions }}
       - name: Verify PHP environment
-        run: |
-          php -r "echo phpversion('swoole');"
-          php --ri swoole
+        run: |          
+          php -r "echo phpversion('pecl_http');"
+          php -v
+          php -m
