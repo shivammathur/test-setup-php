@@ -1,19 +1,23 @@
-name: Runner workflow
+name: 'Test Formulae'
 on: [push]
 jobs:
-  run:
-    name: Run
-    runs-on: ${{ matrix.operating-system }}
+  tests:
+    name: Test ${{ matrix.swoole-version }} against php ${{ matrix.php-version }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php: ['latest', '7.4', '5.x', '7.x', '8.x', '4.x']
+        php: ['7.4', '8.0']
     steps:
-      - run: echo '127.0.0.1    dl.bintray.com' | sudo tee /etc/hosts
+      - name: Checkout source code
+        uses: actions/checkout@v2
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-      - name: Test PHP version
-        run: php -v  
+          extensions: raphf, propro, http
+      - name: Verify PHP environment
+        run: |          
+          php -r "echo phpversion('http');"
+          php -v
+          php -m
