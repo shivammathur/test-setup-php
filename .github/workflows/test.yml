@@ -9,6 +9,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: Test env
     steps:
+      - uses: actions/checkout@v2
+      - uses: shivammathur/setup-php@v2
       - name: Dump job context
         env:
           JOB_CONTEXT: ${{ toJson(job) }}
