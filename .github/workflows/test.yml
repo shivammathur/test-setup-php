@@ -7,13 +7,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]      
+        operating-system: [ubuntu-latest]
+        php: ['latest', '7.4', '5.x', '7.x', '8.x', '4.x']
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.0'
-        env:
-          update: true
+          php-version: ${{ matrix.php }}
       - name: Test PHP version
         run: php -v  
