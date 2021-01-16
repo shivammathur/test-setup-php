@@ -21,8 +21,6 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: ${{ matrix.extensions }}
       - name: Verify PHP environment
-        run: |          
-          php -r "echo phpversion('http');"
-          echo ''
+        run: |
           php -v
           php -m
