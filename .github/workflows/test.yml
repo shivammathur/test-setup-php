@@ -20,6 +20,7 @@ jobs:
       - name: Test SAPI
         run: |
           if [[ "${{ matrix.sapi }}" =~ .*:(apache|nginx) ]]; then
+            sudo mkdir -p /var/www/html
             sudo rm -rf /var/www/html/index.html
             echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" | sudo tee /var/www/html/index.php >/dev/null
             curl -s http://localhost
