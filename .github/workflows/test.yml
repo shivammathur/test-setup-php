@@ -16,8 +16,7 @@ jobs:
         uses: shivammathur/setup-php@sapi
         with:
           php-version: ${{ matrix.php }}
-          sapi: ${{ matrix.sapi }}
-      - uses: mxschmitt/action-tmate@v3.1 
+          sapi: ${{ matrix.sapi }}    
       - name: Test SAPI
         run: |
           if [[ "${{ matrix.sapi }}" =~ .*:(apache|nginx) ]]; then
