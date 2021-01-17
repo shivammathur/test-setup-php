@@ -6,11 +6,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: [5.6]
-        sapi: ['fpm:nginx']
-        # php: ['5.3', '5.4', '5.6', '7.4', '8.0', '8.1']
+        php: ['5.3', '5.4', '5.6', '7.4', '8.0', '8.1']
         # php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
-        # sapi: ['apache2handler:apache', 'fpm:apache', 'cgi:apache', 'fpm:nginx', 'apache2handler', 'fpm', 'cgi', 'embed']
+        sapi: ['apache2handler:apache', 'fpm:apache', 'cgi:apache', 'fpm:nginx', 'apache2handler', 'fpm', 'cgi', 'embed']
     steps:
       - name: Checkout source code
         uses: actions/checkout@v2
@@ -27,6 +25,7 @@ jobs:
             sudo rm -rf /var/www/html/index.html
             echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" | sudo tee /var/www/html/index.php >/dev/null
             curl -s http://localhost
+            [ "$(curl -s http://localhost)" != "${{ matrix.sapi }}" ] && exit 1
           fi
           if [[ "${{ matrix.sapi }}" =~ .*fpm.* ]]; then
             sudo service php${{ matrix.php }}-fpm status
