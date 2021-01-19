@@ -8,26 +8,14 @@ jobs:
     strategy:
       matrix:
         operating-system: [windows-latest]
-        ts: [ts, nts]
-        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+        php: ['7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
       fail-fast: false
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: latest
-      - name: Create Cache
-        run: |
-          Remove-Item C:\tools\php\php.exe
-          New-Item -ItemType Directory -Path C:\tools\cache -Force
-          Add-Content "$PSHOME\Profile.ps1" "Set-PhpDownloadCache -Path C:\tools\cache"
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-        env:
-          phpts: ${{ matrix.ts }}
-      - uses: actions/upload-artifact@v2
-        with:
-          name: php
-          path: C:\tools\cache
+          coverage: pcov  
+      - run: |
+          php -v
+          php -m
