@@ -4,21 +4,22 @@ jobs:
   tests:  
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        os: [windows-2016, windows-2019]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Install apache2
         run: |
-          sudo apt-fast install -y apache2
-          sudo service apache2 stop
+          choco install apache-httpd --params "/installLocation:C:\tools /port:80" -y --force
+          Stop-Service -Name Apache                
       - name: Install nginx
         run: |
-          sudo apt-fast install -y nginx
-          sudo service nginx stop
+          choco install nginx --params "/installLocation:C:\tools /port:80" -y --force
+          Stop-Service -Name nginx
       - name: Test setup
         run: |
-          for service in apache2 nginx; do
-            for action in start status stop; do
-              sudo service "$service" "$action"
-            done
-          done
+          Get-ChildItem C:\tools
+          foreach ($server in ("Apache", "nginx")) {
+            Start-Service -Name $server
+            Get-Service -Name $server
+            Stop-Service -Name $server
+          }
