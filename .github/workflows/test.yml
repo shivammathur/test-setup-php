@@ -3,26 +3,22 @@ on: [push]
 jobs:
   tests:  
     strategy:
-      fail-fast: false
       matrix:
-        os: [windows-2016, windows-2019]
+        os: [macos-10.15, macos-11.0]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Stop w3svc
-        run: Stop-Service -Name w3svc
       - name: Install apache2
         run: |
-          choco install apache-httpd --params "/installLocation:C:\tools /port:80" -y --force
-          Stop-Service -Name Apache                
+          brew install httpd
+          brew services stop httpd                
       - name: Install nginx
         run: |
-          choco install nginx --params "/installLocation:C:\tools /port:80" -y --force
-          Stop-Service -Name nginx
+          brew install nginx
+          brew services stop nginx
       - name: Test setup
         run: |
-          Get-ChildItem C:\tools
-          foreach ($server in ("Apache", "nginx")) {
-            Start-Service -Name $server
-            Get-Service -Name $server
-            Stop-Service -Name $server
-          }
+          for service in httpd nginx; do
+            for action in start status stop; do
+              brew services "$action" "$service"
+            done
+          done
