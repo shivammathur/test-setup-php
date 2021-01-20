@@ -3,10 +3,12 @@ on: [push]
 jobs:
   tests:  
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-2016, windows-2019]
     runs-on: ${{ matrix.os }}
     steps:
+      - run: netstat -anbo
       - name: Install apache2
         run: |
           choco install apache-httpd --params "/installLocation:C:\tools /port:80" -y --force
