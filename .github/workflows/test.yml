@@ -11,15 +11,20 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Install apache2
-        run: brew install httpd
+        run: |
+          brew install httpd
+          sudo sed -Ei '' 's/Listen .*/Listen 80/' $(brew --prefix)/etc/httpd/httpd.conf
       - name: Install nginx
-        run: brew install nginx
+        run: |
+          brew install nginx
+          sudo sed -Ei '' 's/listen.*/listen 80;/' $(brew --prefix)/etc/nginx/nginx.conf
       - name: Test setup
         run: |
           brew services list
           for service in httpd nginx; do
             brew services start "$service"
             brew services list | grep "$service"
+            sudo lsof -nP -iTCP:80 | grep LISTEN
             brew services stop "$service"
           done
           php -v
