@@ -15,7 +15,7 @@ jobs:
         run: |
           sudo apt-fast install -y nginx
           sudo service nginx stop
-      - name: Check servies
+      - name: Test setup
         run: |
           for service in apache2 nginx; do
             for action in start status stop; do
