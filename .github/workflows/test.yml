@@ -2,41 +2,20 @@ name: 'Test Formulae'
 on: [push]
 jobs:
   tests:  
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        php: ['5.3', '5.4', '5.6', '7.4', '8.0', '8.1']
-        # php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
-        sapi: ['apache2handler:apache', 'fpm:apache', 'cgi:apache', 'fpm:nginx', 'apache2handler', 'fpm', 'cgi', 'embed']
+    runs-on: ubuntu-latest    
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v2
-      - name: Setup PHP
-        uses: shivammathur/setup-php@sapi
-        with:
-          php-version: ${{ matrix.php }}
-          sapi: ${{ matrix.sapi }}    
-      - name: Test SAPI
+      - name: Install apache2
         run: |
-          if [[ "${{ matrix.sapi }}" =~ .*:(apache|nginx) ]]; then
-            sudo mkdir -p /var/www/html
-            sudo rm -rf /var/www/html/index.html
-            echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" | sudo tee /var/www/html/index.php >/dev/null
-            curl -s http://localhost
-            [ "$(curl -s http://localhost)" != "${{ matrix.sapi }}" ] && exit 1
-          fi
-          if [[ "${{ matrix.sapi }}" =~ .*fpm.* ]]; then
-            sudo service php${{ matrix.php }}-fpm status
-          fi
-          if [[ "${{ matrix.sapi }}" =~ .*:apache.* ]]; then
-            sudo service apache2 status
-          fi          
-          if [[ "${{ matrix.sapi }}" =~ .*:nginx.* ]]; then
-            sudo service nginx status
-          fi          
-          
-      - name: Verify PHP environment
+          sudo apt-fast install -y apache2
+          sudo service apache2 stop
+      - name: Install nginx
         run: |
-          php -v
-          php -m
+          sudo apt-fast install -y nginx
+          sudo service nginx stop
+      - name: Check servies
+        run: |
+          for service in apache2 nginx; do
+            for action in start status stop; do
+              sudo service "$service" "$action"
+            done
+          done
