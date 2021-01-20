@@ -17,7 +17,7 @@ jobs:
       - name: Test setup
         run: |
           for service in httpd nginx; do
-            for action in start status stop; do
-              brew services "$action" "$service"
-            done
+            brew services start "$service"
+            brew services list | grep "$service"
+            brew services stop "$service"
           done
