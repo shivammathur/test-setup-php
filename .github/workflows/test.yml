@@ -23,8 +23,6 @@ jobs:
           brew services list
           for service in httpd nginx; do
             brew services start "$service"
-            brew services list | grep "$service"
-            sudo lsof -nP -iTCP:80 | grep LISTEN
+            brew services list | grep "$service"          
             brew services stop "$service"
           done
-          php -v
