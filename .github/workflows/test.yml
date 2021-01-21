@@ -3,9 +3,11 @@ on: [push]
 env:
   HOMEBREW_NO_INSTALL_CLEANUP: 1
   HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_CHANGE_ARCH_TO_ARM: 1
 jobs:
   tests:  
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-10.15, macos-11.0, macos-11.0-m1]
     runs-on: ${{ matrix.os }}
