@@ -26,4 +26,6 @@ jobs:
           sudo systemctl start nginx
           sudo nginx -t
           sudo systemctl stop nginx
+          sudo apt-get purge php7.4 -y
+          sudo apt-get install php7.4 -y
           
