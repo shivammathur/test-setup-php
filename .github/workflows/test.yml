@@ -17,14 +17,15 @@ jobs:
           sudo service nginx stop
       - name: Test setup
         run: |
-          source /etc/apache2/envvars && sudo apache2 --version
+          sudo -s
+          source /etc/apache2/envvars && apache2 --version
           echo "---- $? -----"
           nginx -v
           echo "---- $? -----"
 
           for service in apache2 nginx; do
             for action in start status stop; do
-              sudo service "$service" "$action"
+              service "$service" "$action"
             done
           done          
           
