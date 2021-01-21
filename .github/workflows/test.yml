@@ -19,7 +19,7 @@ jobs:
         run: |
           apache2 --version
           echo "---- $? -----"
-          nginx --version
+          nginx -v
           echo "---- $? -----"
 
           for service in apache2 nginx; do
