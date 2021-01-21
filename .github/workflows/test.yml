@@ -24,6 +24,6 @@ jobs:
           
           nginx -v
           sudo systemctl start nginx
-          nginx -t
+          sudo nginx -t
           sudo systemctl stop nginx
           
