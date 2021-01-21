@@ -18,13 +18,12 @@ jobs:
       - name: Test setup
         run: |
           source /etc/apache2/envvars && apache2 -V
-          echo "---- $? -----"
+          sudo systemctl start apache2
+          apachectl configtest
+          sudo systemctl stop apache2
+          
           nginx -v
-          echo "---- $? -----"
-
-          for service in apache2 nginx; do
-            for action in start status stop; do
-              sudo service "$service" "$action"
-            done
-          done          
+          sudo systemctl start nginx
+          nginx -t
+          sudo systemctl stop nginx
           
