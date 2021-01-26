@@ -12,7 +12,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "7.4"
-          extensions: :amqp :apcu :bcmath :bz2 :curl :dba :enchant :gd :gmp :igbinary :imap :ldap :memcache :memcached :mongodb :msgpack :odbc :pdo_dblib :PDO_Firebird :PDO_ODBC :pdo_pgsql :pdo_sqlite :pgsql :pspell :redis :snmp :soap :sqlite3 :tidy :xmlrpc :yaml :zip :zmq
+          extensions: :amqp, :apcu, :bcmath, :bz2, :curl, :dba, :enchant, :gd, :gmp, :igbinary, :imap, :ldap, :memcache, :memcached, :mongodb, :msgpack, :odbc, :pdo_dblib, :PDO_Firebird, :PDO_ODBC, :pdo_pgsql, :pdo_sqlite, :pgsql, :pspell, :redis, :snmp, :soap, :sqlite3, :tidy, :xmlrpc, :yaml, :zip, :zmq
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
