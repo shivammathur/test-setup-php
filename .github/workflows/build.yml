@@ -38,7 +38,9 @@ jobs:
 
             -   name: Show errors
                 if: ${{ failure() }}
-                run: ./.github/workflows/show-errors.sh
+                run: |
+                  cat tests/bug0016.sh
+                  ./.github/workflows/show-errors.sh
 
             -   name: Do GCOV
                 if: ${{ failure() }}
