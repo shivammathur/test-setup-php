@@ -4,8 +4,19 @@ jobs:
   tests:  
     strategy:
       matrix:
-        os: [windows-2019, windows-2016]
+        os: [ubuntu-latest]
+        php: [5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1]
     runs-on: ${{ matrix.os }}
     steps:
-      - run: Get-InstalledModule Pester              
+      -   name: Setup PHP
+          uses: shivammathur/setup-php@v2
+          with:
+              php-version: "${{ matrix.php }}"
+              coverage: none
+              ini-values: "session.save_path=/tmp"
+              extensions: json
+              tools: pecl
+      - run: |
+          php --rf "json_decode"
+          php -m
           
