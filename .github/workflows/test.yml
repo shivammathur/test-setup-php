@@ -4,11 +4,8 @@ jobs:
   tests:  
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        os: [windows-2019, windows-2016]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Install apache2
-        run: |
-          sudo apt-fast install -y apache2
-      - uses: mxschmitt/action-tmate@v3.1
+      - run: Get-InstalledModule Pester              
           
