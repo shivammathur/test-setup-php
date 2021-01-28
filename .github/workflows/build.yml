@@ -32,6 +32,8 @@ jobs:
 
             -   name: Run tests
                 run: |
+                    export INI_DIR=/etc/php/${{ matrix.php }}/cli/
+                    export INI_FILE=/etc/php/${{ matrix.php }}/cli/php.ini
                     php -m
                     php --rf "json_decode"
                     make -j 5 test && if ls tests/*.diff >/dev/null 2>&1; then echo "Tests failed" && cat tests/*.diff && exit 1; fi

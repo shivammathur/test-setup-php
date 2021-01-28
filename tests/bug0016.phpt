@@ -2,7 +2,6 @@
 Test for issue #16: Segfault on rdp_simplify for GeoJSON
 --FILE--
 <?php
-print_r(get_loaded_extensions());
 $geojson = json_decode('{"type":"LineString","coordinates":[[0,0],[1,0],[2,0],[2,1],[2,2],[1,2],[0,2],[0,1],[0,0]]}', true);
 
 try {
