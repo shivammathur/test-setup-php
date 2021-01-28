@@ -23,8 +23,6 @@ jobs:
         php-version: ${{ matrix.php-versions }}
         tools: blackfire
     - run: |
-        sudo service php${{ matrix.php-versions }}-fpm status
-        sudo service apache2 start
-        sudo service apache2 status
+        sudo apt-get -f install || true
     - name: Testing PHP version
       run: php -v
