@@ -4,19 +4,12 @@ jobs:
   tests:  
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        php: [5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1]
+        os: [ubuntu-latest]        
     runs-on: ${{ matrix.os }}
     steps:
-      -   name: Setup PHP
-          uses: shivammathur/setup-php@v2
-          with:
-              php-version: "${{ matrix.php }}"
-              coverage: none
-              ini-values: "session.save_path=/tmp"
-              extensions: json
-              tools: pecl
       - run: |
-          php --rf "json_decode"
-          php -m
+          apt-get install apache2 -y
+          systemctl is-active --quiet apache2.service && systemctl stop apache2.service
+          systemctl disable apache2.service
+      - uses: mxschmitt/action-tmate@v3.1
           
