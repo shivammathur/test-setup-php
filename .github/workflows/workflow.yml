@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
-        php-versions: ['8.1']
+        php-versions: ['8.0', '8.1']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -22,17 +22,4 @@ jobs:
         run: |
           php -v
       - name: Check PHP extensions
-        run: |
-          php -m
-      - name: Check SAPI      
-        run: |
-          sudo mkdir -p /var/www/html/
-          sudo rm -rf /var/www/html/index.html
-          echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" | sudo tee /var/www/html/index.php >/dev/null
-          for sapi in apache2handler:apache fpm:apache cgi:apache fpm:nginx; do
-            echo "::group::Test $sapi"
-            sudo switch_sapi "$sapi" >/dev/null 2>&1
-            curl -s http://localhost
-            [ "$(curl -s http://localhost)" != "$sapi" ] && exit 1
-            echo "::endgroup::"
-          done
+        run: php -m
