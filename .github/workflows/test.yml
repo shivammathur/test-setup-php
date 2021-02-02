@@ -9,10 +9,19 @@ jobs:
     steps:
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: 7.4
-      - run: |
-          php -v
-          echo $(composer config --global home)
-          echo '--'
-          echo $(composer global config home)
+          php-version: 8.0
+      - name: Print global composer.json
+        run: |
+          composer_home=$(composer config --global home)
+          cat $composer_home/composer.json
+      - name: Test composer global config
+        run: |
+          composer_home=$(composer config --global home)
+          composer global config process-timeout 5
+          cat $composer_home/composer.json
+      - name: Test composer config --global
+        run: |
+          composer_home=$(composer config --global home)
+          composer config --global process-timeout 10
+          cat $composer_home/composer.json
           
