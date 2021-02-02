@@ -7,11 +7,12 @@ jobs:
         os: [ubuntu-latest]        
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: shivammathur/setup-php@verbose
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: 7.4
-          extensions: xdebug-2.9.8
       - run: |
-          php -r "echo phpversion('xdebug');"
-          php -m
+          php -v
+          echo $(composer config --global home)
+          echo '--'
+          echo $(composer global config home)
           
