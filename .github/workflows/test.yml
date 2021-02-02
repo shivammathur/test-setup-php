@@ -10,10 +10,8 @@ jobs:
       - uses: shivammathur/setup-php@develop
         with:
           php-version: 8.0
-        env:
-          COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}    
       - name: Print default
         run: |
           echo '{ }' > composer.json
-          composer config github-oauth.github.com
+          composer config process-timeout
           
