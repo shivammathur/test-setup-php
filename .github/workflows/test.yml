@@ -16,10 +16,10 @@ jobs:
           composer config process-timeout
       - name: Test composer global config
         run: |
-          composer global config process-timeout 5
-          composer config -g process-timeout
+          composer -q global config process-timeout 5
+          composer config process-timeout
       - name: Test composer config --global
         run: |
-          composer config --global process-timeout 10
+          composer -q config -g process-timeout 10
           composer config process-timeout
           
