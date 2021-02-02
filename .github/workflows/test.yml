@@ -10,16 +10,10 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: 8.0
+        env:
+          COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}    
       - name: Print default
         run: |
           echo '{ }' > composer.json
-          composer config process-timeout
-      - name: Test composer global config
-        run: |
-          composer -q global config process-timeout 5
-          composer config process-timeout
-      - name: Test composer config --global
-        run: |
-          composer -q config -g process-timeout 10
-          composer config process-timeout
+          composer config github-oauth.github.com
           
