@@ -12,16 +12,13 @@ jobs:
           php-version: 8.0
       - name: Print global composer.json
         run: |
-          composer_home=$(composer config --global home)
-          cat $composer_home/composer.json
+          composer config process-timeout
       - name: Test composer global config
         run: |
-          composer_home=$(composer config --global home)
           composer global config process-timeout 5
-          cat $composer_home/composer.json
+          composer config process-timeout
       - name: Test composer config --global
         run: |
-          composer_home=$(composer config --global home)
           composer config --global process-timeout 10
-          cat $composer_home/composer.json
+          composer config process-timeout
           
