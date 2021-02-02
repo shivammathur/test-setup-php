@@ -10,8 +10,5 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: 8.0
-      - name: Print default
-        run: |
-          echo '{ }' > composer.json
-          composer config process-timeout
+          ini-values: apple="e,r,t"
           
