@@ -8,14 +8,15 @@ jobs:
         php: ['7.2','7.3','7.4','8.0']
     runs-on: ${{ matrix.os }}
     steps:        
-      - uses: shivammathur/setup-php@develop
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.0'
           extensions: mysql, pdo_mysql
       - name: Test mysql
         run: |
           php -m
-          php -r "if(! extension_loaded('mysql')) {throw new Exception('mysql not found');}"
+          php -r "if(! extension_loaded('mysqli')) {throw new Exception('mysqli not found');}"
+          php -r "if(! extension_loaded('mysqlnd')) {throw new Exception('mysqlnd not found');}"
           php -r "if(! extension_loaded('pdo_mysql')) {throw new Exception('pdo_mysql not found');}"
          
           
