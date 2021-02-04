@@ -13,7 +13,7 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: ldap
+          extensions: :xdebug, ctype, dom, gd, iconv, ldap, mbstring, reflection, session, simplexml, spl, xml, zlib, memcache, pdo_sqlite, bcmath
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
