@@ -7,12 +7,13 @@ jobs:
     strategy:
       matrix:
         operating-system: [ubuntu-latest]
+        php: [5.4, 5.5]
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
-          php-version: "7.4"
-          extensions: :amqp, :apcu, :bcmath, :bz2, :curl, :dba, :enchant, :gd, :gmp, :imap, :ldap, :memcache, :memcached, :mongodb, :msgpack, :odbc, :pdo_dblib, :PDO_Firebird, :PDO_ODBC, :pdo_pgsql, :pdo_sqlite, :pgsql, :pspell, :redis, :snmp, :soap, :sqlite3, :tidy, :xmlrpc, :yaml, :zip, :zmq, :igbinary
+          php-version: ${{ matrix.php }}
+          extensions: ldap
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
