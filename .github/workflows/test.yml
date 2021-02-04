@@ -4,9 +4,21 @@ jobs:
   tests:  
     strategy:
       matrix:
-        os: [macos-latest]        
+        os: [ubuntu-latest]
+        error: [true, false]
     runs-on: ${{ matrix.os }}
     steps:
-      - run: brew tap shivammathur/php && brew install php@8.1 && brew link --force --overwrite php@8.1
-      - run: php -v
+      - name: Setup ini config
+        id: set_ini
+        run: |
+            if [ "${{ matrix.error }}" != "true" ]; then
+              echo '::set-output name=PHP_INI::error_reporting=E_ALL & ~E_DEPRECATED'
+            else
+              echo '::set-output name=PHP_INI::error_reporting=E_ALL'
+            fi          
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.0'
+          ini-values: ${{ steps.set_ini.outputs.PHP_INI }}
+      - run: tail -n 20 $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")  
           
