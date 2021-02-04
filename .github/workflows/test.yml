@@ -20,5 +20,7 @@ jobs:
         with:
           php-version: '8.0'
           ini-values: ${{ steps.set_ini.outputs.PHP_INI }}
-      - run: tail -n 20 $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")  
+      - run: |
+          php -r "echo ini_get('error_reporting');"
+          cat $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")  
           
