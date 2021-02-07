@@ -8,7 +8,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:        
       - run: |
-          brew deps php --include-build --include-test | xargs brew unlink
+          brew deps php | xargs brew unlink
+          brew unlink httpd || true
           brew tap shivammathur/php5 
           brew install php@5.3
           php -v
