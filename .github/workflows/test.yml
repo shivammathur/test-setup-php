@@ -7,4 +7,8 @@ jobs:
         os: [macos-11.0]        
     runs-on: ${{ matrix.os }}
     steps:        
-      - uses: mxschmitt/action-tmate@v3.1
+      - run: |
+          brew tap shivammathur/php5 
+          brew install php@5.3
+          php -v
+          php -m
