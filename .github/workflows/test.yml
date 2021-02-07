@@ -4,10 +4,11 @@ jobs:
   tests:  
     strategy:
       matrix:
-        os: [macos-11.0]        
+        os: [macos-15.0]        
     runs-on: ${{ matrix.os }}
     steps:        
       - run: |
+          brew deps php | xargs brew uninstall --ignore-dependencies --force
           brew tap shivammathur/php5 
           brew install php@5.3
           php -v
