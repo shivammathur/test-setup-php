@@ -42,7 +42,7 @@ jobs:
         for i in $versions; do
           if [ "$i" = "$version" ]; then
             curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/actions/virtual-environments/main/images/linux/scripts/installers/php.sh
-            sed -i "s/\$(jq -r '.php.versions\[\]' \$toolset)/\"$version\"/" /tmp/php.sh
+            sed -i "s/^php_versions.*/php_versions=$version/" /tmp/php.sh
             sed -i 's/php-/php$version-/' /tmp/php.sh
             sed -i 's/php$version-pear/php-pear/' /tmp/php.sh
             grep 'php_versions=' /tmp/php.sh
