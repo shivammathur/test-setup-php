@@ -9,10 +9,10 @@ jobs:
         operating-system: [macos-latest]
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: 8.1
-          extensions: swoole, xdebug, pcov
+          extensions: xdebug, pcov
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
