@@ -13,6 +13,7 @@ jobs:
           php-version: ${{ matrix.php }} 
           extensions: pecl_http
       - run: |
+          Get-Content C:\tools\php\php.ini | Select-String -pattern 'extension=.*http.*' -notmatch | Out-File C:\tools\php\php.ini
           Disable-PhpExtension http -Path C:\tools\php
           Function Get-IcuUrl() {
             Param (
