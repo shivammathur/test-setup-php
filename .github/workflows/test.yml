@@ -12,9 +12,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }} 
           extensions: pecl_http
-      - run: |
-          Get-Content C:\tools\php\php.ini | Select-String -pattern 'extension=.*http.*' -notmatch | Out-File C:\tools\php\php.ini
-          Disable-PhpExtension http -Path C:\tools\php
+      - run: |                  
           Function Get-IcuUrl() {
             Param (
               [Parameter(Position = 0, Mandatory = $true)]
@@ -37,7 +35,7 @@ jobs:
               }
             }     
           }
-          Install-PhpExtension pecl_http -Path C:\tools\php
+          Get-Content C:\tools\php\php.ini | Select-String -pattern 'extension=.*http.*' -notmatch | Out-File C:\tools\php\php.ini        
           $trunk = "https://windows.php.net"
           $icu_version = Get-Content -Encoding ASCII -Raw C:\tools\php\ext\php_http.dll | Select-String "(\d+\.\d+)\0+libicu" -AllMatches | Foreach-Object {$_.Matches} | Foreach-Object { $_.Groups[1].Value }
           echo $icu_version
