@@ -12,6 +12,8 @@ jobs:
         with:
           php-version: ${{ matrix.php }} 
           extensions: raphf, pecl_http
+      - name: Print php.ini
+        run: type C:\tools\php\php.ini
       - run: |                  
           Function Get-IcuUrl() {
             Param (
