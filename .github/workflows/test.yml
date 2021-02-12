@@ -11,7 +11,7 @@ jobs:
       - uses: shivammathur/setup-php@v2        
         with:
           php-version: ${{ matrix.php }} 
-          extensions: pecl_http
+          extensions: raphf, pecl_http
       - run: |                  
           Function Get-IcuUrl() {
             Param (
@@ -52,7 +52,7 @@ jobs:
             Invoke-WebRequest -Uri $zip_url -OutFile "C:\tools\php\ICU.zip"
             Expand-Archive -Path C:\tools\php\ICU.zip -DestinationPath C:\tools\php\ICU -Force
             Get-ChildItem C:\tools\php\ICU\bin -Filter *.dll | Copy-Item -Destination C:\tools\php -Force
-            Enable-PhpExtension pecl_http -Path C:\tools\php
+            Add-Content C:\tools\php\php.ini "extension=http"
           }
           php -v
           php -m
