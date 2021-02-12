@@ -11,7 +11,7 @@ jobs:
       - uses: shivammathur/setup-php@v2        
         with:
           php-version: ${{ matrix.php }} 
-          extensions: raphf, pecl_http
+          extensions: raphf, propro, pecl_http
       - run: |                  
           Function Get-IcuUrl() {
             Param (
