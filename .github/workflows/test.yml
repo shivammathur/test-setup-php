@@ -12,8 +12,6 @@ jobs:
         with:
           php-version: ${{ matrix.php }} 
           extensions: raphf, pecl_http
-      - name: Print php.ini
-        run: type C:\tools\php\php.ini
       - run: |                  
           Function Get-IcuUrl() {
             Param (
@@ -37,7 +35,7 @@ jobs:
               }
             }     
           }
-          Get-Content C:\tools\php\php.ini | Select-String -pattern 'extension=.*http.*' -notmatch | Out-File C:\tools\php\php.ini        
+          Set-Content -Path "C:\tools\php\php.ini" -Value (Get-Content -Path "C:\tools\php\php.ini" | Select-String -Pattern 'extension=.*http.*' -NotMatch)
           $trunk = "https://windows.php.net"
           $icu_version = Get-Content -Encoding ASCII -Raw C:\tools\php\ext\php_http.dll | Select-String "(\d+\.\d+)\0+libicu" -AllMatches | Foreach-Object {$_.Matches} | Foreach-Object { $_.Groups[1].Value }
           echo $icu_version
@@ -56,8 +54,6 @@ jobs:
             Get-ChildItem C:\tools\php\ICU\bin -Filter *.dll | Copy-Item -Destination C:\tools\php -Force
             Add-Content -Path C:\tools\php\php.ini -Value "`nextension=http"
           }
-      - name: Print php.ini
-        run: type C:\tools\php\php.ini
       - name: Test
         run: |
           php -v
