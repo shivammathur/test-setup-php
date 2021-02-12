@@ -54,6 +54,7 @@ jobs:
             Get-ChildItem C:\tools\php\ICU\bin -Filter *.dll | Copy-Item -Destination C:\tools\php -Force
             Add-Content -Path C:\tools\php\php.ini -Value "`nextension=http"
           }
+      - uses: mxschmitt/action-tmate@v3.3    
       - name: Test
         run: |
           php -v
