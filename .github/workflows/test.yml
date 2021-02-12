@@ -52,7 +52,7 @@ jobs:
             Invoke-WebRequest -Uri $zip_url -OutFile "C:\tools\php\ICU.zip"
             Expand-Archive -Path C:\tools\php\ICU.zip -DestinationPath C:\tools\php\ICU -Force
             Get-ChildItem C:\tools\php\ICU\bin -Filter *.dll | Copy-Item -Destination C:\tools\php -Force
-            Add-Content C:\tools\php\php.ini "`nextension=http"
+            Add-Content -Path C:\tools\php\php.ini -Value "`nextension=http"
           }
       - name: Print php.ini
         run: type C:\tools\php\php.ini
