@@ -5,15 +5,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
-        php: ['7.1', '7.2', '7.3', '7.4', '8.0']
+        os: [macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php }} 
-          extensions: pecl_http, raphf, propro
-      - name: Test
-        run: |
-          php -v
-          php -m
+      - uses: mxschmitt/action-tmate@v3.3
