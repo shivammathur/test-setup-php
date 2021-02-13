@@ -23,8 +23,8 @@ jobs:
       - name: Copy to builds
         run: |
           sudo mkdir /tmp/builds
-          find /opt/local/var -type f -name "*.pkg" -exec cp -n {} /tmp/builds \;
-          find /opt/local/var -type f -name "*.mpkg" -exec cp -n {} /tmp/builds \;
+          sudo find /opt/local/var -type f -name "*.pkg" -exec cp -n {} /tmp/builds \;
+          sudo find /opt/local/var -type f -name "*.mpkg" -exec cp -n {} /tmp/builds \;
       - uses: actions/upload-artifact@v2
         with:
           name: builds
