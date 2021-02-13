@@ -16,10 +16,10 @@ jobs:
           echo "/opt/local/bin" | sudo tee -a $GITHUB_PATH
       - name: Update and sync macports
         run: |
-          sudo port -v selfupdate
-          sudo port -v sync
+          sudo port -vN selfupdate
+          sudo port -vN sync
       - name: Package
-        run: sudo port mpkg php${{ matrix.php }} php${{ matrix.php }}-cgi php${{ matrix.php }}-fpm
+        run: sudo port -N mpkg php${{ matrix.php }} php${{ matrix.php }}-cgi php${{ matrix.php }}-fpm
       - name: Copy to builds
         run: |
           sudo mkdir /tmp/builds
