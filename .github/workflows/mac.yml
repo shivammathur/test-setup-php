@@ -6,8 +6,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-11.0-m1]
-        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        operating-system: [macos-10.15]
+        php: ['5.3']
     name: Test macOS
     steps:
     - name: Checkout
@@ -25,3 +25,5 @@ jobs:
       
     - name: Test PHP extensions
       run: php -m
+    - uses: mxschmitt/action-tmate@v3.3
+
