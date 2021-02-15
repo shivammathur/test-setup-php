@@ -8,4 +8,7 @@ jobs:
         os: [macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 5.3
       - uses: mxschmitt/action-tmate@v3.3
