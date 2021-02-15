@@ -6,14 +6,14 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [macos-latest]
+        php: [5.3, 5.4, 5.5]
     steps:
-      - run: sudo apt-get install libcurl4-openssl-dev -y
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
-          php-version: 8.0
-          extensions: pecl_http, raphf, propro
+          php-version: ${{ matrix.php }}
+          extensions: pecl_http
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
