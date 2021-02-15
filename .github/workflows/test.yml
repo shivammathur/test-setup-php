@@ -6,26 +6,6 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest]
-        php: [53, 54, 55]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Install macports
-        run: |
-          curl -o /tmp/macports.pkg -sL https://distfiles.macports.org/MacPorts/MacPorts-2.6.4-10.15-Catalina.pkg
-          sudo installer -pkg /tmp/macports.pkg -target /
-          echo "/opt/local/bin" | sudo tee -a $GITHUB_PATH
-      - name: Update and sync macports
-        run: |
-          sudo port -vN selfupdate
-          sudo port -vN sync
-      - name: Package
-        run: sudo port -N mpkg php${{ matrix.php }} php${{ matrix.php }}-cgi php${{ matrix.php }}-fpm
-      - name: Copy to builds
-        run: |
-          sudo mkdir /tmp/builds
-          sudo find /opt/local/var -type f -name "*.pkg" -exec cp -n {} /tmp/builds \;
-          sudo find /opt/local/var -type f -name "*.mpkg" -exec cp -n {} /tmp/builds \;
-      - uses: actions/upload-artifact@v2
-        with:
-          name: builds
-          path: /tmp/builds
+      - uses: mxschmitt/action-tmate@v3.3
