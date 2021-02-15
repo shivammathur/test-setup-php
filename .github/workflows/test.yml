@@ -8,12 +8,12 @@ jobs:
       matrix:
         operating-system: [ubuntu-latest]
         php: [5.4, 5.5]
-    steps:
-      - run: sudo mkdir -p /usr/share/doc/php-pear/PEAR
+    steps:      
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}      
+      - run: sudo mkdir -p /usr/share/doc/php-pear/PEAR
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
