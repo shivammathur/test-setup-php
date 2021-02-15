@@ -9,6 +9,7 @@ jobs:
         operating-system: [ubuntu-latest]
         php: [5.4, 5.5]
     steps:
+      - run: sudo mkdir -p /usr/share/doc/php-pear/PEAR
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
@@ -17,4 +18,4 @@ jobs:
         run: php -v
       - name: Testing Extensions
         run: php -m
-      - uses: mxschmitt/action-tmate@v3.3
+      - run: yes '' | sudo pecl install -f raphf-1.1.2
