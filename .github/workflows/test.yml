@@ -5,7 +5,8 @@ jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      matrix:
+      fail-fast: false
+      matrix:        
         operating-system: [macos-latest]
         php: ['8.0', '8.1']
     steps:
