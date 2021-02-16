@@ -14,8 +14,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: http-4.0.0beta1
-      - run: cat /tmp/pecl_http-4.0.0beta1/Makefile
+          extensions: http-4.0.0    
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
