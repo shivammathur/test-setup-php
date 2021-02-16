@@ -3,18 +3,10 @@ on:
   push:
 jobs:
   run:
-    runs-on: macos-11.0-m1
+    strategy:
+      matrix:
+        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: setup PHp
-        env:
-          HOMEBREW_CHANGE_ARCH_TO_ARM: 1
-        run: |
-          brew tap shivammathur/php
-          brew install shivammathur/php/php@7.4
-          brew link --force --overwrite php@7.4
-          pecl -V
-          sudo pecl install -f xdebug
-      - name: Testing PHP version
-        run: php -v
-      - name: Testing Extensions
-        run: php -m
+      - run: |
+          sudo apt-get install libacl1-dev -y
