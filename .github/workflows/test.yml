@@ -6,6 +6,8 @@ jobs:
     runs-on: macos-11.0-m1
     steps:
       - name: setup PHp
+        env:
+          HOMEBREW_CHANGE_ARCH_TO_ARM: 1
         run: |
           brew tap shivammathur/php
           brew install shivammathur/php/php@7.4
