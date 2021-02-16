@@ -8,13 +8,15 @@ jobs:
       fail-fast: false
       matrix:        
         operating-system: [macos-latest]
-        php: ['8.0', '8.1']
+        php: ['8.1']
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
           extensions: http-4.0.0
+        env:
+          CFLAGS: '-Wno-implicit-function-declaration'  
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
