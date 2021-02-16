@@ -7,13 +7,13 @@ jobs:
     strategy:
       matrix:
         operating-system: [ubuntu-latest]
-        php: [7.0, 7.1, 7.2, 7.3, 7.4]
+        php: [8.0, 8.1]
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: propro, raphf, pecl_http-3.2.4
+          extensions: propro, raphf, pecl_http-4.0.0
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
