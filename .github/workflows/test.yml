@@ -15,8 +15,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: http-4.0.0
-        env:
-          CPPFLAGS: "$CPPFLAGS -Wno-implicit-function-declaration"
+      - uses: mxschmitt/action-tmate@v3.3  
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
