@@ -13,7 +13,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: propro, raphf, pecl_http-4.0.0
+          extensions: propro, raphf, pecl_http
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
