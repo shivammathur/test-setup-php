@@ -15,6 +15,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: http-4.0.0beta1
+      - run: cat /tmp/pecl_http-4.0.0beta1/Makefile
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
