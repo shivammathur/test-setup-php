@@ -13,5 +13,5 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
       - run: |          
-          composer global require codeception/codeception
+          composer global require codeception/codeception --ignore-platform-reqs
           codecept -V
