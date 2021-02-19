@@ -2,6 +2,8 @@
 name: 'Extension v2 workflow'
 on:
   push:
+env:
+  ext: curl, cubrid, mbstring, memcached, dom, intl, json, libxml, pdo, pdo_mysql, pdo_pgsql, pdo_sqlite, xml, xmlwriter, mcrypt
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
@@ -15,8 +17,8 @@ jobs:
         uses: shivammathur/cache-extensions@v1
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo_mysql
-          key: pdo_mysql
+          extensions: ${{ env.ext }}
+          key: test
 
       - name: Cache extensions
         uses: actions/cache@v2
@@ -28,7 +30,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo_mysql
+          extensions: ${{ env.ext }}
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
