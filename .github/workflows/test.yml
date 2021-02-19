@@ -3,7 +3,7 @@ name: 'Extension v2 workflow'
 on:
   push:
 env:
-  ext: pdo_mysql, pdo_pgsql, pdo_sqlite, pdo_odbc, pdo_firebird, pdo_dblib, pdo_sqlsrv-3.0.1
+  ext: pdo_mysql, pdo_pgsql, pdo_sqlite, pdo_odbc, pdo_firebird, pdo_dblib
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
@@ -46,4 +46,3 @@ jobs:
           php -r "if(! extension_loaded('odbc')) {throw new Exception('odbc not found');}"
           php -r "if(! extension_loaded('PDO_Firebird')) {throw new Exception('PDO_Firebird not found');}"
           php -r "if(! extension_loaded('pdo_dblib')) {throw new Exception('pdo_dblib not found');}"
-          php -r "if(! extension_loaded('pdo_sqlsrv')) {throw new Exception('pdo_sqlsrv not found');}"
