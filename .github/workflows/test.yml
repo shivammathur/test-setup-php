@@ -27,12 +27,16 @@ jobs:
           key: ${{ steps.extcache.outputs.key }}
           restore-keys: ${{ steps.extcache.outputs.key }}
       - name: Install PHP
-        uses: shivammathur/setup-php@master
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.ext }}
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
-        run: php -m
+        run: |
+          php -m
+          php -r "if(! extension_loaded('mysqli')) {throw new Exception('mysqli not found');}"
+          php -r "if(! extension_loaded('mysqlnd')) {throw new Exception('mysqlnd not found');}"
+          php -r "if(! extension_loaded('pdo_mysql')) {throw new Exception('pdo_mysql not found');}"
         
