@@ -19,7 +19,6 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.ext }}
           key: test1
-
       - name: Cache extensions
         uses: actions/cache@v2
         with:
@@ -31,7 +30,6 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.ext }}
-      - uses: mxschmitt/action-tmate@v3.3
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
