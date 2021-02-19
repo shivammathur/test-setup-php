@@ -27,7 +27,7 @@ jobs:
           key: ${{ steps.extcache.outputs.key }}
           restore-keys: ${{ steps.extcache.outputs.key }}
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@master
         with:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.ext }}
