@@ -10,6 +10,20 @@ jobs:
         operating-system: [ubuntu-latest]
         php: ['7.0']
     steps:
+      - name: Setup cache environment
+        id: extcache
+        uses: shivammathur/cache-extensions@v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: pdo_mysql
+          key: pdo_mysql
+
+      - name: Cache extensions
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
