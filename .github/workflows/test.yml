@@ -3,7 +3,7 @@ name: 'Extension v2 workflow'
 on:
   push:
 env:
-  ext: :pdo_mysql, :pdo_pgsql, :pdo_sqlite, :pdo_odbc, :pdo_firebird, :pdo_dblib, :pdo_sqlsrv
+  ext: :memcache, :mongodb
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
