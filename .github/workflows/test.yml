@@ -15,3 +15,5 @@ jobs:
       - run: |
           composer global require codeception/codeception
           composer global require -W robmorgan/phinx:0.5.0
+          codecept -V
+          phinx -V
