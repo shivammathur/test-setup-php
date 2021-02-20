@@ -6,14 +6,10 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        php: ['5.5']
+        php: ['8.0']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-      - run: |
-          composer global require codeception/codeception
-          composer global require -W robmorgan/phinx:0.5.0
-          codecept -V
-          phinx -V
+      - uses: mxschmitt/action-tmate@v3.3
