@@ -12,4 +12,4 @@ jobs:
       - uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          tools: phinx:0.12.4
+          tools: phinx:0.5.0
