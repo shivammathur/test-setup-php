@@ -14,4 +14,4 @@ jobs:
           php-version: ${{ matrix.php }}
       - run: |
           composer global require codeception/codeception
-          composer global require robmorgan/phinx:0.5.0
+          composer global require -W robmorgan/phinx:0.5.0
