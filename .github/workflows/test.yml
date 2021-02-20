@@ -9,7 +9,7 @@ jobs:
         php: ['5.5']
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: shivammathur/setup-php@verbose
+      - uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
           tools: phinx:0.5.0
