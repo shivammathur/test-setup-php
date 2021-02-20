@@ -5,10 +5,11 @@ jobs:
   run:
     strategy:
       matrix:
-        os: [macos-latest]
-        php: ['8.1']
+        os: [ubuntu-latest]
+        php: ['5.5']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
+          tools: phinx:0.12.4
