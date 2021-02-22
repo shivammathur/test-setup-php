@@ -10,6 +10,16 @@ jobs:
         operating-system: [ubuntu-16.04, windows-latest, macOS-latest]
         php-versions: ['5.6', '7.4', '8.0']
         coverage: [xdebug, pcov, none]
+        include:
+          - operating-system: ubuntu-16.04
+            php-versions: '7.4'
+            coverage: xdebug2
+          - operating-system: windows-latest
+            php-versions: '7.4'
+            coverage: xdebug2
+          - operating-system: macos-latest
+            php-versions: '7.4'
+            coverage: xdebug2
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
       - name: Checkout
@@ -18,7 +28,6 @@ jobs:
         uses: shivammathur/setup-php@releases/v1
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, xdebug, pcov, intl, gd
           ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
           coverage: ${{ matrix.coverage }}
       - name: Add Problem Matcher
@@ -31,14 +40,6 @@ jobs:
           php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
       - name: Testing Composer version
         run: php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
-      - name: Testing Extensions
-        run: |
-          php -m
-          php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
-          php -r "if('${{ matrix.coverage }}'=='xdebug' && ! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
-          php -r "if('${{ matrix.coverage }}'!='none' && phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
-          php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
-          php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}"
       - name: Testing ini values
         run: |
           php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
@@ -55,10 +56,15 @@ jobs:
         run: |
           php -r "if(! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
           php -v
+      - name: Testing Coverage if Xdebug2
+        if: matrix.coverage == 'xdebug2'
+        run: |
+          php -r "if(! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
+          php -r "if(phpversion('xdebug') != '2.9.8') {throw new Exception('Xdebug version wrong');}"
+          php -v
       - name: Testing disabling coverage
         if: matrix.coverage == 'none'
         run: |
           php -r "if(extension_loaded('xdebug')) {throw new Exception('Xdebug found');}"
-          php -r "if(extension_loaded('Xdebug')) {throw new Exception('Xdebug found');}"
           php -r "if(extension_loaded('pcov')) {throw new Exception('PCOV found');}"
           php -v

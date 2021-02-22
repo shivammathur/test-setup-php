@@ -31,7 +31,7 @@ jobs:
           php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
           php -r "if(! extension_loaded('xml')) {throw new Exception('xml not found');}"
           php -r "if(! extension_loaded('soap')) {throw new Exception('soap not found');}"
-          php -r "if(phpversion()>=5.5 && ! extension_loaded('imagick')) {throw new Exception('imagick not found');}"
+          php -r "if(! extension_loaded('imagick')) {throw new Exception('imagick not found');}"
           php -r "if(phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
           php -r "if(phpversion()>=7.2 && ! extension_loaded('psr')) {throw new Exception('psr not found');}"
           php -r "if(phpversion()>=7.2 && ! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
