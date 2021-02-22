@@ -1,8 +1,6 @@
-name: Tools v1 workflow
+name: Test
 on:
   push:
-env:
-  COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 jobs:
   latest:
     name: latest
@@ -10,124 +8,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-16.04]
-        php-versions: ['8.0']
+        operating-system: [ubuntu-16.04, windows-latest, macos-latest]
+        php-versions: ['7.2', '7.3', '7.4']
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
       - name: Install PHP
         uses: shivammathur/setup-php@releases/v1
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, codeception, cs2pr, phpunit, psalm, phinx, phive, deployer, pecl, phpize, php-config, symfony
-      - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
-      - name: Testing Tools
-        run: |
-          composer -V
-          php-cs-fixer -V
-          phpcs --version
-          phpcbf --version
-          phpcpd --version
-          phpstan -V
-          cs2pr version
-          codeception -V
-          phpunit --version
-          psalm -v
-          phinx -V
-          phive status
-          deployer -V
-          symfony version
-          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
-      - name: Test pecl, phpize, php-config
-        if: matrix.operating-system != 'windows-latest'
-        run: |
-          pecl -V
-          php-config --version
-          phpize --version
-      - name: Test phpmd on windows
-        if: matrix.operating-system == 'windows-latest'
-        run: |
-          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
-          phpmd $RUNNER_TOOL_CACHE\test.php text cleancode
-      - name: Test phpmd
-        if: matrix.operating-system != 'windows-latest'
-        run: |
-          echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
-          phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
-  versions:
-    name: versions
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-16.04]
-        php-versions: ['8.0']
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
-        uses: shivammathur/setup-php@releases/v1
-        with:
-          php-version: ${{ matrix.php-versions }}
-          tools: php-cs-fixer:2.18.0, phpcs:3.5.2, phpcbf:3.5.8, phpcpd:6.0.3, phpstan:0.12.68, phpmd:2.9.1, codeception:4.1.16, cs2pr:1.4.0, phpunit:9.5.1, psalm:4.4.1, phinx:0.12.4, phive:0.14.5, deployer:6.8.0, composer:2.0.9, pecl:1.2.3, symfony:4.21.6
-      - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
-      - name: Testing Tools
-        run: |
-          composer -V
-          php-cs-fixer -V
-          phpcs --version
-          phpcbf --version
-          phpcpd --version
-          phpstan -V
-          cs2pr version
-          codeception -V
-          phpunit --version
-          psalm -v
-          phinx -V
-          phive status
-          deployer -V
-          symfony version
-          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
-      - name: Test pecl
-        if: matrix.operating-system != 'windows-latest'
-        run: pecl -V
-      - name: Test phpmd on windows
-        if: matrix.operating-system == 'windows-latest'
-        run: |
-          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
-          phpmd $RUNNER_TOOL_CACHE\test.php text cleancode
-      - name: Test phpmd
-        if: matrix.operating-system != 'windows-latest'
-        run: |
-          echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
-          phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
-  special:
-    name: special
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-16.04]
-        php-versions: ['8.0']
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
-        uses: shivammathur/setup-php@releases/v1
-        with:
-          php-version: ${{ matrix.php-versions }}
-          tools: composer:v1, php-cs-fixer:100.100.100, phpcs:^3.5.8, phpcbf:>=3.5.8, phpcpd:<=6.0.3, phpstan:^0.12.68, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, composer
-      - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
-      - name: Testing Tools
-        run: |
-          composer -V
-          phpcs --version
-          phpcbf --version
-          phpcpd --version
-          phpstan -V
-          php -r "if(strpos(@exec('composer -V'), 'Composer version 1') === false) {throw new Exception('Wrong composer version');}"
-      - name: Test prestissimo
-        run: composer global show hirak/prestissimo
+          coverage: xdebug2
+      - run: php -v
