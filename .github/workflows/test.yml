@@ -79,7 +79,7 @@ jobs:
           php-cs-fixer -V
           phpcs --version
           phpcbf --version
-          phpcpd -V
+          phpcpd --version
           phpstan -V
           cs2pr version
           codeception -V
@@ -126,7 +126,7 @@ jobs:
           composer -V
           phpcs --version
           phpcbf --version
-          phpcpd -V
+          phpcpd --version
           phpstan -V
           php -r "if(strpos(@exec('composer -V'), 'Composer version 1') === false) {throw new Exception('Wrong composer version');}"
       - name: Test prestissimo
