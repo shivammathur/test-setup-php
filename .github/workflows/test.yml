@@ -6,19 +6,19 @@ jobs:
     strategy:
       fail-fast: false      
       matrix:        
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-latest]
         php-versions: ['7.0', '7.1', '7.2', '7.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
-      extensions: psr, phalcon3
-      key: cache-phalcon3-v2
+      extensions: phalcon3
+      key: cache-phalcon3-v3
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
     - name: Setup cache environment
       id: cache-env
-      uses: shivammathur/cache-extensions@develop
+      uses: shivammathur/cache-extensions@verbose
       with:
         php-version: ${{ matrix.php-versions }}
         extensions: ${{ env.extensions }}
