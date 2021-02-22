@@ -70,7 +70,7 @@ jobs:
         uses: shivammathur/setup-php@releases/v1
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: php-cs-fixer:2.16.2, phpcs:3.5.2, phpcbf:3.5.2, phpcpd:6.0.3, phpstan:0.12.3, phpmd:2.8.0, codeception:4.1.16, cs2pr:1.0.1, phpunit:8.5.0, psalm:3.8.0, phinx:0.11.3, phive:0.13.1, deployer:6.7.2, composer:2.0.4, pecl:1.2.3, symfony:4.12.3
+          tools: php-cs-fixer:2.18.0, phpcs:3.5.2, phpcbf:3.5.8, phpcpd:6.0.3, phpstan:0.12.68, phpmd:2.9.1, codeception:4.1.16, cs2pr:1.4.0, phpunit:9.5.1, psalm:4.4.1, phinx:0.12.4, phive:0.14.5, deployer:6.8.0, composer:2.0.9, pecl:1.2.3, symfony:4.21.6
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
@@ -118,7 +118,7 @@ jobs:
         uses: shivammathur/setup-php@releases/v1
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: composer:v1, php-cs-fixer:100.100.100, phpcs:^3.5.2, phpcbf:>=3.5.2, phpcpd:<=6.0.3, phpstan:^0.12.3, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, composer, composer-prefetcher
+          tools: composer:v1, php-cs-fixer:100.100.100, phpcs:^3.5.8, phpcbf:>=3.5.8, phpcpd:<=6.0.3, phpstan:^0.12.68, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, composer, composer-prefetcher
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
