@@ -39,9 +39,7 @@ jobs:
     - name: Testing PHP version
       run: php -v
     - name: Testing Extensions
-      run: |
-        php -r "echo 'psr: ' . phpversion('psr').', ';"
+      run: |      
         php -r "echo 'phalcon: ' . phpversion('phalcon');"
-        php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
         php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
         php -r "if(phpversion('phalcon')[0]!='3') {throw new Exception('Wrong phalcon version Installed');}"
