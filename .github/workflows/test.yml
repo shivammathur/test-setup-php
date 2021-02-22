@@ -118,7 +118,7 @@ jobs:
         uses: shivammathur/setup-php@releases/v1
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: composer:v1, php-cs-fixer:100.100.100, phpcs:^3.5.8, phpcbf:>=3.5.8, phpcpd:<=6.0.3, phpstan:^0.12.68, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, composer, composer-prefetcher
+          tools: composer:v1, php-cs-fixer:100.100.100, phpcs:^3.5.8, phpcbf:>=3.5.8, phpcpd:<=6.0.3, phpstan:^0.12.68, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, composer
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
@@ -130,6 +130,4 @@ jobs:
           phpstan -V
           php -r "if(strpos(@exec('composer -V'), 'Composer version 1') === false) {throw new Exception('Wrong composer version');}"
       - name: Test prestissimo
-        run: |
-          composer global show hirak/prestissimo
-          composer global show narrowspark/automatic-composer-prefetcher
+        run: composer global show hirak/prestissimo
