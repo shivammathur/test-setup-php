@@ -8,16 +8,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
+        operating-system: [windows-latest]
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     steps:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-      - run: |    
-          brew tap shivammathur/extensions
-          brew install redis@${{ matrix.php-versions }}        
+          extensions: pdo_firebird
       - run: |
           php -v
           php -m
-          php -r "if(!extension_loaded('redis')) {throw new Exception('redis not found');}"
