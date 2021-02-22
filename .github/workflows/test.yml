@@ -11,6 +11,7 @@ jobs:
         operating-system: [windows-latest]
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     steps:
+      - run: choco install firebird -params '/ClientAndDevTools' -y --force
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
