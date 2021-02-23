@@ -1,4 +1,4 @@
-name: 'Extension workflow'
+name: 'Extension develop workflow'
 on:
   repository_dispatch:
   push:
@@ -19,7 +19,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, xdebug, pcov, intl, gd, redis, xml, soap, imagick, ast, phalcon4, msgpack, gearman
+          extensions: mbstring, xdebug, pcov, intl, gd, geos, redis, xml, soap, imagick, ast, phalcon4, msgpack, gearman
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
@@ -39,6 +39,10 @@ jobs:
           php -r "if(phpversion()>=7.2 && ! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
           php -r "if(phpversion()>=7.2 && phpversion('phalcon')[0]!='4') {throw new Exception('Wrong phalcon version Installed');}"
           php -r "if(phpversion()>=7.0 && ! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}"
+      - name: Testing on unix
+        if: matrix.operating-system != 'windows-latest'
+        run: |
+          php -r "if(! extension_loaded('geos')) {throw new Exception('geos not found');}"
       - name: Testing gearman
         if: matrix.operating-system == 'ubuntu-latest'
         run: |

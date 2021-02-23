@@ -1,4 +1,3 @@
-
 name: Composer develop workflow
 on:
   repository_dispatch:
@@ -98,7 +97,7 @@ jobs:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-versions }}
+          php-version: 7.4
           tools: composer:1.7.0-RC
       - name: Testing Composer version semver unstable
         run: |
