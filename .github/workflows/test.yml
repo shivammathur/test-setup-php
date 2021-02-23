@@ -16,7 +16,7 @@ jobs:
           php-version: ${{ matrix.php-versions }}
           extensions: pdo_firebird
       - name: Test win
-        if: matrix.operating-system == "windows-latest"
+        if: matrix.operating-system == 'windows-latest'
         run: |
           Get-ChildItem $env:ProgramFiles\**\**\fbclient.dll
       - run: |
