@@ -14,7 +14,7 @@ jobs:
       - uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: pdo_firebird
+          extensions: pdo_firebird    
       - uses: mxschmitt/action-tmate@v3.3    
       - run: |
           php -v
