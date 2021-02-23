@@ -8,14 +8,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]
-        php-versions: ['5.3', '5.4', '5.5']
-    steps:
-      - run: choco install firebird -params '/ClientAndDevTools' -y --force
+        operating-system: [windows-latest, macos-latest]
+        php-versions: ['7.4']
+    steps:    
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: pdo_firebird
+      - name: Test win
+        if: matrix.operating_system == 'windows-latest'
+        run: |
+          Get-ChildItem $env:ProgramFiles\**\**\fbclient.dll
       - run: |
           php -v
           php -m
