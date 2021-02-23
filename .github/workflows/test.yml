@@ -11,12 +11,12 @@ jobs:
         operating-system: [windows-latest, macos-latest]
         php-versions: ['7.4']
     steps:    
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: pdo_firebird
       - name: Test win
-        if: matrix.operating_system == 'windows-latest'
+        if: matrix.operating-system == "windows-latest"
         run: |
           Get-ChildItem $env:ProgramFiles\**\**\fbclient.dll
       - run: |
