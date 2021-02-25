@@ -1,18 +1,16 @@
 name: Test
 on:
   push:
-env:
-  php-version: 7.2
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest]    
+        operating-system: [macos-11.0]    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
+      - name: Test
+        uses: Homebrew/actions/setup-homebrew@master
         with:
-          php-version: ${{ env.php-version }}
+          debug: true
+        env:
+          GITHUB_REPOSITORY: shivammathur/homebrew-extensions
