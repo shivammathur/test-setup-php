@@ -6,11 +6,9 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [macos-11.0]    
+        operating-system: [windows-latest]    
     steps:
       - name: Test
-        uses: Homebrew/actions/setup-homebrew@master
+        uses: shivammathur/setup-php@verbose
         with:
-          debug: true
-        env:
-          GITHUB_REPOSITORY: shivammathur/homebrew-extensions
+          php-version: 8.1
