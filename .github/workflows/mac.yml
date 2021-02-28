@@ -7,23 +7,24 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [macos-10.15]
-        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     name: Test macOS
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-      
-    - run: echo "54.188.157.32 homebrew.bintray.com" | sudo tee -a /etc/hosts  
        
     - name: Setup PHP
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@verbose
       with:
-        php-version: ${{ matrix.php }}
+        php-version: ${{ matrix.php }}        
 
     - name: Test PHP version
-      run: |
+      run: |        
         php -v
         php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+    
+    - name: Check ICU version
+      run: php -i | grep 'ICU version'
       
     - name: Test PHP extensions
       run: php -m
