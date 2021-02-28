@@ -15,6 +15,9 @@ jobs:
       - run : |
           php -i | grep 'ICU version'
           php -v && php -m && node -v
+      - name: Check
+        if: always()
+        run: cat $(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/icu4c.rb
       - name: Test
         uses: shivammathur/setup-php@releases/v1
         with:
@@ -22,3 +25,6 @@ jobs:
       - run : |
           php -i | grep 'ICU version'
           php -v && php -m && node -v
+      - name: Check
+        if: always()
+        run: cat $(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/icu4c.rb
