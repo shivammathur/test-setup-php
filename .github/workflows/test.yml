@@ -9,7 +9,16 @@ jobs:
         operating-system: [macos-10.15]
     steps:
       - name: Test
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@releases/v1
         with:
           php-version: 8.1
-      - run : php -v && php -m && node -v
+      - run : |
+          php -i | grep 'ICU version'
+          php -v && php -m && node -v
+      - name: Test
+        uses: shivammathur/setup-php@releases/v1
+        with:
+          php-version: 5.6
+      - run : |
+          php -i | grep 'ICU version'
+          php -v && php -m && node -v
