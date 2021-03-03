@@ -9,7 +9,7 @@ jobs:
         operating-system: [macos-11.0]
     steps:
       - name: Test
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: 5.3
       - run : |
