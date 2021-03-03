@@ -18,7 +18,7 @@ jobs:
           #!/bin/bash -e
 
           # add repository
-          apt-add-repository ppa:ondrej/php -y
+          LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
           apt-get update
 
           # Install PHP
