@@ -5,16 +5,18 @@ jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      fail-fast: false
       matrix:
         operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
-        php: [7.0, 7.1, 7.2, 7.3, 7.4, 8.0]
+        php: [7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1]
     steps:
+      - name: Install Kafka
+        run: sudo apt-get install -y librdkafka-dev    
       - name: Setup PHP
         uses: shivammathur/setup-php@2.10.0
         with:
             php-version: ${{ matrix.php }}
-            extensions: memcached-3.1.5
+            tools: cs2pr
+            extensions: mbstring,bcmath,intl,gd,zip,memcached,redis-5.3.3,rdkafka-5.0.0
         env:
             fail-fast: true
       - run : |
