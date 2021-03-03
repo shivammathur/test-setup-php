@@ -92,9 +92,9 @@ jobs:
             version=$1
             extension=$2
             if [ "$extension" != "mysql" ]; then
-              php -m | grep -i -q -w "$extension"
+              php$version -m | grep -i -q -w "$extension"
             else
-              php -m | grep -i -q "$extension"
+              php$version -m | grep -i -q "$extension"
             fi
           }        
           for version in 5.6 7.0 7.1 7.2 7.3 7.4 8.0; do
