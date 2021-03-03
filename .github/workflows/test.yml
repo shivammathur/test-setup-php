@@ -15,5 +15,8 @@ jobs:
           extensions: memcached
       - run : |
           php -r "echo phpversion('memcached');"
+          echo ''
+          php -i | grep 'libmemcached version'
+          echo ''
           php -v
           php -m
