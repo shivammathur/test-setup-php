@@ -16,7 +16,7 @@ jobs:
           apt-get update && apt-get install -y sudo software-properties-common
           add-apt-repository ppa:git-core/ppa
           add-apt-repository ppa:apt-fast/stable
-          apt-get update && apt-get install -y git apt-fast
+          DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y git apt-fast
       - name: Run php.sh
         run: |
           #!/bin/bash -e
