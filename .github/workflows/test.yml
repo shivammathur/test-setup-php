@@ -3,7 +3,7 @@ on:
   push:
 jobs:
   run:
-    container: ubuntu-focal
+    container: ubuntu:focal
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
