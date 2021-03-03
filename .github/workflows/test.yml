@@ -88,25 +88,40 @@ jobs:
           apt-get install -y --no-install-recommends snmp
       - name: Test PHP extensions
         run: |
+          check_extension() {
+            version=$1
+            extension=$2
+            if [ "$extension" != "mysql" ]; then
+              php -m | grep -i -q -w "$extension"
+            else
+              php -m | grep -i -q "$extension"
+            fi
+          }        
           for version in 5.6 7.0 7.1 7.2 7.3 7.4 8.0; do
-            for ext in amqp apcu bcmath bz2 curl dba enchant gd gmp igbinary imap interbase intl ldap mbstring memcache memcached mongodb mysql odbc opcache pgsql phpdbg pspell readline redis snmp soap sqlite3 tidy xdebug xml xsl yaml zip zmq recode; do
-              php$version -r "if(! extension_loaded('$ext')) {throw new Exception('$ext not found on PHP $version');}"
+            for ext in amqp apcu bcmath bz2 curl dba enchant gd gmp igbinary imap interbase intl ldap mbstring memcache memcached mongodb mysql odbc opcache pdo_dblib pdo_firebird pgsql phpdbg pspell readline redis snmp soap sqlite3 tidy xdebug xml xsl yaml zip zmq recode; do
+              if ! check_extension $version $ext; then
+                echo "$ext not found on PHP $version"
+              fi  
             done
-            # Provided by php-interbase
-            php$version -r "if(! extension_loaded('pdo_dblib')) {throw new Exception('pdo_dblib not found on PHP $version');}"
-            # Provided by php-sybase
-            php$version -r "if(! extension_loaded('pdo_firebird')) {throw new Exception('pdo_firebird not found on PHP $version');}"
             if [[ $version == "5.6" || $version == "7.0" || $version == "7.1" ]]; then
-                php$version -r "if(! extension_loaded('mcrypt')) {throw new Exception('mcrypt not found on PHP $version');}"
-                php$version -r "if(! extension_loaded('recode')) {throw new Exception('recode not found on PHP $version');}"
+              for ext in mcrypt recode; then
+                if ! check_extension $version $ext; then
+                  echo "$ext not found on PHP $version"
+                fi
+              done  
             fi
 
             if [[ $version == "7.2" || $version == "7.3" ]]; then
-                php$version -r "if(! extension_loaded('recode')) {throw new Exception('recode not found on PHP $version');}"
+                if ! check_extension $version recode; then
+                  echo "recode not found on PHP $version"
+                fi
             fi
 
             if [[ $version != "8.0" ]]; then
-                php$version -r "if(! extension_loaded('xmlrpc')) {throw new Exception('xmlrpc not found on PHP $version');}"
-                php$version -r "if(! extension_loaded('json')) {throw new Exception('json not found on PHP $version');}"	            
+              for ext in json xmlrpc; then
+                if ! check_extension $version $ext; then
+                  echo "$ext not found on PHP $version"
+                fi
+              done
             fi            
           done
