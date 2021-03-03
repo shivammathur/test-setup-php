@@ -6,7 +6,6 @@ jobs:
     container: shivammathur/node:${{ matrix.container }}
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04]
         container: ['focal', 'bionic', 'xenial']
@@ -14,9 +13,6 @@ jobs:
       - name: Add Prerequisues
         run: |
           apt-get update && apt-get install -y sudo software-properties-common
-          add-apt-repository ppa:git-core/ppa
-          add-apt-repository ppa:apt-fast/stable
-          DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y git apt-fast
       - name: Run php.sh
         run: |
           #!/bin/bash -e
@@ -28,7 +24,7 @@ jobs:
           # Install PHP
           for version in 5.6 7.0 7.1 7.2 7.3 7.4 8.0; do
               echo "Installing PHP $version"
-              apt-fast install -y --no-install-recommends \
+              apt-get install -y --no-install-recommends \
                   php$version \
                   php$version-amqp \
                   php$version-apcu \
@@ -74,21 +70,21 @@ jobs:
                   php$version-zmq
 
               if [[ $version == "5.6" || $version == "7.0" || $version == "7.1" ]]; then
-                  apt-fast install -y --no-install-recommends php$version-mcrypt php$version-recode
+                  apt-get install -y --no-install-recommends php$version-mcrypt php$version-recode
               fi
 
               if [[ $version == "7.2" || $version == "7.3" ]]; then
-                  apt-fast install -y --no-install-recommends php$version-recode
+                  apt-get install -y --no-install-recommends php$version-recode
               fi
 
               if [[ $version != "8.0" ]]; then
-                  apt-fast install -y --no-install-recommends php$version-xmlrpc php$version-json
+                  apt-get install -y --no-install-recommends php$version-xmlrpc php$version-json
               fi
           done
 
-          apt-fast install -y --no-install-recommends php-pear
+          apt-get install -y --no-install-recommends php-pear
 
-          apt-fast install -y --no-install-recommends snmp
+          apt-get install -y --no-install-recommends snmp
       - name: Test PHP extensions
         run: |
           for version in 5.6 7.0 7.1 7.2 7.3 7.4 8.0; do
