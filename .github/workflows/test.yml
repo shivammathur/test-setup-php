@@ -19,7 +19,7 @@ jobs:
         env:
             fail-fast: true
       - name: Tmate
-        if: ${{ failed() }}
+        if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3.3
       - run : |
           php -r "echo phpversion('memcached');"
