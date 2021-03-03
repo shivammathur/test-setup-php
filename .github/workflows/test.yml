@@ -3,7 +3,7 @@ on:
   push:
 jobs:
   run:
-    container: ubuntu:focal
+    container: shivammathur/node:focal
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
@@ -17,17 +17,5 @@ jobs:
           apt-get update && apt-get install -y git
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Install PHP 7.3
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 7.3
-      - name: Install PHP 7.4
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 7.4
-      - name: Install PHP 8.0
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.0
       - uses: mxschmitt/action-tmate@v3.3   
           
