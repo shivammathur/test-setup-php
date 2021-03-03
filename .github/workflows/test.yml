@@ -6,11 +6,12 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [macos-10.15]
+        operating-system: [ubuntu-latest]
     steps:
-      - name: Test
-        uses: shivammathur/setup-php@verbose
+      - name: Setup PHP
+        uses: shivammathur/setup@v2
         with:
-          php-version: 8.1
+          php-version: 7.4
+          extensions: memcached
       - run : |
           php -v && php -m
