@@ -104,7 +104,7 @@ jobs:
               fi  
             done
             if [[ $version == "5.6" || $version == "7.0" || $version == "7.1" ]]; then
-              for ext in mcrypt recode; then
+              for ext in mcrypt recode; do
                 if ! check_extension $version $ext; then
                   echo "$ext not found on PHP $version"
                 fi
@@ -118,7 +118,7 @@ jobs:
             fi
 
             if [[ $version != "8.0" ]]; then
-              for ext in json xmlrpc; then
+              for ext in json xmlrpc; do
                 if ! check_extension $version $ext; then
                   echo "$ext not found on PHP $version"
                 fi
