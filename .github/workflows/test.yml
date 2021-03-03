@@ -2,30 +2,42 @@ name: Test
 on:
   push:
   pull_request:
-
+env:
+    APP_ENV: test
+    APP_DEBUG: 1
+    SYMFONY_ENV: test
+    LANGUAGE: en_US.UTF-8
+    LC_ALL: en_US.UTF-8
+    LC_CTYPE: UTF-8
+    LANG: en_US.UTF-8
+    REQUIRED_PHP_TOOLS: cs2pr
+    REQUIRED_PHP_EXTENSIONS: mbstring,bcmath,intl,gd,zip,memcached-3.1.5,redis-5.3.3,rdkafka-5.0.0
 jobs:
   run:
-    runs-on: ${{ matrix.operating-system }}
     strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-20.04]
-        php: [7.4, 8.0]
+        fail-fast: false
+        matrix:
+            php-version:
+                - 7.4
+                - 8.0
+    runs-on: ubuntu-20.04
     steps:
-      - name: Install Kafka
-        run: sudo apt-get install -y librdkafka-dev    
-      - name: Setup PHP
-        uses: shivammathur/setup-php@2.10.0
-        with:
-            php-version: ${{ matrix.php }}
-            tools: cs2pr
-            extensions: mbstring,bcmath,intl,gd,zip,memcached-3.1.5,redis-5.3.3,rdkafka-5.0.0
-        env:
-            fail-fast: true
-      - run : |
-          php -r "echo phpversion('memcached');"
-          echo ''
-          php -i | grep 'libmemcached version'
-          echo ''
-          php -v
-          php -m
+        -   name: Checkout
+            uses: actions/checkout@v2.3.4
+        -   name: Install Kafka
+            run: sudo apt-get install -y librdkafka-dev
+        -   name: Setup PHP
+            uses: shivammathur/setup-php@2.10.0
+            with:
+                php-version: ${{ matrix.php-version }}
+                tools: ${{ env.REQUIRED_PHP_TOOLS }}
+                extensions: ${{ env.REQUIRED_PHP_EXTENSIONS }}
+            env:
+                fail-fast: true
+        - run : |
+            php -r "echo phpversion('memcached');"
+            echo ''
+            php -i | grep 'libmemcached version'
+            echo ''
+            php -v
+            php -m
