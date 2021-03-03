@@ -10,7 +10,7 @@ jobs:
     steps:
       - run: sudo apt-get install -y libmemcached-dev librdkafka-dev
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@2.10.0
         with:
             php-version: 7.4
             tools: cs2pr
