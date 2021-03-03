@@ -7,8 +7,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        operating-system: [ubuntu-20.04]
+        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
         php: [7.4]
     steps:
       - name: Setup PHP
@@ -18,6 +18,9 @@ jobs:
             extensions: memcached-3.1.5
         env:
             fail-fast: true
+      - name: Tmate
+        if: always()
+        uses: mxschmitt/action-tmate@v3.3
       - run : |
           php -r "echo phpversion('memcached');"
           echo ''
