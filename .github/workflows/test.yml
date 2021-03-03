@@ -3,28 +3,31 @@ on:
   push:
 jobs:
   run:
+    container: ubuntu-focal
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04]
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-        php: [7.4]
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+      - name: Install sudo and git
+        run: |
+          apt-get update && apt-get install -y sudo software-properties-common
+          add-apt-repository ppa:git-core/ppa
+          apt-get update && apt-get install -y git
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP 7.3
+        uses: shivammathur/setup-php@develop
         with:
-            php-version: ${{ matrix.php }}
-            extensions: memcached-3.1.5
-        env:
-            fail-fast: true
-      - name: Tmate
-        if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3.3
-      - run : |
-          php -r "echo phpversion('memcached');"
-          echo ''
-          php -i | grep 'libmemcached version'
-          echo ''
-          php -v
-          php -m
+          php-version: 7.3
+      - name: Install PHP 7.4
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 7.4
+      - name: Install PHP 8.0
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 8.0
+      - uses: mxschmitt/action-tmate@v3.3   
+          
