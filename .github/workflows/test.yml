@@ -16,7 +16,7 @@ jobs:
         with:
             php-version: ${{ matrix.php }}
             tools: cs2pr
-            extensions: mbstring,bcmath,intl,gd,zip,memcached,redis-5.3.3,rdkafka-5.0.0
+            extensions: mbstring,bcmath,intl,gd,zip,memcached-3.1.5,redis-5.3.3,rdkafka-5.0.0
         env:
             fail-fast: true
       - run : |
