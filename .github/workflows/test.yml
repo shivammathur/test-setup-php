@@ -99,7 +99,7 @@ jobs:
             fi
           }        
           for version in 5.6 7.0 7.1 7.2 7.3 7.4 8.0; do
-            for ext in amqp apcu bcmath bz2 curl dba enchant gd gmp igbinary imap intl ldap mbstring memcache memcached mongodb mysql odbc opcache pdo_dblib pdo_firebird pgsql pspell readline redis snmp soap sqlite3 tidy xdebug xml xsl yaml zip zmq recode; do
+            for ext in amqp apcu bcmath bz2 curl dba enchant gd gmp igbinary imap intl ldap mbstring memcache memcached mongodb mysql odbc opcache pdo_dblib pdo_firebird pgsql pspell readline redis snmp soap sqlite3 tidy xdebug xml xsl yaml zip zmq; do
               if ! check_extension $version $ext; then
                 echo "$ext not found on PHP $version"
               fi  
