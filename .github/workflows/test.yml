@@ -8,11 +8,12 @@ jobs:
       matrix:
         operating-system: [ubuntu-latest]
     steps:
+      - run: sudo apt-get install -y libmemcached
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup@verbose
         with:
           php-version: 7.4
-          extensions: memcached
+          extensions: memcached-3.1.5
       - run : |
           php -r "echo phpversion('memcached');"
           echo ''
