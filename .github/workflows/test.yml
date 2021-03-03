@@ -92,6 +92,10 @@ jobs:
             for ext in amqp apcu bcmath bz2 curl dba dev enchant gd gmp igbinary imap interbase intl ldap mbstring memcache memcached mongodb mysql odbc opcache pgsql phpdbg pspell readline redis snmp soap sqlite3 tidy xdebug xml xsl yaml zip zmq recode; do
               php$version -r "if(! extension_loaded('$ext')) {throw new Exception('$ext not found on PHP $version');}"
             done
+            # Provided by php-interbase
+            php$version -r "if(! extension_loaded('pdo_dblib')) {throw new Exception('pdo_dblib not found on PHP $version');}"
+            # Provided by php-sybase
+            php$version -r "if(! extension_loaded('pdo_firebird')) {throw new Exception('pdo_firebird not found on PHP $version');}"
             if [[ $version == "5.6" || $version == "7.0" || $version == "7.1" ]]; then
                 php$version -r "if(! extension_loaded('mcrypt')) {throw new Exception('mcrypt not found on PHP $version');}"
                 php$version -r "if(! extension_loaded('recode')) {throw new Exception('recode not found on PHP $version');}"
