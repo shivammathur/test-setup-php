@@ -89,7 +89,7 @@ jobs:
       - name: Test PHP extensions
         run: |
           for version in 5.6 7.0 7.1 7.2 7.3 7.4 8.0; do
-            for ext in amqp apcu bcmath bz2 cgi cli common curl dba dev enchant fpm gd gmp igbinary imap interbase intl ldap mbstring memcache memcached mongodb mysql odbc opcache pgsql phpdbg pspell readline redis snmp soap sqlite3 sybase tidy xdebug xml xsl yaml zip zmq recode; do
+            for ext in amqp apcu bcmath bz2 curl dba dev enchant gd gmp igbinary imap interbase intl ldap mbstring memcache memcached mongodb mysql odbc opcache pgsql phpdbg pspell readline redis snmp soap sqlite3 tidy xdebug xml xsl yaml zip zmq recode; do
               php$version -r "if(! extension_loaded('$ext')) {throw new Exception('$ext not found on PHP $version');}"
             done
             if [[ $version == "5.6" || $version == "7.0" || $version == "7.1" ]]; then
