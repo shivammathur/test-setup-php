@@ -13,7 +13,7 @@ jobs:
     steps:
       - run: |
           sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-          sudo apt update
+          sudo apt-get update || true
           sudo apt-get install gcc-7 g++-7 -y && gcc -v
       - name: Install PHP
         uses: shivammathur/setup-php@develop
