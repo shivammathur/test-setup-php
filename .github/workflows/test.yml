@@ -24,9 +24,11 @@ jobs:
         git add /bin /etc /lib /lib64 /sbin /usr /var
         git commit -m "init"        
     - run: |
+        cd /tmp
         version='5.6'
         curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/actions/virtual-environments/main/images/linux/scripts/installers/php.sh
         sed -i "s/^php_versions.*/php_versions=$version/" /tmp/php.sh
+        sed -i '/ snmp\|php-pear\|composer\|phpunit\|invoke_tests\|source/d' /tmp/php.sh
         sudo bash /tmp/php.sh || true
         sudo rm -rf /var/cache/apt/archives/*.deb || true
     - run: |
