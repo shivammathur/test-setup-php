@@ -1,128 +1,47 @@
 name: Test
+
 on:
   push:
+
 jobs:
-  run:
-    container: shivammathur/node:${{ matrix.container }}
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      matrix:
-        operating-system: [ubuntu-20.04]
-        container: ['focal', 'bionic', 'xenial']
+  build:
+    name: Test
+    container: ubuntu:focal
+    runs-on: "ubuntu-latest"
     steps:
-      - name: Add Prerequisues
-        run: |
-          apt-get update && apt-get install -y sudo software-properties-common
-      - name: Run php.sh
-        shell: bash
-        run: |
-          #!/bin/bash -e
-
-          # add repository
-          LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
-          apt-get update
-
-          # Install PHP
-          for version in 5.6 7.0 7.1 7.2 7.3 7.4 8.0; do
-              echo "Installing PHP $version"
-              apt-get install -y --no-install-recommends \
-                  php$version \
-                  php$version-amqp \
-                  php$version-apcu \
-                  php$version-bcmath \
-                  php$version-bz2 \
-                  php$version-cgi \
-                  php$version-cli \
-                  php$version-common \
-                  php$version-curl \
-                  php$version-dba \
-                  php$version-dev \
-                  php$version-enchant \
-                  php$version-fpm \
-                  php$version-gd \
-                  php$version-gmp \
-                  php$version-igbinary \
-                  php$version-imap \
-                  php$version-interbase \
-                  php$version-intl \
-                  php$version-ldap \
-                  php$version-mbstring \
-                  php$version-memcache \
-                  php$version-memcached \
-                  php$version-mongodb \
-                  php$version-mysql \
-                  php$version-odbc \
-                  php$version-opcache \
-                  php$version-pgsql \
-                  php$version-phpdbg \
-                  php$version-pspell \
-                  php$version-readline \
-                  php$version-redis \
-                  php$version-snmp \
-                  php$version-soap \
-                  php$version-sqlite3 \
-                  php$version-sybase \
-                  php$version-tidy \
-                  php$version-xdebug \
-                  php$version-xml \
-                  php$version-xsl \
-                  php$version-yaml \
-                  php$version-zip \
-                  php$version-zmq
-
-              if [[ $version == "5.6" || $version == "7.0" || $version == "7.1" ]]; then
-                  apt-get install -y --no-install-recommends php$version-mcrypt php$version-recode
-              fi
-
-              if [[ $version == "7.2" || $version == "7.3" ]]; then
-                  apt-get install -y --no-install-recommends php$version-recode
-              fi
-
-              if [[ $version != "8.0" ]]; then
-                  apt-get install -y --no-install-recommends php$version-xmlrpc php$version-json
-              fi
-          done
-
-          apt-get install -y --no-install-recommends php-pear
-
-          apt-get install -y --no-install-recommends snmp
-      - name: Test PHP extensions
-        shell: bash
-        run: |
-          check_extension() {
-            version=$1
-            extension=$2
-            if [ "$extension" != "mysql" ]; then
-              php$version -m | grep -i -q -w "$extension"
-            else
-              php$version -m | grep -i -q "$extension"
-            fi
-          }        
-          for version in 5.6 7.0 7.1 7.2 7.3 7.4 8.0; do
-            for ext in amqp apcu bcmath bz2 curl dba enchant gd gmp igbinary imap intl ldap mbstring memcache memcached mongodb mysql odbc opcache pdo_dblib pdo_firebird pgsql pspell readline redis snmp soap sqlite3 tidy xdebug xml xsl yaml zip zmq; do
-              if ! check_extension $version $ext; then
-                echo "$ext not found on PHP $version"
-              fi  
-            done
-            if [[ $version == "5.6" || $version == "7.0" || $version == "7.1" ]]; then
-              for ext in mcrypt recode; do
-                if ! check_extension $version $ext; then
-                  echo "$ext not found on PHP $version"
-                fi
-              done  
-            fi
-
-            if [[ $version == "7.2" || $version == "7.3" ]]; then
-                if ! check_extension $version recode; then
-                  echo "recode not found on PHP $version"
-                fi
-            fi
-
-            if [[ $version != "8.0" ]]; then
-              for ext in json xmlrpc; do
-                if ! check_extension $version $ext; then
-                  echo "$ext not found on PHP $version"
-                fi
-              done
-            fi            
-          done
+    - run: |
+        export _APTMGR=apt-get
+        apt-get update && apt-get install -y curl sudo software-properties-common
+        add-apt-repository ppa:git-core/ppa        
+        add-apt-repository ppa:apt-fast/stable
+        LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
+        apt-get update
+        DEBIAN_FRONTEND=noninteractive apt-get install -y git sudo apt-fast
+    - run: |
+        cd /
+        git config --global user.email "you@example.com"
+        git init
+        git add /bin /etc /lib /lib64 /sbin /usr /var
+        git commit -m "init"        
+    - run: |
+        version='5.6'
+        curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/actions/virtual-environments/main/images/linux/scripts/installers/php.sh
+        sed -i "s/^php_versions.*/php_versions=$version/" /tmp/php.sh
+        sudo bash /tmp/php.sh || true
+        sudo rm -rf /var/cache/apt/archives/*.deb || true
+    - run: |
+        cd /
+        git add /bin /etc /lib /lib64 /sbin /usr /var
+        git commit -m "installed php"
+        mkdir -p /tmp/php
+        for dir in /bin etc lib lib64 sbin usr var; do
+          sudo cp -r -p --parents $(git log -p -n 1 --name-only "/${dir}") /tmp/php || true
+        done  
+        (
+          cd /tmp/php
+          tar -czf ../php.tar.gz *        
+        )
+    - uses: actions/upload-artifact@v2
+      with:
+        name: php.tar.gz
+        path: /tmp/php.tar.gz
