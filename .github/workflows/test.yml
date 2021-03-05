@@ -12,9 +12,14 @@ jobs:
         php: [7.0, 7.1, 7.2, 7.3, 7.4, 8.0]
     steps:
       - run: |
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-          sudo apt-get update || true
-          sudo apt-get install gcc-7 g++-7 -y && gcc -v
+          if ! command -v gcc-7 >/dev/null || ! command -v g++-7 >/dev/null; then
+            sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+            sudo apt-get update || true
+            sudo apt-get install gcc-7 g++-7 -y
+          fi  
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 7
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 7
+          gcc -v && g++ -v
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
