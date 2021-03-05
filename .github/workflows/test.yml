@@ -34,7 +34,7 @@ jobs:
         git add /bin /etc /lib /lib64 /sbin /usr /var
         git commit -m "installed php"
         mkdir -p /tmp/php
-        for dir in /bin etc lib lib64 sbin usr var; do
+        for dir in bin etc lib lib64 sbin usr var; do
           sudo cp -r -p --parents $(git log -p -n 1 --name-only "/${dir}") /tmp/php || true
         done  
         (
