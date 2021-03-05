@@ -4,47 +4,44 @@ on:
   push:
 
 jobs:
-  build:   
+  build:
     name: Test
-    strategy:
-      matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
-    runs-on: ${{ matrix.os }}
+    container: ubuntu:focal
+    runs-on: "ubuntu-latest"
     steps:
     - run: |
-        if ! sudo apt-cache policy | grep -q ondrej/php; then
-          sudo LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
-          sudo apt-get update
-        fi
-    - name: Clean PHP
-      run: |
-        sudo apt-get purge 'php*'
-        sudo rm -rf /var/cache/apt/archives/*
+        export _APTMGR=apt-get
+        apt-get update && apt-get install -y curl sudo software-properties-common
+        add-apt-repository ppa:git-core/ppa        
+        add-apt-repository ppa:apt-fast/stable
+        LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
+        apt-get update
+        DEBIAN_FRONTEND=noninteractive apt-get install -y git sudo apt-fast gcc make automake pkg-config shtool
     - run: |
-        cd / || exit 1
-        sudo git config --global user.email "you@example.com"
-        sudo git init
-        sudo git add /bin /etc /lib /lib64 /sbin /usr /var
-        sudo git commit -m "init"        
+        cd /
+        git config --global user.email "you@example.com"
+        git init
+        git add /bin /etc /lib /lib64 /sbin /usr /var
+        git commit -m "init"        
     - run: |
         version='5.6'
-        sudo curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/actions/virtual-environments/main/images/linux/scripts/installers/php.sh
-        sudo sed -i "s/^php_versions.*/php_versions=$version/" /tmp/php.sh
+        curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/actions/virtual-environments/main/images/linux/scripts/installers/php.sh
+        sed -i "s/^php_versions.*/php_versions=$version/" /tmp/php.sh
         sudo bash /tmp/php.sh || true
         sudo rm -rf /var/cache/apt/archives/*.deb || true
     - run: |
-        cd / || exit 1
-        sudo git add /bin /etc /lib /lib64 /sbin /usr /var
-        sudo git commit -m "installed php"
-        sudo mkdir -p /tmp/php
+        cd /
+        git add /bin /etc /lib /lib64 /sbin /usr /var
+        git commit -m "installed php"
+        mkdir -p /tmp/php
         for file in $(git log -p -n 1 --name-only); do
           sudo cp -r -p --parents "$file" /tmp/php || true
         done  
         (
-          cd /tmp/php || exit 1
-          sudo tar -czf ../php.tar.gz *        
+          cd /tmp/php
+          tar -czf ../php.tar.gz *        
         )
     - uses: actions/upload-artifact@v2
       with:
-        name: php-${{ matrix.os }}.tar.gz
+        name: php.tar.gz
         path: /tmp/php.tar.gz
