@@ -2,47 +2,22 @@
 name: 'Extension v2 workflow'
 on:
   push:
-env:
-  ext: pdo_mysql, pdo_pgsql, pdo_sqlite, pdo_odbc, pdo_firebird, pdo_dblib, pdo_sqlsrv-4.3.0
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest]
-        php: ['7.0']
+        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        php: [5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1]
     steps:
-      - name: Setup cache environment
-        id: extcache
-        uses: shivammathur/cache-extensions@v1
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: ${{ env.ext }}
-          key: test1
-      - name: Cache extensions
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.extcache.outputs.dir }}
-          key: ${{ steps.extcache.outputs.key }}
-          restore-keys: ${{ steps.extcache.outputs.key }}
       - name: Install PHP
-        uses: shivammathur/setup-php@master
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: ${{ env.ext }}
+          extensions: gearman
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
         run: |
           php -m
-          php -r "if(! extension_loaded('mysqli')) {throw new Exception('mysqli not found');}"
-          php -r "if(! extension_loaded('mysqlnd')) {throw new Exception('mysqlnd not found');}"
-          php -r "if(! extension_loaded('pdo_mysql')) {throw new Exception('pdo_mysql not found');}"
-          php -r "if(! extension_loaded('pgsql')) {throw new Exception('pgsql not found');}"
-          php -r "if(! extension_loaded('pdo_pgsql')) {throw new Exception('pdo_pgsql not found');}"
-          php -r "if(! extension_loaded('pdo_sqlite')) {throw new Exception('pdo_sqlite not found');}"
-          php -r "if(! extension_loaded('sqlite3')) {throw new Exception('sqlite3 not found');}"
-          php -r "if(! extension_loaded('pdo_odbc')) {throw new Exception('pdo_odbc not found');}"
-          php -r "if(! extension_loaded('odbc')) {throw new Exception('odbc not found');}"
-          php -r "if(! extension_loaded('PDO_Firebird')) {throw new Exception('PDO_Firebird not found');}"
-          php -r "if(! extension_loaded('pdo_dblib')) {throw new Exception('pdo_dblib not found');}"
+          php -r "if(! extension_loaded('gearman')) {throw new Exception('gearman not found');}"
