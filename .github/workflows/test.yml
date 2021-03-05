@@ -4,19 +4,22 @@ on:
   push:
 
 jobs:
-  build:
+  build:   
     name: Test
-    container: ubuntu:focal
-    runs-on: "ubuntu-latest"
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+    runs-on: ${{ matrix.os }}
     steps:
     - run: |
-        export _APTMGR=apt-get
-        apt-get update && apt-get install -y curl sudo software-properties-common
-        add-apt-repository ppa:git-core/ppa        
-        add-apt-repository ppa:apt-fast/stable
-        LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
-        apt-get update
-        DEBIAN_FRONTEND=noninteractive apt-get install -y git sudo apt-fast
+        if ! apt-cache policy | grep -q ondrej/php; then
+          LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
+          apt-get update
+        fi
+    - name: Clean PHP
+      run: |
+        sudo apt-get purge 'php*'
+        sudo rm -rf /var/cache/apt/archives/*
     - run: |
         cd /
         git config --global user.email "you@example.com"
