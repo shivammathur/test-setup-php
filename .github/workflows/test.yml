@@ -24,13 +24,14 @@ jobs:
         add-apt-repository ppa:apt-fast/stable
         LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
         apt-get update
-        DEBIAN_FRONTEND=noninteractive apt-get install -y git sudo apt-fast gcc make automake pkg-config shtool zstd
+        DEBIAN_FRONTEND=noninteractive apt-get install -y git sudo apt-fast gcc make automake pkg-config shtool snmp zstd
     - name: Configure git
       run: |
         cd /
         git config --global user.email "you@example.com"
         git init
-        git add /bin /etc /lib /lib64 /sbin /usr /var
+        git add /bin /lib /lib64 /sbin /usr /var
+        find /etc -maxdepth 1 -type d -exec git add {} \;
         git commit -m "init"        
     - name: Setup PHP
       run: |
@@ -45,7 +46,8 @@ jobs:
     - name: Isolate changes
       run: |
         cd /
-        git add /bin /etc /lib /lib64 /sbin /usr /var
+        git add /bin /lib /lib64 /sbin /usr /var
+        find /etc -maxdepth 1 -type d -exec git add {} \;
         git commit -m "installed php"
         mkdir -p /tmp/php
         for file in $(git log -p -n 1 --name-only); do
