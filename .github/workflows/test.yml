@@ -62,7 +62,7 @@ jobs:
           cp ../php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst ../php_"$SEMVER"+ubuntu"$DISTRIB_RELEASE".tar.zst
         )
         mkdir builds
-        sudo mv /tmp.zst ./builds
+        sudo mv /tmp/*.zst ./builds
     - name: Upload Artifact
       uses: actions/upload-artifact@v2
       with:
