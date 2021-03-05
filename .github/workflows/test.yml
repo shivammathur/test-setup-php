@@ -25,7 +25,7 @@ jobs:
         add-apt-repository ppa:apt-fast/stable
         LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
         apt-get update
-        DEBIAN_FRONTEND=noninteractive apt-get install -y git sudo apt-fast gcc make automake pkg-config shtool
+        DEBIAN_FRONTEND=noninteractive apt-get install -y git sudo apt-fast gcc make automake pkg-config shtool zstd
     - name: Configure git
       run: |
         cd /
@@ -42,7 +42,7 @@ jobs:
         sed -i '/ snmp\|php-pear\|composer\|phpunit\|invoke_tests\|source/d' /tmp/php.sh
         sudo bash /tmp/php.sh || true
         sudo rm -rf /var/cache/apt/archives/*.deb || true
-        sudo apt-get install php$version-pcov -y
+        sudo apt-get install php$version-pcov -y || true
     - name: Isolate changes
       run: |
         cd /
