@@ -39,7 +39,7 @@ jobs:
         curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/actions/virtual-environments/main/images/linux/scripts/installers/php.sh
         sed -i "s/^php_versions.*/php_versions=$version/" /tmp/php.sh
         sed -i '/ snmp\|php-pear\|composer\|phpunit\|invoke_tests\|source/d' /tmp/php.sh
-        sudo bash /tmp/php.sh || true
+        sudo DEBIAN_FRONTEND=noninteractive bash /tmp/php.sh || true
         sudo rm -rf /var/cache/apt/archives/*.deb || true
         sudo apt-get install php$version-pcov -y || true
     - name: Isolate changes
