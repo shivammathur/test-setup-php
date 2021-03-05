@@ -9,8 +9,6 @@ jobs:
         php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     steps:
       - uses: shivammathur/setup-php@develop
-        env:
-          update: true
         with:
           php-version: ${{ matrix.php }}
       - run: php -v && php -m
