@@ -12,7 +12,6 @@ jobs:
       matrix:      
         container: [20.04, 18.04, 16.04]
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     if: "!contains(github.event.head_commit.message, 'skip-build')"
     steps:
     - name: Checkout
@@ -55,6 +54,8 @@ jobs:
     - name: Build package
       run: |         
         . /etc/lsb-release
+        SEMVER=$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')
+        VERSION='${{ matrix.php-versions }}'
         (
           cd /tmp/php
           sudo tar cf - * | zstd -22 -T0 --ultra > ../php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst
