@@ -19,7 +19,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.extensions }}
-          key: php-v1
+          key: php-v2
       - name: Cache PHP extensions
         uses: actions/cache@v2
         with:
@@ -34,6 +34,7 @@ jobs:
           ini-values: ${{ env.ini }}
           coverage: pcov
           tools: phpunit:^9
-      - run: |
+      - run: |        
           php -v
           php -m
+          php --ini
