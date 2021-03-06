@@ -20,6 +20,7 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.extensions }}
           key: php-v2
+      - run: ls /tmp/extcache && ls /tmp/extcache/memcached
       - name: Cache PHP extensions
         uses: actions/cache@v2
         with:
