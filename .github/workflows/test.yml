@@ -26,6 +26,7 @@ jobs:
           path: ${{ steps.ext-cache.outputs.dir }}
           key: ${{ steps.ext-cache.outputs.key }}
           restore-keys: ${{ steps.ext-cache.outputs.key }}
+      - uses: mxschmitt/action-tmate@v3.3    
       - name: Setup PHP environment
         uses: shivammathur/setup-php@develop
         with:
