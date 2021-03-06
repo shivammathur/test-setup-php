@@ -19,7 +19,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.extensions }}
-          key: php-v3
+          key: php-v4
       - name: Cache PHP extensions
         uses: actions/cache@v2
         with:
