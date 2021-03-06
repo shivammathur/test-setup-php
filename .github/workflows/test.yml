@@ -1,38 +1,33 @@
-name: Test
+name: 'Package'
 on: push
 jobs:
-  backend-tests:
-    name: PHP ${{ matrix.php }}
-
-    runs-on: ubuntu-latest
+  tests:  
     strategy:
+      fail-fast: false
       matrix:
-        php: [ "7.3", "7.4", "8.0" ]
-    env:
-      extensions: mbstring, ctype, curl, gd, apcu, igbinary, msgpack, memcached, pcov
-      ini: apc.enabled=1, apc.enable_cli=1, pcov.directory=., "pcov.exclude=\"~(vendor|tests)~\""
-
+        os: [macos-latest]
+        php: [53, 54, 55]
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Setup PHP cache environment
-        id: ext-cache
-        uses: shivammathur/cache-extensions@v1
+      - name: Switch Xcode
+        run: sudo xcode-select -s /Applications/Xcode_11.7.app
+      - name: Install macports
+        run: |
+          curl -o /tmp/macports.pkg -sL https://distfiles.macports.org/MacPorts/MacPorts-2.6.4-10.15-Catalina.pkg
+          sudo installer -pkg /tmp/macports.pkg -target /
+          echo "/opt/local/bin" | sudo tee -a $GITHUB_PATH
+      - name: Update and sync macports
+        run: |
+          sudo port -vN selfupdate
+          sudo port -vN sync
+      - name: Package
+        run: sudo port -N mpkg php${{ matrix.php }} php${{ matrix.php }}-apache2handler
+      - name: Copy to builds
+        run: |
+          sudo mkdir /tmp/builds
+          sudo find /opt/local/var -type f -name "*.pkg" -exec cp -n {} /tmp/builds \;
+          sudo find /opt/local/var -type f -name "*.mpkg" -exec cp -n {} /tmp/builds \;
+      - uses: actions/upload-artifact@v2
         with:
-          php-version: ${{ matrix.php }}
-          extensions: ${{ env.extensions }}
-          key: php-v1
-
-      - name: Cache PHP extensions
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.ext-cache.outputs.dir }}
-          key: ${{ steps.ext-cache.outputs.key }}
-          restore-keys: ${{ steps.ext-cache.outputs.key }}
-
-      - name: Setup PHP environment
-        uses: shivammathur/setup-php@verbose
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: ${{ env.extensions }}
-          ini-values: ${{ env.ini }}
-          coverage: pcov
-          tools: phpunit:^9
+          name: builds
+          path: /tmp/builds
