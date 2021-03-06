@@ -23,14 +23,14 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.extensions }}
           key: php-v1
-
+      - run: ls ${{ steps.ext-cache.outputs.dir }}
       - name: Cache PHP extensions
         uses: actions/cache@v2
         with:
           path: ${{ steps.ext-cache.outputs.dir }}
           key: ${{ steps.ext-cache.outputs.key }}
           restore-keys: ${{ steps.ext-cache.outputs.key }}
-
+      - run: ls ${{ steps.ext-cache.outputs.dir }}
       - name: Setup PHP environment
         uses: shivammathur/setup-php@verbose
         with:
