@@ -13,9 +13,6 @@ jobs:
       ini: apc.enabled=1, apc.enable_cli=1, pcov.directory=., "pcov.exclude=\"~(vendor|tests)~\""
 
     steps:
-      - run: |
-          sudo chown -Rv _apt:root /var/cache/apt/archives/partial/
-          sudo chmod -Rv 700 /var/cache/apt/archives/partial/
       - name: Setup PHP cache environment
         id: ext-cache
         uses: shivammathur/cache-extensions@v1
@@ -23,8 +20,6 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.extensions }}
           key: php-v1
-      - run: |
-          ls /etc/php/${{ matrix.php }}/cli/conf.d || true
       - name: Cache PHP extensions
         uses: actions/cache@v2
         with:
@@ -40,3 +35,6 @@ jobs:
           ini-values: ${{ env.ini }}
           coverage: pcov
           tools: phpunit:^9
+      - run: |
+          php -v
+          php -m
