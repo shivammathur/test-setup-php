@@ -9,7 +9,7 @@ jobs:
       matrix:
         php: [ "7.3", "7.4", "8.0" ]
     env:
-      extensions: mbstring, ctype, curl, gd, apcu, memcached, pcov
+      extensions: mbstring, ctype, curl, gd, apcu, memcached, pcov, oci, ioncube 
       ini: apc.enabled=1, apc.enable_cli=1, pcov.directory=., "pcov.exclude=\"~(vendor|tests)~\""
 
     steps:
@@ -26,7 +26,6 @@ jobs:
           path: ${{ steps.ext-cache.outputs.dir }}
           key: ${{ steps.ext-cache.outputs.key }}
           restore-keys: ${{ steps.ext-cache.outputs.key }}
-      - run: ls ${{ steps.ext-cache.outputs.dir }}
       - name: Setup PHP environment
         uses: shivammathur/setup-php@v2
         with:
