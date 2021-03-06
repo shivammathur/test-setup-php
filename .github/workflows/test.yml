@@ -15,11 +15,11 @@ jobs:
     steps:
       - name: Setup PHP cache environment
         id: ext-cache
-        uses: shivammathur/cache-extensions@develop
+        uses: shivammathur/cache-extensions@v1
         with:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.extensions }}
-          key: php-v5
+          key: php-v6
       - name: Cache PHP extensions
         uses: actions/cache@v2
         with:
@@ -27,7 +27,7 @@ jobs:
           key: ${{ steps.ext-cache.outputs.key }}
           restore-keys: ${{ steps.ext-cache.outputs.key }}
       - name: Setup PHP environment
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.extensions }}
