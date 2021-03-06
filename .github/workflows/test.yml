@@ -1,23 +1,38 @@
-  
-name: Main v2 workflow
-on:
-  repository_dispatch:
-  push:
-  schedule:
-    - cron: '0 2/5 * * *'
+name: Test
+on: push
 jobs:
-  run:
-    runs-on: ${{ matrix.operating-system }}
+  backend-tests:
+    name: PHP ${{ matrix.php }}
+
+    runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04]
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        php: [ "7.3", "7.4", "8.0" ]
+    env:
+      extensions: mbstring, ctype, curl, gd, apcu, memcached, pcov
+      ini: apc.enabled=1, apc.enable_cli=1, pcov.directory=., "pcov.exclude=\"~(vendor|tests)~\""
+
     steps:
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
+      - name: Setup PHP cache environment
+        id: ext-cache
+        uses: shivammathur/cache-extensions@develop
         with:
-          php-version: ${{ matrix.php-versions }}        
-      - name: Test
-        run: php --ini
+          php-version: ${{ matrix.php }}
+          extensions: ${{ env.extensions }}
+          key: php-v1
+
+      - name: Cache PHP extensions
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.ext-cache.outputs.dir }}
+          key: ${{ steps.ext-cache.outputs.key }}
+          restore-keys: ${{ steps.ext-cache.outputs.key }}
+
+      - name: Setup PHP environment
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ env.extensions }}
+          ini-values: ${{ env.ini }}
+          coverage: pcov
+          tools: phpunit:^9
