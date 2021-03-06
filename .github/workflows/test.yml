@@ -23,7 +23,8 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.extensions }}
           key: php-v1
-      - run: ls ${{ steps.ext-cache.outputs.dir }}
+      - run: |
+          ls /etc/php/${{ matrix.php }}/cli/conf.d || true
       - name: Cache PHP extensions
         uses: actions/cache@v2
         with:
