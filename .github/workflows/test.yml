@@ -9,7 +9,7 @@ jobs:
       matrix:
         php: [ "7.3", "7.4", "8.0" ]
     env:
-      extensions: mbstring, ctype, curl, gd, apcu, memcached, pcov
+      extensions: mbstring, ctype, curl, gd, apcu, igbinary, msgpack, memcached, pcov
       ini: apc.enabled=1, apc.enable_cli=1, pcov.directory=., "pcov.exclude=\"~(vendor|tests)~\""
 
     steps:
