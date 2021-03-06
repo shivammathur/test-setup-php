@@ -13,6 +13,9 @@ jobs:
       ini: apc.enabled=1, apc.enable_cli=1, pcov.directory=., "pcov.exclude=\"~(vendor|tests)~\""
 
     steps:
+      - run: |
+          sudo chown -Rv _apt:root /var/cache/apt/archives/partial/
+          sudo chmod -Rv 700 /var/cache/apt/archives/partial/
       - name: Setup PHP cache environment
         id: ext-cache
         uses: shivammathur/cache-extensions@develop
