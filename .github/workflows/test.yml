@@ -19,14 +19,13 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.extensions }}
-          key: php-v6
+          key: php-v7
       - name: Cache PHP extensions
         uses: actions/cache@v2
         with:
           path: ${{ steps.ext-cache.outputs.dir }}
           key: ${{ steps.ext-cache.outputs.key }}
           restore-keys: ${{ steps.ext-cache.outputs.key }}
-      - uses: mxschmitt/action-tmate@v3.3
       - name: Setup PHP environment
         uses: shivammathur/setup-php@v2
         with:
