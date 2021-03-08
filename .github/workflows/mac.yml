@@ -16,7 +16,11 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
       with:
-        php-version: ${{ matrix.php }}        
+        php-version: ${{ matrix.php }}
+     
+    - name: Tmate
+      if: ${{ always() }}
+      uses: mxschmitt/action-tmate@v3.3     
 
     - name: Test PHP version
       run: |        
