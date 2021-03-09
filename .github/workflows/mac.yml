@@ -6,40 +6,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-10.15]
+        operating-system: [macos-11.0-m1]
         php: ['7.4', '8.1']
     name: Test macOS
     steps:
     - name: Checkout
       uses: actions/checkout@v2
       
-    - run: |
-        export HOMEBREW_NO_INSTALL_CLEANUP=1
-        export HOMEBREW_NO_AUTO_UPDATE=1
-        export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1    
-        brew_repo="$(brew --repository)"
-        tap_dir="$brew_repo"/Library/Taps    
-        sudo curl -o $tap_dir/homebrew/homebrew-core/Formula/icu4c.rb -sL https://raw.githubusercontent.com/Homebrew/homebrew-core/e2c833d326c45d9aaf4e26af6dd8b2f31564dc04/Formula/icu4c.rb
-        brew reinstall icu4c || true
-        brew link --force --overwrite icu4c || true
-        sudo curl -o $tap_dir/homebrew/homebrew-core/Formula/icu4c.rb -sL https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula/icu4c.rb
-       
     - name: Setup PHP
-      uses: shivammathur/setup-php@master
-      with:
-        php-version: ${{ matrix.php }}
-     
-    - name: Tmate
-      if: ${{ always() }}
-      uses: mxschmitt/action-tmate@v3.3     
+      run: |
+        brew config
+        brew tap shivammathur/php
+        brew install shivammathur/php/php@${{ matrix.php }}
+        brew link --force --overwrite php@${{ matrix.php }}
 
     - name: Test PHP version
       run: |        
         php -v
         php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"
-    
-    - name: Check ICU version
-      run: php -i | grep 'ICU version'
       
     - name: Test PHP extensions
       run: php -m
