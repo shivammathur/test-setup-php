@@ -88,38 +88,31 @@ jobs:
       - name: Release          
         run: |
           set -x
-          
-          release_cds_helper() {            
-            cloudsmith push raw $repo $1 --republish --summary $1 --description $1
-          }
-          
-          release_all_helper() {
-            release_cds_helper $1
-            gh release upload "builds" $1 "Builds $version" --clobber
-          }
-          
+                    
           release_cds() {
-            curl -o install.sh -sL https://dl.cloudsmith.io/public/$repo/raw/files/php-ubuntu.sh         
             for asset in ./builds/*/*; do
               assets+=("$asset")
-              release_cds_helper $asset &
-              to_wait+=("$!")
-            done            
-            assets+=("./install.sh")          
-            gh release create "builds" "${assets[@]}" -n "builds $version" -t "builds"          
-          }
-          
-          release_all() {
-            gh release download -p "build.log" || true
-            for asset in ./builds/*/*; do              
-              release_all_helper $asset &
+              cloudsmith push raw $repo $1 --republish --summary $1 --description $1 &
               to_wait+=("$!")
             done          
           }
           
+          release_create() {
+            curl -o install.sh -sL https://dl.cloudsmith.io/public/$repo/raw/files/php-ubuntu.sh         
+            release_cds            
+            assets+=("./install.sh")          
+            gh release create "builds" "${assets[@]}" -n "builds $version" -t "builds"          
+          }
+          
+          release_upload() {
+            gh release download -p "build.log" || true
+            release_cds
+            gh release upload "builds" "${assets[@]}" --clobber
+          }
+          
           log() {
             echo "$version" | sudo tee -a build.log
-            gh release upload "builds" build.log "Build $version" --clobber
+            gh release upload "builds" build.log --clobber
           }
           
           version=$(date '+%Y.%m.%d')
@@ -127,9 +120,9 @@ jobs:
           assets=()
           to_wait=()
           if ! gh release view builds; then
-            release_cds
+            release_create
           else
-            release_all      
+            release_upload      
           fi
           wait "${to_wait[@]}"
           log
