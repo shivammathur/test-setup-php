@@ -24,13 +24,14 @@ jobs:
         add-apt-repository ppa:apt-fast/stable
         LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
         apt-get update
-        DEBIAN_FRONTEND=noninteractive apt-get install -y git sudo apt-fast gcc make automake pkg-config shtool zstd snmp
+        DEBIAN_FRONTEND=noninteractive apt-get install -y git sudo apt-fast gcc make automake pkg-config shtool snmp zstd
     - name: Configure git
       run: |
         cd /
         git config --global user.email "you@example.com"
         git init
-        git add /bin /etc /lib /lib64 /sbin /usr /var
+        git add /bin /lib /lib64 /sbin /usr /var
+        find /etc -maxdepth 1 -mindepth 1 -type d -exec git add {} \;
         git commit -m "init"        
     - name: Setup PHP
       run: |
@@ -45,7 +46,8 @@ jobs:
     - name: Isolate changes
       run: |
         cd /
-        git add /bin /etc /lib /lib64 /sbin /usr /var
+        git add /bin /lib /lib64 /sbin /usr /var
+        find /etc -maxdepth 1 -mindepth 1 -type d -exec git add {} \;
         git commit -m "installed php"
         mkdir -p /tmp/php
         for file in $(git log -p -n 1 --name-only); do
@@ -86,18 +88,34 @@ jobs:
       - name: Release          
         run: |
           set -x
-          version=$(date '+%Y.%m.%d')
-          curl -o install.sh -sL https://dl.cloudsmith.io/public/shivammathur/php-ubuntu/raw/files/php-ubuntu.sh
+          release_cds() {
+            asset=$1
+            cloudsmith push raw shivammathur/php-ubuntu $asset --summary $asset --description $asset          
+          }
+          release_all() {
+            asset=$1
+            release_cds $asset
+            gh release upload "builds" release.log "Build $version" --clobber
+          }          
           assets=()
-          to_wait=()
-          for asset in ./builds/*/*; do
-            assets+=("$asset")
-            cloudsmith push raw shivammathur/php-ubuntu $asset --summary $asset --description $asset &
-            to_wait+=("$!")
-          done
+          to_wait=()           
+          if ! gh release view builds; then
+            curl -o install.sh -sL https://dl.cloudsmith.io/public/shivammathur/php-ubuntu/raw/files/php-ubuntu.sh         
+            for asset in ./builds/*/*; do
+              assets+=("$asset")
+              release_cds $asset &
+              to_wait+=("$!")
+            done            
+            assets+=("./install.sh")          
+            gh release create "builds" "${assets[@]}" -n "builds" -t "builds"
+          else
+            for asset in ./builds/*/*; do
+              assets+=("$asset")
+              release_all $asset &
+              to_wait+=("$!")
+            done            
+          fi
           wait "${to_wait[@]}"
-          assets+=("./install.sh")          
-          gh release create "$version" "${assets[@]}" -n "$version" -t "$version"
         env:
           CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
