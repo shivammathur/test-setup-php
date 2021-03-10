@@ -23,7 +23,7 @@ jobs:
           HOMEBREW_FORCE_HOMEBREW_ON_LINUX: 1
         uses: shivammathur/actions/setup-homebrew@shivammathur-patch-git-retry
       - name: Install zstd
-        run: bash src/install-zstd.sh
+        run: brew install zstd && zstd -V
       - name: Configure git
         run: bash src/configure-git.sh
       - name: Setup PHP

@@ -1,5 +1,3 @@
-set -x
-
 export _APTMGR=apt-get
 apt-get update && apt-get install -y curl sudo software-properties-common
 add-apt-repository ppa:git-core/ppa

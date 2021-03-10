@@ -1,5 +1,3 @@
-set -x
-
 release_cds() {
   for asset in ./builds/*/*; do
     assets+=("$asset")

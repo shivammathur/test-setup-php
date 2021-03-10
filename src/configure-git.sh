@@ -1,5 +1,3 @@
-set -x
-
 cd / || exit 1
 git config --global user.email "you@example.com"
 git init
