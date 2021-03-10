@@ -91,7 +91,7 @@ jobs:
           
           release_cds_helper() {
             asset=$1
-            cloudsmith push raw ${{ github.repository }} $asset --republish --summary $asset --description $asset
+            cloudsmith push raw $repo $asset --republish --summary $asset --description $asset
           }
           
           release_all_helper() {
@@ -101,7 +101,7 @@ jobs:
           }
           
           release_cds() {
-            curl -o install.sh -sL https://dl.cloudsmith.io/public/shivammathur/php-ubuntu/raw/files/php-ubuntu.sh         
+            curl -o install.sh -sL https://dl.cloudsmith.io/public/$repo/raw/files/php-ubuntu.sh         
             for asset in ./builds/*/*; do
               assets+=("$asset")
               release_cds_helper $asset &
@@ -126,6 +126,7 @@ jobs:
           }
           
           version=$(date '+%Y.%m.%d')
+          repo='shivammathur/php-ubuntu'
           assets=()
           to_wait=()           
           if ! gh release view builds; then
