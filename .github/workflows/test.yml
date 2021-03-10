@@ -89,10 +89,13 @@ jobs:
           version=$(date '+%Y.%m.%d')
           curl -o install.sh -sL https://dl.cloudsmith.io/public/shivammathur/php-ubuntu/raw/files/php-ubuntu.sh
           assets=()
+          to_wait=()
           for asset in ./builds/*/*; do
             assets+=("$asset")
-            cloudsmith push raw shivammathur/php-ubuntu $asset --version $version --summary $asset --description $asset
+            cloudsmith push raw shivammathur/php-ubuntu $asset --summary $asset --description $asset &
+            to_wait+=("$!")
           done
+          wait "${to_wait[@]}"
           assets+=("./install.sh")          
           gh release create "$version" "${assets[@]}" -n "$version" -t "$version"
         env:
