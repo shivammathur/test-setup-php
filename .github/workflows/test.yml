@@ -90,7 +90,7 @@ jobs:
           set -x
           release_cds() {
             asset=$1
-            cloudsmith push raw shivammathur/php-ubuntu $asset --summary $asset --description $asset          
+            cloudsmith push raw shivammathur/php-ubuntu $asset --republish --summary $asset --description $asset
           }
           release_all() {
             asset=$1
