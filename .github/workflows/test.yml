@@ -88,34 +88,53 @@ jobs:
       - name: Release          
         run: |
           set -x
-          release_cds() {
+          
+          release_cds_helper() {
             asset=$1
-            cloudsmith push raw shivammathur/php-ubuntu $asset --republish --summary $asset --description $asset
+            cloudsmith push raw ${{ github.repository }} $asset --republish --summary $asset --description $asset
           }
-          release_all() {
+          
+          release_all_helper() {
             asset=$1
             release_cds $asset
-            gh release upload "builds" release.log "Build $version" --clobber
-          }          
-          assets=()
-          to_wait=()           
-          if ! gh release view builds; then
+            gh release upload "builds" $asset "Builds $version" --clobber
+          }
+          
+          release_cds() {
             curl -o install.sh -sL https://dl.cloudsmith.io/public/shivammathur/php-ubuntu/raw/files/php-ubuntu.sh         
             for asset in ./builds/*/*; do
               assets+=("$asset")
-              release_cds $asset &
+              release_cds_helper $asset &
               to_wait+=("$!")
             done            
             assets+=("./install.sh")          
-            gh release create "builds" "${assets[@]}" -n "builds" -t "builds"
-          else
+            gh release create "builds" "${assets[@]}" -n "builds $version" -t "builds"          
+          }
+          
+          release_all() {
+            gh release download -p "release.log" || true
             for asset in ./builds/*/*; do
               assets+=("$asset")
               release_all $asset &
               to_wait+=("$!")
-            done            
+            done          
+          }
+          
+          log() {
+            echo "$version" | sudo tee -a build.log
+            gh release upload "builds" release.log "Build $version" --clobber
+          }
+          
+          version=$(date '+%Y.%m.%d')
+          assets=()
+          to_wait=()           
+          if ! gh release view builds; then
+            release_cds
+          else
+            release_all      
           fi
           wait "${to_wait[@]}"
+          log
         env:
           CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
