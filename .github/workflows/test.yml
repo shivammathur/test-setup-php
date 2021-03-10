@@ -77,7 +77,11 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           path: builds
-      - name: Install cloudsmitch-cli
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+      - name: Install cloudsmith-cli
         run: pip install --upgrade cloudsmith-cli
       - name: Release          
         run: |
