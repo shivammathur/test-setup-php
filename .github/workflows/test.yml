@@ -1,40 +1,96 @@
-name: Test #cache
-on: push
+name: Cache PHP
+on:
+  - push
+  - repository_dispatch
+  - workflow_dispatch
 jobs:
-  backend-tests:
-    name: PHP ${{ matrix.php }}
-
-    runs-on: ubuntu-18.04
+  build:
+    container: ubuntu:${{ matrix.container }}
+    runs-on: ubuntu-latest
     strategy:
-      matrix:
-        php: [ "7.3", "7.4", "8.0" ]
-    env:
-      extensions: mbstring, ctype, curl, gd, apcu, memcached, pcov
-      ini: apc.enabled=1, apc.enable_cli=1, pcov.directory=., "pcov.exclude=\"~(vendor|tests)~\""
-
+      fail-fast: false
+      matrix:      
+        container: [20.04, 18.04, 16.04]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+    if: "!contains(github.event.head_commit.message, 'skip-build')"
     steps:
-      - name: Setup PHP cache environment
-        id: ext-cache
-        uses: shivammathur/cache-extensions@v1
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Install requirements
+      run: |
+        export _APTMGR=apt-get
+        apt-get update && apt-get install -y curl sudo software-properties-common
+        add-apt-repository ppa:git-core/ppa        
+        add-apt-repository ppa:apt-fast/stable
+        LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
+        apt-get update
+        DEBIAN_FRONTEND=noninteractive apt-get install -y git sudo apt-fast gcc make automake pkg-config shtool zstd
+    - name: Configure git
+      run: |
+        cd /
+        git config --global user.email "you@example.com"
+        git init
+        git add /bin /etc /lib /lib64 /sbin /usr /var
+        git commit -m "init"        
+    - name: Setup PHP
+      run: |
+        cd /tmp
+        version='${{ matrix.php-versions }}'
+        curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/actions/virtual-environments/main/images/linux/scripts/installers/php.sh
+        sed -i "s/^php_versions.*/php_versions=$version/" /tmp/php.sh
+        sed -i '/ snmp\|php-pear\|composer\|phpunit\|invoke_tests\|source/d' /tmp/php.sh
+        sudo bash /tmp/php.sh || true
+        sudo rm -rf /var/cache/apt/archives/*.deb || true
+        sudo apt-get install php$version-pcov -y || true
+    - name: Isolate changes
+      run: |
+        cd /
+        git add /bin /etc /lib /lib64 /sbin /usr /var
+        git commit -m "installed php"
+        mkdir -p /tmp/php
+        for file in $(git log -p -n 1 --name-only); do
+          sudo cp -r -p --parents "$file" /tmp/php || true
+        done
+    - name: Build package
+      run: |         
+        . /etc/lsb-release
+        SEMVER=$(php -v | head -n 1 | cut -f 2 -d ' ' | cut -f 1 -d '-')
+        VERSION='${{ matrix.php-versions }}'
+        (
+          cd /tmp/php
+          sudo tar cf - * | zstd -22 -T0 --ultra > ../php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst
+          cp ../php_"$VERSION"+ubuntu"$DISTRIB_RELEASE".tar.zst ../php_"$SEMVER"+ubuntu"$DISTRIB_RELEASE".tar.zst
+        )
+        mkdir builds
+        sudo mv /tmp/*.zst ./builds
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.php-versions }}
+        path: builds
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      - run: mkdir builds
+      - uses: actions/download-artifact@v2
         with:
-          php-version: ${{ matrix.php }}
-          extensions: ${{ env.extensions }}
-          key: php-v8
-      - name: Cache PHP extensions
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.ext-cache.outputs.dir }}
-          key: ${{ steps.ext-cache.outputs.key }}
-          restore-keys: ${{ steps.ext-cache.outputs.key }}
-      - name: Setup PHP environment
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: ${{ env.extensions }}
-          ini-values: ${{ env.ini }}
-          coverage: pcov
-          tools: phpunit:^9
-      - run: |        
-          php -v
-          php -m
-          php --ini
+          path: builds
+      - name: Install cloudsmitch-cli
+        run: pip install --upgrade cloudsmith-cli
+      - name: Release          
+        run: |
+          set -x
+          version=$(date '+%Y.%m.%d')
+          curl -o install.sh -sL https://dl.cloudsmith.io/public/shivammathur/php-ubuntu/raw/files/php-ubuntu.sh
+          assets=()
+          for asset in ./builds/*/*; do
+            assets+=("$asset")
+            cloudsmith push raw shivammathur/php-ubuntu $asset --version $version --summary $asset --description $asset
+          done
+          assets+=("./install.sh")          
+          gh release create "$version" "${assets[@]}" -n "$version" -t "$version"
+        env:
+          CLOUDSMITH_API_KEY: ${{ secrets:CLOUDSMITH_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
