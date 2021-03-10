@@ -89,15 +89,13 @@ jobs:
         run: |
           set -x
           
-          release_cds_helper() {
-            asset=$1
-            cloudsmith push raw $repo $asset --republish --summary $asset --description $asset
+          release_cds_helper() {            
+            cloudsmith push raw $repo $1 --republish --summary $1 --description $1
           }
           
           release_all_helper() {
-            asset=$1
-            release_cds $asset
-            gh release upload "builds" $asset "Builds $version" --clobber
+            release_cds_helper $1
+            gh release upload "builds" $1 "Builds $version" --clobber
           }
           
           release_cds() {
@@ -112,23 +110,22 @@ jobs:
           }
           
           release_all() {
-            gh release download -p "release.log" || true
-            for asset in ./builds/*/*; do
-              assets+=("$asset")
-              release_all $asset &
+            gh release download -p "build.log" || true
+            for asset in ./builds/*/*; do              
+              release_all_helper $asset &
               to_wait+=("$!")
             done          
           }
           
           log() {
             echo "$version" | sudo tee -a build.log
-            gh release upload "builds" release.log "Build $version" --clobber
+            gh release upload "builds" build.log "Build $version" --clobber
           }
           
           version=$(date '+%Y.%m.%d')
           repo='shivammathur/php-ubuntu'
           assets=()
-          to_wait=()           
+          to_wait=()
           if ! gh release view builds; then
             release_cds
           else
