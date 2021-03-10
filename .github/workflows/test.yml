@@ -92,7 +92,7 @@ jobs:
           release_cds() {
             for asset in ./builds/*/*; do
               assets+=("$asset")
-              cloudsmith push raw $repo $1 --republish --summary $1 --description $1 &
+              cloudsmith push raw $repo $asset --republish --summary $asset --description $asset &
               to_wait+=("$!")
             done          
           }
