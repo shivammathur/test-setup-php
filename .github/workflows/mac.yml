@@ -27,11 +27,12 @@ jobs:
         mkdir -p "$brew_core_repo"
         curl -sL https://github.com/Homebrew/linuxbrew-core/archive/master.tar.gz | tar -xzf - -C /tmp
         mv /tmp/linuxbrew-core-master/* $brew_core_repo/
-        
+        git init $brew_repo
+        git init $brew_core_repo
         (
           cd "$brew_prefix"
           mkdir -p bin etc include lib opt sbin share var/homebrew/linked Cellar
-          ln -vs Homebrew/bin/brew "$brew_prefix/bin/"
+          ln -vs "$brew_prefix/Homebrew/bin/brew" "$brew_prefix/bin/"
         )
         echo "$brew_prefix/bin" >> $GITHUB_PATH
       
