@@ -13,6 +13,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
       
+    - name: Add requirements
+      run: apt-get install curl -y
+      
     - name: Add brew
       run: |
         brew_prefix=~/.linuxbrew
