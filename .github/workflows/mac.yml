@@ -18,7 +18,9 @@ jobs:
       
     - name: Add brew
       run: |
-        bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+        curl -o /tmp/install.sh -sL https://raw.githubusercontent.com/Homebrew/install/master/install.sh
+        sed -i 's/== "0"/!= "0"/' /tmp/install.sh
+        bash /tmp/install.sh
         brew update
     - name: Test brew
       env:
