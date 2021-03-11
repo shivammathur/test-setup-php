@@ -18,13 +18,13 @@ jobs:
         brew_prefix=~/.linuxbrew
         brew_repo="$brew_prefix/Homebrew"
         brew_core_repo="$brew_repo/Library/Taps/homebrew/homebrew-core"
-        sudo mkdir -p "$brew_core_repo"
+        mkdir -p "$brew_core_repo"
         curl -sL https://github.com/Homebrew/brew/archive/master.tar.gz | tar -xf - -C "$brew_repo"
         curl -sL https://github.com/Homebrew/linuxbrew-core/archive/master.tar.gz | tar -xf - -C "$brew_core_repo"
         (
           cd "$brew_prefix"
-          sudo mkdir -p bin etc include lib opt sbin share var/homebrew/linked Cellar
-          sudo ln -vs ../Homebrew/bin/brew "$brew_prefix/bin/"          
+          mkdir -p bin etc include lib opt sbin share var/homebrew/linked Cellar
+          ln -vs ../Homebrew/bin/brew "$brew_prefix/bin/"          
         )
         echo "$brew_prefix/bin" >> $GITHUB_PATH
       
