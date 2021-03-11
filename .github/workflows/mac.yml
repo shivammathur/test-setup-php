@@ -3,25 +3,31 @@ on: [push]
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
+    container: ubuntu:focal
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-10.15, ubuntu-latest]
+        operating-system: [ubuntu-latest]
     name: Test
     steps:
     - name: Checkout
       uses: actions/checkout@v2
       
-    - name: Remove brew
+    - name: Add brew
       run: |
-        if command -v brew; then
-          sudo rm -rf $(brew --prefix)
-        fi  
-
-    - name: Set up Homebrew
-      env:
-        HOMEBREW_FORCE_HOMEBREW_ON_LINUX: 1
-      uses: shivammathur/actions/setup-homebrew@shivammathur-patch-git-retry
+        brew_prefix=~/.linuxbrew
+        brew_repo="$brew_prefix/Homebrew"
+        brew_core_repo="$brew_repo/Library/Taps/homebrew/homebrew-core"
+        sudo mkdir -p "$brew_core_repo"
+        curl -sL https://github.com/Homebrew/brew/archive/master.tar.gz | tar -xf - -C "$brew_repo"
+        curl -sL https://github.com/Homebrew/linuxbrew-core/archive/master.tar.gz | tar -xf - -C "$brew_core_repo"
+        (
+          cd "$brew_prefix"
+          sudo mkdir -p bin etc include lib opt sbin share var/homebrew/linked Cellar
+          sudo ln -vs ../Homebrew/bin/brew "$brew_prefix/bin/"          
+        )
+        echo "$brew_prefix/bin" >> $GITHUB_PATH
       
     - name: Test brew
       run: brew -v
+      
