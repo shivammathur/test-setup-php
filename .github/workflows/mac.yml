@@ -14,26 +14,12 @@ jobs:
       uses: actions/checkout@v2
       
     - name: Add requirements
-      run: apt-get update && apt-get install curl git -y
+      run: apt-get update && apt-get install curl git sudo -y
       
     - name: Add brew
       run: |
-        brew_prefix=/home/linuxbrew/.linuxbrew
-        brew_repo="$brew_prefix/Homebrew"
-        brew_core_repo="$brew_repo/Library/Taps/homebrew/homebrew-core"
-        mkdir -p "$brew_repo"
-        curl -sL https://github.com/Homebrew/brew/archive/master.tar.gz | tar -xzf - -C /tmp
-        mv /tmp/brew-master/* $brew_repo/
-        mkdir -p "$brew_core_repo"
-        curl -sL https://github.com/Homebrew/linuxbrew-core/archive/master.tar.gz | tar -xzf - -C /tmp
-        mv /tmp/linuxbrew-core-master/* $brew_core_repo/
-        (
-          cd "$brew_prefix"
-          mkdir -p bin etc include lib opt sbin share var/homebrew/linked Cellar
-          ln -vs "$brew_prefix/Homebrew/bin/brew" "$brew_prefix/bin/"
-        )
-        echo "$brew_prefix/bin" >> $GITHUB_PATH
-        chown -R "$(id -un)":"$(id -gn)" "$brew_prefix"
+        bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+        brew update
     - name: Test brew
       env:
         HOMEBREW_NO_INSTALL_CLEANUP: 1
