@@ -7,13 +7,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        php: ['8.0', '8.1']
     steps:
-       - name: Setup PHP
-         uses: shivammathur/setup-php@v2
-         with:
-           php-version: ${{ matrix.php }}
-       - name: Test phpdbg
-         run: phpdbg -V
+    - name: Build http opts
+      id: opts
+      run: |
+        http_opts=()
+        for lib in zlib libbrotli libcurl libevent libicu libidn2 libidn libidnkit2 libidnkit; do
+          http_opts+=( "--with-http-$lib-dir=/usr" )
+        done
+        echo "::set-output name=http_opts::${http_opts[@]}"
+      
+    - name: Setup PHP and remove shared extension
+      uses: shivammathur/setup-php@develop
+      with:
+        php-version: '8.0'  
+        extensions: http-m6w6/ext-http@v4.0.0
+      env:
+        HTTP_CONFIGURE_PREFIX_OPTS: "CFLAGS=-Wno-implicit-function-declaration"
+        HTTP_CONFIGURE_OPTS: "--with-http, ${{ steps.opts.outputs.http_opts }}"
+        HTTP_LIBS: zlib1g, libbrotli-dev, libcurl4-openssl-dev, libevent-dev, libicu-dev, libidn2-dev
           
         
