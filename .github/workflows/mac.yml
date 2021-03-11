@@ -32,7 +32,8 @@ jobs:
           mkdir -p bin etc include lib opt sbin share var/homebrew/linked Cellar
           ln -vs "$brew_prefix/Homebrew/bin/brew" "$brew_prefix/bin/"
         )
-        echo "$brew_prefix/bin" >> $GITHUB_PATH      
+        echo "$brew_prefix/bin" >> $GITHUB_PATH
+        sudo chown -R "$(id -un)":"$(id -gn)" $(brew --prefix)
     - name: Test brew
       env:
         HOMEBREW_NO_INSTALL_CLEANUP: 1
