@@ -21,6 +21,8 @@ jobs:
         curl -o /tmp/install.sh -sL https://raw.githubusercontent.com/Homebrew/install/master/install.sh
         sed -i 's/== "0"/!= "0"/' /tmp/install.sh
         bash /tmp/install.sh
+        echo "/home/linuxbrew/.linuxbrew/bin" >> $GITHUB_PATH
+        export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
         brew update
     - name: Test brew
       env:
