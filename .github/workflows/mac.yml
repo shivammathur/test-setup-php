@@ -14,11 +14,11 @@ jobs:
       uses: actions/checkout@v2
       
     - name: Add requirements
-      run: apt-get update && apt-get install curl -y
+      run: apt-get update && apt-get install curl git -y
       
     - name: Add brew
       run: |
-        brew_prefix=~/.linuxbrew
+        brew_prefix=/home/linuxbrew/.linuxbrew
         brew_repo="$brew_prefix/Homebrew"
         brew_core_repo="$brew_repo/Library/Taps/homebrew/homebrew-core"
         mkdir -p "$brew_repo"
@@ -34,6 +34,8 @@ jobs:
         )
         echo "$brew_prefix/bin" >> $GITHUB_PATH      
     - name: Test brew
+      env:
+        HOMEBREW_NO_INSTALL_UPDATE: 1
       run: brew install zstd
     - name: Test zstd
       run: zstd -V
