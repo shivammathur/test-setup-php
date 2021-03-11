@@ -33,7 +33,7 @@ jobs:
           ln -vs "$brew_prefix/Homebrew/bin/brew" "$brew_prefix/bin/"
         )
         echo "$brew_prefix/bin" >> $GITHUB_PATH
-        chown -R "$(id -un)":"$(id -gn)" $(brew --prefix)
+        chown -R "$(id -un)":"$(id -gn)" "$brew_prefix"
     - name: Test brew
       env:
         HOMEBREW_NO_INSTALL_CLEANUP: 1
