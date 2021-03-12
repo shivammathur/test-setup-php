@@ -24,7 +24,7 @@ jobs:
           shift
           links=("$@")
           for link in "${links[@]}"; do
-            status_code=$(sudo curl -w "%{http_code}" -o "$file_path" -sL "$link")
+            status_code=$(curl -w "%{http_code}" -o "$file_path" -sL "$link")
             [ "$status_code" = "200" ] && break
           done
         }        
