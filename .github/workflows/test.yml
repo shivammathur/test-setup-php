@@ -10,7 +10,7 @@ jobs:
 
         if: "github.repository != 'narrowspark/php-library-template'"
 
-        runs-on: "ubuntu-latest"
+        runs-on: "ubuntu-20.04"        
 
         strategy:
             matrix:
