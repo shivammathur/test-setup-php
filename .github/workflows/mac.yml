@@ -21,6 +21,7 @@ jobs:
       run: echo "::set-output name=zstd_dir::$(curl -sL https://github.com/facebook/zstd/releases/latest | grep -Po "zstd-(\d+\.\d+\.\d+)" | head -n 1)"    
       
     - name: Add zstd
+      shell: bash
       env:        
         repo: ${{ github.repository }}
         token: ${{ secrets.GITHUB_TOKEN }}
