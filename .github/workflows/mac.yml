@@ -25,6 +25,7 @@ jobs:
       with:
         path: /opt/zstd
         key: ${{ steps.zstd.outputs.zstd_dir }}
+        restore-keys: ${{ steps.zstd.outputs.zstd_dir }}
       
     - name: Add zstd
       env:
