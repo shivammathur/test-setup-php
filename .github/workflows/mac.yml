@@ -18,14 +18,7 @@ jobs:
       
     - name: Get zstd dir
       id: zstd
-      run: echo "::set-output name=zstd_dir::$(curl -sL https://github.com/facebook/zstd/releases/latest | grep -Po "zstd-(\d+\.\d+\.\d+)" | head -n 1)"
-    
-    - name: Cache zstd
-      uses: actions/cache@v2.1.4
-      with:
-        path: /opt/zstd
-        key: ${{ steps.zstd.outputs.zstd_dir }}-rev-v3
-        restore-keys: ${{ steps.zstd.outputs.zstd_dir }}-rev-v3
+      run: echo "::set-output name=zstd_dir::$(curl -sL https://github.com/facebook/zstd/releases/latest | grep -Po "zstd-(\d+\.\d+\.\d+)" | head -n 1)"    
       
     - name: Add zstd
       env:
@@ -46,3 +39,7 @@ jobs:
     - name: Test zstd
       run: zstd -V
       
+    - uses: actions/upload-artifact@v2
+      with:
+        name: zstd
+        path: /opt/zstd
