@@ -32,7 +32,7 @@ jobs:
         zstd_dir: ${{ steps.zstd.outputs.zstd_dir }}
       run: |        
         if ! [ -d /opt/zstd ]; then
-          apt-get install zlib1g liblzma liblz4 -y
+          apt-get install zlib1g liblzma-dev liblz4-dev -y
           mkdir -p /opt/zstd
           curl -o /tmp/zstd.tar.gz -sL https://github.com/facebook/zstd/releases/latest/download/$zstd_dir.tar.gz
           tar -xzf /tmp/zstd.tar.gz -C /tmp
