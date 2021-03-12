@@ -1,31 +1,67 @@
-name: Test
-on:
-  - push
+# https://help.github.com/en/categories/automating-your-workflow-with-github-actions
+
+name: "Semantic Release"
+
+on: # yamllint disable-line rule:truthy
+    push:
+        branches:
+            - "([0-9])?(.{+([0-9]),x}).x"
+            - "main"
+            - "next"
+            - "next-major"
+            - "alpha"
+            - "beta"
+
 jobs:
-  build:
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:      
-        php: ['8.0', '8.1']
-    steps:
-    - name: Build http opts
-      id: opts
-      run: |
-        http_opts=()
-        for lib in zlib libbrotli libcurl libevent libicu libidn2 libidn libidnkit2 libidnkit; do
-          http_opts+=( "--with-http-$lib-dir=/usr" )
-        done
-        echo "::set-output name=http_opts::${http_opts[@]}"
-      
-    - name: Setup PHP and remove shared extension
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: '8.0'  
-        extensions: raphf, http-m6w6/ext-http@v4.0.0
-      env:
-        HTTP_CONFIGURE_PREFIX_OPTS: "CFLAGS=-Wno-implicit-function-declaration"
-        HTTP_CONFIGURE_OPTS: "--with-http, ${{ steps.opts.outputs.http_opts }}"
-        HTTP_LIBS: zlib1g, libbrotli-dev, libcurl4-openssl-dev, libevent-dev, libicu-dev, libidn2-dev
-          
-        
+    Test:
+        name: "PHP ${{ matrix.php-versions }} Test on ubuntu-latest OS with ${{ matrix.dependencies }} dependencies"
+
+        if: "github.repository != 'narrowspark/php-library-template'"
+
+        runs-on: "ubuntu-latest"
+
+        strategy:
+            matrix:
+                php-versions: ["8.0"]
+                dependencies: ["locked"]
+
+        env:
+            key: "continuous-integration-linux-v1" # change key (version) to clear cache
+            extensions: "mbstring"
+            ini-values: "date.timezone=Europe/Berlin, assert.exception=1, zend.assertions=1, opcache.enable=1, opcache.enable_cli=0, opcache.optimization_level=-1, opcache.jit=1255, opcache.jit_buffer_size=32M, serialize_precision=14"
+            tools: "composer"
+
+        steps:
+
+            - name: "Setup cache environment"
+              id: "cache-env"
+              uses: "shivammathur/cache-extensions@v1"
+              with:
+                  php-version: "${{ matrix.php-versions }}"
+                  extensions: "${{ env.extensions }}"
+                  key: "${{ env.key }}"
+
+            - name: "Cache extensions"
+              uses: "actions/cache@v2"
+              with:
+                  path: "${{ steps.cache-env.outputs.dir }}"
+                  key: "${{ steps.cache-env.outputs.key }}"
+                  restore-keys: "${{ steps.cache-env.outputs.key }}"
+
+            - name: "Setup PHP"
+              uses: "shivammathur/setup-php@v2"
+              with:
+                  php-version: "${{ matrix.php-versions }}"
+                  extensions: "${{ env.extensions }}"
+                  ini-values: "${{ env.ini-values }}"
+                  tools: "${{ env.tools }}"
+                  coverage: "pcov"
+
+            - name: "Setup Problem Matchers for PHP"
+              run: "echo '::add-matcher::${{ runner.tool_cache }}/php.json'"
+
+            - name: "Check PHP Version"
+              run: "php -v"
+
+            - name: "List all php extensions with versions"
+              run: "php -r 'foreach (get_loaded_extensions() as $extension) echo $extension . \" \" . phpversion($extension) . PHP_EOL;'"
