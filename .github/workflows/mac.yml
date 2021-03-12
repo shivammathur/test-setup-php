@@ -24,7 +24,7 @@ jobs:
         tar -xzf /tmp/zstd.tar.gz -C /tmp
         (
           cd /tmp/$zstd_version || exit 1
-          make install -j 20 PREFIX=/usr
+          make install -j100 PREFIX=/usr
         )
         rm -rf /tmp/zstd*
     - name: Test zstd
