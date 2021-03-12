@@ -32,7 +32,11 @@ jobs:
         tar_file="zstd-$zstd_version.x86_64_linux.bottle.tar.gz"
         # linuxbrew bottles might be merged in homebrew
         get /tmp/"$tar_file" "http://dl.bintray.com/linuxbrew/bottles/$tar_file" "http://dl.bintray.com/homebrew/bottles/$tar_file"
-        tar -xzf /tmp/"$tar_file" -C /
+        tar -xzf /tmp/"$tar_file" -C /tmp
+        for dir in share lib include bin; do
+          cp -rl /tmp/zstd/$zstd_version/* /usr/local/
+        done  
+        rm -rf /tmp/zstd*
     - name: Test zstd
       run: zstd -V
       
