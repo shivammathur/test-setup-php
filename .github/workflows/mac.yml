@@ -23,21 +23,23 @@ jobs:
     - name: Cache zstd
       uses: actions/cache@v2
       with:
-        path: /tmp/${{ steps.zstd.outputs.zstd_dir }}
+        path: /opt/zstd
         key: ${{ steps.zstd.outputs.zstd_dir }}
       
     - name: Add zstd
       env:
         zstd_dir: ${{ steps.zstd.outputs.zstd_dir }}
-      run: |
-        if ! [ -d /tmp/$zstd_dir  ]; then
+      run: |        
+        if ! [ -d /opt/zstd ]; then
+          mkdir -p /opt/zstd
           curl -o /tmp/zstd.tar.gz -sL https://github.com/facebook/zstd/releases/latest/download/$zstd_dir.tar.gz
           tar -xzf /tmp/zstd.tar.gz -C /tmp
-        fi  
-        (
-          cd /tmp/$zstd_dir || exit 1
-          make install -j$(nproc) PREFIX=/usr
-        )
+          (
+            cd /tmp/$zstd_dir || exit 1
+            make install -j$(nproc) PREFIX=/opt/zstd
+          )          
+        fi
+        ln -sf /opt/zstd/bin/* /usr/local/bin
         rm -rf /tmp/zstd*
     - name: Test zstd
       run: zstd -V
