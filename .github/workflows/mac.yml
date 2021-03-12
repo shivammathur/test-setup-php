@@ -21,10 +21,11 @@ jobs:
       run: echo "::set-output name=zstd_dir::$(curl -sL https://github.com/facebook/zstd/releases/latest | grep -Po "zstd-(\d+\.\d+\.\d+)" | head -n 1)"    
       
     - name: Add zstd
-      env:
-        zstd_dir: ${{ steps.zstd.outputs.zstd_dir }}
+      env:        
         repo: ${{ github.repository }}
-        token: ${{ secrets:GITHUB_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        user: ${{ github.repository_owner }}
+        zstd_dir: ${{ steps.zstd.outputs.zstd_dir }}
       run: |
         mkdir -p /opt/zstd
         zstd_url=$(curl -sL https://api.github.com/repos/$repo/actions/artifacts | jq -r --arg zstd_dir $zstd_dir '.artifacts[] | select(.name=="\($zstd_dir)").archive_download_url' 2>/dev/null | head -n 1)        
@@ -37,7 +38,7 @@ jobs:
             make install -j$(nproc) PREFIX=/opt/zstd
           )
         else
-          curl -o /tmp/zstd.zip -sL $zstd_url
+          curl -u "$user":"$token" -o /tmp/zstd.zip -sL $zstd_url
           unzip /tmp/zstd.zip -d /opt/zstd
           chmod -R a+x /opt/zstd/bin
         fi
