@@ -16,15 +16,27 @@ jobs:
     - name: Add requirements
       run: apt-get update && apt-get install curl make gcc -y
       
+    - name: Get zstd dir
+      id: zstd
+      run: echo "::set-output name=zstd_dir::$(curl -sL https://github.com/facebook/zstd/releases/latest | grep -Po "zstd-(\d+\.\d+\.\d+)" | head -n 1)"
+    
+    - name: Cache zstd
+      uses: actions/cache@v2
+      with:
+        path: /tmp/${{ steps.zstd.outputs.zstd_dir }}
+        key: ${{ steps.zstd.outputs.zstd_dir }}
+      
     - name: Add zstd
-      shell: bash
+      env:
+        zstd_dir=${{ steps.zstd.outputs.zstd_dir }}
       run: |
-        zstd_version=$(curl -sL https://github.com/facebook/zstd/releases/latest | grep -Po "zstd-(\d+\.\d+\.\d+)" | head -n 1)
-        curl -o /tmp/zstd.tar.gz -sL https://github.com/facebook/zstd/releases/latest/download/$zstd_version.tar.gz
-        tar -xzf /tmp/zstd.tar.gz -C /tmp
+        if ! [ -d /tmp/$zstd_dir  ]; then
+          curl -o /tmp/zstd.tar.gz -sL https://github.com/facebook/zstd/releases/latest/download/$zstd_dir.tar.gz
+          tar -xzf /tmp/zstd.tar.gz -C /tmp
+        fi  
         (
-          cd /tmp/$zstd_version || exit 1
-          make install -j100 PREFIX=/usr
+          cd /tmp/$zstd_dir || exit 1
+          make install -j$(nproc) PREFIX=/usr
         )
         rm -rf /tmp/zstd*
     - name: Test zstd
