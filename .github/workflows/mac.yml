@@ -28,7 +28,7 @@ jobs:
       
     - name: Add zstd
       env:
-        zstd_dir=${{ steps.zstd.outputs.zstd_dir }}
+        zstd_dir: ${{ steps.zstd.outputs.zstd_dir }}
       run: |
         if ! [ -d /tmp/$zstd_dir  ]; then
           curl -o /tmp/zstd.tar.gz -sL https://github.com/facebook/zstd/releases/latest/download/$zstd_dir.tar.gz
