@@ -33,7 +33,8 @@ jobs:
         # linuxbrew bottles might be merged in homebrew
         get /tmp/"$tar_file" "http://dl.bintray.com/linuxbrew/bottles/$tar_file" "http://dl.bintray.com/homebrew/bottles/$tar_file"
         tar -xzf /tmp/"$tar_file" -C /tmp
-        mv "$(echo "share lib include bin" | sed "s|[^ ]*|/tmp/zstd/$zstd_version/&|g")" /usr/local
+        IFS=' ' read -r -a zstd_dirs <<< "$(echo "share lib include bin" | sed "s|[^ ]*|/tmp/zstd/$zstd_version/&|g")"
+        mv "${zstd_dirs[@]}" /usr/local/
     - name: Test zstd
       run: zstd -V
       
