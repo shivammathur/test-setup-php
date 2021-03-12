@@ -24,8 +24,8 @@ jobs:
       uses: actions/cache@v2.1.4
       with:
         path: /opt/zstd
-        key: ${{ steps.zstd.outputs.zstd_dir }}-rev-v2
-        restore-keys: ${{ steps.zstd.outputs.zstd_dir }}-rev-v2
+        key: ${{ steps.zstd.outputs.zstd_dir }}-rev-v3
+        restore-keys: ${{ steps.zstd.outputs.zstd_dir }}-rev-v3
       
     - name: Add zstd
       env:
