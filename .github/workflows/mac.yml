@@ -21,7 +21,7 @@ jobs:
       run: echo "::set-output name=zstd_dir::$(curl -sL https://github.com/facebook/zstd/releases/latest | grep -Po "zstd-(\d+\.\d+\.\d+)" | head -n 1)"
     
     - name: Cache zstd
-      uses: actions/cache@v2
+      uses: actions/cache@v2.1.4
       with:
         path: /opt/zstd
         key: ${{ steps.zstd.outputs.zstd_dir }}-rev-v2
