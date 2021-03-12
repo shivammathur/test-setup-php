@@ -14,28 +14,18 @@ jobs:
       uses: actions/checkout@v2
       
     - name: Add requirements
-      run: apt-get update && apt-get install curl -y
+      run: apt-get update && apt-get install curl make gcc -y
       
     - name: Add zstd
       shell: bash
       run: |
-        get() {
-          file_path=$1
-          shift
-          links=("$@")
-          for link in "${links[@]}"; do
-            status_code=$(curl -w "%{http_code}" -o "$file_path" -sL "$link")
-            [ "$status_code" = "200" ] && break
-          done
-        }        
-        zstd_version=$(curl -sL https://api.bintray.com/packages/homebrew/bottles/zstd | sed -e 's/^.*"latest_version":"\([^"]*\)".*$/\1/')
-        tar_file="zstd-$zstd_version.x86_64_linux.bottle.tar.gz"
-        # linuxbrew bottles might be merged in homebrew
-        get /tmp/"$tar_file" "http://dl.bintray.com/linuxbrew/bottles/$tar_file" "http://dl.bintray.com/homebrew/bottles/$tar_file"
-        tar -xzf /tmp/"$tar_file" -C /tmp
-        for dir in share lib include bin; do
-          cp -rl /tmp/zstd/$zstd_version/* /usr/local/
-        done  
+        zstd_version=$(curl -sL https://github.com/facebook/zstd/releases/latest | grep -Po "zstd-(\d+\.\d+\.\d+)" | head -n 1)
+        curl -o /tmp/zstd.tar.gz -sL https://github.com/facebook/zstd/releases/latest/download/$zstd_version.tar.gz
+        tar -xzf zstd.tar.gz -C /tmp
+        (
+          cd /tmp/$zstd_version || exit 1
+          make install PREFIX=/usr
+        )
         rm -rf /tmp/zstd*
     - name: Test zstd
       run: zstd -V
