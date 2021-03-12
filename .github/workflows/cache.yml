@@ -18,12 +18,17 @@ jobs:
         uses: actions/checkout@v2
       - name: Install requirements
         run: bash src/install-requirements.sh
-      - name: Set up Homebrew
+      - name: Get ZSTD_DIR
+        id: zstd
+        run: echo "::set-output name=ZSTD_DIR::$(curl -sL https://github.com/facebook/zstd/releases/latest | grep -Po "zstd-(\d+\.\d+\.\d+)" | head -n 1)"
+      - name: Add ZSTD
         env:
-          HOMEBREW_FORCE_HOMEBREW_ON_LINUX: 1
-        uses: shivammathur/actions/setup-homebrew@shivammathur-patch-git-retry
-      - name: Install zstd
-        run: brew install zstd && zstd -V
+          CONTAINER: ${{ matrix.container }}
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          USER: ${{ github.repository_owner }}
+          ZSTD_DIR: ${{ steps.zstd.outputs.ZSTD_DIR }}
+        run: bash src/install-zstd.sh
       - name: Configure git
         run: bash src/configure-git.sh
       - name: Setup PHP
@@ -35,6 +40,12 @@ jobs:
           GITHUB_WORKSPACE: ${{ github.workspace }}
           PHP_VERSION: ${{ matrix.php-versions }}
         run: bash src/package.sh
+      - name: Upload zstd Artifact
+        if: matrix.php-versions == '8.0'
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.zstd.outputs.zstd_dir }}-ubuntu${{ matrix.container }}
+          path: /opt/zstd
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:

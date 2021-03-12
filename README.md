@@ -16,5 +16,4 @@ The code in this project is licensed under the [MIT license](LICENSE).
 
 - [actions/virtual-environments](https://github.com/actions/virtual-environments "actions/virtual-environments")
 - [facebook/zstd](https://github.com/facebook/zstd "facebook/zstd")
-- [homebrew/setup-homebrew](https://github.com/Homebrew/actions/tree/master/setup-homebrew "Setup Homebrew")  
 - [ppa:ondrej/php](https://launchpad.net/~ondrej/+archive/ubuntu/php "ppa:ondrej/php")
