@@ -14,7 +14,7 @@ jobs:
       uses: actions/checkout@v2
       
     - name: Add requirements
-      run: apt-get update && apt-get install curl make gcc -y
+      run: apt-get update && apt-get install curl make gcc jq unzip -y
       
     - name: Get zstd dir
       id: zstd
@@ -23,16 +23,23 @@ jobs:
     - name: Add zstd
       env:
         zstd_dir: ${{ steps.zstd.outputs.zstd_dir }}
-      run: |        
-        if ! [ -d /opt/zstd ]; then
-          apt-get install zlib1g liblzma-dev liblz4-dev -y
-          mkdir -p /opt/zstd
+        repo: ${{ github.repository }}
+        token: ${{ secrets:GITHUB_TOKEN }}
+      run: |
+        mkdir -p /opt/zstd
+        zstd_url=$(curl -sL https://api.github.com/repos/$repo/actions/artifacts | jq -r --arg zstd_dir $zstd_dir '.artifacts[] | select(.name=="\($zstd_dir)").archive_download_url' 2>/dev/null | head -n 1)        
+        if [[ -z ${zstd_url// } ]]; then
+          apt-get install zlib1g liblzma-dev liblz4-dev -y          
           curl -o /tmp/zstd.tar.gz -sL https://github.com/facebook/zstd/releases/latest/download/$zstd_dir.tar.gz
           tar -xzf /tmp/zstd.tar.gz -C /tmp
           (
             cd /tmp/$zstd_dir || exit 1
             make install -j$(nproc) PREFIX=/opt/zstd
-          )          
+          )
+        else
+          curl -o /tmp/zstd.zip -sL $zstd_url
+          unzip /tmp/zstd.zip -d /opt/zstd
+          chmod -R a+x /opt/zstd/bin
         fi
         ln -sf /opt/zstd/bin/* /usr/local/bin
         rm -rf /tmp/zstd*
@@ -41,5 +48,5 @@ jobs:
       
     - uses: actions/upload-artifact@v2
       with:
-        name: zstd
+        name: ${{ steps.zstd.outputs.zstd_dir }}
         path: /opt/zstd
