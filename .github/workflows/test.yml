@@ -2,15 +2,7 @@
 
 name: "Semantic Release"
 
-on: # yamllint disable-line rule:truthy
-    push:
-        branches:
-            - "([0-9])?(.{+([0-9]),x}).x"
-            - "main"
-            - "next"
-            - "next-major"
-            - "alpha"
-            - "beta"
+on: [push]
 
 jobs:
     Test:
