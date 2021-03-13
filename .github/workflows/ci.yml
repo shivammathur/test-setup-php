@@ -15,7 +15,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
       - name: Check commit
-        run: echo /etc/php/${{ matrix.php-version }}/COMMIT
+        run: cat /etc/php/${{ matrix.php-version }}/COMMIT
       - name: Test versions
         run: |
           php -v | head -n 1
