@@ -14,11 +14,11 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
-      - uses: mxschmitt/action-tmate@v3.3    
       - name: Check commit
         run: cat /etc/php/${{ matrix.php-version }}/COMMIT
       - name: Test versions
         run: |
+          php -i | grep "extension_dir"
           php -v | head -n 1
           php-cgi -v | head -n 1
           phpdbg -V | head -n 1
