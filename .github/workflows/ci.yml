@@ -18,6 +18,7 @@ jobs:
         run: cat /etc/php/${{ matrix.php-version }}/COMMIT
       - name: Test versions
         run: |
+          ls -la /usr/local/php/8.1/lib/php/extensions
           php -i | grep "extension_dir"
           php -v | head -n 1
           php-cgi -v | head -n 1
