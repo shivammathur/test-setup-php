@@ -1,7 +1,6 @@
-on:
-  - push
-
 name: CI
+
+on: [push]
 
 env:
   COMPOSER_ROOT_VERSION: "10.0-dev"
@@ -44,7 +43,6 @@ jobs:
           ini-values: ${{ env.PHP_INI_VALUES }}
 
       - name: Determine composer cache directory on Linux
-        if: matrix.os == 'ubuntu-latest'
         run: echo "COMPOSER_CACHE_DIR=$(./tools/composer config cache-dir)" >> $GITHUB_ENV
 
       - name: Install highest dependencies with composer        
