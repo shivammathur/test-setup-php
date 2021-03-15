@@ -1,8 +1,6 @@
 name: nightly workflow
 on:
   push:
-env:
-  use_package_cache: false
 jobs:
   ubuntu:
     name: nightly
