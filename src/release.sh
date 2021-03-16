@@ -29,6 +29,7 @@ repo="$GITHUB_REPOSITORY"
 assets=()
 to_wait=()
 cd "$GITHUB_WORKSPACE" || exit 1
+rm -rf ./builds/zstd*
 if ! gh release view builds; then
   release_create
 else
