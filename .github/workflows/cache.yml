@@ -70,6 +70,7 @@ jobs:
         run: bash src/release.sh
         env:
           CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
+          GITHUB_MESSAGE: ${{ github.event.head_commit.message }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_WORKSPACE: ${{ github.workspace }}

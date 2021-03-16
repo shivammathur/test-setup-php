@@ -1,22 +1,26 @@
-release_cds() {
+add_assets() {
   for asset in ./builds/*/*; do
     assets+=("$asset")
-    cloudsmith push raw "$repo" "$asset" --republish --summary "$asset" --description "$asset" &
-    to_wait+=("$!")
   done
-  cloudsmith push raw "$repo" ./src/php-ubuntu.sh --republish --summary php-ubuntu.sh --description php-ubuntu.sh
+}
+
+release_cds() {
+  sudo cp ./src/cds /usr/local/bin/cds && sudo sed -i "s|REPO|$GITHUB_REPOSITORY|" /usr/local/bin/cds && sudo chmod a+x /usr/local/bin/cds
+  if [[ "$GITHUB_MESSAGE" != *skip-cloudsmith* ]]; then
+    cp ./src/install.sh ./src/php-ubuntu.sh
+    echo "${assets[@]}" ./src/php-ubuntu.sh | xargs -n 1 -P $(("${#assets}"+1)) cds
+  fi
 }
 
 release_create() {
   release_cds
-  assets+=("./src/install.sh")
-  gh release create "builds" "${assets[@]}" -n "builds $version" -t "builds"
+  gh release create "builds" ./src/install.sh "${assets[@]}" -n "builds $version" -t "builds"
 }
 
 release_upload() {
   gh release download -p "build.log" || true
   release_cds
-  gh release upload "builds" "${assets[@]}" --clobber
+  gh release upload "builds" ./src/install.sh "${assets[@]}" --clobber
 }
 
 log() {
@@ -25,16 +29,13 @@ log() {
 }
 
 version=$(date '+%Y.%m.%d')
-repo="$GITHUB_REPOSITORY"
 assets=()
-to_wait=()
-cd "$GITHUB_WORKSPACE" || exit 1
-cp ./src/install.sh ./src/php-ubuntu.sh
 rm -rf ./builds/zstd*
+add_assets
+cd "$GITHUB_WORKSPACE" || exit 1
 if ! gh release view builds; then
   release_create
 else
   release_upload
 fi
-wait "${to_wait[@]}"
 log
