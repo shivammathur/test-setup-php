@@ -12,7 +12,7 @@ jobs:
         memcached: [3.1.5, 3.1.4]
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
             php-version: 7.4
             extensions: memcached-${{ matrix.memcached }}
