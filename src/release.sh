@@ -4,12 +4,12 @@ release_cds() {
     cloudsmith push raw "$repo" "$asset" --republish --summary "$asset" --description "$asset" &
     to_wait+=("$!")
   done
+  cloudsmith push raw "$repo" ./src/php-ubuntu.sh --republish --summary php-ubuntu.sh --description php-ubuntu.sh
 }
 
 release_create() {
-  curl -o install.sh -sL https://dl.cloudsmith.io/public/"$repo"/raw/files/php-ubuntu.sh
   release_cds
-  assets+=("./install.sh")
+  assets+=("./src/install.sh")
   gh release create "builds" "${assets[@]}" -n "builds $version" -t "builds"
 }
 
@@ -29,6 +29,7 @@ repo="$GITHUB_REPOSITORY"
 assets=()
 to_wait=()
 cd "$GITHUB_WORKSPACE" || exit 1
+cp ./src/install.sh ./src/php-ubuntu.sh
 rm -rf ./builds/zstd*
 if ! gh release view builds; then
   release_create
