@@ -9,23 +9,32 @@ jobs:
       matrix:
         os: [ubuntu-20.04]
     steps:
-      - uses: shivammathur/setup-php@verbose
+      - name: Setup PHP 7.1
+        uses: shivammathur/setup-php@v2
         with:
           php-version: 7.1
-      - name: Check PHP version
-        run: php-config --version
-      - uses: shivammathur/setup-php@verbose
+      - name: Check PHP 7.1
+        run: php -v
+
+      - name: Setup PHP 7.4
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: 7.2
-      - name: Check PHP version
-        run: php-config --version
-      - uses: shivammathur/setup-php@verbose
+          php-version: 7.4
+      - name: Check PHP 7.4
+        run: php -v
+
+      - name: Setup PHP 8.0
+        uses: shivammathur/setup-php@v2
         with:
           php-version: 8.0
-      - name: Check PHP version
-        run: php-config --version
-      - uses: shivammathur/setup-php@verbose
+      - name: Check PHP 8.0
+        run: php -v
+
+      - name: Setup PHP 7.1
+        uses: shivammathur/setup-php@v2
         with:
           php-version: 7.1
-      - name: Check PHP version
-        run: php-config --version
+      - name: Check PHP 7.1
+        run: php -v
+
+        
