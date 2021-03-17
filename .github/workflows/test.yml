@@ -42,3 +42,10 @@ jobs:
           php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
           php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
           php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
+      - name: Install PHP
+        uses: shivammathur/setup-php@master
+        with:
+          php-version: ${{ matrix.php-versions }}
+          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+        env:
+          runner: self-hosted
