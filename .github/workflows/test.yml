@@ -11,7 +11,6 @@ jobs:
       fail-fast: false
       matrix:
         containers: ["focal", "bionic", "xenial"]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     steps:
       - name: Install sudo and git
         run: |
@@ -20,16 +19,15 @@ jobs:
           apt-get update && apt-get install -y git
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Install PHP
+      - name: Install PHP 7.1
         uses: shivammathur/setup-php@master
         with:
-          php-version: ${{ matrix.php-versions }}
-          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+          php-version: 7.1
         env:
           runner: self-hosted
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
-      - name: Testing PHP version
+      - name: Testing PHP 7.1
         run: |
           php -v
           php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
@@ -37,19 +35,39 @@ jobs:
         run: |
           composer -V
           php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
-      - name: Testing ini values
-        run: |
-          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
-          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
-          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
-      - name: Install PHP
+      - name: Install PHP 7.2
         uses: shivammathur/setup-php@master
         with:
-          php-version: ${{ matrix.php-versions }}
-          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+          php-version: 7.2
         env:
           runner: self-hosted
-      - name: Testing PHP version
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Testing PHP 7.2
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+      - name: Install PHP 8.0
+        uses: shivammathur/setup-php@master
+        with:
+          php-version: 8.0
+        env:
+          runner: self-hosted
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Testing PHP 8.0
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+      - name: Install PHP 7.1
+        uses: shivammathur/setup-php@master
+        with:
+          php-version: 7.1
+        env:
+          runner: self-hosted
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Testing PHP 7.1
         run: |
           php -v
           php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
