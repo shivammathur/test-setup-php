@@ -21,7 +21,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@master
         with:
           php-version: ${{ matrix.php-versions }}
           ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
@@ -34,7 +34,9 @@ jobs:
           php -v
           php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
       - name: Testing Composer version
-        run: php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
+        run: |
+          composer -V
+          php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
       - name: Testing ini values
         run: |
           php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
