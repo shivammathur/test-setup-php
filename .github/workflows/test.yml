@@ -49,3 +49,7 @@ jobs:
           ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
         env:
           runner: self-hosted
+      - name: Testing PHP version
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
