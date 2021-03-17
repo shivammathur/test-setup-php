@@ -30,7 +30,7 @@ jobs:
       - name: Testing PHP 7.1
         run: |
           php -v
-          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+          php -r "if(strpos(phpversion(), '7.1') === false) {throw new Exception('Wrong PHP version Installed');}"
       - name: Testing Composer version
         run: |
           composer -V
@@ -46,7 +46,7 @@ jobs:
       - name: Testing PHP 7.2
         run: |
           php -v
-          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+          php -r "if(strpos(phpversion(), '7.2') === false) {throw new Exception('Wrong PHP version Installed');}"
       - name: Install PHP 8.0
         uses: shivammathur/setup-php@master
         with:
@@ -58,7 +58,7 @@ jobs:
       - name: Testing PHP 8.0
         run: |
           php -v
-          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+          php -r "if(strpos(phpversion(), '8.0') === false) {throw new Exception('Wrong PHP version Installed');}"
       - name: Install PHP 7.1
         uses: shivammathur/setup-php@master
         with:
@@ -70,4 +70,4 @@ jobs:
       - name: Testing PHP 7.1
         run: |
           php -v
-          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+          php -r "if(strpos(phpversion(), '7.1') === false) {throw new Exception('Wrong PHP version Installed');}"
