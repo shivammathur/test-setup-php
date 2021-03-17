@@ -22,11 +22,12 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php }}
-        extensions: raphf, http-m6w6/ext-http@v4.0.0, intl, mongodb-mongodb/mongo-php-driver@master
+        extensions: raphf, http-m6w6/ext-http@v4.0.0, intl, mongodb-mongodb/mongo-php-driver@master, protobuf-protocolbuffers/protobuf/php/ext/google/protobuf@v3.15.6
       env:
         HTTP_CONFIGURE_PREFIX_OPTS: "CFLAGS=-Wno-implicit-function-declaration"
         HTTP_CONFIGURE_OPTS: "--with-http, ${{ steps.opts.outputs.http_opts }}"
         HTTP_LIBS: zlib1g, libbrotli-dev, libcurl4-openssl-dev, libevent-dev, libicu-dev, libidn2-dev
+        PROTOBUF_OPTS: "--enable-protobuf"
     - run: php -v && php -m   
           
         
