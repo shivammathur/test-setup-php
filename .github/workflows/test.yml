@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        php: ['8.0', '8.1']
+        php: ['8.0']
     steps:
     - name: Build http opts
       id: opts
@@ -22,10 +22,11 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php }}
-        extensions: raphf, http-m6w6/ext-http@v4.0.0, intl
+        extensions: raphf, http-m6w6/ext-http@v4.0.0, intl, mongodb-mongodb/mongo-php-driver@master
       env:
         HTTP_CONFIGURE_PREFIX_OPTS: "CFLAGS=-Wno-implicit-function-declaration"
         HTTP_CONFIGURE_OPTS: "--with-http, ${{ steps.opts.outputs.http_opts }}"
         HTTP_LIBS: zlib1g, libbrotli-dev, libcurl4-openssl-dev, libevent-dev, libicu-dev, libidn2-dev
+    - run: php -v && php -m   
           
         
