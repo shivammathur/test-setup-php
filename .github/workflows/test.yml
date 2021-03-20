@@ -9,17 +9,10 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04]
-        msgpack: [0.5.7, 2.0.0, 2.0.1, 2.1.2]
+        libs: ['libzip-dev libenchant-2-dev']
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
-        with:
-            php-version: 5.3
-            extensions: msgpack-${{ matrix.msgpack }}
-        env:
-            fail-fast: true
-      - name: Test
         run: |
-          php -r "echo phpversion('msgpack');"
-          php -v
-          php -m
+          sudo apt-get install $libs -y
+        env:
+          libs: ${{ matrix.libs }}
