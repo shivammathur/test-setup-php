@@ -1,4 +1,4 @@
-name: Tools develop workflow
+name: Tools workflow
 on:
   push:
 jobs:
@@ -9,13 +9,13 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-18.04]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     steps:
       - name: Checkout
         uses: actions/checkout@v2 
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: phive
-      - run: phive status
+          tools: php-cs-fixer:2.18.4
+      - run: php-cs-fixer -V
