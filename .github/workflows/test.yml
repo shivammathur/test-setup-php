@@ -15,7 +15,9 @@ jobs:
         run: |
           Install-Module -Name VcRedist -Force
           Install-Module -Name PhpManager -Force
-          Install-Php -Version ${{ matrix.php }} -Architecture x86 -ThreadSafe 0 -Path C:\tools\php -TimeZone UTC -InstallVC -Force
+          Install-Php -Version ${{ matrix.php }} -Architecture x86 -ThreadSafe 0 -Path C:\tools\php -TimeZone UTC -InstallVC -Force          
       - run: |
+          C:\tools\php\deplister C:\tools\php\php.exe
           php -v
           php -m
+          
