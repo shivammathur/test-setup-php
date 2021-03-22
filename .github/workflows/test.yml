@@ -14,9 +14,16 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.1'
+      - run: sudo apt-get install libargon2-dev 2>/dev/null || brew install argon2
       - run: |
-          pkg-config --variable pc_path pkg-config    
-          ls /usr/lib/pkgconfig
+          pkg-config --variable pc_path pkg-config
+          ls $(brew --repository)/Library/Homebrew/os/mac/pkgconfig/10.15 || true
+          ls /usr/local/lib/x86_64-linux-gnu/pkgconfig || true
+          ls /usr/local/lib/pkgconfig || true
+          ls /usr/local/share/pkgconfig || true
+          ls /usr/lib/x86_64-linux-gnu/pkgconfig || true
+          ls /usr/lib/pkgconfig || true
+          ls /usr/share/pkgconfig || true
       - name: Test
         run: |
           php -v
