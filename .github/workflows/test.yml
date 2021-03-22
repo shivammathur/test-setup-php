@@ -22,4 +22,4 @@ jobs:
       - name: Test
         run: |
           php -v
-          php -r "var_dump(password_hash('password', PASSWORD_ARGON2I, ['memory_cost' => 1024, 'time_cost' => 2, 'threads' => 1, ]));" || true
+          php -r "var_dump(password_hash('password', PASSWORD_ARGON2I, ['memory_cost' => 1024, 'time_cost' => 2]));" || true
