@@ -31,7 +31,8 @@ jobs:
           ls /usr/lib/pkgconfig || true
           echo "----/usr/share/pkgconfig"
           ls /usr/share/pkgconfig || true
+      - uses: mxschmitt/action-tmate@v3.3
       - name: Test
         run: |
           php -v
-          php -r "var_dump(password_hash('password', PASSWORD_ARGON2I, ['memory_cost' => 1024, 'time_cost' => 2, 'threads' => 2, ]));"
+          php -r "var_dump(password_hash('password', PASSWORD_ARGON2I, ['memory_cost' => 1024, 'time_cost' => 2, 'threads' => 2, ]));" || true
