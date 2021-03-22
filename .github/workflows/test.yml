@@ -17,21 +17,8 @@ jobs:
       - run: sudo apt-get install libargon2-dev 2>/dev/null || brew install argon2
       - run: |
           pkg-config --variable pc_path pkg-config
-          echo "----$(brew --repository)/Library/Homebrew/os/mac/pkgconfig/10.15"
-          ls $(brew --repository)/Library/Homebrew/os/mac/pkgconfig/10.15 || true
-          echo "----/usr/local/lib/x86_64-linux-gnu/pkgconfig"
-          ls /usr/local/lib/x86_64-linux-gnu/pkgconfig || true
-          echo "----/usr/local/lib/pkgconfig"
-          ls /usr/local/lib/pkgconfig || true
-          echo "----/usr/local/share/pkgconfig"
-          ls /usr/local/share/pkgconfig || true
-          echo "----/usr/lib/x86_64-linux-gnu/pkgconfig"
-          ls /usr/lib/x86_64-linux-gnu/pkgconfig || true
-          echo "----/usr/lib/pkgconfig"
-          ls /usr/lib/pkgconfig || true
-          echo "----/usr/share/pkgconfig"
-          ls /usr/share/pkgconfig || true
-      - uses: mxschmitt/action-tmate@v3.3
+          cat /usr/lib/x86_64-linux-gnu/pkgconfig/libargon2.pc || true
+          cat /usr/local/lib/pkgconfig/libargon2.pc || true
       - name: Test
         run: |
           php -v
