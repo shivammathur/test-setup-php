@@ -1,20 +1,33 @@
-
-name: 'Extension v2 workflow'
+name: 'Extension develop workflow'
 on:
+  repository_dispatch:
   push:
 jobs:
   run:
-    runs-on: ${{ matrix.operating-system }}    
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
+      max-parallel: 6
       matrix:
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, macos-latest]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
         with:
-          php-version: '8.1'
-      - name: Test
+          php-version: ${{ matrix.php-versions }}
+          extensions: geos, cubrid, pdo_cubrid, pdo_firebird, couchbase, http
+      - name: Testing PHP version
+        run: php -v
+      - name: Testing Extensions
         run: |
-          php -v
-          php -r "var_dump(password_hash('password', PASSWORD_ARGON2I));" || true
+          php -m
+          php -r "if(phpversion()<=7.4 && ! extension_loaded('cubrid')) {throw new Exception('cubrid not found');}"
+          php -r "if(phpversion()<=7.2 && ! extension_loaded('pdo_cubrid')) {throw new Exception('pdo_cubrid not found');}"
+          php -r "if(phpversion()<=7.4 && ! extension_loaded('geos')) {throw new Exception('geos not found');}"
+          php -r "if(! extension_loaded('pdo_firebird')) {throw new Exception('pdo_firebird not found');}";
+          php -r "if(! extension_loaded('couchbase')) {throw new Exception('couchbase not found');}";
+          php -r "if(! extension_loaded('http')) {throw new Exception('http not found');}";
