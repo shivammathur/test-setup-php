@@ -21,6 +21,12 @@ jobs:
           extensions: geos, cubrid, pdo_cubrid, pdo_firebird, couchbase, http
       - name: Testing PHP version
         run: php -v
+      - name: Check script
+        if: matrix.operating-system != 'macos-latest'
+        run: /opt/hostedtoolcache/linux.sh
+      - name: Check script
+        if: matrix.operating-system == 'macos-latest'
+        run: /Users/runner/hostedtoolcache/darwin.sh
       - name: Testing Extensions
         run: |
           php -m
