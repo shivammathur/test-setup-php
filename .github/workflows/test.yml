@@ -28,6 +28,4 @@ jobs:
         HTTP_CONFIGURE_OPTS: "--with-http, ${{ steps.opts.outputs.http_opts }}"
         HTTP_LIBS: zlib1g, libbrotli-dev, libcurl4-openssl-dev, libevent-dev, libicu-dev, libidn2-dev
         PROTOBUF_OPTS: "--enable-protobuf"
-    - run: php -v && php -m   
-          
-        
+    - run: php -v && php -m
