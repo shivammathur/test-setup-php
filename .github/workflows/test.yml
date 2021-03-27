@@ -12,4 +12,5 @@ jobs:
       with:
         php-version: '7.2'
     - run: |
+        sudo apt-get update
         sudo apt-get install php7.2-imagick -y
