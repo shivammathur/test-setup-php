@@ -7,5 +7,9 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-    - name: Test
-      uses: mxschmitt/action-tmate@v3.4
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '7.2'
+    - run: |
+        sudo apt-get install php7.2-imagick -y
