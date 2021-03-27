@@ -8,4 +8,4 @@ jobs:
       fail-fast: false
     steps:
     - name: Test
-      run: sudo apt-get install -y apt-fast automake gcc git jq make pkg-config shtool snmp sudo unzip
+      uses: mxschmitt/action-tmate@v3.4
