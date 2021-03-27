@@ -3,14 +3,16 @@ on:
   - push
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      matrix:
+        os: [ubuntu-20.04, ubuntu-18.04]
     steps:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: '7.2'
+        php-version: '5.6'
     - run: |
         sudo DEBIAN_FRONTEND=noninteractive add-apt-repository ppa:ondrej/php -y
         sudo DEBIAN_FRONTEND=noninteractive apt-get install php7.2-imagick -y
