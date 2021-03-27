@@ -1,7 +1,7 @@
 cd / || exit 1
-git add /bin /lib /lib64 /sbin /usr /var
-find /etc -maxdepth 1 -mindepth 1 -type d -exec git add {} \;
-git commit -m "installed php"
+sudo git add -v -f /bin /lib /lib64 /sbin /usr /var
+sudo find /etc -maxdepth 1 -mindepth 1 -type d -exec git add -v -f {} \;
+sudo git commit -m "installed php"
 mkdir -p /tmp/php
 for file in $(git log -p -n 1 --name-only | sed 's/^.*\(\s\).*$/\1/' | xargs -L1 echo); do
   sudo cp -r -p --parents "$file" /tmp/php || true
