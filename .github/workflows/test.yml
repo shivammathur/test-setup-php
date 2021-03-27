@@ -9,7 +9,7 @@ jobs:
       matrix:
         os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
     steps:
-    - run: sudo apt-get remove php5.6 php5.6-dev -y || true
+    - run: sudo apt-get purge php5.6 php5.6-* -y || true
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
