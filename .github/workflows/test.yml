@@ -18,6 +18,6 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: composer:${{ matrix.composer }}  
+          tools: composer:${{ matrix.composer }}, behat
       - name: Testing Tools
-        run: composer -V
+        run: behat -V
