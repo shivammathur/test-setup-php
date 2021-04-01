@@ -1,19 +1,24 @@
-name: Test #test
+name: Test
 on:
-  - push
+  push:
+env:
+  COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
+  latest:
+    name: latest
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        operating-system: [ubuntu-latest]
+        php-versions: ['8.0']
     steps:
-    - run: sudo apt-get purge php5.6 php5.6-* -y || true
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '5.6'
-    - run: |
-        sudo DEBIAN_FRONTEND=noninteractive add-apt-repository ppa:ondrej/php -y
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install php7.2-imagick -y
+      - name: Install PHP
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: behat          
+      - uses: mxschmitt/action-tmate@v3.5    
+      - name: Testing Tools
+        run: |
+          behat -V
