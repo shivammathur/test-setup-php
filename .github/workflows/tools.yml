@@ -3,7 +3,7 @@ on:
   repository_dispatch:
   push:
   schedule:
-    - cron: '45 1/5 * * *'
+    - cron: '45 2/5 * * *'
 env:
   COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }}
@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
-        php-versions: ['7.4']
+        php-versions: ['8.0']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -26,7 +26,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: behat, blackfire, blackfire-player, composer-require-checker, composer-normalize, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phplint, phpstan, phpspec, phpmd, cs2pr, codeception, phpunit, psalm, phing, phinx, phive, deployer, protoc, pecl, phpize, php-config, symfony, vapor-cli
+          tools: behat, blackfire, blackfire-player, composer-require-checker, composer-normalize, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpspec, phpmd, cs2pr, codeception, phpunit, psalm, phing, phinx, phive, deployer, protoc, pecl, phpize, php-config, symfony, vapor-cli
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Print php.ini
@@ -47,7 +47,6 @@ jobs:
           phpcs --version
           phpcbf --version
           phpcpd --version
-          phplint -V
           phpspec -V
           phpstan -V
           codeception -V
@@ -88,7 +87,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
-        php-versions: ['7.4']
+        php-versions: ['8.0']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -96,7 +95,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: behat:3.6.1, blackfire:1.31.0, blackfire-player:1.8.1, infection:0.16.1, flex:1.9.10, phan:2.7.2, php-cs-fixer:2.16.2, phpcs:3.5.2, phpcbf:3.5.2, phpcpd:4.0.0, phpspec:6.2.0, phpstan:0.12.3, phpmd:2.8.0, codeception:3.1.2, cs2pr:1.0.2, phpunit:8.5.0, psalm:3.8.0, phing:2.16.3, phinx:0.11.3, phive:0.13.1, deployer:6.7.2, composer:2.0.4, pecl:1.2.3, symfony:4.12.3, vapor-cli:1.6.1
+          tools: behat:3.6.1, blackfire:1.45.1, blackfire-player:1.10.0, infection:0.20.0, flex:1.10.0, phan:4.0.2, php-cs-fixer:2.18.0, phpcs:3.5.2, phpcbf:3.5.8, phpcpd:6.0.3, phpspec:7.0.1, phpstan:0.12.68, phpmd:2.9.1, cs2pr:1.4.0, phpunit:9.5.1, psalm:4.4.1, phing:2.16.3, phinx:0.12.4, phive:0.14.5, deployer:6.8.0, composer:2.0.12, pecl:1.2.3, symfony:4.21.6, vapor-cli:1.11.1
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
@@ -111,10 +110,9 @@ jobs:
           php-cs-fixer -V
           phpcs --version
           phpcbf --version
-          phpcpd -V
+          phpcpd --version
           phpspec -V
           phpstan -V
-          codeception -V
           cs2pr version
           phpunit --version
           psalm -v
@@ -198,7 +196,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macOS-latest]
-        php-versions: ['7.4']
+        php-versions: ['8.0']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -206,7 +204,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: composer:v1, php-cs-fixer:100.100.100, phpcs:^3.5.2, phpcbf:>=3.5.2, phpcpd:<=4.0.0, phpstan:^0.12.3, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, symfony/flex, composer-prefetcher
+          tools: composer:v1, php-cs-fixer:100.100.100, phpcs:^3.5.8, phpcbf:>=3.5.8, phpcpd:<=6.0.3, phpstan:^0.12.68, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, symfony/flex
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
@@ -215,11 +213,10 @@ jobs:
           php -r "if(strpos(@exec('composer -V'), 'Composer version 1') === false) {throw new Exception('Wrong composer version');}"
           phpcs --version
           phpcbf --version
-          phpcpd -V
+          phpcpd --version
           phpstan -V
       - name: Test flex
         run: composer global show symfony/flex
       - name: Test prestissimo
-        run: |
-          composer global show hirak/prestissimo
-          composer global show narrowspark/automatic-composer-prefetcher
+        run: composer global show hirak/prestissimo
+
