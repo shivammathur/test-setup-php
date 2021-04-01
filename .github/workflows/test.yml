@@ -15,7 +15,7 @@ jobs:
         with:
           coverage: pcov
           php-version: ${{ matrix.php-versions }}
-          extension: dom, fileinfo, mbstring, gd
+          extensions: dom, fileinfo, mbstring, gd
       - name: Test
         run: |
           php -v
