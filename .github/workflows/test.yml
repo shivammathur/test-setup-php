@@ -11,14 +11,14 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
+        composer: [v1, v2, preview, snapshot]
         php-versions: ['8.0']
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: behat          
-      - uses: mxschmitt/action-tmate@v3.5    
+          tools: composer:${{ matrix.composer }}, behat  
       - name: Testing Tools
         run: |
           behat -V
