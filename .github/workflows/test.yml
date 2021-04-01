@@ -1,8 +1,6 @@
 name: Test
 on:
   push:
-env:
-  COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 jobs:
   latest:
     name: latest
@@ -11,13 +9,14 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        composer: [v1, v2, stable, preview, snapshot]
-        php-versions: ['8.0']
+        php-versions: ['7.3', '7.4', '8.0']
     steps:
-      - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+      - uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-versions }}
-          tools: composer:${{ matrix.composer }}, behat
-      - name: Testing Tools
-        run: behat -V
+          coverage: pcov
+          php-version: ${{ matrix.php }}
+          extension: dom, fileinfo, mbstring, gd
+      - name: Test
+        run: |
+          php -v
+          php -m
