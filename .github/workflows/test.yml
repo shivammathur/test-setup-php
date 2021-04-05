@@ -20,7 +20,7 @@ jobs:
           ini-values: date.timezone='UTC'
           coverage: pcov
           tools: composer:v2
-      - run: echo "::debug::${ImageVersion:?}"
+      - run: echo "::warning::$ImageVersion"
       - name: Test
         run: |
           php -v
