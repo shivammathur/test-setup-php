@@ -6,12 +6,18 @@ namespace Yiisoft\Validator\Tests\Rule;
 
 use PHPUnit\Framework\TestCase;
 use Yiisoft\Validator\Tests\Stub\CustomUrlRule;
+use Yiisoft\Validator\Tests\Rule\UrlTest;
 
 /**
  * @group validators
  */
 class GroupRuleTest extends TestCase
 {
+
+    protected function setUp(): void
+    {
+        UrlTest::$idnFunctionException = false;
+    }    
     public function testValidate(): void
     {
         $validator = new CustomUrlRule();

@@ -15,15 +15,16 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
         os:
           - ubuntu-latest
-          - windows-latest
 
         php:
           - "7.4"
           - "8.0"
-        runs: [1,1,1,1,1,1,1,1,1,1,1]  
+
+        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 
     steps:
       - name: Checkout
@@ -43,27 +44,8 @@ jobs:
           php -v
           php -m
           php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
-          php -r "if(! function_exists('idn_to_ascii')) {throw new Exception('idn_to_ascii not found');}"          
-
-      - name: Determine composer cache directory on Linux
-        if: matrix.os == 'ubuntu-latest'
-        run: echo "COMPOSER_CACHE_DIR=$(composer config cache-dir)" >> $GITHUB_ENV
-
-      - name: Determine composer cache directory on Windows
-        if: matrix.os == 'windows-latest'
-        run: echo "COMPOSER_CACHE_DIR=~\AppData\Local\Composer" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Cache dependencies installed with composer
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.COMPOSER_CACHE_DIR }}
-          key: php${{ matrix.php }}-composer-${{ hashFiles('**/composer.json') }}
-          restore-keys: |
-            php${{ matrix.php }}-composer-
-
-      - name: Update composer
-        run: composer self-update
-
+          php -r "if(! function_exists('idn_to_ascii')) {throw new Exception('idn_to_ascii not found');}"
+          php --rf idn_to_ascii
       - name: Install dependencies with composer php 7.4
         if: matrix.php == '7.4'
         run: composer update --prefer-dist --no-interaction --no-progress --optimize-autoloader --ansi
@@ -72,5 +54,17 @@ jobs:
         if: matrix.php == '8.0'
         run: composer update --ignore-platform-reqs --prefer-dist --no-interaction --no-progress --optimize-autoloader --ansi
 
-      - name: Run tests with phpunit
+      - name: Run tests with phpunit 1
+        run: vendor/bin/phpunit --colors=always
+        
+      - name: Run tests with phpunit 2
+        run: vendor/bin/phpunit --colors=always
+        
+      - name: Run tests with phpunit 3
+        run: vendor/bin/phpunit --colors=always
+        
+      - name: Run tests with phpunit 4
+        run: vendor/bin/phpunit --colors=always
+        
+      - name: Run tests with phpunit 5
         run: vendor/bin/phpunit --colors=always

@@ -11,9 +11,14 @@ use Yiisoft\Validator\Rule\Number;
 use Yiisoft\Validator\Rule\Required;
 use Yiisoft\Validator\Rules;
 use Yiisoft\Validator\Tests\Stub\CustomUrlRule;
+use Yiisoft\Validator\Tests\Rule\UrlTest;
 
 class RulesTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        UrlTest::$idnFunctionException = false;
+    }
     public function testMethodSyntax(): void
     {
         $rules = new Rules();
