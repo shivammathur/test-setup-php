@@ -35,6 +35,6 @@ jobs:
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
         run: echo "$GITHUB_CONTEXT"
-      - name: Check OS
+      - name: Check using Node
         run: |
           node -e "console.log(process.env)"
