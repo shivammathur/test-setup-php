@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['7.4', '8.0']
+        php: ['7.4', '8.0']
         runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     steps:
       - name: Install PHP
@@ -25,3 +25,4 @@ jobs:
           php -v
           php -m
           php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
+          php -r "if(! function_exists('idn_to_ascii')) {throw new Exception('idn_to_ascii not found');}"
