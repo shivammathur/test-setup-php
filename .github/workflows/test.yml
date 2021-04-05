@@ -9,19 +9,19 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['7.3', '7.4', '8.0']
+        php-versions: ['7.4', '8.0']
+        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     steps:
-      - uses: shivammathur/setup-php@v2
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
         with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ env.extensions }}
+          ini-values: date.timezone='UTC'
           coverage: pcov
-          php-version: ${{ matrix.php-versions }}
-          extensions: dom, fileinfo, mbstring, gd
+          tools: composer:v2
       - name: Test
         run: |
           php -v
           php -m
-          php -r "if(! extension_loaded('dom')) {throw new Exception('dom not found');}"
-          php -r "if(! extension_loaded('fileinfo')) {throw new Exception('fileinfo not found');}"
-          php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
-          php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}"
-          
+          php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
