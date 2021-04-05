@@ -10,7 +10,7 @@ jobs:
       matrix:
         operating-system: [ubuntu-latest]
         php: ['7.4', '8.0']
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@v2
@@ -20,6 +20,7 @@ jobs:
           ini-values: date.timezone='UTC'
           coverage: pcov
           tools: composer:v2
+      - run: echo "::debug::${ImageVersion:?}"
       - name: Test
         run: |
           php -v
