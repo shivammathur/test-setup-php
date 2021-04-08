@@ -19,4 +19,4 @@ jobs:
         brew upgrade shivammathur/php/php@${{ matrix.php }} 2>/dev/null || brew install shivammathur/php/php@${{ matrix.php }}
         brew link --force --overwrite php@${{ matrix.php }}
     - name: Test PHP
-      run: php -v && php -m
+      run: curl -V && php -v && php -m
