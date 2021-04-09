@@ -33,6 +33,7 @@ jobs:
             cd $(brew --repository)
             git pull origin master
           )
+          brew update
           brew tap shivammathur/extensions
           (
             cd $(brew --repository shivammathur/extensions)
@@ -40,7 +41,7 @@ jobs:
             git checkout ghcr
           )
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: ${{ matrix.extensions }}
