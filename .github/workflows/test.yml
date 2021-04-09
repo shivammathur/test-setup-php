@@ -29,6 +29,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - run: |
+          brew update
           brew tap shivammathur/extensions
           (
             cd $(brew --repository shivammathur/extensions)
