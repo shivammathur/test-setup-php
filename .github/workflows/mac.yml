@@ -24,10 +24,12 @@ jobs:
           git fetch origin ghcr
           git checkout ghcr
         )
-        brew remove php
+    - name: Remove php
+      if: matrix.php == '8.0'
+      run: brew remove php
     - name: Setup PHP
-      run: |        
-        brew install shivammathur/php/php@${{ matrix.php }}
-        brew link --force --overwrite php@${{ matrix.php }}
+      uses: shivammathur/setup-php@verbose     
+      with:
+        php-version: ${{ matrix.php }}
     - name: Test PHP
       run: curl -V && php -v && php -m
