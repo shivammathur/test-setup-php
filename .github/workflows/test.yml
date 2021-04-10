@@ -6,6 +6,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      max-parallel: 30
       matrix:
         os: [ubuntu-20.04]
         php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
@@ -22,7 +23,7 @@ jobs:
         run: |
           icu_version=$(php -i | grep "ICU version =>" | sed -e "s|.*=> s*||")
           echo $icu_version
-          [ "$icu_version" != "${{ matrix.icu }}" ] && exit 1
+          [ "$icu_version" != "${{ matrix.icu }}" ] && 	echo "::warning::failed to setup ${{ matrix.icu }} on php ${{ matrix.php }}"
           php -v
           php -m
   bionic:
@@ -30,6 +31,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      max-parallel: 30
       matrix:
         os: [ubuntu-18.04]
         php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
@@ -46,7 +48,7 @@ jobs:
         run: |
           icu_version=$(php -i | grep "ICU version =>" | sed -e "s|.*=> s*||")
           echo $icu_version
-          [ "$icu_version" != "${{ matrix.icu }}" ] && exit 1
+          [ "$icu_version" != "${{ matrix.icu }}" ] && 	echo "::warning::failed to setup ${{ matrix.icu }} on php ${{ matrix.php }}"
           php -v
           php -m
   xenial:
@@ -54,6 +56,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      max-parallel: 30
       matrix:
         os: [ubuntu-16.04]
         php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
@@ -70,6 +73,6 @@ jobs:
         run: |
           icu_version=$(php -i | grep "ICU version =>" | sed -e "s|.*=> s*||")
           echo $icu_version
-          [ "$icu_version" != "${{ matrix.icu }}" ] && exit 1
+          [ "$icu_version" != "${{ matrix.icu }}" ] && 	echo "::warning::failed to setup ${{ matrix.icu }} on php ${{ matrix.php }}"
           php -v
           php -m
