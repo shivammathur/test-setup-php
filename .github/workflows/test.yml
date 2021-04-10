@@ -1,29 +1,27 @@
-name: Test
+name: 'Intl workflow'
 on:
   push:
 jobs:
-  latest:
-    name: latest
-    runs-on: ${{ matrix.operating-system }}
+  xenial:
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
-        php: ['7.4', '8.0']
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        os: [ubuntu-16.04]
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+        icu: [56.2]
     steps:
-      - name: Install PHP
-        uses: shivammathur/setup-php@v2
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup PHP
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: ${{ env.extensions }}
-          ini-values: date.timezone='UTC'
-          coverage: pcov
-          tools: composer:v2
-      - run: echo "::warning::$ImageVersion"
-      - name: Test
+          extensions: intl-${{ matrix.icu }}
+      - name: Testing PHP
         run: |
+          icu_version=$(php -i | grep "ICU version =>" | sed -e "s|.*=> s*||")
+          echo $icu_version
+          [ "$icu_version" != "${{ matrix.icu }}" ] && exit 1
           php -v
           php -m
-          php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
-          php -r "if(! function_exists('idn_to_ascii')) {throw new Exception('idn_to_ascii not found');}"
