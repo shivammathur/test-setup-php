@@ -7,7 +7,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        os: [macos-latest]
     steps:
-      - name: Checkout
-        run: zstd -V
+      - name: Setup PHP
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: 8.0
+          extensions: grpc
