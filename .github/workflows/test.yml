@@ -30,8 +30,7 @@ jobs:
             [ "$(curl -s http://localhost)" != "$sapi" ] && exit 1
             echo "::endgroup::"
           done    
-      - name: Test extensions on PHP 5.3
-        if: matrix.php-versions == '5.3'
+      - name: Test extensions
         run: |
           php -m  
           php -r "if(! extension_loaded('amqp')) {throw new Exception('amqp not found');}"
