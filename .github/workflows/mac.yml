@@ -12,15 +12,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - run: |
-        (
-          cd $(brew --repository)
-          git pull origin master
-        )
-        brew update
-    - name: Remove php
-      if: matrix.php == '8.0'
-      run: brew remove php
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose     
       with:
