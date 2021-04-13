@@ -22,8 +22,9 @@ jobs:
              for formula in ./Formula/*@$v.rb; do
                json_array+=("{\"php\": \"$v\", \"extension\": \"$(echo $(basename $formula) | cut -d'@' -f 1)\"}")
              done
-           done            
-           echo "::set-output name=matrix::{\"include\":[$(echo ${json_array[@]} | sed -e 's|} {|}, {|g' -e 's|\"|\\"|g')]}"
+           done
+           echo "{\"include\":[$(echo ${json_array[@]} | sed -e 's|} {|}, {|g')]}"
+           echo "::set-output name=matrix::{\"include\":[$(echo ${json_array[@]} | sed -e 's|} {|}, {|g')]}"
   job2:
     needs: job1
     runs-on: ubuntu-latest
