@@ -7,10 +7,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
+        os: [macos-latest]
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@master
         with:
-          php-version: 5.3
-      - uses: mxschmitt/action-tmate@v3.5
+          php-version: 7.4
+          extensions: grpc
