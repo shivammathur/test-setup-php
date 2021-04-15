@@ -14,5 +14,5 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
-          php-version: 7.4
-          extensions: xdebug
+          php-version: 8.1
+          extensions: imap, protobuf, swoole
