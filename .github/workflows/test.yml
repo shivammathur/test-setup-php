@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - run: brew update  
+      - run: git -C $(brew --repository) pull origin master
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
