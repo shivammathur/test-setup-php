@@ -17,5 +17,5 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: robmorgan/phinx:0.11.*
-      - run: phinx -V
+          tools: behat:3.6.1
+      - run: behat -V
