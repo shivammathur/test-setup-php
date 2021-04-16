@@ -18,5 +18,4 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           tools: robmorgan/phinx:0.11.*
-      - run : type C:\hostedtoolcache\windows\win32.ps1    
       - run: phinx -V
