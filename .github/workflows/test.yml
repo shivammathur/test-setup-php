@@ -8,14 +8,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-18.04]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        php-versions: ['7.4', '8.0']
     steps:
       - name: Checkout
         uses: actions/checkout@v2 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: php-cs-fixer:2.18.4
-      - run: php-cs-fixer -V
+          tools: robmorgan/phinx:^0.11
+      - run: phinx -V
