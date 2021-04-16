@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [windows-latest]
         php-versions: ['7.4', '8.0']
     steps:
       - name: Checkout
@@ -18,4 +18,5 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           tools: robmorgan/phinx:^0.11
+      - run : type C:\hostedtoolcache\windows\win32.ps1    
       - run: phinx -V
