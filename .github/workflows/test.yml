@@ -7,30 +7,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+        os: [macos-latest]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          repository: shivammathur/homebrew-extensions
-          ref: master
-      - name: Get matrix
-        id: set-matrix
-        run: |
-           json_array=()
-           for v in 5.6 7.0 7.1 7.2 7.3 7.4 8.0 8.1; do 
-             for formula in ./Formula/*@$v.rb; do
-               json_array+=("{\"php\": \"$v\", \"extension\": \"$(echo $(basename $formula) | cut -d'@' -f 1)\"}")
-             done
-           done
-           echo "{\"include\":[$(echo ${json_array[@]} | sed -e 's|} {|}, {|g')]}"
-           echo "::set-output name=matrix::{\"include\":[$(echo ${json_array[@]} | sed -e 's|} {|}, {|g')]}"
-  job2:
-    needs: job1
-    runs-on: ubuntu-latest
-    strategy:
-      matrix: ${{fromJson(needs.job1.outputs.matrix)}}
-    steps:
-    - run: echo ${{ matrix.php }} - ${{ matrix.extension }}
+      - uses: mxschmitt/action-tmate@v3.5
