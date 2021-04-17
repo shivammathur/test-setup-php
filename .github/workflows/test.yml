@@ -7,6 +7,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: mxschmitt/action-tmate@v3.5
+      - uses: actions/node@v2
+        with:
+          node-version: 15.x
+      - run: |
+          node -v
+          npm -v
