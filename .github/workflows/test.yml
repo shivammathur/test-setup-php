@@ -1,4 +1,4 @@
-name: Test phalcon extension v3
+name: Test phalcon extension v4
 on: [push]
 jobs:
   run:    
@@ -7,10 +7,8 @@ jobs:
       fail-fast: false      
       matrix:        
         operating-system: [macos-latest]
-        php-versions: ['7.0', '7.1', '7.2', '7.3']
+        php-versions: ['7.2', '7.3', '7.4']        
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
-    env:
-      extensions: phalcon3
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -19,11 +17,14 @@ jobs:
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: ${{ env.extensions }}
+        extensions: phalcon4
     - name: Testing PHP version
       run: php -v
     - name: Testing Extensions
-      run: |      
+      run: |
+        php -r 'var_dump(new class(new Phalcon\Di\FactoryDefault) extends Phalcon\Mvc\Model {});'
+        php -r "echo 'psr: ' . phpversion('psr').', ';"
         php -r "echo 'phalcon: ' . phpversion('phalcon');"
+        php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
         php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
-        php -r "if(phpversion('phalcon')[0]!='3') {throw new Exception('Wrong phalcon version Installed');}"
+        php -r "if(phpversion('phalcon')[0]!='4') {throw new Exception('Wrong phalcon version Installed');}"
