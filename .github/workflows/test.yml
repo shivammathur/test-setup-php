@@ -7,11 +7,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-16.04]
     steps:
-      - uses: actions/setup-node@v2
+      - uses: shivammathur/setup-php@verbose
         with:
-          node-version: 15.x
-      - run: |
-          node -v
-          npm -v
+          php-version: 7.0
+      - run: php -v    
+      - uses: mxschmitt/action-tmate@v3.5
