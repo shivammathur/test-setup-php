@@ -8,9 +8,29 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-16.04]
+    env:
+      extensions: xml, opcache, xdebug, pcov
+      key: cache-v1
     steps:
+      - name: Setup cache environment
+        id: cache-env
+        uses: shivammathur/cache-extensions@develop
+        with:
+          php-version: '7.0'
+          extensions: ${{ env.extensions }}
+          key: ${{ env.key }}
+
+      - name: Cache extensions
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.cache-env.outputs.dir }}
+          key: ${{ steps.cache-env.outputs.key }}
+          restore-keys: ${{ steps.cache-env.outputs.key }}
+
       - uses: shivammathur/setup-php@verbose
         with:
-          php-version: 7.0
+          php-version: '7.0'
+          extensions: ${{ env.extensions }}
+          ini-values: post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata          
       - run: php -v    
       - uses: mxschmitt/action-tmate@v3.5
