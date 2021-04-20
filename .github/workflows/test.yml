@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: shivammathur/setup-php@develop
         with:
-          php-version: '7.0'
+          php-version: ${{ matrix.php }}
           extensions: gd-php/php-src@PHP-${{ matrix.php }}
         env:
           GD_CONFIGURE_ARGS: --enable-gd=shared,/usr --with-external-gd --with-jpeg
