@@ -7,7 +7,7 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
-        php-versions: ['5.3', '5.4', '5.5']
+        php-versions: ['8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
       BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }} 
@@ -18,11 +18,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Install PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@blackfire-v2
       with:
         php-version: ${{ matrix.php-versions }}
         tools: blackfire
-    - run: |
-        sudo apt-get -f install || true
     - name: Testing PHP version
       run: php -v
