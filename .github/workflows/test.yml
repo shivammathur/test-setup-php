@@ -14,7 +14,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: >-
-            csv-https://gitlab.com/Girgias/csv-php-extension@0.4.0
+            csv-https://gitlab.com/Girgias/csv-php-extension@0.4.0,
             gd-php/php-src@PHP-${{ matrix.php }},
             mongodb-mongodb/mongo-php-driver@v1.9,
             protobuf-protocolbuffers/protobuf@v3.15.8
