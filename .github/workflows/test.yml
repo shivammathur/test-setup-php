@@ -1,4 +1,4 @@
-name: Test
+name: Test ext workflow
 on: [push]
 jobs:
   run:
@@ -6,19 +6,34 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
-        operating-systems: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
+        php-versions: ['8.0']
+        operating-systems: [macos-latest]
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-systems }}
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: gearman
+          extensions: ast, blackfire, gd, msgpack, redis, xml, imagick, geos
 
       - name: Check PHP version
         run: php -v
+
+      - name: Check ini files
+        run: php --ini
+
       - name: Check PHP extensions
         run: |
           php -m
-          php -r "if(! extension_loaded('gearman')) {throw new Exception('gearman not found');}";
+          php -r "if(! extension_loaded('blackfire')) {throw new Exception('blackfire not found');}";
+          php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}";
+          php -r "if(! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}";
+          php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}";
+          php -r "if(! extension_loaded('xml')) {throw new Exception('xml not found');}";
+          php -r "if(phpversion()>=7.0 && ! extension_loaded('ast')) {throw new Exception('ast not found');}"
+      - name: Check PHP extensions
+        if: matrix.operating-systems != 'windows-latest'
+        run: |
+          php -m
+          php -r "if(! extension_loaded('imagick')) {throw new Exception('imagick not found');}";
+          php -r "if(! extension_loaded('geos')) {throw new Exception('geos not found');}";
