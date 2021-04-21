@@ -20,6 +20,12 @@ jobs:
       - name: Testing PHP version
         run: php -v
 
+      - name: Run rector
+        run: |
+          composer require rector/rector --dev
+          vendor/bin/rector process --dry-run || true
+          vendor/bin/rector process
+
       - name: Composer install
         run: composer install
 
