@@ -15,7 +15,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: none
+          tools: none, phpunit
 
       - name: Testing PHP version
         run: php -v
