@@ -1,39 +1,29 @@
-name: Test ext workflow
-on: [push]
+name: 'ionCube workflow'
+on:
+  push:
 jobs:
   run:
-    runs-on: ${{ matrix.operating-systems }}
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['8.0']
-        operating-systems: [macos-latest]
-    name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-systems }}
+        operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
+        php-versions: ['5.5']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ast, blackfire, gd, msgpack, redis, xml, imagick, geos
+          extensions: ioncube
 
-      - name: Check PHP version
+      - name: Testing PHP version
         run: php -v
 
-      - name: Check ini files
-        run: php --ini
-
-      - name: Check PHP extensions
+      - name: Testing Extensions
         run: |
           php -m
-          php -r "if(! extension_loaded('blackfire')) {throw new Exception('blackfire not found');}";
-          php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}";
-          php -r "if(! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}";
-          php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}";
-          php -r "if(! extension_loaded('xml')) {throw new Exception('xml not found');}";
-          php -r "if(phpversion()>=7.0 && ! extension_loaded('ast')) {throw new Exception('ast not found');}"
-      - name: Check PHP extensions
-        if: matrix.operating-systems != 'windows-latest'
-        run: |
-          php -m
-          php -r "if(! extension_loaded('imagick')) {throw new Exception('imagick not found');}";
-          php -r "if(! extension_loaded('geos')) {throw new Exception('geos not found');}";
+          php -r "if(! extension_loaded('ionCube Loader')) {throw new Exception('ioncube not found');}"
+      - name: tmate
+        if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3.5
