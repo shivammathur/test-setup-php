@@ -19,11 +19,3 @@ jobs:
 
       - name: Testing PHP version
         run: php -v
-
-      - name: Testing Extensions
-        run: |
-          php -m
-          php -r "if(! extension_loaded('ionCube Loader')) {throw new Exception('ioncube not found');}"
-      - name: tmate
-        if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3.5
