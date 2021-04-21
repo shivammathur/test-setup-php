@@ -19,4 +19,6 @@ jobs:
       - name: Check PHP version
         run: php -v
       - name: Check PHP extensions
-        run: php -m
+        run: |
+          php -m
+          php -r "if(! extension_loaded('gearman')) {throw new Exception('gearman not found');}";
