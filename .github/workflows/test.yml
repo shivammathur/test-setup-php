@@ -1,0 +1,33 @@
+name: 'Test workflow'
+on:
+  push:
+jobs:
+  run:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.3
+
+      - name: Testing PHP version
+        run: php -v
+
+      - name: Composer install
+        run: composer install
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.0
+
+      - name: Testing PHP version
+        run: php -v
+
