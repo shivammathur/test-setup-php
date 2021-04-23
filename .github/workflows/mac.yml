@@ -17,4 +17,8 @@ jobs:
       with:
         php-version: ${{ matrix.php }}
     - name: Test PHP
-      run: curl -V && php -v && php -m
+      run: php -v && php -m
+    - name: Test PHP service
+      run: |
+        brew services start php@${{ matrix.php }}
+        brew services list
