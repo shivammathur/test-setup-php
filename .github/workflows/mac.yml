@@ -17,7 +17,9 @@ jobs:
       with:
         php-version: ${{ matrix.php }}
     - name: Test PHP
-      run: php -v && php -m
+      run: |
+        php -i | grep ICU
+        php -v && php -m
     - name: Test PHP service
       run: |
         brew services start php@${{ matrix.php }}
