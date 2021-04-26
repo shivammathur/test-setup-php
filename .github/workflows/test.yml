@@ -9,13 +9,11 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['7.4', '8.0']
     steps:
       - name: Checkout
         uses: actions/checkout@v2 
-      - name: Setup PHP
+      - name: Setup PHP with tools
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-versions }}
-          tools: behat:3.6.1
-      - run: behat -V
+          php-version: '7.2'
+          tools: vimeo/psalm:>=4.5.0
