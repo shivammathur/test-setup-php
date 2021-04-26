@@ -1,21 +1,35 @@
-name: 'ionCube workflow'
+name: Test
 on:
   push:
 jobs:
-  run:
-    runs-on: ${{ matrix.operating-system }}
+  job1:
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['8.0']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        os: [ubuntu-latest, macos-latest]
+        php: ['7.4', '8.0']
     steps:
-      - name: Setup PHP
+      - name: Get libgd directory
+        id: gd
+        run: |
+          if [ $(uname -s) = "Linux" ]; then
+            echo "::set-output name=gd-dir::/usr"
+          else
+            echo "::set-output name=gd-dir::$(brew --prefix gd)"
+          fi
+      - name: Setup PHP with gd from source with jpeg support
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-versions }}
-          tools: none, phpunit
-
-      - name: Testing PHP version
-        run: php -v
+          php-version: 8.0
+          extensions: gd-php/php-src@PHP-8.0
+        env:
+          GD_CONFIGURE_OPTS: --enable-gd=shared,${{ steps.check.gd.gd-dir }} --with-external-gd --with-jpeg
+          GD_LINUX_LIBS: libgd-dev libjpeg-dev
+          GD_DARWIN_LIBS: gd jpeg
+          GD_PATH: ext/gd
+      - name: Test
+        run: |
+          php -v
+          php -r 'foreach (gd_info() as $key => $value) { echo "$key: $value \n"; }'
+          php -m
