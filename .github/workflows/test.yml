@@ -29,6 +29,6 @@ jobs:
           REDIS_DARWIN_LIBS: lz4
       - name: Test
         run: |
-          php -r "echo function_exists('lzf_compress') ? 'lz4 support found' : 'lz4 support not found';"
+          php -r "echo Redis::COMPRESSION_ZSTD;"
           php -v          
           php -m
