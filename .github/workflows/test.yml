@@ -10,26 +10,25 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         php: ['7.4', '8.0']
     steps:
-      - name: Get libgd directory
-        id: gd
+      - name: Get liblz4 directory
+        id: lz4
         run: |
-          if [ $(uname -s) = "Linux" ]; then
-            echo "::set-output name=gd-dir::/usr"
+          if [ "$(uname -s)" = "Linux" ]; then
+            echo "::set-output name=lz4-dir::/usr"
           else
-            echo "::set-output name=gd-dir::$(brew --prefix gd)"
+            echo "::set-output name=lz4-dir::$(brew --prefix lz4)"
           fi
-      - name: Setup PHP with gd from source with jpeg support
+      - name: Setup PHP with redis from source with lz4 support
         uses: shivammathur/setup-php@develop
         with:
-          php-version: 8.0
-          extensions: gd-php/php-src@PHP-8.0
+          php-version: ${{ matrix.php }}
+          extensions: redis-phpredis/phpredis@5.3.4
         env:
-          GD_CONFIGURE_OPTS: --enable-gd=shared,${{ steps.check.gd.gd-dir }} --with-external-gd --with-jpeg
-          GD_LINUX_LIBS: libgd-dev libjpeg-dev
-          GD_DARWIN_LIBS: gd jpeg
-          GD_PATH: ext/gd
+          REDIS_CONFIGURE_OPTS: --enable-redis  --enable-redis-lz4 --with-liblz4=${{ steps.check.lz4.lz4-dir }}
+          REDIS_LINUX_LIBS: liblz4-dev
+          REDIS_DARWIN_LIBS: lz4
       - name: Test
         run: |
-          php -v
-          php -r 'foreach (gd_info() as $key => $value) { echo "$key: $value \n"; }'
+          php -r "echo function_exists('lzf_compress') ? 'lz4 support found' : 'lz4 support not found';"
+          php -v          
           php -m
