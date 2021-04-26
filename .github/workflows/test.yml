@@ -29,6 +29,6 @@ jobs:
           REDIS_DARWIN_LIBS: lz4
       - name: Test
         run: |
-          php -r "echo Redis::COMPRESSION_ZSTD;"
+          php -r "echo Redis::COMPRESSION_LZ4;"
           php -v          
           php -m
