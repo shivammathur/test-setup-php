@@ -7,28 +7,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        php: ['7.4', '8.0']
+        os: [ubuntu-latest]
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     steps:
-      - name: Get liblz4 directory
-        id: lz4
-        run: |
-          if [ "$(uname -s)" = "Linux" ]; then
-            echo "::set-output name=lz4-dir::/usr"
-          else
-            echo "::set-output name=lz4-dir::$(brew --prefix lz4)"
-          fi
-      - name: Setup PHP with redis from source with lz4 support
-        uses: shivammathur/setup-php@develop
+      - name: Setup PHP
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: redis-phpredis/phpredis@5.3.4
-        env:
-          REDIS_CONFIGURE_OPTS: --enable-redis  --enable-redis-lz4 --with-liblz4=${{ steps.check.lz4.lz4-dir }}
-          REDIS_LINUX_LIBS: liblz4-dev
-          REDIS_DARWIN_LIBS: lz4
       - name: Test
         run: |
-          php -r "echo Redis::COMPRESSION_LZ4;"
           php -v          
           php -m
