@@ -1,6 +1,5 @@
 name: Tools develop workflow
 on:
-  repository_dispatch:
   push:
 env:
   COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -93,7 +92,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: behat:3.6.1, blackfire:1.45.1, blackfire-player:1.10.0, infection:0.20.0, flex:1.10.0, phan:4.0.2, php-cs-fixer:2.18.0, phpcs:3.5.2, phpcbf:3.5.8, phpcpd:6.0.3, phpspec:7.0.1, phpstan:0.12.68, phpmd:2.9.1, cs2pr:1.4.0, phpunit:9.5.1, psalm:4.4.1, phing:2.16.3, phinx:0.12.4, phive:0.14.5, deployer:6.8.0, composer:2.0.8, pecl:1.2.3, symfony:4.21.6, vapor-cli:1.11.1
+          tools: behat:3.6.1, blackfire:1.45.1, blackfire-player:1.10.0, infection:0.20.0, flex:1.10.0, phan:4.0.2, php-cs-fixer:2.18.0, phpcs:3.5.2, phpcbf:3.5.8, phpcpd:6.0.3, phpspec:7.0.1, phpstan:0.12.68, phpmd:2.9.1, cs2pr:1.4.0, phpunit:9.5.1, psalm:4.4.1, phing:2.16.3, phinx:0.12.4, phive:0.14.5, deployer:6.8.0, composer:2.0.12, pecl:1.2.3, symfony:4.21.6, vapor-cli:1.11.1
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
