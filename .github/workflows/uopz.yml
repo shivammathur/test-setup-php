@@ -1,4 +1,4 @@
-name: Test extensions
+name: Uopz workflow
 on: [push]
 jobs:
   run:
@@ -6,13 +6,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['7.1', '7.2', '7.3', '7.4']
+        php-versions: ['7.2', '7.3', '7.4']
         operating-system: [ubuntu-16.04, windows-latest, macos-latest]
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
@@ -23,12 +20,8 @@ jobs:
       - name: Check PHP version
         run: php -v
 
-      - name: Check ini files
-        run: php --ini
-
       - name: Check PHP extensions
         run: |
           php -m
-          for ext in xdebug uopz; do
-            php -r "if(! extension_loaded('$ext')) {throw new Exception('$ext not found');}";
-          done
+          php -r "if(! extension_loaded('xdebug')) {throw new Exception('xdebug not found');}";
+          php -r "if(! extension_loaded('uopz')) {throw new Exception('uopz not found');}";

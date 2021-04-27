@@ -1,4 +1,4 @@
-name: Test extensions
+name: Test ext workflow
 on: [push]
 jobs:
   run:
@@ -10,14 +10,11 @@ jobs:
         operating-systems: [ubuntu-16.04, windows-latest, macos-latest]
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-systems }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ast, gd, sodium, msgpack, redis, xml, imagick
+          extensions: ast, blackfire, gd, msgpack, redis, xml, imagick, geos
 
       - name: Check PHP version
         run: php -v
@@ -26,18 +23,18 @@ jobs:
         run: php --ini
 
       - name: Check PHP extensions
-        if: matrix.php-versions != '8.0' && matrix.operating-systems != 'windows-latest'
         run: |
           php -m
-          for ext in gd imagick msgpack sodium redis xml; do
-            php -r "if(! extension_loaded('$ext')) {throw new Exception('$ext not found');}";
-          done
-          php -r "if(phpversion()<=7.0 && ! extension_loaded('ast')) {throw new Exception('ast not found');}"
+          php -r "if(! extension_loaded('blackfire')) {throw new Exception('blackfire not found');}";
+          php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}";
+          php -r "if(! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}";
+          php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}";
+          php -r "if(! extension_loaded('xml')) {throw new Exception('xml not found');}";
+          php -r "if(phpversion()>=7.0 && ! extension_loaded('ast')) {throw new Exception('ast not found');}"
 
       - name: Check PHP extensions
-        if: matrix.php-versions == '8.0' && matrix.operating-systems != 'windows-latest'
+        if: matrix.operating-systems != 'windows-latest'
         run: |
           php -m
-          for ext in imagick; do
-            php -r "if(! extension_loaded('$ext')) {throw new Exception('$ext not found');}";
-          done
+          php -r "if(! extension_loaded('imagick')) {throw new Exception('imagick not found');}";
+          php -r "if(! extension_loaded('geos')) {throw new Exception('geos not found');}";

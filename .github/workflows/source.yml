@@ -1,0 +1,36 @@
+name: Source extensions workflow
+on:
+  push:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.0']
+    steps:
+      - uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: >-
+            csv-https://gitlab.com/Girgias/csv-php-extension@0.4.0,
+            gd-php/php-src@PHP-${{ matrix.php }},
+            mongodb-mongodb/mongo-php-driver@v1.9,
+            protobuf-protocolbuffers/protobuf@v3.15.8
+        env:
+          CSV_CONFIGURE_OPTS: --enable-csv
+          GD_CONFIGURE_OPTS: --enable-gd=shared,/usr --with-external-gd --with-jpeg
+          GD_LIBS: libgd-dev libjpeg-dev
+          GD_PATH: ext/gd
+          PROTOBUF_CONFIGURE_OPTS: --enable-protobuf
+          PROTOBUF_PATH: php/ext/google/protobuf
+
+      - name: Test PHP version
+        run: php -v
+
+      - name: Test extensions
+        run: |
+          php -m
+          php -r "if(! extension_loaded('csv')) {throw new Exception('csv not found');}";
+          php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}";
+          php -r "if(! extension_loaded('mongodb')) {throw new Exception('mongodb not found');}";
+          php -r "if(! extension_loaded('protobuf')) {throw new Exception('protobuf not found');}";
