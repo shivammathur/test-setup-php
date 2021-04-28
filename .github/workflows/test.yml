@@ -8,6 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        runs: [1,1,1,1,1,1,1,1,1,1]
         php: ['7.4']
     steps:
       - name: Install and configure PHP
@@ -19,5 +20,6 @@ jobs:
             ini-values: zend.assertions=1
       - name: Test
         run: |
+          php -r "if(! extension_loaded('oci8')) {throw new Exception('oci8 not found');}"
           php -v          
           php -m
