@@ -20,6 +20,7 @@ jobs:
             ini-values: zend.assertions=1
       - name: Test
         run: |
+          echo "::warning::$(ls /opt/oracle)"
           php -r "if(! extension_loaded('oci8')) {throw new Exception('oci8 not found');}"
           php -v          
           php -m
