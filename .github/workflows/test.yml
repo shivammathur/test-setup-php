@@ -7,14 +7,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
+        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
         php: ['7.4']
     steps:
       - name: Install and configure PHP
         uses: shivammathur/setup-php@verbose
         with:
             php-version: ${{ matrix.php }}
-            extensions: ctype, iconv, intl, mysql, pdo_mysql, php_fileinfo, imagick
+            extensions: oci8
+            coverage: pcov
+            ini-values: zend.assertions=1
       - name: Test
         run: |
           php -v          
