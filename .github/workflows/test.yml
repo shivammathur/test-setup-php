@@ -14,7 +14,7 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
             php-version: ${{ matrix.php }}
-            extensions: pdo_oci, oci8
+            extensions: oci8, pdo_oci
             coverage: pcov
             ini-values: zend.assertions=1
       - name: Test
