@@ -8,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
-        runs: [1,1,1,1,1,1,1,1,1,1]
+        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
         php: ['7.4']
     steps:
       - name: Install and configure PHP
