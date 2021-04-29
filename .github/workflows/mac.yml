@@ -12,7 +12,7 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - run: brew update && brew install icu4c
+    - run: git -C $(brew --repository) pull origin master && brew update && brew install icu4c
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose     
       with:
