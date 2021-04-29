@@ -26,4 +26,4 @@ jobs:
         brew services list
         formula='php@${{ matrix.php }}'
         [ "$formula" = "php@8.0" ] && formula='php'
-        vi ~/Library/LaunchAgents/homebrew.mxcl."$formula".plist
+        cat ~/Library/LaunchAgents/homebrew.mxcl."$formula".plist
