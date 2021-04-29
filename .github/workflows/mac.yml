@@ -7,8 +7,7 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [macos-latest]
-        runs: [1,1,1,1,1,1,1,1,1,1]
-        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.1']
     name: Test
     steps:
     - name: Checkout
@@ -19,10 +18,12 @@ jobs:
         php-version: ${{ matrix.php }}
     - name: Test PHP
       run: |
-        echo "::warning::${ImageOS:?} ${ImageVersion:?} runner"
         php -i | grep ICU
         php -v && php -m
     - name: Test PHP service
       run: |
         brew services start php@${{ matrix.php }}
         brew services list
+        formula='php@${{ matrix.php }}'
+        [ "$formula" = "php@8.0" ] && formula='php'
+        vi ~/Library/LaunchAgents/homebrew.mxcl."$formula".plist
