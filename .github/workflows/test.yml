@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Remove PPA
         run: |
-          sudo rm -r /etc/apt/sources.list.d/ondrej-ubuntu-php-*
+          LC_ALL=C.UTF-8 sudo apt-add-repository --remove ppa:ondrej/php -y || true
           sudo apt-get update
       - name: Install and configure PHP
         uses: shivammathur/setup-php@develop
