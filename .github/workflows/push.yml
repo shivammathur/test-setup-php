@@ -10,7 +10,7 @@ jobs:
         php-version: '7.4'
         tools: phpunit
     - name: Setup problem matchers for PHPUnit
-      run: echo "::add-matcher::${{ github.workspace }}/.github/workflows/pm.json"
+      run: echo "::add-matcher::${{ github.workspace }}/.github/pm.json"
     - name: Composer dependencies
       run: composer install --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
     - name: Run Tests
