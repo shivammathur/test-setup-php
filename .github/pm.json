@@ -7,9 +7,20 @@
           "regexp": "^\\d+\\)\\s.*$"
         },
         {
-          "regexp": "^(.*Failed\\sasserting\\sthat.*|(^[@ +-]+|^[}\"\\]]).*)$",
-          "message": 1,
-          "loop": true
+          "regexp": "(.*)",
+          "message": 1
+        },
+        {
+          "regexp": "^(.*Failed\\sasserting\\sthat.*)$",
+          "message": 1
+        },
+        {
+          "regexp": "^\\s*$"
+        },
+        {
+          "regexp": "^(.*):(\\d+)$",
+          "file": 1,
+          "line": 2
         }
       ]
     }

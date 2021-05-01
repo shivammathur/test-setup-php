@@ -18,7 +18,7 @@ class PMTest extends TestCase
             "apple" => "fruit",
             "berries" => "fruit"
         ];
-        $this->assertJsonStringEqualsJsonString(json_encode($arr1), json_encode($arr2));
+        $this->assertJsonStringEqualsJsonString(json_encode($arr1), json_encode($arr2), "Json not equal");
     }
     public function testThree()
     {
