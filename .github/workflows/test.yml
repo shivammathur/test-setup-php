@@ -8,8 +8,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
-        php: ['7.2']
+        php: ['7.2', '8.0']
     steps:
+      - name: Remove PPA
+        run: |
+          sudo rm -r /etc/apt/sources.list.d/ondrej-ubuntu-php-*
+          sudo apt-get update
       - name: Install and configure PHP
         uses: shivammathur/setup-php@develop
         with:
