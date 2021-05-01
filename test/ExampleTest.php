@@ -5,7 +5,7 @@ class PMTest extends TestCase
 {
     public function testOne()
     {        
-        $this->assertEquals(0, 0, "Not equal");
+        $this->assertEquals(0, 0);
     }
 
     public function testTwo()
@@ -18,7 +18,7 @@ class PMTest extends TestCase
             "apple" => "fruit",
             "berries" => "fruit"
         ];
-        $this->assertJsonStringEqualsJsonString(json_encode($arr1), json_encode($arr2), "Json not equal");
+        $this->assertJsonStringEqualsJsonString(json_encode($arr1), json_encode($arr2));
     }
     public function testThree()
     {
@@ -26,6 +26,6 @@ class PMTest extends TestCase
             "apple" => "fruit",
             "berries" => "fruit"
         ];
-        $this->assertJsonStringEqualsJsonFile('fruit.json', json_encode($arr), "Json not match");
+        $this->assertJsonStringEqualsJsonFile('fruit.json', json_encode($arr));
     }
 }
