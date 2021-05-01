@@ -8,19 +8,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-        php: ['7.4']
+        php: ['7.2']
     steps:
       - name: Install and configure PHP
         uses: shivammathur/setup-php@develop
         with:
             php-version: ${{ matrix.php }}
-            extensions: oci8
-            coverage: pcov
-            ini-values: zend.assertions=1
+            extensions: lz4
       - name: Test
         run: |
-          echo "::warning::$(ls /opt/oracle | tr "\n" " ")"
-          php -r "if(! extension_loaded('oci8')) {throw new Exception('oci8 not found');}"
           php -v          
           php -m
