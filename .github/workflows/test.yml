@@ -13,9 +13,9 @@ jobs:
       - name: Install and configure PHP
         uses: shivammathur/setup-php@v2
         with:
-            php-version: ${{ matrix.php }}
+          php-version: ${{ matrix.php }}
         env:
-            update: true
+          update: true
       - name: Test
         run: |
           php -v          
