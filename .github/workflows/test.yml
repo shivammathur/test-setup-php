@@ -14,6 +14,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
             php-version: ${{ matrix.php }}
+        env:
+            update: true
       - name: Test
         run: |
           php -v          
