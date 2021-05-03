@@ -7,12 +7,12 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [macos-latest]
-        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.1']
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     name: Test
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - run: git -C $(brew --repository) pull origin master && brew update && brew install icu4c
+    - run: git -C $(brew --repository) pull origin master && brew update && brew reinstall icu4c && brew remove php
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose     
       with:
