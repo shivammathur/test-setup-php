@@ -18,7 +18,7 @@ jobs:
         export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1    
         git -C $(brew --repository) pull origin master && brew update && brew reinstall icu4c && brew remove php
     - name: Setup PHP
-      uses: shivammathur/setup-php@verbose     
+      uses: shivammathur/setup-php@develop     
       with:
         php-version: ${{ matrix.php }}
     - name: Test PHP
