@@ -15,6 +15,8 @@ jobs:
       BLACKFIRE_CLIENT_ID: ${{ secrets.BLACKFIRE_CLIENT_ID }}
       BLACKFIRE_CLIENT_TOKEN: ${{ secrets.BLACKFIRE_CLIENT_TOKEN }}
     steps:
+    - run: |
+        sudo apt-get install -f
     - name: Checkout
       uses: actions/checkout@v2
     - name: Install PHP
@@ -24,5 +26,4 @@ jobs:
         tools: blackfire
     - name: Testing PHP version
       run: |
-        php -v
-        sudo apt-get install -f
+        php -v        
