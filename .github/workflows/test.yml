@@ -49,7 +49,7 @@ jobs:
           restore-keys: ${{ steps.cache-env.outputs.key }}
 
       - name: Install PHP with extensions
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.extensions }}
@@ -57,4 +57,5 @@ jobs:
       - run: |
           php -v
           php -m
+          php -r "if(! extension_loaded('imagick')) {throw new Exception('imagick not found');}"
        
