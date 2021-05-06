@@ -17,6 +17,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+    - run: |
+        sudo add-apt-repository ppa:ondrej/php
     - name: Install PHP
       uses: shivammathur/setup-php@verbose
       with:
