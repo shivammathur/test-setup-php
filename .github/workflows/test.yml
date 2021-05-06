@@ -24,6 +24,7 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         tools: blackfire
+    - uses: mxschmitt/action-tmate@v3.5    
     - run: |
         sudo apt-get -f install
     - name: Testing PHP version
