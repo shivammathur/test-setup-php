@@ -13,7 +13,6 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: 8.1
-          coverage: none
       - uses: mxschmitt/action-tmate@v3.5    
       - name: Check PHP 8.1
         run: php -v && php -m
