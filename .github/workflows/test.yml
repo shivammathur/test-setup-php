@@ -1,14 +1,13 @@
-name: Test workflow #1.4.6
+name: Test workflow
 on: [push]
 jobs:
-  run:    
+  run:
+    container: debian:buster
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-16.04]      
-    name: ${{ matrix.operating-system }}
+        operating-system: [ubuntu-latest]
     steps:
-    - name: Checkout
-      uses: actions/checkout@master
-    - name: Testing lib
-      run: sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libgcc1 libicu65 libstdc++6 libc6 libxml2 libxslt1.1 libc6 libc6 libzip4 libc6 libonig4 libc6 libc6 libodbc1 libc6 libcurl4
+      - uses: shivammathur/setup-php@verbose
+        with:
+          php-version: 7.2
