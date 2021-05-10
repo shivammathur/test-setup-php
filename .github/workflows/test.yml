@@ -8,6 +8,9 @@ jobs:
       matrix:
         operating-system: [ubuntu-latest]
     steps:
+      - run: |
+          apt-get update
+          apt-get install sudo -y
       - uses: shivammathur/setup-php@verbose
         env:
           runner: self-hosted
