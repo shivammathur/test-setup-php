@@ -9,5 +9,7 @@ jobs:
         operating-system: [ubuntu-latest]
     steps:
       - uses: shivammathur/setup-php@verbose
+        env:
+          runner: self-hosted
         with:
           php-version: 7.2
