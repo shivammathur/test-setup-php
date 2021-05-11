@@ -1,60 +1,33 @@
 on:
-  - pull_request
   - push
 
 name: build
 
 jobs:
   tests:
-    name: PHP ${{ matrix.php }} - ${{ matrix.os }}
-
-    env:
-      extensions: dom, json, gd, imagick
-      key: cache-v3
-
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
         os:
-          - ubuntu-latest
-          - windows-latest
+          - macos-latest
 
         php:
-          - "5.6"
-          - "7.0"
-          - "7.1"
-          - "7.2"
-          - "7.3"
-          - "7.4"
+          - "8.1"
           
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Setup cache environment
-        id: cache-env
-        uses: shivammathur/cache-extensions@v1
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: ${{ env.extensions }}
-          key: ${{ env.key }}
-
-      - name: Cache extensions
-        uses: actions/cache@v1
-        with:
-          path: ${{ steps.cache-env.outputs.dir }}
-          key: ${{ steps.cache-env.outputs.key }}
-          restore-keys: ${{ steps.cache-env.outputs.key }}
-
       - name: Install PHP with extensions
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: ${{ env.extensions }}
-          ini-values: date.timezone='UTC'
+          extensions: swoole
+          
       - run: |
           php -v
           php -m
-          php -r "if(! extension_loaded('imagick')) {throw new Exception('imagick not found');}"
+
+      - uses: mxschmitt/action-tmate@v3.5
        
