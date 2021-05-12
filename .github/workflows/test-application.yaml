@@ -57,6 +57,7 @@ jobs:
             - run: $env:PATH          
 
             - name: Install composer dependencies
+              continue-on-error: true
               uses: ramsey/composer-install@v1
               with:
                   composer-options: '--no-cache'
