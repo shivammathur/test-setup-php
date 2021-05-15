@@ -5,9 +5,8 @@ jobs:
     runs-on: macos-latest
     steps:
     - name: Setup PHP
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@develop
       with:
         php-version: '8.0'
         extensions: http
-    - uses: mxschmitt/action-tmate@v3.5
       
