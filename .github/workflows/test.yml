@@ -2,15 +2,12 @@ name: Test workflow
 on: [push]
 jobs:
   run:    
-    runs-on: macOS-latest
-    name: test darwin
+    runs-on: macos-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@master
-    - name: Check extensions on darwin
-      run: |
-        ini_file=$(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
-        ext_dir=$(/usr/bin/php -i | grep "extension_dir => /usr" | sed -e "s|.*=> s*||")
-        ls $ext_dir
-     
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.0'
+        extensions: http
+    - uses: mxschmitt/action-tmate@v3.5
       
