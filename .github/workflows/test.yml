@@ -29,7 +29,7 @@ jobs:
               php$version -m
               echo '--------------'
               if [ -e /etc/php/$version/mods-available/pcov.ini ]; then
-                echo "extension=pcov" | sudo tee /etc/php/$version/mods-available/pcov.ini
+                echo "extension=pcov.so" | sudo tee /etc/php/$version/mods-available/pcov.ini
                 php$version -m | grep 'pcov' || true
               fi
               echo '--------------'
