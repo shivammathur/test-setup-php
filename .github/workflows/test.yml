@@ -7,13 +7,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-16.04, ubuntu-18.04]
+        os: [ubuntu-20.04, ubuntu-16.04, ubuntu-18.04]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Preq
+      - name: Run
         run: |
-          sudo add-apt-repository ppa:ondrej/php
-          sudo apt-get update
-      - uses: mxschmitt/action-tmate@v3.5
+            [ "x${{ matrix.os }} = "xubuntu-16.04" ] && PHP_VERSIONS=('5.6' '7.0' '7.1' '7.2' '7.3' '7.4' '8.0')
+            [ "x${{ matrix.os }} = "xubuntu-20.04" ] && PHP_VERSIONS=('7.1' '7.2' '7.3' '7.4' '8.0')
+            [ "x${{ matrix.os }} = "xubuntu-20.04" ] && PHP_VERSIONS=('7.4' '8.0')
+            curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/shivammathur/virtual-environments/add-php-ext/images/linux/scripts/installers/php.sh
+            sed -i "s/^php_versions.*/php_versions=${PHP_VERSIONS[@]}/" /tmp/php.sh
+            sed -i '/ snmp\|php-pear\|composer\|phpunit\|invoke_tests\|source/d' /tmp/php.sh
+            sudo DEBIAN_FRONTEND=noninteractive bash /tmp/php.sh || true
+            
+            for version in ${PHP_VERSIONS[@]}; do
+              php$version -v
+              php$version -m
+              echo '--------------'
+              if [ -e /etc/php/$version/mods-available/pcov.ini ]; then
+                echo "extension=pcov" | sudo tee /etc/php/$version/mods-available/pcov.ini
+                php$version -m | grep 'pcov'
+              fi
+              echo '--------------'
+            done  
           
