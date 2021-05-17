@@ -20,7 +20,7 @@ jobs:
             curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/shivammathur/virtual-environments/add-php-ext/images/linux/scripts/installers/php.sh
             PHP_VERSIONS_STR="'${PHP_VERSIONS[@]}'"
             sed -i "s/^php_versions.*/php_versions=$PHP_VERSIONS_STR/" /tmp/php.sh
-            sed -i "s/isUbuntu/false/" /tmp/php.sh
+            sed -i "s/isUbuntu20/false/" /tmp/php.sh
             sed -i '/ snmp\|php-pear\|composer\|phpunit\|invoke_tests\|source/d' /tmp/php.sh
             sudo DEBIAN_FRONTEND=noninteractive bash /tmp/php.sh || true
             
@@ -30,7 +30,7 @@ jobs:
               echo '--------------'
               if [ -e /etc/php/$version/mods-available/pcov.ini ]; then
                 echo "extension=pcov" | sudo tee /etc/php/$version/mods-available/pcov.ini
-                php$version -m | grep 'pcov'
+                php$version -m | grep 'pcov' || true
               fi
               echo '--------------'
             done  
