@@ -15,5 +15,5 @@ jobs:
         run: |
           sudo add-apt-repository ppa:ondrej/php
           sudo apt-get update
-      - run: sudo apt-fast install php7.1-imagick php7.1-pcov php7.1-sodium -y
+      - uses: mxschmitt/action-tmate@v3.5
           
