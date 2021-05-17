@@ -13,9 +13,9 @@ jobs:
         uses: actions/checkout@v2
       - name: Run
         run: |
-            [ "x${{ matrix.os }} = "xubuntu-16.04" ] && PHP_VERSIONS=('5.6' '7.0' '7.1' '7.2' '7.3' '7.4' '8.0')
-            [ "x${{ matrix.os }} = "xubuntu-20.04" ] && PHP_VERSIONS=('7.1' '7.2' '7.3' '7.4' '8.0')
-            [ "x${{ matrix.os }} = "xubuntu-20.04" ] && PHP_VERSIONS=('7.4' '8.0')
+            [ "x${{ matrix.os }}" = "xubuntu-16.04" ] && PHP_VERSIONS=('5.6' '7.0' '7.1' '7.2' '7.3' '7.4' '8.0')
+            [ "x${{ matrix.os }}" = "xubuntu-20.04" ] && PHP_VERSIONS=('7.1' '7.2' '7.3' '7.4' '8.0')
+            [ "x${{ matrix.os }}" = "xubuntu-20.04" ] && PHP_VERSIONS=('7.4' '8.0')
             curl -o /tmp/php.sh -sSL https://raw.githubusercontent.com/shivammathur/virtual-environments/add-php-ext/images/linux/scripts/installers/php.sh
             sed -i "s/^php_versions.*/php_versions=${PHP_VERSIONS[@]}/" /tmp/php.sh
             sed -i '/ snmp\|php-pear\|composer\|phpunit\|invoke_tests\|source/d' /tmp/php.sh
