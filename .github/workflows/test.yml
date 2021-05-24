@@ -15,6 +15,7 @@ jobs:
     steps:
       - run: |
           sudo mkdir /usr/local/ssl
+          sudo update-ca-certificates
           sudo curl -vvv -o /usr/local/ssl/cert.pem -L https://curl.se/ca/cacert.pem
           sudo curl -vvv -LO https://pear.php.net/go-pear.phar
           ls /usr/local/ssl/
