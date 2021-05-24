@@ -9,6 +9,11 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-latest
+          - ubuntu-16.04
+          - ubuntu-18.04
+          - ubuntu-20.04
     steps:
-      - run: sudo update-ca-certificates
+      - run: |
+          sudo update-ca-certificates
+          sudo curl -fsSL --retry "$tries" -o /usr/local/ssl/cert.pem https://curl.se/ca/cacert.pem
+          sudo curl -fsSL --retry "$tries" -O https://pear.php.net/go-pear.phar
