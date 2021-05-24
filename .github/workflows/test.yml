@@ -14,6 +14,7 @@ jobs:
           - ubuntu-20.04
     steps:
       - run: |
-          sudo update-ca-certificates
-          sudo curl -fsSL --retry 3 -o /usr/local/ssl/cert.pem https://curl.se/ca/cacert.pem
-          sudo curl -fsSL --retry 3 -O https://pear.php.net/go-pear.phar
+          tries=10
+          sudo update-ca-certificates || true
+          sudo curl -fsSL --retry "$tries" -o /usr/local/ssl/cert.pem https://curl.se/ca/cacert.pem
+          sudo curl -fsSL --retry "$tries" -O https://pear.php.net/go-pear.phar
