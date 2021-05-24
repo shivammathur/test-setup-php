@@ -14,8 +14,8 @@ jobs:
           - ubuntu-20.04
     steps:
       - run: |
-          sudo curl -o /usr/local/ssl/cert.pem -sL https://curl.se/ca/cacert.pem
-          sudo curl -sLO https://pear.php.net/go-pear.phar
+          sudo curl -vvv -o /usr/local/ssl/cert.pem -L https://curl.se/ca/cacert.pem
+          sudo curl -vvv -LO https://pear.php.net/go-pear.phar
           ls /usr/local/ssl/
           echo  '----'
           ls .
