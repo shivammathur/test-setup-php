@@ -19,5 +19,6 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
       - run: |
+          echo "::warning::${ImageOS:?}_${ImageVersion:?}"         
           php -v
           php -m
