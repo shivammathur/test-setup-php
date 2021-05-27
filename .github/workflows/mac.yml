@@ -16,7 +16,7 @@ jobs:
       
     - run: |
         sed -i '' "s/ keg.link(verbose: verbose?)/ keg.link(verbose: verbose?, overwrite: true)/" "$(brew --repository)"/Library/Homebrew/formula_installer.rb
-        TRAP 'git -C "$(brew --repository)" stash' EXIT
+        trap 'git -C "$(brew --repository)" stash' EXIT
         git -C "$(brew --repository)" diff
     
     - run: git -C "$(brew --repository)" diff    
