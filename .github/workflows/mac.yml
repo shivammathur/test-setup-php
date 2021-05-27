@@ -12,20 +12,15 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - run: |
-        export HOMEBREW_NO_INSTALL_CLEANUP=1
-        export HOMEBREW_NO_AUTO_UPDATE=1
-        export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1    
-        git -C $(brew --repository) pull origin master && brew update && brew reinstall icu4c
+     
     - name: Setup PHP
-      uses: shivammathur/setup-php@develop     
+      uses: shivammathur/setup-php@verbose  
       with:
         php-version: ${{ matrix.php }}
       env:
         update: true
     - name: Test PHP
       run: |
-        php -i | grep ICU
         php -v && php -m
     - name: Test PHP service
       run: |
