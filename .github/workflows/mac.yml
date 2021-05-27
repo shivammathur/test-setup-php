@@ -15,8 +15,11 @@ jobs:
       uses: actions/checkout@v2
       
     - run: |
-        sed -i '' "s/ keg.link(verbose: verbose?)/ keg.link(verbose: verbose?, overwrite: true)/" "$(brew --repository)"/Library/Homebrew/formula_installer.rb
-        trap 'git -C "$(brew --repository)" stash' EXIT
+        patch_brew() {
+          sed -i '' "s/ keg.link(verbose: verbose?)/ keg.link(verbose: verbose?, overwrite: true)/" "$(brew --repository)"/Library/Homebrew/formula_installer.rb
+          trap 'git -C "$(brew --repository)" stash' EXIT
+        }
+        patch_brew
         git -C "$(brew --repository)" diff
     
     - run: git -C "$(brew --repository)" diff    
