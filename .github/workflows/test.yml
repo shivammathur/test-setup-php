@@ -28,3 +28,10 @@ jobs:
       - run: |
           php -v
           php -m
+      - uses: shivammathur/setup-php@releases/v1
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: pcov
+      - run: |
+          php -v
+          php -m
