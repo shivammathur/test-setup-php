@@ -14,14 +14,14 @@ jobs:
           - ubuntu-20.04
         php: [7.2]
     steps:
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@releases/v1
         with:
           php-version: ${{ matrix.php }}
           coverage: pcov
       - run: |
           php -v
           php -m
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@releases/v1
         with:
           php-version: ${{ matrix.php }}
           coverage: xdebug
