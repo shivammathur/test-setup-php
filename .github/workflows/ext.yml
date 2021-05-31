@@ -7,7 +7,7 @@ jobs:
       fail-fast: false
       matrix:
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
-        operating-systems: [ubuntu-16.04, windows-latest, macos-latest]
+        operating-systems: [ubuntu-18.04, windows-latest, macos-latest]
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-systems }}
     steps:
       - name: Setup PHP
