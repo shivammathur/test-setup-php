@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ macos-latest]
+        os: [ macos-11.0-m1]
         php: ['7.3', '7.4']
     steps:
       - name: Setup PHP
@@ -21,6 +21,8 @@ jobs:
       - name: Test
         continue-on-error: true
         run: |
+          brew untap shivammathur/php || true
+          brew untap shivammathur/extensions || true
           git clone https://github.com/grpc/grpc
           cd grpc/examples/php
           protoc --version
