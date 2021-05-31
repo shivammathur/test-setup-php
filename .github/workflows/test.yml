@@ -1,19 +1,28 @@
-name: Tools workflow
+name: Grpc workflow
 on:
   push:
 jobs:
-  old_versions:
-    name: tools
-    runs-on: ${{ matrix.operating-system }}
+  ubuntu:
+    name: runner
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ macos-latest]
+        php: ['7.3', '7.4']
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2 
-      - name: Setup PHP with tools
-        uses: shivammathur/setup-php@develop
+      - name: Setup PHP
+        uses: shivammathur/setup-php@verbose
+        id: php
         with:
-          php-version: '8.0'
-          tools: vimeo/psalm:^4.5
+          php-version: ${{ matrix.php }}
+          tools: protoc, grpc_php_plugin
+
+      - name: Test
+        continue-on-error: true
+        run: |
+          git clone https://github.com/grpc/grpc
+          cd grpc/examples/php
+          protoc --version
+          protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc=${{ steps.php.outputs.grpc_php_plugin_path }} ../protos/helloworld.proto
+      - uses: mxschmitt/action-tmate@v3.5          
