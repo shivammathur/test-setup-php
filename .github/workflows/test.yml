@@ -8,11 +8,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ macos-11.0-m1]
+        os: [ macos-latest, ubuntu-latest]
         php: ['7.3', '7.4']
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         id: php
         with:
           php-version: ${{ matrix.php }}
