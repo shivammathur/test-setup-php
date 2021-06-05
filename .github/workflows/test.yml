@@ -9,10 +9,6 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-16.04
           - ubuntu-18.04
-          - ubuntu-20.04
     steps:
-      - run: |
-          apt-cache policy libargon*-dev
-          apt-cache depends libargon*-dev
+      - uses: mxschmitt/action-tmate@v3.5
