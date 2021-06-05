@@ -13,4 +13,6 @@ jobs:
           - ubuntu-18.04
           - ubuntu-20.04
     steps:
-      - run: ls -la /usr/bin/gcc*
+      - run: |
+          apt-cache policy libargon*-dev
+          apt-cache depends libargon*-dev
