@@ -13,6 +13,7 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php }}
+      env:  
         update: true
     - name: Test
       run: |
