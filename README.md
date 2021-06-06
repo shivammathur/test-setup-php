@@ -28,7 +28,7 @@ Do not forget to add `extension=xz.so` to your `php.ini`.
 
 ### Windows
 
-Follow the steps under "[Build your own PHP on Windows](https://wiki.php.net/internals/windows/stepbystepbuild)" to setup your build environment.
+Follow the steps under "[Build your own PHP on Windows](https://wiki.php.net/internals/windows/stepbystepbuild_sdk_2)" to setup your build environment.
 Before the compilation step, clone this repository to `[...]\php-src\ext\xz` and proceed.
 
 ```bat
