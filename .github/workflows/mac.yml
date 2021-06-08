@@ -13,11 +13,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Setup PHP
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php }}
-      env:
-        update: true
     - name: Test PHP
       run: |
         php -v && php -m
