@@ -13,6 +13,6 @@ jobs:
           - windows-latest
     steps:
     - run: |
-        ls "C:\Program Files\7-Zip"
-        7z -mqs 2>&1 | Out-Null
+        Get-ChildItems "C:\Program Files\7-Zip"
+        try { 7z -mqs } catch { }
           
