@@ -10,13 +10,11 @@ jobs:
       matrix:
         os:
           - ubuntu-16.04
+          - ubuntu-18.04
+          - ubuntu-20.04
     steps:
-      - run: |
-          sudo apt-get remove php5.6 php5.6* -y
-      - run: php5.6 -v || true    
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: 5.6
-          extensions: mailparse
-      - run: php -v && php -m
+    - uses: actions/upload-artifact@v2
+      with:
+        name: status-${{ matrix.os }}
+        path: /var/lib/dpkg/status
           
