@@ -15,4 +15,5 @@ jobs:
     - run: |
         Get-ChildItem "C:\Program Files\7-Zip"
         choco list --localonly | grep 7z
+        7z
           
