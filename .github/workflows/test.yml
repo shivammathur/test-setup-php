@@ -12,5 +12,7 @@ jobs:
           - windows-2016
           - windows-latest
     steps:
-    - uses: mxschmitt/action-tmate@v3.5
+    - run: |
+        ls "C:\Program Files\7-Zip"
+        7z -mqs 2>&1 | Out-Null
           
