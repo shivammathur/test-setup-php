@@ -9,12 +9,8 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-16.04
-          - ubuntu-18.04
-          - ubuntu-20.04
+          - windows-2016
+          - windows-latest
     steps:
-    - uses: actions/upload-artifact@v2
-      with:
-        name: status-${{ matrix.os }}
-        path: /var/lib/dpkg/status
+    - uses: mxschmitt/action-tmate@v3.5
           
