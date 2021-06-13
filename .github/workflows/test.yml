@@ -1,7 +1,14 @@
 name: Test workflow
 on: [push]
 jobs:
+  strategy:
+    matrix:
+      php: ['7.2', '7.3', '7.4', '8.0', '8.1']
   run:    
-    runs-on: macos-11.0
+    runs-on: ubuntu-18.04
     steps:
-    - uses: mxschmitt/action-tmate@v3.5  
+    - uses: shivammathur/setup-php@verbose
+      with:
+        php-version: ${{ matrix.php }}
+        extensions: runkit7
+    - run: php -v && php -m    
