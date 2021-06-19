@@ -8,14 +8,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os:
-          - windows-2016
-          - windows-latest
+        os: [macos-latest]
+        php: [5.5]
     steps:
-    - name: Check 7z files
-      run: Get-ChildItem "C:\Program Files\7-Zip"
-    - name: Check 7z version choco
-      run: choco list --localonly | grep 7z
-    - name: Check 7z info     
-      run: 7z i
+    - name: Setup PHP
+      uses: shivammathur/setup-php@verbose
+      with:
+        php-version: ${{ matrix.php }}
+        extensions: imagick
           
