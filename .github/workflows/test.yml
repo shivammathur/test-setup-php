@@ -9,7 +9,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-      - name: Checkout
+      - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           extensions: protobuf-protocolbuffers/protobuf@master, opencc-nauxliu/opencc4php@master
