@@ -15,4 +15,6 @@ jobs:
           extensions: protobuf-protocolbuffers/protobuf@master, opencc-nauxliu/opencc4php@master
         env:
           OPENCC_LIBS: libopencc-dev
+          PROTOBUF_PATH: php/ext/google/protobuf
+      - run: php -v && php -m   
           
