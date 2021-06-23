@@ -9,8 +9,8 @@ jobs:
     steps:
     - name: Enable pcov
       run: |
-        phpdismod -v 8.0 xdebug
-        phpenmod -v 8.0 pcov
+        sudo phpdismod -v 8.0 xdebug
+        sudo phpenmod -v 8.0 pcov
     - name: Test
       run: php -v && php -m
           
