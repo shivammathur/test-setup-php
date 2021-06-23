@@ -1,20 +1,16 @@
-on:
-  - push
-
-name: build
-
+on: [push]
+name: test
 jobs:
   tests:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest]
-        php: [5.5]
+        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
     steps:
-    - run: brew install libomp
-    - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
-      with:
-        php-version: ${{ matrix.php }}
-        extensions: imagick
+    - name: Enable pcov
+      run: |
+        phpdismod -v 8.0 xdebug
+        phpenmod -v 8.0 pcov
+    - name: Test
+      run: php -v && php -m
           
