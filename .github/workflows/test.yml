@@ -11,5 +11,7 @@ jobs:
         dep='libomp'
         brew fetch "$dep"
         echo "--------------------"
-        ls "$(brew --cache)/downloads/*--$dep*.tar.gz"
+        sudo mkdir /tmp/"$dep"
+        find "$(brew --cache)/downloads -name "*--$dep*.tar.gz" -exec tar -xf {} -C /tmp/"$dep" \;
+        ls /tmp/"$dep"
         
