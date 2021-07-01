@@ -8,13 +8,8 @@ jobs:
         os: [macos-latest]
     steps:
     - run: |
-        brew fetch imagemagick $(brew deps imagemagick)
-  test2:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest]
-    steps:
-    - run: |
-        echo "imagemagick $(brew deps imagemagick)" | xargs -n 1 -P 50 brew fetch
+        dep='libomp'
+        brew fetch "$dep"
+        echo "--------------------"
+        ls "$(brew --cache)/downloads/*--$dep*.tar.gz"
         
