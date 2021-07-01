@@ -1,10 +1,20 @@
 on: [push]
 name: test
 jobs:
-  tests:
+  test1:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [macos-latest]
     steps:
-    - uses: mxschmitt/action-tmate@v3.5
+    - run: |
+        brew fetch imagemagick $(brew deps imagemagick)
+  test2:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest]
+    steps:
+    - run: |
+        brew deps imagemagick | xargs -n 1 -P 8 brew fetch
+        brew fetch imagemagick
