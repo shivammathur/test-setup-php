@@ -9,7 +9,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     env:
-      extensions: imagick, memcached, xdebug
+      extensions: imagick, memcached, xdebug, pecl_http, grpc
       key: cache-v1
     steps:    
     - name: Setup cache environment
