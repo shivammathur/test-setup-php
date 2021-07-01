@@ -16,5 +16,6 @@ jobs:
         os: [macos-latest]
     steps:
     - run: |
-        brew deps imagemagick | xargs -n 1 -P 8 brew fetch
-        brew fetch imagemagick
+        brew fetch imagemagick &
+        brew deps imagemagick | xargs -n 1 -P 20 brew fetch
+        
