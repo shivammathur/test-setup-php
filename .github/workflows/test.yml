@@ -7,14 +7,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-    steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          extensions: protobuf-protocolbuffers/protobuf@master, opencc-nauxliu/opencc4php@master
-        env:
-          OPENCC_LIBS: libopencc-dev
-          PROTOBUF_PATH: php/ext/google/protobuf
-      - run: php -v && php -m   
+        os: [ubuntu-latest, macos-latest]
+    env:
+      extensions: imagick, memcached, xdebug
+      key: cache-v1
+    steps:    
+    - name: Setup cache environment
+      id: extcache
+      uses: shivammathur/cache-extensions@v1
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.extensions }}
+        key: ${{ env.key }}
+
+    - name: Cache extensions
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.extcache.outputs.dir }}
+        key: ${{ steps.extcache.outputs.key }}
+        restore-keys: ${{ steps.extcache.outputs.key }}
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@verbose
+      with:
+        extensions: ${{ env.extensions }}
+    - run: php -v && php -m   
           
