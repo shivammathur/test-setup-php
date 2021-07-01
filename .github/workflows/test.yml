@@ -12,6 +12,6 @@ jobs:
         brew fetch "$dep"
         echo "--------------------"
         sudo mkdir /tmp/"$dep"
-        find "$(brew --cache)/downloads -name "*--$dep*.tar.gz" -exec tar -xf {} -C /tmp/"$dep" \;
+        find "$(brew --cache)"/downloads -name "*--$dep*.tar.gz" -exec tar -xf {} -C /tmp/"$dep" \;
         ls /tmp/"$dep"
         
