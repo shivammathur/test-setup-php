@@ -16,7 +16,7 @@ jobs:
       id: extcache
       uses: shivammathur/cache-extensions@v1
       with:
-        php-version: ${{ matrix.php-versions }}
+        php-version: '8.0'
         extensions: ${{ env.extensions }}
         key: ${{ env.key }}
 
@@ -30,6 +30,7 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
       with:
+        php-version: '8.0'
         extensions: ${{ env.extensions }}
     - run: php -v && php -m   
           
