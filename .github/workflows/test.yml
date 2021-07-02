@@ -9,8 +9,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     env:
-      extensions: imagick, memcached, xdebug, pecl_http, grpc
-      key: cache-v2
+      extensions: imagick, memcached, xdebug, pecl_http, grpc, rdkafka, redis, zmq
+      key: cache-v1
     steps:    
     - name: Setup cache environment
       id: extcache
