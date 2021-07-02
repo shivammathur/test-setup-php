@@ -5,13 +5,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest]
+        os: [macos-10.15, macos-11]
     steps:
     - run: |
-        dep='libomp'
-        brew fetch "$dep"
-        echo "--------------------"
-        sudo mkdir /tmp/"$dep"
-        sudo find "$(brew --cache)"/downloads -name "*--$dep*.tar.gz" -exec tar -xf {} -C /tmp/"$dep" \;
-        ls /tmp/"$dep"
+        echo $BASH_VERSION
         
