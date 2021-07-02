@@ -10,7 +10,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     env:
       extensions: imagick, memcached, xdebug, pecl_http, grpc
-      key: cache-v1
+      key: cache-v2
     steps:    
     - name: Setup cache environment
       id: extcache
