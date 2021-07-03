@@ -8,10 +8,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        php: [7.4, 8.0]
+        php: ['7.4', '8.0']
     env:
       extensions: mbstring, intl, json, yaml, apcu, imagick, gd, gettext, igbinary, msgpack, redis
-      key: cache-v2
+      key: cache-v3
     steps:    
     - name: Setup cache environment
       id: extcache
