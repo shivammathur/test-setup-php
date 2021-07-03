@@ -1,4 +1,4 @@
-name: 'Test after cache' 
+name: 'Test without cache' 
 on:
   push:
 jobs:
@@ -11,11 +11,11 @@ jobs:
         php: [7.4, 8.0]
     env:
       extensions: mbstring, intl, json, yaml, apcu, imagick, gd, gettext, igbinary, msgpack, redis
-      key: cache-v1
+      key: cache-v2
     steps:    
     - name: Setup cache environment
       id: extcache
-      uses: shivammathur/cache-extensions@develop
+      uses: shivammathur/cache-extensions@v1
       with:
         php-version: ${{ matrix.php }}
         extensions: ${{ env.extensions }}
@@ -29,7 +29,7 @@ jobs:
         restore-keys: ${{ steps.extcache.outputs.key }}
     
     - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php }}
         extensions: ${{ env.extensions }}
