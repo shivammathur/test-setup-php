@@ -4,15 +4,13 @@ on:
 jobs:
   latest:
     name: tools
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     strategy:
       fail-fast: false
-      matrix:
-        pcf-version: [latest, v2.19.0, 2.18.5, 3.0.0-beta.1]
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: 7.4
-          tools: php-cs-fixer:${{ matrix.pcf-version }}
-      - run: php-cs-fixer -V   
+          tools: symfony
+      - uses: mxschmitt/action-tmate@v3.5
