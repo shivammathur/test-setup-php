@@ -1,12 +1,42 @@
-on: [push]
-name: test
+name: integrate
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
 jobs:
-  test1:
-    runs-on: ${{ matrix.os }}
+  matrix:
+    name: "PHP"
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [macos-10.15, macos-11]
+        PHP: ["7.0", "7.1", "7.2", "7.3", "7.4", "8.0"]
+        ZTS: ["no"]
+        include:
+          - PHP: "8.0"
+            ZTS: "yes"
+    env:
+      GITHUB: "yes"
+      enable_debug: "yes"
+      enable_session: "yes"
+      TEST_PHP_ARGS : "--show-diff"
+      REPORT_EXIT_STATUS: "yes"
+      NO_INTERACTION: "yes"
     steps:
-    - run: |
-        echo $BASH_VERSION
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - name: Setup
+        uses: shivammathur/setup-php@master
+        with:
+          php-version: $ {{ matrix.PHP }}
+      - run: |
+          git clone https://github.com/laruence/yaf
+          cd yaf
+          phpize
+          ./configure
+          make
+          make test
         
