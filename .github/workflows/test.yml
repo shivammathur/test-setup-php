@@ -35,5 +35,5 @@ jobs:
           phpize
           ./configure
           make
-      - run: make test
+      - run: cd yaf && make test
         
