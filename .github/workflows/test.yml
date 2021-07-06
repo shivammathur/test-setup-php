@@ -25,9 +25,9 @@ jobs:
         with:
           submodules: true
       - name: Setup
-        uses: shivammathur/setup-php@master
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: $ {{ matrix.PHP }}
+          php-version: ${{ matrix.PHP }}
       - run: |
           git clone https://github.com/laruence/yaf
           cd yaf
