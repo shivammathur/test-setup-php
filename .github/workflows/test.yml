@@ -30,10 +30,11 @@ jobs:
         with:
           php-version: ${{ matrix.PHP }}
       - run: |
+          sudo apt-fast install re2c -y
           git clone https://github.com/laruence/yaf
           cd yaf
           phpize
           ./configure
           make
-      - run: cd yaf && make test
+          make test
         
