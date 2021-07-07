@@ -10,7 +10,8 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         php: ['7.4', '8.0']
     env:
-      extensions: mbstring, intl, json, yaml, apcu, imagick, gd, gettext, igbinary, msgpack, redis
+      # mbstring, intl, json, yaml, apcu, imagick, gd, gettext, igbinary, msgpack, redis
+      extensions: ''
       key: cache-v16
     steps:    
     - name: Setup cache environment
