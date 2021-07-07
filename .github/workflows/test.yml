@@ -11,11 +11,11 @@ jobs:
         php: ['7.4', '8.0']
     env:
       extensions: mbstring, intl, json, yaml, apcu, imagick, gd, gettext, igbinary, msgpack, redis
-      key: cache-v3
+      key: cache-v4
     steps:    
     - name: Setup cache environment
       id: extcache
-      uses: shivammathur/cache-extensions@v1
+      uses: shivammathur/cache-extensions@develop
       with:
         php-version: ${{ matrix.php }}
         extensions: ${{ env.extensions }}
