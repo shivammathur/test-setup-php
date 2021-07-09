@@ -1,40 +1,31 @@
-name: integrate
-on: [push]
-
+name: 'Package'
+on: [workflow_dispatch]
 jobs:
-  matrix:
-    name: "PHP"
-    runs-on: ubuntu-latest
+  tests:  
     strategy:
       fail-fast: false
       matrix:
-        PHP: ["7.0", "7.1", "7.2", "7.3", "7.4", "8.0"]
-        ZTS: ["no"]
-        include:
-          - PHP: "8.0"
-            ZTS: "yes"
-    env:
-      GITHUB: "yes"
-      enable_debug: "yes"
-      enable_session: "yes"
-      TEST_PHP_ARGS : "--show-diff"
-      REPORT_EXIT_STATUS: "yes"
-      NO_INTERACTION: "yes"
+        os: [macos-10.15]
+        php: [53, 54, 55]
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - name: Install macports
+        run: |
+          curl -o /tmp/macports.pkg -sL https://github.com/macports/macports-base/releases/download/v2.7.1/MacPorts-2.7.1-10.15-Catalina.pkg
+          sudo installer -pkg /tmp/macports.pkg -target /
+          echo "/opt/local/bin" | sudo tee -a $GITHUB_PATH
+      - name: Update and sync macports
+        run: |
+          sudo port -vN selfupdate
+          sudo port -vN sync
+      - name: Package
+        run: sudo port -N mpkg php${{ matrix.php }} php${{ matrix.php }}-imagick
+      - name: Copy to builds
+        run: |
+          sudo mkdir /tmp/builds
+          sudo find /opt/local/var -type f -name "*.pkg" -exec cp -n {} /tmp/builds \;
+          sudo find /opt/local/var -type f -name "*.mpkg" -exec cp -n {} /tmp/builds \;
+      - uses: actions/upload-artifact@v2
         with:
-          submodules: true
-      - name: Setup
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.PHP }}
-      - run: |
-          sudo apt-fast install re2c -y
-          git clone https://github.com/laruence/yaf
-          cd yaf
-          phpize
-          ./configure
-          make
-          make test
-        
+          name: builds
+          path: /tmp/builds
