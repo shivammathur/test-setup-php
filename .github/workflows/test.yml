@@ -5,14 +5,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-10.15, macos-11]
-        php: [5.3, 5.4, 5.5]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        php: [8.0]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: imagick          
+          tools: phpunit:8.5, composer:2.0, php-cs-fixer:2.18
       - name: Test
-        run: php -v && php -m
+        run: |
+          php -v
+          phpunit --version
+          composer -V
+          php-cs-fixer -V
