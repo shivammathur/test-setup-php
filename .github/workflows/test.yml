@@ -13,7 +13,11 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          tools: php-cs-fixer:2.18, phpunit:8.5, composer:2.0
+          tools: php-cs-fixer, phpunit, composer
+      - run: |
+          curl -I -sL https://api.github.com/repos/FriendsOfPHP/PHP-CS-Fixer/git/matching-refs/tags%2Fv2.1.
+          curl -I -sL https://api.github.com/repos/composer/composer/git/matching-refs/tags%2F1.7.
+          curl -I -sL https://api.github.com/repos/sebastianbergmann/phpunit/git/matching-refs/tags%2F8.5.
       - name: Test
         run: |
           php -v
