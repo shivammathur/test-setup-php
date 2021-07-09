@@ -6,28 +6,18 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-10.15]
-        php: [53, 54, 55]
+        php: [5.3, 5.4, 5.5]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Install macports
-        run: |
-          curl -o /tmp/macports.pkg -sL https://github.com/macports/macports-base/releases/download/v2.7.1/MacPorts-2.7.1-10.15-Catalina.pkg
-          sudo installer -pkg /tmp/macports.pkg -target /
-          echo "/opt/local/bin" | sudo tee -a $GITHUB_PATH
-      - name: Set Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_11.7.app
-      - name: Update and sync macports
-        run: |
-          sudo port -vN selfupdate
-          sudo port -vN sync
-      - name: Package
-        run: sudo port -N mpkg php${{ matrix.php }}-imagick
-      - name: Copy to builds
-        run: |
-          sudo mkdir /tmp/builds
-          sudo find /opt/local/var -type f -name "*.pkg" -exec cp -n {} /tmp/builds \;
-          sudo find /opt/local/var -type f -name "*.mpkg" -exec cp -n {} /tmp/builds \;
-      - uses: actions/upload-artifact@v2
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
-          name: builds
-          path: /tmp/builds
+          php-version: ${{ matrix.php }}
+      - name: Add imagick
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+        run: |
+          curl -o /tmp/imagick.mpkg -sL https://github.com/shivammathur/php5-darwin/releases/latest/download/php${PHP_VERSION%.*}.tar.zst
+          sudo installer -pkg /tmp/imagick.mpkg -target /
+      - name: Test
+        run: php -v && php -m
