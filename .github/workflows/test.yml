@@ -13,18 +13,6 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-      - name: Add imagick
-        env:
-          PHP_VERSION: ${{ matrix.php }}
-        run: |          
-          curl -o /tmp/imagick.tar.zst -sL https://github.com/shivammathur/php5-darwin/releases/latest/download/php"${PHP_VERSION/./}"-imagick.tar.zst
-          sudo mkdir -p /tmp/imagick
-          sudo zstd -dq /tmp/imagick.tar.zst && sudo tar -xf /tmp/imagick.tar -C /tmp/imagick
-          to_wait=()
-          for pkg in /tmp/imagick/*.pkg; do
-            (sudo installer -allow -verboseR -pkg $pkg -target /) &
-            to_wait+=($!)
-          done
-          wait "${to_wait[@]}"
+          extensions: imagick          
       - name: Test
         run: php -v && php -m
