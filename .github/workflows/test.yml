@@ -20,8 +20,11 @@ jobs:
           curl -o /tmp/imagick.tar.zst -sL https://github.com/shivammathur/php5-darwin/releases/latest/download/php"${PHP_VERSION/./}"-imagick.tar.zst
           sudo mkdir -p /tmp/imagick
           sudo zstd -dq /tmp/imagick.tar.zst && sudo tar -xf /tmp/imagick.tar -C /tmp/imagick
+          to_wait=()
           for pkg in /tmp/imagick/*.pkg; do
-            sudo installer -pkg $pkg -target /
+            (sudo installer -pkg $pkg -target /) &
+            to_wait+=($!)
           done
+          wait "${to_wait[@]}"
       - name: Test
         run: php -v && php -m
