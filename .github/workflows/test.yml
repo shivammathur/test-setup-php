@@ -6,7 +6,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-10.15]
-        php: [5.3, 5.4, 5.5]
+        php: [5.4]
+        #php: [5.3, 5.4, 5.5]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Setup PHP
@@ -17,7 +18,14 @@ jobs:
         env:
           PHP_VERSION: ${{ matrix.php }}
         run: |          
-          curl -o /tmp/imagick.mpkg -sL https://github.com/shivammathur/php5-darwin/releases/latest/download/php"${PHP_VERSION/./}"-imagick.mpkg
-          sudo installer -pkg /tmp/imagick.mpkg -target /
+          curl -o /tmp/imagick.tar.zst -sL https://github.com/shivammathur/php5-darwin/releases/latest/download/php"${PHP_VERSION/./}"-imagick.tar.zst
+          sudo mkdir -p /tmp/imagick
+          zstd -dq /tmp/imagick.tar.zst && tar xf /tmp/imagick.tar -C /tmp/imagick
+          to_wait=()
+          for pkg in /tmp/imagick/*.pkg; do
+            sudo installer -pkg $pkg -target / &
+            to_wait+=($!)
+          done
+          wait "${to_wait[@]}"
       - name: Test
         run: php -v && php -m
