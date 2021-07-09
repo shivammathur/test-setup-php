@@ -5,9 +5,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-10.15]
-        php: [5.4]
-        #php: [5.3, 5.4, 5.5]
+        os: [macos-10.15, macos-11]
+        php: [5.3, 5.4, 5.5]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Setup PHP
