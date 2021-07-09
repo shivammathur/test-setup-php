@@ -17,7 +17,7 @@ jobs:
         env:
           PHP_VERSION: ${{ matrix.php }}
         run: |
-          curl -o /tmp/imagick.mpkg -sL https://github.com/shivammathur/php5-darwin/releases/latest/download/php"${PHP_VERSION/./}".tar.zst
+          curl -o /tmp/imagick.mpkg -sL https://github.com/shivammathur/php5-darwin/releases/latest/download/php"${PHP_VERSION/./}"-imagick.tar.zst
           sudo installer -pkg /tmp/imagick.mpkg -target /
       - name: Test
         run: php -v && php -m
