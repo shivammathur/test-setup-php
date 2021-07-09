@@ -1,5 +1,5 @@
 name: 'Package'
-on: [workflow_dispatch]
+on: [push]
 jobs:
   tests:  
     strategy:
