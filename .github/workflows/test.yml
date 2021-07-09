@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
+        env:
+          COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           php-version: ${{ matrix.php }}
           tools: phpunit:8.5, composer:2.0, php-cs-fixer:2.18
