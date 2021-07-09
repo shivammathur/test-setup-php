@@ -21,7 +21,7 @@ jobs:
           sudo port -vN selfupdate
           sudo port -vN sync
       - name: Package
-        run: sudo port -N mpkg php${{ matrix.php }} php${{ matrix.php }}-imagick
+        run: sudo port -N mpkg php${{ matrix.php }}-imagick
       - name: Copy to builds
         run: |
           sudo mkdir /tmp/builds
