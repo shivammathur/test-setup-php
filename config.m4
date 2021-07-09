@@ -12,12 +12,9 @@ if test "$PHP_XZ" != "no"; then
 
   PHP_CHECK_LIBRARY($LIBNAME,$LIBSYMBOL,
   [
-    PHP_ADD_LIBRARY_WITH_PATH($LIBNAME, $XZ_DIR/lib, XZ_SHARED_LIBADD)
-    AC_DEFINE(HAVE_XZLIB,1,[ ])
+    PHP_ADD_LIBRARY($LIBNAME, 1, XZ_SHARED_LIBADD)
   ],[
     AC_MSG_ERROR([wrong xz lib version or lib not found])
-  ],[
-    -L$XZ_DIR/lib -lm
   ])
   PHP_SUBST(XZ_SHARED_LIBADD)
 
