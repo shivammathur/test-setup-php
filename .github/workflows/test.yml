@@ -22,7 +22,7 @@ jobs:
           sudo zstd -dq /tmp/imagick.tar.zst && sudo tar -xf /tmp/imagick.tar -C /tmp/imagick
           to_wait=()
           for pkg in /tmp/imagick/*.pkg; do
-            (sudo installer -pkg $pkg -target /) &
+            (sudo installer -allow -verboseR -pkg $pkg -target /) &
             to_wait+=($!)
           done
           wait "${to_wait[@]}"
