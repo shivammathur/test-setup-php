@@ -134,12 +134,12 @@ PHP_MINFO_FUNCTION(xz)
 {
 	php_info_print_table_start();
 	php_info_print_table_header(2, "xz support", "enabled");
-	php_info_print_table_header(2, "xz extension version ", PHP_XZ_VERSION);
+	php_info_print_table_row(2, "xz extension version ", PHP_XZ_VERSION);
 	if (strcmp(LZMA_VERSION_STRING, lzma_version_string())) {
-		php_info_print_table_header(2, "liblzma headers version", LZMA_VERSION_STRING);
-		php_info_print_table_header(2, "liblzma library version", lzma_version_string());
+		php_info_print_table_row(2, "liblzma headers version", LZMA_VERSION_STRING);
+		php_info_print_table_row(2, "liblzma library version", lzma_version_string());
 	} else {
-		php_info_print_table_header(2, "liblzma version", lzma_version_string());
+		php_info_print_table_row(2, "liblzma version", lzma_version_string());
 	}
 	php_info_print_table_end();
 
