@@ -10,7 +10,7 @@ name: "Continuous Integration"
 jobs:
 
   tests:
-    name: "Unit Tests"
+    name: "Build and Tests"
 
     runs-on: ${{ matrix.os }}
 
@@ -30,9 +30,9 @@ jobs:
       - name: "Install liblzma"
         run: sudo apt-get install -y liblzma-dev
 
-      - name: "Configure git to avoid issues with line endings on Windows"
-        if: matrix.os == 'windows-latest'
-        run: git config --global core.autocrlf false
+#      - name: "Configure git to avoid issues with line endings on Windows"
+#        if: ${{ runner.os == 'Windows' }}
+#        run: git config --global core.autocrlf false
 
       - name: "Checkout"
         uses: actions/checkout@v2
@@ -43,12 +43,12 @@ jobs:
           php-version: ${{ matrix.php-version }}
 
       - name: "Compile extension (Linux)"
-        if: matrix.os == 'ubuntu-latest'
+        if: ${{ runner.os == 'Linux' }}
         run: |
           echo "TEST_PHP_ARGS=-q" >> $GITHUB_ENV
           phpize && ./configure && make && sudo make install
           echo "extension=xz.so" >> `php --ini | grep "Loaded Configuration File:" | sed -e "s/.*:\s*//"`
 
       - name: "Run tests (Linux)"
-        if: matrix.os == 'ubuntu-latest'
+        if: ${{ runner.os == 'Linux' }}
         run: make test
