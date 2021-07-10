@@ -1,19 +1,47 @@
-name: 'Test'
-on: [push]
+name: 'Develop workflow'
+on:
+  push:
 jobs:
-  tests:  
+  run:
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        php: [5.6, 7.0, 7.2, 7.4, 8.0, 8.1] 
-    runs-on: ${{ matrix.os }}
+        operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macos-10.15]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-      - name: Setup PHP
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
         id: setup-php
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php }}
+          php-version: ${{ matrix.php-versions }}
+          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+      - name: Add Problem Matcher
+        run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Testing PHP version
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+          output="${{ steps.setup-php.outputs.php-version }}"
+          echo "Output - php-version: $output"
+          php -r "if('${output%.*}' != '${{ matrix.php-versions }}' ) {throw new Exception('Wrong PHP version Output');}"
+      - name: Testing Composer version
+        run: php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
+      - name: Testing ini values
+        run: |
+          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
+          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
+          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
+      - name: Test JIT
+        if: matrix.php-versions == '8.0' || matrix.php-versions == '8.1'
+        run: |
+          php -r "if(! extension_loaded('Zend OPcache')) {throw new Exception('Zend OPcache not found');}"
+          php -r "if(ini_get('opcache.enable')!=1) {throw new Exception('opcache.jit not set');}"
+          php -r "if(ini_get('opcache.jit_buffer_size')!='256M') {throw new Exception('opcache.jit_buffer_size not set');}"
+          php -r "if(ini_get('opcache.jit')!=1235) {throw new Exception('opcache.jit not set');}"
 
-      - name: Test
-        run: echo ${{ steps.setup-php.outputs.php-version }}
