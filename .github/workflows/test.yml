@@ -19,7 +19,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: behat:3.6, infection:0.20, flex:v1, phan:4.0, php-cs-fixer:2.18, phpcs:3.5, phpcbf:3.5, phpcpd:v6, phpspec:7.0, phpstan:0.12, phpmd:2.9, cs2pr:1.4, phpunit:9.5, psalm:4.4, phing:2, phinx:0.12, phive:0.14, deployer:v6, composer:2.0, symfony:4.21, vapor-cli:1.11
+          tools: behat:3.6, infection:0.20, flex:v1.10, phan:4.0, php-cs-fixer:2.18, phpcs:3.5, phpcbf:3.5, phpcpd:v6, phpspec:7.0, phpstan:0.12, phpmd:2.9, cs2pr:1.4, phpunit:9.5, psalm:4.4, phing:2, phinx:0.12, phive:0.14, deployer:v6, composer:2.0, symfony:4.21, vapor-cli:1.11
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
