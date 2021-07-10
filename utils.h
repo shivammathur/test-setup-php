@@ -24,7 +24,7 @@
 /* Merges two memory fragments by reallocating the first one.
    Returns a pointer to the first memory segment or, if reallocated, to the new
    address. */
-void *memmerge(char *ptr1, char *ptr2, size_t len1, size_t len2);
+void *memmerge(void *ptr1, void *ptr2, size_t len1, size_t len2);
 
 #endif
 

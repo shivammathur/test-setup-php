@@ -38,15 +38,12 @@
 #endif
 
 /* {{{ arginfo */
-ZEND_BEGIN_ARG_INFO(arginfo_void, 0)
-ZEND_END_ARG_INFO()
-
 ZEND_BEGIN_ARG_INFO(arginfo_xzread, 0)
 	ZEND_ARG_INFO(0, fp)
 	ZEND_ARG_INFO(0, length)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO(arginfo_xzwrite, 0)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_xzwrite, 0, 0, 2)
 	ZEND_ARG_INFO(0, fp)
 	ZEND_ARG_INFO(0, str)
 	ZEND_ARG_INFO(0, length)
@@ -67,13 +64,19 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO(arginfo_xzdecode, 0)
 	ZEND_ARG_INFO(0, str)
 ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_xzopen, 0, 0, 2)
+	ZEND_ARG_INFO(0, filename)
+	ZEND_ARG_INFO(0, mode)
+	ZEND_ARG_INFO(0, compression_level)
+ZEND_END_ARG_INFO()
 /* }}} */
 
 /* {{{ xz_functions[] */
 static const zend_function_entry xz_functions[] = {
-	PHP_FE(xzdecode, arginfo_void)
-	PHP_FE(xzopen, arginfo_void)
-	PHP_FE(xzencode, arginfo_void)
+	PHP_FE(xzdecode, arginfo_xzdecode)
+	PHP_FE(xzopen, arginfo_xzopen)
+	PHP_FE(xzencode, arginfo_xzencode)
 	PHP_FALIAS(xzread, fread, arginfo_xzread)
 	PHP_FALIAS(xzwrite, fwrite, arginfo_xzwrite)
 	PHP_FALIAS(xzclose, fclose, arginfo_xzclose)
@@ -253,7 +256,7 @@ PHP_FUNCTION(xzencode)
 
 	lzma_end(&strm);
 
-	RETURN_STRINGL(out, out_len);
+	RETURN_STRINGL((char *)out, out_len);
 }
 /* }}} */
 
@@ -305,14 +308,14 @@ PHP_FUNCTION(xzdecode)
 			strm.next_out = buff;
 		}
 	}
-
+	(void)status; // avoid -Wunused-but-set-variable warning
 	/* Merging last fragment. */
 	out = memmerge(out, buff, out_len, XZ_BUFFER_SIZE - strm.avail_out);
 	out_len += XZ_BUFFER_SIZE - strm.avail_out;
 
 	lzma_end(&strm);
 
-	RETURN_STRINGL(out, out_len);
+	RETURN_STRINGL((char *)out, out_len);
 }
 /* }}} */
 

@@ -20,7 +20,7 @@
 
 #include "php.h"
 
-void *memmerge(char *ptr1, char *ptr2, size_t len1, size_t len2) /* {{{ */
+void *memmerge(void *ptr1, void *ptr2, size_t len1, size_t len2) /* {{{ */
 {
 	if ((ptr2 == NULL) || (len2 < 1)) {
 		return ptr1;
@@ -29,7 +29,7 @@ void *memmerge(char *ptr1, char *ptr2, size_t len1, size_t len2) /* {{{ */
 	if (ptr1 == NULL) {
 		return NULL;
 	}
-	memcpy(ptr1 + len1, ptr2, len2);
+	memcpy((char *)ptr1 + len1, ptr2, len2);
 	return ptr1;
 }
 /* }}} */

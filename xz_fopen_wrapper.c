@@ -53,7 +53,7 @@ struct php_xz_stream_data_t {
 	int fd;
 
 	/* The type of access required. */
-	char mode[4];
+	char mode[64];
 
 	/* Compression level used. */
 	unsigned long level;
@@ -69,7 +69,7 @@ static int php_xz_decompress(struct php_xz_stream_data_t *self)
 
 	if (strm->avail_in == 0 && !php_stream_eof(self->stream)) {
 		strm->next_in = self->in_buf;
-		strm->avail_in = php_stream_read(self->stream, self->in_buf, self->in_buf_sz);
+		strm->avail_in = php_stream_read(self->stream, (char *)self->in_buf, self->in_buf_sz);
 	}
 
 	lzma_ret ret = lzma_code(strm, action);
@@ -92,14 +92,15 @@ static int php_xz_compress(struct php_xz_stream_data_t *self)
 {
 	lzma_stream *strm = &self->strm;
 	lzma_action action = LZMA_RUN;
-	int wrote = 0, to_write = strm->avail_in;
+	int to_write = strm->avail_in;
 
 	while (strm->avail_in > 0) {
 		lzma_ret ret = lzma_code(strm, action);
 		size_t len = self->out_buf_sz - strm->avail_out;
-		php_stream_write(self->stream, self->out_buf, len);
+		php_stream_write(self->stream, (char *)self->out_buf, len);
 		strm->next_out = self->out_buf;
 		strm->avail_out = self->out_buf_sz;
+		(void)ret;  // avoid -Wunused-but-set-variable warning
 	}
 
 	strm->next_in = self->in_buf;
@@ -266,7 +267,7 @@ static int php_xziop_close(php_stream *stream, int close_handle)
 
 			if (strm->avail_out < self->out_buf_sz) {
 				size_t write_size = self->out_buf_sz - strm->avail_out;
-				php_stream_write(self->stream, self->out_buf, write_size);
+				php_stream_write(self->stream, (char *)self->out_buf, write_size);
 				strm->next_out = self->out_buf;
 				strm->avail_out = self->out_buf_sz;
 			}
