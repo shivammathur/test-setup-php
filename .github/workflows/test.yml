@@ -1,4 +1,4 @@
-name: 'Package'
+name: 'Test'
 on: [push]
 jobs:
   tests:  
@@ -6,21 +6,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        php: [8.0] 
+        php: [5.6, 7.0, 7.2, 7.4, 8.0, 8.1] 
     runs-on: ${{ matrix.os }}
     steps:
       - name: Setup PHP
+        id: setup-php
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          tools: php-cs-fixer, phpunit, composer
-      - run: |
-          curl -I -sL https://api.github.com/repos/FriendsOfPHP/PHP-CS-Fixer/git/matching-refs/tags%2Fv2.1.
-          curl -I -sL https://api.github.com/repos/composer/composer/git/matching-refs/tags%2F1.7.
-          curl -I -sL https://api.github.com/repos/sebastianbergmann/phpunit/git/matching-refs/tags%2F8.5.
+
       - name: Test
-        run: |
-          php -v
-          phpunit --version
-          composer -V
-          php-cs-fixer -V
+        run: echo ${{ steps.setup-php.outputs.php-version }}
