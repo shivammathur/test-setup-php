@@ -27,9 +27,8 @@ jobs:
         run: |
           php -v
           php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
-          output="${{ steps.setup-php.outputs.php-version }}"
-          echo "Output - php-version: $output"
-          php -r "if('${output%.*}' != '${{ matrix.php-versions }}' ) {throw new Exception('Wrong PHP version Output');}"
+          echo "Output - php-version: ${{ steps.setup-php.outputs.php-version }}"
+          php -r "if(explode('.', '${{ steps.setup-php.outputs.php-version }}')[0].'.'.explode('.', '${{ steps.setup-php.outputs.php-version }}')[1] != '${{ matrix.php-versions }}') { throw new Exception('Wrong PHP version Output'); }"
       - name: Testing Composer version
         run: php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
       - name: Testing ini values
