@@ -25,8 +25,8 @@ jobs:
         run: |
           php -m
           php -r "if(phpversion()>=7.1 && ! extension_loaded('http')) {throw new Exception('http not found');}"
-          php -r "if(! extension_loaded('raphf')) {throw new Exception('raphf not found');}"
-          php -r "if(phpversion()<=7.4 && ! extension_loaded('propro')) {throw new Exception('propro not found');}"
+          php -r "if(phpversion()>=7.1 && ! extension_loaded('raphf')) {throw new Exception('raphf not found');}"
+          php -r "if(phpversion()>=7.1 && phpversion()<=7.4 && ! extension_loaded('propro')) {throw new Exception('propro not found');}"
 
       - name: Testing Extensions
         if: matrix.operating-system != 'windows-latest'
