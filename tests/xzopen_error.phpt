@@ -3,7 +3,7 @@ Test `xzopen`: error conditions.
 --SKIPIF--
 <?php
 if (!extension_loaded("xz")) {
-	print("XZ extension is not loaded!");
+	die("skip XZ extension is not loaded!");
 }
 ?>
 --FILE--
