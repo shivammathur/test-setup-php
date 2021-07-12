@@ -61,18 +61,30 @@ struct php_xz_stream_data_t {
 /* }}} */
 
 /* {{{ php_xz_decompress
-   Decompresses the stream. */
+   Decompresses the stream.
+   Returns 0 on success, -1 on error
+*/
 static int php_xz_decompress(struct php_xz_stream_data_t *self)
 {
 	lzma_stream *strm = &self->strm;
 	lzma_action action = LZMA_RUN;
 
 	if (strm->avail_in == 0 && !php_stream_eof(self->stream)) {
-		strm->next_in = self->in_buf;
+#if PHP_VERSION_ID >= 70400
+		ssize_t read = php_stream_read(self->stream, (char *)self->in_buf, self->in_buf_sz);
+		if (read < 0) {
+			return -1;
+		}
+		strm->avail_in = read;
+#else
 		strm->avail_in = php_stream_read(self->stream, (char *)self->in_buf, self->in_buf_sz);
+		strm->next_in = self->in_buf;
+#endif
 	}
 
-	lzma_ret ret = lzma_code(strm, action);
+	if (lzma_code(strm, action) != LZMA_OK) {
+		return -1;
+	}
 
 	if (strm->avail_out == 0 && self->out_buf_idx == strm->next_out) {
 		/* All bytes in the output buffer have been read. */
@@ -80,14 +92,15 @@ static int php_xz_decompress(struct php_xz_stream_data_t *self)
 		strm->avail_out = self->out_buf_sz;
 	}
 
-	return ret;
+	return 0;
 }
 /* }}} */
 
 /* {{{ php_xz_compress
    Compresses the stream by consuming all bytes in `lzma_stream->next_in` and
    writing them into the file.
-   Returns the number of bytes to be written. */
+   Returns the number of bytes to be written or -1 on error
+*/
 static int php_xz_compress(struct php_xz_stream_data_t *self)
 {
 	lzma_stream *strm = &self->strm;
@@ -97,10 +110,17 @@ static int php_xz_compress(struct php_xz_stream_data_t *self)
 	while (strm->avail_in > 0) {
 		lzma_ret ret = lzma_code(strm, action);
 		size_t len = self->out_buf_sz - strm->avail_out;
-		php_stream_write(self->stream, (char *)self->out_buf, len);
+		if (ret != LZMA_OK) {
+			to_write = -1; /* error in compression */
+			break;
+		} else if (len) {
+			if (php_stream_write(self->stream, (char *)self->out_buf, len) != len) {
+				to_write = -1; /* error in output stream */
+				break;
+			}
+		}
 		strm->next_out = self->out_buf;
 		strm->avail_out = self->out_buf_sz;
-		(void)ret;  // avoid -Wunused-but-set-variable warning
 	}
 
 	strm->next_in = self->in_buf;
@@ -206,7 +226,14 @@ static size_t php_xziop_read(php_stream *stream, char *buf, size_t count)
 			return have_read;
 		}
 
-		php_xz_decompress(self);
+		if (php_xz_decompress(self) < 0) {
+#if PHP_VERSION_ID >= 70400
+			if (!have_read) {
+				return -1;
+			}
+#endif
+			break;
+		}
 	}
 
 	return have_read;
@@ -222,7 +249,7 @@ static size_t php_xziop_write(php_stream *stream, const char *buf, size_t count)
 #endif
 {
 	struct php_xz_stream_data_t *self = (struct php_xz_stream_data_t *) stream->abstract;
-	int wrote = 0, bytes_consumed = 0;
+	size_t wrote = 0, bytes_consumed = 0;
 
 	lzma_stream *strm = &self->strm;
 
@@ -242,7 +269,11 @@ static size_t php_xziop_write(php_stream *stream, const char *buf, size_t count)
 		strm->avail_in += count - wrote;
 	}
 
-	return count;
+#if PHP_VERSION_ID >= 70400
+	return (bytes_consumed < 0 ? -1 : count);
+#else
+	return (bytes_consumed < 0 ? 0 : count);
+#endif
 }
 /* }}} */
 
