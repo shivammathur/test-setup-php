@@ -1,4 +1,4 @@
-name: HTTP workflow
+name: Test
 on:
   push:
 jobs:
@@ -7,23 +7,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: http
 
-      - name: Testing PHP version
-        run: php -v
-
-      - name: Testing Extensions
-        if: matrix.operating-system == 'windows-latest'
+      - name: Testing Phar
         run: |
-          php -m
-          php -r "if(phpversion()>=7.1 && ! extension_loaded('http')) {throw new Exception('http not found');}"
-          php -r "if(phpversion()>=7.1 && ! extension_loaded('raphf')) {throw new Exception('raphf not found');}"
-          php -r "if(phpversion()>=7.1 && phpversion()<=7.4 && ! extension_loaded('propro')) {throw new Exception('propro not found');}"
+          curl -o crc.phar -sL https://github.com/maglnet/ComposerRequireChecker/releases/download/3.3.0/composer-require-checker.phar
+          cat -v ./crc.phar
