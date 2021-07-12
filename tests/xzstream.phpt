@@ -19,7 +19,7 @@ echo "Compress level 2 ($tmp1)\n";
 $opts = [
 	'xz' => [
 		'compression_level' => '2',
-		'max_memory' => 64*1024*1024,
+		'max_memory' => 0,
 	]
 ];
 $ctx = stream_context_create($opts);
@@ -47,6 +47,9 @@ $len3 = filesize($tmp3);
 var_dump($len3 > 0);
 var_dump($len3 == $len0);
 
+unlink($tmp1);
+unlink($tmp2);
+unlink($tmp3);
 ?>
 --EXPECTF--
 Compress level 2 (%s)
