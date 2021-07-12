@@ -57,6 +57,9 @@ struct php_xz_stream_data_t {
 
 	/* Compression level used. */
 	unsigned long level;
+
+	/* The maximum amount of memory that can be used when decompressing. */
+	uint64_t memory;
 };
 /* }}} */
 
@@ -68,6 +71,7 @@ static int php_xz_decompress(struct php_xz_stream_data_t *self)
 {
 	lzma_stream *strm = &self->strm;
 	lzma_action action = LZMA_RUN;
+	lzma_ret ret;
 
 	if (strm->avail_in == 0 && !php_stream_eof(self->stream)) {
 #if PHP_VERSION_ID >= 70400
@@ -78,18 +82,13 @@ static int php_xz_decompress(struct php_xz_stream_data_t *self)
 		strm->avail_in = read;
 #else
 		strm->avail_in = php_stream_read(self->stream, (char *)self->in_buf, self->in_buf_sz);
-		strm->next_in = self->in_buf;
 #endif
+		strm->next_in = self->in_buf;
 	}
 
-	if (lzma_code(strm, action) != LZMA_OK) {
+	ret = lzma_code(strm, action);
+	if (ret != LZMA_OK && ret != LZMA_STREAM_END) {
 		return -1;
-	}
-
-	if (strm->avail_out == 0 && self->out_buf_idx == strm->next_out) {
-		/* All bytes in the output buffer have been read. */
-		strm->next_out = self->out_buf_idx = self->out_buf;
-		strm->avail_out = self->out_buf_sz;
 	}
 
 	return 0;
@@ -135,8 +134,7 @@ static int php_xz_init_decoder(struct php_xz_stream_data_t *self)
 {
 	lzma_stream *strm = &self->strm;
 
-	uint64_t mem = INI_INT("xz.max_memory");
-	if (lzma_auto_decoder(strm, mem ? mem : UINT64_MAX, LZMA_CONCATENATED) != LZMA_OK) {
+	if (lzma_auto_decoder(strm, self->memory ? self->memory : UINT64_MAX, LZMA_CONCATENATED) != LZMA_OK) {
 		return 0;
 	}
 
@@ -202,6 +200,7 @@ static size_t php_xziop_read(php_stream *stream, char *buf, size_t count)
 	struct php_xz_stream_data_t *self = (struct php_xz_stream_data_t *) stream->abstract;
 	lzma_stream *strm = &self->strm;
 
+
 	size_t to_read = count, have_read = 0;
 
 	while (to_read > 0) {
@@ -214,8 +213,12 @@ static size_t php_xziop_read(php_stream *stream, char *buf, size_t count)
 			memcpy(buf + have_read, self->out_buf_idx, strm->next_out - self->out_buf_idx);
 			have_read += strm->next_out - self->out_buf_idx;
 			to_read -= strm->next_out - self->out_buf_idx;
-			self->out_buf_idx = strm->next_out;
-			if (strm->next_out == self->out_buf_idx) {
+
+			if (strm->avail_out) {
+				self->out_buf_idx = strm->next_out;
+			} else {
+				/* All bytes in the output buffer have been read. */
+				self->out_buf_idx = strm->next_out;
 				self->out_buf_idx = strm->next_out = self->out_buf;
 				strm->avail_out = self->out_buf_sz;
 			}
@@ -225,6 +228,7 @@ static size_t php_xziop_read(php_stream *stream, char *buf, size_t count)
 			stream->eof = 1;
 			return have_read;
 		}
+
 
 		if (php_xz_decompress(self) < 0) {
 #if PHP_VERSION_ID >= 70400
@@ -362,15 +366,13 @@ php_stream_ops php_stream_xzio_ops = {
 php_stream *php_stream_xzopen(php_stream_wrapper *wrapper, const char *path, const char *mode_pass, int options, zend_string **opened_path, php_stream_context *context STREAMS_DC)
 {
 	char mode[64];
-	unsigned long level = 6;
+	zend_ulong level = INI_INT("xz.compression_level");;
+	zend_ulong mem = INI_INT("xz.max_memory");
+
 	php_stream *stream = NULL, *innerstream = NULL;
 
 	strncpy(mode, mode_pass, sizeof(mode));
 	mode[sizeof(mode) - 1] = '\0';
-
-	/* The pointer below is freed even though it is `const` because it was
-	   manually allocated in `xzopen`.. */
-	efree((char *) mode_pass);
 
 	/* Split compression level and mode. */
 	char *colonp = strchr(mode, ':');
@@ -393,6 +395,16 @@ php_stream *php_stream_xzopen(php_stream_wrapper *wrapper, const char *path, con
 		path += 16;
 	}
 
+	if (context) {
+		zval *tmpzval;
+		if (NULL != (tmpzval = php_stream_context_get_option(context, "xz", "compression_level"))) {
+			level = zval_get_long(tmpzval);
+		}
+		if (NULL != (tmpzval = php_stream_context_get_option(context, "xz", "max_memory"))) {
+			mem = zval_get_long(tmpzval);
+		}
+	}
+
 	innerstream = php_stream_open_wrapper_ex(path, mode, STREAM_MUST_SEEK | options | STREAM_WILL_CAST, opened_path, context);
 
 	if (innerstream) {
@@ -402,6 +414,7 @@ php_stream *php_stream_xzopen(php_stream_wrapper *wrapper, const char *path, con
 			self->stream = innerstream;
 			self->fd = fd;
 			self->level = level;
+			self->memory = mem;
 			strncpy(self->mode, mode, sizeof(self->mode));
 			stream = php_stream_alloc_rel(&php_stream_xzio_ops, self, 0, mode);
 
