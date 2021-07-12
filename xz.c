@@ -273,6 +273,10 @@ PHP_FUNCTION(xzdecode)
 		return;
 	}
 
+	if (!in_len) {
+		RETURN_BOOL(0); /* empty string is not xz data */
+	}
+
 	/* The output string (encoded). */
 	uint8_t *out = NULL;
 	/* The length of the output string. */
@@ -300,6 +304,14 @@ PHP_FUNCTION(xzdecode)
 	lzma_ret status = LZMA_OK;
 	while (strm.avail_in != 0) {
 		status = lzma_code(&strm, LZMA_RUN);
+		if (status != LZMA_OK && status != LZMA_STREAM_END) {
+			if (out) {
+				efree(out);
+			}
+			lzma_end(&strm);
+			RETURN_BOOL(0); /* probably not xz data */
+		}
+
 		/* More memory is required. */
 		if (strm.avail_out == 0) {
 			out = memmerge(out, buff, out_len, XZ_BUFFER_SIZE);
@@ -308,7 +320,6 @@ PHP_FUNCTION(xzdecode)
 			strm.next_out = buff;
 		}
 	}
-	(void)status; // avoid -Wunused-but-set-variable warning
 	/* Merging last fragment. */
 	out = memmerge(out, buff, out_len, XZ_BUFFER_SIZE - strm.avail_out);
 	out_len += XZ_BUFFER_SIZE - strm.avail_out;
