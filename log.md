@@ -20,3 +20,4 @@
 - Test 1.9.7 release.
 - Test 1.9.8 release.
 - Test 1.10.1 release.
+- Test 1.11.2 release.
