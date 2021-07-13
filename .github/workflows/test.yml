@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
       matrix:        
         os: [ubuntu-16.04, macos-latest]
-        grpc: [latest, 1, 1.38, 1.36, 1.33]
+        grpc: [1.39]
         php: ['7.4']
     steps: 
       - name: Setup PHP
