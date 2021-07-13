@@ -3,7 +3,6 @@
 PHP Extension providing XZ (LZMA2) compression/decompression functions.<br/>
 (see [Implement lzma (xz?) compression](https://news-web.php.net/php.internals/106654))
 
-[![Build Status](https://travis-ci.com/codemasher/php-ext-xz.svg?branch=main)](https://travis-ci.com/github/codemasher/php-ext-xz)
 [![Continuous Integration](https://github.com/codemasher/php-ext-xz/workflows/Continuous%20Integration/badge.svg)](https://github.com/codemasher/php-ext-xz/actions)
 
 ## Build & Installation
