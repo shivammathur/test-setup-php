@@ -1,5 +1,5 @@
 # https://help.github.com/en/categories/automating-your-workflow-with-github-actions
-# https://github.com/sebastianbergmann/phpunit/blob/master/.github/workflows/ci.yml
+# https://github.com/php/pecl-database-dbase/blob/master/.github/workflows/ci.yml
 
 on:
   - pull_request
@@ -9,30 +9,18 @@ name: "Continuous Integration"
 
 jobs:
 
-  tests:
-    name: "Build and Tests"
-
-    runs-on: ${{ matrix.os }}
+  linux:
+    name: "Build and Tests (Linux)"
+    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-#          - windows-latest
         php-version: ["7.2", "7.3", "7.4", "8.0", "8.1"]
 
     steps:
-      - name: "Remove current PHP"
-        # this could be done smarter, e.g. remove all except matrix.php-version
-        run: sudo apt-get purge php7.* php8.*
-
       - name: "Install liblzma"
         run: sudo apt-get install -y liblzma-dev
-
-#      - name: "Configure git to avoid issues with line endings on Windows"
-#        if: ${{ runner.os == 'Windows' }}
-#        run: git config --global core.autocrlf false
 
       - name: "Checkout"
         uses: actions/checkout@v2
@@ -42,13 +30,13 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
 
-      - name: "Compile extension (Linux)"
-        if: ${{ runner.os == 'Linux' }}
+      - name: "Compile extension"
         run: |
-          echo "TEST_PHP_ARGS=-q" >> $GITHUB_ENV
-          phpize && ./configure && make && sudo make install
+          phpize
+          ./configure
+          make
+          sudo make install
           echo "extension=xz.so" >> `php --ini | grep "Loaded Configuration File:" | sed -e "s/.*:\s*//"`
 
-      - name: "Run tests (Linux)"
-        if: ${{ runner.os == 'Linux' }}
+      - name: "Run tests"
         run: make test
