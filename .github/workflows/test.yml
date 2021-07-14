@@ -7,22 +7,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      matrix:        
-        os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04, macos-10.15, macos-11.0]
-        grpc: [1.39]
-        php: ['7.4']
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps: 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+      - name: Setup PHP with tools
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          tools: php-cs-fixer:2
         env:
           COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        id: php
-        with:
-          php-version: ${{ matrix.php }}
-          tools: protoc, grpc_php_plugin:${{ matrix.grpc }}
       - name: Test        
-        run: |
-          git clone https://github.com/grpc/grpc          
-          cd grpc/examples/php
-          protoc --version
-          protoc --proto_path=../protos --php_out=. --grpc_out=. --plugin=protoc-gen-grpc=${{ steps.php.outputs.grpc_php_plugin_path }} ../protos/helloworld.proto
+        run: php-cs-fixer -V
