@@ -10,7 +10,7 @@ jobs:
         os: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
         php: ['8.1']
     steps:
-      - name: Setup PHP 8.
+      - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
