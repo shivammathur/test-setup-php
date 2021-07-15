@@ -4,11 +4,10 @@ on:
 jobs:
   testrun:
     runs-on: ubuntu-latest
-    name: testrun
     strategy:
       matrix:
         php-versions: ['7.4']
-    container: setup-php/node@sha256:e8c613e07b0b7ff33893b694f7759a10d42e180f2b4dc349fb57dc6b71dcab00
+    container: setupphp/node@sha256:e8c613e07b0b7ff33893b694f7759a10d42e180f2b4dc349fb57dc6b71dcab00
     steps:
       - name: Checkout
         uses: actions/checkout@v2
