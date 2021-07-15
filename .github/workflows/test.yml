@@ -1,20 +1,19 @@
-name: Runner workflow
+name: Test workflow
 on:
   push:
 jobs:
-  ubuntu:
-    name: runner    
-    runs-on: ${{ matrix.os }}
+  testrun:
+    runs-on: ubuntu-latest
+    name: testrun
     strategy:
-      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    steps: 
-      - name: Setup PHP with tools
+        php-versions: ['7.4']
+    container: setup-php/node@sha256:e8c613e07b0b7ff33893b694f7759a10d42e180f2b4dc349fb57dc6b71dcab00
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.0'
-        env:
-          update: true
-      - name: Test        
-        run: php-cs-fixer -V
+          php-version: ${{ matrix.php-versions }}
+      - run: php -v && php -m    
