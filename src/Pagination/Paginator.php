@@ -20,7 +20,14 @@ use Doctrine\ORM\Tools\Pagination\Paginator as DoctrinePaginator;
  */
 class Paginator
 {
-    private const PAGE_SIZE = 10;
+    /**
+     * Use constants to define configuration options that rarely change instead
+     * of specifying them under parameters section in config/services.yaml file.
+     *
+     * See https://symfony.com/doc/current/best_practices.html#use-constants-to-define-options-that-rarely-change
+     */
+    public const PAGE_SIZE = 10;
+
     private $queryBuilder;
     private $currentPage;
     private $pageSize;

@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Functional test that implements a "smoke test" of all the public and secure
  * URLs of the application.
- * See https://symfony.com/doc/current/best_practices/tests.html#functional-tests.
+ * See https://symfony.com/doc/current/best_practices.html#smoke-test-your-urls.
  *
  * Execute the application tests using this command (requires PHPUnit to be installed):
  *
@@ -30,20 +30,16 @@ class DefaultControllerTest extends WebTestCase
     /**
      * PHPUnit's data providers allow to execute the same tests repeated times
      * using a different set of data each time.
-     * See https://symfony.com/doc/current/cookbook/form/unit_testing.html#testing-against-different-sets-of-data.
+     * See https://symfony.com/doc/current/testing.html#testing-against-different-sets-of-data.
      *
      * @dataProvider getPublicUrls
      */
-    public function testPublicUrls(string $url)
+    public function testPublicUrls(string $url): void
     {
         $client = static::createClient();
         $client->request('GET', $url);
 
-        $this->assertSame(
-            Response::HTTP_OK,
-            $client->getResponse()->getStatusCode(),
-            sprintf('The %s public URL loads correctly.', $url)
-        );
+        $this->assertResponseIsSuccessful(sprintf('The %s public URL loads correctly.', $url));
     }
 
     /**
@@ -53,14 +49,14 @@ class DefaultControllerTest extends WebTestCase
      * blog post fixtures are randomly generated and there's no guarantee that
      * a given blog post slug will be available.
      */
-    public function testPublicBlogPost()
+    public function testPublicBlogPost(): void
     {
         $client = static::createClient();
         // the service container is always available via the test client
         $blogPost = $client->getContainer()->get('doctrine')->getRepository(Post::class)->find(1);
         $client->request('GET', sprintf('/en/blog/posts/%s', $blogPost->getSlug()));
 
-        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode());
+        $this->assertResponseIsSuccessful();
     }
 
     /**
@@ -70,28 +66,26 @@ class DefaultControllerTest extends WebTestCase
      *
      * @dataProvider getSecureUrls
      */
-    public function testSecureUrls(string $url)
+    public function testSecureUrls(string $url): void
     {
         $client = static::createClient();
         $client->request('GET', $url);
 
-        $response = $client->getResponse();
-        $this->assertSame(Response::HTTP_FOUND, $response->getStatusCode());
-        $this->assertSame(
+        $this->assertResponseRedirects(
             'http://localhost/en/login',
-            $response->getTargetUrl(),
+            Response::HTTP_FOUND,
             sprintf('The %s secure URL redirects to the login form.', $url)
         );
     }
 
-    public function getPublicUrls()
+    public function getPublicUrls(): ?\Generator
     {
         yield ['/'];
         yield ['/en/blog/'];
         yield ['/en/login'];
     }
 
-    public function getSecureUrls()
+    public function getSecureUrls(): ?\Generator
     {
         yield ['/en/admin/post/'];
         yield ['/en/admin/post/new'];

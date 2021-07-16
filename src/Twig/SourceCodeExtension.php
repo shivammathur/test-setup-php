@@ -11,6 +11,7 @@
 
 namespace App\Twig;
 
+use function Symfony\Component\String\u;
 use Twig\Environment;
 use Twig\Extension\AbstractExtension;
 use Twig\Template;
@@ -45,6 +46,9 @@ class SourceCodeExtension extends AbstractExtension
         ];
     }
 
+    /**
+     * @param string|TemplateWrapper|array $template
+     */
     public function showSourceCode(Environment $twig, $template): string
     {
         return $twig->render('debug/source_code.html.twig', [
@@ -93,10 +97,7 @@ class SourceCodeExtension extends AbstractExtension
         return new \ReflectionFunction($callable);
     }
 
-    /**
-     * @param TemplateWrapper|Template $template
-     */
-    private function getTemplateSource($template): array
+    private function getTemplateSource(TemplateWrapper $template): array
     {
         $templateSource = $template->getSourceContext();
 
@@ -117,20 +118,20 @@ class SourceCodeExtension extends AbstractExtension
      */
     private function unindentCode(string $code): string
     {
-        $formattedCode = $code;
-        $codeLines = explode("\n", $code);
+        $codeLines = u($code)->split("\n");
 
-        $indentedLines = array_filter($codeLines, function ($lineOfCode) {
-            return '' === $lineOfCode || 0 === mb_strpos($lineOfCode, '    ');
+        $indentedOrBlankLines = array_filter($codeLines, function ($lineOfCode) {
+            return u($lineOfCode)->isEmpty() || u($lineOfCode)->startsWith('    ');
         });
 
-        if (\count($indentedLines) === \count($codeLines)) {
-            $formattedCode = array_map(function ($lineOfCode) {
-                return mb_substr($lineOfCode, 4);
+        $codeIsIndented = \count($indentedOrBlankLines) === \count($codeLines);
+        if ($codeIsIndented) {
+            $unindentedLines = array_map(function ($lineOfCode) {
+                return u($lineOfCode)->after('    ');
             }, $codeLines);
-            $formattedCode = implode("\n", $formattedCode);
+            $code = u("\n")->join($unindentedLines);
         }
 
-        return $formattedCode;
+        return $code;
     }
 }

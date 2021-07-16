@@ -11,7 +11,7 @@
 
 namespace App\Tests\Controller;
 
-use App\Entity\User;
+use App\Repository\UserRepository;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -19,11 +19,11 @@ use Symfony\Component\HttpFoundation\Response;
  * Functional test for the controllers defined inside the UserController used
  * for managing the current logged user.
  *
- * See https://symfony.com/doc/current/book/testing.html#functional-tests
+ * See https://symfony.com/doc/current/testing.html#functional-tests
  *
  * Whenever you test resources protected by a firewall, consider using the
  * technique explained in:
- * https://symfony.com/doc/current/cookbook/testing/http_authentication.html
+ * https://symfony.com/doc/current/testing/http_authentication.html
  *
  * Execute the application tests using this command (requires PHPUnit to be installed):
  *
@@ -35,27 +35,25 @@ class UserControllerTest extends WebTestCase
     /**
      * @dataProvider getUrlsForAnonymousUsers
      */
-    public function testAccessDeniedForAnonymousUsers(string $httpMethod, string $url)
+    public function testAccessDeniedForAnonymousUsers(string $httpMethod, string $url): void
     {
         $client = static::createClient();
         $client->request($httpMethod, $url);
 
-        $response = $client->getResponse();
-        $this->assertSame(Response::HTTP_FOUND, $response->getStatusCode());
-        $this->assertSame(
+        $this->assertResponseRedirects(
             'http://localhost/en/login',
-            $response->getTargetUrl(),
+            Response::HTTP_FOUND,
             sprintf('The %s secure URL redirects to the login form.', $url)
         );
     }
 
-    public function getUrlsForAnonymousUsers()
+    public function getUrlsForAnonymousUsers(): ?\Generator
     {
         yield ['GET', '/en/profile/edit'];
         yield ['GET', '/en/profile/change-password'];
     }
 
-    public function testEditUser()
+    public function testEditUser(): void
     {
         $newUserEmail = 'admin_jane@symfony.com';
 
@@ -63,23 +61,21 @@ class UserControllerTest extends WebTestCase
             'PHP_AUTH_USER' => 'jane_admin',
             'PHP_AUTH_PW' => 'kitten',
         ]);
-        $crawler = $client->request('GET', '/en/profile/edit');
-        $form = $crawler->selectButton('Save changes')->form([
+        $client->request('GET', '/en/profile/edit');
+        $client->submitForm('Save changes', [
             'user[email]' => $newUserEmail,
         ]);
-        $client->submit($form);
 
-        $this->assertSame(Response::HTTP_FOUND, $client->getResponse()->getStatusCode());
+        $this->assertResponseRedirects('/en/profile/edit', Response::HTTP_FOUND);
 
-        /** @var User $user */
-        $user = $client->getContainer()->get('doctrine')->getRepository(User::class)->findOneBy([
-            'email' => $newUserEmail,
-        ]);
+        /** @var \App\Entity\User $user */
+        $user = self::$container->get(UserRepository::class)->findOneByEmail($newUserEmail);
+
         $this->assertNotNull($user);
         $this->assertSame($newUserEmail, $user->getEmail());
     }
 
-    public function testChangePassword()
+    public function testChangePassword(): void
     {
         $newUserPassword = 'new-password';
 
@@ -87,19 +83,16 @@ class UserControllerTest extends WebTestCase
             'PHP_AUTH_USER' => 'jane_admin',
             'PHP_AUTH_PW' => 'kitten',
         ]);
-        $crawler = $client->request('GET', '/en/profile/change-password');
-        $form = $crawler->selectButton('Save changes')->form([
+        $client->request('GET', '/en/profile/change-password');
+        $client->submitForm('Save changes', [
             'change_password[currentPassword]' => 'kitten',
             'change_password[newPassword][first]' => $newUserPassword,
             'change_password[newPassword][second]' => $newUserPassword,
         ]);
-        $client->submit($form);
 
-        $response = $client->getResponse();
-        $this->assertSame(Response::HTTP_FOUND, $response->getStatusCode());
-        $this->assertSame(
+        $this->assertResponseRedirects(
             '/en/logout',
-            $response->getTargetUrl(),
+            Response::HTTP_FOUND,
             'Changing password logout the user.'
         );
     }

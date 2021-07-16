@@ -11,7 +11,7 @@
 
 namespace App\Tests\Controller\Admin;
 
-use App\Entity\Post;
+use App\Repository\PostRepository;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -19,11 +19,11 @@ use Symfony\Component\HttpFoundation\Response;
  * Functional test for the controllers defined inside the BlogController used
  * for managing the blog in the backend.
  *
- * See https://symfony.com/doc/current/book/testing.html#functional-tests
+ * See https://symfony.com/doc/current/testing.html#functional-tests
  *
  * Whenever you test resources protected by a firewall, consider using the
  * technique explained in:
- * https://symfony.com/doc/current/cookbook/testing/http_authentication.html
+ * https://symfony.com/doc/current/testing/http_authentication.html
  *
  * Execute the application tests using this command (requires PHPUnit to be installed):
  *
@@ -35,7 +35,7 @@ class BlogControllerTest extends WebTestCase
     /**
      * @dataProvider getUrlsForRegularUsers
      */
-    public function testAccessDeniedForRegularUsers(string $httpMethod, string $url)
+    public function testAccessDeniedForRegularUsers(string $httpMethod, string $url): void
     {
         $client = static::createClient([], [
             'PHP_AUTH_USER' => 'john_user',
@@ -43,10 +43,11 @@ class BlogControllerTest extends WebTestCase
         ]);
 
         $client->request($httpMethod, $url);
-        $this->assertSame(Response::HTTP_FORBIDDEN, $client->getResponse()->getStatusCode());
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
-    public function getUrlsForRegularUsers()
+    public function getUrlsForRegularUsers(): ?\Generator
     {
         yield ['GET', '/en/admin/post/'];
         yield ['GET', '/en/admin/post/1'];
@@ -54,19 +55,17 @@ class BlogControllerTest extends WebTestCase
         yield ['POST', '/en/admin/post/1/delete'];
     }
 
-    public function testAdminBackendHomePage()
+    public function testAdminBackendHomePage(): void
     {
         $client = static::createClient([], [
             'PHP_AUTH_USER' => 'jane_admin',
             'PHP_AUTH_PW' => 'kitten',
         ]);
+        $client->request('GET', '/en/admin/post/');
 
-        $crawler = $client->request('GET', '/en/admin/post/');
-        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode());
-
-        $this->assertGreaterThanOrEqual(
-            1,
-            $crawler->filter('body#admin_post_index #main tbody tr')->count(),
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorExists(
+            'body#admin_post_index #main tbody tr',
             'The backend homepage displays all the available posts.'
         );
     }
@@ -77,7 +76,33 @@ class BlogControllerTest extends WebTestCase
      * to the database are rolled back when this test completes. This means that
      * all the application tests begin with the same database contents.
      */
-    public function testAdminNewPost()
+    public function testAdminNewPost(): void
+    {
+        $postTitle = 'Blog Post Title '.mt_rand();
+        $postSummary = $this->generateRandomString(255);
+        $postContent = $this->generateRandomString(1024);
+
+        $client = static::createClient([], [
+            'PHP_AUTH_USER' => 'jane_admin',
+            'PHP_AUTH_PW' => 'kitten',
+        ]);
+        $client->request('GET', '/en/admin/post/new');
+        $client->submitForm('Create post', [
+            'post[title]' => $postTitle,
+            'post[summary]' => $postSummary,
+            'post[content]' => $postContent,
+        ]);
+
+        $this->assertResponseRedirects('/en/admin/post/', Response::HTTP_FOUND);
+
+        /** @var \App\Entity\Post $post */
+        $post = self::$container->get(PostRepository::class)->findOneByTitle($postTitle);
+        $this->assertNotNull($post);
+        $this->assertSame($postSummary, $post->getSummary());
+        $this->assertSame($postContent, $post->getContent());
+    }
+
+    public function testAdminNewDuplicatedPost(): void
     {
         $postTitle = 'Blog Post Title '.mt_rand();
         $postSummary = $this->generateRandomString(255);
@@ -95,17 +120,14 @@ class BlogControllerTest extends WebTestCase
         ]);
         $client->submit($form);
 
-        $this->assertSame(Response::HTTP_FOUND, $client->getResponse()->getStatusCode());
+        // post titles must be unique, so trying to create the same post twice should result in an error
+        $client->submit($form);
 
-        $post = $client->getContainer()->get('doctrine')->getRepository(Post::class)->findOneBy([
-            'title' => $postTitle,
-        ]);
-        $this->assertNotNull($post);
-        $this->assertSame($postSummary, $post->getSummary());
-        $this->assertSame($postContent, $post->getContent());
+        $this->assertSelectorTextSame('form .form-group.has-error label', 'Title');
+        $this->assertSelectorTextContains('form .form-group.has-error .help-block', 'This title was already used in another blog post, but they must be unique.');
     }
 
-    public function testAdminShowPost()
+    public function testAdminShowPost(): void
     {
         $client = static::createClient([], [
             'PHP_AUTH_USER' => 'jane_admin',
@@ -113,7 +135,7 @@ class BlogControllerTest extends WebTestCase
         ]);
         $client->request('GET', '/en/admin/post/1');
 
-        $this->assertSame(Response::HTTP_OK, $client->getResponse()->getStatusCode());
+        $this->assertResponseIsSuccessful();
     }
 
     /**
@@ -122,7 +144,7 @@ class BlogControllerTest extends WebTestCase
      * to the database are rolled back when this test completes. This means that
      * all the application tests begin with the same database contents.
      */
-    public function testAdminEditPost()
+    public function testAdminEditPost(): void
     {
         $newBlogPostTitle = 'Blog Post Title '.mt_rand();
 
@@ -130,16 +152,15 @@ class BlogControllerTest extends WebTestCase
             'PHP_AUTH_USER' => 'jane_admin',
             'PHP_AUTH_PW' => 'kitten',
         ]);
-        $crawler = $client->request('GET', '/en/admin/post/1/edit');
-        $form = $crawler->selectButton('Save changes')->form([
+        $client->request('GET', '/en/admin/post/1/edit');
+        $client->submitForm('Save changes', [
             'post[title]' => $newBlogPostTitle,
         ]);
-        $client->submit($form);
 
-        $this->assertSame(Response::HTTP_FOUND, $client->getResponse()->getStatusCode());
+        $this->assertResponseRedirects('/en/admin/post/1/edit', Response::HTTP_FOUND);
 
-        /** @var Post $post */
-        $post = $client->getContainer()->get('doctrine')->getRepository(Post::class)->find(1);
+        /** @var \App\Entity\Post $post */
+        $post = self::$container->get(PostRepository::class)->find(1);
         $this->assertSame($newBlogPostTitle, $post->getTitle());
     }
 
@@ -149,7 +170,7 @@ class BlogControllerTest extends WebTestCase
      * to the database are rolled back when this test completes. This means that
      * all the application tests begin with the same database contents.
      */
-    public function testAdminDeletePost()
+    public function testAdminDeletePost(): void
     {
         $client = static::createClient([], [
             'PHP_AUTH_USER' => 'jane_admin',
@@ -158,9 +179,9 @@ class BlogControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/en/admin/post/1');
         $client->submit($crawler->filter('#delete-form')->form());
 
-        $this->assertSame(Response::HTTP_FOUND, $client->getResponse()->getStatusCode());
+        $this->assertResponseRedirects('/en/admin/post/', Response::HTTP_FOUND);
 
-        $post = $client->getContainer()->get('doctrine')->getRepository(Post::class)->find(1);
+        $post = self::$container->get(PostRepository::class)->find(1);
         $this->assertNull($post);
     }
 

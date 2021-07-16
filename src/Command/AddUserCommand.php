@@ -22,8 +22,9 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Stopwatch\Stopwatch;
+use function Symfony\Component\String\u;
 
 /**
  * A console command that creates users and stores them in the database.
@@ -38,8 +39,9 @@ use Symfony\Component\Stopwatch\Stopwatch;
  *     $ php bin/console app:add-user -vv
  *
  * See https://symfony.com/doc/current/console.html
- * For more advanced uses, commands can be defined as services too. See
- * https://symfony.com/doc/current/console/commands_as_services.html
+ *
+ * We use the default services.yaml configuration, so command classes are registered as services.
+ * See https://symfony.com/doc/current/console/commands_as_services.html
  *
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
  * @author Yonel Ceruto <yonelceruto@gmail.com>
@@ -56,16 +58,16 @@ class AddUserCommand extends Command
     private $io;
 
     private $entityManager;
-    private $passwordEncoder;
+    private $passwordHasher;
     private $validator;
     private $users;
 
-    public function __construct(EntityManagerInterface $em, UserPasswordEncoderInterface $encoder, Validator $validator, UserRepository $users)
+    public function __construct(EntityManagerInterface $em, UserPasswordHasherInterface $passwordHasher, Validator $validator, UserRepository $users)
     {
         parent::__construct();
 
         $this->entityManager = $em;
-        $this->passwordEncoder = $encoder;
+        $this->passwordHasher = $passwordHasher;
         $this->validator = $validator;
         $this->users = $users;
     }
@@ -138,7 +140,7 @@ class AddUserCommand extends Command
         // Ask for the password if it's not defined
         $password = $input->getArgument('password');
         if (null !== $password) {
-            $this->io->text(' > <info>Password</info>: '.str_repeat('*', mb_strlen($password)));
+            $this->io->text(' > <info>Password</info>: '.u('*')->repeat(u($password)->length()));
         } else {
             $password = $this->io->askHidden('Password (your type will be hidden)', [$this->validator, 'validatePassword']);
             $input->setArgument('password', $password);
@@ -181,16 +183,16 @@ class AddUserCommand extends Command
         // make sure to validate the user data is correct
         $this->validateUserData($username, $plainPassword, $email, $fullName);
 
-        // create the user and encode its password
+        // create the user and hash its password
         $user = new User();
         $user->setFullName($fullName);
         $user->setUsername($username);
         $user->setEmail($email);
         $user->setRoles([$isAdmin ? 'ROLE_ADMIN' : 'ROLE_USER']);
 
-        // See https://symfony.com/doc/current/book/security.html#security-encoding-password
-        $encodedPassword = $this->passwordEncoder->encodePassword($user, $plainPassword);
-        $user->setPassword($encodedPassword);
+        // See https://symfony.com/doc/current/security.html#c-encoding-passwords
+        $hashedPassword = $this->passwordHasher->hashPassword($user, $plainPassword);
+        $user->setPassword($hashedPassword);
 
         $this->entityManager->persist($user);
         $this->entityManager->flush();
@@ -202,7 +204,7 @@ class AddUserCommand extends Command
             $this->io->comment(sprintf('New user database id: %d / Elapsed time: %.2f ms / Consumed memory: %.2f MB', $user->getId(), $event->getDuration(), $event->getMemory() / (1024 ** 2)));
         }
 
-        return 0;
+        return Command::SUCCESS;
     }
 
     private function validateUserData($username, $plainPassword, $email, $fullName): void
