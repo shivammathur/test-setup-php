@@ -4,15 +4,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        php-versions: ['7.4']
-    container: setupphp/node@sha256:f0bae66978e4c4091aae10425f0fa58e537a9066264c05237cde23560466038d
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-versions }}
-      - run: php -v && php -m    
+      - name: Test
+        run: echo '::warning::<a href="https://google.com">google</a>'
