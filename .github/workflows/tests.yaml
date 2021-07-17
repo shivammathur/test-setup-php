@@ -69,4 +69,4 @@ jobs:
         run: simple-phpunit --version
 
       - name: "Run tests"
-        run: simple-phpunit --verbose
+        run: simple-phpunit --coverage-text
