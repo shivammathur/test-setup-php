@@ -3,7 +3,11 @@ on:
   push:
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Test
-        run: echo '::warning::https://google.com'
+    - uses: shivammathur/setup-php@v2
+    - uses: mxschmitt/action-tmate@v3.5
