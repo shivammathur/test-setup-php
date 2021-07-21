@@ -15,15 +15,11 @@ jobs:
       BLACKFIRE_CLIENT_ID: ${{ secrets.BLACKFIRE_CLIENT_ID }}
       BLACKFIRE_CLIENT_TOKEN: ${{ secrets.BLACKFIRE_CLIENT_TOKEN }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
     - name: Install PHP
       uses: shivammathur/setup-php@blackfire-v2
       with:
         php-version: ${{ matrix.php-versions }}
         tools: blackfire
-    - run: |
-        sudo apt-get -f install
     - name: Testing PHP version
       run: |
         php -v
