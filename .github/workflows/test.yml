@@ -23,6 +23,8 @@ jobs:
 
     - name: Cache extensions
       uses: actions/cache@v2
+      env:
+        skip_dependency_extensions: true
       with:
         path: ${{ steps.extcache.outputs.dir }}
         key: ${{ steps.extcache.outputs.key }}
