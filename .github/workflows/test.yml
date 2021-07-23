@@ -10,7 +10,7 @@ jobs:
         php: [latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: shivammathur/setup-php@v2
+    - uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php }}
       env:
