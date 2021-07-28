@@ -14,6 +14,7 @@ jobs:
     steps:
       - name: Install git
         run: |
+          echo "deb http://http.us.debian.org/debian/ testing non-free contrib main" > /etc/apt/sources.list.d/debian-testing.list
           apt-get update && apt-get install -y git
       - name: Checkout
         uses: actions/checkout@v2
