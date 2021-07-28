@@ -16,6 +16,8 @@ jobs:
         run: |
           echo "deb http://http.us.debian.org/debian/ testing non-free contrib main" > /etc/apt/sources.list.d/debian-testing.list
           apt-get update && apt-get install -y git
+          rm -rf /etc/apt/sources.list.d/debian-testing.list
+          apt-get update
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
