@@ -3,30 +3,16 @@ on:
   push:
 jobs:
   run:
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-11.0-m1
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        php: ['7.4', '8.0']
-    env:
-      extensions: redis, memcached
-      key: cache-v16
-    steps:    
-    - name: Setup cache environment
-      id: extcache
-      uses: shivammathur/cache-extensions@develop
-      env:
-        skip_dependency_extensions: true      
-      with:
-        php-version: ${{ matrix.php }}
-        extensions: ${{ env.extensions }}
-        key: ${{ env.key }}
-    
+        php: [7.4, 8.0, 8.1]
+    steps:
     - name: Setup PHP
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php }}
-        extensions: ${{ env.extensions }}
-    - run: php -v && php -m   
+        extensions: pci8, pdo_oci
+    - run: php -v && php -m
           
