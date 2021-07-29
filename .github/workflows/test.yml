@@ -8,6 +8,6 @@ jobs:
     container: ${{ matrix.container }}
     strategy:
       matrix:
-        container: ['ubuntu:xenial', 'ubuntu:focal', 'debain:buster', 'debain:bullseye']
+        container: ['ubuntu:xenial', 'ubuntu:focal', 'debian:buster', 'debian:bullseye']
     steps:
       - run: cat /proc/1/cgroup
