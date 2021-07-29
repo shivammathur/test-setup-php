@@ -10,4 +10,6 @@ jobs:
       matrix:
         container: ['ubuntu:xenial', 'ubuntu:focal', 'debian:buster', 'debian:bullseye']
     steps:
-      - run: cat /proc/1/cgroup && ls /
+      - run: cat /proc/1/cgroup
+      - run: ls -la /
+      - run: ls -la /run 
