@@ -5,5 +5,9 @@ jobs:
   ubuntu:
     name: runner
     runs-on: ubuntu-latest
+    container: ${{ matrix.container }}
+    strategy:
+      matrix:
+        container: [ubuntu:xenial, ubuntu:focal, debain:buster, debain:bullseye]
     steps:
       - run: cat /proc/1/cgroup
