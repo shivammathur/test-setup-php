@@ -2,7 +2,7 @@ name: Test workflow
 on: [push]
 jobs:
   run:
-    container: ${{ matrix.container }}
+    container: ${{ matrix.containers }}
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
