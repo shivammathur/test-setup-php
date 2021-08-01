@@ -10,6 +10,6 @@ jobs:
         containers: ["ubuntu:xenial", "ubuntu:yakkety", "ubuntu:zesty", "ubuntu:artful", "ubuntu:bionic", "ubuntu:cosmic", "ubuntu:disco", "ubuntu:eoan", "ubuntu:focal", "ubuntu:groovy", "ubuntu:hirsute", "ubuntu:impish"]
     steps:
       - run: |
-          apt-get update
+          apt-get update || true
           deb=$(apt-cache show tzdata | grep Provides | head -n 1 | cut -f2 -d '-')
           echo "::warning::${{ matrix.container }}: $deb"
