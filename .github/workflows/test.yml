@@ -5,7 +5,9 @@ jobs:
   container:
     name: container
     runs-on: ubuntu-latest
-    container: ${{ matrix.containers }}
+    container: 
+      image: ${{ matrix.containers }}
+      options: --platform linux/arm
     strategy:
       fail-fast: false
       matrix:
