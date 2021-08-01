@@ -4,58 +4,21 @@ on:
 env:
   COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
 jobs:
-  major_minor:
-    name: major_minor
+  phive:
+    name: phive
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macOS-latest]
-        php-versions: ['8.0']
+        operating-system: [ubuntu-20.04, windows-latest, macOS-latest]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: jrfnl/setup-php@feature/update-phive-config
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: behat:3.6, infection:0.20, flex:v1.10, phan:4.0, php-cs-fixer:2.18, phpcs:3.5, phpcbf:3.5, phpcpd:v6, phpspec:7.0, phpstan:0.12, phpmd:2.9, cs2pr:1.4, phpunit:9.5, psalm:4.4, phing:2, phinx:0.12, phive:0.14, deployer:v6, composer:2.0, symfony:4.21, vapor-cli:1.11
-      - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+          tools: phive
       - name: Testing Tools
-        run: |
-          behat -V
-          composer -V
-          phan -v
-          infection -V
-          php-cs-fixer -V
-          phpcs --version
-          phpcbf --version
-          phpcpd --version
-          phpspec -V
-          phpstan -V
-          cs2pr version
-          phpunit --version
-          psalm -v
-          phing -v
-          phinx -V
-          phive status
-          deployer -V
-          symfony version
-          vapor -V
-          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
-      - name: Test flex
-        run: composer global show symfony/flex
-      - name: Test pecl
-        if: matrix.operating-system != 'windows-latest'
-        run: pecl -V
-      - name: Test phpmd on windows
-        if: matrix.operating-system == 'windows-latest'
-        run: |
-          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
-          phpmd $RUNNER_TOOL_CACHE\test.php text cleancode
-      - name: Test phpmd
-        if: matrix.operating-system != 'windows-latest'
-        run: |
-          echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
-          phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
+        run: phive status
