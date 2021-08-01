@@ -5,13 +5,11 @@ jobs:
   container:
     name: container
     runs-on: ubuntu-latest
-    container: 
-      image: ${{ matrix.containers }}
-      options: --platform linux/arm
+    container: ${{ matrix.containers }}
     strategy:
       fail-fast: false
       matrix:
-        containers: ["raspbian/stretch", "raspbian/desktop"]
+        containers: ["elementary/docker:stable", "elementary/docker:unstable", "kalilinux/kali-rolling:latest", "kalilinux/kali:latest"]
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     steps:
       - run: cat /etc/os-release
