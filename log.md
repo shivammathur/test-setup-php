@@ -26,3 +26,4 @@
 - Test 2.9.0 release.
 - Test 2.10.0 release.
 - Test 2.11.0 release.
+- Test 2.12.0 release.
