@@ -9,8 +9,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        containers: ["parrotsec/core:latest", "parrotsec/core:rolling-amd64"]
-        #containers: ["ubuntu:bionic", "ubuntu:focal", "elementary/docker:stable", "elementary/docker:unstable", "kalilinux/kali-rolling:latest", "kalilinux/kali:latest"]
+        containers:
+         - "ubuntu:bionic"
+         - "ubuntu:focal"
+         - "debian:stretch"
+         - "debian:buster"
+         - "debian:bullseye"         
+         - "elementary/docker:stable"
+         - "elementary/docker:unstable"
+         - "kalilinux/kali-rolling:latest"
+         - "kalilinux/kali:latest"
+         - "hugojosefson/popos"
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     steps:
       - run: cat /etc/os-release
