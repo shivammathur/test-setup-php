@@ -39,5 +39,7 @@ jobs:
         env:
           runner: self-hosted
       - name: Tests
-        shell: bash
+        env:
+          PATH: /bin:/usr/bin:/usr/local/bin
+        shell: /bin/bash
         run: php -v
