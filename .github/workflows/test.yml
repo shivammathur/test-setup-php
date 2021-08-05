@@ -9,25 +9,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        containers:
-         - "pureos/pureos:amber-latest"
-         - "pureos/pureos:byzantium-latest"        
-         #- "ubuntu:bionic"
-         #- "ubuntu:focal"
-         #- "ubuntu:hirsute"
-         #- "debian:stretch"
-         #- "debian:buster"
-         #- "debian:bullseye"
-         #- "linuxmintd/mint20.2-amd64"
-         #- "linuxmintd/mint19.3-amd64"
-         #- "linuxmintd/lmde4-amd64"
-         #- "pureos/pureos:amber-latest"
-         #- "pureos/pureos:byzantium-latest"
-         #- "elementary/docker:stable"
-         #- "elementary/docker:unstable"
-         #- "kalilinux/kali-rolling:latest"
-         #- "kalilinux/kali:latest"
-         #- "hugojosefson/popos"
+        containers:     
+         - "ubuntu:bionic"
+         - "ubuntu:focal"
+         - "ubuntu:hirsute"
+         - "debian:stretch"
+         - "debian:buster"
+         - "debian:bullseye"
+         - "linuxmintd/mint20.2-amd64"
+         - "linuxmintd/mint19.3-amd64"
+         - "linuxmintd/lmde4-amd64"         
+         - "elementary/docker:stable"
+         - "elementary/docker:unstable"
+         - "kalilinux/kali-rolling:latest"
+         - "kalilinux/kali:latest"
+         - "hugojosefson/popos"
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     steps:
       - run: cat /etc/os-release
@@ -39,5 +35,10 @@ jobs:
         env:
           runner: self-hosted
       - name: Tests
-        shell: /bin/bash -e {0}
-        run: php -v
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+          php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
+          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
+          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
+          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
