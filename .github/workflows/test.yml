@@ -41,5 +41,5 @@ jobs:
       - name: Tests
         env:
           PATH: /bin:/usr/bin:/usr/local/bin
-        shell: /bin/bash
+        shell: /bin/sh -e {0}
         run: php -v
