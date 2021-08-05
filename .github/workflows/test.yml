@@ -39,5 +39,5 @@ jobs:
         env:
           runner: self-hosted
       - name: Tests
-        shell: /bin/sh -e {0}
+        shell: /bin/bash -e {0}
         run: php -v
