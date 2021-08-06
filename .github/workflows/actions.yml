@@ -11,7 +11,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
       - name: Run
-        shell: php {}
+        shell: php {0}
         run: |
            <?php
            $welcome = "Hello, world";
