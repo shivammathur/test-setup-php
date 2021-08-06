@@ -10,12 +10,10 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-      - run: |
-           cat > /tmp/script.php << EOF
+      - name: Run
+        shell: php {}
+        run: |
            <?php
            $welcome = "Hello, world";
            echo $welcome;
-           EOF
-
-           php /tmp/script.php
         
