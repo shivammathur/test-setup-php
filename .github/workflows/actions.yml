@@ -1,15 +1,12 @@
 name: Tests
-on: [push, pull_request]
+on: push
 jobs:
   build:
     strategy:
       matrix:
         php-versions: ['7.3', '7.4', '8.0']
     runs-on: ubuntu-latest
-    container: ubuntu:focal    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
