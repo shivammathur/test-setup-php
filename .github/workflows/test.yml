@@ -43,7 +43,7 @@ jobs:
           php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
           php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
       - name: Check SAPI
-        if: ${{ matrix.php-versions }} == '8.1'
+        if: matrix.php-versions == '8.1'
         run: |
           sudo mkdir -p /var/www/html
           sudo rm -rf /var/www/html/index.html
