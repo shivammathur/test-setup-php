@@ -5,5 +5,8 @@ jobs:
     container: ubuntu:focal
     runs-on: ubuntu-latest
     steps:
+      - run: |
+          apt-get update
+          apt-get install sudo -y
       - uses: mxschmitt/action-tmate@v3.5
         
