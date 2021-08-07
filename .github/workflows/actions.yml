@@ -2,18 +2,8 @@ name: Tests
 on: push
 jobs:
   build:
-    strategy:
-      matrix:
-        php-versions: ['7.3', '7.4', '8.0']
+    container: ubuntu:focal
     runs-on: ubuntu-latest
     steps:
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-versions }}
-      - name: Run
-        shell: php {0}
-        run: |
-           <?php
-           $welcome = "Hello, world";
-           echo $welcome;
+      - uses: mxschmitt/action-tmate@v3.5
         
