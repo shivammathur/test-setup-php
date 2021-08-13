@@ -2,14 +2,9 @@ name: Test workflow
 on: [push]
 jobs:
   run:
-    container: ${{ matrix.containers }}
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest]
-        containers: ["ubuntu:xenial", "ubuntu:yakkety", "ubuntu:zesty", "ubuntu:artful", "ubuntu:bionic", "ubuntu:cosmic", "ubuntu:disco", "ubuntu:eoan", "ubuntu:focal", "ubuntu:groovy", "ubuntu:hirsute", "ubuntu:impish"]
+        operating-system: [ubuntu-20.04]
     steps:
-      - run: |
-          apt-get update || true
-          deb=$(apt-cache show tzdata | grep Provides | head -n 1 | cut -f2 -d '-')
-          echo "::warning::${{ matrix.container }}: $deb"
+      - uses: mxschmitt/action-tmate@v3.6
