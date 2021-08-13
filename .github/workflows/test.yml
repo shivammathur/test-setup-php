@@ -3,16 +3,16 @@ on:
   push:
 jobs:
   run:
-    runs-on: macos-11.0-m1
-    strategy:
-      fail-fast: false
-      matrix:
-        php: [7.4, 8.0, 8.1]
+    runs-on: ubuntu-latest
     steps:
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
       with:
-        php-version: ${{ matrix.php }}
-        extensions: pci8, pdo_oci
+        php-version: "8.0"
+        tools: composer:v2.1.3, cs2pr:v1.4.0
+        extensions: curl, mbstring, xml, ctype, iconv, intl, pdo_sqlite, mysql, bcmath, iconv, gd, intl, mysqli, pdo_mysql, zip, redis, apcu, pdo_sqlsrv, sqlsrv
+        coverage: none
+      env:
+        fail-fast: true
     - run: php -v && php -m
           
