@@ -21,3 +21,4 @@ jobs:
           runner: self-hosted
         with:
           php-version: ${{ matrix.php-versions }}
+      - uses: mxschmitt/action-tmate@v3.6   
