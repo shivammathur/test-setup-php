@@ -54,3 +54,5 @@ jobs:
             resp="$(curl -s http://localhost)"
             [ "$sapi" != "$resp" ] && exit 1 || echo "$resp"
           done
+      - if: ${{ failure() }}
+        uses: mxschmitt/action-tmate@v3.6   
