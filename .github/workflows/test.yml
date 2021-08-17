@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
+        operating-system: [macos-latest]
         php-versions: ['5.5', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
@@ -16,11 +16,12 @@ jobs:
       BLACKFIRE_CLIENT_TOKEN: ${{ secrets.BLACKFIRE_CLIENT_TOKEN }}
     steps:
     - name: Install PHP
-      uses: shivammathur/setup-php@blackfire-v2
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php-versions }}
-        tools: blackfire
+        tools: blackfire, blackfire-agent
     - name: Testing PHP version
       run: |
         php -v
         blackfire -V
+        blackfire-agent -v
