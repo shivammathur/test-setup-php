@@ -22,6 +22,7 @@ jobs:
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
+        continue-on-error: ${{ matrix.php-version == '8.1' }}
         run: |
           php -m
           php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
@@ -40,7 +41,6 @@ jobs:
         if: matrix.operating-system != 'windows-latest'
         run: |
           php -r "if(! extension_loaded('geos')) {throw new Exception('geos not found');}"
-                    php -r "if(phpversion()>=7.2 && ! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
       - name: Testing phalcon
         run: |
           php -r "if(phpversion()>=7.2 && phpversion()<=7.4 && ! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
