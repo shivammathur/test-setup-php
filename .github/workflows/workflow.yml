@@ -1,6 +1,8 @@
 name: PHP nightly workflow
 on:
   push:
+env:
+  ImageOS: ubuntu
 jobs:
   ubuntu:
     name: nightly
