@@ -10,4 +10,5 @@ jobs:
       - uses: shivammathur/setup-php@verbose
         with:
           php-version: 8.1
+          extension: psr
       - uses: mxschmitt/action-tmate@v3.6
