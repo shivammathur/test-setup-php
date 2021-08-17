@@ -19,9 +19,8 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php-versions }}
-        tools: blackfire, blackfire-agent
+        tools: blackfire
     - name: Testing PHP version
       run: |
         php -v
-        blackfire version
-        blackfire-agent -v
+        blackfire -V
