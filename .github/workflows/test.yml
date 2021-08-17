@@ -10,5 +10,5 @@ jobs:
       - uses: shivammathur/setup-php@verbose
         with:
           php-version: 8.1
-          extensions: psr
+          extensions: mbstring, xdebug, pcov, intl, gd, geos, redis, xml, soap, imagick, ast, psr, phalcon4, msgpack, gearman
       - uses: mxschmitt/action-tmate@v3.6
