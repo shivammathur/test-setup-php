@@ -15,5 +15,6 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
+
       - name: Check PHP
         run: php -v && php -m
