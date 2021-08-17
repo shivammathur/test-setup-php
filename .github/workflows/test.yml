@@ -23,5 +23,5 @@ jobs:
     - name: Testing PHP version
       run: |
         php -v
-        blackfire -V
+        blackfire version
         blackfire-agent -v
