@@ -16,11 +16,6 @@ jobs:
           - "debian:stretch"
         php-versions: ['8.1']
     steps:
-      - name: Install sudo and git
-        run: |
-          apt-get update && apt-get install -y sudo software-properties-common
-          add-apt-repository ppa:git-core/ppa
-          apt-get update && apt-get install -y git
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
@@ -30,8 +25,6 @@ jobs:
           ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
         env:
           runner: self-hosted
-      - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing PHP version
         run: |
           php -v
