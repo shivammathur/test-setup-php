@@ -1,24 +1,11 @@
-name: Self-hosted develop workflow
+name: Testos
 on:
   push:
 jobs:
   ubuntu:
-    name: ubuntu
-    runs-on: ubuntu-latest
-    container: ${{ matrix.containers }}
+    name: testos
+    runs-on: macos-11
     strategy:
       fail-fast: false
-      matrix:
-        containers:
-          - "ubuntu:bionic"
-        php-versions: ['8.1']
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        env:
-          runner: self-hosted
-        with:
-          php-version: ${{ matrix.php-versions }}
       - uses: mxschmitt/action-tmate@v3.6   
