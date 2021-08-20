@@ -34,7 +34,12 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: ${{ env.extensions }}
+
       - name: Testing PHP version
         run: php -v
+
       - name: Testing Extensions
         run: php -m
+
+      - name: Output Extensions and dependency files
+        run: Get-ChildItem -Recurse -Path C:\tools\php\ext
