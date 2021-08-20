@@ -1,24 +1,20 @@
 name: Tools tests
 on:
   push:
-env:
-  COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
 jobs:
   phive:
-    name: phive
+    name: tools
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04, windows-latest, macOS-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+        rel: [develop, v2]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
       - name: Install PHP
-        uses: jrfnl/setup-php@feature/update-phive-config
+        uses: shivammathur/setup-php@${{ matrix.rel }}
         with:
-          php-version: ${{ matrix.php-versions }}
-          tools: phive
+          php-version: 8.0
+          tools: php-cs-fixer
       - name: Testing Tools
-        run: phive status
+        run: php-cs-fixer -V
