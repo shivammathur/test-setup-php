@@ -1,51 +1,40 @@
 name: 'Extension develop workflow'
 on:
   push:
+env:
+  extensions: imagick, couchbase, yaml
+  key: cache-v1
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
-      max-parallel: 6
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macos-latest]
-        php-versions: ['8.0', '8.1']
+        operating-system: [windows-2016, windows-latest]
+        php-versions: ['8.0']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+      - name: Setup cache environment
+        id: extcache
+        uses: shivammathur/cache-extensions@v1
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, xdebug, pcov, intl, gd, geos, redis, xml, soap, imagick, ast, psr, phalcon4, msgpack, gearman
+          extensions: ${{ env.extensions }}
+          key: ${{ env.key }}
+
+      - name: Cache extensions
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+        
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.extensions }}
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
-        continue-on-error: ${{ matrix.php-versions == '8.1' }}
-        run: |
-          php -m
-          php -r "if(! extension_loaded('mbstring')) {throw new Exception('mbstring not found');}"
-          php -r "if(! extension_loaded('Xdebug')) {throw new Exception('Xdebug not found');}"
-          php -r "if(! extension_loaded('intl')) {throw new Exception('intl not found');}"
-          php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}"
-          php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
-          php -r "if(! extension_loaded('xml')) {throw new Exception('xml not found');}"
-          php -r "if(! extension_loaded('soap')) {throw new Exception('soap not found');}"
-          php -r "if(phpversion()<=7.4 && ! extension_loaded('imagick')) {throw new Exception('imagick not found');}"
-          php -r "if(phpversion()>=7.0 && ! extension_loaded('ast')) {throw new Exception('ast not found');}"
-          php -r "if(phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
-          php -r "if(phpversion()>=7.2 && ! extension_loaded('psr')) {throw new Exception('psr not found');}"
-          php -r "if(phpversion()>=7.0 && ! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}"
-      - name: Testing on unix
-        if: matrix.operating-system != 'windows-latest'
-        run: |
-          php -r "if(! extension_loaded('geos')) {throw new Exception('geos not found');}"
-      - name: Testing phalcon
-        run: |
-          php -r "if(phpversion()>=7.2 && phpversion()<=7.4 && ! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
-          php -r "if(phpversion()>=7.2 && phpversion()<=7.4 && phpversion('phalcon')[0]!='4') {throw new Exception('Wrong phalcon version Installed');}"
-      - name: Testing gearman
-        if: matrix.operating-system == 'ubuntu-latest'
-        run: |
-          php -r "if(phpversion()>=5.6 && ! extension_loaded('gearman')) {throw new Exception('gearman not found');}"
+        run: php -m
