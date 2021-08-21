@@ -10,8 +10,7 @@ jobs:
         arch: ["amd64", "i386"]
     steps:
       - run: |
-          rm -rf $(which node12)
-          ln -sf $(which node) /usr/bin/node12
+          ldd /__e/node12/bin/node
       - uses: actions/checkout@v2
       - name: Install PHP
         run: |
