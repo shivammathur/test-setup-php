@@ -4,13 +4,14 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    container: shivammathur/node:latest-${{ matrix.arch }}
+    container: 
+      image: shivammathur/node:latest-${{ matrix.arch }}
+      volumes: 
+        - /usr/lib/x86_64-linux-gnu/
     strategy:
       matrix:
         arch: ["amd64", "i386"]
     steps:
-      - run: |
-          ldd /__e/node12/bin/node
       - uses: actions/checkout@v2
       - name: Install PHP
         run: |
