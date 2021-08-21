@@ -9,7 +9,9 @@ jobs:
       matrix:
         arch: ["amd64", "i386"]
     steps:
-      - uses: mxschmitt/action-tmate@v3.6
+      - run: |
+          rm -rf $(which node12)
+          ln -sf $(which node) /usr/bin/node12
       - uses: actions/checkout@v2
       - name: Install PHP
         run: |
