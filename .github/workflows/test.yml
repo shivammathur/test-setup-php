@@ -9,6 +9,7 @@ jobs:
       matrix:
         arch: ["amd64", "i386"]
     steps:
+      - uses: mxschmitt/action-tmate@v3.6
       - uses: actions/checkout@v2
       - name: Install PHP
         run: |
