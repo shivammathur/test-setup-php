@@ -1,58 +1,26 @@
-name: Self-hosted container workflow
+name: Multiarch workflow
 on:
   push:
 jobs:
-  container:    
-    name: container
+  run:
     runs-on: ubuntu-latest
-    container: ${{ matrix.containers }}
+    container: shivammathur/node:latest-${{ matrix.arch }}
     strategy:
-      fail-fast: false
       matrix:
-        containers:     
-         - "ubuntu:bionic"
-         - "ubuntu:focal"
-         - "ubuntu:hirsute"
-         - "debian:stretch"
-         - "debian:buster"
-         - "debian:bullseye"
-         - "linuxmintd/mint20.2-amd64"
-         - "linuxmintd/mint19.3-amd64"
-         - "linuxmintd/lmde4-amd64"         
-         - "elementary/docker:stable"
-         - "elementary/docker:unstable"
-         - "kalilinux/kali-rolling:latest"
-         - "kalilinux/kali:latest"
-         - "hugojosefson/popos"
-        php-versions: [8.1] 
-        #php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        arch: ["amd64", "i386"]
     steps:
-      - run: cat /etc/os-release
+      - uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
-        env:
-          runner: self-hosted
-      - name: Tests
         run: |
-          php -v
-          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
-          php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
-          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
-          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
-          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
-      - name: Check SAPI
-        if: matrix.php-versions == '8.1'
-        run: |
-          sudo mkdir -p /var/www/html
-          sudo rm -rf /var/www/html/index.html
-          echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" | sudo tee /var/www/html/index.php >/dev/null
-          for sapi in apache2handler:apache fpm:apache cgi:apache fpm:nginx; do
-            switch_sapi $sapi
-            resp="$(curl -s http://localhost)"
-            [ "$sapi" != "$resp" ] && exit 1 || echo "$resp"
-          done
-      - if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3.6   
+          # Update spc (See https://github.com/shivammathur/spc for options)
+          spc -U
+
+          # Install PHP
+          spc --php-version "7.4" \
+              --extensions "mbstring, intl" \
+              --ini-values "post_max_size=256M, short_open_tag=On" \
+              --coverage "xdebug" \
+              --tools "php-cs-fixer, phpunit"
+      - name: check int size
+        # PHP_INT_SIZE is 4 for 32 bit and 8 for 64 bit
+        run: php -r "echo PHP_INT_SIZE;"
