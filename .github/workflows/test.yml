@@ -7,7 +7,9 @@ jobs:
     container: 
       image: shivammathur/node:latest-${{ matrix.arch }}
       volumes: 
-        - /usr/lib/x86_64-linux-gnu/
+        - '/lib/x86_64-linux-gnu/libdl.so.2:/lib/libdl.so.2'
+        - '/lib/x86_64-linux-gnu/libgcc_s.so.1:/lib/libgcc_s.so.1'
+        - '/usr/lib/x86_64-linux-gnu/libstdc++.so.6:/lib/libstdc++.so.6'
     strategy:
       matrix:
         arch: ["amd64", "i386"]
