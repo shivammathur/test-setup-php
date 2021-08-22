@@ -5,15 +5,11 @@ jobs:
   run:
     runs-on: ubuntu-latest
     container: 
-      image: shivammathur/node:latest-${{ matrix.arch }}
+      image: shivammathur/node:bionic-${{ matrix.arch }}
     strategy:
       matrix:
-        arch: ["amd64", "i386", "arm32v7", "arm64v8"]
+        arch: ["amd64", "i386"]
     steps:
-      - run: |
-          apt-get update
-          apt-get install gcc-multilib -y
-          ldd /__e/node12/bin/node
       - uses: actions/checkout@v2    
       - name: Install PHP
         uses: shivammathur/setup-php@v2
