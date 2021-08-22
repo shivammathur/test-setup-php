@@ -8,7 +8,7 @@ jobs:
       image: shivammathur/node:latest-${{ matrix.arch }}
     strategy:
       matrix:
-        arch: ["amd64", "i386"]
+        arch: ["amd64", "i386", "arm32v7", "arm64v8"]
     steps:
       - run: |
           apt-get update
