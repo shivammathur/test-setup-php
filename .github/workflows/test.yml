@@ -2,13 +2,15 @@ name: Testos
 on:
   push:
 jobs:
-  ubuntu:
-    name: testos
+  ubuntu1:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
     steps:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: 7.2
-      - run: apt-get install php7.4 -y
+      - run: sudo apt-get install php7.4 -y
+  ubuntu2:
+    runs-on: ubuntu-latest
+    steps:
+      - run: sudo apt-get install php7.4 -y
+
