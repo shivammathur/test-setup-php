@@ -4,8 +4,11 @@ on:
 jobs:
   ubuntu:
     name: testos
-    runs-on: macos-11
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
     steps:
-      - uses: mxschmitt/action-tmate@v3.6   
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.2
+      - run: apt-get install php7.4 -y
