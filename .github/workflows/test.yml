@@ -5,7 +5,7 @@ jobs:
   run:
     runs-on: ubuntu-latest
     container: 
-      image: shivammathur/node:bionic-${{ matrix.arch }}
+      image: shivammathur/node:latest-${{ matrix.arch }}
     strategy:
       matrix:
         arch: ["amd64", "i386"]
