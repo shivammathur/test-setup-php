@@ -10,7 +10,10 @@ jobs:
       matrix:
         arch: ["amd64", "i386"]
     steps:
-      - uses: actions/checkout@v1
+      - run: |
+          apt-get update
+          apt-get install gcc-multilib
+          ldd /__e/node12/bin/node
       - name: Install PHP
         run: |
           # Update spc (See https://github.com/shivammathur/spc for options)
