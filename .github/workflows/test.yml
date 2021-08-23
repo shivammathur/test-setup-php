@@ -4,21 +4,15 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    container: 
-      image: shivammathur/node:latest-${{ matrix.arch }}
     strategy:
       matrix:
-        arch: ["amd64", "i386"]
+        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     steps:
       - uses: actions/checkout@v2    
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.0
-          extensions: mbstring, intl
-          ini-values: post_max_size=256M, short_open_tag=On
-          coverage: xdebug
-          tools: php-cs-fixer, phpunit
-      - name: check int size
-        # PHP_INT_SIZE is 4 for 32 bit and 8 for 64 bit
-        run: php -r "echo PHP_INT_SIZE;"
+          php-version: ${{ matrix.php }}
+      - name: Test
+        run: |
+          cat $(which php-config)
