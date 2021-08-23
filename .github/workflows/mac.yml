@@ -35,7 +35,7 @@ jobs:
         brew reinstall httpd || true
         httpd_config="$(brew --prefix)"/etc/httpd/httpd.conf
         
-        sudo lsof -P | grep ":$PORT" | awk '{print $2}' | xargs sudo kill -9
+        sudo lsof -P 2>/dev/null | grep ":$PORT" | awk '{print $2}' | xargs sudo kill -9
 
         sed -i '' -e "s/Listen 8080/Listen $PORT/" \
                   -e "s/User _www/User $(id -un)/" \
@@ -62,7 +62,6 @@ jobs:
       run: |
         brew services restart httpd
         brew services list
-        sudo lsof -P | grep ":$PORT"
 
     - name: Check SAPI setup
       run: |
@@ -95,7 +94,7 @@ jobs:
         PHP_VERSION: ${{ matrix.php }}
       run: |
         brew services stop httpd
-        sudo lsof -P | grep ":$PORT" | awk '{print $2}' | xargs sudo kill -9
+        sudo lsof -P 2>/dev/null | grep ":$PORT" | awk '{print $2}' | xargs sudo kill -9
         sudo rm -rf "$(brew --prefix)"/etc/httpd "$(brew --prefix)"/etc/php
         brew remove php@"$PHP_VERSION" httpd
         brew untap shivammathur/php
