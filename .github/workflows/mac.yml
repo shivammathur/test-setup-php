@@ -2,7 +2,7 @@ name: Test macOS workflow
 on: [push]
 env:
   HOMEBREW_CHANGE_ARCH_TO_ARM: 1
-  PORT: 8888
+  PORT: 80
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
