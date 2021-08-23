@@ -35,7 +35,7 @@ jobs:
 
         cp -f "$httpd_config" "$httpd_config".bak
         
-        lsof -P | grep ':80' | awk '{print $2}' | xargs sudo kill -9
+        sudo lsof -i | grep ':80' | awk '{print $2}' | xargs sudo kill -9
 
         sed -i '' -e "s/Listen 8080/Listen 80/" \
                   -e "s/User _www/User $(id -un)/" \
@@ -69,8 +69,7 @@ jobs:
         echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" > "$(brew --prefix)"/var/www/index.php
         curl -vvv http://localhost
         resp="$(curl -s http://localhost)"
-        echo "resp: $resp"
-        #[ "apache2handler:apache" != "$resp" ] && exit 1 || echo "$resp"
+        [ "apache2handler:apache" != "$resp" ] && exit 1 || echo "$resp"
 
     - name: Add test script
       run: |
