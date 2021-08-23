@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
+        operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macos-latest]
         php-versions: ['8.0']
     steps:
       - name: Checkout
@@ -61,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
+        operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macos-latest]
         php-versions: ['8.0']
     steps:
       - name: Checkout
@@ -109,7 +109,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04, windows-latest, macos-latest]
+        operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macos-latest]
         php-versions: ['8.0']
     steps:
       - name: Checkout
