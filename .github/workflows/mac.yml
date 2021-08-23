@@ -6,9 +6,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-latest]
-        php: [5.6, 7.4, 8.1]
-        #php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        operating-system: [macos-10.15, macos-11, macos-11-arm64]
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     name: Test
     steps:
     - name: Setup PHP
@@ -24,7 +23,9 @@ jobs:
     - name: Install and configure Apache
       run: |
         brew install httpd || true
-        httpd_config=$(brew --prefix)/etc/httpd/httpd.conf
+        httpd_config="$(brew --prefix)"/etc/httpd/httpd.conf
+        
+        cp -f "$httpd_config" "$httpd_config".bak
         
         sed -i '' -e 's/Listen 8080/Listen 80/' \
                   -e '/^#.*mod_rewrite.so/ s/^#//' \
@@ -52,7 +53,6 @@ jobs:
       run: |
         echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" > "$(brew --prefix)"/var/www/index.php
         resp="$(curl -s http://localhost)"
-        echo "resp: $resp";
         [ "apache2handler:apache" != "$resp" ] && exit 1 || echo "$resp"
 
     - name: Add test script
@@ -72,3 +72,9 @@ jobs:
 
     - name: Test with apache
       run: curl -s http://localhost/test.php
+      
+    - name: Cleanup
+      run: |
+        httpd_config="$(brew --prefix)"/etc/httpd/httpd.conf
+        cp -f "$httpd_config".bak "$httpd_config"
+        brew remove php@${{ matrix.php }} httpd
