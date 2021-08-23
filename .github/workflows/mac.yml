@@ -7,22 +7,66 @@ jobs:
       fail-fast: false
       matrix:      
         operating-system: [macos-latest]
-        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        php: [5.6, 7.4, 8.1]
+        #php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     name: Test
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
     - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
-      with:
-        php-version: ${{ matrix.php }}
+      run: |
+        brew install shivammathur/php/php@${{ matrix.php }}
+        brew unlink php@${{ matrix.php }} || true
+        brew link --force --overwrite php@${{ matrix.php }}
+
     - name: Test PHP
       run: |
         php -v && php -m
-    - name: Test PHP service
+
+    - name: Install and configure Apache
       run: |
-        brew services start php@${{ matrix.php }}
+        brew install httpd
+        httpd_config=$(brew --prefix)/etc/httpd/httpd.conf
+        
+        sed -i '' -e 's/Listen 8080/Listen 80/ \
+                  -e '/^#.*mod_rewrite.so/ s/^#//' \
+                  -e 's/AllowOverride None/AllowOverride All/1' \
+                  -e 's/#ServerName www.example.com:8080/ServerName localhost/' \
+                  -e 's/DirectoryIndex index.html/DirectoryIndex index.php index.html/' "$httpd_config"
+        
+        [ "${{ matrix.php }}" = "5.6" ] && mod_name=php5_module && mod_lib=libphp5.so
+        [[ "${{ matrix.php }}" =~ 7.[0-4] ]] && mod_name=php7_module && mod_lib=libphp7.so
+        [[ "${{ matrix.php }}" =~ 8.[0-1] ]] && mod_name=php_module && mod_lib=libphp.so
+        echo "LoadModule $mod_name $(brew --prefix)/opt/php@{{ matrix.php }}/lib/httpd/modules/$mod_lib" >> "$httpd_config"
+        
+        echo "<FilesMatch \.php$>
+          SetHandler application/x-httpd-php
+          </FilesMatch>" >> "$httpd_config"
+
+    - name: Restart Apache
+      run: |
+        brew services restart httpd
         brew services list
-        formula='php@${{ matrix.php }}'
-        [ "$formula" = "php@8.0" ] && formula='php'
-        cat ~/Library/LaunchAgents/homebrew.mxcl."$formula".plist
+
+    - name: Check SAPI setup
+      run: |
+        echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" > $(brew --prefix)/var/www/index.php >/dev/null
+        resp="$(curl -s http://localhost)"
+        [ "apache2handler:apache" != "$resp" ] && exit 1 || echo "$resp"
+
+    - name: Add test script
+      run: |
+        echo '
+        <?php
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, \'https://duckduckgo.com\');
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLOPT_NOBODY, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        echo curl_exec($ch);
+        curl_close($ch);' > $(brew --prefix)/var/www/test.php
+
+    - name: Test with php cli
+      run: php $(brew --prefix)/var/www/test.php
+
+    - name: Test with apache
+      run: curl http://localhost/test.php
