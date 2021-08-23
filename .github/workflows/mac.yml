@@ -57,19 +57,18 @@ jobs:
 
     - name: Add test script
       run: |
-        echo '
+        echo "
         <?php
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, \'https://duckduckgo.com\');
-        curl_setopt($ch, CURLOPT_HEADER, true);
-        curl_setopt($ch, CURLOPT_NOBODY, true);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        echo curl_exec($ch);
-        curl_close($ch);' > $(brew --prefix)/var/www/test.php
+        \$ch = curl_init();
+        curl_setopt(\$ch, CURLOPT_URL, 'https://duckduckgo.com');
+        curl_setopt(\$ch, CURLOPT_HEADER, true);
+        curl_setopt(\$ch, CURLOPT_NOBODY, true);
+        curl_setopt(\$ch, CURLOPT_RETURNTRANSFER, true);
+        echo curl_exec(\$ch);
+        curl_close(\$ch);" > "$(brew --prefix)"/var/www/test.php
 
     - name: Test with php cli
-      run: php $(brew --prefix)/var/www/test.php
+      run: php "$(brew --prefix)"/var/www/test.php
 
     - name: Test with apache
-      run: curl http://localhost/test.php
+      run: curl -s http://localhost/test.php
