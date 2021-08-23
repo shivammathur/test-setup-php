@@ -35,7 +35,8 @@ jobs:
 
         cp -f "$httpd_config" "$httpd_config".bak
 
-        sed -i '' -e '/^#.*mod_rewrite.so/ s/^#//' \
+        sed -i '' -e 's/Listen 8080/Listen 80/' \
+                  -e '/^#.*mod_rewrite.so/ s/^#//' \
                   -e 's/AllowOverride None/AllowOverride All/1' \
                   -e 's/#ServerName www.example.com:8080/ServerName localhost/' \
                   -e 's/DirectoryIndex index.html/DirectoryIndex index.php index.html/' "$httpd_config"
@@ -48,8 +49,10 @@ jobs:
         echo "<FilesMatch \.php$>
           SetHandler application/x-httpd-php
         </FilesMatch>" >> "$httpd_config"
+        
+        chown -R _www:_www "$(brew --prefix)"/var/www
 
-        cat "$httpd_config"  
+        cat "$httpd_config"
 
     - name: Restart Apache
       run: |
@@ -59,7 +62,7 @@ jobs:
     - name: Check SAPI setup
       run: |
         echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" > "$(brew --prefix)"/var/www/index.php
-        resp="$(curl -s http://localhost:8080)"
+        resp="$(curl -s http://localhost)"
         echo "resp: $resp"
         [ "apache2handler:apache" != "$resp" ] && exit 1 || echo "$resp"
 
@@ -79,7 +82,7 @@ jobs:
       run: php "$(brew --prefix)"/var/www/test.php
 
     - name: Test with apache
-      run: curl -s http://localhost:8080/test.php
+      run: curl -s http://localhost/test.php
       
     - name: Cleanup
       if: ${{ always() }}
