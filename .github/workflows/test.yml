@@ -15,3 +15,5 @@ jobs:
         with:
           php-version: 8.0
           tools: php-cs-fixer
+      - name: Check version
+        run: php-cs-fixer -V
