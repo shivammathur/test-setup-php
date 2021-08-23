@@ -30,14 +30,18 @@ jobs:
       env:
         PHP_VERSION: ${{ matrix.php }}
       run: |
+        # Stop system Apache
         sudo apachectl stop
         sudo launchctl unload -w /System/Library/LaunchDaemons/org.apache.httpd.plist || true
 
+        # Install Apache from brew
         brew reinstall httpd || true
         httpd_config="$(brew --prefix)"/etc/httpd/httpd.conf
         
+        # Clear Port
         sudo lsof -P 2>/dev/null | grep ":$PORT" | awk '{print $2}' | xargs sudo kill -9
 
+        # Configure Apache
         sed -i '' -e "s/Listen 8080/Listen $PORT/" \
                   -e "s/User _www/User $(id -un)/" \
                   -e "s/Group _www/Group $(id -gn)/" \
@@ -45,33 +49,32 @@ jobs:
                   -e 's/AllowOverride None/AllowOverride All/1' \
                   -e 's/#ServerName www.example.com:8080/ServerName localhost/' \
                   -e 's/DirectoryIndex index.html/DirectoryIndex index.php index.html/' "$httpd_config"
-
+        
+        # Configure mod-php in Apache
         [ "$PHP_VERSION" = "5.6" ] && mod_name=php5_module && mod_lib=libphp5.so
         [[ "$PHP_VERSION" =~ 7.[0-4] ]] && mod_name=php7_module && mod_lib=libphp7.so
         [[ "$PHP_VERSION" =~ 8.[0-1] ]] && mod_name=php_module && mod_lib=libphp.so
         echo "LoadModule $mod_name $(brew --prefix)/opt/php@"$PHP_VERSION"/lib/httpd/modules/$mod_lib" >> "$httpd_config"
 
+        # Configure PHP handler in Apache
         echo "<FilesMatch \.php$>
           SetHandler application/x-httpd-php
         </FilesMatch>" >> "$httpd_config"
         
+        # Make sure current user owns DocumentRoot
         sudo chown -R "$(id -un)":"$(id -gn)" $(brew --prefix)/var/www
         
+        # Verify that apache config is OK.
         sudo apachectl -t
-
-        cat "$httpd_config"
 
     - name: Restart Apache
       run: |
+        # Restart Apache
         brew services restart httpd
         brew services list
-        sudo lsof -P 2>/dev/null | grep ":$PORT" || sudo apachectl
         
-    - name: Check SAPI setup
-      run: |
-        echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" > "$(brew --prefix)"/var/www/index.php
-        resp="$(curl -s http://localhost:"$PORT")"
-        [ "apache2handler:apache" != "$resp" ] && exit 1 || echo "$resp"
+        # Verify that apache is running or check logs
+        sudo lsof -P 2>/dev/null | grep ":$PORT" || sudo apachectl
 
     - name: Add test script
       run: |
