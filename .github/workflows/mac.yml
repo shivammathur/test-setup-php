@@ -30,6 +30,9 @@ jobs:
       env:
         PHP_VERSION: ${{ matrix.php }}
       run: |
+        sudo apachectl stop
+        sudo launchctl unload -w /System/Library/LaunchDaemons/org.apache.httpd.plist || true
+
         brew reinstall httpd || true
         httpd_config="$(brew --prefix)"/etc/httpd/httpd.conf
         
@@ -53,6 +56,8 @@ jobs:
         </FilesMatch>" >> "$httpd_config"
         
         sudo chown -R "$(id -un)":"$(id -gn)" $(brew --prefix)/var/www
+        
+        sudo apachectl -t
 
         cat "$httpd_config"
 
@@ -60,7 +65,7 @@ jobs:
       run: |
         brew services restart httpd
         brew services list
-        sudo lsof -P 2>/dev/null | grep ":$PORT"
+        sudo lsof -P 2>/dev/null | grep ":$PORT" || sudo apachectl
         
     - name: Check SAPI setup
       run: |
