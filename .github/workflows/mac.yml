@@ -29,7 +29,6 @@ jobs:
     - name: Install and configure Apache
       env:
         PHP_VERSION: ${{ matrix.php }}
-        PORT: ${{ env.PORT }}
       run: |
         brew reinstall httpd || true
         httpd_config="$(brew --prefix)"/etc/httpd/httpd.conf
@@ -65,7 +64,7 @@ jobs:
     - name: Check SAPI setup
       run: |
         echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" > "$(brew --prefix)"/var/www/index.php
-        curl -vvv --tries 10 http://localhost:"$PORT"
+        curl -vvv --retry 3 http://localhost:"$PORT"
         resp="$(curl -s http://localhost:"$PORT")"
         [ "apache2handler:apache" != "$resp" ] && exit 1 || echo "$resp"
 
@@ -85,7 +84,7 @@ jobs:
       run: php "$(brew --prefix)"/var/www/test.php
 
     - name: Test with apache
-      run: curl -s http://localhost/test.php
+      run: curl -s http://localhost:"$PORT"/test.php
       
     - name: Cleanup
       if: ${{ always() }}
