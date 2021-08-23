@@ -40,6 +40,8 @@ jobs:
         echo "<FilesMatch \.php$>
           SetHandler application/x-httpd-php
           </FilesMatch>" >> "$httpd_config"
+          
+        cat "$httpd_config"  
 
     - name: Restart Apache
       run: |
@@ -48,8 +50,9 @@ jobs:
 
     - name: Check SAPI setup
       run: |
-        echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" > $(brew --prefix)/var/www/index.php >/dev/null
+        echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" > "$(brew --prefix)"/var/www/index.php
         resp="$(curl -s http://localhost)"
+        echo "resp: $resp";
         [ "apache2handler:apache" != "$resp" ] && exit 1 || echo "$resp"
 
     - name: Add test script
