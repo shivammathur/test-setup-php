@@ -56,6 +56,7 @@ jobs:
         
         sudo chown -R "$(id -un)":"$(id -gn)" $(brew --prefix)/var/www
 
+        sudo apachectl
         cat "$httpd_config"
 
     - name: Restart Apache
