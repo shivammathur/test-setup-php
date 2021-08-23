@@ -40,7 +40,7 @@ jobs:
 
         sed -i '' -e "s/Listen 8080/Listen $PORT/" \
                   -e "s/User _www/User $(id -un)/" \
-                  -e "s/User _www/Group $(id -gn)/" \
+                  -e "s/Group _www/Group $(id -gn)/" \
                   -e '/^#.*mod_rewrite.so/ s/^#//' \
                   -e 's/AllowOverride None/AllowOverride All/1' \
                   -e 's/#ServerName www.example.com:8080/ServerName localhost/' \
