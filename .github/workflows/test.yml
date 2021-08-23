@@ -12,7 +12,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
       - run: |
-          LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
+          sudo LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
           sudo apt-get update
 
           for vvv in 5.6 7.0 7.1 7.2 7.3 7.4 8.0; do
