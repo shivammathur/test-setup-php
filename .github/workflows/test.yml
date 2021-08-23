@@ -5,7 +5,7 @@ jobs:
   ubuntu1:
     runs-on: ubuntu-latest
     steps:
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@verbose
         with:
           php-version: 7.2
       - uses: mxschmitt/action-tmate@v3.6
