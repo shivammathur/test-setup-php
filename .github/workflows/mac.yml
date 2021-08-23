@@ -35,11 +35,11 @@ jobs:
         [ "${{ matrix.php }}" = "5.6" ] && mod_name=php5_module && mod_lib=libphp5.so
         [[ "${{ matrix.php }}" =~ 7.[0-4] ]] && mod_name=php7_module && mod_lib=libphp7.so
         [[ "${{ matrix.php }}" =~ 8.[0-1] ]] && mod_name=php_module && mod_lib=libphp.so
-        echo "LoadModule $mod_name $(brew --prefix)/opt/php@{{ matrix.php }}/lib/httpd/modules/$mod_lib" >> "$httpd_config"
+        echo "LoadModule $mod_name $(brew --prefix)/opt/php@${{ matrix.php }}/lib/httpd/modules/$mod_lib" >> "$httpd_config"
         
         echo "<FilesMatch \.php$>
           SetHandler application/x-httpd-php
-          </FilesMatch>" >> "$httpd_config"
+        </FilesMatch>" >> "$httpd_config"
           
         cat "$httpd_config"  
 
