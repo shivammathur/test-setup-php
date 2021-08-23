@@ -25,17 +25,24 @@ jobs:
     - name: Test PHP
       run: |
         php -v && php -m
+        
+    - name: Get open port
+      id: port
+      run: |
+        port=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
+        echo "::set-output name=port::$port"
 
     - name: Install and configure Apache
       env:
         PHP_VERSION: ${{ matrix.php }}
+        PORT: ${{ steps.port.outputs.port }}
       run: |
         brew reinstall httpd || true
         httpd_config="$(brew --prefix)"/etc/httpd/httpd.conf
 
         cp -f "$httpd_config" "$httpd_config".bak
 
-        sed -i '' -e 's/Listen 8080/Listen 5000/' \
+        sed -i '' -e "s/Listen 8080/Listen $PORT/" \
                   -e "s/User _www/User $(id -un)/" \
                   -e "s/User _www/Group $(id -gn)/" \
                   -e '/^#.*mod_rewrite.so/ s/^#//' \
@@ -62,10 +69,12 @@ jobs:
         brew services list
 
     - name: Check SAPI setup
+      env:
+        PORT: ${{ steps.port.outputs.port }}
       run: |
         echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" > "$(brew --prefix)"/var/www/index.php
-        curl -vvv http://localhost:5000
-        resp="$(curl -s http://localhost:5000)"
+        curl -vvv http://localhost:"$PORT"
+        resp="$(curl -s http://localhost:$PORT)"
         echo "resp: $resp"
         #[ "apache2handler:apache" != "$resp" ] && exit 1 || echo "$resp"
 
@@ -85,13 +94,16 @@ jobs:
       run: php "$(brew --prefix)"/var/www/test.php
 
     - name: Test with apache
-      run: curl -s http://localhost:5000/test.php
+      env:
+        PORT: ${{ steps.port.outputs.port }}
+      run: curl -s http://localhost:"$PORT"/test.php
       
     - name: Cleanup
       if: ${{ always() }}
       env:
         PHP_VERSION: ${{ matrix.php }}
       run: |
+        brew services stop httpd
         httpd_config="$(brew --prefix)"/etc/httpd/httpd.conf
         cp -f "$httpd_config".bak "$httpd_config"
         brew remove php@"$PHP_VERSION" httpd
