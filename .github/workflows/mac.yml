@@ -23,10 +23,10 @@ jobs:
 
     - name: Install and configure Apache
       run: |
-        brew install httpd
+        brew install httpd || true
         httpd_config=$(brew --prefix)/etc/httpd/httpd.conf
         
-        sed -i '' -e 's/Listen 8080/Listen 80/ \
+        sed -i '' -e 's/Listen 8080/Listen 80/' \
                   -e '/^#.*mod_rewrite.so/ s/^#//' \
                   -e 's/AllowOverride None/AllowOverride All/1' \
                   -e 's/#ServerName www.example.com:8080/ServerName localhost/' \
