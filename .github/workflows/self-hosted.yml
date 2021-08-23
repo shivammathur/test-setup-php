@@ -5,18 +5,26 @@ jobs:
   ubuntu:
     name: ubuntu
     runs-on: ubuntu-latest
-    container: ubuntu:${{ matrix.containers }}
+    container: ${{ matrix.containers }}
     strategy:
       fail-fast: false
       matrix:
-        containers: ["focal", "bionic"]
+        containers:
+          - "ubuntu:bionic"
+          - "ubuntu:focal"
+          - "ubuntu:hirsute"
+          - "debian:stretch"
+          - "debian:buster"
+          - "debian:bullseye"
+          - "linuxmintd/mint20.2-amd64"
+          - "linuxmintd/mint19.3-amd64"
+          - "linuxmintd/lmde4-amd64"
+          - "elementary/docker:stable"
+          - "elementary/docker:unstable"
+          - "kalilinux/kali-rolling:latest"
+          - "kalilinux/kali:latest"
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     steps:
-      - name: Install sudo and git
-        run: |
-          apt-get update && apt-get install -y sudo software-properties-common
-          add-apt-repository ppa:git-core/ppa
-          apt-get update && apt-get install -y git
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
@@ -26,8 +34,6 @@ jobs:
           ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
         env:
           runner: self-hosted
-      - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing PHP version
         run: |
           php -v
