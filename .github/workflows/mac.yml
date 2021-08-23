@@ -2,7 +2,7 @@ name: Test macOS workflow
 on: [push]
 env:
   HOMEBREW_CHANGE_ARCH_TO_ARM: 1
-  PORT: 80
+  PORT: '80'
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
@@ -60,11 +60,11 @@ jobs:
       run: |
         brew services restart httpd
         brew services list
+        sudo lsof -P 2>/dev/null | grep ":$PORT"
         
     - name: Check SAPI setup
       run: |
         echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" > "$(brew --prefix)"/var/www/index.php
-        curl -vvv --retry 3 http://localhost:"$PORT"
         resp="$(curl -s http://localhost:"$PORT")"
         [ "apache2handler:apache" != "$resp" ] && exit 1 || echo "$resp"
 
