@@ -32,8 +32,6 @@ jobs:
       run: |
         brew reinstall httpd || true
         httpd_config="$(brew --prefix)"/etc/httpd/httpd.conf
-
-        cp -f "$httpd_config" "$httpd_config".bak
         
         sudo lsof -i | grep ':80' | awk '{print $2}' | xargs sudo kill -9
 
@@ -94,7 +92,6 @@ jobs:
         PHP_VERSION: ${{ matrix.php }}
       run: |
         brew services stop httpd
-        httpd_config="$(brew --prefix)"/etc/httpd/httpd.conf
-        cp -f "$httpd_config".bak "$httpd_config"
+        sudo rm -rf $(brew --prefix)"/etc/httpd $(brew --prefix)"/etc/php
         brew remove php@"$PHP_VERSION" httpd
         brew untap shivammathur/php
