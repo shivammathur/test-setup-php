@@ -15,4 +15,5 @@ jobs:
           php-version: ${{ matrix.php }}
       - name: Test
         run: |
-          cat $(which php-config)
+          php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||"
+          php-config --extension-dir
