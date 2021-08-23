@@ -62,12 +62,6 @@ jobs:
         brew services restart httpd
         brew services list
 
-    - name: Check SAPI setup
-      run: |
-        echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" > "$(brew --prefix)"/var/www/index.php
-        resp="$(curl -s http://localhost:"$PORT")"
-        [ "apache2handler:apache" != "$resp" ] && exit 1 || echo "$resp"
-
     - name: Add test script
       run: |
         echo "
