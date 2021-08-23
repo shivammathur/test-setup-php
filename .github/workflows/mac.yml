@@ -92,6 +92,6 @@ jobs:
         PHP_VERSION: ${{ matrix.php }}
       run: |
         brew services stop httpd
-        sudo rm -rf $(brew --prefix)"/etc/httpd $(brew --prefix)"/etc/php
+        sudo rm -rf "$(brew --prefix)"/etc/httpd "$(brew --prefix)"/etc/php
         brew remove php@"$PHP_VERSION" httpd
         brew untap shivammathur/php
