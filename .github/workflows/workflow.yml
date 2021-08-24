@@ -1,8 +1,6 @@
 name: verbose workflow
 on:
   push:
-env:
-  ImageOS: image
 jobs:
   run:
     name: Run
@@ -10,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
+        operating-system: [ubuntu-18.04, ubuntu-20.04]
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     steps:
       - name: Checkout
@@ -33,5 +31,5 @@ jobs:
 
       - name: Test fpm
         run: |
-          sudo service php7.0-fpm restart
-          sudo service php7.0-fpm status
+          sudo service php${{ matrix.php-versions }}-fpm restart
+          sudo service php${{ matrix.php-versions }}-fpm status
