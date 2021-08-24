@@ -15,6 +15,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           coverage: none
+          tools: pecl
       - run: sudo pecl install -f xdebug-2.9.8    
       - name: Testing PHP version
         run: php -v
