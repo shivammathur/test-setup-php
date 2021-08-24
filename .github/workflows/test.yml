@@ -1,45 +1,20 @@
-name: 'Extension develop workflow'
+name: 'Extension workflow'
 on:
   push:
-env:
-  extensions: imagick, couchbase, yaml
-  key: cache-v1
 jobs:
   run:
-    runs-on: ${{ matrix.operating-system }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-2016, windows-latest]
-        php-versions: ['7.1']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     steps:
-      - name: Setup cache environment
-        id: extcache
-        uses: shivammathur/cache-extensions@v1
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-          key: ${{ env.key }}
-
-      - name: Cache extensions
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.extcache.outputs.dir }}
-          key: ${{ steps.extcache.outputs.key }}
-          restore-keys: ${{ steps.extcache.outputs.key }}
-        
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-
-      - name: Testing PHP version
-        run: php -v
-
-      - name: Testing Extensions
-        run: php -m
-
-      - name: Output Extensions and dependency files
-        run: Get-ChildItem -Recurse -Path C:\tools\php\ext
+          extensions: ast-1.0.14
+      - run: |
+          php -r "echo phpversion('ast');"
+          php -v
+          php -m
