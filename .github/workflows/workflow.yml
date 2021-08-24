@@ -33,3 +33,5 @@ jobs:
         run: |
           sudo service php${{ matrix.php-versions }}-fpm restart
           sudo service php${{ matrix.php-versions }}-fpm status
+      - uses: mxschmitt/action-tmate@v3.6
+        if: ${{ failure() }}
