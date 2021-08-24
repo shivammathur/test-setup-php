@@ -30,3 +30,8 @@ jobs:
       - name: Testing Extensions
         run: |
           php -m
+
+      - name: Test fpm
+        run: |
+          sudo service php7.0-fpm restart
+          sudo service php7.0-fpm status
