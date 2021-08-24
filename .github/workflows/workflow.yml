@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-18.04, ubuntu-20.04]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     steps:
       - name: Checkout
         uses: actions/checkout@v1
@@ -17,7 +17,7 @@ jobs:
           fetch-depth: 1
 
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
 
