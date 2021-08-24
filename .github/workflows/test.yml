@@ -7,23 +7,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]
+        operating-system: [ubuntu-latest]
         php-versions: ['7.2', '7.3', '7.4']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: imagick, psr, phalcon4
+          extensions: xdebug:2.9.8
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
         run: |
-          php -m
-      - name: Testing phalcon
-        run: |
-          php -r "if(phpversion()>=7.2 && phpversion()<=7.4 && ! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
-          php -r "if(phpversion()>=7.2 && phpversion()<=7.4 && phpversion('phalcon')[0]!='4') {throw new Exception('Wrong phalcon version Installed');}"
+          php -r "echo phpversion('xdebug');"
+          php -m    
