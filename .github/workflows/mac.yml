@@ -19,11 +19,12 @@ jobs:
       env:
         PHP_VERSION: ${{ matrix.php }}
       run: |
-        brew tap shivammathur/php shivammathur/extensions
+        brew tap shivammathur/php 
+        brew tap shivammathur/extensions
         brew reinstall shivammathur/php/php@"$PHP_VERSION"
         brew unlink php@"$PHP_VERSION" || true
         brew link --force --overwrite php@"$PHP_VERSION"
-        brew install imap@"$PHP_VERSION"
+        brew install shivammathur/extensions/imap@"$PHP_VERSION"
 
     - name: Test PHP
       run: |
@@ -105,5 +106,5 @@ jobs:
         brew services stop httpd
         sudo lsof -P 2>/dev/null | grep ":$PORT" | awk '{print $2}' | xargs sudo kill -9
         sudo rm -rf "$(brew --prefix)"/etc/httpd "$(brew --prefix)"/etc/php
-        brew remove php@"$PHP_VERSION" httpd
+        brew remove php@"$PHP_VERSION" httpd imap@"$PHP_VERSION"
         brew untap shivammathur/php
