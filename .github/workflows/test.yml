@@ -1,20 +1,101 @@
-name: 'Extension workflow'
 on:
-  push:
+  - push
+
+name: ext
+
+env:
+  PHP_EXTENSIONS: >
+    date,
+    dom,
+    json,
+    libxml,
+    mbstring,
+    pdo_sqlite,
+    Phar,
+    soap,
+    tokenizer,
+    xml,
+    xmlwriter,
+    zlib,
+    :amqp,
+    :apcu,
+    :bcmath,
+    :bz2,
+    :calendar,
+    :Core,
+    :ctype,
+    :curl,
+    :dba,
+    :enchant,
+    :exif,
+    :fileinfo,
+    :filter,
+    :ftp,
+    :gd,
+    :gettext,
+    :gmp,
+    :hash,
+    :iconv,
+    :igbinary,
+    :imagick,
+    :imap,
+    :interbase,
+    :intl,
+    :ldap,
+    :memcache,
+    :memcached,
+    :mongodb,
+    :msgpack,
+    :mysqli,
+    :mysqlnd,
+    :odbc,
+    :openssl,
+    :pcntl,
+    :pcre,
+    :PDO,
+    :pdo_dblib,
+    :PDO_Firebird,
+    :pdo_mysql,
+    :PDO_ODBC,
+    :pdo_pgsql,
+    :pgsql,
+    :posix,
+    :pspell,
+    :readline,
+    :recode,
+    :redis,
+    :Reflection,
+    :session,
+    :shmop,
+    :SimpleXML,
+    :snmp,
+    :sockets,
+    :sodium,
+    :SPL,
+    :sqlite3,
+    :standard,
+    :sysvmsg,
+    :sysvsem,
+    :sysvshm,
+    :tidy,
+    :wddx,
+    :xdebug,
+    :xmlreader,
+    :xmlrpc,
+    :xsl,
+    :yaml,
+    :Zend OPcache,
+    :zip,
+    :zmq
 jobs:
-  run:
+  test:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ast-1.0.14
-      - run: |
-          php -r "echo phpversion('ast');"
-          php -v
-          php -m
+          php-version: 7.4
+          extensions: ${{ env.PHP_EXTENSIONS }}
+          coverage: none
+          tools: none
+      - run: php -v && php -m    
