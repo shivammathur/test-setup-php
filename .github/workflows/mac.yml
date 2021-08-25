@@ -19,10 +19,11 @@ jobs:
       env:
         PHP_VERSION: ${{ matrix.php }}
       run: |
-        brew tap shivammathur/php
+        brew tap shivammathur/php shivammathur/extensions
         brew reinstall shivammathur/php/php@"$PHP_VERSION"
         brew unlink php@"$PHP_VERSION" || true
         brew link --force --overwrite php@"$PHP_VERSION"
+        brew install imap@"$PHP_VERSION"
 
     - name: Test PHP
       run: |
