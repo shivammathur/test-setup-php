@@ -63,6 +63,7 @@ env:
     :pspell,
     :readline,
     :recode,
+    :raphf
     :redis,
     :Reflection,
     :session,
@@ -94,6 +95,13 @@ jobs:
       matrix:
         php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     steps:
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: imagick, memcached, redis, http
+          coverage: none
+          tools: none
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
