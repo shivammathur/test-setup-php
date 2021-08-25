@@ -109,4 +109,5 @@ jobs:
           extensions: ${{ env.PHP_EXTENSIONS }}
           coverage: none
           tools: none
+      - run: type $env:TEMP\map.orig    
       - run: php -v && php -m    
