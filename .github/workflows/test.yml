@@ -103,6 +103,7 @@ jobs:
           extensions: imagick, memcached, redis, http
           coverage: none
           tools: none
+      - run: php -v && php -m        
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
@@ -110,6 +111,4 @@ jobs:
           extensions: ${{ env.PHP_EXTENSIONS }}
           coverage: none
           tools: none
-      - uses: mxschmitt/action-tmate@v3.6    
-      - run: type $env:TEMP\map.orig    
       - run: php -v && php -m    
