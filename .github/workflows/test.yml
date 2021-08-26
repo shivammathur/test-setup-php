@@ -3,19 +3,121 @@ on:
   push:
 jobs:
   ubuntu1:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     strategy:
       matrix:
-        php: [5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0]
+        php: [7.4, 8.0]
     steps:
-      - uses: shivammathur/setup-php@verbose
+      - uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-      - run: |
-          sudo LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
-          sudo apt-get update
+      - name: Map
+        shell: php {}
+        run: |
+          <?php
 
-          for vvv in 5.6 7.0 7.1 7.2 7.3 7.4 8.0; do
-            sudo apt-get install php${vvv} -y
-          done  
+          error_reporting(E_ALL);
+          ini_set('display_errors', '1');
+
+          /**
+           * Class for a map of extensions and their dependent extensions.
+           *
+           * Class ExtensionMap
+           */
+          class ExtensionMap {
+              /** @var string Directory in which shared extensions are stored. */
+              private $extension_dir;
+
+              /** @var string File extension for PHP extension file. */
+              private $file_extension;
+
+              /** @var string Prefix in PHP extension file. */
+              private $file_prefix;
+
+              /** @var string String to store the map */
+              private $map;
+
+              /**
+               * ExtensionMap constructor.
+               */
+              function __construct() {
+                  $this->extension_dir = ini_get('extension_dir');
+                  $this->file_extension = (PHP_OS == 'WINNT' ? 'dll' : 'so');
+                  $this->file_prefix = (PHP_OS == 'WINNT' ? 'php_' : '');
+                  $this->map = '';
+              }
+
+              /**
+               * Function to check if a shared extension file exists.
+               *
+               * @param string $extension
+               * @return bool
+               */
+              public function checkSharedExtension($extension) {
+                  $extension_file = $this->extension_dir. DIRECTORY_SEPARATOR . $this->file_prefix . $extension . '.' . $this->file_extension;
+                  return file_exists($extension_file);
+              }
+
+              /**
+               * Function to patch dependencies if there are any bugs in Reflection data.
+               *
+               * @param string $extension
+               * @param array $dependencies
+               * @return array
+               */
+              public function patchDependencies($extension, $dependencies) {
+                  // memcached 2.2.0 has no dependencies in reflection data.
+                  if($extension == 'memcached') {
+                      $memcached_dependencies = array('igbinary', 'json', 'msgpack');
+                      $dependencies = array_unique(array_merge($dependencies, $memcached_dependencies));
+                  }
+                  return $dependencies;
+              }
+
+              /**
+               * Function to add extension to the map.
+               *
+               * @param string $extension
+               * @throws ReflectionException
+               */
+              public function addExtensionToMap($extension) {
+                  // PHP 5.3 does not allow using $this.
+                  $self = $this;
+
+                  $ref = new ReflectionExtension($extension);
+                  $dependencies = array_keys(array_map('strtolower', $ref->getDependencies()));
+                  $dependencies = $this->patchDependencies($extension, $dependencies);
+                  $dependencies = array_filter($dependencies, function ($dependency) use ($self) {
+                      return $self->checkSharedExtension($dependency);
+                  });
+                  if (!empty($dependencies)) {
+                      $self->map .= $extension . ': ';
+                      foreach ($dependencies as $dependency) {
+                          $self->map .= $dependency . ' ';
+                      }
+                      $self->map .= "\n";
+                  }
+              }
+
+              /**
+               * Function to print the map of shared extensions and their dependent extensions.
+               *
+               * @return string
+               */
+              public function __toString() {
+                  $extensions = array_map('strtolower', get_loaded_extensions());
+                  foreach ($extensions as $extension) {
+                      try {
+                          $this->addExtensionToMap($extension);
+                      } catch (ReflectionException $e) {
+                          echo $e->getMessage();
+                      }
+                  }
+                  return $this->map;
+              }
+          }
+
+          $extension_map = new ExtensionMap();
+          echo $extension_map;
+
 
