@@ -100,14 +100,12 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: http
-          coverage: none
-          tools: none
       - run: php -v && php -m        
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: :raphf
+          extensions: ${{ env.PHP_EXTENSIONS }}
           coverage: none
           tools: none
       - run: php -v && php -m    
