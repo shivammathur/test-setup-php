@@ -93,7 +93,8 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        php: [8.0]
+        #php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
@@ -109,5 +110,6 @@ jobs:
           extensions: ${{ env.PHP_EXTENSIONS }}
           coverage: none
           tools: none
+      - uses: mxschmitt/action-tmate@v3.6    
       - run: type $env:TEMP\map.orig    
       - run: php -v && php -m    
