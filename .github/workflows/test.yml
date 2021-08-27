@@ -5,7 +5,6 @@ name: ext
 
 env:
   PHP_EXTENSIONS: >
-    none,
     date,
     dom,
     json,
@@ -26,17 +25,14 @@ jobs:
         php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - name: Install PHP
+      - name: Without none
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: http
       - run: php -v && php -m        
-      - name: Install PHP
+      - name: With none
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: ${{ env.PHP_EXTENSIONS }}
-          coverage: none
-          tools: none
+          extensions: none, ${{ env.PHP_EXTENSIONS }}
       - run: php -v && php -m    
