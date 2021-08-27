@@ -29,8 +29,7 @@ jobs:
             curl -s http://localhost
             [ "$(curl -s http://localhost)" != "$sapi" ] && exit 1
             echo "::endgroup::"
-          done
-      - uses: mxschmitt/action-tmate@v3.6    
+          done 
       - name: Test extensions
         run: |
           php -m  
