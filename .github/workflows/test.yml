@@ -2,102 +2,22 @@ on:
   - push
 
 name: ext
-
-env:
-  PHP_EXTENSIONS: >
-    date,
-    dom,
-    json,
-    libxml,
-    mbstring,
-    pdo_sqlite,
-    Phar,
-    soap,
-    tokenizer,
-    xml,
-    xmlwriter,
-    zlib,
-    :amqp,
-    :apcu,
-    :bcmath,
-    :bz2,
-    :calendar,
-    :Core,
-    :ctype,
-    :curl,
-    :dba,
-    :enchant,
-    :exif,
-    :fileinfo,
-    :filter,
-    :ftp,
-    :gd,
-    :gettext,
-    :gmp,
-    :hash,
-    :iconv,
-    :igbinary,
-    :imagick,
-    :imap,
-    :interbase,
-    :intl,
-    :ldap,
-    :memcache,
-    :memcached,
-    :mongodb,
-    :msgpack,
-    :mysqli,
-    :mysqlnd,
-    :odbc,
-    :openssl,
-    :pcntl,
-    :pcre,
-    :PDO,
-    :pdo_dblib,
-    :PDO_Firebird,
-    :pdo_mysql,
-    :PDO_ODBC,
-    :pdo_pgsql,
-    :pgsql,
-    :posix,
-    :pspell,
-    :readline,
-    :recode,
-    :redis,
-    :Reflection,
-    :session,
-    :shmop,
-    :SimpleXML,
-    :snmp,
-    :sockets,
-    :sodium,
-    :SPL,
-    :sqlite3,
-    :standard,
-    :sysvmsg,
-    :sysvsem,
-    :sysvshm,
-    :tidy,
-    :wddx,
-    :xdebug,
-    :xmlreader,
-    :xmlrpc,
-    :xsl,
-    :yaml,
-    :Zend OPcache,
-    :zip,
-    :zmq
 jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        php: ['5.3', '5.4', '5.5']
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: ${{ env.PHP_EXTENSIONS }}
+      - run: php -v && php -m    
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: none
       - run: php -v && php -m    
