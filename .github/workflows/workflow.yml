@@ -8,9 +8,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-2022]
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        operating-system: [ubuntu-18.04, ubuntu-20.04]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
@@ -19,7 +24,8 @@ jobs:
       - name: Testing PHP version
         run: |
           php -v
-
       - name: Testing Extensions
         run: |
           php -m
+      - name: Test fpm
+        run: sudo service php${{ matrix.php-versions }}-fpm status
