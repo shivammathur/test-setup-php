@@ -14,11 +14,12 @@ jobs:
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     steps:     
       - run: sudo apt-get remove php${{ matrix.php-versions }} php${{ matrix.php-versions }}-* -y
+      - run: ls -la /etc/systemd/system/php${{ matrix.php-versions }}-fpm.service
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-
+      - run: ls -la /etc/systemd/system/php${{ matrix.php-versions }}-fpm.service
       - name: Testing PHP version
         run: |
           php -v
