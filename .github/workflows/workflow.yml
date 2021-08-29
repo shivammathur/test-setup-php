@@ -19,7 +19,6 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-      - run: ls -la /etc/systemd/system/php${{ matrix.php-versions }}-fpm.service
       - name: Testing PHP version
         run: |
           php -v
