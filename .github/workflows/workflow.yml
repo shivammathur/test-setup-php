@@ -11,11 +11,8 @@ jobs:
         operating-system: [ubuntu-18.04, ubuntu-20.04]
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-        with:
-          fetch-depth: 1
 
+      - uses: mxschmitt/action-tmate@v3.6  
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
@@ -29,6 +26,6 @@ jobs:
           php -m
       - name: Test fpm
         run: sudo service php${{ matrix.php-versions }}-fpm status
-      - uses: mxschmitt/action-tmate@v3.6  
+      
       - name: Test apt
         run: sudo apt-get install php${{ matrix.php-versions }}-fpm -y
