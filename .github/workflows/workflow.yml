@@ -11,7 +11,6 @@ jobs:
         operating-system: [ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0']
     steps:     
-      - run: sudo apt-get remove php${{ matrix.php-versions }} php${{ matrix.php-versions }}-* -y
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         env:
@@ -29,5 +28,3 @@ jobs:
       
       - name: Test apt
         run: sudo apt-get install php${{ matrix.php-versions }}-fpm -y
-      - uses: mxschmitt/action-tmate@v3.6
-        if: ${{ failure() }}
