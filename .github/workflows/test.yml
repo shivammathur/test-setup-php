@@ -10,7 +10,7 @@ jobs:
         os: [macos-latest]
     steps:
       - name: Setup cache environment
-        uses: shivammathur/cache-extensions@develop
+        uses: shivammathur/cache-extensions@verbose
         env:
           skip_dependency_extensions: true
         with:
