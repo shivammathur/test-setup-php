@@ -1,23 +1,28 @@
 on:
   - push
-
 name: ext
 jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        php: ['5.3', '5.4', '5.5']
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        php: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        os: [macos-latest]
     steps:
-      - name: Install PHP
+      - name: Setup cache environment
+        uses: shivammathur/cache-extensions@develop
+        env:
+          skip_dependency_extensions: true
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: vips
+          key: homebrew-extensions-single-v1
+      - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-      - run: php -v && php -m    
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: none
-      - run: php -v && php -m    
+          extensions: vips
+      - name: Testing PHP version
+        run: |
+          php -v
+          php -m  
