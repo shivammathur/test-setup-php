@@ -13,7 +13,7 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: mongodb
+          extensions: mongodb-mongodb/mongo-php-driver@master
       - name: Testing PHP version
         run: |
           php -v
