@@ -1,4 +1,4 @@
-name: 'Extension develop workflow'
+name: 'Runner workflow'
 on:
   push:
 jobs:
@@ -7,19 +7,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['7.2', '7.3', '7.4']
+        operating-system: [ubuntu-latest windows-latest, macos-latest]
+        php-versions: ['nightly']
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@master
+        uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-versions }}
-          coverage: none
-          tools: pecl
-      - run: sudo pecl install -f xdebug-2.9.8    
+          php-version: ${{ matrix.php-versions }} 
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
-        run: |
-          php -r "echo phpversion('xdebug');"
-          php -m    
+        run: php -m
