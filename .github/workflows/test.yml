@@ -7,12 +7,12 @@ jobs:
     strategy:
       matrix:
         php: ['8.1']
-        os: [ubuntu-latest]
+        os: [macos-latest]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         env:
-          RDKAFKA_LIBS: librdkafka-dev
+          RDKAFKA_LIBS: librdkafka
         with:
           php-version: ${{ matrix.php }}
           extensions: rdkafka-arnaud-lb/php-rdkafka@5.x
