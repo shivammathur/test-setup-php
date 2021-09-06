@@ -11,9 +11,11 @@ jobs:
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
+        env:
+          RDKAFKA_LIBS: librdkafka-dev
         with:
           php-version: ${{ matrix.php }}
-          extensions: mongodb-mongodb/mongo-php-driver@master
+          extensions: rdkafka-arnaud-lb/php-rdkafka@5.0.0
       - name: Testing PHP version
         run: |
           php -v
