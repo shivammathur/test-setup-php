@@ -15,7 +15,7 @@ jobs:
           RDKAFKA_LIBS: librdkafka-dev
         with:
           php-version: ${{ matrix.php }}
-          extensions: rdkafka-arnaud-lb/php-rdkafka@master
+          extensions: rdkafka-arnaud-lb/php-rdkafka@5.x
       - name: Testing PHP version
         run: |
           php -v
