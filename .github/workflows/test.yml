@@ -16,7 +16,7 @@ jobs:
     name: "PHP ${{ matrix.php-versions }} (with ${{ matrix.php-extensions }}) test on ${{ matrix.operating-system }}/${{ matrix.arch }}"
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: "mbstring, intl, ${{ matrix.php-extensions }}"
