@@ -7,15 +7,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-18.04]
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        operating-system: [ubuntu-latest]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: pdo_oci, oci8
+          php-version: 8
+          extensions: dom, json, pdo, pdo_mysql, pdo_oci, pdo_pgsql, pdo_sqlite, pdo_sqlsrv-5.9.0
+          ini-values: date.timezone='UTC'
+          coverage: pcov
+          tools: composer:v2, pecl
 
       - name: Testing PHP version
         run: php -v
@@ -24,4 +25,3 @@ jobs:
         run: |
           php -m
           php -r "if(! extension_loaded('pdo_oci')) {throw new Exception('pdo_oci not found');}"
-          php -r "if(! extension_loaded('oci8')) {throw new Exception('oci8 not found');}"
