@@ -3,7 +3,7 @@ on:
   push:
 env:
   extensions: dom, json, pdo, pdo_mysql, pdo_oci, pdo_pgsql, pdo_sqlite, pdo_sqlsrv-5.9.0, oci8
-  key: cache-v2
+  key: cache-v3
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
@@ -29,7 +29,7 @@ jobs:
           restore-keys: ${{ steps.cache-env.outputs.key }}
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.extensions }}
