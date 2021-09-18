@@ -3,7 +3,7 @@ on:
   push:
 env:
   extensions: dom, json, pdo, pdo_mysql, pdo_oci, pdo_pgsql, pdo_sqlite, pdo_sqlsrv-5.9.0, oci8
-  key: cache-v3
+  key: cache-v4
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
