@@ -14,7 +14,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: 8
-          extensions: dom, json, pdo, pdo_mysql, oci8, pdo_pgsql, pdo_sqlite, pdo_sqlsrv-5.9.0
+          extensions: dom, json, pdo, pdo_mysql, pdo_oci, pdo_pgsql, pdo_sqlite, pdo_sqlsrv-5.9.0
           ini-values: date.timezone='UTC'
           coverage: pcov
           tools: composer:v2, pecl
@@ -25,4 +25,4 @@ jobs:
       - name: Testing Extensions
         run: |
           php -m
-          php -r "if(! extension_loaded('oci8')) {throw new Exception('oci8 not found');}"
+          php -r "if(! extension_loaded('pdo_oci')) {throw new Exception('pdo_oci not found');}"
