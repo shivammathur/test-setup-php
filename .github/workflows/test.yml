@@ -27,6 +27,7 @@ jobs:
           path: ${{ steps.extcache.outputs.dir }}
           key: ${{ steps.extcache.outputs.key }}
           restore-keys: ${{ steps.extcache.outputs.key }}
+      - uses: mxschmitt/action-tmate@v3.6    
 
       - name: Install PHP
         uses: shivammathur/setup-php@develop
