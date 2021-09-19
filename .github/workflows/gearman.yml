@@ -1,5 +1,8 @@
 name: Test gearman
 on: [push]
+env:
+  key: cache-v1
+  extensions: gearman
 jobs:
   run:
     runs-on: ${{ matrix.operating-systems }}
@@ -10,11 +13,26 @@ jobs:
         operating-systems: [ubuntu-18.04]
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-systems }}
     steps:
-      - name: Setup PHP
+      - name: Setup cache environment
+        id: extcache
+        uses: shivammathur/cache-extensions@v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.extensions }}
+          key: ${{ env.key }}
+
+      - name: Cache extensions
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+
+      - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: gearman
+          extensions: ${{ env.extensions }}
 
       - name: Check PHP version
         run: php -v

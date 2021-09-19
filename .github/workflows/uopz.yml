@@ -1,5 +1,8 @@
 name: Uopz workflow
 on: [push]
+env:
+  key: cache-v1
+  extensions: uopz
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
@@ -10,12 +13,27 @@ jobs:
         operating-system: [ubuntu-18.04, windows-latest, macos-latest]
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
     steps:
+      - name: Setup cache environment
+        id: extcache
+        uses: shivammathur/cache-extensions@v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.extensions }}
+          key: ${{ env.key }}
+
+      - name: Cache extensions
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
           coverage: xdebug
-          extensions: uopz
+          extensions: ${{ env.extensions }}
 
       - name: Check PHP version
         run: php -v

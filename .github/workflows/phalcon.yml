@@ -3,6 +3,9 @@ on: [push]
 jobs:
   phalcon3:
     runs-on: ${{ matrix.operating-system }}
+    env:
+      key: cache-v1
+      extensions: phalcon3
     strategy:
       fail-fast: false
       matrix:
@@ -10,11 +13,26 @@ jobs:
         php-versions: ['7.0', '7.1', '7.2', '7.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
+      - name: Setup cache environment
+        id: extcache
+        uses: shivammathur/cache-extensions@v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.extensions }}
+          key: ${{ env.key }}
+
+      - name: Cache extensions
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: phalcon3
+          extensions: ${{ env.extensions }}
 
       - name: Testing PHP version
         run: php -v
@@ -28,6 +46,9 @@ jobs:
 
   phalcon4:
     runs-on: ${{ matrix.operating-system }}
+    env:
+      key: cache-v1
+      extensions: phalcon4
     strategy:
       fail-fast: false
       matrix:
@@ -35,11 +56,26 @@ jobs:
         php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
+      - name: Setup cache environment
+        id: extcache
+        uses: shivammathur/cache-extensions@v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.extensions }}
+          key: ${{ env.key }}
+
+      - name: Cache extensions
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: phalcon4
+          extensions: ${{ matrix.extensions }}
 
       - name: Testing PHP version
         run: php -v
