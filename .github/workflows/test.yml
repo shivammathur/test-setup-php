@@ -3,7 +3,7 @@ on:
   push:
 env:
   extensions: dom, json, pdo, pdo_mysql, pdo_oci, pdo_pgsql, pdo_sqlite, pdo_sqlsrv-5.9.0, oci8
-  key: cache-v4
+  key: cache-v5
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Setup cache environment
         id: cache-env
-        uses: shivammathur/cache-extensions@v1
+        uses: shivammathur/cache-extensions@develop
         with:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.extensions }}
