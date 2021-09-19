@@ -1,41 +1,40 @@
-name: 'OCI workflow'
+
+name: 'Cubrid workflow'
 on:
   push:
 env:
-  extensions: dom, json, pdo, pdo_mysql, pdo_oci, pdo_pgsql, pdo_sqlite, pdo_sqlsrv-5.9.0, oci8
-  key: cache-v5
+  key: cache-v2
+  extensions: cubrid, pdo_cubrid
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, ubuntu-18.04]
-        php: ['7.x', '8.x', 'latest', 'nightly']
+        operating-system: [ubuntu-latest]
+        php-versions: ['5.4', '5.5', '7.3', '7.4']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Setup cache environment
-        id: cache-env
+        id: extcache
         uses: shivammathur/cache-extensions@v1
         with:
-          php-version: ${{ matrix.php }}
+          php-version: ${{ matrix.php-versions }}
           extensions: ${{ env.extensions }}
           key: ${{ env.key }}
 
       - name: Cache extensions
-        uses: actions/cache@v2.1.4
+        uses: actions/cache@v2
         with:
-          path: ${{ steps.cache-env.outputs.dir }}
-          key: ${{ steps.cache-env.outputs.key }}
-          restore-keys: ${{ steps.cache-env.outputs.key }}
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
 
-      - name: Setup PHP
+      - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php }}
+          php-version: ${{ matrix.php-versions }}
           extensions: ${{ env.extensions }}
-          ini-values: date.timezone='UTC'
-          coverage: pcov
-          tools: composer:v2, pecl
 
       - name: Testing PHP version
         run: php -v
@@ -43,5 +42,5 @@ jobs:
       - name: Testing Extensions
         run: |
           php -m
-          php -r "if(! extension_loaded('pdo_oci')) {throw new Exception('pdo_oci not found');}"
-          php -r "if(! extension_loaded('oci8')) {throw new Exception('oci8 not found');}"
+          php -r "if(! extension_loaded('cubrid')) {throw new Exception('cubrid not found');}"
+          php -r "if(phpversion()<=7.2 && ! extension_loaded('pdo_cubrid')) {throw new Exception('pdo_cubrid not found');}"
