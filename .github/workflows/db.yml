@@ -1,7 +1,7 @@
 name: DB ext workflow
 on: [push]
 env:
-  key: cache-v1
+  key: cache-v2
   extensions: pdo, pdo_mysql, pdo_pgsql, pdo_sqlite, pdo_sqlsrv, pdo_firebird, couchbase, mysql, pgsql, sqlite3, sqlsrv
 jobs:
   run:

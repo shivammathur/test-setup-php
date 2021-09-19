@@ -1,7 +1,7 @@
 name: Test ext workflow
 on: [push]
 env:
-  key: cache-v1
+  key: cache-v2
   extensions: ast, blackfire, gd, msgpack, redis, xml, imagick, geos
 jobs:
   run:
