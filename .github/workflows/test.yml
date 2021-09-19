@@ -1,18 +1,16 @@
-
-name: 'Cubrid workflow'
-on:
-  push:
-env:
-  key: cache-v2
-  extensions: cubrid, pdo_cubrid
+name: Phalcon workflow
+on: [push]
 jobs:
-  run:
+  phalcon4:
     runs-on: ${{ matrix.operating-system }}
+    env:
+      key: cache-v1
+      extensions: phalcon4
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['5.4', '5.5', '7.3', '7.4']
+        operating-system: [ubuntu-18.04, windows-latest, macos-latest]
+        php-versions: ['7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Setup cache environment
@@ -29,18 +27,21 @@ jobs:
           path: ${{ steps.extcache.outputs.dir }}
           key: ${{ steps.extcache.outputs.key }}
           restore-keys: ${{ steps.extcache.outputs.key }}
-
+      - uses: mxschmitt/action-tmate@v3.6
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
+          extensions: ${{ matrix.extensions }}
 
       - name: Testing PHP version
         run: php -v
 
       - name: Testing Extensions
         run: |
-          php -m
-          php -r "if(! extension_loaded('cubrid')) {throw new Exception('cubrid not found');}"
-          php -r "if(phpversion()<=7.2 && ! extension_loaded('pdo_cubrid')) {throw new Exception('pdo_cubrid not found');}"
+          php -r 'var_dump(new class(new Phalcon\Di\FactoryDefault) extends Phalcon\Mvc\Model {});'
+          php -r "echo 'psr: ' . phpversion('psr').', ';"
+          php -r "echo 'phalcon: ' . phpversion('phalcon');"
+          php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
+          php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
+          php -r "if(phpversion('phalcon')[0]!='4') {throw new Exception('Wrong phalcon version Installed');}"
