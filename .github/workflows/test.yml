@@ -11,10 +11,7 @@ jobs:
         operating-system: [ubuntu-20.04, windows-latest, macOS-latest]
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: jrfnl/setup-php@feature/tools-add-phpunit-polyfills
         with:
           php-version: 8.0
-          tools: parallel-lint
-      - name: Check version
-        run: |
-          parallel-lint --version
+          tools: phpunit-polyfills
