@@ -16,4 +16,7 @@ jobs:
           php-version: 8.0
           tools: phpdoc
       - name: Check version
-        run: phpDocumentor --version
+        run: |
+          phpDocumentor --version
+          phpdocumentor --version
+          phpdoc --version
