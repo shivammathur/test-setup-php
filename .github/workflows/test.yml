@@ -8,6 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        os: [macos-latest]
         php-versions: ['5.3', '5.4', '5.5']
     steps:
       - name: Checkout
