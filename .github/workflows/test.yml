@@ -9,34 +9,13 @@ jobs:
       fail-fast: false
       matrix:
         php-versions: ['5.3', '5.4', '5.5']
-        os: [ubuntu-20.04, ubuntu-18.04]
+        os: [macos-11, macos-10.15]
+        runs: [1,1,1,1,1,1,1,1,1]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
       - run: php -v
-      - run: sudo service php${{ matrix.php-versions }}-fpm status
-      - name: Test SAPI
-        run: |
-          sudo rm -rf /var/www/html/index.html
-          echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" | sudo tee /var/www/html/index.php >/dev/null
-          for sapi in apache2handler:apache fpm:apache cgi:apache fpm:nginx; do
-            echo "::group::Test $sapi"
-            sudo switch_sapi $sapi >/dev/null
-            curl -s http://localhost
-            [ "$(curl -s http://localhost)" != "$sapi" ] && exit 1
-            echo "::endgroup::"
-          done 
-      - name: Test extensions
-        run: |
-          php -m  
-          php -r "if(! extension_loaded('amqp')) {throw new Exception('amqp not found');}"
-          php -r "if(! extension_loaded('memcache')) {throw new Exception('memcache not found');}"
-          php -r "if(! extension_loaded('memcached')) {throw new Exception('memcached not found');}"
-          php -r "if(! extension_loaded('mongo')) {throw new Exception('mongo not found');}"
-          php -r "if(! extension_loaded('mongodb')) {throw new Exception('mongodb not found');}"
-          php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
-          php -r "if(! extension_loaded('xdebug')) {throw new Exception('xdebug not found');}"
