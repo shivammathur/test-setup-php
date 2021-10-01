@@ -15,8 +15,9 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
+          coverage: xdebug2
 
       - name: Testing PHP version
-        run: php -v
+        run: php -v  
 
       - uses: mxschmitt/action-tmate@v3.6    
