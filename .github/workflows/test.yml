@@ -1,6 +1,7 @@
 name: Test
 
 on:
+  push:
   schedule:
     - cron: "0 4 * * *"
   pull_request:
@@ -14,14 +15,26 @@ jobs:
       matrix:
         os: [windows-2016, windows-2019, ubuntu-18.04, ubuntu-20.04]
         php-version: [7.4, 8.0]
+        include:
+          - os: windows-2016
+            php-version: 8.0
+            cert: true
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+
+    - name: Get env
+      if: ${{ runner.os == 'Windows' }}
+      run: pwsh -c "dir env:"
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
           php-version: ${{ matrix.php-version }}
+
+    - name: Update cert
+      if: ${{ matrix.cert == 'true' }}
+      run: Update-PhpCAInfo -Path $php_dir -Source Curl
 
     - name: Install Packages
       run: composer install
