@@ -8,5 +8,7 @@ jobs:
       matrix:        
         operating-systems: [windows-2022, windows-2019, windows-2016]
     steps:
+      - uses: shivammathur/setup-php@v2
+      - run: Update-PhpCAInfo -Path $php_dir -Source Curl
       - name: Test
         run: Get-ChildItem -Path "Cert:\CurrentUser\Root"
