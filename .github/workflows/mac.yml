@@ -19,6 +19,7 @@ jobs:
     - name: Test PHP
       run: |
         php -v && php -m
+        ldd $(which php) | grep tidy
     - name: Test PHP service
       run: |
         brew services start php@${{ matrix.php }}
