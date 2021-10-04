@@ -32,7 +32,7 @@ jobs:
 
     - name: Update cert
       if: ${{ matrix.php-version == '7.4' && runner.os == 'Windows' }}
-      run: Update-PhpCAInfo -Path $php_dir -Source Curl
+      run: Update-PhpCAInfo -Path C:\tools\php -Source Curl
 
     - name: Install Packages
       run: composer install
