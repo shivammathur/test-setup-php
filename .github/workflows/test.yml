@@ -21,18 +21,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Get env
-      if: ${{ runner.os == 'Windows' }}
-      run: pwsh -c "dir env:"
-
     - name: Setup PHP
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@develop
       with:
           php-version: ${{ matrix.php-version }}
-
-    - name: Update cert
-      if: ${{ matrix.php-version == '7.4' && runner.os == 'Windows' }}
-      run: Update-PhpCAInfo -Path C:\tools\php -Source Curl
 
     - name: Install Packages
       run: composer install
