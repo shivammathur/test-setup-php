@@ -6,9 +6,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:        
-        operating-systems: [windows-2022, windows-2019, windows-2016]
+        operating-systems: [macos-12, macos-12.0]
     steps:
-      - uses: shivammathur/setup-php@v2
-      - run: Update-PhpCAInfo -Path C:\tools\php -Source Curl
-      - name: Test
-        run: Get-ChildItem -Path "Cert:\CurrentUser\Root"
+      - run: brew config
