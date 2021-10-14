@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Import Curl Cert
-      - run: |
+        run: |
           Invoke-WebRequest -Uri https://curl.se/ca/cacert.pem -Outfile "$env:TEMP\curl.pem"
           Import-Certificate -FilePath "$env:TEMP\curl.pem" -CertStoreLocation Cert:\LocalMachine\Root
 
