@@ -37,7 +37,7 @@ jobs:
       - name: Import Curl Cert
         run: |
           Invoke-WebRequest -Uri https://curl.se/ca/cacert.pem -Outfile "$env:TEMP\curl.pem"
-          certutil –addstore -user –f "Root" "$env:TEMP\curl.pem"
+          certutil –addstore -enterprise –f "Root" "$env:TEMP\curl.pem"
 
       - name: Setup cache environment
         id: cache-env
