@@ -17,7 +17,11 @@ jobs:
     strategy:
       matrix:
         os:
-          - windows-latest
+          - windows-2016
+          - windows-2019
+          - windows-2022
+          - ubuntu-18.04
+          - ubuntu-21.04
 
         php:
           - "5.6"
@@ -27,6 +31,7 @@ jobs:
           - "7.3"
           - "7.4"
           - "8.0"
+          - "8.1"
           
     steps:
       - name: Checkout
