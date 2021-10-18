@@ -1,17 +1,25 @@
-name: Tools tests
+name: Tools workflow
 on:
   push:
+env:
+  COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }}
+  BLACKFIRE_SERVER_TOKEN: ${{ secrets.BLACKFIRE_SERVER_TOKEN }}
+  BLACKFIRE_CLIENT_ID: ${{ secrets.BLACKFIRE_CLIENT_ID }}
+  BLACKFIRE_CLIENT_TOKEN: ${{ secrets.BLACKFIRE_CLIENT_TOKEN }}
 jobs:
-  phive:
-    name: tools
+  latest:
+    name: latest
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, windows-latest, macOS-latest]
+        operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macos-latest]
+        php-versions: ['8.0']
     steps:
       - name: Install PHP
-        uses: jrfnl/setup-php@feature/tools-add-phpunit-polyfills
+        uses: shivammathur/setup-php@verbose
         with:
-          php-version: 8.0
-          tools: phpunit-polyfills:1.0.1
+          php-version: ${{ matrix.php-versions }}
+          tools: behat, blackfire, blackfire-player, composer-require-checker, composer-normalize, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpspec, phpmd, cs2pr, codeception, phpunit, psalm, phing, phinx, phive, deployer, protoc, pecl, phpize, php-config, symfony, vapor-cli
+      - uses: mxschmitt/action-tmate@v3.7    
