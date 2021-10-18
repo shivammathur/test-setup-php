@@ -20,6 +20,7 @@ jobs:
       with:
         php-version: ${{ matrix.php-versions }}
         tools: blackfire
+    - uses: mxschmitt/action-tmate@v3.7    
     - name: Testing PHP version
       run: |
         php -v
