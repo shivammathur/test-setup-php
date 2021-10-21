@@ -1,32 +1,105 @@
 name: Test macOS workflow
 on: [push]
+env:
+  HOMEBREW_CHANGE_ARCH_TO_ARM: 1
+  PORT: '80'
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
-      matrix:      
-        operating-system: [macos-11, macos-10.15]
-        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
+      matrix:
+        operating-system: [macos-10.15]
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        #operating-system: [macos-10.15, macos-11, macos-11-arm64]
+        #php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
     name: Test
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    #- run: git -C "$(brew --repository)" pull origin master & git -C "$(brew --repository homebrew/core)" pull origin master
+    - name: brew config
+      run: brew config
     - name: Setup PHP
       env:
-        runner: self-hosted
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php }}
+        PHP_VERSION: ${{ matrix.php }}
+      run: |
+        brew tap shivammathur/php
+        brew tap shivammathur/extensions
+        brew reinstall shivammathur/php/php@"$PHP_VERSION"
+        brew unlink php@"$PHP_VERSION" || true
+        brew link --force --overwrite php@"$PHP_VERSION"
+        brew install imap@"$PHP_VERSION"
     - name: Test PHP
       run: |
         php -v && php -m
-        otool -L $(which php) | grep tidy
-    - name: Test PHP service
+    - name: Install and configure Apache
+      env:
+        PHP_VERSION: ${{ matrix.php }}
       run: |
-        brew services start php@${{ matrix.php }}
+        # Stop system Apache
+        sudo apachectl stop 2>/dev/null || true
+        sudo launchctl unload -w /System/Library/LaunchDaemons/org.apache.httpd.plist 2>/dev/null || true
+        # Install Apache from brew
+        brew reinstall httpd || true
+        httpd_config="$(brew --prefix)"/etc/httpd/httpd.conf
+        
+        # Clear Port
+        sudo lsof -P 2>/dev/null | grep ":$PORT" | awk '{print $2}' | xargs sudo kill -9
+        # Configure Apache
+        sed -i '' -e "s/Listen 8080/Listen $PORT/" \
+                  -e "s/User _www/User $(id -un)/" \
+                  -e "s/Group _www/Group $(id -gn)/" \
+                  -e '/^#.*mod_rewrite.so/ s/^#//' \
+                  -e 's/AllowOverride None/AllowOverride All/1' \
+                  -e 's/#ServerName www.example.com:8080/ServerName localhost/' \
+                  -e 's/DirectoryIndex index.html/DirectoryIndex index.php index.html/' "$httpd_config"
+        
+        # Configure mod-php in Apache
+        [ "$PHP_VERSION" = "5.6" ] && mod_name=php5_module && mod_lib=libphp5.so
+        [[ "$PHP_VERSION" =~ 7.[0-4] ]] && mod_name=php7_module && mod_lib=libphp7.so
+        [[ "$PHP_VERSION" =~ 8.[0-1] ]] && mod_name=php_module && mod_lib=libphp.so
+        echo "LoadModule $mod_name $(brew --prefix)/opt/php@"$PHP_VERSION"/lib/httpd/modules/$mod_lib" >> "$httpd_config"
+        # Configure PHP handler in Apache
+        echo "<FilesMatch \.php$>
+          SetHandler application/x-httpd-php
+        </FilesMatch>" >> "$httpd_config"
+        
+        # Make sure current user owns DocumentRoot
+        sudo chown -R "$(id -un)":"$(id -gn)" $(brew --prefix)/var/www
+        
+        # Verify that apache config is OK.
+        sudo apachectl -t
+    - name: Restart Apache
+      run: |
+        # Restart Apache
+        brew services restart httpd
         brew services list
-        formula='php@${{ matrix.php }}'
-        [ "$formula" = "php@8.0" ] && formula='php'
-        cat ~/Library/LaunchAgents/homebrew.mxcl."$formula".plist
+        
+        # Verify that apache is running or check logs
+        sudo lsof -P 2>/dev/null | grep ":$PORT" || sudo apachectl
+    - name: Add test script
+      run: |
+        echo "
+        <?php
+        \$ch = curl_init();
+        curl_setopt(\$ch, CURLOPT_URL, 'https://duckduckgo.com');
+        curl_setopt(\$ch, CURLOPT_HEADER, true);
+        curl_setopt(\$ch, CURLOPT_NOBODY, true);
+        curl_setopt(\$ch, CURLOPT_RETURNTRANSFER, true);
+        echo curl_exec(\$ch);
+        curl_close(\$ch);" > "$(brew --prefix)"/var/www/test.php
+    - name: Test with php cli
+      run: php "$(brew --prefix)"/var/www/test.php
+
+    - name: Test with apache
+      run: curl -s http://localhost:"$PORT"/test.php
+      
+    - name: Cleanup
+      if: ${{ always() }}
+      env:
+        PHP_VERSION: ${{ matrix.php }}
+      run: |
+        brew services stop httpd
+        sudo lsof -P 2>/dev/null | grep ":$PORT" | awk '{print $2}' | xargs sudo kill -9
+        sudo rm -rf "$(brew --prefix)"/etc/httpd "$(brew --prefix)"/etc/php
+        brew remove php@"$PHP_VERSION" httpd
+        brew untap shivammathur/php
+        brew untap shivammathur/extensions
