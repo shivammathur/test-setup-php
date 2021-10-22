@@ -6,6 +6,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:        
-        operating-systems: [ubuntu-20.04]
+        operating-systems: [ubuntu-18.04]
     steps:
       - uses: mxschmitt/action-tmate@v3.7
