@@ -7,17 +7,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['8.0', '8.1']
+        php-versions: ['8.0', '8.1', '8.2']
         operating-system: [ubuntu-18.04, ubuntu-20.04]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
+          coverage: none
+          ini-values: date.timezone=Europe/Paris,memory_limit=-1,default_socket_timeout=10,session.gc_probability=0,apc.enable_cli=1,zend.assertions=1
           php-version: ${{ matrix.php-versions }}
-          extensions: snmp
+          extensions: amqp,apcu,igbinary,intl,mbstring,memcached,mongodb,redis-5.3.4
+          tools: flex
 
       - name: Check PHP version
         run: php -v
@@ -25,4 +26,3 @@ jobs:
       - name: Check PHP extensions
         run: |
           php -m
-          php -r "if(! extension_loaded('snmp')) {throw new Exception('snmp not found');}"
