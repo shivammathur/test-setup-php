@@ -9,16 +9,15 @@ jobs:
       matrix:
         php-versions: ['7.0']
         operating-system: [ubuntu-latest]
-    steps:
-    
-      - name: Add libcurl
-        run: sudo apt-get install libcurl4-openssl-dev -y
+    steps:    
 
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
+        env:
+          YAR_LIBS: libcurl4-openssl-dev
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: yar
+          extensions: yar-laruence/yar@master
 
       - name: Check PHP version
         run: php -v
