@@ -8,8 +8,11 @@ jobs:
       fail-fast: false
       matrix:
         php-versions: ['7.0']
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-latest]
     steps:
+    
+      - name: Add libcurl
+        run: sudo apt-get install libcurl-dev -y
 
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
