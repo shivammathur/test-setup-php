@@ -7,21 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['7.0']
-        operating-system: [ubuntu-latest]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
     steps:    
       - uses: step-security/audit-workflow@main
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        env:
-          YAR_LIBS: libcurl4-openssl-dev
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: yar-laruence/yar@yar-2.2.0
-
-      - name: Check PHP version
-        run: php -v
-
-      - name: Check PHP extensions
-        run: |
-          php -m
+      - run: curl -sL https://google.com
