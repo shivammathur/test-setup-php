@@ -10,7 +10,7 @@ jobs:
         php-versions: ['7.0']
         operating-system: [ubuntu-latest]
     steps:    
-
+      - uses: step-security/audit-workflow@main
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         env:
