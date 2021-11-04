@@ -8,4 +8,5 @@ jobs:
       matrix:        
         operating-systems: [ubuntu-latest]
     steps:
-      - run: echo '::warning file=log.md,line=::Test'
+      - run: echo "::warning file=.github/workflows/test.yml::Test"
+
