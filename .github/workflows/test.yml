@@ -6,6 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:        
-        operating-systems: [macos-12, macos-12.0]
+        operating-systems: [ubuntu-latest]
     steps:
+      - run: echo "::warning file=CareLineLive/app/Http/Controllers/Exports/CarersExportController.php,line=::Found violation(s) of type: no_unused_imports" 
       - uses: mxschmitt/action-tmate@v3.7
