@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:        
-        operating-systems: [ubuntu-latest]
+        operating-systems: [macos-12, macos-12.0]
     steps:
-      - run: echo "::warning file=.github/workflows/test.yml::Test"
+      - run: echo "Hello, world!"
 
