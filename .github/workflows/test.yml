@@ -10,8 +10,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Install librdkafka
-      run: sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y librdkafka-dev || brew install librdkafka
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       env:
