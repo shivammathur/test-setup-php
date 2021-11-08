@@ -1,5 +1,4 @@
-
-name: Extension workflow
+name: Test workflow
 on: [push]
 jobs:
   run:
@@ -8,6 +7,19 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-    steps:    
-      - uses: step-security/audit-workflow@main
-      - run: curl -sL https://google.com
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Install librdkafka
+      run: sudo DEBIAN_FRONTEND=noninteractive apt-fast install -y librdkafka-dev || brew install librdkafka
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      env:
+        RDKAFKA_LIBS: librdkafka-dev
+      with:
+        php-version: '8.0'
+        extensions: rdkafka-arnaud-lb/php-rdkafka@5.0.0
+    - name: Check PHP version
+      run: php -v
+    - name: Check PHP extensions
+      run: php -m
