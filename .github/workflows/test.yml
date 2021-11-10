@@ -33,6 +33,8 @@ jobs:
           ini-values: memory_limit=-1
           tools: composer:v2, cs2pr
           extensions: "${{ matrix.extensions }}"
+        env:
+          fail-fast: true
 
       - name: "dump php modules"
         run: php -m
