@@ -10,6 +10,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+    - name: Harden Runner
+      uses: step-security/harden-runner@main
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       env:
