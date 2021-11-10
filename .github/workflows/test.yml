@@ -12,6 +12,9 @@ jobs:
       uses: actions/checkout@v2
     - name: Harden Runner
       uses: step-security/harden-runner@main
+      with:
+        allowed-endpoints:
+          https://disable.all:123
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       env:
