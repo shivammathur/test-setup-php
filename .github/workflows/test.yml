@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:        
-        operating-systems: [macos-12, macos-12.0]
+        operating-systems: [macos-12-beta, macos-12.0-beta]
     steps:
       - run: echo "Hello, world!"
 
