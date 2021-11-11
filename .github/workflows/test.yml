@@ -7,11 +7,6 @@ jobs:
     strategy:
       matrix:
         php-version:
-          - 5.4
-          - 5.5
-          - 5.6
-          - 7.0
-          - 7.1
           - 7.2
           - 7.3
           - 7.4
@@ -22,16 +17,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-        
-      - name: Install PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.0'
-        
-      - run: |
-          $imagick_cmdlet = 'C:\tools\php\PhpManager\private\Install-ImagickPrerequisite.ps1'
-          ((Get-Content $imagick_cmdlet -raw) -replace 'deps','deps/archives') | Set-Content $imagick_cmdlet
-          Get-Content $imagick_cmdlet
 
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
