@@ -24,7 +24,7 @@ jobs:
           php-version: '8.0'
         
       - run: |
-          $imagick_cmdlet = 'C:\tools\php\PhpManager\PhpManager\private\Install-ImagickPrerequisite.ps1'
+          $imagick_cmdlet = 'C:\tools\php\PhpManager\private\Install-ImagickPrerequisite.ps1'
           ((Get-Content $imagick_cmdlet -raw) -replace 'deps','deps/archives') | Set-Content $imagick_cmdlet
           Get-Content $imagick_cmdlet
 
