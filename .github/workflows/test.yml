@@ -25,7 +25,9 @@ jobs:
           extensions: imagick, msgpack
        
       - name: Check PHP version
-        run: php -v
+        run: |
+          php -v
+          Get-Php -Path C:\tools\php7.4
 
       - name: Check PHP extensions
         run: php -m
