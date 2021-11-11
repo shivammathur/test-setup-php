@@ -1,39 +1,30 @@
-name: "examples"
-
+name: Extension workflow
 on:
-  push: ~
-
+  push:
 jobs:
-  examples:
-    name: "examples"
-
+  ext:
     runs-on: ${{ matrix.operating-system }}
-
     strategy:
       matrix:
         php-version:
-          - "8.1"
+          - 7.2
+          - 7.3
+          - 7.4
         operating-system:
-          - "windows-latest"
-        extensions:
-          - bcmath, mbstring, intl, sodium, json, uv
-          - bcmath, mbstring, intl, sodium, json, ev
-          - bcmath, mbstring, intl, sodium, json, event
-          - bcmath, mbstring, intl, sodium, json
+          - windows-latest
 
     steps:
-      - name: "checkout"
-        uses: "actions/checkout@v2"
+      - name: Checkout
+        uses: actions/checkout@v2
 
-      - name: "installing PHP"
-        uses: "shivammathur/setup-php@v2"
+      - name: Install PHP
+        uses: shivammathur/setup-php@verbose
         with:
-          php-version: "${{ matrix.php-version }}"
-          ini-values: memory_limit=-1
-          tools: composer:v2, cs2pr
-          extensions: "${{ matrix.extensions }}"
-        env:
-          fail-fast: true
+          php-version: ${{ matrix.php-version }}
+          extensions: msgpack
+       
+      - name: Check PHP version
+        run: php -v
 
-      - name: "dump php modules"
+      - name: Check PHP extensions
         run: php -m
