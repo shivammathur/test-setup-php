@@ -32,13 +32,25 @@ jobs:
         tools: wp-cli, phpunit-polyfills, phpunit:${{ matrix.phpunit-versions }}
 
     - name: Check PHP Version
-      run: php -v
+      run: |
+        php -v
+        phpunit --version
 
     - name: Composer install
       run: composer install --optimize-autoloader --prefer-dist
 
+    - name: phpunit tests
+      run: |
+        which phpunit
+        phpunit --version
+
     - name: Start Mysql
       run: sudo service mysql start
+
+    - name: phpunit tests
+      run: |
+        which phpunit
+        phpunit --version
 
     - name: Install WP Tests
       run: bash bin/install-wp-tests.sh wordpress_test root root localhost latest
