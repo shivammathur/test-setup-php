@@ -34,29 +34,16 @@ jobs:
     - name: Check PHP Version
       run: |
         php -v
-        phpunit --version
 
     - name: Composer install
       run: composer install --optimize-autoloader --prefer-dist
 
-    - name: phpunit tests
-      run: |
-        which phpunit
-        phpunit --version
-
     - name: Start Mysql
       run: sudo service mysql start
-
-    - name: phpunit tests
-      run: |
-        which phpunit
-        phpunit --version
 
     - name: Install WP Tests
       run: bash bin/install-wp-tests.sh wordpress_test root root localhost latest
 
     - name: phpunit tests
       run: |
-        which phpunit
-        phpunit --version
-        phpunit --config=phpunit.xml
+        /usr/local/bin/phpunit --config=phpunit.xml
