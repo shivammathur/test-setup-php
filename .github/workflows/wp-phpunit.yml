@@ -52,4 +52,7 @@ jobs:
       run: bash bin/install-wp-tests.sh wordpress_test root root localhost latest
 
     - name: phpunit tests
-      run: phpunit --config=phpunit.xml
+      run: |
+        which phpunit
+        phpunit --version
+        phpunit --config=phpunit.xml
