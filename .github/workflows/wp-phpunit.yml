@@ -5,14 +5,6 @@ name: WordPress Tests
 
 on:
   push:
-    branches:
-      - develop
-      - main
-  pull_request:
-    branches:
-      - develop
-      - main
-
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
