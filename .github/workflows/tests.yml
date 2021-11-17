@@ -38,7 +38,7 @@ jobs:
         with:
           coverage: "none"
           php-version: "${{ matrix.php-version }}"
-          extensions: ds, mbstring
+          extensions: ds, mbstring, :opcache
 
       - run: php -v && php -m    
 
