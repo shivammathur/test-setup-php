@@ -23,7 +23,7 @@ jobs:
 #          - "7.4"
 #          - "8.0"
           - "8.1"
-        operating-system: [ ubuntu-18.04, windows-latest ]
+        operating-system: [ ubuntu-18.04, ubuntu-20.04 ]
         script:
           - "make tests"
           - "make tests-static-reflection"
@@ -38,7 +38,7 @@ jobs:
         with:
           coverage: "none"
           php-version: "${{ matrix.php-version }}"
-          extensions: ds, mbstring, :opcache, :amqp, :apcu, :ast, :imagick
+          extensions: ds, mbstring
 
       - run: php -v && php -m    
 
