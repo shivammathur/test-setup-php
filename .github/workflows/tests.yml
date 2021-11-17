@@ -23,7 +23,8 @@ jobs:
 #          - "7.4"
 #          - "8.0"
           - "8.1"
-        operating-system: [ ubuntu-18.04, ubuntu-20.04 ]
+          - "8.2"
+        operating-system: [ ubuntu-latest ]
         script:
           - "make tests"
           - "make tests-static-reflection"
@@ -43,10 +44,10 @@ jobs:
       - run: php -v && php -m    
 
       - name: "Install dependencies"
-        run: "composer install --no-interaction --no-progress --no-suggest"
+        run: "composer install --no-interaction --no-progress --ignore-platform-reqs"
 
       - name: "Transform source code"
-        if: matrix.php-version != '7.4' && matrix.php-version != '8.0' && matrix.php-version != '8.1'
+        if: matrix.php-version != '7.4' && matrix.php-version != '8.0' && matrix.php-version != '8.1' && matrix.php-version != '8.2'
         run: php bin/transform-source.php
 
       - name: "Tests"
