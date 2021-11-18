@@ -39,7 +39,7 @@ jobs:
         with:
           coverage: "none"
           php-version: "${{ matrix.php-version }}"
-          extensions: none, curl, dom, ds, mbstring, tokenizer, xml
+          extensions: ds-php-ds/ext-ds@master, mbstring
 
       - run: php -v && php -m    
 
