@@ -33,13 +33,15 @@ jobs:
     steps:
       - name: "Checkout"
         uses: "actions/checkout@v2"
+        
+      - run: sudo apt-get update  
 
       - name: "Install PHP"
         uses: "shivammathur/setup-php@v2"
         with:
           coverage: "none"
           php-version: "${{ matrix.php-version }}"
-          extensions: ds-php-ds/ext-ds@master, mbstring
+          extensions: ds, mbstring
 
       - run: php -v && php -m    
 
