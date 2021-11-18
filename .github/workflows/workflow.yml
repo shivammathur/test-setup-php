@@ -12,10 +12,6 @@ jobs:
     steps:     
       - name: Install PHP
         uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
         env:
           update: true
         with:
