@@ -16,6 +16,8 @@ jobs:
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
+        env:
+          update: true
         with:
           php-version: ${{ matrix.php }}
           extensions: mbstring, intl, gd, xml, dom, json, fileinfo, curl, zip, iconv, simplexml, pdo, mysql, phar
