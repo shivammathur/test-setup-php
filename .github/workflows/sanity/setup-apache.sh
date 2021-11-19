@@ -7,7 +7,7 @@ PHP_VERSION=$2
 
 # Install apache
 add-apt-repository ppa:ondrej/php -y
-apt update && apt install -y apache2 libapache2-mod-php$PHP_VERSION libpcre2-dev
+apt update && apt install -y apache2 libapache2-mod-php$PHP_VERSION
 
 # Enable rewrite mode
 a2enmod rewrite actions alias
