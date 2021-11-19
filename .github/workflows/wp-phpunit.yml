@@ -36,7 +36,7 @@ jobs:
         php -v
 
     - name: Composer install
-      run: composer install --optimize-autoloader --prefer-dist
+      run: composer update --with-all-dependencies
 
     - name: Start Mysql
       run: sudo service mysql start
