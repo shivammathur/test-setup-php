@@ -14,14 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup Apache
-        run: sudo bash .github/workflows/sanity/setup-apache.sh ${{ github.workspace }} ${{ matrix.php }}
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           extensions: mbstring, intl, gd, xml, dom, json, fileinfo, curl, zip, iconv, simplexml, pdo, mysql, phar
+          
+      - name: Setup Apache
+        run: sudo bash .github/workflows/sanity/setup-apache.sh ${{ github.workspace }} ${{ matrix.php }}
 
       - name: Setup MySQL
         uses: mirromutth/mysql-action@v1.1
