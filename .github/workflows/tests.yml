@@ -37,7 +37,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
-          extensions: :ds, mstring
+          extensions: :ds, mbstring
       - run: |
           sudo apt-get install php${{ matrix.php-version }}-ds
           php -v
