@@ -34,9 +34,12 @@ jobs:
         uses: "actions/checkout@v2"
 
       - name: "Install PHP"
-        run: |
-          sudo apt-get update
-          sudo apt-get install php8.1 php8.1-dev php8.1-cli php8.1-xml php8.1-curl php8.1-mbstring php8.1-ds -y
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: :ds, mstring
+      - run: |
+          sudo apt-get install php${{ matrix.php-version }}-ds
           php -v
           php -m
       - name: "Install dependencies"
