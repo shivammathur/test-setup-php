@@ -16,6 +16,8 @@ jobs:
 
       - name: Setup PHP with extensions and custom config
         uses: shivammathur/setup-php@verbose
+        env:
+          update: true
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: xml, opcache, xdebug, pcov
@@ -43,3 +45,5 @@ jobs:
           php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
           php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
           php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
+      - uses: mxschmitt/action-tmate@v3.7
+        if: ${{ failure() }}
