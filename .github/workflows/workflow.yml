@@ -22,8 +22,6 @@ jobs:
           php-version: ${{ matrix.php-versions }}
           extensions: xml, opcache, xdebug, pcov
           ini-values: post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata
-          
-      - run: sudo apt-get install -y php${{ matrix.php-versions }}-fpm    
 
       - name: Testing PHP version
         run: |
