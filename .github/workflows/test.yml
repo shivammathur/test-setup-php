@@ -12,7 +12,8 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@v2
+        
         with:
           php-version: ${{ matrix.php }}
           coverage: xdebug2
