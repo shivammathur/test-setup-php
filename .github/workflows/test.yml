@@ -9,11 +9,11 @@ jobs:
       matrix:
         operating-system: [ubuntu-18.04, ubuntu-20.04, windows-latest, macos-latest]
         php: [8.0, 8.1, 8.2]
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        
+        uses: shivammathur/setup-php@v2        
+        env:
+          fail-fast: true
         with:
           php-version: ${{ matrix.php }}
           coverage: xdebug2
