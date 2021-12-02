@@ -6,7 +6,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:        
-        operating-systems: [ubuntu-latest]
+        operating-systems: [ubuntu-20.04, ubuntu-18.04]
     steps:
-      - uses: mxschmitt/action-tmate@v3.7
+      - run: |
+          sudo apt-cache policy libpcre2-dev || true
+          sudo apt-cache policy libpcre2-8-0 || true
 
