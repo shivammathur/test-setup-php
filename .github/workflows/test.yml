@@ -6,9 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:        
-        operating-systems: [ubuntu-20.04, ubuntu-18.04]
+        operating-systems: [macos-12]
     steps:
-      - run: |
-          sudo apt-cache policy libpcre2-dev || true
-          sudo apt-cache policy libpcre2-8-0 || true
+      - run: echo 'Hello, world'
 
