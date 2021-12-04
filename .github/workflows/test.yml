@@ -11,8 +11,11 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
       extensions: csv, ast, imagick, http, xdebug
-      key: cache-v1 # can be any string, change to clear the extension cache.
+      key: cache-v2
     steps:
+    - name: Harden Runner
+      if: runner.os == 'Linux'
+      uses: step-security/harden-runner@main
     - name: Checkout
       uses: actions/checkout@v2
 
