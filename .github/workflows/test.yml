@@ -5,22 +5,41 @@ jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      fail-fast: false
       matrix:
-        operating-system: [ubuntu-18.04, ubuntu-20.04, windows-latest, macos-latest]
-        php: [8.0, 8.1, 8.2]
+        operating-system: [ubuntu-latest]
+        php-versions: ['7.2', '7.3', '7.4']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    env:
+      extensions: csv, ast, imagick, http, xdebug
+      key: cache-v1 # can be any string, change to clear the extension cache.
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2        
-        env:
-          fail-fast: true
-        with:
-          php-version: ${{ matrix.php }}
-          coverage: xdebug2
+    - name: Checkout
+      uses: actions/checkout@v2
 
-      - name: Testing PHP version
-        run: php -v
+    - name: Setup cache environment
+      id: extcache
+      uses: shivammathur/cache-extensions@v1
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.extensions }}
+        key: ${{ env.key }}
 
-      - name: Testing Extensions
-        run: |
-          php -m
+    - name: Cache extensions
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.extcache.outputs.dir }}
+        key: ${{ steps.extcache.outputs.key }}
+        restore-keys: ${{ steps.extcache.outputs.key }}
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.extensions }}
+
+    - name: Testing PHP version
+      run: php -v
+
+    - name: Testing Extensions
+      run: |
+        php -m
