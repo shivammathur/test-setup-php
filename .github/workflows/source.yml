@@ -8,6 +8,9 @@ jobs:
       matrix:
         php: ['8.0']
     steps:
+      - name: Harden Runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@main
       - uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
