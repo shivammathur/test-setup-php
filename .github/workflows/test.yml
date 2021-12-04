@@ -19,6 +19,9 @@ jobs:
         operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macos-latest]
         php-versions: ['8.0']
     steps:
+      - name: Harden Runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@main
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
@@ -91,6 +94,9 @@ jobs:
         operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macOS-latest]
         php-versions: ['8.0']
     steps:
+      - name: Harden Runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@main
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
@@ -152,6 +158,9 @@ jobs:
         operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macOS-latest]
         php-versions: ['8.0']
     steps:
+      - name: Harden Runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@main
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
@@ -212,6 +221,9 @@ jobs:
         operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macOS-latest]
         php-versions: ['5.5']
     steps:
+      - name: Harden Runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@main
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
@@ -265,6 +277,9 @@ jobs:
         operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macOS-latest]
         php-versions: ['8.0']
     steps:
+      - name: Harden Runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@main
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
