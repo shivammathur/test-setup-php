@@ -25,6 +25,9 @@ jobs:
             coverage: xdebug2
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
+      - name: Harden Runner
+        if: runner.os == 'Linux'
+        uses: step-security/harden-runner@main
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
