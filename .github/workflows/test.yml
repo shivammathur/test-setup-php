@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:        
-        operating-systems: [macos-12]
+        operating-systems: [ubuntu-18.04]
     steps:
-      - run: echo 'Hello, world'
+      - uses: mxschmitt/action-tmate@v3.8
 
