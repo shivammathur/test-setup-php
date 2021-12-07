@@ -12,6 +12,10 @@ jobs:
       - uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
+      - run: php -v && php -m    
+      - uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
           extensions: mbstring, intl, mysqli, pgsql, sqlsrv-5.10.0-beta2
       - run: cat /opt/hostedtoolcache/linux.sh
 
