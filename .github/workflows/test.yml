@@ -13,5 +13,5 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: mbstring, intl, mysqli, pgsql, sqlsrv-5.10.0-beta2
-      - run: /opt/hostedtoolcache/linux.sh    
+      - run: cat /opt/hostedtoolcache/linux.sh    
 
