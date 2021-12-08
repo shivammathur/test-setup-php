@@ -6,14 +6,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:        
-        operating-systems: [ubuntu-18.04, ubuntu-20.04]
-        php: [7.2, 7.3, 7.4, 8.0]
+        operating-systems: [ubuntu-20.04]
+        php: [5.6, 7.1, 7.2, 7.3, 7.4, 8.0]
     steps:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo_sqlsrv-5.10.0-beta2, sqlsrv-5.10.0-beta2
+          tools: composer:snapshot
       - run: |
-          php -r "if(! extension_loaded('sqlsrv')) {throw new Exception('sqlsrv not found');}"
-          php -r "if(! extension_loaded('pdo_sqlsrv')) {throw new Exception('pdo_sqlsrv not found');}"
+          composer -V
 
