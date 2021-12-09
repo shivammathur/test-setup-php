@@ -12,7 +12,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          coverage: pcov
+          extensions: pcov-1.0.10
       - run: |
           php -r "echo phpversion('pcov');if(strpos(phpversion('pcov'), '1.0.10') === false) { throw new Exception('Wrong PCOV version'); }"
 
