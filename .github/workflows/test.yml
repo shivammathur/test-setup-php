@@ -6,13 +6,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:        
-        operating-systems: [ubuntu-20.04]
-        php: [5.6, 7.1, 7.2, 7.3, 7.4, 8.0]
+        operating-systems: [ubuntu-18.04, ubuntu-20.04]
+        php: [7.1, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2]
     steps:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          tools: composer:snapshot
+          coverage: pcov
       - run: |
-          composer -V
+          php -r "echo phpversion('pcov');if(strpos(phpversion('pcov'), '1.0.10') === false) { throw new Exception('Wrong PCOV version'); }"
 
