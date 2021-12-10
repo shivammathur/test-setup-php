@@ -7,22 +7,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-11, macos-10.15]
+        operating-system: [macos-11]
         php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
     name: Test
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
     - name: Setup PHP
-      env:
-        runner: self-hosted
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php }}
     - name: Test PHP
       run: |
         php -v && php -m
-        otool -L $(which php) | grep tidy
+        php --rf imagegd2
     - name: Test PHP service
       run: |
         brew services start php@${{ matrix.php }}
