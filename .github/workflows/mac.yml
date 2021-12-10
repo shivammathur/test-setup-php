@@ -18,6 +18,7 @@ jobs:
     - name: Test PHP
       run: |
         php -v && php -m
-    - name: Test GD2       
+    - name: Test GD2
+      run: |
         php -r "$im = imagecreatetruecolor(120, 20); $text_color = imagecolorallocate($im, 233, 14, 91);imagestring($im, 1, 5, 5,  'A Simple Text String', $text_color);imagegd2($im, 'simple.gd2');"
         cat simple.gd2
