@@ -6,13 +6,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:        
-        operating-systems: [ubuntu-18.04, ubuntu-20.04]
-        php: [5.6, '7.0', 7.1, 7.2, 7.3, 7.4, '8.0', 8.1]
+        operating-systems: [macos-latest]
+        ext: [amqp, apcu, expect, grpc, igbinary, imagick, imap, mailparse, memcache, memcached, mongodb, msgpack, pcov, pecl_http, protobuf, psr, raphf, rdkafka, redis, ssh2, swoole, vips, xdebug, xlswriter, yaml, zmq]
     steps:
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
+          php-version: 8.2
+          extensions: ${{ matrix.ext }}
       - run: |
-          sudo apt-get update
-          sudo apt-get install php${{ matrix.php }}-fpm -y
+          php -v
+          php -m
 
