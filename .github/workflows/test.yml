@@ -11,30 +11,12 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macos-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
-    steps:
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          tools: phive
-      - name: Testing Tools
-        run: phive status
-
-  versions:
-    name: versions
-    needs: latest
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macOS-latest]
         php-versions: ['8.0']
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: phive:0.14.5
+          tools: phpspec
       - name: Testing Tools
-        run: phive status
+        run: phpspec -V
