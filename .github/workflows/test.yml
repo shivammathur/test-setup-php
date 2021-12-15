@@ -1,14 +1,6 @@
 name: Test runner workflow
 on: [push]
 jobs:
-  sysvinit:
-    runs-on: ${{ matrix.operating-systems }}
-    strategy:
-      fail-fast: false
-      matrix:        
-        operating-systems: [ubuntu-18.04, ubuntu-20.04]
-    steps:
-      - run: sudo /etc/init.d/mysql start
   systemd:
     runs-on: ${{ matrix.operating-systems }}
     strategy:
@@ -16,5 +8,5 @@ jobs:
       matrix:        
         operating-systems: [ubuntu-18.04, ubuntu-20.04]
     steps:
-      - run: sudo systemctl start mysql
+      - run: sudo systemctl start mysql && sudo systemctl status mysql
 
