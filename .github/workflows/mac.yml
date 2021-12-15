@@ -1,4 +1,3 @@
-
 name: Test macOS workflow
 on: [push]
 jobs:
@@ -7,23 +6,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-11]
+        operating-system: [macos-11, macos-10.15]
         php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
     name: Test
     steps:
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Setup PHP
+      env:
+        update: true
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php }}
     - name: Test PHP
       run: |
+        php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"
         php -v && php -m
-    - name: Test GD2
-      shell: php {0}
+    - name: Test PHP service
       run: |
-        <?php
-        $im = imagecreatetruecolor(120, 20);
-        $text_color = imagecolorallocate($im, 233, 14, 91);
-        imagestring($im, 1, 5, 5,  'A Simple Text String', $text_color);
-        imagegd2($im, 'simple.gd2');
-    - run: cat simple.gd2
+        brew services start php@${{ matrix.php }}
+        brew services list
+        formula='php@${{ matrix.php }}'
+        [ "$formula" = "php@8.0" ] && formula='php'
+        cat ~/Library/LaunchAgents/homebrew.mxcl."$formula".plist
