@@ -1,5 +1,6 @@
-name: Sync workflow
+name: Runner workflow
 on:
+  push:
   workflow_dispatch:
     inputs:
       upstream:
