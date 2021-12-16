@@ -1,12 +1,23 @@
-name: Test runner workflow
-on: [push]
+name: Sync workflow
+on:
+  workflow_dispatch:
+    inputs:
+      upstream:
+        type: choice
+        description: Upstream php-src repository
+        options:
+        - remicollet/php-src-security
+        - oerdnj/php-src-security
+        - microsoft/php-src
+        default: remicollet/php-src-security
+        required: true
+      run_build:
+        type: boolean
+        default: 'true'
+        required: true
 jobs:
-  systemd:
-    runs-on: ${{ matrix.operating-systems }}
-    strategy:
-      fail-fast: false
-      matrix:        
-        operating-systems: [ubuntu-18.04, ubuntu-20.04]
+  sync:
+    name: sync
+    runs-on: ubuntu-latest
     steps:
-      - run: sudo systemctl start mysql && sudo systemctl status mysql
-
+      - run: ${{ github.event.inputs.run_build }}
