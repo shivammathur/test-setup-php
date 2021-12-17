@@ -13,3 +13,4 @@ jobs:
       - run: |
           echo "echo \$GITHUB_WORKFLOW" > test.sh
           bash test.sh
+        shell: bash  
