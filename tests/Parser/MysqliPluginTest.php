@@ -306,9 +306,7 @@ class MysqliPluginTest extends KintTestCase
     protected function getRealMysqliConnection()
     {
         var_dump(\getenv('MYSQLI_HOST'). ' ' .\getenv('MYSQLI_USER'). ' ' .\getenv('MYSQLI_PASS'));        
-        $m = new Mysqli(\getenv('MYSQLI_HOST'), \getenv('MYSQLI_USER'), \getenv('MYSQLI_PASS'));
-        var_dump($m);
-        die();
+        @$m = new Mysqli(\getenv('MYSQLI_HOST'), \getenv('MYSQLI_USER'), \getenv('MYSQLI_PASS'));
 
         if ($m->connect_errno) {
             $this->markTestSkipped('Mysqli connection error. Check connection information in phpunit.xml');

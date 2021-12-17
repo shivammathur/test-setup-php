@@ -10,12 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mysql:
-        image: mysql:5.7
+        image: mysql:latest
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: test
         ports:
-          - 3306
+          - 3306      
     strategy:
       fail-fast: false
       matrix:
@@ -45,5 +45,13 @@ jobs:
       - run: sudo systemctl start mysql
       - run: php ./vendor/bin/phpunit --no-coverage tests
         if: '!matrix.phar'
+        env:
+          MYSQLI_HOST: localhost:${{ job.services.mysql.ports['3306'] }}
+          MYSQLI_USER: root
+          MYSQLI_PASS: ''
       - run: php ./tests/phpunit-phar.php --no-coverage tests
         if: matrix.phar
+        env:
+          MYSQLI_HOST: localhost:${{ job.services.mysql.ports['3306'] }}
+          MYSQLI_USER: root
+          MYSQLI_PASS: ''
