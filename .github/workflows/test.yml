@@ -2,23 +2,12 @@ name: Runner workflow
 on:
   push:
   workflow_dispatch:
-    inputs:
-      upstream:
-        type: choice
-        description: Upstream php-src repository
-        options:
-        - remicollet/php-src-security
-        - oerdnj/php-src-security
-        - microsoft/php-src
-        default: remicollet/php-src-security
-        required: true
-      run_build:
-        type: boolean
-        default: 'true'
-        required: true
 jobs:
   sync:
     name: sync
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]    
+    runs-on: ${{ matrix.os }}
     steps:
-      - run: ${{ github.event.inputs.run_build }}
+      - run: echo $GITHUB_WORKFLOW
