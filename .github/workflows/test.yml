@@ -2,7 +2,7 @@ name: extension workflow
 on: [push]
 env:
   key: cache-v3
-  extensions: pdo, pdo_mysql, pdo_pgsql, pdo_sqlite, pdo_sqlsrv, pdo_firebird, couchbase, mysql, pgsql, sqlite3, sqlsrv
+  extensions: pdo, pdo_mysql, pdo_pgsql, pdo_sqlite, pdo_sqlsrv, couchbase, mysql, pgsql, sqlite3, sqlsrv
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
