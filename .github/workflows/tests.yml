@@ -47,11 +47,7 @@ jobs:
         if: '!matrix.phar'
         env:
           MYSQLI_HOST: localhost:${{ job.services.mysql.ports['3306'] }}
-          MYSQLI_USER: root
-          MYSQLI_PASS: ''
       - run: php ./tests/phpunit-phar.php --no-coverage tests
         if: matrix.phar
         env:
           MYSQLI_HOST: localhost:${{ job.services.mysql.ports['3306'] }}
-          MYSQLI_USER: root
-          MYSQLI_PASS: ''
