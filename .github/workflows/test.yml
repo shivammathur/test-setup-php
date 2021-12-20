@@ -10,10 +10,10 @@ jobs:
         operating-system: [ubuntu-18.04, ubuntu-20.04]
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: pecl_http
+          extensions: blackfire
 
       - name: Check PHP version
         run: php -v && php -m
