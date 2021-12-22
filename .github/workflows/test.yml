@@ -9,23 +9,22 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macos-latest]
-        php-versions: ['latest']
     steps:
-      - name: Install PHP with composer 2.1.14
+      - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-versions }}
-          tools: composer:2.1.14
+          php-version: 5.6
+          tools: composer:snapshot
       - name: Testing Composer version
         run: |
           composer -V
-      - name: Install PHP with composer 2.1
+      - name: Install PHP
         uses: shivammathur/setup-php@v2
         env:
           COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          php-version: ${{ matrix.php-versions }}
-          tools: composer:2.1
+          php-version: 7.2
+          tools: composer:snapshot
       - name: Testing Composer version
         run: |
           composer -V
