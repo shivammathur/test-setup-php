@@ -4,6 +4,7 @@ on: [push, pull_request]
 jobs:
   lumen:
     name: Lumen (PHP ${{ matrix.php-versions }})
+    container: shivammathur/node:latest
     runs-on: ubuntu-latest
     env:
       DB_DATABASE: lumen
