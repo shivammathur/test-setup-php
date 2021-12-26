@@ -13,18 +13,10 @@ jobs:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: 5.6
+          php-version: '8.1'
           tools: composer:snapshot
       - name: Testing Composer version
         run: |
           composer -V
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        env:
-          COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          php-version: 7.2
-          tools: composer:snapshot
-      - name: Testing Composer version
-        run: |
-          composer -V
+          echo $COMPOSER_PROCESS_TIMEOUT
+          echo $COMPOSER_NO_INTERACTION
