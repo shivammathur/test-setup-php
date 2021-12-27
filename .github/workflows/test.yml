@@ -1,4 +1,4 @@
-name: Composer test workflow
+name: Runner workflow
 on:
   push:
 jobs:
@@ -8,15 +8,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]
+        operating-system: [ubuntu-latest]
     steps:
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: '8.1'
-          tools: composer:snapshot
-      - name: Testing Composer version
-        run: |
-          composer -V
-          echo $env:COMPOSER_PROCESS_TIMEOUT
-          echo $env:COMPOSER_NO_INTERACTION
+      - name: Test
+        run: |          
+          echo $ACTIONS_CACHE_URL
+          echo $ACTIONS_RUNTIME_URL
