@@ -8,9 +8,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [windows-latest]
     steps:
-      - name: Test
-        run: |          
-          echo $ACTIONS_CACHE_URL
-          echo $ACTIONS_RUNTIME_URL
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.0'
+      - uses: mxschmitt/action-tmate@v3.8    
