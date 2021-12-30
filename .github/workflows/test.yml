@@ -27,7 +27,9 @@ jobs:
       - name: Run simple-phpunit install
         run: simple-phpunit install
       - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+        run: |
+          git status
+          php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Print php.ini
         if: matrix.operating-system != 'windows-latest'
         run: cat $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:s*||" | sed "s/ //g")
