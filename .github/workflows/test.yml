@@ -10,17 +10,17 @@ jobs:
       fail-fast: false
       matrix:
         containers:
-          #- "ubuntu:bionic"
-          #- "ubuntu:focal"
-          #- "ubuntu:hirsute"
-          #- "debian:stretch"
-          #- "debian:buster"
-          #- "debian:bullseye"
-          #- "linuxmintd/mint20.2-amd64"
-          #- "linuxmintd/mint19.3-amd64"
+          - "ubuntu:bionic"
+          - "ubuntu:focal"
+          - "ubuntu:hirsute"
+          - "debian:stretch"
+          - "debian:buster"
+          - "debian:bullseye"
+          - "linuxmintd/mint20.2-amd64"
+          - "linuxmintd/mint19.3-amd64"
           - "linuxmintd/lmde4-amd64"
-          #- "elementary/docker:stable"
-          #- "elementary/docker:unstable"
+          - "elementary/docker:stable"
+          - "elementary/docker:unstable"
           - "kalilinux/kali-rolling:latest"
           - "kalilinux/kali:latest"
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
@@ -28,7 +28,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
           ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
