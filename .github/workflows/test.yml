@@ -14,4 +14,4 @@ jobs:
       - uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-      - run: echo "::warning::${{ matrix.php }}:$(grep -Eo 'version="[0-9]+\.[0-9]+\.[0-9]+((-?[a-zA-Z]+([0-9]+)?)?){2}"' "$(command -v php-config)" | cut -d '"' -f 2)"
+      - run: echo "::warning::${{ matrix.php }}:$(grep -Eo 'version="[0-9]+\.[0-9]+\.[0-9]+((-?[a-zA-Z]+([0-9]+)?)?){2}' "$(command -v php-config)" | cut -d '"' -f 2)"
