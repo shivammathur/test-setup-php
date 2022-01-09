@@ -11,12 +11,13 @@ jobs:
         operating-system: [ubuntu-latest]
         php: [latest]
     steps:
+    - run: sudo apt-get remove php8.1-memcached -y
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
       with:
-          php-version: '8.0'
+          php-version: '8.1'
           coverage: none
-          extensions: 'none, igbinary, msgpack, memcached-php-memcached-dev/php-memcached@v3.1.4'
+          extensions: 'none, xml, igbinary, msgpack, memcached-3.1.4'
       env:
           fail-fast: true
           MEMCACHED_LIB: libmemcached-dev
