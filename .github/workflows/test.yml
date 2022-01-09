@@ -16,6 +16,7 @@ jobs:
       with:
           php-version: '8.0'
           coverage: none
-          extensions: 'none, igbinary, msgpack, memcached-3.1.5'
+          extensions: 'none, igbinary, msgpack, memcached-php-memcached-dev/php-memcached@v3.1.4'
       env:
           fail-fast: true
+          MEMCACHED_LIB: libmemcached-dev
