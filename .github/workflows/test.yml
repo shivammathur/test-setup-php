@@ -10,19 +10,17 @@ jobs:
       fail-fast: false
       matrix:
         containers:
-          #- "ubuntu:bionic"
-          #- "ubuntu:focal"
-          #- "ubuntu:hirsute"
-          #- "debian:stretch"
-          #- "debian:buster"
-          #- "debian:bullseye"
-          #- "linuxmintd/mint20.2-amd64"
-          #- "linuxmintd/mint19.3-amd64"
+          - "ubuntu:bionic"
+          - "ubuntu:focal"
+          - "ubuntu:hirsute"
+          - "debian:stretch"
+          - "debian:buster"
+          - "debian:bullseye"
+          - "linuxmintd/mint20.2-amd64"
+          - "linuxmintd/mint19.3-amd64"
           - "linuxmintd/lmde4-amd64"
-          #- "elementary/docker:stable"
-          #- "elementary/docker:unstable"
-          - "kalilinux/kali-rolling:latest"
-          - "kalilinux/kali:latest"
+          - "elementary/docker:stable"
+          - "elementary/docker:unstable"
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
     steps:
       - name: Checkout
@@ -32,8 +30,6 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
-        env:
-          runner: self-hosted
       - name: Testing PHP version
         run: |
           php -v
