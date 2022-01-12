@@ -5,19 +5,14 @@ jobs:
   latest:
     name: latest
     runs-on: ${{ matrix.operating-system }}
+    container: shivammathur/node:latest-slim
     strategy:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php: [latest]
     steps:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
           php-version: '8.0'
-          coverage: none
-          extensions: 'none, xml, igbinary, msgpack, memcached-3.1.4'
-      env:
-          fail-fast: true
-          MEMCACHED_LIB: libmemcached-dev
-    - run: php -r "echo phpversion('memcached');" && php -v && php -m
+    - run: php -v && php -m
