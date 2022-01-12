@@ -5,7 +5,7 @@ jobs:
   latest:
     name: latest
     runs-on: ${{ matrix.operating-system }}
-    container: shivammathur/node:latest-slim
+    container: ubuntu:latest
     strategy:
       fail-fast: false
       matrix:
