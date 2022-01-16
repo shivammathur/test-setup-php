@@ -8,12 +8,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php: [5.5, 7.4, 8.1, 8.2]
+        operating-system: [ubuntu-latest, macos-latest]
+        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
     steps:
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
           php-version: ${{ matrix.php }}
-          extensions: none, :phar
-    - run: php -v && php -m
+    - run: |
+        php -v
+        php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||"
+        if [ $(uname -s) = "Darwin" ]; then
+          ext_dir=$(grep 'extension_dir=' $(command -v php-config) | cut -d "'" -f 2)
+        else  
+          ext_dir=$(grep 'extension_dir=' $(command -v php-config) | cut -d '"' -f 2 | sed -e 's/${prefix}/\/usr/')
+        fi  
+        echo "::warning::${{ matrix.php }}: $ext_dir"
