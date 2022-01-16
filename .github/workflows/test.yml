@@ -1,18 +1,19 @@
-name: Runner workflow #
+name: Runner workflow
 on:
   push:
 jobs:
   latest:
     name: latest
     runs-on: ${{ matrix.operating-system }}
-    container: ubuntu:latest
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        php: [5.5, 7.4, 8.1, 8.2]
     steps:
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
-          php-version: '8.0'
+          php-version: ${{ matrix.php }}
+          extensions: none, :phar
     - run: php -v && php -m
