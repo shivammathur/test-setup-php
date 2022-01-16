@@ -18,9 +18,10 @@ jobs:
     - run: |
         php -v
         php -i | grep "extension_dir => /" | sed -e "s|.*=> s*||"
+        php_config="$(command -v php-config)"
         if [ $(uname -s) = "Darwin" ]; then
-          ext_dir=$(grep 'extension_dir=' $(command -v php-config) | cut -d "'" -f 2)
+          ext_dir="$(grep 'extension_dir=' "$php_config" | cut -d "'" -f 2)"
         else  
-          ext_dir=$(grep 'extension_dir=' $(command -v php-config) | cut -d '"' -f 2 | sed -e 's/${prefix}/\/usr/')
+          ext_dir="$(grep 'extension_dir=' "$php_config" | cut -d '=' -f 2 | sed -e 's/['\''\"]//g' -e "s/\${prefix}/\/usr/")"
         fi  
         echo "::warning::${{ matrix.php }}: $ext_dir"
