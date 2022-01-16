@@ -22,6 +22,6 @@ jobs:
         if [ $(uname -s) = "Darwin" ]; then
           ext_dir="$(grep 'extension_dir=' "$php_config" | cut -d "'" -f 2)"
         else  
-          ext_dir="$(grep 'extension_dir=' "$php_config" | cut -d '=' -f 2 | sed -e 's/['\''\"]//g' -e "s/\${prefix}/\/usr/")"
+          ext_dir="/usr/$(grep -Po "extension_dir=..[^/]*/\K[^'\"]*" "$php_config")"
         fi  
         echo "::warning::${{ matrix.php }}: $ext_dir"
