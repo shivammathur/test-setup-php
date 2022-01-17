@@ -13,11 +13,12 @@ jobs:
         php: ['8.1']
     steps:
     - name: Setup PHP
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@verbose
       with:
           php-version: ${{ matrix.php }}
           tools: codeception
     - run: |
+        which codecept
         codecept -V
         php -v
         php -m
