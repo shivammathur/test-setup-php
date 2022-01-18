@@ -5,20 +5,17 @@ jobs:
   latest:
     name: latest
     runs-on: ${{ matrix.operating-system }}
-    container: shivammathur/node:latest
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [ubuntu-latest, macos-latest]
         php: ['8.1']
+        runs: [1,1,1,1,1,1,1,1]
     steps:
     - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@develop
       with:
           php-version: ${{ matrix.php }}
-          tools: codeception
     - run: |
-        which codecept
-        codecept -V
         php -v
         php -m
