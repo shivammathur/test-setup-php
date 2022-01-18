@@ -12,6 +12,6 @@ jobs:
     steps:
     - run: |
         brew_prefix="$(dirname "$(command -v brew)")"/..
-        [ -d "$brew_prefix/Homebrew" ] && brew_repo="$brew_repo/Homebrew" || brew_repo="$brew_prefix"
+        [ -d "$brew_prefix/Homebrew" ] && brew_repo="$brew_prefix/Homebrew" || brew_repo="$brew_prefix"
         echo $brew_prefix
         echo $brew_repo
