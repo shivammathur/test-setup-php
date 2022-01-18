@@ -11,6 +11,7 @@ jobs:
         operating-system: [macos-latest]
         php: ['8.0']
     steps:
+    - uses: mxschmitt/action-tmate@v3.9
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
