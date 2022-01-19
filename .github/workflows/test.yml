@@ -3,20 +3,17 @@ on:
   push:
 jobs:
   latest:
-    name: latest
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [macos-latest]
-        php: ['8.0']
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu
+      options: --network-alias testHost
     steps:
-    - uses: mxschmitt/action-tmate@v3.9
-    - name: Setup PHP
-      uses: shivammathur/setup-php@develop
-      with:
-          php-version: ${{ matrix.php }}
-    - run: |
-        git -C $(brew --repo) status
-        php -v
-        php -m
+      - uses: actions/checkout@v2
+
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@v2
+        env:
+          runner: self-hosted
+        with:
+          php-version: '7.4'
+          extensions: imagick
