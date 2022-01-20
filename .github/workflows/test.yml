@@ -17,12 +17,12 @@ jobs:
         # We must fetch at least the immediate parents so that if this is
         # a pull request then we can checkout the head.
         fetch-depth: 2
-    - run: curl -o ./.github/codeql/codeql-configuration.yml -sL https://raw.githubusercontent.com/microsoft/TypeScript/main/.github/codeql/codeql-configuration.yml
+    - run: curl -o codeql-configuration.yml -sL https://raw.githubusercontent.com/microsoft/TypeScript/main/.github/codeql/codeql-configuration.yml
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v1
       with:
-        config-file: ./.github/codeql/codeql-configuration.yml
+        config-file: codeql-configuration.yml
       # Override language selection by uncommenting this and choosing your languages
       # with:
       #   languages: go, javascript, csharp, python, cpp, java
