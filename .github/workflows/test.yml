@@ -1,4 +1,4 @@
-name: Runner workflow # Test
+name: Windows workflow
 on:
   push:
 jobs:
@@ -7,17 +7,20 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [windows-latest]
-        php: ['5.5', '5.6']
+        operating-system: [windows-2019, windows-2022]
+        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1']
       fail-fast: false
     steps:
-      - name: Setup PHP
+      - name: Setup VcRedist
         run: |
           Install-Module -Name VcRedist -Force
+      - name: Setup PhpManager
+        run: |
           Install-Module -Name PhpManager -Force
+      - name: Setup PHP
+        run: |
           Install-Php -Version ${{ matrix.php }} -Architecture x86 -ThreadSafe 0 -Path C:\tools\php -TimeZone UTC -InstallVC -Force          
       - run: |
-          C:\tools\php\deplister C:\tools\php\php.exe
           php -v
           php -m
           
