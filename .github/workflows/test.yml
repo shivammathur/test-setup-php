@@ -11,15 +11,10 @@ jobs:
         php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1']
       fail-fast: false
     steps:
-      - name: Setup VcRedist
-        run: |
-          Install-Module -Name VcRedist -Force
-      - name: Setup PhpManager
-        run: |
-          Install-Module -Name PhpManager -Force
       - name: Setup PHP
-        run: |
-          Install-Php -Version ${{ matrix.php }} -Architecture x86 -ThreadSafe 0 -Path C:\tools\php -TimeZone UTC -InstallVC -Force          
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: ${{ matrix.php }}
       - run: |
           php -v
           php -m
