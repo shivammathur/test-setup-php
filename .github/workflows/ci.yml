@@ -16,7 +16,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: openssl
-          tools: phpunit:9.5
+          tools: phpunit/phpunit:9.5
           coverage: pcov
 
       - uses: actions/checkout@v2
