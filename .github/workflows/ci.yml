@@ -12,12 +12,10 @@ jobs:
         php-versions: ['7.4', '8.0', '8.1']
 
     steps:
-      - uses: shivammathur/setup-php@develop
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: openssl
           tools: phpunit/phpunit:9.5
-          coverage: pcov
 
       - uses: actions/checkout@v2
 
