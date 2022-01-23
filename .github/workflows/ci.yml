@@ -19,8 +19,6 @@ jobs:
           tools: phpunit:9.5
 
       - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
 
       - name: Run tests
         run: phpunit --coverage-clover clover.xml tests
