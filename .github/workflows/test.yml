@@ -8,16 +8,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['5.3', '5.4', '5.5', '8.1', '8.2']
-        os: [macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
         uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-versions }}
       - run: php -v
       - run: php -m
-      - run: |
-          cut -d '"' -f 2 < <(grep "ini_path=" "$(command -v php-config)" || php --ini | grep '(php.ini)' | sed -e "s|.*: s*||")
