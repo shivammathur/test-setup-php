@@ -1,4 +1,4 @@
-name: oldphp #
+name: oldphp
 
 on: [push, pull_request]
 
@@ -8,27 +8,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        os: [macos-10.15, macos-11]
         php-versions: ['5.3', '5.4', '5.5']
-        os: [ubuntu-20.04, ubuntu-18.04]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-      - run: php -v
-      - run: php -m
-      - run: ls /usr/lib/php/${{ matrix.php-versions }}
-      - run: sudo service php${{ matrix.php-versions }}-fpm status
-      - name: Test SAPI
-        run: |
-          sudo rm -rf /var/www/html/index.html
-          echo "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" | sudo tee /var/www/html/index.php >/dev/null
-          for sapi in apache2handler:apache fpm:apache cgi:apache fpm:nginx; do
-            echo "::group::Test $sapi"
-            sudo switch_sapi $sapi >/dev/null
-            curl -s http://localhost
-            [ "$(curl -s http://localhost)" != "$sapi" ] && exit 1
-            echo "::endgroup::"
-          done 
+      - run: php -v && php --ini
