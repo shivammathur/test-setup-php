@@ -18,6 +18,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
       - run: php -v
+      - run: php -m
       - run: ls /usr/lib/php/${{ matrix.php-versions }}
       - run: sudo service php${{ matrix.php-versions }}-fpm status
       - name: Test SAPI
