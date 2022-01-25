@@ -19,4 +19,5 @@ jobs:
           php-version: ${{ matrix.php-versions }}
       - run: php -v
       - run: php -m
-      - run: cut -d '"' -f 2 < <(grep "ini_path=" "$(command -v php-config)" || php --ini | grep '(php.ini)' | sed -e "s|.*: s*||")
+      - run: |
+          cut -d '"' -f 2 < <(grep "ini_path=" "$(command -v php-config)" || php --ini | grep '(php.ini)' | sed -e "s|.*: s*||")
