@@ -9,4 +9,11 @@ jobs:
       matrix:
         operating-system: [windows-2019, windows-2022, windows-latest]
     steps:
-      - run: systeminfo
+      - run: |
+          Install-Module VcRedist
+          Measure-Command {
+            Get-InstalledModule
+          }
+          Measure-Command {
+            Get-Module -ListAvailable -Name VcRedist
+          }
