@@ -7,7 +7,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-12, macos-12.0]
+        operating-system: [macos-10.15, macos-11.0]
+        php: [5.3, 5.4, 5.5]
     steps:
-      - run: |
-          echo 'test'
+      - uses: shivammathur/setup-php@verbose
+        with:
+          php-version: ${{ matrix.php }}
