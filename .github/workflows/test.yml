@@ -13,3 +13,6 @@ jobs:
       - uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
+      - run: |
+          php -v
+          php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||"    
