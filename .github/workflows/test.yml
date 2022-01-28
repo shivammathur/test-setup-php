@@ -3,16 +3,6 @@ on: [push]
 jobs:
   run:
     name: Run
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [macos-10.15, macos-11.0]
-        php: [5.3, 5.4, 5.5]
+    runs-on: macos-10.15
     steps:
-      - uses: shivammathur/setup-php@verbose
-        with:
-          php-version: ${{ matrix.php }}
-      - run: |
-          php -v
-          php -i | grep -Ei "extension_dir => /" | sed -e "s|.*=> s*||"    
+      - uses: mxschmitt/action-tmate@v3.9
