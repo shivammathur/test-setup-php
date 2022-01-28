@@ -5,7 +5,7 @@ jobs:
     name: Run
     runs-on: macos-latest
     steps:
-      - uses: shivammathur/setup-php@verbose
+      - uses: shivammathur/setup-php@develop
         with:
           php-version: 5.5
       - uses: mxschmitt/action-tmate@v3.9
