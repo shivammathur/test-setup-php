@@ -1,11 +1,17 @@
+
 name: Runner workflow
 on: [push]
 jobs:
   run:
     name: Run
-    runs-on: macos-latest
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [macos-10.15, macos-11.0]
+        php: [5.3, 5.4, 5.5]
     steps:
       - uses: shivammathur/setup-php@develop
         with:
-          php-version: 5.5
-      - uses: mxschmitt/action-tmate@v3.9
+          php-version: ${{ matrix.php }}
+          tools: none
