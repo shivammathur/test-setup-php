@@ -9,10 +9,12 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php: [7.1, 7.2, 7.3, 7.4, '8.0', 8.1, 8.2]
+        tools: [symfony, symfony-cli]
     steps:
-      - uses: villfa/setup-php@feat/churn
+      - uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php }}
-          tools: churn
-      - run: churn -V
+          php-version: 8.1
+          tools: ${{ matrix.tools }}
+      - run: |
+          symfony -V
+          symfony-cli -V
