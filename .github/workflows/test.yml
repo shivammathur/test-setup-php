@@ -1,4 +1,4 @@
-name: 'INI workflow'
+name: 'Extension develop workflow'
 on:
   push:
 jobs:
@@ -7,32 +7,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-18.04, windows-latest, macos-10.15]
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
-        ini: ['none', 'development', 'production']
+        operating-system: [ubuntu-20.04]
+        php-versions: ['5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install PHP
-        id: setup-php
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          ini-file: ${{ matrix.ini }}
-          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
-      - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+          extensions: geos
       - name: Testing PHP version
+        run: php -v
+      - name: Testing Extensions
         run: |
-          php -v
-          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
-      - name: Testing ini values for none
-        if: matrix.ini == 'none'
-        run: php -r "if(ini_get('error_reporting')!='') {throw new Exception('wrong ini file');}"
-      - name: Testing ini values for production
-        if: matrix.ini == 'production'
-        run: php -r "if(ini_get('error_reporting')!='22527') {throw new Exception('wrong ini file');}"
-      - name: Testing ini values for development
-        if: matrix.ini == 'development'
-        run: php -r "if(ini_get('error_reporting')!='32767') {throw new Exception('wrong ini file');}"
+          php -m
+      - name: Testing on unix
+        if: matrix.operating-system != 'windows-latest'
+        run: |
+          php -r "if(! extension_loaded('geos')) {throw new Exception('geos not found');}"
