@@ -28,11 +28,11 @@ jobs:
           php -v
           php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
       - name: Testing ini values for none
-        if: matrix.ini == "none"
+        if: matrix.ini == none
         run: php -r "if(ini_get('error_reporting')!='') {throw new Exception('wrong ini file');}"
       - name: Testing ini values for production
-        if: matrix.ini == "production"
+        if: matrix.ini == production
         run: php -r "if(ini_get('error_reporting')!='22527') {throw new Exception('wrong ini file');}"
       - name: Testing ini values for development
-        if: matrix.ini == "development"
+        if: matrix.ini == development
         run: php -r "if(ini_get('error_reporting')!='32767') {throw new Exception('wrong ini file');}"
