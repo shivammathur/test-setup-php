@@ -17,13 +17,4 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: geos
-      - name: Testing PHP version
-        run: php -v
-      - name: Testing Extensions
-        run: |
-          php -m
-      - name: Testing on unix
-        if: matrix.operating-system != 'windows-latest'
-        run: |
-          php -r "if(! extension_loaded('geos')) {throw new Exception('geos not found');}"
+      - run: sudo apt --fix-broken install
