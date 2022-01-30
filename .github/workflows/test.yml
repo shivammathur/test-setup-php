@@ -7,14 +7,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-18.04]
-        php-versions: ['5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        operating-system: [ubuntu-latest, windows-latest]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-versions }}
-      - run: sudo apt --fix-broken install
+          php-version: 8.1
