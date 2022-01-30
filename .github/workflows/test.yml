@@ -2,19 +2,19 @@ name: 'Extension develop workflow'
 on:
   push:
 jobs:
-  run:
+  php5:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04, windows-2019, macos-latest]
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
+        php-versions: ['5.3', '5.4', '5.5', '5.6']
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: sqlsrv, pdo_sqlsrv
+          extensions: sqlsrv-3.0.1, pdo_sqlsrv-3.0.1
       - run: |
           php -v
           php -m
