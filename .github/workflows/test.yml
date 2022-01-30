@@ -7,9 +7,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest]
+        operating-system: [ubuntu-20.04, windows-2019, macos-latest]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: 8.1
+          php-version: ${{ matrix.php-versions }}
+          extensions: sqlsrv, pdo_sqlsrv
+      - run: |
+          php -v
+          php -m
+          php -r "if(! extension_loaded('sqlsrv')) {throw new Exception('sqlsrv not found');}";
+          php -r "if(! extension_loaded('pdo_sqlsrv')) {throw new Exception('pdo_sqlsrv not found');}";
