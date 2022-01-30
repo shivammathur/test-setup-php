@@ -11,7 +11,7 @@ jobs:
         php-versions: ['5.3', '5.4', '5.5', '5.6']
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: sqlsrv-3.0.1, pdo_sqlsrv-3.0.1
