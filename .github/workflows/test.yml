@@ -1,4 +1,4 @@
-name: 'Extension develop workflow'
+name: Runner workflow
 on:
   push:
 jobs:
@@ -8,14 +8,15 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04, windows-2019, macos-latest]
-        php-versions: ['8.0', '8.1']
+        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-        env:
-          update: true
+          extensions: sqlsrv, pdo_sqlsrv
       - run: |
           php -v
           php -m
+          php -r "if(! extension_loaded('sqlsrv')) {throw new Exception('sqlsrv not found');}"
+          php -r "if(! extension_loaded('pdo_sqlsrv')) {throw new Exception('pdo_sqlsrv not found');}"
