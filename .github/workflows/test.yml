@@ -7,15 +7,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-10.15, macos-11.0]
-        php-versions: ['5.3', '5.4', '5.5']
+        operating-system: [ubuntu-latest]
+        php-versions: [8.0]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ioncube
+          tools: vapor-cli:1.11.1
 
       - name: Testing PHP version
         run: php -v
@@ -23,4 +23,4 @@ jobs:
       - name: Testing Extensions
         run: |
           php -m
-          php -r "if(! extension_loaded('ionCube Loader')) {throw new Exception('ioncube not found');}"
+          vapor -V
