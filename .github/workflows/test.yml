@@ -152,7 +152,6 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macOS-latest]
-        extensions: none
         php-versions: ['8.0']
     steps:
       - name: Checkout
