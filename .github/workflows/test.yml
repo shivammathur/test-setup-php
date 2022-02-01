@@ -10,7 +10,6 @@ env:
 jobs:
   versions:
     name: versions
-    needs: latest
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
