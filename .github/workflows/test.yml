@@ -29,6 +29,7 @@ jobs:
         run: simple-phpunit install
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - run: php -v && php -m  
       - name: Testing Tools
         run: |
           blackfire version
