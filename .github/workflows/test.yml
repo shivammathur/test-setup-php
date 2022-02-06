@@ -25,7 +25,7 @@ jobs:
       - name: Testing PHP version
         run: |
           php -v
-          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false && '${{ matrix.php-versions }}' != 'latest') {throw new Exception('Wrong PHP version Installed');}"
+          php -r "if(PHP_MAJOR_VERSION . '.x' !== '${{ matrix.php-versions }}' && '${{ matrix.php-versions }}' != 'latest' && '${{ matrix.php-versions }}' != 'nightly') {throw new Exception('Wrong PHP version Installed');}"
       - name: Testing Composer version
         run: php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
       - name: Testing Extensions
