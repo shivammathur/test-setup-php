@@ -1,4 +1,4 @@
-name: 'ionCube workflow'
+name: Runner workflow
 on:
   push:
 jobs:
@@ -7,20 +7,32 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: [8.0]
+        operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macos-10.15]
+        php-versions: ['5.x', '7.x', '8.x', 'latest', 'nightly']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-      - name: Setup PHP
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: vapor-cli:1.11.1
-
+          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+      - name: Add Problem Matcher
+        run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing PHP version
-        run: php -v
-
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false && '${{ matrix.php-versions }}' != 'latest') {throw new Exception('Wrong PHP version Installed');}"
+      - name: Testing Composer version
+        run: php -r "if(strpos(@exec('composer -V'), 'Composer version') === false) {throw new Exception('Composer not found');}"
       - name: Testing Extensions
         run: |
           php -m
-          vapor -V
+      - name: Testing ini values
+        run: |
+          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
+          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
+          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
