@@ -9,11 +9,9 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macos-latest]
-        php-versions: ['latest']
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install PHP
+      - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
@@ -21,7 +19,7 @@ jobs:
         run: |
           php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
           composer -V
-      - name: Install PHP
+      - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
@@ -30,7 +28,7 @@ jobs:
         run: |
           php -r "if(strpos(@exec('composer -V'), 'Composer version 1') === false) {throw new Exception('Wrong composer version');}"
           composer -V
-      - name: Install PHP
+      - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
@@ -39,7 +37,7 @@ jobs:
         run: |
           php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
           composer -V
-      - name: Install PHP
+      - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
@@ -48,7 +46,7 @@ jobs:
         run: |
           php -r "if(strpos(@exec('composer -V'), 'Composer version 1') === false) {throw new Exception('Wrong composer version');}"
           composer -V
-      - name: Install PHP
+      - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
@@ -57,7 +55,7 @@ jobs:
         run: |
           php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
           composer -V
-      - name: Install PHP
+      - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
@@ -66,7 +64,7 @@ jobs:
         run: |
           php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
           composer -V
-      - name: Install PHP
+      - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
@@ -75,7 +73,7 @@ jobs:
         run: |
           php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
           composer -V
-      - name: Install PHP
+      - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
@@ -84,7 +82,7 @@ jobs:
         run: |
           php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
           composer -V
-      - name: Install PHP
+      - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
@@ -93,7 +91,7 @@ jobs:
         run: |
           php -r "if(strpos(@exec('composer -V'), 'Composer version 2.0.1') === false) {throw new Exception('Wrong composer version');}"
           composer -V
-      - name: Install PHP
+      - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@develop
         with:
           php-version: 7.4
