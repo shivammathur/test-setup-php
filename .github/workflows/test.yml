@@ -3,18 +3,14 @@ on:
   push:
 jobs:
   run:
+    container: ubuntu:latest
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [windows-latest]
+        operating-system: [ubuntu-latest]
     steps:
-      - run: |
-          choco install carbon -y
-          Import-Module 'Carbon'
-          Set-CHostsEntry -IPAddress 127.0.0.1 -HostName 'github.com'
       - name: Install PHP
-        uses: shivammathur/setup-php@092944b039698d154463a6a52280f26895523a74
+        uses: shivammathur/setup-php@develop
         with:
           php-version: 7.4
-          tools: none
-      - run: php -v    
+      - run: php -v && pecl -V
