@@ -10,6 +10,7 @@ jobs:
     steps:
       - run: |
           choco install carbon -y
+          Import-Module 'Carbon'
           Set-HostsEntry -IPAddress localhost -HostName 'github.com'
       - name: Install PHP
         uses: shivammathur/setup-php@develop
