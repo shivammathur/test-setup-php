@@ -3,16 +3,16 @@ on:
   push:
 jobs:
   run:
-    container: ubuntu:latest
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-20.04]
+        operating-system: [windows-latest]
     steps:
+      - run: |
+          Install-Module -Name 'Carbon' -AllowClobber
+          Set-HostsEntry -IPAddress localhost -HostName 'github.com'
       - name: Install PHP
         uses: shivammathur/setup-php@develop
-        env:
-          runner: github
         with:
-          php-version: 8.1
+          php-version: 7.4
       - run: php -v    
