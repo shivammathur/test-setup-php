@@ -9,7 +9,7 @@ jobs:
         operating-system: [windows-latest]
     steps:
       - run: |
-          Install-Module -Name 'Carbon' -AllowClobber
+          choco install carbon -y
           Set-HostsEntry -IPAddress localhost -HostName 'github.com'
       - name: Install PHP
         uses: shivammathur/setup-php@develop
