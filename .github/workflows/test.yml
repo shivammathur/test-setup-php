@@ -14,5 +14,5 @@ jobs:
         env:
           runner: github
         with:
-          php-version: ${{ matrix.php-versions }}
+          php-version: 8.1
       - run: php -v    
