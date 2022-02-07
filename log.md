@@ -24,3 +24,4 @@
 - Test 1.11.3 release.
 - Test 1.11.4 release.
 - Test 1.11.5 release.
+- Test 1.11.6 release.
