@@ -16,4 +16,5 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: 7.4
+          tools: none
       - run: php -v    
