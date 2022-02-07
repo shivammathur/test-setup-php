@@ -3,7 +3,7 @@ on:
   push:
 jobs:
   run:
-    container: ubuntu:latest
+    container: shivammathur/node:latest
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
