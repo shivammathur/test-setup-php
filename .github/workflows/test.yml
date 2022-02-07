@@ -8,12 +8,8 @@ jobs:
       matrix:
         operating-system: [windows-latest]
     steps:
-      - run: |
-          choco install carbon -y
-          Import-Module 'Carbon'
-          Set-HostsEntry -IPAddress 127.0.0.1 -HostName 'github.com'
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@d83bbeac8adad65bd60a37e5ae2426fe52ff3473
         with:
           php-version: 7.4
       - run: php -v   
