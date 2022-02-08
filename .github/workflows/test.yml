@@ -15,7 +15,7 @@ jobs:
           node -v
           which node
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: 7.4
       - run: |
