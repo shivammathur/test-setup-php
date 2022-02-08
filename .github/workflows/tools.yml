@@ -1,9 +1,9 @@
 name: Tools v2 workflow
 on:
-  repository_dispatch:
+  workflow_dispatch:
   push:
   schedule:
-    - cron: '45 2/5 * * *'
+    - cron: '50 2/5 * * *'
 env:
   COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }}
@@ -26,7 +26,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: behat, blackfire, blackfire-player, composer-require-checker, composer-normalize, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpspec, phpmd, cs2pr, codeception, phpunit, psalm, phing, phinx, phive, deployer, protoc, pecl, phpize, php-config, symfony, vapor-cli
+          tools: behat, blackfire, blackfire-player, churn, composer-require-checker, composer-normalize, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpspec, phpmd, cs2pr, codeception, phpunit, psalm, phing, phinx, phive, deployer, protoc, pecl, phpize, php-config, symfony, vapor-cli
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Print php.ini
@@ -37,6 +37,7 @@ jobs:
           behat -V
           blackfire version
           blackfire-player -V
+          churn -V
           composer -V
           composer-require-checker -V
           composer-normalize -V
