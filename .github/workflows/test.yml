@@ -18,7 +18,9 @@ jobs:
       - name: Check openssl config
         run: php -i | findstr openssl
         
-      - run: mkdir -p C:\usr\local\ssl\openssl.cnf  
+      - run: |
+          mkdir -p C:\usr\local\ssl
+          touch C:\usr\local\ssl\openssl.cnf
         
       - name: Test
         shell: php {0}
