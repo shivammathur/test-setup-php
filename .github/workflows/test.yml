@@ -22,7 +22,8 @@ jobs:
           
       - name: Set OpenSSL config
         run: |
-          Set-OpenSSLConf -Target User
+          New-Item C:\tools\php\openssl.cnf -type file
+          Set-OpenSSLConf -Path C:\tools\php\openssl.cnf -Target User
           php -i | findstr openssl
           Get-Content $env:OPENSSL_CONF          
         
