@@ -20,9 +20,11 @@ jobs:
           php -v
           php -m
           
-      - name: OpenSSL config
+      - name: Set OpenSSL config
+        run: Set-OpenSSLConf
+        
+      - name: Check OpenSSL config
         run: |
-          Set-OpenSSLConf
           php -i | findstr openssl
           Get-Content $env:OPENSSL_CONF
         
