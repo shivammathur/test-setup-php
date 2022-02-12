@@ -9,9 +9,11 @@ jobs:
       matrix:
         operating-system: [ubuntu-18.04, ubuntu-20.04]
         php: [5.6, '7.0', 7.1, 7.2, 7.3, 7.4, '8.0', 8.1]
-    steps:
+    steps:     
       - uses: step-security/harden-runner@v1
-
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@v2    
       - run: |
           echo "127.0.0.1       github.com" | sudo tee -a /etc/hosts
       - name: Setup PHP
