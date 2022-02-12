@@ -21,7 +21,8 @@ jobs:
           php -m
           
       - name: Set OpenSSL config
-        run: Set-OpenSSLConf -Target Machine
+        run: |
+          Set-OpenSSLConf -Target Machine -Force
         
       - name: Check OpenSSL config
         run: |
