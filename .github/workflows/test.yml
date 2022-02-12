@@ -22,7 +22,9 @@ jobs:
           
       - name: Set OpenSSL config
         run: |
-          Set-OpenSSLConf -Target Machine -Force
+          Set-OpenSSLConf -Target User
+          php -i | findstr openssl
+          Get-Content $env:OPENSSL_CONF          
         
       - name: Check OpenSSL config
         run: |
