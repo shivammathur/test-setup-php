@@ -15,12 +15,16 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           
-      - name: Check openssl config
+      - name: Check PHP
+        run: |
+          php -v
+          php -m
+          
+      - name: OpenSSL config
         run: |
           Set-OpenSSLConf
-          php -v
           php -i | findstr openssl
-          php -m
+          Get-Content $env:OPENSSL_CONF
         
       - name: Test
         shell: php {0}
