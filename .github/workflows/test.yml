@@ -39,3 +39,4 @@ jobs:
           $res = openssl_pkey_new($config);
           openssl_pkey_export($res, $privatekey);
           var_dump($privatekey);
+          var_dump(openssl_error_string());
