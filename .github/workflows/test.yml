@@ -24,10 +24,12 @@ jobs:
         run: |
           Set-OpenSSLConf -Target User
           php -i | findstr openssl
+          Get-Content $OPENSSL_CONF
         
       - name: Check OpenSSL config
         run: |
           php -i | findstr openssl
+          Get-Content $OPENSSL_CONF
         
       - name: Test
         shell: php {0}
