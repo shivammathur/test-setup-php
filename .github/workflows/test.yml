@@ -7,17 +7,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-18.04, ubuntu-20.04]
-        php: [5.6, '7.0', 7.1, 7.2, 7.3, 7.4, '8.0', 8.1]
-    steps:     
-      - uses: step-security/harden-runner@v1
-        with:
-          egress-policy: audit
-      - uses: actions/checkout@v2    
-      - run: |
-          echo "127.0.0.1       github.com" | sudo tee -a /etc/hosts
+        operating-system: [windows-latest]
+        php: [5.3, 5.4, 5.5, 5.6, '7.0', 7.1, 7.2, 7.3, 7.4, '8.0', 8.1, 8.2]
+    steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           
@@ -25,3 +19,26 @@ jobs:
         run: |
           php -v
           php -m
+          
+      - name: Set OpenSSL config
+        run: |
+          Set-OpenSSLConf -Target User
+          php -i | findstr openssl
+        
+      - name: Check OpenSSL config
+        run: |
+          php -i | findstr openssl
+        
+      - name: Test
+        shell: php {0}
+        run: |
+          <?php
+          error_reporting(E_ALL);
+          $config = array(
+             "digest_alg" => "sha256",
+             "private_key_bits" => 2048,
+             "private_key_type" => OPENSSL_KEYTYPE_RSA,
+          );
+          $res = openssl_pkey_new($config);
+          openssl_pkey_export($res, $privatekey);
+          var_dump($privatekey);
