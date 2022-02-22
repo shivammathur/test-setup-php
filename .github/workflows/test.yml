@@ -1,21 +1,32 @@
-name: Runner workflow
-on:
-  push:
+name: Unit Tests
+
+on: [ push, pull_request ]
+
 jobs:
-  run:
-    runs-on: ${{ matrix.operating-system }}
+  test:
+    name: PHPUnit (${{ matrix.php-versions }})
+    runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php: [7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1]
+        php-versions: [ '5.6', '7.4', '8.0' ]
+
     steps:
-      -  uses: shivammathur/setup-php@develop
-         with:         
-           php-version: ${{ matrix.php }}
-           extensions: sqlsrv, pdo_sqlsrv
-      - run: |
-          php -r "echo phpversion('sqlsrv') . \"\n\";"
-          php -r "echo phpversion('pdo_sqlsrv') . \"\n\";"
-          php -v
-          php -m
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer
+          extensions: mysql, imagick
+
+      - name: Tool versions
+        run: |
+          which php
+          php --version
+          which composer
+          composer --version
+          which jq
+          jq --version
