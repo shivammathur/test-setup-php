@@ -17,9 +17,6 @@ jobs:
           apt-get install -y software-properties-common
           LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
           apt-get update
-      - name: Check PPA
-        run: |
-          apt-cache policy | grep ondrej
       - name: Check packages
         run: |
           apt-cache policy php8.1 || true
