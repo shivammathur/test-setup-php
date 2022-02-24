@@ -12,6 +12,4 @@ jobs:
           uses: shivammathur/setup-php@v2
           with:
               php-version: '8.0'
-              coverage: xdebug
-              extensions: amqp, apcu, ctype, fileinfo, gd, iconv, imagick, intl, json, xml, mysql, redis, sockets, xml, zip
-              tools: symfony-cli
+              tools: none, symfony-cli
