@@ -9,16 +9,6 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - name: Add PPA
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: |
-          apt-get update
-          apt-get install -y software-properties-common
-          LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php
-          apt-get update
-      - name: Check packages
-        run: |
-          apt-cache policy php8.1 || true
-          apt-cache policy php7.4 || true
-          apt-cache policy php5.6 || true
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4|8.0'
