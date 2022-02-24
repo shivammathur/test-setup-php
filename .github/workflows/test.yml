@@ -4,13 +4,14 @@ on: push
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     strategy:
       fail-fast: false
     steps:
         - name: Install PHP
-          uses: shivammathur/setup-php@v2
+          uses: shivammathur/setup-php@verbose
           with:
-              php-version: '8.0'
-              tools: symfony-cli
-        - run: symfony -V      
+              php-version: '8.1'
+              extensions: vips
+        - run: php -v && php -m      
+        - uses: mxschmitt/action-tmate@v3.11
