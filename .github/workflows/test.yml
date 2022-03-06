@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
     steps:
         - name: Install PHP
-          uses: shivammathur/setup-php@v2
+          uses: shivammathur/setup-php@develop
           with:
               php-version: '8.1'
               extensions: dom, curl, libxml, imagick, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, gd, igbinary, msgpack, memcached, mysql
