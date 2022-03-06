@@ -4,14 +4,12 @@ on: push
 
 jobs:
   test:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
     steps:
         - name: Install PHP
-          uses: shivammathur/setup-php@verbose
+          uses: shivammathur/setup-php@v2
           with:
               php-version: '8.1'
-              extensions: vips
-        - run: php -v && php -m      
-        - uses: mxschmitt/action-tmate@v3.11
+              extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, gd, igbinary, msgpack, lzf, zstd, lz4, memcached
