@@ -7,9 +7,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      matrix: 
+        php: [7.1, 7.4, 8.1, 8.2]
     steps:
         - name: Install PHP
           uses: shivammathur/setup-php@develop
           with:
-              php-version: '8.1'
-              extensions: dom, curl, libxml, imagick, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, gd, igbinary, msgpack, memcached, mysql
+              php-version: ${{ matrix.php }}
+        - run: |
+            ls -la /run/php
+            ls -la /etc/alternatives/php-fpm.sock
