@@ -4,16 +4,16 @@ on: push
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix: 
-        os: [ubuntu-18.04, ubuntu-20.04]
+        ini: [development, production]
     steps:
+        - uses: shivammathur/setup-php@v2
+          with:
+            php-version: 7.4
+            ini-file: ${{ matrix.ini }}
         - run: |
-            ls -la /run/php
-            ls -la /etc/alternatives/php-fpm.sock
-        - run: sudo update-alternatives --set php-fpm.sock /run/php/php7.4-fpm.sock
-        - run: |
-            ls -la /run/php
-            ls -la /etc/alternatives/php-fpm.sock
+            cd /etc/php/7.4
+            grep -ri disable_functions *
