@@ -15,6 +15,7 @@ jobs:
           with:
               php-version: ${{ matrix.php }}
         - run: |
+            php -v
             ls -la /run/php
             ls -la /etc/alternatives/php-fpm.sock
             sudo service php${{ matrix.php }}-fpm status
