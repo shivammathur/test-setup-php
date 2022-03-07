@@ -10,4 +10,10 @@ jobs:
       matrix: 
         os: [ubuntu-18.04, ubuntu-20.04]
     steps:
-        - uses: mxschmitt/action-tmate@v3.11
+        - run: |
+            ls -la /run/php
+            ls -la /etc/alternatives/php-fpm.sock
+        - run: sudo update-alternatives --set php-fpm.sock /run/php/php7.4-fpm.sock
+        - run: |
+            ls -la /run/php
+            ls -la /etc/alternatives/php-fpm.sock
