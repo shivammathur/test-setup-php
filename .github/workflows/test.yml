@@ -7,13 +7,16 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: 
-        ini: [development, production]
     steps:
         - uses: shivammathur/setup-php@v2
           with:
+            php-version: 8.1
+        - run: php -v
+        - uses: shivammathur/setup-php@v2
+          with:
             php-version: 7.4
-            ini-file: ${{ matrix.ini }}
-        - run: |
-            cd /etc/php/7.4
-            grep -ri disable_functions *
+        - run: php -v
+        - uses: shivammathur/setup-php@v2
+          with:
+            php-version: 7.3
+        - run: php -v
