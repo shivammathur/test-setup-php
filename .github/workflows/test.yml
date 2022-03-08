@@ -1,22 +1,47 @@
-name: Runner tests
+name: "Tests"
 
-on: push
+on:
+  push:
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  tests:
+    name: "Tests"
+    runs-on: ${{ matrix.operating-system }}
+
     strategy:
       fail-fast: false
+      matrix:
+        php-version:
+          - "7.1"
+          - "7.2"
+          - "7.3"
+          - "7.4"
+        operating-system: [ ubuntu-latest, windows-latest ]
+
     steps:
-        - uses: shivammathur/setup-php@v2
-          with:
-            php-version: 8.1
-        - run: php -v
-        - uses: shivammathur/setup-php@v2
-          with:
-            php-version: 7.4
-        - run: php -v
-        - uses: shivammathur/setup-php@v2
-          with:
-            php-version: 7.3
-        - run: php -v
+      - name: "Install PHP"
+        uses: "shivammathur/setup-php@verbose"
+        with:
+          coverage: "none"
+          php-version: "${{ matrix.php-version }}"
+
+      - name: "Print PHP version - should be ${{ matrix.php-version }}"
+        run: php -v
+
+      - name: "Install new PHP"
+        uses: "shivammathur/setup-php@verbose"
+        with:
+          coverage: "none"
+          php-version: "8.0"
+
+      - name: "Print PHP version - should be 8.0"
+        run: php -v
+
+      - name: "Reinstall PHP"
+        uses: "shivammathur/setup-php@verbose"
+        with:
+          coverage: "none"
+          php-version: "${{ matrix.php-version }}"
+
+      - name: "Print PHP version - should be ${{ matrix.php-version }}"
+        run: php -v
