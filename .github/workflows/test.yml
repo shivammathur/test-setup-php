@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - name: "Install PHP"
-        uses: "shivammathur/setup-php@verbose"
+        uses: "shivammathur/setup-php@develop"
         with:
           coverage: "none"
           php-version: "${{ matrix.php-version }}"
@@ -29,7 +29,7 @@ jobs:
         run: php -v
 
       - name: "Install new PHP"
-        uses: "shivammathur/setup-php@verbose"
+        uses: "shivammathur/setup-php@develop"
         with:
           coverage: "none"
           php-version: "8.0"
@@ -38,7 +38,7 @@ jobs:
         run: php -v
 
       - name: "Reinstall PHP"
-        uses: "shivammathur/setup-php@verbose"
+        uses: "shivammathur/setup-php@develop"
         with:
           coverage: "none"
           php-version: "${{ matrix.php-version }}"
