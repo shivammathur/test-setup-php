@@ -35,7 +35,7 @@ jobs:
               fail-fast: true
               MEMCACHED_LINUX_LIBS: zlib1g-dev libmemcached-dev
               MEMCACHED_DARWIN_LIBS: zlib libmemcached
-              MEMCACHED_CONFIGURE_OPTS: --with-libmemcached-dir=${{ steps.check.libmemcached.libmemcached-dir }}
+              MEMCACHED_CONFIGURE_OPTS: --with-libmemcached-dir=${{ steps.libmemcached.outputs.libmemcached-dir }}
       - run: |
           php -v
           php -r "echo phpversion('memcached') . \"\n\";"
