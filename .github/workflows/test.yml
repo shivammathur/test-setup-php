@@ -19,10 +19,12 @@ jobs:
         id: libmemcached
         run: |
             if [ "$(uname -s)" = "Linux" ]; then
-              echo "::set-output name=libmemcached-dir::/usr"
+              dir="/usr"
             else
-              echo "::set-output name=libmemcached-dir::$(brew --prefix libmemcached)"
+              dir="$(brew --prefix)/opt/libmemcached"
             fi
+            echo $dir
+            echo "::set-output name=libmemcached-dir::$dir"
       -   name: Setup PHP
           uses: shivammathur/setup-php@develop
           with:
@@ -33,7 +35,7 @@ jobs:
               fail-fast: true
               MEMCACHED_LINUX_LIBS: zlib1g-dev libmemcached-dev
               MEMCACHED_DARWIN_LIBS: zlib libmemcached
-              MEMCACHED_OPTS: --with-libmemcached-dir=${{ steps.check.libmemcached.libmemcached-dir }}
+              MEMCACHED_CONFIGURE_OPTS: --with-libmemcached-dir=${{ steps.check.libmemcached.libmemcached-dir }}
       - run: |
           php -v
           php -r "echo phpversion('memcached') . \"\n\";"
