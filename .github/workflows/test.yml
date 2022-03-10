@@ -12,9 +12,17 @@ jobs:
       fail-fast: false
       matrix:
         php-version: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
-        operating-system: [ ubuntu-latest ]
+        operating-system: [ macos-latest, ubuntu-latest]
 
     steps:
+      - name: Get libmemcached directory
+        id: libmemcached
+        run: |
+            if [ "$(uname -s)" = "Linux" ]; then
+              echo "::set-output name=libmemcached-dir::/usr"
+            else
+              echo "::set-output name=libmemcached-dir::$(brew --prefix libmemcached)"
+            fi
       -   name: Setup PHP
           uses: shivammathur/setup-php@develop
           with:
@@ -23,7 +31,9 @@ jobs:
               extensions: memcached-3.2.0RC2
           env:
               fail-fast: true
-              MEMCACHED_LIBS: zlib1g-dev libmemcached-dev
+              MEMCACHED_LINUX_LIBS: zlib1g-dev libmemcached-dev
+              MEMCACHED_DARWIN_LIBS: zlib libmemcached
+              MEMCACHED_OPTS: --with-libmemcached-dir=${{ steps.check.libmemcached.libmemcached-dir }}
       - run: |
           php -v
           php -r "echo phpversion('memcached') . \"\n\";"
