@@ -12,6 +12,9 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+    - name: Remove PHP
+      if: ${{ matrix.php == '8.1' }}
+      run: brew remove php
     - name: Setup PHP
       env:
         update: true
