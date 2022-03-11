@@ -11,8 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-version: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
-        operating-system: [ macos-latest, ubuntu-latest]
+        php-version: ['8.2']
+        operating-system: [ macos-12]
 
     steps:
       - name: Get libmemcached directory
