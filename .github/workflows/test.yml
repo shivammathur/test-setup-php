@@ -12,7 +12,7 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: none, redis, http
@@ -24,7 +24,7 @@ jobs:
           php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
           php -r "if(! extension_loaded('http')) {throw new Exception('http not found');}"
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: none, redis, http
