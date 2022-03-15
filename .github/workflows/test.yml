@@ -15,7 +15,19 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: redis, http
+          extensions: none, redis, http
+      - name: Testing PHP version
+        run: php -v
+      - name: Testing Extensions
+        run: |
+          php -m
+          php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
+          php -r "if(! extension_loaded('http')) {throw new Exception('http not found');}"
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: none, redis, http
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
