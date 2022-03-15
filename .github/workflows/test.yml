@@ -12,7 +12,7 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: none, redis, http
@@ -21,7 +21,7 @@ jobs:
       - name: Testing Extensions
         run: |
           php -m
-          php -r "if(! extension_loaded('redis')) {throw new Exception('mbstring not found');}"
-          php -r "if(! extension_loaded('http')) {throw new Exception('Xdebug not found');}"
           php -r "if(! extension_loaded('igbinary')) {throw new Exception('Xdebug not found');}"
           php -r "if(! extension_loaded('raphf')) {throw new Exception('intl not found');}"
+          php -r "if(! extension_loaded('redis')) {throw new Exception('mbstring not found');}"
+          php -r "if(! extension_loaded('http')) {throw new Exception('Xdebug not found');}"
