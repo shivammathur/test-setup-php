@@ -1,42 +1,27 @@
-name: "Tests"
-
+name: 'Extension develop workflow'
 on:
   push:
-
 jobs:
-  tests:
-    name: "Tests"
+  disable:
     runs-on: ${{ matrix.operating-system }}
-
     strategy:
       fail-fast: false
       matrix:
-        php-version: ['8.2']
-        operating-system: [ macos-12]
-
+        operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macos-latest]
+        php-versions: ['8.1']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-      - name: Get libmemcached directory
-        id: libmemcached
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: none, redis, http
+      - name: Testing PHP version
+        run: php -v
+      - name: Testing Extensions
         run: |
-            if [ "$(uname -s)" = "Linux" ]; then
-              dir="/usr"
-            else
-              dir="$(brew --prefix)/opt/libmemcached"
-            fi
-            echo $dir
-            echo "::set-output name=libmemcached-dir::$dir"
-      -   name: Setup PHP
-          uses: shivammathur/setup-php@develop
-          with:
-              php-version: '8.1'
-              coverage: none
-              extensions: memcached-3.2.0RC2
-          env:
-              fail-fast: true
-              MEMCACHED_LINUX_LIBS: zlib1g-dev libmemcached-dev
-              MEMCACHED_DARWIN_LIBS: zlib libmemcached
-              MEMCACHED_CONFIGURE_OPTS: --with-libmemcached-dir=${{ steps.libmemcached.outputs.libmemcached-dir }}
-      - run: |
-          php -v
-          php -r "echo phpversion('memcached') . \"\n\";"
           php -m
+          php -r "if(! extension_loaded('redis')) {throw new Exception('mbstring not found');}"
+          php -r "if(! extension_loaded('http')) {throw new Exception('Xdebug not found');}"
+          php -r "if(! extension_loaded('igbinary')) {throw new Exception('Xdebug not found');}"
+          php -r "if(! extension_loaded('raphf')) {throw new Exception('intl not found');}"
