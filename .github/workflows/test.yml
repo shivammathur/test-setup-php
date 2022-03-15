@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
+        operating-system: [ubuntu-20.04, ubuntu-18.04, windows-latest, macos-latest]
         php-versions: ['8.1']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -23,16 +23,14 @@ jobs:
           php -m
           php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
           php -r "if(! extension_loaded('http')) {throw new Exception('http not found');}"
-      - uses: mxschmitt/action-tmate@v3.11    
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: none, redis, http
+          extensions: none, redis
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
         run: |
           php -m
           php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
-          php -r "if(! extension_loaded('http')) {throw new Exception('http not found');}"
