@@ -60,7 +60,7 @@ jobs:
           deployer -V
           symfony version
           vapor -V
-          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
+          php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
       - name: Test flex
         run: composer global show symfony/flex
       - name: Test pecl, phpize, php-config
@@ -120,7 +120,7 @@ jobs:
           deployer -V
           symfony version
           vapor -V
-          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
+          php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
       - name: Test flex
         run: composer global show symfony/flex
       - name: Test pecl
@@ -171,7 +171,7 @@ jobs:
           phinx -V
           deployer -V
           symfony version
-          php -r "if(strpos(@exec('composer -V'), 'Composer version 2') === false) {throw new Exception('Wrong composer version');}"
+          php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
       - name: Test pecl
         if: matrix.operating-system != 'windows-latest'
         run: pecl -V
@@ -207,7 +207,7 @@ jobs:
       - name: Testing Tools
         run: |
           composer -V
-          php -r "if(strpos(@exec('composer -V'), 'Composer version 1') === false) {throw new Exception('Wrong composer version');}"
+          php -r "if(preg_match('/.*Composer.* 1.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
           phpcs --version
           phpcbf --version
           phpcpd --version
@@ -216,4 +216,3 @@ jobs:
         run: composer global show symfony/flex
       - name: Test prestissimo
         run: composer global show hirak/prestissimo
-
