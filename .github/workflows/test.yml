@@ -7,30 +7,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-12]
-        php-versions: ['8.1']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+        operating-system: [macos-12, macos-11]
+        php-versions: ['8.2']
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: none, redis, http
+          extensions: zmq
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
-        run: |
-          php -m
-          php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
-          php -r "if(! extension_loaded('http')) {throw new Exception('http not found');}"
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: none, redis
-      - name: Testing PHP version
-        run: php -v
-      - name: Testing Extensions
-        run: |
-          php -m
-          php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}"
+        run: php -m          
