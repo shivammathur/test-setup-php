@@ -1,15 +1,6 @@
 name: ci
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - develop
-      - main
-      - feature/**
-      - 4.0
-  pull_request:
-    branches:
-      - "**"
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
@@ -64,20 +55,20 @@ jobs:
         echo "TEST_COMMAND=./vendor/bin/codecept run unit,functional  --coverage-xml coverage.xml;" >> $GITHUB_ENV
       if: ${{ matrix.php-versions == '7.4' && matrix.db == 'mysql' }}
 
-      #    - name: Setup cache environment
-#      id: extcache
-#      uses: shivammathur/cache-extensions@v1
-#      with:
-#        php-version: ${{ matrix.php-versions }}
-#        extensions: ${{ env.PHP_EXTENSIONS }}
-#        key: ${{ matrix.operating-system }}-${{ matrix.php-versions }}-extension-cache-v3 # change to clear the extension cache.
-#
-#    - name: Cache extensions
-#      uses: actions/cache@v3
-#      with:
-#        path: ${{ steps.extcache.outputs.dir }}
-#        key: ${{ steps.extcache.outputs.key }}
-#        restore-keys: ${{ steps.extcache.outputs.key }}
+    - name: Setup cache environment
+      id: extcache
+      uses: shivammathur/cache-extensions@v1
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.PHP_EXTENSIONS }}
+        key: test-key-v1
+
+    - name: Cache extensions
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.extcache.outputs.dir }}
+        key: ${{ steps.extcache.outputs.key }}
+        restore-keys: ${{ steps.extcache.outputs.key }}
 
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
@@ -127,8 +118,3 @@ jobs:
 
     - name: Run tests
       run: ${{ env.TEST_COMMAND }}
-
-    # Only upload code coverage if PHP 7.4 and MySQL are selected
-    - name: Upload coverage to Codecov
-      if: ${{ matrix.php-versions == '7.4' && matrix.db == 'mysql' }}
-      uses: codecov/codecov-action@v2
