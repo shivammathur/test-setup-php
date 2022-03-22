@@ -8,7 +8,6 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, macos-latest]
-        php-versions: ['8.2']
     steps:
     - name: Get liblz4 directory
       id: lz4
@@ -18,7 +17,7 @@ jobs:
         else
           echo "::set-output name=lz4-dir::$(brew --prefix)/opt/lz4"
         fi
-    - name: Setup PHP with http from source
+    - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
         php-version: '8.0'  
