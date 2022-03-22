@@ -1,8 +1,8 @@
-name: 'Extension develop workflow'
+name: Runner
 on:
   push:
 jobs:
-  disable:
+  test:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
