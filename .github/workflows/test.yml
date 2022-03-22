@@ -10,14 +10,19 @@ jobs:
         operating-system: [ubuntu-latest, macos-latest]
     steps:
       -   name: Setup PHP
-          uses: shivammathur/setup-php@verbose
+          uses: shivammathur/setup-php@develop
           with:
               php-version: '8.1'
               coverage: none
-              extensions: rdkafka-6.0.1
+              extensions: rdkafka, pecl_http-4.2.0, redis-5.3.6
           env:
               fail-fast: true
               RDKAFKA_LIBS: librdkafka-dev
+              HTTP_CONFIGURE_PREFIX_OPTS: CFLAGS=-Wno-implicit-function-declaration
+              HTTP_CONFIGURE_OPTS: --with-http
+              REDIS_CONFIGURE_OPTS: --enable-redis  --enable-redis-lz4 --with-liblz4=${{ steps.lz4.outputs.lz4-dir }}
+              REDIS_LINUX_LIBS: liblz4-dev
+              REDIS_DARWIN_LIBS: lz4
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
