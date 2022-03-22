@@ -34,3 +34,4 @@
 - Test 2.15.1 release.
 - Test 2.17.0 release.
 - Test 2.17.1 release.
+- Test 2.18.0 release.
