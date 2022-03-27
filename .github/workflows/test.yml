@@ -20,3 +20,9 @@ jobs:
       run: choco list --localonly | grep 7z
     - name: Check 7z info     
       run: 7z i
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.1
+    - name: Test 7z in composer
+      run: composer diagnose
