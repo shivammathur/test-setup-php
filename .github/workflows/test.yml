@@ -20,7 +20,7 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
             php-version: '7.3'
-      - run: apt --fix-broken install
+      - run: sudo apt --fix-broken install
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
