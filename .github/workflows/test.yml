@@ -19,11 +19,6 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
             php-version: '7.3'
-      - run: sudo apt --fix-broken install
-      - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
-        with:
-            php-version: '7.3'
             extensions: intl, zip, memcached
             tools: symfony
       - run: symfony version
