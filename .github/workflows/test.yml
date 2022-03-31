@@ -15,7 +15,12 @@ jobs:
     steps:
       - run: |
           echo "::warning::$ImageVersion"
-          echo "::warning::$(apt-cache policy libpcre*)"          
+          echo "::warning::$(apt-cache policy libpcre*)"         
+      - name: Setup PHP
+        uses: shivammathur/setup-php@verbose
+        with:
+            php-version: '7.3'
+      - run: apt --fix-broken install
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
