@@ -7,12 +7,15 @@ jobs:
   tests:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os:
           - ubuntu-latest
         runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]  
     steps:
-      - run: echo "::warning::$ImageVersion"
+      - run: |
+          echo "::warning::$ImageVersion"
+          echo "::warning::$(apt-cache policy libpcre*)"          
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
