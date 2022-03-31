@@ -10,8 +10,9 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]  
+        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]  
     steps:
+      - run: echo "::warning::$ImageVersion"
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
