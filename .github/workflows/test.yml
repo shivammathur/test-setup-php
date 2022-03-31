@@ -15,7 +15,6 @@ jobs:
     steps:
       - run: |
           echo "::warning::$ImageVersion"
-          echo "::warning::$(apt-cache policy libpcre*)"         
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
