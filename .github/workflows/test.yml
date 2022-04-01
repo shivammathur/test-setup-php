@@ -5,16 +5,19 @@ name: build
 
 jobs:
   tests:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
+        php: ['7.2', '7.3']
+        extensions: ['runkit7']
+        include:
+         - php: '7.1'
+           extensions: 'runkit7-3.1.0a1'
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
-            php-version: '7.3'
-            extensions: runkit7
+            php-version: ${{ matrix.php }}
+            extensions: ${{ matrix.extensions }}
       - run: php -v && php -m
