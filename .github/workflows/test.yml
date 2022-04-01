@@ -16,7 +16,7 @@ jobs:
            extensions: 'runkit7-3.1.0a1'
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@v2
         with:
             php-version: ${{ matrix.php }}
             extensions: ${{ matrix.extensions }}
