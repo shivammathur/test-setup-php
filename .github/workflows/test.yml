@@ -11,14 +11,10 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]  
     steps:
-      - run: |
-          echo "::warning::$ImageVersion"
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
             php-version: '7.3'
-            extensions: intl, zip, memcached
-            tools: symfony
-      - run: symfony version
+            extensions: runkit7
+      - run: php -v && php -m
