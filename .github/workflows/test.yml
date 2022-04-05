@@ -1,14 +1,18 @@
-name: Test
+name: '[RM] Preview'
 
 on:
-  push:
+  push
 
 jobs:
-  port:
-    strategy:
-      matrix:
-        os: ['macos-12', 'macos-12.0', 'macos-12.3']  
-    runs-on: ${{ matrix.os }}
+  purge-image:
+    name: Delete image from ghcr.io
+    runs-on: ubuntu-latest
     steps:
-    - run: echo 'Hello'
-    
+      - name: Delete image
+        uses: bots-house/ghcr-delete-image-action@v1.0.0
+        with:
+          # NOTE: at now only orgs is supported
+          owner: shivammathur
+          name: php
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: php/7.4:7.4.28-1@sha256:b3d34075990f4f3e7540babd3bf36f7a9fccbd48d22131c2845c66ecc25b7610
