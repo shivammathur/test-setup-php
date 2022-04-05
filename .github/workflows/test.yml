@@ -1,18 +1,10 @@
-name: '[RM] Preview'
+name: Runner workflow
 
 on:
   push
 
 jobs:
-  purge-image:
-    name: Delete image from ghcr.io
-    runs-on: ubuntu-latest
+  runner:
+    runs-on: maocs-12
     steps:
-      - name: Delete image
-        uses: bots-house/ghcr-delete-image-action@v1.0.0
-        with:
-          # NOTE: at now only orgs is supported
-          owner: shivammathur
-          name: php
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: b3d34075990f4f3e7540babd3bf36f7a9fccbd48d22131c2845c66ecc25b7610
+      - run: brew install mcrypt
