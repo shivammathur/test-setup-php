@@ -5,40 +5,10 @@ on:
 
 jobs:
   port:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:10.8
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-        - 5432:5432
-        # needed because the postgres container does not provide a healthcheck
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
+    strategy:
+      matrix:
+        os: ['macos-12', 'macos-12.0', 'macos-12.3']  
+    runs-on: ${{ matrix.os }}
     steps:
-    - run: echo ${{ job.services.postgres.ports[5432] }}
-
-# Runs all steps on the VM
-# The service containers will use host port binding instead of container networking so you access them via localhost rather than the service name
-  random:
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:10.8
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-        # will assign a random free host port
-        - 5432/tcp
-        # needed because the postgres container does not provide a healthcheck
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
-    steps:
-    - run: echo ${{ job.services.postgres.ports[5432] }}
+    - run: echo 'Hello'
     
