@@ -9,7 +9,7 @@ jobs:
     container: ubuntu:20.04
     steps:
       - run: |
-          VERSION: 8.0
+          VERSION=8.0
           check_package() {
             sudo apt-cache policy "$1" 2>/dev/null | grep -q 'Candidate'
           }
