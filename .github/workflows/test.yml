@@ -5,13 +5,11 @@ on:
 
 jobs:
   runner:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
-    - name: Setup PHP
-      continue-on-error: true
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: '7.4'
-    - name: Test
-      uses: mxschmitt/action-tmate@v3.11
+    - name: Set up Homebrew
+      id: set-up-homebrew
+      uses: Homebrew/actions/setup-homebrew@master
+    - run: brew config
+    - run: brew doctor
       
