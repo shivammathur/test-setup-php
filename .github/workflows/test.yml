@@ -7,7 +7,7 @@ jobs:
   runner:
     runs-on: macos-latest
     steps:
-    - run: brew remove go@1.15
+    - run: brew remove go@1.15 && brew cleanup
     - name: Set up Homebrew
       id: set-up-homebrew
       uses: Homebrew/actions/setup-homebrew@master
