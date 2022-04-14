@@ -5,12 +5,20 @@ on:
 
 jobs:
   runner:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
-    - run: brew remove go@1.15 && brew cleanup
-    - name: Set up Homebrew
-      id: set-up-homebrew
-      uses: Homebrew/actions/setup-homebrew@master
-    - run: brew config
-    - run: brew doctor
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: "8.1"
+        extensions: "intl, mbstring"
+        ini-values: "zend.assertions=1, error_reporting=E_ALL"
+        coverage: "xdebug"
+        tools: "composer, phpunit"
+    - run:
+        php -v
+        php -m
+        composer -V
+        phpunit -V
+        
       
