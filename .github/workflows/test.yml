@@ -3,6 +3,7 @@ on: push
 jobs:
     job:
         runs-on: ubuntu-latest
+        container: ubuntu:focal
         strategy:
             matrix:
                 os: ['ubuntu-latest']
