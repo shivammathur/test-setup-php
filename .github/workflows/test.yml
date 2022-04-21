@@ -8,7 +8,7 @@ jobs:
                 os: ['ubuntu-latest']
         steps:
           - name: Setup PHP
-            uses: shivammathur/setup-php@v2
+            uses: shivammathur/setup-php@verbose
             with:
               coverage: "none"
               ini-values: date.timezone=Europe/Riga,memory_limit=-1
