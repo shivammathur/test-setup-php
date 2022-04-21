@@ -5,12 +5,14 @@ jobs:
         runs-on: ubuntu-latest
         strategy:
             matrix:
-                os: ['ubuntu-latest', 'windows-latest', 'macos-latest']
+                os: ['ubuntu-latest']
         steps:
-            - name: Setup PHP
-              uses: shivammathur/setup-php@v2
-              with:
-                  php-version: 8.1
-              env:
-                COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            - run: composer config --global github-oauth.github.com
+          - name: Setup PHP
+            uses: shivammathur/setup-php@v2
+            with:
+              coverage: "none"
+              ini-values: date.timezone=Europe/Riga,memory_limit=-1
+              php-version: 8.1
+              tools: composer
+              extensions: bcmath, gd
+          - run: php -v && php -m    
