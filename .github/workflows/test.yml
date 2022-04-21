@@ -1,7 +1,7 @@
 name: PHP Tests
 on: push
 jobs:
-    job:
+    container:
         runs-on: ubuntu-latest
         container: ubuntu:focal
         strategy:
@@ -9,7 +9,7 @@ jobs:
                 os: ['ubuntu-latest']
         steps:
           - name: Setup PHP
-            uses: shivammathur/setup-php@verbose
+            uses: shivammathur/setup-php@v2
             with:
               coverage: "none"
               ini-values: date.timezone=Europe/Riga,memory_limit=-1
@@ -17,3 +17,18 @@ jobs:
               tools: composer
               extensions: bcmath, gd
           - run: php -v && php -m    
+    github:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                os: ['ubuntu-latest']
+        steps:
+          - name: Setup PHP
+            uses: shivammathur/setup-php@v2
+            with:
+              coverage: "none"
+              ini-values: date.timezone=Europe/Riga,memory_limit=-1
+              php-version: 8.1
+              tools: composer
+              extensions: bcmath, gd
+          - run: php -v && php -m  
