@@ -3,7 +3,7 @@ on: push
 jobs:
     container:
         runs-on: ubuntu-latest
-        container: shivammathur/node:20.04
+        container: shivammathur/node:2004
         strategy:
             matrix:
                 os: ['ubuntu-latest']
