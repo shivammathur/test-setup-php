@@ -8,9 +8,4 @@ jobs:
                 os: ['ubuntu-20.04']
         steps:
           - run: composer config -g allow-plugins true
-          - name: Setup PHP
-            uses: shivammathur/setup-php@verbose
-            with:
-              php-version: '8.0'
-              tools: flex:1.10.0
-          - run: php -v && php -m
+          - run: composer -vvv global require symfony/flex:1.10.0
