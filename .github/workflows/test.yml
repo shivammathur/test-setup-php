@@ -7,6 +7,7 @@ jobs:
             matrix:
                 os: ['ubuntu-20.04']
         steps:
+          - run: composer config -g allow-plugins true
           - name: Setup PHP
             uses: shivammathur/setup-php@verbose
             with:
