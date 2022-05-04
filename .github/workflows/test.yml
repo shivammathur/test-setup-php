@@ -6,11 +6,11 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                os: ['windows-2019']
-                php: ['7.4']
+                os: ['windows-2019', 'windows-2022']
+                php: ['7.4', '8.0', '8.1']
         steps:
-          - uses: shivammathur/setup-php@develop
+          - uses: shivammathur/setup-php@v2
             with:
               php-version: ${{ matrix.php }}
               extensions: memcached
-          - run: (gmo -l PhpManager).path
+          - run: php -v && php -m
