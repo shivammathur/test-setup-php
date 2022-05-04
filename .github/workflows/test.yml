@@ -4,8 +4,12 @@ jobs:
     job:
         runs-on: ${{ matrix.os }}
         strategy:
+            fail-fast: false
             matrix:
-                os: ['ubuntu-20.04']
+                os: ['windows-2022, windows-2019']
+                php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
         steps:
-          - run: composer config -g allow-plugins true
-          - run: composer -vvv global require symfony/flex:1.10.0
+          - uses: shivammathur/setup-php@verbose
+            with:
+              php-version: ${{ matrix.php }}
+              extensions: memcached
