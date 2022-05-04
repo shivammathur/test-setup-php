@@ -13,3 +13,4 @@ jobs:
             with:
               php-version: ${{ matrix.php }}
               extensions: memcached
+          - uses: mxschmitt/action-tmate@v3.11    
