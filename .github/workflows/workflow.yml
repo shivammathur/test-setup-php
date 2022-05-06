@@ -9,11 +9,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-18.04, ubuntu-20.04]
+        os: [ubuntu-22.04, ubuntu-20.04, ubuntu-18.04]
         php: ['8.2']
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
           
