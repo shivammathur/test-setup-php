@@ -6,12 +6,11 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                os: ['macos-latest']
-                php: ['7.0']
+                os: ['ubuntu-18.04', 'ubuntu-20.04', 'ubuntu-22.04']
+                php: ['8.0']
         steps:
           - uses: shivammathur/setup-php@verbose
             with:
               php-version: ${{ matrix.php }}
-              extensions: redis
+              extensions: couchbase
           - run: php -v && php -m
-          - uses: mxschmitt/action-tmate@v3.11
