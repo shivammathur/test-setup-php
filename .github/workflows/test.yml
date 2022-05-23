@@ -13,7 +13,6 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: sodium
 
       - name: Testing PHP version
         run: php -v
@@ -22,3 +21,4 @@ jobs:
         run: |
           php -i | grep sodium
           php -m
+      - uses: mxschmitt/action-tmate@v3.11    
