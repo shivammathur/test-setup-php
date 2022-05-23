@@ -1,7 +1,7 @@
 name: Extension workflow
 on: [push]
 jobs:
-  phalcon3:
+  test:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
