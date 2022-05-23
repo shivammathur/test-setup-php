@@ -8,10 +8,9 @@ jobs:
       matrix:
         operating-system: [ubuntu-18.04, ubuntu-20.04]
         php-versions: ['8.1']
-        runs: [1,1,1,1,1]
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: sodium
@@ -20,4 +19,6 @@ jobs:
         run: php -v
 
       - name: Testing Extensions
-        run: php -m
+        run: |
+          php -i | grep sodium
+          php -m
