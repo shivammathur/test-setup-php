@@ -8,6 +8,7 @@ jobs:
       matrix:
         operating-system: [ubuntu-18.04, ubuntu-20.04]
         php-versions: ['8.1']
+        runs: [1,1,1,1,1]
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
@@ -20,5 +21,3 @@ jobs:
 
       - name: Testing Extensions
         run: php -m
-
-      - uses: mxschmitt/action-tmate@v3.11  
