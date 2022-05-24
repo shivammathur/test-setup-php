@@ -6,13 +6,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-18.04, ubuntu-20.04]
+        operating-system: [macos-latest]
         php-versions: ['8.1']
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
+          extensions: couchbase
 
       - name: Testing PHP version
         run: php -v
