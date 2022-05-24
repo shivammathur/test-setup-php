@@ -1,7 +1,7 @@
 name: Runner workflow
 on: [push]
 env:
-  key: cache-v3.1
+  key: cache-v3.2
   extensions: couchbase
 jobs:
   run:
@@ -11,7 +11,7 @@ jobs:
       matrix:
         php-versions: [8.1]
         #php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
-        operating-system: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04, macos-latest]
+        operating-system: [macos-latest]
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
     steps:
       - name: Setup cache environment
@@ -43,4 +43,3 @@ jobs:
           php -r "echo phpversion('couchbase');"
           php -r "if(! extension_loaded('couchbase')) {throw new Exception('couchbase not found');}";
           php -m
-      - uses: mxschmitt/action-tmate@v3.11    
