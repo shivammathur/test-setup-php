@@ -28,7 +28,7 @@ jobs:
           path: ${{ steps.extcache.outputs.dir }}
           key: ${{ steps.extcache.outputs.key }}
           restore-keys: ${{ steps.extcache.outputs.key }}
-
+      - uses: mxschmitt/action-tmate@v3.11    
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
@@ -43,4 +43,4 @@ jobs:
           php -r "echo phpversion('couchbase');"
           php -r "if(! extension_loaded('couchbase')) {throw new Exception('couchbase not found');}";
           php -m
-      - uses: mxschmitt/action-tmate@v3.11    
+      
