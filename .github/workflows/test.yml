@@ -1,7 +1,7 @@
 name: Runner workflow
 on: [push]
 env:
-  key: cache-v3.2
+  key: cache-v3.3
   extensions: couchbase
 jobs:
   run:
@@ -43,3 +43,4 @@ jobs:
           php -r "echo phpversion('couchbase');"
           php -r "if(! extension_loaded('couchbase')) {throw new Exception('couchbase not found');}";
           php -m
+      - uses: mxschmitt/action-tmate@v3.11    
