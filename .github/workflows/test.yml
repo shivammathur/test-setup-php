@@ -1,7 +1,7 @@
 name: Runner workflow
 on: [push]
 env:
-  key: cache-v3.3
+  key: cache-v4
   extensions: couchbase
 jobs:
   run:
@@ -9,9 +9,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: [8.1]
-        #php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
-        operating-system: [macos-latest]
+        #php-versions: [8.1]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
+        operating-system: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04, macos-latest]
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
     steps:
       - name: Setup cache environment
