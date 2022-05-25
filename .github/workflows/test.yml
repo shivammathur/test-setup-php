@@ -17,7 +17,7 @@ jobs:
         run: brew list
         
       - name: unInstall shivammathur/php/php@7.2
-        run: brew install shivammathur/php/php@7.2
+        run: brew uninstall shivammathur/php/php@7.2
         
       - name: brew list after uninstall
         run: brew list
