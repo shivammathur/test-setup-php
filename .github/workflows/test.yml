@@ -1,25 +1,29 @@
-name: Extension workflow
+name: ext workflow
 on: [push]
 jobs:
-  test:
+  run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
         php-versions: ['8.1']
+        operating-system: [ubuntu-22.04, ubuntu-20.04, ubuntu-18.04]
     steps:
-      - name: Install PHP
-        uses: shivammathur/setup-php@v2
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: couchbase
+          extensions: pdo, pdo_sqlsrv, sqlsrv
 
-      - name: Testing PHP version
+      - name: Check PHP version
         run: php -v
 
-      - name: Testing Extensions
+      - name: Check ini files
+        run: php --ini
+
+      - name: Check PHP extensions
         run: |
-          php -i | grep sodium
           php -m
-      - uses: mxschmitt/action-tmate@v3.11    
+          php -r "if(! extension_loaded('pdo')) {throw new Exception('pdo not found');}";
+          php -r "if(phpversion()>=7.0 && ! extension_loaded('pdo_sqlsrv')) {throw new Exception('pdo_sqlsrv not found');}";
+          php -r "if(phpversion()>=7.0 && ! extension_loaded('sqlsrv')) {throw new Exception('sqlsrv not found');}";
