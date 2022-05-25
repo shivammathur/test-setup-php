@@ -1,45 +1,24 @@
 name: Runner workflow
 on: [push]
-env:
-  key: cache-v4
-  extensions: couchbase
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      fail-fast: false
       matrix:
-        #php-versions: [8.1]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
-        operating-system: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04, macos-latest]
-    name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
+        operating-system: [macos-latest]
     steps:
-      - name: Setup cache environment
-        id: extcache
-        uses: shivammathur/cache-extensions@v1
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-          key: ${{ env.key }}
-
-      - name: Cache extensions
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.extcache.outputs.dir }}
-          key: ${{ steps.extcache.outputs.key }}
-          restore-keys: ${{ steps.extcache.outputs.key }}
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-
-      - name: Check PHP version
-        run: php -v
-
-      - name: Check PHP extensions
-        run: |
-          php -r "echo phpversion('couchbase');"
-          php -r "if(! extension_loaded('couchbase')) {throw new Exception('couchbase not found');}";
-          php -m
+      - name: Add tap shivammathur/php
+        run: brew tap shivammathur/php
+        
+      - name: Install shivammathur/php/php@7.2
+        run: brew install shivammathur/php/php@7.2
+        
+      - name: brew list after install
+        run: brew list
+        
+      - name: unInstall shivammathur/php/php@7.2
+        run: brew install shivammathur/php/php@7.2
+        
+      - name: brew list after uninstall
+        run: brew list
       
