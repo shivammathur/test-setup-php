@@ -1,17 +1,18 @@
-name: Test ext workflow
-on: [push]
+name: 'OCI workflow'
+on:
+  push:
 env:
-  key: cache-v1
-  extensions:  json, imagick, zip
+  key: cache-v2-1632086188
+  extensions: pdo_oci, oci8
 jobs:
   run:
-    runs-on: ${{ matrix.operating-systems }}
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['7.3']
-        operating-systems: [ubuntu-latest]
-    name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-systems }}
+        operating-system: [ubuntu-22.04, ubuntu-20.04, windows-latest, macos-latest]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Setup cache environment
         id: extcache
@@ -27,16 +28,18 @@ jobs:
           path: ${{ steps.extcache.outputs.dir }}
           key: ${{ steps.extcache.outputs.key }}
           restore-keys: ${{ steps.extcache.outputs.key }}
-      - uses: mxschmitt/action-tmate@v3.11
+
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: ${{ env.extensions }}
 
-      - name: Check PHP version
+      - name: Testing PHP version
         run: php -v
 
-      - name: Check PHP extensions
+      - name: Testing Extensions
         run: |
           php -m
+          php -r "if(! extension_loaded('pdo_oci')) {throw new Exception('pdo_oci not found');}"
+          php -r "if(! extension_loaded('oci8')) {throw new Exception('oci8 not found');}"
