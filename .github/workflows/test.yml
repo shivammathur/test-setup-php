@@ -1,16 +1,16 @@
 name: Test ext workflow
 on: [push]
 env:
-  key: cache-v2-1632086188
-  extensions: ast, blackfire, gd, msgpack, redis, xml, imagick, geos
+  key: cache-v1
+  extensions:  json, imagick, zip
 jobs:
   run:
     runs-on: ${{ matrix.operating-systems }}
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['7.0']
-        operating-systems: [macos-latest]
+        php-versions: ['7.3']
+        operating-systems: [ubuntu-latest]
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-systems }}
     steps:
       - name: Setup cache environment
@@ -37,21 +37,6 @@ jobs:
       - name: Check PHP version
         run: php -v
 
-      - name: Check ini files
-        run: php --ini
-
       - name: Check PHP extensions
         run: |
           php -m
-          php -r "if(! extension_loaded('blackfire')) {throw new Exception('blackfire not found');}";
-          php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}";
-          php -r "if(! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}";
-          php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}";
-          php -r "if(! extension_loaded('xml')) {throw new Exception('xml not found');}";
-          php -r "if(phpversion()>=7.0 && ! extension_loaded('ast')) {throw new Exception('ast not found');}"
-      - name: Check PHP extensions
-        if: matrix.operating-systems != 'windows-latest'
-        run: |
-          php -m
-          php -r "if(! extension_loaded('imagick')) {throw new Exception('imagick not found');}";
-          php -r "if(! extension_loaded('geos')) {throw new Exception('geos not found');}";
