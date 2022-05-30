@@ -7,12 +7,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-18.04, windows-latest, macos-10.15]
+        operating-system: [ubuntu-22.04, windows-latest, macos-10.15]
         php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
         ini: ['none', 'development', 'production']
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install PHP
         id: setup-php
         uses: shivammathur/setup-php@develop

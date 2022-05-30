@@ -10,6 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         containers:
+          - "ubuntu:jammy"
           - "ubuntu:bionic"
           - "ubuntu:focal"
           - "debian:buster"
