@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
-        operating-systems: [ubuntu-18.04]
+        operating-systems: [ubuntu-22.04]
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-systems }}
     steps:
       - name: Setup cache environment
@@ -22,7 +22,7 @@ jobs:
           key: ${{ env.key }}
 
       - name: Cache extensions
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ steps.extcache.outputs.dir }}
           key: ${{ steps.extcache.outputs.key }}
