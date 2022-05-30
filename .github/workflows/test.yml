@@ -7,18 +7,10 @@ jobs:
       matrix:
         operating-system: [macos-latest]
     steps:
-      - name: Add tap shivammathur/php
-        run: brew tap shivammathur/php
-        
-      - name: Install shivammathur/php/php@7.2
-        run: brew install shivammathur/php/php@7.2
-        
-      - name: brew list after install
-        run: brew list
-        
-      - name: unInstall shivammathur/php/php@7.2
-        run: brew uninstall shivammathur/php/php@7.2
-        
-      - name: brew list after uninstall
-        run: brew list
+    - name: Setup PHP
+      uses: shivammathur/setup-php@verbose
+      with:
+        php-version: 8.1
+        tools: deployer/deployer:v7.0.0-rc.8
+    - run: deployer -V
       
