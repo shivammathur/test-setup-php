@@ -14,13 +14,14 @@ jobs:
       uses: actions/checkout@v2
     - name: Remove PHP
       if: ${{ matrix.php == '8.1' }}
-      run: brew uninstall --ignore-dependencies php
+      run: |
+        brew unlink php
+        brew uninstall --ignore-dependencies php
     - name: Setup PHP
-      env:
-        update: true
-      uses: shivammathur/setup-php@verbose
-      with:
-        php-version: ${{ matrix.php }}
+      run: |
+        brew tap shivammathur/php
+        brew install -sv shivammathur/php/php@${{ matrix.php }}
+        brew link --force --overwrite shivammathur/php/php@${{ matrix.php }} || true
     - name: Test PHP
       run: |
         php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"
