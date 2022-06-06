@@ -11,6 +11,6 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: 8.1
-        tools: deployer
+        tools: deployer:6.8.0
 
     - run: deployer -V
