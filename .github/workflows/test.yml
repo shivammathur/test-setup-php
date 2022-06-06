@@ -16,7 +16,6 @@ jobs:
     - run: |
         deployer -V
         which deployer
-        which dep
   using_phar:
     runs-on: ${{ matrix.operating-system }}
     strategy:
@@ -32,4 +31,3 @@ jobs:
     - run: |
         deployer -V
         which deployer
-        which dep
