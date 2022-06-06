@@ -1,11 +1,11 @@
-name: Runner workflow #
+name: Runner workflow
 on: [push]
 jobs:
   using_composer:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-latest]
     steps:
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
