@@ -1,7 +1,7 @@
 name: Runner workflow #
 on: [push]
 jobs:
-  run:
+  using_composer:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
@@ -11,6 +11,25 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: 8.1
-        tools: deployer:6.8.0
+        tools: deployer/deployer:v7.0.0-rc.8
 
-    - run: deployer -V
+    - run: |
+        deployer -V
+        which deployer
+        which dep
+  using_phar:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      matrix:
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+    - name: Setup PHP
+      uses: shivammathur/setup-php@develop
+      with:
+        php-version: 8.1
+        tools: deployer:v7.0.0-rc.8
+
+    - run: |
+        deployer -V
+        which deployer
+        which dep
