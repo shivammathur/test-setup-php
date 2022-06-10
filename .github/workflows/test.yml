@@ -5,29 +5,10 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
     steps:
     - name: Setup PHP
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@verbose
       with:
-        php-version: 8.1
-        tools: deployer/deployer:v7.0.0-rc.8
-
-    - run: |
-        deployer -V
-        which deployer
-  using_phar:
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      matrix:
-        operating-system: [ubuntu-latest]
-    steps:
-    - name: Setup PHP
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: 8.1
-        tools: deployer:v7.0.0-rc.8
-
-    - run: |
-        deployer -V
-        which deployer
+        php-version: '8.1'
+        extensions: event
