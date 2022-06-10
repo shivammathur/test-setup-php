@@ -8,9 +8,14 @@ jobs:
         operating-system: [ubuntu-latest]
     steps:
     - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@v2
       with:
         php-version: '8.1'
-        extensions: event
+        tools: composer:v2
+        extensions: bcmath, curl, dom, event, gd, intl, libxml, mailparse, mbstring, pcntl, pdo, pdo_mysql, redis, uuid, xml, zip
+        coverage: none
       env:
         EVENT_LIBS: libevent-dev
+
+    - name: Test php and extensions
+      run: php -v && php -m
