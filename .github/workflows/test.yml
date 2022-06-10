@@ -1,14 +1,16 @@
 name: Runner workflow
 on: [push]
 jobs:
-  using_composer:
+  runner:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-latest]
     steps:
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
       with:
         php-version: '8.1'
         extensions: event
+      env:
+        EVENT_LIBS: libevent-dev
