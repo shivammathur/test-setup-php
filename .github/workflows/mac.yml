@@ -5,25 +5,22 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
-      matrix:
-        operating-system: [macos-12]
-        php: ['8.0', '8.1', '8.2']
-        #operating-system: [macos-12, macos-11, macos-10.15]
-        #php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
+      matrix:      
+        operating-system: [macos-12, macos-11, macos-10.15]
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
     name: Test
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Remove PHP
       if: ${{ matrix.php == '8.1' }}
-      run: |
-        brew unlink php
-        brew uninstall --ignore-dependencies php
+      run: brew uninstall --ignore-dependencies php
     - name: Setup PHP
-      run: |
-        brew tap shivammathur/php
-        brew install -sv shivammathur/php/php@${{ matrix.php }}
-        brew link --force --overwrite shivammathur/php/php@${{ matrix.php }} || true
+      env:
+        update: true
+      uses: shivammathur/setup-php@verbose
+      with:
+        php-version: ${{ matrix.php }}
     - name: Test PHP
       run: |
         php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"
