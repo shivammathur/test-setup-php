@@ -5,17 +5,14 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        cd: [xdebug, xdebug3, pcov]
     steps:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.1'
-        tools: composer:v2
-        extensions: bcmath, curl, dom, event, gd, intl, libxml, mailparse, mbstring, pcntl, pdo, pdo_mysql, redis, uuid, xml, zip
-        coverage: none
-      env:
-        EVENT_LIBS: libevent-dev
+        coverage: ${{ matrix.cd }}
 
     - name: Test php and extensions
       run: php -v && php -m
