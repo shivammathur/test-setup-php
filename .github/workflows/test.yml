@@ -9,7 +9,7 @@ jobs:
         cd: [xdebug, xdebug3, pcov]
     steps:
     - name: Setup PHP
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@develop
       with:
         php-version: '8.1'
         coverage: ${{ matrix.cd }}
