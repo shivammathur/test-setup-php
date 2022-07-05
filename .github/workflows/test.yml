@@ -5,14 +5,16 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        cd: [xdebug2]
+        operating-system: [ubuntu-latest]
     steps:
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
-        php-version: '7.4'
-        coverage: ${{ matrix.cd }}
+        php-version: '8.0'
+        tools: flex
 
     - name: Test php and extensions
       run: php -v && php -m
+      
+    - name: Test composer  
+      run: composer remove doctrine/dbal doctrine/doctrine-bundle symfony/messenger symfony/twig-bundle symfony/cache --dev --no-update
