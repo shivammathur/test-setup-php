@@ -17,4 +17,4 @@ jobs:
       run: php -v && php -m
       
     - name: Test composer  
-      run: composer remove doctrine/dbal doctrine/doctrine-bundle symfony/messenger symfony/twig-bundle symfony/cache --dev --no-update
+      run: composer global install
