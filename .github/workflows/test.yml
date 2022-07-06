@@ -9,7 +9,7 @@ jobs:
         operating-system: [ubuntu-latest]
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: '7.0'
           tools: 'composer:v1, prestissimo'
