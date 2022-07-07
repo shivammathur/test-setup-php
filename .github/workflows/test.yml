@@ -8,9 +8,20 @@ jobs:
       matrix:
         operating-system: [ubuntu-latest]
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: '7.0'
-          tools: 'composer:v1, prestissimo'
-          coverage: 'none'
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+      env:
+        GITHUB_TOKEN: 123456
+        PACKAGIST_TOKEN: 2313413
+        COMPOSER_AUTH_JSON: |
+          {
+            "http-basic": {
+              "example.org": {
+                "username": "1235543",
+                "password": "45324565"
+              }
+            }
+          }
+    - run: composer global config --list
