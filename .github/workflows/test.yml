@@ -11,4 +11,4 @@ jobs:
         php: ['7.1.13', '7.1.14']
     steps:
       - name: Testing PHP version
-        run: php -v
+        run: php -v && php -m
