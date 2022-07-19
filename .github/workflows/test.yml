@@ -3,12 +3,15 @@ on: [push]
 jobs:
   test:
     runs-on: ${{ matrix.operating-system }}
-    container: library/php:${{ matrix.php }}
     strategy:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php: ['7.1.13', '7.1.14']
+        php: [7.3]
     steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@verbose
+        with:
+          extensions: geos
       - name: Testing PHP version
         run: php -v && php -m
