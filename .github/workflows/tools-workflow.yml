@@ -2,7 +2,7 @@ name: Tools develop workflow
 on:
   push:
 env:
-  COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }}
   BLACKFIRE_SERVER_TOKEN: ${{ secrets.BLACKFIRE_SERVER_TOKEN }}
   BLACKFIRE_CLIENT_ID: ${{ secrets.BLACKFIRE_CLIENT_ID }}
