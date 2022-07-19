@@ -1,17 +1,25 @@
-name: Runner workflow
+name: Phalcon workflow
 on: [push]
 jobs:
-  test:
+  phalcon5:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
-        php: [7.3]
+        operating-system: [ubuntu-22.04, ubuntu-20.04, ubuntu-18.04, windows-latest, macos-latest]
+        php-versions: ['7.4', '8.0', '8.1']
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
         with:
-          extensions: vips
+          php-version: ${{ matrix.php-versions }}
+          extensions: phalcon5
+
       - name: Testing PHP version
-        run: php -v && php -m
+        run: php -v
+
+      - name: Testing Extensions
+        run: |
+          php -r "echo 'phalcon: ' . phpversion('phalcon');"
+          php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
+          php -r "if(phpversion('phalcon')[0]!='5') {throw new Exception('Wrong phalcon version Installed');}"
