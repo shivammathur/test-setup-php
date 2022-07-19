@@ -6,12 +6,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [macos-latest]
         php: [7.3]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
-          extensions: geos
+          extensions: vips
       - name: Testing PHP version
         run: php -v && php -m
