@@ -15,7 +15,7 @@ jobs:
       - name: Add tap
         run: brew tap shivammathur/php
 
-      - name: Add tap
+      - name: Add php
         run: |
           brew install shivammathur/php/php@8.1
           brew unlink php || true
@@ -24,7 +24,7 @@ jobs:
       - name: Testing PHP version
         run: php -v
 
-      - name: Testing PHP version
+      - name: Testing env
         run: |
           echo -e "#!/usr/bin/env php\n<?php\necho 'test';" > /tmp/test
           chmod a+x /tmp/test
