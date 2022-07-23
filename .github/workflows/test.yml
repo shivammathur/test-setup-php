@@ -10,7 +10,7 @@ jobs:
     steps:
     
       - name: Remove existing PHP
-        run: brew remove php
+        run: brew uninstall --ignore-dependencies php
           
       - name: Add tap
         run: brew tap shivammathur/php
