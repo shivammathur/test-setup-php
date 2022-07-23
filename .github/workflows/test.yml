@@ -25,6 +25,9 @@ jobs:
         run: php -v
 
       - name: Testing PHP version
-        run: /usr/bin/env php
+        run: |
+          echo -e "#!/usr/bin/env php\n<?php\necho 'test';" > /tmp/test
+          chmod a+x /tmp/test
+          /tmp/test
 
     
