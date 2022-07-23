@@ -6,17 +6,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-22.04, ubuntu-20.04, ubuntu-18.04, windows-latest, macos-latest]
+        operating-system: [macos-12]
     steps:
+    
+      - name: Remove existing PHP
+        run: brew remove php
           
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.1
-          tools: composer:v2, composer-require-checker, composer-unused:0.7
-          ini-file: production
+      - name: Add tap
+        run: brew tap shivammathur/php
+
+      - name: Add tap
+        run: |
+          brew install shivammathur/php/php@8.1
+          brew unlink php || true
+          brew link --force --overwrite php
 
       - name: Testing PHP version
         run: php -v
+
+      - name: Testing PHP version
+        run: /usr/bin/env php
 
     
