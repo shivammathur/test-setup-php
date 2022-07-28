@@ -16,7 +16,7 @@ jobs:
         env:
           PCNTL_PATH: ext/pcntl
           PCNTL_CONFIGURE_OPTS: '--enable-pcntl'
-      - run: echo 'extension=pcntl.so' > /etc/php/8.0/fpm/conf.d/10-pcntl.ini
       - run: /usr/sbin/php-fpm8.0 -m
+      - uses: mxschmitt/action-tmate@v3.11
 
     
