@@ -19,6 +19,7 @@ jobs:
           PCNTL_CONFIGURE_OPTS: '--enable-pcntl'
       - run: |
           echo 'extension=pcntl.so' | sudo tee -a /etc/php/${{ matrix.php }}/fpm/conf.d/10-pcntl.ini
+      - run: php -m    
       - run: /usr/sbin/php-fpm${{ matrix.php }} -m
 
     
