@@ -6,14 +6,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-latest]
         php: ['7.4', '8.0', '8.1']
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: xmlrpc-beta
+          extensions: snappy-kjdev/php-ext-snappy@0.2.1          
       - run: php -m    
 
     
