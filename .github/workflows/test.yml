@@ -7,13 +7,12 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php: ['7.4', '8.0', '8.1']
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+      - name: Set up PHP with tools
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
-          extensions: snappy-kjdev/php-ext-snappy@0.2.1          
-      - run: php -m    
+          php-version: '8.1'
+          tools: php-cs-fixer, phpstan, rector/rector         
+      - run: rector -V
 
     
