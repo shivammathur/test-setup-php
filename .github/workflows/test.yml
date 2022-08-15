@@ -6,13 +6,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
+        operating-system: [ubuntu-latest]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
-          php-version: '7.0'
-          extensions: ast
+          php-version: '8.1'
+          update: true
       - run: php -v && php -m
 
     
