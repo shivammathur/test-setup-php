@@ -23,7 +23,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: behat, blackfire, blackfire-player, churn, composer-require-checker, composer-normalize, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpspec, phpmd, cs2pr, codeception, phpunit, phpunit-bridge, phpunit-polyfills, psalm, phing, phinx, phive, deployer, protoc, pecl, phpdoc, phpize, php-config, symfony, vapor-cli
+          tools: behat, blackfire, blackfire-player, churn, composer-require-checker, composer-normalize, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpspec, phpmd, cs2pr, codeception, phpunit, phpunit-bridge, phpunit-polyfills, psalm, phing, phinx, phive, deployer, protoc, pecl, phpdoc, phpize, php-config, rector, symfony, vapor-cli
       - name: Run simple-phpunit install
         run: simple-phpunit install
       - name: Test action side effects
@@ -58,6 +58,7 @@ jobs:
           phive status
           protoc --version
           deployer -V
+          rector -V
           simple-phpunit --version
           symfony -V
           vapor -V
@@ -96,7 +97,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: behat:3.6.1, blackfire-player:1.10.0, churn:1.6.0, infection:0.20.0, flex:2.1.6, phan:4.0.2, php-cs-fixer:2.18.0, phpcs:3.5.2, phpcbf:3.5.8, phpcpd:6.0.3, phpDocumentor:3.1.2 ,phpspec:7.0.1, phpstan:0.12.68, phpmd:2.9.1, cs2pr:1.4.0, phpunit:9.5.1, phpunit-bridge:5.2.12, phpunit-polyfills:1.0.0, psalm:4.4.1, phing:2.16.3, phinx:0.12.4, phive:0.14.5, deployer:6.8.0, composer:2.2.1, pecl:1.2.3, symfony, vapor-cli:1.11.1
+          tools: behat:3.6.1, blackfire-player:1.10.0, churn:1.6.0, infection:0.20.0, flex:2.1.6, phan:4.0.2, php-cs-fixer:2.18.0, phpcs:3.5.2, phpcbf:3.5.8, phpcpd:6.0.3, phpDocumentor:3.1.2 ,phpspec:7.0.1, phpstan:0.12.68, phpmd:2.9.1, cs2pr:1.4.0, phpunit:9.5.1, phpunit-bridge:5.2.12, phpunit-polyfills:1.0.0, psalm:4.4.1, phing:2.16.3, phinx:0.12.4, phive:0.14.5, deployer:6.8.0, composer:2.2.1, pecl:1.2.3, rector:0.13.8, symfony, vapor-cli:1.11.1
       - name: Run simple-phpunit install
         run: simple-phpunit install
       - name: Test action side effects
@@ -123,6 +124,7 @@ jobs:
           phinx -V
           phive status
           deployer -V
+          rector -V
           simple-phpunit --version
           symfony -V
           vapor -V
