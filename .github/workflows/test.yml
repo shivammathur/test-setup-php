@@ -9,7 +9,7 @@ jobs:
         operating-system: [ubuntu-latest]
         php: [8.1]
     steps:
-      - uses: shivammathur/setup-php@2.20.0
+      - uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
           tools: deployer:v6
