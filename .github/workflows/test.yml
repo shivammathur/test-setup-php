@@ -12,7 +12,7 @@ jobs:
       - uses: shivammathur/setup-php@2.21.1
         with:
           php-version: ${{ matrix.php }}
-          tools: deployer:6.x
+          tools: deployer:v6
       - run: |
           deployer -V
   runner2:
@@ -26,7 +26,7 @@ jobs:
       - uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          tools: deployer:6.x
+          tools: deployer:v6
       - run: |
           deployer -V
       
