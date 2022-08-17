@@ -8,12 +8,9 @@ jobs:
       matrix:
         operating-system: [ubuntu-latest]
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
-        with:
-          php-version: '8.1'
-        env:  
-          update: true
-      - run: php -v && php -m
+      - run: |
+          brew tap symfony-cli/homebrew-tap
+          brew install symfony-cli/tap/symfony-cli
+          symfony -V
 
     
