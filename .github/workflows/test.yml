@@ -9,21 +9,7 @@ jobs:
         operating-system: [ubuntu-latest]
         php: [8.1]
     steps:
-      - uses: shivammathur/setup-php@2.21.1
-        with:
-          php-version: ${{ matrix.php }}
-          tools: deployer:v6
-      - run: |
-          deployer -V
-  runner2:
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-latest]
-        php: [8.1]
-    steps:
-      - uses: shivammathur/setup-php@verbose
+      - uses: shivammathur/setup-php@2.20.0
         with:
           php-version: ${{ matrix.php }}
           tools: deployer:v6
