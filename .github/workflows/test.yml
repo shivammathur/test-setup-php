@@ -9,7 +9,7 @@ jobs:
         operating-system: [ubuntu-latest]
     steps:
       - run: |
-          curl_opts(-sL)
+          curl_opts=(-sL)
           get() {
             mode=$1
             execute=$2
