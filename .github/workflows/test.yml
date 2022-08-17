@@ -12,6 +12,7 @@ jobs:
       - uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
+          tools: symfony-cli
       - run: |
           symfony -V
           symfony-cli -V
