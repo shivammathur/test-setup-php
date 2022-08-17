@@ -9,8 +9,27 @@ jobs:
         operating-system: [ubuntu-latest]
     steps:
       - run: |
-          brew tap symfony-cli/homebrew-tap
-          brew install symfony-cli/tap/symfony-cli
+          curl_opts(-sL)
+          get() {
+            mode=$1
+            execute=$2
+            file_path=$3
+            shift 3
+            links=("$@")
+            if [ "$mode" = "-s" ]; then
+              sudo curl "${curl_opts[@]}" "${links[0]}"
+            else
+              for link in "${links[@]}"; do
+                status_code=$(sudo curl -w "%{http_code}" -o "$file_path" "${curl_opts[@]}" "$link")
+                [ "$status_code" = "200" ] && break
+              done
+              [ "$execute" = "-e" ] && sudo chmod a+x "$file_path"
+              [ "$mode" = "-v" ] && echo "$status_code"
+            fi
+          }
+          arch=$(dpkg --print-architecture)
+          get -s -n "" "https://github.com/symfony-cli/symfony-cli/releases/latest/download/symfony-cli_linux_$arch.tar.gz" | sudo tar -xz -C /usr/local/bin
+          sudo chmod a+x /usr/local/bin/symfony
           symfony -V
 
     
