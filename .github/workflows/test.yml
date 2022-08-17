@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
+        operating-system: [ubuntu-latest]
         php: [8.1]
     steps:
       - uses: shivammathur/setup-php@2.21.1
@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
+        operating-system: [ubuntu-latest]
         php: [8.1]
     steps:
       - uses: shivammathur/setup-php@2.21.2
