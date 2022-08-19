@@ -8,7 +8,7 @@ jobs:
         operating-system: [macos-latest]
     steps:
       - run: |
-          brew remove php
+          brew uninstall --ignore-dependencies php
       - run: |
           brew tap shivammathur/php
           brew tap shivammathur/extensions
