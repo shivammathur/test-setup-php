@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       php-version: '7.4'
-      extensions: rdkafka-arnaud-lb/php-rdkafka@4.0.3, apcu, bcmath, gd, redis-phpredis/phpredis@5.3.5, sqlite, pdo_sqlite, igbinary
+      extensions: rdkafka-4.0.3, apcu, bcmath, gd, redis-5.3.5, sqlite, pdo_sqlite, igbinary
       key: cache-20220830
     steps:
       - name: Setup cache environment
