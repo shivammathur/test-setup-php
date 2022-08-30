@@ -2,7 +2,7 @@ name: Runner workflow
 on: [push]
 jobs:
   testing:
-    container: ubuntu:latest
+    container: shivammathur/node:latest
     runs-on: ubuntu-latest
     env:
       php-version: '7.4'
