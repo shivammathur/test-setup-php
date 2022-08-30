@@ -1,23 +1,34 @@
 name: Runner workflow
 on: [push]
 jobs:
-  runner:
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      matrix:
-        operating-system: [macos-latest]
+  testing:
+    runs-on: ubuntu:lastest
+    env:
+      php-version: '7.4'
+      extensions: rdkafka-arnaud-lb/php-rdkafka@4.0.3, apcu, bcmath, gd, redis-phpredis/phpredis@5.3.5, sqlite, pdo_sqlite, igbinary
+      key: cache-20220830
     steps:
-      - run: |
-          brew uninstall --ignore-dependencies php
-      - run: |
-          brew tap shivammathur/php
-          brew tap shivammathur/extensions
-          brew install shivammathur/php/php
-          brew link --force --overwrite php@8.1 || true
-          brew install xdebug@8.1
-      - run: |
-          php -v
-          php -r "phpinfo();"
+      - name: Setup cache environment
+        id: extcache
+        uses: shivammathur/cache-extensions@v1
+        with:
+          php-version: ${{ env.php-version }}
+          extensions: ${{ env.extensions }}
+          key: ${{ env.key }}
+      - name: Cache extensions
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+      - name: Setup PHP with tools
+        uses: shivammathur/setup-php@v2
+        env:
+          RDKAFKA_LIBS: librdkafka-dev
+        with:
+          php-version: ${{ env.php-version }}
+          extensions: ${{ env.extensions }}
+      - run: php -v && php -m    
       
 
     
