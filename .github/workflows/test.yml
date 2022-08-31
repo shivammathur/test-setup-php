@@ -4,7 +4,11 @@ jobs:
   testing:
     runs-on: ubuntu-latest
     steps:
-      - uses: mxschmitt/action-tmate@v3.11
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 7.4
+          tools: deployer:6.x
+      - run: deployer -V    
       
 
     
