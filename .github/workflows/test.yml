@@ -2,34 +2,9 @@ name: Runner workflow
 on: [push]
 jobs:
   testing:
-    container: shivammathur/node:latest
     runs-on: ubuntu-latest
-    env:
-      php-version: '7.4'
-      extensions: rdkafka-4.0.3, apcu, bcmath, gd, redis-5.3.5, sqlite, pdo_sqlite, igbinary
-      key: cache-20220830
     steps:
-      - name: Setup cache environment
-        id: extcache
-        uses: shivammathur/cache-extensions@1.8.0
-        with:
-          php-version: ${{ env.php-version }}
-          extensions: ${{ env.extensions }}
-          key: ${{ env.key }}
-      - name: Cache extensions
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.extcache.outputs.dir }}
-          key: ${{ steps.extcache.outputs.key }}
-          restore-keys: ${{ steps.extcache.outputs.key }}
-      - name: Setup PHP with tools
-        uses: shivammathur/setup-php@v2
-        env:
-          RDKAFKA_LIBS: librdkafka-dev
-        with:
-          php-version: ${{ env.php-version }}
-          extensions: ${{ env.extensions }}
-      - run: php -v && php -m    
+      - uses: mxschmitt/action-tmate@v3.11
       
 
     
