@@ -2,13 +2,15 @@ name: Runner workflow
 on: [push]
 jobs:
   testing:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: 7.4
-          tools: deployer:6.x
-      - run: deployer -V    
+          php-version: 8.3
+      - run: php -v && php -m  
       
 
     
