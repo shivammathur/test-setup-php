@@ -7,58 +7,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - run: |
-          set -ex
-          runner=github
-          brew_path="$(command -v brew)"
-          brew_path_dir="$(dirname "$brew_path")"
-          brew_prefix="$brew_path_dir"/..
-          brew_repo="$brew_path_dir/$(dirname "$(readlink "$brew_path")")"/..
-          tap_dir="$brew_repo"/Library/Taps
-          curl_opts=(-sL)
-          get() {
-            mode=$1
-            execute=$2
-            file_path=$3
-            shift 3
-            links=("$@")
-            if [ "$mode" = "-s" ]; then
-              sudo curl "${curl_opts[@]}" "${links[0]}"
-            else
-              for link in "${links[@]}"; do
-                status_code=$(sudo curl -w "%{http_code}" -o "$file_path" "${curl_opts[@]}" "$link")
-                [ "$status_code" = "200" ] && break
-              done
-              [ "$execute" = "-e" ] && sudo chmod a+x "$file_path"
-              [ "$mode" = "-v" ] && echo "$status_code"
-            fi
-          }
-          fetch_brew_tap() {
-            tap=$1
-            tap_user=$(dirname "$tap")
-            tap_name=$(basename "$tap")
-            mkdir -p "$tap_dir/$tap_user"
-            get -s -n "" "https://github.com/$tap/archive/main.tar.gz" | sudo tar -xzf - -C "$tap_dir/$tap_user"
-            if [ -d "$tap_dir/$tap_user/$tap_name-main" ]; then
-              sudo mv "$tap_dir/$tap_user/$tap_name-main" "$tap_dir/$tap_user/$tap_name"
-            fi
-          }
-          add_brew_tap() {
-            tap=$1
-            if ! [ -d "$tap_dir/$tap" ]; then
-              if [ "${runner:?}" = "self-hosted" ]; then
-                brew tap "$tap"
-              else
-                fetch_brew_tap "$tap"
-                if ! [ -d "$tap_dir/$tap" ]; then
-                  brew tap "$tap"
-                fi
-              fi
-            fi
-          }
-          add_brew_tap symfony-cli/homebrew-tap
-      - run: |
-          brew install symfony-cli/tap/symfony-cli
+      - uses: shivammathur/setup-php@develop
+        with:
+          php-version: 8.1
+          tools: symfony
       - run: |
           symfony -V
       
