@@ -40,7 +40,7 @@ jobs:
             mkdir -p "$tap_dir/$tap_user"
             get -s -n "" "https://github.com/$tap/archive/main.tar.gz" | sudo tar -xzf - -C "$tap_dir/$tap_user"
             if [ -d "$tap_dir/$tap_user/$tap_name-main" ]; then
-              sudo mv "$tap_dir/$tap_user/$tap_name-master" "$tap_dir/$tap_user/$tap_name"
+              sudo mv "$tap_dir/$tap_user/$tap_name-main" "$tap_dir/$tap_user/$tap_name"
             fi
           }
           add_brew_tap() {
