@@ -15,6 +15,24 @@ jobs:
           brew_prefix="$brew_path_dir"/..
           brew_repo="$brew_path_dir/$(dirname "$(readlink "$brew_path")")"/..
           tap_dir="$brew_repo"/Library/Taps
+          curl_opts=(-sL)
+          get() {
+            mode=$1
+            execute=$2
+            file_path=$3
+            shift 3
+            links=("$@")
+            if [ "$mode" = "-s" ]; then
+              sudo curl "${curl_opts[@]}" "${links[0]}"
+            else
+              for link in "${links[@]}"; do
+                status_code=$(sudo curl -w "%{http_code}" -o "$file_path" "${curl_opts[@]}" "$link")
+                [ "$status_code" = "200" ] && break
+              done
+              [ "$execute" = "-e" ] && sudo chmod a+x "$file_path"
+              [ "$mode" = "-v" ] && echo "$status_code"
+            fi
+          }
           fetch_brew_tap() {
             tap=$1
             tap_user=$(dirname "$tap")
@@ -25,17 +43,15 @@ jobs:
               sudo mv "$tap_dir/$tap_user/$tap_name-master" "$tap_dir/$tap_user/$tap_name"
             fi
           }
-
-          # Function to add a brew tap.
           add_brew_tap() {
             tap=$1
             if ! [ -d "$tap_dir/$tap" ]; then
               if [ "${runner:?}" = "self-hosted" ]; then
-                brew tap "$tap" >/dev/null 2>&1
+                brew tap "$tap"
               else
-                fetch_brew_tap "$tap" >/dev/null 2>&1
+                fetch_brew_tap "$tap"
                 if ! [ -d "$tap_dir/$tap" ]; then
-                  brew tap "$tap" >/dev/null 2>&1
+                  brew tap "$tap"
                 fi
               fi
             fi
