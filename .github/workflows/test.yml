@@ -8,6 +8,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     steps:
       - run: |
+          runner=github
           brew_path="$(command -v brew)"
           brew_path_dir="$(dirname "$brew_path")"
           brew_prefix="$brew_path_dir"/..
