@@ -5,10 +5,40 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
     steps:
       - run: |
-          brew tap symfony-cli/homebrew-tap
+          brew_path="$(command -v brew)"
+          brew_path_dir="$(dirname "$brew_path")"
+          brew_prefix="$brew_path_dir"/..
+          brew_repo="$brew_path_dir/$(dirname "$(readlink "$brew_path")")"/..
+          tap_dir="$brew_repo"/Library/Taps
+          fetch_brew_tap() {
+            tap=$1
+            tap_user=$(dirname "$tap")
+            tap_name=$(basename "$tap")
+            mkdir -p "$tap_dir/$tap_user"
+            get -s -n "" "https://github.com/$tap/archive/master.tar.gz" | sudo tar -xzf - -C "$tap_dir/$tap_user"
+            if [ -d "$tap_dir/$tap_user/$tap_name-master" ]; then
+              sudo mv "$tap_dir/$tap_user/$tap_name-master" "$tap_dir/$tap_user/$tap_name"
+            fi
+          }
+
+          # Function to add a brew tap.
+          add_brew_tap() {
+            tap=$1
+            if ! [ -d "$tap_dir/$tap" ]; then
+              if [ "${runner:?}" = "self-hosted" ]; then
+                brew tap "$tap" >/dev/null 2>&1
+              else
+                fetch_brew_tap "$tap" >/dev/null 2>&1
+                if ! [ -d "$tap_dir/$tap" ]; then
+                  brew tap "$tap" >/dev/null 2>&1
+                fi
+              fi
+            fi
+          }
+          add_brew_tap symfony-cli/homebrew-tap
       - run: |
           brew install symfony-cli/tap/symfony-cli
       - run: |
