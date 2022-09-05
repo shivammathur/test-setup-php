@@ -30,5 +30,4 @@ jobs:
           extensions: ${{ matrix.extensions }}
       - name: Testing Extensions
         run: |
-          php -m
-      - uses: mxschmitt/action-tmate@v3.11    
+          php -m 
