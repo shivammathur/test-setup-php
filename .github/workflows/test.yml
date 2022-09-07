@@ -2,37 +2,54 @@ name: 'Test Formulae'
 on: [push]
 jobs:
   tests:
-    runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - php: '8.2'
-            extensions: amqp, apcu, ast, couchbase, event, expect, gnupg, grpc, igbinary, imagick, imap, mailparse, mcrypt, memcache, memcached, mongodb, msgpack, pecl_http, protobuf, psr, raphf, rdkafka, redis, ssh2, swoole, vips, xdebug, yaml, xlswriter, zmq, pcov
-          - php: '8.3'
-            extensions: amqp, apcu, ast, couchbase, event, expect, gnupg, grpc, igbinary, imagick, imap, mailparse, mcrypt, memcache, memcached, mongodb, msgpack, pecl_http, protobuf, psr, raphf, rdkafka, redis, ssh2, swoole, vips, xdebug, yaml, xlswriter, zmq, pcov
+    runs-on: ubuntu-latest
+    container: ubuntu:bionic
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup cache environment
-        uses: shivammathur/cache-extensions@develop
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@v2
+        with:
+          coverage: none
+          php-version: 7.4
+          tools: composer:v2
+          extensions: gd, bcmath, soap, pdo_mysql, ctype, curl, dom, hash, iconv, intl, mbstring, openssl, simplexml, xsl, sockets, zip
         env:
-          skip_dependency_extensions: true
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: ${{ matrix.extensions }}
-          key: homebrew-extensions-all-v4
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: ${{ matrix.extensions }}
+          runner: self-hosted
+          update: true
       - name: Testing PHP version
-        continue-on-error: true
         run: |
           php -v
       - name: Testing Extension
-        continue-on-error: true
         run: |
-          php -m  
-      - uses: mxschmitt/action-tmate@v3.11    
+          php -m
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@v2
+        with:
+          coverage: none
+          php-version: 8.1
+          tools: composer:v2
+          extensions: gd, bcmath, soap, pdo_mysql, ctype, curl, dom, hash, iconv, intl, mbstring, openssl, simplexml, xsl, sockets, zip
+        env:
+          runner: self-hosted
+          update: true
+      - name: Testing PHP version
+        run: |
+          php -v
+      - name: Testing Extension
+        run: |
+          php -m
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@v2
+        with:
+          coverage: none
+          php-version: 7.4
+          tools: composer:v2
+          extensions: gd, bcmath, soap, pdo_mysql, ctype, curl, dom, hash, iconv, intl, mbstring, openssl, simplexml, xsl, sockets, zip
+        env:
+          runner: self-hosted
+          update: true
+      - name: Testing PHP version
+        run: |
+          php -v
+      - name: Testing Extension
+        run: |
+          php -m
