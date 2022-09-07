@@ -2,11 +2,36 @@ name: 'Test Formulae'
 on: [push]
 jobs:
   tests:
-    runs-on: ubuntu-22.04
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            extensions: amqp, apcu, ast, couchbase, event, expect, gnupg, grpc, igbinary, imagick, imap, mailparse, mcrypt, memcache, memcached, mongodb, msgpack, pecl_http, protobuf, psr, raphf, rdkafka, redis, ssh2, swoole, vips, xdebug, yaml, xlswriter, zmq, pcov
+          - php: '8.3'
+            extensions: amqp, apcu, ast, couchbase, event, expect, gnupg, grpc, igbinary, imagick, imap, mailparse, mcrypt, memcache, memcached, mongodb, msgpack, pecl_http, protobuf, psr, raphf, rdkafka, redis, ssh2, swoole, vips, xdebug, yaml, xlswriter, zmq, pcov
     steps:
-      - run: |
-          trunk=https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula
-          curl -o $(brew --repo homebrew/core)/Formula/vips.rb -sL "$trunk"/vips.rb
-          mapfile -t vips_deps < <(brew deps vips)
-          echo ${vips_deps[@]}
-          
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup cache environment
+        uses: shivammathur/cache-extensions@develop
+        env:
+          skip_dependency_extensions: true
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.extensions }}
+          key: homebrew-extensions-all-v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.extensions }}
+      - name: Testing PHP version
+        continue-on-error: true
+        run: |
+          php -v
+      - name: Testing Extension
+        continue-on-error: true
+        run: |
+          php -m  
