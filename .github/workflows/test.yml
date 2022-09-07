@@ -6,7 +6,7 @@ jobs:
     container: ubuntu:bionic
     steps:
       - name: Setup PHP with PECL extension
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           coverage: none
           php-version: 7.4
@@ -22,7 +22,7 @@ jobs:
         run: |
           php -m
       - name: Setup PHP with PECL extension
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           coverage: none
           php-version: 8.1
@@ -38,7 +38,7 @@ jobs:
         run: |
           php -m
       - name: Setup PHP with PECL extension
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           coverage: none
           php-version: 7.4
