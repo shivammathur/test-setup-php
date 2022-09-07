@@ -7,6 +7,6 @@ jobs:
       - run: |
           trunk=https://raw.githubusercontent.com/Homebrew/homebrew-core/master/Formula
           curl -o /tmp/vips.rb -sL "$trunk"/vips.rb
-          mapfile -t vips_deps < <(brew deps --formula /tmp/vips.rb)
+          mapfile -t vips_deps < <(brew deps --formulae /tmp/vips.rb)
           echo ${vips_deps[@]}
           
