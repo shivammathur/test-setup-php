@@ -28,9 +28,11 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: ${{ matrix.extensions }}
       - name: Testing PHP version
+        continue-on-error: true
         run: |
           php -v
       - name: Testing Extension
+        continue-on-error: true
         run: |
           php -m
       - uses: mxschmitt/action-tmate@v3.11    
