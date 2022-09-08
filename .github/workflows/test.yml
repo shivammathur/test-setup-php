@@ -35,13 +35,11 @@ jobs:
       - name: Testing Extension
         continue-on-error: true
         run: |
-          php -m
           mv  $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/*.ini /tmp
           for ini_file in /tmp/*.ini; do
             echo $ini_file;
             cp $ini_file  $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/;
-            php -v;
-            echo $?
+            php -v || true;
             rm $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/*.ini;
           done   
           
