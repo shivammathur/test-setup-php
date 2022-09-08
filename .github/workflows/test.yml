@@ -28,7 +28,6 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: ${{ matrix.extensions }}
-      - run:    
       - name: Testing PHP version
         continue-on-error: true
         run: |
