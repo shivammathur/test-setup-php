@@ -5,51 +5,14 @@ jobs:
     runs-on: ubuntu-latest
     container: ubuntu:bionic
     steps:
-      - name: Setup PHP with PECL extension
+      - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
-          coverage: none
-          php-version: 7.4
-          tools: composer:v2
-          extensions: gd, bcmath, soap, pdo_mysql, ctype, curl, dom, hash, iconv, intl, mbstring, openssl, simplexml, xsl, sockets, zip
-        env:
-          runner: self-hosted
-          update: true
-      - name: Testing PHP version
-        run: |
-          php -v
-      - name: Testing Extension
-        run: |
-          php -m
-      - name: Setup PHP with PECL extension
-        uses: shivammathur/setup-php@develop
-        with:
-          coverage: none
           php-version: 8.1
-          tools: composer:v2
-          extensions: gd, bcmath, soap, pdo_mysql, ctype, curl, dom, hash, iconv, intl, mbstring, openssl, simplexml, xsl, sockets, zip
+          tools: deployer:7.x
         env:
           runner: self-hosted
           update: true
       - name: Testing PHP version
         run: |
-          php -v
-      - name: Testing Extension
-        run: |
-          php -m
-      - name: Setup PHP with PECL extension
-        uses: shivammathur/setup-php@develop
-        with:
-          coverage: none
-          php-version: 7.4
-          tools: composer:v2
-          extensions: gd, bcmath, soap, pdo_mysql, ctype, curl, dom, hash, iconv, intl, mbstring, openssl, simplexml, xsl, sockets, zip
-        env:
-          runner: self-hosted
-          update: true
-      - name: Testing PHP version
-        run: |
-          php -v
-      - name: Testing Extension
-        run: |
-          php -m
+          deployer -V
