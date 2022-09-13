@@ -13,6 +13,7 @@ jobs:
         env:
           runner: self-hosted
           update: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Testing PHP version
         run: |
           deployer -V
