@@ -4,45 +4,15 @@ name: 'Test Formulae'
 on: [push]
 jobs:
   tests:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - php: '8.2'
-            extensions: amqp, apcu, ast, couchbase, event, expect, gnupg, grpc, igbinary, imagick, imap, mailparse, mcrypt, memcache, memcached, mongodb, msgpack, pecl_http, protobuf, psr, raphf, rdkafka, redis, ssh2, swoole, vips, xdebug, yaml, xlswriter, zmq, pcov
-          - php: '8.3'
-            extensions: amqp, apcu, ast, couchbase, event, expect, gnupg, grpc, igbinary, imagick, imap, mailparse, mcrypt, memcache, memcached, mongodb, msgpack, pecl_http, protobuf, psr, raphf, rdkafka, redis, ssh2, swoole, vips, xdebug, yaml, xlswriter, zmq, pcov
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup cache environment
-        uses: shivammathur/cache-extensions@develop
-        env:
-          skip_dependency_extensions: true
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: ${{ matrix.extensions }}
-          key: homebrew-extensions-all-v4
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: ${{ matrix.extensions }}   
-      - name: Testing PHP version
-        continue-on-error: true
-        run: |
-          php -v
-      - name: Testing Extension
-        continue-on-error: true
-        run: |
-          mv  $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/*.ini /tmp
-          for ini_file in /tmp/*.ini; do
-            cp /tmp/*igbinary.ini /tmp/*msgpack.ini /tmp/*raphf.ini $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/;
-            echo $ini_file;
-            cp $ini_file  $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/;
-            php -v || true;
-            echo $?
-            rm $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/*.ini;
-          done   
+    - name: Setup PHP with latest versions
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+      env:
+        update: true
+    - run: php -v    
           
