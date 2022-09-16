@@ -38,6 +38,7 @@ jobs:
         run: |
           mv  $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/*.ini /tmp
           for ini_file in /tmp/*.ini; do
+            cp /tmp/*igbinary.ini /tmp/*msgpack.ini /tmp/*raphf.ini $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/;
             echo $ini_file;
             cp $ini_file  $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/;
             php -v || true;
