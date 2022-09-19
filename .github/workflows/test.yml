@@ -9,10 +9,11 @@ jobs:
       fail-fast: false
     steps:
     - name: Setup PHP with latest versions
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: '8.1'
-      env:
-        update: true
-    - run: php -v    
+        tools: pint
+    - run: |
+        php -v    
+        pint -V
           
