@@ -7,9 +7,9 @@ jobs:
       fail-fast: false    
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: '8.1'
-          tools: pint:1.1.0
-      - name: Run Laravel Pint without Fix
-        run: pint -V
+          extensions: vips
+      - name: Test
+        run: php -m
