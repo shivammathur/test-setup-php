@@ -8,7 +8,7 @@ if (!extension_loaded("xz")) {
 ?>
 --FILE--
 <?php
-var_dump(xzopen('/dev/null', 'a'));
+var_dump(xzopen('./test.txt', 'a'));
 ?>
 --EXPECTF--
 Warning: xzopen(): Can only open in read (r) or write (w) mode.%s
