@@ -91,6 +91,4 @@ jobs:
           phpize
           configure --enable-xz --with-prefix=${{ steps.sdk.outputs.prefix }}
           nmake
-
-      - name: "Run tests"
-        run: nmake test
+          nmake test
