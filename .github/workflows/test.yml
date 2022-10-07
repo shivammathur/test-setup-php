@@ -18,7 +18,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: ${{ matrix.extensions }}
-          key: homebrew-extensions-all-v4
+          key: homebrew-extensions-all-v5
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
@@ -39,5 +39,4 @@ jobs:
             php -v || true;
             echo $?
             rm $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/*.ini;
-          done
-      - uses: mxschmitt/action-tmate@v3.11
+          done   
