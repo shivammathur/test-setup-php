@@ -39,4 +39,5 @@ jobs:
             php -v || true;
             echo $?
             rm $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/*.ini;
-          done   
+          done
+      - uses: mxschmitt/action-tmate@v3.11
