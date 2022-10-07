@@ -30,7 +30,7 @@ jobs:
       - name: "Install PHP ${{ matrix.php }}"
         uses: shivammathur/setup-php@v2
         with:
-          php: ${{ matrix.php }}
+          php-version: ${{ matrix.php }}
 
       - name: "Compile extension"
         run: |
