@@ -86,9 +86,38 @@ jobs:
           arch: ${{ matrix.arch }}
           toolset: ${{ steps.sdk.outputs.toolset }}
 
-      - name: "Compile extension"
+      # Build
+      - name: "phpize"
+        run: phpize
+      - name: "configure build"
+        run: configure --enable-xz --with-prefix=${{ steps.sdk.outputs.prefix }}
+      - name: "make"
+        run: nmake
+      - name: "test"
+        run: nmake test
+
+      # this works but is there a proper windows (cmd) way? setting env vars seems messy/broken in cmd
+      - name: "Determine filename tag"
+        shell: bash
         run: |
-          phpize
-          configure --enable-xz --with-prefix=${{ steps.sdk.outputs.prefix }}
-          nmake
-          nmake test
+          if ${{ contains(github.ref_type, 'tag') }} == true; then
+            echo "file_tag=${{ github.ref_name }}" >> $GITHUB_ENV
+          else
+            echo "file_tag=${{ github.sha }}" >> $GITHUB_ENV
+          fi
+
+      - name: "Package"
+        run: |
+          if exist x64 (
+            if exist x64\Release (set prefix=x64\Release) else (set prefix=x64\Release_TS)
+          ) else (
+            if exist Release (set prefix=Release) else (set prefix=Release_TS)
+          )
+          md .artifact
+          copy %prefix%\php_xz.dll .artifact\php_xz-${{ env.file_tag }}-${{ matrix.php }}-${{ matrix.ts }}-${{ steps.sdk.outputs.vs }}-${{ matrix.arch }}.dll
+
+      - name: "Upload artifacts"
+        uses: actions/upload-artifact@v3
+        with:
+          name: php_xz-${{ env.file_tag }}
+          path: .artifact
