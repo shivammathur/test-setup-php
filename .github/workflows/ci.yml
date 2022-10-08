@@ -103,10 +103,11 @@ jobs:
         shell: bash
         run: |
           if ${{ contains(github.ref_type, 'tag') }} == true; then
-            echo "file_tag=${{ github.ref_name }}" >> $GITHUB_ENV
+            FILE_TAG=${{ github.ref_name }}
           else
-            echo "file_tag=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
+            FILE_TAG=${GITHUB_SHA:0:7}
           fi
+          echo "file_tag=${FILE_TAG}-${{ matrix.php }}-${{ matrix.ts }}-${{ steps.sdk.outputs.vs }}-${{ matrix.arch }}" >> $GITHUB_ENV
 
       - name: "Package"
         run: |
@@ -116,10 +117,17 @@ jobs:
             if exist Release (set prefix=Release) else (set prefix=Release_TS)
           )
           md .artifact
-          copy %prefix%\php_xz.dll .artifact\php_xz-${{ env.file_tag }}-${{ matrix.php }}-${{ matrix.ts }}-${{ steps.sdk.outputs.vs }}-${{ matrix.arch }}.dll
+          copy %prefix%\php_xz.dll .artifact\php_xz-${{ env.file_tag }}.dll
 
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v3
+        if: contains(github.ref_type, 'tag')
         with:
-          name: php_xz-${{ env.github_sha }}
+          name: php_xz-${{ github.sha }}
           path: .artifact
+
+      - name: "Attach file to release"
+        uses: softprops/action-gh-release@v1
+        if: contains(github.ref_type, 'tag')
+        with:
+          files: .artifact\php_xz-${{ env.file_tag }}.dll
