@@ -1,5 +1,5 @@
 # https://help.github.com/en/categories/automating-your-workflow-with-github-actions
-# https://github.com/php/pecl-database-dbase/blob/master/.github/workflows/ci.yml
+# https://github.com/krakjoe/apcu/blob/5015af484a3f48289442cf1aff6a89f0f5aa3769/.github/workflows/config.yml
 
 on:
   - pull_request
@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        php: ["7.2", "7.3", "7.4", "8.0", "8.1", "8.2"]
+        php: ["8.2", "8.1", "8.0", "7.4", "7.3", "7.2", "7.1", "7.0"]
 
     runs-on: ${{ matrix.os }}
 
@@ -54,16 +54,18 @@ jobs:
       fail-fast: false
       matrix:
         os: ["windows-2019", "windows-2022"]
-        php: ["8.1", "8.0"] # , "7.4", "7.3", "7.2", "7.1"
+        php: ["8.2", "8.1", "8.0"] # , "7.4", "7.3", "7.2", "7.1", "7.0"
         arch: ["x64"] # , "x86"
         ts: ["ts"] # , "nts"
         exclude:
+          - {os: "windows-2019", php: "8.2"}
           - {os: "windows-2019", php: "8.1"}
           - {os: "windows-2019", php: "8.0"}
           - {os: "windows-2019", php: "7.4"}
           - {os: "windows-2019", php: "7.3"}
           - {os: "windows-2022", php: "7.2"}
           - {os: "windows-2022", php: "7.1"}
+          - {os: "windows-2022", php: "7.0"}
 
     runs-on: ${{matrix.os}}
 
@@ -103,7 +105,7 @@ jobs:
           if ${{ contains(github.ref_type, 'tag') }} == true; then
             echo "file_tag=${{ github.ref_name }}" >> $GITHUB_ENV
           else
-            echo "file_tag=${{ github.sha }}" >> $GITHUB_ENV
+            echo "file_tag=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
           fi
 
       - name: "Package"
@@ -119,5 +121,5 @@ jobs:
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v3
         with:
-          name: php_xz-${{ env.file_tag }}
+          name: php_xz-${{ env.github_sha }}
           path: .artifact
