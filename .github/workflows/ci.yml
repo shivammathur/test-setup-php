@@ -121,7 +121,7 @@ jobs:
 
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v3
-        if: contains(github.ref_type, 'tag')
+        if: contains(github.ref_type, 'branch')
         with:
           name: php_xz-${{ github.sha }}
           path: .artifact
