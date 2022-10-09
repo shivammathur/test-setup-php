@@ -1,0 +1,43 @@
+# https://help.github.com/en/categories/automating-your-workflow-with-github-actions
+
+on:
+  - pull_request
+  - push
+
+name: "Linux"
+
+jobs:
+
+  linux:
+    name: "Build and Tests (Linux)"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest"]
+        php: ["8.2", "8.1", "8.0", "7.4", "7.3", "7.2", "7.1", "7.0"]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: "Install liblzma"
+        run: sudo apt-get install -y liblzma-dev
+
+      - name: "Checkout"
+        uses: actions/checkout@v3
+
+      - name: "Install PHP ${{ matrix.php }}"
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+
+      - name: "Compile extension"
+        run: |
+          phpize
+          ./configure
+          make
+          sudo make install
+
+      - name: "Run tests"
+        run: make test
+

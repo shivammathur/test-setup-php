@@ -1,0 +1,85 @@
+# https://help.github.com/en/categories/automating-your-workflow-with-github-actions
+# https://github.com/krakjoe/apcu/blob/5015af484a3f48289442cf1aff6a89f0f5aa3769/.github/workflows/config.yml
+
+on:
+  - pull_request
+  - push
+
+name: "Windows-PHP8"
+
+jobs:
+
+  windows-php8:
+    name: "Build and Tests (Windows, PHP8)"
+
+    defaults:
+      run:
+        shell: cmd
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.2", "8.1", "8.0"]
+        arch: ["x64"] # , "x86"
+        ts: ["ts"] # , "nts"
+
+    runs-on: windows-2022
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v3
+
+      - name: "Install PHP SDK ${{matrix.php}}"
+        uses: codemasher/setup-php-sdk@file-split
+        id: sdk
+        with:
+          version: ${{matrix.php}}
+          arch: ${{matrix.arch}}
+          ts: ${{matrix.ts}}
+          deps: liblzma
+
+      - name: "phpize"
+        run: phpize
+
+      - name: "configure build"
+        run: configure --enable-xz --with-prefix=${{steps.sdk.outputs.prefix}}
+
+      - name: "make"
+        run: nmake
+
+      - name: "test"
+        run: nmake test
+
+      # this works but is there a proper windows (cmd) way? setting env vars seems messy/broken in cmd
+      - name: "Determine filename tag"
+        shell: bash
+        run: |
+          if ${{contains(github.ref_type, 'tag')}} == true; then
+            REF=${{github.ref_name}}
+          else
+            REF=${GITHUB_SHA:0:7}
+          fi
+          echo "file_tag=${REF}-${{matrix.php}}-${{matrix.ts}}-${{steps.sdk.outputs.vs}}-${{matrix.arch}}" >> $GITHUB_ENV
+
+      - name: "Package"
+        run: |
+          if exist x64 (
+            if exist x64\Release (set prefix=x64\Release) else (set prefix=x64\Release_TS)
+          ) else (
+            if exist Release (set prefix=Release) else (set prefix=Release_TS)
+          )
+          md .artifact
+          copy %prefix%\php_xz.dll .artifact\php_xz-${{env.file_tag}}.dll
+
+      - name: "Upload artifacts"
+        uses: actions/upload-artifact@v3
+        if: contains(github.ref_type, 'branch')
+        with:
+          name: php_xz-php8-${{github.sha}}
+          path: .artifact
+
+      - name: "Attach file to release"
+        uses: softprops/action-gh-release@v1
+        if: contains(github.ref_type, 'tag')
+        with:
+          files: .artifact\php_xz-${{env.file_tag}}.dll

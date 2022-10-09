@@ -1,0 +1,89 @@
+# https://help.github.com/en/categories/automating-your-workflow-with-github-actions
+# https://github.com/Imagick/imagick/blob/661405abe21d12003207bc8eb0963fafc2c02ee4/.github/workflows/windows.yml
+
+on:
+  - pull_request
+  - push
+
+name: "Windows-PHP7"
+
+jobs:
+  windows-php7:
+    name: "Build and Tests (Windows, PHP7)"
+
+    defaults:
+      run:
+        shell: cmd
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["7.4", "7.3", "7.2", "7.1", "7.0"] #
+        arch: ["x64"] # , "x86"
+        ts: ["ts"] # , "nts"
+
+    runs-on: windows-2019
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v3
+
+      - name: "Install PHP SDK ${{ matrix.php}}"
+        uses: codemasher/setup-php-sdk@file-split
+        id: sdk
+        with:
+          version: ${{matrix.php}}
+          arch: ${{matrix.arch}}
+          ts: ${{matrix.ts}}
+
+      - name: "Download liblzma"
+        run: |
+          curl -LO https://windows.php.net/downloads/php-sdk/deps/vs16/${{matrix.arch}}/liblzma-5.2.5-vs16-${{matrix.arch}}.zip
+          7z x liblzma-5.2.5-vs16-${{matrix.arch}}.zip -o..\deps
+
+      # Build
+      - name: "phpize"
+        run: phpize
+
+      - name: "configure build"
+        run: configure --enable-xz --with-prefix=${{steps.sdk.outputs.prefix}} --with-php-build=..\deps
+
+      - name: "make"
+        run: nmake
+
+      - name: "test"
+        run: nmake test
+
+      # this works but is there a proper windows (cmd) way?
+      - name: "Determine filename prefix"
+        shell: bash
+        run: |
+          if ${{contains(github.ref_type, 'tag')}} == true; then
+            REF=${{github.ref_name}}
+          else
+            REF=${GITHUB_SHA:0:7}
+          fi
+          echo "file_tag=${REF}-${{matrix.php}}-${{matrix.ts}}-${{steps.sdk.outputs.vs}}-${{matrix.arch}}" >> $GITHUB_ENV
+
+      - name: "Package"
+        run: |
+          if exist x64 (
+            if exist x64\Release (set prefix=x64\Release) else (set prefix=x64\Release_TS)
+          ) else (
+            if exist Release (set prefix=Release) else (set prefix=Release_TS)
+          )
+          md .artifact
+          copy %prefix%\php_xz.dll .artifact\php_xz-${{env.file_tag}}.dll
+
+      - name: "Upload artifacts"
+        uses: actions/upload-artifact@v3
+        if: contains(github.ref_type, 'branch')
+        with:
+          name: php_xz-php7-${{github.sha}}
+          path: .artifact
+
+      - name: "Attach file to release"
+        uses: softprops/action-gh-release@v1
+        if: contains(github.ref_type, 'tag')
+        with:
+          files: .artifact\php_xz-${{env.file_tag}}.dll
