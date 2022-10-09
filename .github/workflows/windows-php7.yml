@@ -18,9 +18,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ["7.4", "7.3", "7.2", "7.1", "7.0"] #
-        arch: ["x64"] # , "x86"
-        ts: ["ts"] # , "nts"
+        php: ["7.4", "7.3", "7.2", "7.1", "7.0"]
+        arch: ["x64", "x86"]
+        ts: ["ts", "nts"]
 
     runs-on: windows-2019
 
