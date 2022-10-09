@@ -3,7 +3,9 @@
 PHP Extension providing XZ (LZMA2) compression/decompression functions.<br/>
 (see [Implement lzma (xz?) compression](https://news-web.php.net/php.internals/106654))
 
-[![Continuous Integration](https://github.com/codemasher/php-ext-xz/workflows/Continuous%20Integration/badge.svg)](https://github.com/codemasher/php-ext-xz/actions)
+[![Linux build](https://github.com/codemasher/php-ext-xz/workflows/Linux/badge.svg)](https://github.com/codemasher/php-ext-xz/actions/workflows/linux.yml)
+[![Windows PHP8 build](https://github.com/codemasher/php-ext-xz/workflows/Windows-PHP8/badge.svg)](https://github.com/codemasher/php-ext-xz/actions/workflows/windows-php8.yml)
+[![Windows PHP7 build](https://github.com/codemasher/php-ext-xz/workflows/Windows-PHP7/badge.svg)](https://github.com/codemasher/php-ext-xz/actions/workflows/windows-php7.yml)
 
 ## Build & Installation
 
@@ -27,8 +29,9 @@ sudo make install
 Do not forget to add `extension=xz.so` to your `php.ini`.
 
 ### Windows
+Windows builds are now done automatically on each push; you can download them from the [build artifacts](https://docs.github.com/en/actions/managing-workflow-runs/downloading-workflow-artifacts) or [releases](https://github.com/codemasher/php-ext-xz/releases) (after 1.1.2).
 
-Follow the steps under "[Build your own PHP on Windows](https://wiki.php.net/internals/windows/stepbystepbuild_sdk_2)" to setup your build environment.
+If you want to build it on your own, follow the steps under "[Build your own PHP on Windows](https://wiki.php.net/internals/windows/stepbystepbuild_sdk_2)" to setup your build environment.
 Before the compilation step, clone this repository to `[...]\php-src\ext\xz` and proceed.
 
 ```bat
@@ -51,6 +54,10 @@ buildconf --force
 configure --enable-xz
 nmake snap
 ```
+
+Please note that the `liblzma` dependency is not included with PHP < 8, so you will need to [download it manually](https://windows.php.net/downloads/php-sdk/deps/vs16/x64/liblzma-5.2.5-vs16-x64.zip) and extract it into the `deps` directory.
+
+Copy the `php_xz.dll` into the `/ext` directory of your PHP installation and add the line `extension=xz` to your `php.ini` (in case of the versioned .dll from the artifacts: `extension=xz`).
 
 ## Basic usage
 
