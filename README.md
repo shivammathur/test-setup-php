@@ -57,7 +57,7 @@ nmake snap
 
 Please note that the `liblzma` dependency is not included with PHP < 8, so you will need to [download it manually](https://windows.php.net/downloads/php-sdk/deps/vs16/x64/liblzma-5.2.5-vs16-x64.zip) and extract it into the `deps` directory.
 
-Copy the `php_xz.dll` into the `/ext` directory of your PHP installation and add the line `extension=xz` to your `php.ini` (in case of the versioned .dll from the artifacts: `extension=xz`).
+Copy the `php_xz.dll` into the `/ext` directory of your PHP installation and add the line `extension=xz` to your `php.ini` or in case of the versioned .dll from the artifacts something like: `extension=xz-0eebbf2-8.2-ts-vs16-x64` - omit the `php_` and `.dll`.
 
 ## Basic usage
 
