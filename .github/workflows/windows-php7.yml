@@ -19,8 +19,8 @@ jobs:
       fail-fast: false
       matrix:
         php: ["7.4", "7.3", "7.2", "7.1", "7.0"]
-        arch: ["x64", "x86"]
-        ts: ["ts", "nts"]
+        arch: ["x64"] # , "x86"
+        ts: ["ts"] # , "nts"
 
     runs-on: windows-2019
 
@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: "Install PHP SDK ${{ matrix.php}}"
-        uses: codemasher/setup-php-sdk@file-split
+        uses: codemasher/setup-php-sdk@split-file
         id: sdk
         with:
           version: ${{matrix.php}}
@@ -54,17 +54,6 @@ jobs:
       - name: "test"
         run: nmake test
 
-      # this works but is there a proper windows (cmd) way?
-      - name: "Determine filename prefix"
-        shell: bash
-        run: |
-          if ${{contains(github.ref_type, 'tag')}} == true; then
-            REF=${{github.ref_name}}
-          else
-            REF=${GITHUB_SHA:0:7}
-          fi
-          echo "file_tag=${REF}-${{matrix.php}}-${{matrix.ts}}-${{steps.sdk.outputs.vs}}-${{matrix.arch}}" >> $GITHUB_ENV
-
       - name: "Package"
         run: |
           if exist x64 (
@@ -73,7 +62,7 @@ jobs:
             if exist Release (set prefix=Release) else (set prefix=Release_TS)
           )
           md .artifact
-          copy %prefix%\php_xz.dll .artifact\php_xz-${{env.file_tag}}.dll
+          copy %prefix%\php_xz.dll .artifact\php_xz-${{steps.sdk.outputs.file_tag}}.dll
 
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v3
@@ -86,4 +75,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: contains(github.ref_type, 'tag')
         with:
-          files: .artifact\php_xz-${{env.file_tag}}.dll
+          files: .artifact\php_xz-${{steps.sdk.outputs.file_tag}}.dll
