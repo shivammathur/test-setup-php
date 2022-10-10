@@ -52,13 +52,8 @@ jobs:
 
       - name: "Package"
         run: |
-          if exist x64 (
-            if exist x64\Release (set prefix=x64\Release) else (set prefix=x64\Release_TS)
-          ) else (
-            if exist Release (set prefix=Release) else (set prefix=Release_TS)
-          )
           md .artifact
-          copy %prefix%\php_xz.dll .artifact\php_xz-${{steps.sdk.outputs.file_tag}}.dll
+          copy ${{steps.sdk.outputs.buildpath}}\php_xz.dll .artifact\php_xz-${{steps.sdk.outputs.file_tag}}.dll
 
       - name: "Upload artifacts"
         uses: actions/upload-artifact@v3
