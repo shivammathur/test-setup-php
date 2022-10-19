@@ -648,6 +648,11 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
     {
         if (isset($options['match'])) {
             try {
+                /**
+                 * This looks like a PHPStan bug.
+                 *
+                 * @phpstan-ignore missingType.checkedException
+                 */
                 return MatchType::from(strtoupper($options['match']));
             } catch (ValueError $e) {
                 Deprecation::trigger(
@@ -669,6 +674,11 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
     {
         if (isset($options[$option])) {
             try {
+                /**
+                 * This looks like a PHPStan bug.
+                 *
+                 * @phpstan-ignore missingType.checkedException
+                 */
                 return ReferentialAction::from(strtoupper($options[$option]));
             } catch (ValueError $e) {
                 Deprecation::trigger(

@@ -228,6 +228,7 @@ class SQLiteSchemaManager extends AbstractSchemaManager
 
             // Inferring a shorthand form for the foreign key constraint, where the "to" field is empty.
             // @see https://www.sqlite.org/foreignkeys.html#fk_indexes.
+            // @phpstan-ignore missingType.checkedException
             $foreignTablePrimaryKeyColumnRows = $this->fetchPrimaryKeyColumns($value['foreignTable']);
 
             if (count($foreignTablePrimaryKeyColumnRows) < 1) {

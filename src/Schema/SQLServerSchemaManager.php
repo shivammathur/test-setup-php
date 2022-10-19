@@ -190,6 +190,7 @@ SQL,
             if (! isset($foreignKeys[$name])) {
                 $referencedTableName = $row['ReferenceTableName'];
 
+                // @phpstan-ignore missingType.checkedException
                 if ($row['ReferenceSchemaName'] !== $this->getCurrentSchemaName()) {
                     $referencedTableName = $row['ReferenceSchemaName'] . '.' . $referencedTableName;
                 }
@@ -248,6 +249,7 @@ SQL,
      */
     protected function _getPortableTableDefinition(array $table): string
     {
+        // @phpstan-ignore missingType.checkedException
         if ($table['schema_name'] !== $this->getCurrentSchemaName()) {
             return $table['schema_name'] . '.' . $table['table_name'];
         }

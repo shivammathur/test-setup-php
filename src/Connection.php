@@ -269,8 +269,7 @@ class Connection implements ServerVersionProvider
      *
      * @see isAutoCommit
      *
-     * @throws ConnectionException
-     * @throws DriverException
+     * @throws Exception
      */
     public function setAutoCommit(bool $autoCommit): void
     {
@@ -558,6 +557,8 @@ class Connection implements ServerVersionProvider
      * @param string $identifier The identifier to be quoted.
      *
      * @return string The quoted identifier.
+     *
+     * @throws Exception
      */
     public function quoteIdentifier(string $identifier): string
     {
@@ -587,6 +588,8 @@ class Connection implements ServerVersionProvider
     /**
      * The usage of this method is discouraged. Use prepared statements
      * or {@see AbstractPlatform::quoteStringLiteral()} instead.
+     *
+     * @throws Exception
      */
     public function quote(string $value): string
     {
@@ -833,6 +836,7 @@ class Connection implements ServerVersionProvider
 
         [$cacheKey, $realKey] = $qcp->generateCacheKeys($sql, $params, $types, $connectionParams);
 
+        // @phpstan-ignore missingType.checkedException
         $item = $resultCache->getItem($cacheKey);
 
         if ($item->isHit()) {
@@ -1088,6 +1092,7 @@ class Connection implements ServerVersionProvider
         }
     }
 
+    /** @throws Exception */
     private function updateTransactionStateAfterCommit(): void
     {
         if ($this->transactionNestingLevel !== 0) {

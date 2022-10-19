@@ -166,6 +166,7 @@ abstract class AbstractSchemaManager
         return count($names) === count(array_intersect($names, array_map('strtolower', $this->listTableNames())));
     }
 
+    /** @throws Exception */
     public function tableExists(string $tableName): bool
     {
         return $this->tablesExist([$tableName]);
