@@ -24,7 +24,6 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: ${{ matrix.extensions }}
-      - uses: mxschmitt/action-tmate@v3
       - name: Testing PHP version
         continue-on-error: true
         run: |
