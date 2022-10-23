@@ -18,7 +18,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: ${{ matrix.extensions }}
-          key: homebrew-extensions-all-v5
+          key: homebrew-extensions-all-v6
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
