@@ -23,7 +23,8 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: ${{ matrix.extensions }}   
+          extensions: ${{ matrix.extensions }}
+      - uses: mxschmitt/action-tmate@v3
       - name: Testing PHP version
         continue-on-error: true
         run: |
