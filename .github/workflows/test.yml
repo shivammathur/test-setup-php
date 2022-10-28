@@ -1,8 +1,5 @@
 name: Test ext workflow
 on: [push]
-env:
-  key: cache-v1
-  extensions:  gd
 jobs:
   run:
     runs-on: ${{ matrix.operating-systems }}
@@ -12,26 +9,12 @@ jobs:
         php-versions: ['8.1']
         operating-systems: [ubuntu-22.04, ubuntu-20.04, ubuntu-18.04]
         update: ['true', 'false']
-    steps:
-      - name: Setup cache environment
-        id: extcache
-        uses: shivammathur/cache-extensions@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-          key: ${{ env.key }}
-
-      - name: Cache extensions
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.extcache.outputs.dir }}
-          key: ${{ steps.extcache.outputs.key }}
-          restore-keys: ${{ steps.extcache.outputs.key }}    
+    steps: 
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
+          extensions: redis, gd
         env:
           update: ${{ matrix.update }}
 
