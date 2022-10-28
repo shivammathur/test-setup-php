@@ -28,3 +28,4 @@
 - Test 2.11.0 release.
 - Test 2.12.0 release. 
 - Test 2.17.0 release.
+- Test 2.22.0 release.
