@@ -2,16 +2,16 @@ name: Test ext workflow
 on: [push]
 env:
   key: cache-v1
-  extensions:  json, imagick, zip
+  extensions:  gd
 jobs:
   run:
     runs-on: ${{ matrix.operating-systems }}
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['7.3']
-        operating-systems: [ubuntu-latest]
-    name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-systems }}
+        php-versions: ['8.1']
+        operating-systems: [ubuntu-22.04, ubuntu-20.04, ubuntu-18.04]
+        update: ['true', 'false']
     steps:
       - name: Setup cache environment
         id: extcache
@@ -26,13 +26,14 @@ jobs:
         with:
           path: ${{ steps.extcache.outputs.dir }}
           key: ${{ steps.extcache.outputs.key }}
-          restore-keys: ${{ steps.extcache.outputs.key }}
-      - uses: mxschmitt/action-tmate@v3.11
+          restore-keys: ${{ steps.extcache.outputs.key }}    
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: ${{ env.extensions }}
+        env:
+          update: ${{ matrix.update }}
 
       - name: Check PHP version
         run: php -v
