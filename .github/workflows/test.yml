@@ -1,42 +1,67 @@
+name: 'Test Formulae'
 on: [push]
 jobs:
   tests:
-    runs-on: macos-latest
     strategy:
-      fail-fast: false
       matrix:
-        include:
-          - php: '8.2'
-            extensions: amqp, apcu, ast, couchbase, event, expect, gnupg, grpc, igbinary, imagick, imap, mailparse, mcrypt, memcache, memcached, mongodb, msgpack, pecl_http, protobuf, psr, raphf, rdkafka, redis, ssh2, swoole, vips, xdebug, yaml, xlswriter, zmq, pcov
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup cache environment
-        uses: shivammathur/cache-extensions@develop
-        env:
-          skip_dependency_extensions: true
+        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
+        os: [ubuntu-22.04, ubuntu-20.04, ubuntu-18.04]
+    runs-on: ${{ matrix.os }}
+    steps:    
+      - run: |
+          version="${{ matrix.php }}"
+          sudo apt-get purge php-* php* -y
+          sudo rm -rf /etc/apt/sources.list.d/*ondrej*
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+              php$version \
+              php$version-amqp \
+              php$version-apcu \
+              php$version-bcmath \
+              php$version-bz2 \
+              php$version-cgi \
+              php$version-cli \
+              php$version-common \
+              php$version-curl \
+              php$version-dba \
+              php$version-dev \
+              php$version-enchant \
+              php$version-fpm \
+              php$version-gd \
+              php$version-gmp \
+              php$version-igbinary \
+              php$version-imagick \
+              php$version-imap \
+              php$version-interbase \
+              php$version-intl \
+              php$version-ldap \
+              php$version-mbstring \
+              php$version-memcache \
+              php$version-memcached \
+              php$version-mongodb \
+              php$version-mysql \
+              php$version-odbc \
+              php$version-opcache \
+              php$version-pgsql \
+              php$version-phpdbg \
+              php$version-pspell \
+              php$version-readline \
+              php$version-redis \
+              php$version-snmp \
+              php$version-soap \
+              php$version-sqlite3 \
+              php$version-sybase \
+              php$version-tidy \
+              php$version-xdebug \
+              php$version-xml \
+              php$version-xsl \
+              php$version-yaml \
+              php$version-zip \
+              php$version-zmq
+      - run: php -v
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: ${{ matrix.extensions }}
-          key: homebrew-extensions-all-v6
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: ${{ matrix.extensions }}
-      - name: Testing PHP version
-        continue-on-error: true
-        run: |
+      - run: |
           php -v
-      - name: Testing Extension
-        continue-on-error: true
-        run: |
-          mv  $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/*.ini /tmp
-          for ini_file in /tmp/*.ini; do
-            cp /tmp/*igbinary.ini /tmp/*msgpack.ini /tmp/*raphf.ini $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/;
-            echo $ini_file;
-            cp $ini_file  $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/;
-            php -v || true;
-            echo $?
-            rm $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/*.ini;
-          done   
+          php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false && '${{ matrix.php }}' != 'latest') {throw new Exception('Wrong PHP version Installed');}"
