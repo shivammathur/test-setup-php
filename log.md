@@ -41,3 +41,4 @@
 - Test 2.19.1 release.
 - Test 2.20.0 release.
 - Test 2.21.0 release.
+- Test 2.22.0 release.
