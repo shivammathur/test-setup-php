@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:    
       - run: |
-          version="${{ matrix.php }}"
+          version=8.1
           sudo apt-get purge php-* php* -y
           sudo rm -rf /etc/apt/sources.list.d/*ondrej*
           sudo apt-get update
