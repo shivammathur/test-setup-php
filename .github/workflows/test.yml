@@ -19,7 +19,9 @@ jobs:
           coverage: xdebug
         env:
           PHPTS: ${{ matrix.ts }}
+          debug: true
           COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: |
           php -v
+          php -i | grep Thread
           php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false && '${{ matrix.php }}' != 'latest') {throw new Exception('Wrong PHP version Installed');}"
