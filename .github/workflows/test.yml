@@ -13,6 +13,11 @@ jobs:
         with:
           php-version: 8.1
           extensions: mysql, mysqlnd, sqlite3, bcmath, gmp, gd, curl, zip, openssl, mbstring, xml
+      - name: Check
+        continue-on-error: true
+        run: |
+          sudo apt-get check
+      - uses: mxschmitt/action-tmate@v3    
       - run: |
           php -v
           php -m
