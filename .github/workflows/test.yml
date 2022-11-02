@@ -6,14 +6,20 @@ jobs:
       matrix:
         php: ['7.4', '8.0', '8.1', '8.2', '8.3']
         os: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
-        phpts: [ts, nts]
+        ts: [ts, nts]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: shivammathur/setup-php@v2
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
+          extensions: apcu, gettext, gd, igbinary, imagick, intl, json, mbstring, msgpack, memcached, sqlite3, yaml, redis, :memcache
+          ini-values: apc.enable_cli=on
+          tools: pecl, phpize, php-config
+          coverage: xdebug
         env:
-          phpts: ${{ matrix.phpts }}
+          PHPTS: ${{ matrix.ts }}
+          COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: |
           php -v
           php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false && '${{ matrix.php }}' != 'latest') {throw new Exception('Wrong PHP version Installed');}"
