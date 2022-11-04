@@ -4,14 +4,13 @@ jobs:
   tests:
     strategy:
       matrix:
-        os: [ubuntu-22.04]
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        os: [ubuntu-22.04, ubuntu-20.04]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Setup PHP and install extensions
         uses: shivammathur/setup-php@2.22.0
         with:
-          php-version: ${{ matrix.php }}
+          php-version: 8.0
           extensions: redis, sockets, igbinary, zip, intl, libxml, soap, oauth, mcrypt
           
       - name: Setup PEAR extensions
