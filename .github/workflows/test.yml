@@ -8,15 +8,21 @@ jobs:
         runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+      - name: Setup PHP and install extensions
+        uses: shivammathur/setup-php@2.22.0
         with:
-          php-version: 8.1
-          extensions: mysql, mysqlnd, sqlite3, bcmath, gmp, gd, curl, zip, openssl, mbstring, xml
-      - name: Check
-        continue-on-error: true
+          php-version: ${{ matrix.php }}
+          extensions: redis, sockets, igbinary, zip, intl, libxml, soap, oauth, mcrypt
+          
+      - name: Setup PEAR extensions
         run: |
-          sudo apt-get check
+          pear channel-update pear.php.net
+          pear install Auth
+          pear install Mail
+          pear install Net_Curl
+          pear install XML_Parser
+          pear install XML_Serializer-0.21.0
+          pear install Mail_Mim
       - uses: mxschmitt/action-tmate@v3    
       - run: |
           php -v
