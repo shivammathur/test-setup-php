@@ -7,12 +7,6 @@ jobs:
         os: [ubuntu-22.04, ubuntu-20.04]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Setup PHP and install extensions
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.0
-          extensions: redis, sockets, igbinary, zip, intl, libxml, soap, oauth, mcrypt
-          
       - name: Setup PEAR extensions
         run: |
           pear channel-update pear.php.net
@@ -22,6 +16,11 @@ jobs:
           pear install XML_Parser
           pear install XML_Serializer-0.21.0
           pear install Mail_Mim
+      - name: Setup PHP and install extensions
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 8.0
+          extensions: redis, sockets, igbinary, zip, intl, libxml, soap, oauth, mcrypt        
       - uses: mxschmitt/action-tmate@v3    
       - run: |
           php -v
