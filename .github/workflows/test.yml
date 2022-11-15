@@ -4,18 +4,14 @@ jobs:
   tests:
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        php: ['5.4','7.0','7.4', '8.0', '8.1', '8.2']
+        os: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
+        php: ['5.3','5.4','5.5']
     runs-on: ${{ matrix.os }}
     steps:
       - name: Setup PHP and install extensions
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: intl, mysql, gd, ldap, gmp, xml, curl, json, mbstring #optional
-          ini-values: "post_max_size=256M, max_execution_time=60, date.timezone=America/New_York" #optional
       - run: |
           php -v
           php -m
-          sudo service php${{ matrix.php }}-fpm start
-          sudo service php${{ matrix.php }}-fpm status
