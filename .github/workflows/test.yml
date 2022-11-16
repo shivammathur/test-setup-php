@@ -5,13 +5,16 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
-        php: ['5.3','5.4','5.5']
+        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Setup PHP and install extensions
-        uses: shivammathur/setup-php@v2
+      - name: Install PHP 7.4
+        uses: "shivammathur/setup-php@verbose"
         with:
-          php-version: ${{ matrix.php }}
+          php-version: '7.4'
+          extensions: imagick, zip, mcrypt, pdo_pgsql, gd, exif, :xdebug
+          coverage: none
       - run: |
           php -v
           php -m
+          php -r "if(! extension_loaded('mcrypt')) {throw new Exception('mcrypt not found');}"
