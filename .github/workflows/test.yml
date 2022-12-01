@@ -11,7 +11,7 @@ jobs:
         uses: "shivammathur/setup-php@verbose"
         with:
           php-version: '7.4'
-          extensions: mysqli, mbstring, intl, iconv, ldap, xml, zip, gd, pdo_mysql, bcmath, exif, pcntl, soap, sockets, xdebug, 'php/pecl-text-wddx@master'
+          extensions: mysqli, mbstring, intl, iconv, ldap, xml, zip, gd, pdo_mysql, bcmath, exif, pcntl, soap, sockets, xdebug, php/pecl-text-wddx@master
       - run: |
           php -v
           php -m
