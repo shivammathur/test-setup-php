@@ -10,6 +10,7 @@ jobs:
         - name: Test
           id: test
           run: |
+            curl -OL https://raw.githubusercontent.com/Homebrew/homebrew-test-bot/master/Dockerfile
             docker build -t brew .
             docker create \
               -e GITHUB_ACTIONS -e GITHUB_BASE_REF -e GITHUB_REF -e GITHUB_REPOSITORY -e GITHUB_SHA \
