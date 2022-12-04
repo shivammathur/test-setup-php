@@ -13,12 +13,11 @@ jobs:
             curl -OL https://raw.githubusercontent.com/Homebrew/homebrew-test-bot/master/Dockerfile
             docker build -t brew .
             docker create \
-              -e GITHUB_ACTIONS -e GITHUB_BASE_REF -e GITHUB_REF -e GITHUB_REPOSITORY -e GITHUB_SHA \
               -e GITHUB_ACTIONS -e GITHUB_BASE_REF -e GITHUB_OUTPUT -e GITHUB_REF -e GITHUB_REPOSITORY -e GITHUB_SHA \
               -v "$GITHUB_OUTPUT:$GITHUB_OUTPUT" \
               --name=brewtestbot brew sleep infinity
             docker start brewtestbot
-            docker exec brewtestbot ruby -e 'File.open(ENV.fetch("GITHUB_OUTPUT"), "a") do |f| f.puts "apple=fruit" end'
+            docker exec brewtestbot brew install ruby && ruby -e 'File.open(ENV.fetch("GITHUB_OUTPUT"), "a") do |f| f.puts "apple=fruit" end'
         - run: |
             echo ${{ steps.test.outputs.apple }}
             
