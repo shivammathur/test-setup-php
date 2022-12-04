@@ -7,45 +7,7 @@ jobs:
         os: [ubuntu-22.04]
     runs-on: ${{ matrix.os }}
     steps:
-        - name: Set up Homebrew
-          id: set-up-homebrew
-          uses: Homebrew/actions/setup-homebrew@master
-
-        - name: Cache Homebrew Bundler RubyGems
-          id: cache
-          uses: actions/cache@v1
-          with:
-            path: ${{ steps.set-up-homebrew.outputs.gems-path }}
-            key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
-            restore-keys: ${{ runner.os }}-rubygems-
-
-        - name: Install Homebrew Bundler RubyGems
-          if: steps.cache.outputs.cache-hit != 'true'
-          run: brew install-bundler-gems
-
-        - run: brew test-bot --only-cleanup-before
-
-        - run: brew test-bot --only-setup
-
-        - run: brew test-bot --only-tap-syntax
-
-        - name: Set up Ruby
-          if: matrix.os == 'ubuntu-latest'
-          uses: ruby/setup-ruby@v1
-          with:
-            ruby-version: "2.6"
-            bundler-cache: true
-        - name: Test
-          id: test
-          run: |
-            curl -OL https://raw.githubusercontent.com/Homebrew/homebrew-test-bot/master/Dockerfile
-            docker build -t brew .
-            docker create \
-              -e GITHUB_ACTIONS -e GITHUB_BASE_REF -e GITHUB_OUTPUT -e GITHUB_REF -e GITHUB_REPOSITORY -e GITHUB_SHA \
-              -v "$GITHUB_OUTPUT:$GITHUB_OUTPUT" \
-              --name=brewtestbot brew sleep infinity
-            docker start brewtestbot
-            docker exec brewtestbot brew install ruby && ruby -e 'File.open(ENV.fetch("GITHUB_OUTPUT"), "a") do |f| f.puts "apple=fruit" end'
         - run: |
-            echo ${{ steps.test.outputs.apple }}
+            echo $RUNNER_TEMP
+            echo $GITHUB_OUTPUT
             
