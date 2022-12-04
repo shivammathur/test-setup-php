@@ -7,12 +7,17 @@ jobs:
         os: [ubuntu-22.04]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Install PHP 7.4
-        uses: "shivammathur/setup-php@verbose"
-        with:
-          php-version: '7.4'
-          extensions: mysqli, mbstring, intl, iconv, ldap, xml, zip, gd, pdo_mysql, bcmath, exif, pcntl, soap, sockets, xdebug, wddx-php/pecl-text-wddx@master
-      - run: |
-          php -v
-          php -m
-          php -r "if(! extension_loaded('wddx')) {throw new Exception('wddx not found');}"
+        - name: Test
+          id: test
+          run: |
+            docker build -t brew .
+            docker create \
+              -e GITHUB_ACTIONS -e GITHUB_BASE_REF -e GITHUB_REF -e GITHUB_REPOSITORY -e GITHUB_SHA \
+              -e GITHUB_ACTIONS -e GITHUB_BASE_REF -e GITHUB_OUTPUT -e GITHUB_REF -e GITHUB_REPOSITORY -e GITHUB_SHA \
+              -v "$GITHUB_OUTPUT:$GITHUB_OUTPUT" \
+              --name=brewtestbot brew sleep infinity
+            docker start brewtestbot
+            docker exec brewtestbot echo "apple=fruit" >> $GITHUB_OUTPUT
+        - run: |
+            echo ${{ steps.test.outputs.apple }}
+            
