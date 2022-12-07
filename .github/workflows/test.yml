@@ -1,7 +1,7 @@
-name: Phalcon workflow
+name: Runner
 on: [push]
 jobs:
-  phalcon4:
+  runner:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
@@ -13,4 +13,16 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-      - run: php -r "print_r(gd_info());"    
+      - name: Test GD support
+        run: php -r "print_r(gd_info());"
+      - name: Stage an image
+        run: curl -o test.jpg -L https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/PHP-logo.svg/180px-PHP-logo.svg.jpeg
+      - name: Test avif
+        shell: php {0}
+        run: |
+          <?php
+          $image = imagecreatefromjpeg('test.jpg');
+          imageavif($image, 'test.avif');
+      - uses: actions/upload-artifact@v3
+        with:
+          path: test.avif
