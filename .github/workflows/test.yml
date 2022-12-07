@@ -14,6 +14,7 @@ jobs:
             php-version: ${{ matrix.php-version }}
             coverage: pcov
             tools: composer:v2
+            ini-file: development
 
       - name: Run PHP code
         shell: php {0}
