@@ -14,13 +14,13 @@ jobs:
             php-version: ${{ matrix.php-version }}
             coverage: pcov
             tools: composer:v2
-            ini-file: development
 
       - name: Run PHP code
         shell: php {0}
         run: |
             <?php
             error_reporting(\E_ALL);
+            ini_set('display_errors', 'on');
             ob_start();
             trigger_error('User Deprecation', \E_USER_DEPRECATED);
             $ob = ob_get_contents();
