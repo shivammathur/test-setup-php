@@ -4,26 +4,14 @@ jobs:
   tests:
     strategy:
       matrix:
-        os: [ubuntu-22.04]
-        php-version: ['8.0', '8.1', '8.2']
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Install PHP with extensions
-        uses: shivammathur/setup-php@v2
+      - name: Setup PHP, with composer and extensions
+        uses: shivammathur/setup-php@1a18b2267f80291a81ca1d33e7c851fe09e7dfc4
+        env:
+          update: true
         with:
-            php-version: ${{ matrix.php-version }}
-            coverage: pcov
-            tools: composer:v2
-
-      - name: Run PHP code
-        shell: php {0}
-        run: |
-            <?php
-            error_reporting(\E_ALL);
-            ini_set('display_errors', 'on');
-            ob_start();
-            trigger_error('User Deprecation', \E_USER_DEPRECATED);
-            $ob = ob_get_contents();
-            ob_end_clean();
-            echo 'errors are:'.$ob;
+          php-version: 7.4
+          extensions: mbstring, dom, zip, phalcon4, psr, mysql
             
