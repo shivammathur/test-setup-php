@@ -6,23 +6,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-22.04]
-        php-versions: ['8.1', '8.2', '8.3']
+        operating-system: [macos-latest]
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
-          php-version: ${{ matrix.php-versions }}
-      - name: Test GD support
-        run: php -r "print_r(gd_info());"
-      - name: Stage an image
-        run: curl -o test.jpg -L https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/PHP-logo.svg/180px-PHP-logo.svg.jpeg
-      - name: Test avif
-        shell: php {0}
-        run: |
-          <?php
-          $image = imagecreatefromjpeg('test.jpg');
-          imageavif($image, 'test.avif');
-      - uses: actions/upload-artifact@v3
-        with:
-          path: test.avif
+          php-version: 8.2
