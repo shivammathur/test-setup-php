@@ -15,7 +15,7 @@ jobs:
       id: extcache
       uses: shivammathur/cache-extensions@v1
       with:
-        php-version: ${{ matrix.php-versions }}
+        php-version: 8.2
         extensions: ${{ env.extensions }}
         key: ${{ env.key }}
 
