@@ -8,8 +8,11 @@ jobs:
       matrix:
         operating-system: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
     steps:
-      - name: Install PHP
+      - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.2
+          tools: 'composer:v2'
+          php-version: '8.2'
+          coverage: pcov
+          ini-values: "zend.assertions=1, assert.exception=1"
       - run: php -v && php -m    
