@@ -6,10 +6,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest, ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
+        operating-system: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@v2
         with:
           php-version: 8.2
       - run: php -v && php -m    
