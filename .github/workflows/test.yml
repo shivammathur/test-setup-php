@@ -9,7 +9,7 @@ jobs:
         operating-system: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
     env:
       extensions: fileinfo, intl, json, mbstring, ssh2
-      key: cache-v1
+      key: cache-v2
     steps:
     - name: Setup cache environment
       id: extcache
@@ -27,7 +27,7 @@ jobs:
         restore-keys: ${{ steps.extcache.outputs.key }}
 
     - name: Setup PHP
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@verbose
       with:
         php-version: 8.2
         extensions: ${{ env.extensions }}
