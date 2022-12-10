@@ -9,7 +9,7 @@ jobs:
         operating-system: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
     env:
       extensions: fileinfo, intl, json, mbstring, ssh2
-      key: cache-v3
+      key: cache-v5
     steps:
     - name: Setup cache environment
       id: extcache
