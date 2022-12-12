@@ -6,32 +6,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
-    env:
-      extensions: fileinfo, intl, json, mbstring, ssh2
-      key: cache-v6
+        operating-system: [macos-latest]
+        php: [8.1, 8.2]
     steps:
-    - name: Setup cache environment
-      id: extcache
-      uses: shivammathur/cache-extensions@v1
-      with:
-        php-version: 8.2
-        extensions: ${{ env.extensions }}
-        key: ${{ env.key }}
-
-    - name: Cache extensions
-      uses: actions/cache@v2
-      with:
-        path: ${{ steps.extcache.outputs.dir }}
-        key: ${{ steps.extcache.outputs.key }}
-        restore-keys: ${{ steps.extcache.outputs.key }}
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: 8.2
-        extensions: ${{ env.extensions }}
-        tools: composer:v2
-        coverage: pcov
-        ini-values: zend.assertions=1, assert.exception=1
+        php-version: ${{ matrix.php }}
     - run: php -v && php -m
+    - run: pecl install igbinary
+    - run: tail -20 /usr/local/etc/php/${{ matrix.php }}/php.ini
+    - run: php -m
