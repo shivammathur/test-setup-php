@@ -16,5 +16,6 @@ jobs:
         php-version: ${{ matrix.php }}
     - run: php -v && php -m
     - run: pecl install igbinary
-    - run: tail -20 /usr/local/etc/php/${{ matrix.php }}/php.ini
+    - run: php --ini
+    - run: grep igbinary /usr/local/etc/php/${{ matrix.php }}/php.ini
     - run: php -m
