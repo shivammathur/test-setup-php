@@ -7,11 +7,10 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
-        php: [5.3, 7.2, 8.1]
     steps:
-      - name: Setup PHP environment
+      - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
-          php-version: ${{ env.version }}
+          php-version: 5.6
           extensions: ${{ env.extensions }}
       - run: php -v && php -m
