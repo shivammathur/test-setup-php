@@ -11,7 +11,7 @@ jobs:
     steps:
 
     - name: Setup PHP
-      uses: shivammathur/setup-php@v2
+      uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php }}
         ini-values: pdo.dsn.mybolt="bolt:host=localhost;port=7687;appname=pdo-bolt"
