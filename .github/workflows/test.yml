@@ -6,16 +6,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
-        php: [8.1, 8.2]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        php: [5.3, 7.2, 8.1]
     steps:
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php }}
-    - run: php -v && php -m
-    - run: pecl install igbinary
-    - run: php --ini
-    - run: grep igbinary /usr/local/etc/php/${{ matrix.php }}/php.ini
-    - run: php -m
+        ini-values: pdo.dsn.mybolt="bolt:host=localhost;port=7687;appname=pdo-bolt"
+    - run: php -v && php -r "echo get_cfg_var('pdo.dsn.mybolt');"
