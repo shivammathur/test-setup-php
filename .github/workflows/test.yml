@@ -6,13 +6,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
         php: [5.3, 7.2, 8.1]
     steps:
-
-    - name: Setup PHP
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php }}
-        ini-values: pdo.dsn.mybolt="bolt:host=localhost;port=7687;appname=pdo-bolt"
-    - run: php -v && php -r "echo get_cfg_var('pdo.dsn.mybolt');"
+      - name: Setup PHP environment
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: ${{ env.version }}
+          extensions: ${{ env.extensions }}
+      - run: php -v && php -m
