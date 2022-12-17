@@ -7,14 +7,14 @@ jobs:
       fail-fast: false
       matrix:
         php-versions: ['8.3']
-        operating-systems: [macos-latest, ubuntu-latest]
+        operating-systems: [macos-latest]
+        ext: [amqp, apcu, ast, couchbase, ds, event, expect, gearman, gnupg, grpc, igbinary, imagick, imap, mailparse, mcrypt, memcache, memcached, mongodb, msgpack, pdo_sqlsrv, pecl_http, protobuf, psr, raphf, rdkafka, redis, sqlsrv, ssh2, swoole, v8js, vips, xdebug, yaml, xlswriter, zmq, pcov]
     steps: 
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: swoole
-          ini-values: zend.max_allowed_stack_size=-1
+          extensions: ${{ matrix.ext }}
 
       - name: Check PHP version
         run: php -v
