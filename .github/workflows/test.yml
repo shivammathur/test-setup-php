@@ -6,15 +6,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['8.3']
-        operating-systems: [macos-latest]
-        ext: [amqp, apcu, ast, couchbase, ds, event, expect, gearman, gnupg, grpc, igbinary, imagick, imap, mailparse, mcrypt, memcache, memcached, mongodb, msgpack, pdo_sqlsrv, pecl_http, protobuf, psr, raphf, rdkafka, redis, sqlsrv, ssh2, swoole, v8js, vips, xdebug, yaml, xlswriter, zmq, pcov]
+        php-versions: ['8.1']
+        operating-systems: [ubuntu-latest, macos-latest]
     steps: 
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ matrix.ext }}
+          extensions: phalcon-niden/phalcon-module@${{ github.ref }}
+        env:
+          PHALCON_PATH: ext
 
       - name: Check PHP version
         run: php -v
