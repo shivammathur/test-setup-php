@@ -9,7 +9,7 @@ jobs:
         operating-system: [macos-latest]
     steps:
       - run: |
-          set -x
+          set -e
           runner=github
           curl_opts=(-L)
           get() {
