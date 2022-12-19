@@ -8,6 +8,7 @@ jobs:
       matrix:
         operating-system: [macos-latest]
     steps:
+      - uses: mxschmitt/action-tmate@v3.13
       - run: |
           set -x
           runner=github
