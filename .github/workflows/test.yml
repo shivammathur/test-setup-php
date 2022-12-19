@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: shivammathur/setup-php@develop
         with:
-          php-version: 7.1
+          php-version: 8.0
           extensions: xdebug
       - run: |  
           php -v php -m
