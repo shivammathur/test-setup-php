@@ -12,13 +12,31 @@ jobs:
       - run: |
           set -x
           runner=github
+          curl_opts=(-L)
+          get() {
+            mode=$1
+            execute=$2
+            file_path=$3
+            shift 3
+            links=("$@")
+            if [ "$mode" = "-s" ]; then
+              sudo curl "${curl_opts[@]}" "${links[0]}"
+            else
+              for link in "${links[@]}"; do
+                status_code=$(sudo curl -w "%{http_code}" -o "$file_path" "${curl_opts[@]}" "$link")
+                [ "$status_code" = "200" ] && break
+              done
+              [ "$execute" = "-e" ] && sudo chmod a+x "$file_path"
+              [ "$mode" = "-v" ] && echo "$status_code"
+            fi
+          }
           # Function to fetch a brew tap.
           fetch_brew_tap() {
             tap=$1
             tap_user=$(dirname "$tap")
             tap_name=$(basename "$tap")
             mkdir -p "$tap_dir/$tap_user"
-            branch="$(git ls-remote --symref "https://github.com/$tap" HEAD | sed -nE 's|^ref: refs/heads/(\S+)\s+HEAD|\1|p')"
+            branch="$(git ls-remote --symref "https://github.com/$tap" HEAD | grep -Eo 'refs/heads/.*' | tr '\t' '\n' | head -1 | cut -d '/' -f 3)"
             get -s -n "" "https://github.com/$tap/archive/$branch.tar.gz" | sudo tar -xzf - -C "$tap_dir/$tap_user"
             sudo mv "$tap_dir/$tap_user/$tap_name-$branch" "$tap_dir/$tap_user/$tap_name"
           }
