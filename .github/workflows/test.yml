@@ -9,6 +9,7 @@ jobs:
         operating-system: [macos-latest]
     steps:
       - run: |
+          set -x
           runner=github
           # Function to fetch a brew tap.
           fetch_brew_tap() {
