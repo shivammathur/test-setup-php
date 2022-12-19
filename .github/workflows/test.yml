@@ -8,7 +8,6 @@ jobs:
       matrix:
         operating-system: [macos-latest]
     steps:
-      - uses: mxschmitt/action-tmate@v3.13
       - run: |
           set -x
           runner=github
@@ -113,6 +112,7 @@ jobs:
             export tap_dir
             export core_repo
           }
+          configure_brew
           add_brew_tap shivammathur/homebrew-php
           add_brew_tap shivammathur/homebrew-extensions
           brew install shivammathur/php/php@7.1 xdebug@7.1
