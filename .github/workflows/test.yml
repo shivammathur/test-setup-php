@@ -8,8 +8,9 @@ jobs:
       matrix:
         operating-system: [macos-latest]
     steps:
+      - uses: mxschmitt/action-tmate@v3.13
       - run: |
-          set -e
+          set -x
           runner=github
           curl_opts=(-L)
           get() {
