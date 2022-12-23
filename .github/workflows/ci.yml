@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: 8.1
           extensions: :apcu, :imagick
@@ -40,7 +40,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: 8.1
           extensions: :apcu, :imagick
@@ -87,7 +87,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install PHP with extensions
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-version }}
           coverage: ${{ matrix.coverage-driver }}
@@ -100,8 +100,3 @@ jobs:
 
       - name: Run tests with PHPUnit
         run: vendor/bin/phpunit --coverage-clover=coverage.xml
-
-      - name: Send code coverage report to Codecov.io
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
