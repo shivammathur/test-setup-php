@@ -11,7 +11,7 @@ jobs:
       - uses: shivammathur/setup-php@develop
         with:
           php-version: 8.2
-          extensions: xdebug
+          coverage: xdebug3
       - run: |  
           php -v php -m
           
