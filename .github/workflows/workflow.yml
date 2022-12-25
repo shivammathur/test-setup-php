@@ -19,7 +19,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata, dsn=mysql:host=127.0.0.1"
         env:
           debug: ${{ matrix.debug }}
       - name: Add Problem Matcher
@@ -39,6 +39,7 @@ jobs:
           php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
           php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
           php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
+          php -r "if(get_cfg_var('dsn')!='mysql:host=127.0.0.1') {throw new Exception('dsn not added');}"
       - name: Test JIT
         if: matrix.php-versions == '8.0' || matrix.php-versions == '8.1' || matrix.php-versions == '8.2'
         run: |

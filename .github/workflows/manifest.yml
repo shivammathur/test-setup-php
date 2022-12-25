@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-22.04, ubuntu-20.04, ubuntu-18.04, windows-latest, macos-latest]
+        operating-system: [ubuntu-22.04, ubuntu-20.04, windows-latest, macos-latest]
         php-versions: ['5.x', '7.x', '8.x', 'latest', 'nightly']
     steps:
       - name: Checkout

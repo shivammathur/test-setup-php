@@ -11,18 +11,10 @@ jobs:
       matrix:
         containers:
           - "ubuntu:jammy"
-          - "ubuntu:bionic"
           - "ubuntu:focal"
           - "debian:buster"
           - "debian:bullseye"
-          - "linuxmintd/mint20.2-amd64"
-          - "linuxmintd/mint19.3-amd64"
-          - "linuxmintd/lmde4-amd64"
-          - "elementary/docker:stable"
-          - "elementary/docker:unstable"
           - "shivammathur/node:focal"
-          #- "kalilinux/kali-rolling:latest" Add back once debian bookworm is added to ppa:sury/php
-          #- "kalilinux/kali:latest"
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
     steps:
       # Test that it works if php is installed but dev package is not.
