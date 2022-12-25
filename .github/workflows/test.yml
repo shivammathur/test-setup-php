@@ -6,13 +6,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]
+        operating-system: [ubuntu-latest, windows-latest]
     steps:
-      - uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.2
-          coverage: xdebug3
-      - run: |  
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+      env:
+        phpts: ts
+    - run: |  
           php -v php -m
           
 
