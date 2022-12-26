@@ -11,9 +11,16 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@verbose
       with:
-        php-version: '8.1'
+        php-version: '8.0'
         extensions: mbstring, fileinfo, gmp, sqlite, pdo_sqlite, psr-1.2.0, zip, mysqli, zephir_parser-1.5.0
+      env:
+        RE2C_VERSION: 2.2
+        ZEPHIR_PARSER_VERSION: 1.5.0
+        PSR_VERSION: 1.2.0
+        CACHE_DIR: .cache
+        PHPTS: ts
     - run: |  
-          php -v php -m
+          php -v
+          php -m
           
 
