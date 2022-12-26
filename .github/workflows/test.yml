@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest, ubuntu-latest]
+        operating-system: [macos-10.15]
     steps:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
