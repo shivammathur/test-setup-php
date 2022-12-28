@@ -17,5 +17,8 @@ jobs:
     - run: |  
           php -v
           php -m
-          
+    - run: Install-PhpExtension zephir_parser      
+    - run: |  
+          php -v
+          php -m
 
