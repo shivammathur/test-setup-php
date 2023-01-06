@@ -1,24 +1,24 @@
-name: Runner
+name: Test ext workflow
 on: [push]
 jobs:
-  runner:
-    runs-on: ${{ matrix.operating-system }}
+  run:
+    runs-on: ${{ matrix.operating-systems }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]
-        php: [7.2, 7.3, 7.4, '8.0', 8.1, 8.2]
-    steps:
-    - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
-      with:
-        php-version: ${{ matrix.php }}
-        extensions: zephir_parser-1.5.2
-    - run: |  
-          php -v
-          php -m
-    - run: Install-PhpExtension zephir_parser      
-    - run: |  
-          php -v
-          php -m
+        php-versions: ['8.3']
+        operating-systems: [macos-latest]
+        ext: [amqp, apcu, ast, couchbase, ds, event, expect, gearman, gnupg, grpc, igbinary, imagick, imap, mailparse, mcrypt, memcache, memcached, mongodb, msgpack, pdo_sqlsrv, pecl_http, protobuf, psr, raphf, rdkafka, redis, sqlsrv, ssh2, swoole, v8js, vips, xdebug, yaml, xlswriter, zmq, pcov]
+    steps: 
+      - name: Install PHP
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ matrix.ext }}
 
+      - name: Check PHP version
+        run: php -v
+
+      - name: Check PHP extensions
+        run: |
+          php -m
