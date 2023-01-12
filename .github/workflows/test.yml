@@ -6,15 +6,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['8.3']
-        operating-systems: [macos-latest]
-        ext: [amqp, apcu, ast, couchbase, ds, event, expect, gearman, gnupg, grpc, igbinary, imagick, imap, mailparse, mcrypt, memcache, memcached, mongodb, msgpack, pdo_sqlsrv, pecl_http, protobuf, psr, raphf, rdkafka, redis, sqlsrv, ssh2, swoole, v8js, vips, xdebug, yaml, xlswriter, zmq, pcov]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
+        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,]
+        operating-systems: [windows-latest]
     steps: 
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ matrix.ext }}
 
       - name: Check PHP version
         run: php -v
