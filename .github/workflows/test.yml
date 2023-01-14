@@ -11,5 +11,14 @@ jobs:
       - uses: shivammathur/setup-php@develop
         continue-on-error: true
         with:
-          php-version: 5.6
-      - uses: mxschmitt/action-tmate@v3.14
+          php-version: 5.5
+      - run: |
+          $Url = 'https://windows.php.net/downloads/releases/archives/php-5.5.38-Win32-VC11-x86.zip'
+          $temporaryFile, $keepTemporaryFile = Get-FileFromUrlOrCache -Url $Url
+          $temporaryDirectory = New-TempDirectory
+          Expand-ArchiveWith7Zip -ArchivePath $temporaryFile -DestinationPath $temporaryDirectory -Overwrite
+          $exePath = Join-Path -Path $temporaryDirectory -ChildPath php.exe
+          echo "$exePath:" + $exePath
+          $exeOutput = & $exePath @('-n', '-v') 2>&1 | Out-String
+          echo "exeOutput: " + $exeOutput
+          echo 'ExitCode: 0x' + $LASTEXITCODE.ToString('x')
