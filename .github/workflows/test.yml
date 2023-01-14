@@ -18,7 +18,7 @@ jobs:
           $temporaryDirectory = New-TempDirectory
           Expand-ArchiveWith7Zip -ArchivePath $temporaryFile -DestinationPath $temporaryDirectory -Overwrite
           $exePath = Join-Path -Path $temporaryDirectory -ChildPath php.exe
-          echo "$exePath:" + $exePath
+          echo "exePath:" + $exePath
           $exeOutput = & $exePath @('-n', '-v') 2>&1 | Out-String
           echo "exeOutput: " + $exeOutput
           echo 'ExitCode: 0x' + $LASTEXITCODE.ToString('x')
