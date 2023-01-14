@@ -7,5 +7,9 @@ jobs:
       fail-fast: false
       matrix:
         operating-systems: [windows-latest]
-    steps: 
+    steps:
+      - uses: shivammathur/setup-php@v2
+        continue-on-error: true
+        with:
+          php-version: 5.6
       - uses: mxschmitt/action-tmate@v3.14
