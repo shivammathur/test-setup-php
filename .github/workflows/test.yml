@@ -1,4 +1,4 @@
-name: Test ext workflow
+name: Test workflow
 on: [push]
 jobs:
   run:
@@ -6,20 +6,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-systems: [windows-latest]
+        operating-systems: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: shivammathur/setup-php@develop
-        continue-on-error: true
+      - uses: shivammathur/setup-php@v2
         with:
-          php-version: 5.5
-      - run: |
-          $Url = 'https://windows.php.net/downloads/releases/archives/php-5.5.38-Win32-VC11-x64.zip'
-          $temporaryFile, $keepTemporaryFile = Get-FileFromUrlOrCache -Url $Url
-          $temporaryDirectory = New-TempDirectory
-          Expand-ArchiveWith7Zip -ArchivePath $temporaryFile -DestinationPath $temporaryDirectory -Overwrite
-          $exePath = Join-Path -Path $temporaryDirectory -ChildPath php.exe
-          try {
-            $exeOutput = & $exePath @('-n', '-v') 2>&1 | Out-String
-            echo $exeOutput
-            echo $LASTEXITCODE.ToString('x')
-          } catch {}
+          php-version: 8.2
+          tools: composer:2.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: php -v && composer -V    
+           
