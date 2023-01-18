@@ -12,13 +12,13 @@ jobs:
         with:
           php-version: 8.3
           coverage: xdebug
-      - run: php -v
+      - run: php -v && php -m
       - run: |
           sudo phpdismod -v 8.3 xdebug
-          sudo rm -rf /usr/lib/php/20220830/xdebug.so
+          sudo rm -rf /usr/lib/php/20220830/xdebug.so /tmp/php8.3_extensions
       - uses: shivammathur/setup-php@develop
         with:
           php-version: 8.3
           coverage: xdebug
-      - run: php -v
+      - run: php -v && php -m
            
