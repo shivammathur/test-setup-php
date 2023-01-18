@@ -6,13 +6,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-systems: [ubuntu-latest, windows-latest, macos-latest]
+        operating-systems: [ubuntu-latest]
     steps:
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@develop
         with:
-          php-version: 8.2
-          tools: composer:2.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: php -v && composer -V    
+          php-version: 8.3
+          coverage: xdebug
+      - run: php -v
+      - run: rm /usr/lib/php/20220830/xdebug.so
+      - uses: shivammathur/setup-php@develop
+        with:
+          php-version: 8.3
+          coverage: xdebug
+      - run: php -v
            
