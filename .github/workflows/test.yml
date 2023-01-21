@@ -1,24 +1,13 @@
 name: Test workflow
 on: [push]
 jobs:
-  run:
-    runs-on: ${{ matrix.operating-systems }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-systems: [ubuntu-latest]
+  test:
+    runs-on: ubuntu-latest
+    container: setupphp/node@sha256:32a6c9fc7882993822650c62ef8f8cb5202a2827f92c07687d68cfc80140c849
     steps:
-      - uses: shivammathur/setup-php@develop
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.3
-          coverage: xdebug
-      - run: php -v && php -m
-      - run: |
-          sudo phpdismod -v 8.3 xdebug
-          sudo rm -rf /usr/lib/php/20220830/xdebug.so /tmp/php8.3_extensions
-      - uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.3
-          coverage: xdebug
+          php-version: 8.1
       - run: php -v && php -m
            
