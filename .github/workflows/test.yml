@@ -6,24 +6,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['7.4', '8.0', '8.1', '8.2']
-        operating-systems: [ubuntu-latest, macos-latest]
+        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
+        operating-systems: [ubuntu-latest, windows-latest, macos-latest]
     steps: 
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: relay-0.4.6
-        env:
-          RELAY_KEY: 1234
-          RELAY_ENVIRONMENT: development
-          RELAY_EVICTION_POLICY: lru
-          RELAY_MAX_MEMORY: 256M
+          extensions: zephir_parser
 
       - name: Check PHP version
         run: php -v
 
       - name: Check PHP extensions
         run: |
-          php --ri relay
+          php --ri zephir_parser
           php -m
