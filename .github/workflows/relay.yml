@@ -1,0 +1,32 @@
+name: OpenSSL Windows Workflow
+on:
+  push:
+jobs:
+  run:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-latest, macos-latest]
+        php: [7.4, 8.0, 8.1, 8.2]
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: relay
+        env:
+          RELAY_KEY: 1234
+          RELAY_ENVIRONMENT: development
+          RELAY_EVICTION_POLICY: lru
+          RELAY_MAX_MEMORY: 256M
+
+      - name: Check PHP
+        run: |
+          php -v
+          php -m     
+
+      - name: Check OpenSSL config
+        run: |
+          php -r "if(! extension_loaded('relay')) {throw new Exception('relay not found');}"
+          php --ri relay
