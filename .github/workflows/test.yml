@@ -6,43 +6,7 @@ jobs:
     steps:
       - run: |
           $url='https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-win64.zip'
-          try {
-            Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
-          } catch {
-            echo 'catch'
-            [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
-            Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
-          }
-          $url='https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-win64.zip'
-          try {
-            Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
-          } catch {
-            echo 'catch'
-            [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
-            Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
-          }
-          $url='https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-win64.zip'
-          try {
-            Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
-          } catch {
-            echo 'catch'
-            [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
-            Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
-          }
-          $url='https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-win64.zip'
-          try {
-            Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
-          } catch {
-            echo 'catch'
-            [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
-            Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
-          }
-          $url='https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-win64.zip'
-          try {
-            Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
-          } catch {
-            echo 'catch'
-            [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls"
-            Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
-          }
-           
+          Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
+          Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
+          Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
+          Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
