@@ -2,12 +2,13 @@ name: Test workflow
 on: [push]
 jobs:
   test:
-    runs-on: ubuntu-latest
-    container: setupphp/node@sha256:32a6c9fc7882993822650c62ef8f8cb5202a2827f92c07687d68cfc80140c849
+    runs-on: windows-latest  
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.1
-      - run: php -v && php -m
+      - run: |
+          $url='https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-win64.zip'
+          Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
+          Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
+          Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
+          Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
+          Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
            
