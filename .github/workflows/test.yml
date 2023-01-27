@@ -2,11 +2,11 @@ name: Test workflow
 on: [push]
 jobs:
   test:
+    strategy:
+      matrix:
+        runs: [1,1,1,1,1,1,1,1,1,1]
     runs-on: windows-latest  
     steps:
       - run: |
           $url='https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-win64.zip'
-          Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
-          Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
-          Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
           Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
