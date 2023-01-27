@@ -1,12 +1,50 @@
-name: Test workflow
-on: [push]
+name: Relay Workflow
+on:
+  push:
+env:
+  key: cache-v2-1632086188
+  extensions: relay
 jobs:
-  test:
+  run:
+    runs-on: ${{ matrix.operating-system }}
     strategy:
+      fail-fast: false
       matrix:
-        runs: [1,1,1,1,1,1,1,1,1,1]
-    runs-on: windows-latest  
+        operating-system: [ubuntu-latest, macos-latest]
+        php-versions: [7.4, 8.0, 8.1, 8.2]
     steps:
-      - run: |
-          $url='https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protoc-21.12-win64.zip'
-          Invoke-WebRequest -Uri $url -OutFile C:\tools\php\protoc.zip
+      - name: Setup cache environment
+        id: extcache
+        uses: shivammathur/cache-extensions@v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.extensions }}
+          key: ${{ env.key }}
+
+      - name: Cache extensions
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.extensions }}
+        env:
+          RELAY_KEY: 1234
+          RELAY_ENVIRONMENT: development
+          RELAY_EVICTION_POLICY: lru
+          RELAY_MAX_MEMORY: 256M
+      
+      - uses: mxschmitt/action-tmate@v3.14 
+
+      - name: Check PHP
+        run: |
+          php -v
+          php -m     
+      - name: Check Relay
+        run: |
+          php -r "if(! extension_loaded('relay')) {throw new Exception('relay not found');}"
+          php --ri relay
