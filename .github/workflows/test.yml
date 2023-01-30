@@ -6,14 +6,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
-        operating-systems: [ubuntu-latest, windows-latest, macos-latest]
+        php-versions: ['8.3']
+        operating-systems: [macos-latest]
     steps: 
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: sqlsrv
 
       - name: Check PHP version
         run: php -v
