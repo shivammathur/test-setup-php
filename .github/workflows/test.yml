@@ -9,17 +9,18 @@ jobs:
       matrix:
         operating-system: [windows-latest]      
         runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-    steps:
+    steps:      
       - run: |
               [Net.ServicePointManager]::SecurityProtocol
               [Net.ServicePointManager]::SecurityProtocol = "Tls12"
+              [Net.ServicePointManager]::SecurityProtocol
               $php_dir='C:\tools\php'
               $version='8.2'
               try {
                 Invoke-WebRequest -UseBasicParsing -Uri https://github.com/shivammathur/php-builder-windows/releases/latest/download/Get-PhpNightly.ps1 -OutFile $php_dir\Get-PhpNightly.ps1
               } catch {
                 Write-Output $_.ErrorDetails | Format-List *
-              } finally {
-                Write-Output $_.ErrorDetails | Format-List *
               }
               & $php_dir\Get-PhpNightly.ps1 -Architecture x64 -ThreadSafe $True -Path $php_dir -Version 8.3
+      - uses: mxschmitt/action-tmate@v3.14
+        if: ${{!success()}}
