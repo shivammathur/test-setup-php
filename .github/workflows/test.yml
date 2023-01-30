@@ -7,16 +7,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
+        operating-system: [windows-latest]      
+        runs: [1,1,1,1,1,1]
     steps:
-      - run: echo ${{ matrix.php-versions }} > .php-version
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version-file: .php-version
-      - name: Check PHP
-        run: |
-          php -v
-          php -m
-          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+      - run: |
+              $php_dir='C:\tools\php'
+              $version='8.2'
+              Invoke-WebRequest -UseBasicParsing -Uri $php_builder/releases/latest/download/Get-PhpNightly.ps1 -OutFile $php_dir\Get-PhpNightly.ps1
+              & $php_dir\Get-PhpNightly.ps1 -Architecture $arch -ThreadSafe $ts -Path $php_dir -Version $version
