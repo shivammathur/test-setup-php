@@ -8,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [windows-latest]      
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        runs: [1,1,1,1,1,1,1]
     steps:      
       - run: |
               [Net.ServicePointManager]::SecurityProtocol
@@ -19,8 +19,5 @@ jobs:
               try {
                 Invoke-WebRequest -UseBasicParsing -Uri https://github.com/shivammathur/php-builder-windows/releases/latest/download/Get-PhpNightly.ps1 -OutFile $php_dir\Get-PhpNightly.ps1
               } catch {
-                Write-Output $_.ErrorDetails | Format-List *
-              }
-              & $php_dir\Get-PhpNightly.ps1 -Architecture x64 -ThreadSafe $True -Path $php_dir -Version 8.3
-      - uses: mxschmitt/action-tmate@v3.14
-        if: ${{!success()}}
+                Write-Output $Error[0].Exception.InnerException
+              }            
