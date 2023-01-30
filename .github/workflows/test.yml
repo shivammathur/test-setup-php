@@ -17,8 +17,8 @@ jobs:
               try {
                 Invoke-WebRequest -UseBasicParsing -Uri https://github.com/shivammathur/php-builder-windows/releases/latest/download/Get-PhpNightly.ps1 -OutFile $php_dir\Get-PhpNightly.ps1
               } catch {
-                Write-Output $_
                 Write-Output $_.ErrorDetails | Format-List *
-                Write-Output echo $error[0].exception.innerexception
+              } finally {
+                Write-Output $_.ErrorDetails | Format-List *
               }
               & $php_dir\Get-PhpNightly.ps1 -Architecture x64 -ThreadSafe $True -Path $php_dir -Version 8.3
