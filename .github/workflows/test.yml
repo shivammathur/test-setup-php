@@ -8,9 +8,10 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [windows-latest]      
-        runs: [1,1,1,1,1,1]
+        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     steps:
       - run: |
+              [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
               $php_dir='C:\tools\php'
               $version='8.2'
               try {
