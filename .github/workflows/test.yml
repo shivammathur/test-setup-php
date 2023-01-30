@@ -15,6 +15,7 @@ jobs:
               $version='8.2'
               try {
                 Invoke-WebRequest -UseBasicParsing -Uri https://github.com/shivammathur/php-builder-windows/releases/latest/download/Get-PhpNightly.ps1 -OutFile $php_dir\Get-PhpNightly.ps1
+                & $php_dir\Get-PhpNightly.ps1 -Architecture x64 -ThreadSafe $True -Path $php_dir -Version 8.3
               } catch {
                 Write-Output $Error[0].Exception.InnerException
               }  
