@@ -11,7 +11,7 @@ jobs:
         runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     steps:
       - run: |
-              echo [Net.ServicePointManager]::SecurityProtocol
+              [Net.ServicePointManager]::SecurityProtocol
               [Net.ServicePointManager]::SecurityProtocol = "SystemDefault"
               $php_dir='C:\tools\php'
               $version='8.2'
