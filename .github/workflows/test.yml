@@ -1,50 +1,22 @@
-name: Relay Workflow
+name: Runner Workflow
 on:
   push:
-env:
-  key: cache-v2-1632086188
-  extensions: relay
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, macos-latest]
-        php-versions: [7.4, 8.0, 8.1, 8.2]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
     steps:
-      - name: Setup cache environment
-        id: extcache
-        uses: shivammathur/cache-extensions@v1
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-          key: ${{ env.key }}
-
-      - name: Cache extensions
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.extcache.outputs.dir }}
-          key: ${{ steps.extcache.outputs.key }}
-          restore-keys: ${{ steps.extcache.outputs.key }}
+      - run: echo ${{ matrix.php-versions }} > .phpenv-version
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-        env:
-          RELAY_KEY: 1234
-          RELAY_ENVIRONMENT: development
-          RELAY_EVICTION_POLICY: lru
-          RELAY_MAX_MEMORY: 256M
-      
-      - uses: mxschmitt/action-tmate@v3.14 
-
+          php-version-file: .phpenv-version
       - name: Check PHP
         run: |
           php -v
-          php -m     
-      - name: Check Relay
-        run: |
-          php -r "if(! extension_loaded('relay')) {throw new Exception('relay not found');}"
-          php --ri relay
+          php -m
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
