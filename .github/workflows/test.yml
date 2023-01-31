@@ -17,7 +17,10 @@ jobs:
               
               $php_dir='C:\tools\php'
               $version='8.3'
-              
-              Invoke-WebRequest -UseDefaultCredentials -Uri https://github.com/shivammathur/php-builder-windows/releases/latest/download/Get-PhpNightly.ps1 -OutFile $php_dir\Get-PhpNightly.ps1
-              & $php_dir\Get-PhpNightly.ps1 -Architecture x64 -ThreadSafe $True -Path $php_dir -Version 8.3
-              Write-Output $Error[0].Exception.InnerException
+              try {
+                Invoke-WebRequest -UseDefaultCredentials -Uri https://github.com/shivammathur/php-builder-windows/releases/latest/download/Get-PhpNightly.ps1 -OutFile $php_dir\Get-PhpNightly.ps1
+                & $php_dir\Get-PhpNightly.ps1 -Architecture x64 -ThreadSafe $True -Path $php_dir -Version 8.3
+              } catch {
+                Write-Output $Error[0].Exception.InnerException
+                throw $_
+              }
