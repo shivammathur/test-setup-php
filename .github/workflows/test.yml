@@ -11,7 +11,7 @@ jobs:
         runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     steps:      
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         env:
           php-version: 8.3
 
