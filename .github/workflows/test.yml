@@ -11,10 +11,9 @@ jobs:
         runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     steps:      
       - run: |
-              $php_dir='C:\tools\php'
-              $version='8.3'
               try {
-                Invoke-WebRequest -Uri https://github.com/shivammathur/php-builder-windows/releases/latest/download/Get-PhpNightly.ps1 -OutFile $php_dir\Get-PhpNightly.ps1              
+                Invoke-WebRequest -Uri "https://github.com/obsproject/obs-deps/releases/download/2023-01-06/windows-deps-qt6-2023-01-06-x64.zip" -UseBasicParsing -OutFile "x64.zip"
+                Invoke-WebRequest -Uri "https://github.com/obsproject/obs-deps/releases/download/2023-01-06/windows-deps-qt6-2023-01-06-x86.zip" -UseBasicParsing -OutFile "x86.zip"
               } catch {
                 Write-Output $Error[0].Exception.InnerException
                 throw $_
