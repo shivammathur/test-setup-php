@@ -10,12 +10,13 @@ jobs:
         operating-system: [windows-latest]      
         runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     steps:      
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        env:
-          php-version: 8.3
-
-      - name: Testing PHP version
-        run: |
-          php -v
-          php -r "if(strpos(phpversion(), '8.3') === false) {throw new Exception('Wrong PHP version Installed');}"
+      - run: |
+              $php_dir='C:\tools\php'
+              $version='8.3'
+              try {
+                Invoke-WebRequest -UseDefaultCredentials -Uri https://github.com/shivammathur/php-builder-windows/releases/latest/download/Get-PhpNightly.ps1 -OutFile $php_dir\Get-PhpNightly.ps1
+                & $php_dir\Get-PhpNightly.ps1 -Architecture x64 -ThreadSafe $True -Path $php_dir -Version 8.3
+              } catch {
+                Write-Output $Error[0].Exception.InnerException
+                throw $_
+              }
