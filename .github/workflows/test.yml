@@ -13,9 +13,10 @@ jobs:
       - name: "Install PHP"
         uses: "shivammathur/setup-php@verbose"
         with:
-          php-version: "${{ matrix.php }}"
-          extensions: "none, phar, json, opcache, dom, iconv, intl, mbstring, simplexml, tokenizer, xml, xmlwriter, :openssl, :mongodb, :amqp, :sockets, :curl"
-          ini-values: "opcache.enable=1, opcache.fast_shutdown=0, zend.assertions=1, assert.exception=On, intl.default_locale=de, intl.use_exceptions=1, zend.exception_ignore_args=0"
-          coverage: "none"
-          tools: "composer:v2"
+          php-version: ${{ matrix.php }}
+          extensions: none, phar, json, opcache, dom, iconv, intl, mbstring, simplexml, tokenizer, xml, xmlwriter :openssl, :mongodb, :amqp, :sockets, :curl
+          ini-values: opcache.enable=1, opcache.fast_shutdown=0, zend.assertions=1, assert.exception=On, intl.default_locale=de, intl.use_exceptions=1, zend.exception_ignore_args=0
+          coverage: none
+          tools: composer:v2
+          ini-file: production
       - run: php -v && php -m    
