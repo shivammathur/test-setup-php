@@ -1,22 +1,23 @@
-name: Runner Workflow
+name: Debug
 on:
   push:
 jobs:
-  run:
-    runs-on: ${{ matrix.operating-system }}
+  phpunit-tests:
+    name: PHPUnit Tests (PHP ${{ matrix.php-versions }})
+    runs-on: ubuntu-20.04
+    container: shivammathur/node:focal-slim
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-22.04]
-        php: [8.1, 8.2]
-    steps:      
-      - name: "Install PHP"
-        uses: "shivammathur/setup-php@develop"
+        php-versions: ['8.0']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@verbose
+      - name: Setup PHP, extensions and composer with shivammathur/setup-php
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
-          extensions: none, phar, json, opcache, dom, iconv, intl, mbstring, simplexml, tokenizer, xml, xmlwriter :openssl, :mongodb, :amqp, :sockets, :curl
-          ini-values: opcache.enable=1, opcache.fast_shutdown=0, zend.assertions=1, assert.exception=On, intl.default_locale=de, intl.use_exceptions=1, zend.exception_ignore_args=0
-          coverage: none
+          php-version: ${{ matrix.php-versions }}
+          extensions: mbstring, intl, zip, json, pdo, imagick, bcmath, redis, apcu, gd, mysql
           tools: composer:v2
-          ini-file: production
-      - run: php -v && php -m    
+        env:
+          update: true
