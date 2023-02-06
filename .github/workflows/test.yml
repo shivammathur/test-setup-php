@@ -12,12 +12,13 @@ jobs:
         php-versions: ['8.0']
     steps:
       - name: Checkout
-        uses: actions/checkout@verbose
+        uses: actions/checkout@v2
       - name: Setup PHP, extensions and composer with shivammathur/setup-php
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: mbstring, intl, zip, json, pdo, imagick, bcmath, redis, apcu, gd, mysql
           tools: composer:v2
         env:
           update: true
+      - run: php -v && php -m
