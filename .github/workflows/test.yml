@@ -10,13 +10,10 @@ jobs:
         operating-system: [windows-latest]      
         runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     steps:
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.2
       - run: |
               try {
-                Set-NetSecurityProtocolType
-                Invoke-WebRequest -UseBasicParsing -Uri https://curl.haxx.se/ca/cacert.pem.sha256
+                [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 + [Net.SecurityProtocolType]::Tls11 + [Net.SecurityProtocolType]::Tls
+                Invoke-WebRequest -UseBasicParsing -Uri https://curl.haxx.se/ca/cacert.pem.sha256 -Outfile cacert.pem
               } catch {
                 Write-Output $Error[0].Exception.InnerException
                 throw $_
