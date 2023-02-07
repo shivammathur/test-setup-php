@@ -12,9 +12,8 @@ jobs:
     steps:
       - run: |
               try {
-                [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 + [Net.SecurityProtocolType]::Tls11 + [Net.SecurityProtocolType]::Tls
-                Invoke-WebRequest -UseBasicParsing -Uri https://curl.haxx.se/ca/cacert.pem.sha256 -Outfile cacert.pem
+                Install-Module -Name PhpManager -Repository PSGallery -Force
+                Update-PhpCAInfo -Verbose -Path C:\tools\php -Source Curl
               } catch {
-                Write-Output $Error[0].Exception.InnerException
                 throw $_
               }
