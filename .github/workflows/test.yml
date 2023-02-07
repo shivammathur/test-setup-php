@@ -17,6 +17,7 @@ jobs:
               Update-PhpCAInfo -Verbose -Path C:\tools\php -Source Curl
             } catch {                            
               Get-Error -Newest 1
+              Write-Output $Error[0].Exception
               Write-Output $Error[0].Exception.InnerException
               throw $_
             }
