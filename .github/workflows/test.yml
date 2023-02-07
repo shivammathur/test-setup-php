@@ -1,24 +1,23 @@
-name: Debug
+name: Runner Workflow
 on:
   push:
 jobs:
-  phpunit-tests:
-    name: PHPUnit Tests (PHP ${{ matrix.php-versions }})
-    runs-on: ubuntu-20.04
-    container: shivammathur/node:focal-slim
+  run:
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['8.0']
+        operating-system: [windows-latest]      
+        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup PHP, extensions and composer with shivammathur/setup-php
-        uses: shivammathur/setup-php@verbose
+      - uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, intl, zip, json, pdo, imagick, bcmath, redis, apcu, gd, mysql
-          tools: composer:v2
-        env:
-          update: true
-      - run: php -v && php -m
+          php-version: 8.2
+      - run: |
+              try {
+                Set-NetSecurityProtocolType
+                Invoke-WebRequest -UseBasicParsing -Uri https://curl.haxx.se/ca/cacert.pem.sha256
+              } catch {
+                Write-Output $Error[0].Exception.InnerException
+                throw $_
+              }
