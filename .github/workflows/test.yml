@@ -16,9 +16,9 @@ jobs:
               Get-InstalledModule PhpManager
               Update-PhpCAInfo -Verbose -Path C:\tools\php -Source Curl
             } catch {                            
-              Write-Output "Exception Errorcode: " + $Error[0].Exception.ErrorCode
-              Write-Output "Inner Exception Errorcode: " + $Error[0].Exception.InnerException.ErrorCode
-              Write-Output "Errorcode: " + $_.Errorcode
+              Write-Output ("Exception Errorcode: " + $Error[0].Exception.ErrorCode)
+              Write-Output ("Inner Exception Errorcode: " + $Error[0].Exception.InnerException.ErrorCode)
+              Write-Output ("Errorcode: " + $_.Errorcode)
 
               Write-Output $Error[0].Exception.InnerException
               throw $_
