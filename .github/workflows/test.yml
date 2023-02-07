@@ -8,16 +8,18 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [windows-latest]      
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        runs: [1,1,1,1,1,1,1,1]
     steps:
       - run: |
             try {
               Install-Module -Name PhpManager -Repository PSGallery -Force
               Get-InstalledModule PhpManager
               Update-PhpCAInfo -Verbose -Path C:\tools\php -Source Curl
-            } catch {
+            } catch {              
+              Write-Output "Errocode: $_.Errorcode"
+              Write-Output "Exception Errorcode: $Error[0].Exception.ErrorCode"
+              Write-Output "Inner Exception Errorcode: $Error[0].Exception.InnerException.ErrorCode"
+
               Write-Output $Error[0].Exception.InnerException
-              Write-Output "Exception Errorcode $Error[0].Exception.ErrorCode"
-              Write-Output "Inner Exception Errorcode $Error[0].Exception.InnerException.ErrorCode"
               throw $_
             }
