@@ -14,9 +14,10 @@ jobs:
             try {
               Install-Module -Name PhpManager -Repository PSGallery -Force
               Get-InstalledModule PhpManager
-              Update-PhpCAInfo -Verbose -Path C:\tools\php -Source Curl
+              Get-WebResource -Uri https://curl.haxx.se/ca/cacert.pem
             } catch {
               Write-Output $Error[0].Exception.InnerException
-              Write-Output $_.ErrorCode
+              Write-Output "Exception Errorcode $Error[0].Exception.ErrorCode"
+              Write-Output "Inner Exception Errorcode $Error[0].Exception.InnerException.ErrorCode"
               throw $_
             }
