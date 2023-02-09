@@ -1,22 +1,27 @@
 name: Test ext workflow
 on: [push]
 jobs:
-  run:
-    runs-on: ${{ matrix.operating-systems }}
+  zephir_parser:
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['8.3']
-        operating-systems: [macos-latest]
-    steps: 
+        operating-system: [ubuntu-22.04, windows-latest, macos-latest]
+        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
+        ts: [ts, nts]
+    steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
+          extensions: zephir_parser
+        env:
+          phpts: ${{ matrix.ts }}
 
-      - name: Check PHP version
+      - name: Testing PHP version
         run: php -v
 
-      - name: Check PHP extensions
+      - name: Testing Extensions
         run: |
-          php -m
+          php --ri zephir_parser
+          php -r "if(! extension_loaded('zephir_parser')) {throw new Exception('zephir_parser not found');}" 
