@@ -14,8 +14,6 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: imagick
-        env:
-          update: true
       - name: PHP version
         run: php -v
       - name: PHP extensions
