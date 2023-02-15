@@ -13,6 +13,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
+          extensions: igbinary, imagick, msgpack, redis, swoole
         env:
           update: true
       - name: PHP version
