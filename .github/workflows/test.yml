@@ -13,7 +13,11 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: imagick
+      - name: Add imagick
+        run: |
+          brew update
+          brew install imagemagick
+          pecl install -f imagick
       - name: PHP version
         run: php -v
       - name: PHP extensions
