@@ -7,17 +7,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]      
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        operating-system: [macos-latest]
+        php: [8.0, 8.1, 8.2, 8.3]
     steps:
-      - run: |
-            try {
-              Install-Module -Name PhpManager -Repository PSGallery -Force
-              Get-InstalledModule PhpManager
-              Update-PhpCAInfo -Verbose -Path C:\tools\php -Source Curl
-            } catch {                            
-              Get-Error -Newest 1
-              Write-Output $Error[0].Exception
-              Write-Output $Error[0].Exception.InnerException
-              throw $_
-            }
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+        env:
+          update: true
+      - run: php -r "phpinfo();"
