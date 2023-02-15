@@ -15,4 +15,9 @@ jobs:
           php-version: ${{ matrix.php }}
         env:
           update: true
-      - run: php -r "phpinfo();"
+      - name: PHP version
+        run: php -v
+      - name: PHP extensions
+        run: php -m
+      - name: phpinfo
+        run: php -r "phpinfo();"
