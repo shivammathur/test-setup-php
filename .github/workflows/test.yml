@@ -7,20 +7,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
-        php: [8.0, 8.1, 8.2, 8.3]
+        operating-system: [ubuntu-latest]
     steps:
-      - uses: shivammathur/setup-php@v2
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
         with:
-          php-version: ${{ matrix.php }}
-      - name: Add imagick
-        run: |
-          brew update
-          brew install imagemagick
-          pecl install -f imagick
-      - name: PHP version
-        run: php -v
-      - name: PHP extensions
-        run: php -m
-      - name: phpinfo
-        run: php -r "phpinfo();"
+          test-bot: false
+          debug: true
