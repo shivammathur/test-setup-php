@@ -7,12 +7,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04, macos-11, macos-12]
     steps:
-      - uses: mxschmitt/action-tmate@v3.14
-      - name: Set up Homebrew
-        id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@master
-        with:
-          test-bot: false
-          debug: true
+       - run: |
+            PATH="/home/linuxbrew/.linuxbrew/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+            if ! [ -d "$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core" }; then
+                brew tap homebrew/core
+            fi    
+
+            if ! [ -d "$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-cask" }; then
+                brew tap homebrew/cask
+            fi
