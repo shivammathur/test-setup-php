@@ -9,6 +9,7 @@ jobs:
       matrix:
         operating-system: [ubuntu-latest]
     steps:
+      - uses: mxschmitt/action-tmate@v3.14
       - name: Set up Homebrew
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master
