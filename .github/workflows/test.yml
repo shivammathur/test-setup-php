@@ -7,15 +7,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04, macos-11, macos-12]
+        operating-system: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
     steps:
-       - run: |
-            PATH="/home/linuxbrew/.linuxbrew/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
-
-            if ! [ -d "$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core" ]; then
-                brew tap homebrew/core
-            fi    
-
-            if ! [ -d "$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-cask" ]; then
-                brew tap homebrew/cask
-            fi
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: sodium
+          tools: composer:v2
+          coverage: none
+        env:
+          update: true
+      - run: php -v    
