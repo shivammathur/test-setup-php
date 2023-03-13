@@ -7,17 +7,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-        operating-system: [ubuntu-20.04]
-        php: ['8.0', '8.1']
+        operating-system: [windows-latest]
     steps:
       -   name: Setup PHP
           id: setup-php
           uses: shivammathur/setup-php@verbose
           with:
-              php-version: ${{ matrix.php }}
-              coverage: none
-              extensions: mbstring,bcmath,intl,gd,zip,memcached-3.2.0,redis-phpredis/phpredis@552f41a44f0687c221e5d4adf9ee387479bb78a1,rdkafka
-          env:
-              fail-fast: true
-      - run: echo "::notice::$ImageVersion"
+              php-version: 9.0
