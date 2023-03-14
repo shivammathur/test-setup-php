@@ -7,10 +7,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       -   name: Setup PHP
           id: setup-php
-          uses: shivammathur/setup-php@develop
+          uses: shivammathur/setup-php@v2
           with:
-              php-version: 9.0
+              php-version: 8.2
+              tools: composer-unused
