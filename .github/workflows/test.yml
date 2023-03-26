@@ -1,12 +1,34 @@
-name: Runner Workflow
-on:
-  push:
+on: [push]
 jobs:
-  run:
-    runs-on: ${{ matrix.operating-system }}
+  tests:
+    runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
+        include:
+          - php: '8.3'
+            extensions: amqp, apcu, ast, couchbase, event, expect, gnupg, grpc, igbinary, imagick, imap, mailparse, mcrypt, memcache, memcached, mongodb, msgpack, pecl_http, protobuf, psr, raphf, rdkafka, redis, ssh2, swoole, vips, xdebug, yaml, xlswriter, zmq, pcov
     steps:
-      - uses: mxschmitt/action-tmate@v3.14
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup PHP
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.extensions }}
+      - name: Testing PHP version
+        continue-on-error: true
+        run: |
+          php -v && php -m
+      - name: Testing Extension
+        continue-on-error: true
+        run: |
+          mv  $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/*.ini /tmp
+          for ini_file in /tmp/*.ini; do
+            cp /tmp/*igbinary.ini /tmp/*msgpack.ini /tmp/*raphf.ini $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/;
+            echo $ini_file;
+            cp $ini_file  $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/;
+            php -v || true;
+            echo $?
+            rm $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/*.ini;
+          done 
