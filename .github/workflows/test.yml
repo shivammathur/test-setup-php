@@ -7,7 +7,7 @@ jobs:
       matrix:
         include:
           - php: '8.3'
-            extensions: amqp, apcu, ast, couchbase, event, expect, gnupg, grpc, igbinary, imagick, imap, mcrypt, memcache, memcached, mongodb, msgpack, pecl_http, protobuf, psr, raphf, rdkafka, redis, ssh2, swoole, vips, xdebug, yaml, xlswriter, zmq, pcov
+            extensions: amqp, apcu, ast, couchbase, event, expect, gnupg, grpc, igbinary, imagick, imap, mcrypt, memcache, memcached, mongodb, msgpack, pecl_http, protobuf, psr, raphf, rdkafka, redis, ssh2, swoole, vips, yaml, xlswriter, zmq, pcov
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -25,7 +25,7 @@ jobs:
         run: |
           mv  $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/*.ini /tmp
           for ini_file in /tmp/*.ini; do
-            cp /tmp/*xdebug.ini /tmp/*igbinary.ini /tmp/*msgpack.ini /tmp/*raphf.ini $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/;
+            cp /tmp/*igbinary.ini /tmp/*msgpack.ini /tmp/*raphf.ini $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/;
             echo $ini_file;
             cp $ini_file  $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/;
             php -r "if(strpos(phpversion(), '8.3') === false) {throw new Exception('Wrong PHP version Installed');}" || true;
