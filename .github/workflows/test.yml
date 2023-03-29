@@ -1,13 +1,13 @@
 on: [push]
 jobs:
   tests:
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - php: '8.3'
-            extensions: amqp, apcu, ast, couchbase, event, expect, gnupg, grpc, igbinary, imagick, imap, mcrypt, memcache, memcached, mongodb, msgpack, pecl_http, protobuf, psr, raphf, rdkafka, redis, ssh2, swoole, vips, yaml, xlswriter, zmq, pcov
+        php: [5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3]
+        os: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
+        runs: [1,1,1,1,1,1,1,1]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -15,20 +15,8 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: ${{ matrix.extensions }}
       - name: Testing PHP version
         continue-on-error: true
         run: |
+          sudo apt-get check || exit 1
           php -v && php -m
-      - name: Testing Extension
-        continue-on-error: true
-        run: |
-          mv  $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/*.ini /tmp
-          for ini_file in /tmp/*.ini; do
-            cp /tmp/*igbinary.ini /tmp/*msgpack.ini /tmp/*raphf.ini $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/;
-            echo $ini_file;
-            cp $ini_file  $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/;
-            php -r "if(strpos(phpversion(), '8.3') === false) {throw new Exception('Wrong PHP version Installed');}" || true;
-            echo $?
-            rm $(brew --prefix)/etc/php/${{ matrix.php }}/conf.d/*.ini;
-          done 
