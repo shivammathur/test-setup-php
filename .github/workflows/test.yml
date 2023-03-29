@@ -16,5 +16,5 @@ jobs:
           php-version: ${{ matrix.php }}
       - name: Testing PHP version
         run: |
-          sudo apt-get check || exit 1
+          sudo apt-get check
           php -v && php -m
