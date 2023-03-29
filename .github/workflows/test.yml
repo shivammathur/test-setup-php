@@ -7,7 +7,7 @@ jobs:
       matrix:
         php: [5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3]
         os: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
-        runs: [1,1,1,1,1,1,1,1,1,1]
+        runs: [1,1,1,1,1,1]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
