@@ -5,8 +5,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: [7.4, 8.0, 8.1, 8.2, 8.3]
-        os: [ubuntu-22.04]
+        php: [8.3]
+        os: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -19,3 +19,5 @@ jobs:
         run: |
           php -r "echo phpversion('relay');"
           php -v && php -m
+      - uses: mxschmitt/action-tmate@v3.14
+    
