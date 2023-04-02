@@ -7,19 +7,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-18.04]
+        operating-system: [ubuntu-22.04]
         php-versions: ['8.1']
-        debug: [false, true]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
       - name: Install PHP
         id: setup-php
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata, dsn=mysql:host=127.0.0.1"
-        env:
-          debug: ${{ matrix.debug }}
-      - uses: mxschmitt/action-tmate@v3.14
+          extensions: mcrypt
+      - run: php -v && php -m
