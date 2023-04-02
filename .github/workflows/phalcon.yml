@@ -81,12 +81,15 @@ jobs:
       matrix:
         operating-system: [ubuntu-22.04, windows-latest, macos-latest]
         php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
+        phpts: [nts, ts]
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: zephir_parser
+        env:
+          phpts: ${{ matrix.phpts }}
 
       - name: Testing PHP version
         run: php -v
