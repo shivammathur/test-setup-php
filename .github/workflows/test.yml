@@ -7,9 +7,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-22.04]
-        php-versions: ['8.1']
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1]
+        operating-system: [ubuntu-22.04, ubuntu-20.04, ubuntu-18.04]
+        php-versions: ['5.6']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Install PHP
@@ -17,7 +16,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: mcrypt
+          extensions: blackfire
       - run: |
           php -r "if(! extension_loaded('mcrypt')) {throw new Exception('mcrypt not found');}"
           php -v && php -m
