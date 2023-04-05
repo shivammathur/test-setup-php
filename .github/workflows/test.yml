@@ -20,9 +20,6 @@ jobs:
         run: |
           echo $(php -i | grep 'Openssl default' | cut -d'>' -f 2)
           cat $(php -i | grep 'Openssl default' | cut -d'>' -f 2)
-      - name: Fix
-        run: |
-          sudo chmod 777 $(php -i | grep 'Openssl default' | cut -d'>' -f 2)
       - name: Test
         shell: php {0}
         run: |
@@ -30,7 +27,7 @@ jobs:
           $res = \openssl_pkey_new([
               'digest_alg' => 'sha512',
               'private_key_bits' => 2048,
-              'private_key_type' => OPENSSL_KEYTYPE_DSA,
+              'private_key_type' => OPENSSL_KEYTYPE_RSA,
           ]);
           if($res) {
             \openssl_pkey_export($res, $keyContent, 'mystrongpassword');
