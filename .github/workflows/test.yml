@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-22.04]
+        operating-system: [ubuntu-22.04, ubuntu-20.04]
         php-versions: ['7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
@@ -16,6 +16,8 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
+      - name: Output openssl.cnf
+        run: cat $(php -i | grep 'Openssl default' | cut -d'>' -f 2)
       - name: Test
         shell: php {0}
         run: |
