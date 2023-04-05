@@ -26,4 +26,4 @@ jobs:
               'private_key_type' => OPENSSL_KEYTYPE_DSA,
           ]);
           \openssl_pkey_export($res, $keyContent, 'mystrongpassword');
-          var_dump($keyContent)
+          var_dump($keyContent);
