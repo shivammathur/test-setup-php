@@ -17,7 +17,12 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
       - name: Output openssl.cnf
-        run: cat $(php -i | grep 'Openssl default' | cut -d'>' -f 2)
+        run: |
+          echo $(php -i | grep 'Openssl default' | cut -d'>' -f 2)
+          cat $(php -i | grep 'Openssl default' | cut -d'>' -f 2)
+      - name: Fix
+        run: |
+          echo "RANDFILE		= $ENV::HOME/.rnd" >> $(php -i | grep 'Openssl default' | cut -d'>' -f 2)
       - name: Test
         shell: php {0}
         run: |
