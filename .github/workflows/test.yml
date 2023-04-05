@@ -25,5 +25,9 @@ jobs:
               'private_key_bits' => 2048,
               'private_key_type' => OPENSSL_KEYTYPE_DSA,
           ]);
-          \openssl_pkey_export($res, $keyContent, 'mystrongpassword');
-          var_dump($keyContent);
+          if($res) {
+            \openssl_pkey_export($res, $keyContent, 'mystrongpassword');
+            var_dump($keyContent);
+          } else {
+            var_dump(openssl_error_string());
+          }
