@@ -16,22 +16,8 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-      - name: Output openssl.cnf
+      - name: Test iconv
         run: |
-          echo $(php -i | grep 'Openssl default' | cut -d'>' -f 2)
-          cat $(php -i | grep 'Openssl default' | cut -d'>' -f 2)
-      - name: Test
-        shell: php {0}
-        run: |
-          <?php
-          $res = \openssl_pkey_new([
-              'digest_alg' => 'sha512',
-              'private_key_bits' => 2048,
-              'private_key_type' => OPENSSL_KEYTYPE_DSA,
-          ]);
-          if($res) {
-            \openssl_pkey_export($res, $keyContent, 'mystrongpassword');
-            var_dump($keyContent);
-          } else {
-            var_dump(openssl_error_string());
-          }
+          php -i | grep iconv
+          php -v
+          php -m
