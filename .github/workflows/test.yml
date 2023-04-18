@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: Install PHP
         id: setup-php
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: event
