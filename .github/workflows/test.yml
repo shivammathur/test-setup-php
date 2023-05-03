@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
           extensions: memcache-8.2
@@ -24,4 +24,5 @@ jobs:
           php -r "echo phpversion('memcache');"
           php -v
           php -m
+      - uses: mxschmitt/action-tmate@v3.14    
       
