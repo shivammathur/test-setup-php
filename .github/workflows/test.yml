@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   tests:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: true
@@ -15,7 +15,13 @@ jobs:
 
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: dom, curl, libxml, mbstring, zip, fileinfo
+          extensions: memcache:8.2
+      - name: Test
+        run: |
+          php -r "echo phpversion('memcache');"
+          php -v
+          php -m
+      
