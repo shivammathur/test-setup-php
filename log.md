@@ -45,3 +45,4 @@
 - Test 2.23.0 release.
 - Test 2.24.0 release.
 - Test 2.25.0 release.
+- Test 2.25.2 release.
