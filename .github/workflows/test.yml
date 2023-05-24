@@ -9,18 +9,16 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        php: ['7.1', '7.1', '7.1', '7.1', '7.1', '7.1', '7.1', '7.1', '7.1', '7.1', '7.1', '7.1']
+        php: ['8.2']
 
     name: PHP ${{ matrix.php }}
 
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          coverage: xdebug
-          extensions: gd, imagick
-          ini-file: production
+          extensions: memcache:8.2
       - name: Test
         run: |
           php -v
