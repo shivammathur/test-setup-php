@@ -12,4 +12,6 @@ jobs:
     name: Runner
 
     steps:
-      - uses: mxschmitt/action-tmate@v3.16
+      - uses: shivammathur/setup-php@verbose
+        with:
+          extensions: scoutapm
