@@ -12,6 +12,7 @@ jobs:
     name: Runner
 
     steps:
-      - uses: shivammathur/setup-php@verbose
+      - uses: shivammathur/setup-php@develop
         with:
           extensions: scoutapm
+      - run: php -v && php -m
