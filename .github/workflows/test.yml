@@ -20,3 +20,5 @@ jobs:
           coverage: "none"
         env:
           debug: true
+          phpts: ts
+      - run: php -v && php -m     
