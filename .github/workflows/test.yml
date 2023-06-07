@@ -12,7 +12,12 @@ jobs:
     name: Runner
 
     steps:
-      - uses: shivammathur/setup-php@develop
+      - name: "Install PHP"
+        uses: "shivammathur/setup-php@verbose"
         with:
-          extensions: psr-1.2.0
-      - run: php -v && php -m
+          php-version: "latest"
+          extensions: "intl-73.1"
+          coverage: "none"
+        env:
+          debug: true
+          phpts: "ts"
