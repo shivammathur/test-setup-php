@@ -21,5 +21,6 @@ jobs:
           coverage: none
           ini-values: swoole.use_shortname=Off
         env:
+          SWOOLE_LIBS: libc-ares-dev
           SWOOLE_CONFIGURE_OPTS: --enable-openssl --enable-swoole-curl --enable-cares --enable-swoole-pgsql --enable-brotli
       - run: php -v && php -m     
