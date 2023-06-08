@@ -12,13 +12,14 @@ jobs:
     name: Runner
 
     steps:
-      - name: "Install PHP"
-        uses: "shivammathur/setup-php@develop"
+      - name: Setup PHP
+        uses: shivammathur/setup-php@verbose
         with:
-          php-version: "latest"
-          extensions: "intl-73.1"
-          coverage: "none"
+          php-version: 8.1
+          extensions: redis, pdo, pdo_mysql, bcmath, swoole-5.0.3
+          tools: phpize
+          coverage: none
+          ini-values: swoole.use_shortname=Off
         env:
-          debug: true
-          phpts: ts
+          SWOOLE_CONFIGURE_OPTS: --enable-openssl --enable-swoole-curl --enable-cares --enable-swoole-pgsql --enable-brotli
       - run: php -v && php -m     
