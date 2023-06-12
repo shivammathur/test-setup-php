@@ -15,11 +15,6 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.1
-          tools: phpunit:9
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.1
-          tools: phpunit:9
+          php-version: 7.3
+          tools: phpunit
       - run: php -v && phpunit --version
