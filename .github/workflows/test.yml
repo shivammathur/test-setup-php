@@ -17,4 +17,5 @@ jobs:
         with:
           php-version: 8.1
           tools: composer:'2.4'
+          ini-values: error_reporting=E_ALL & ~E_DEPRECATED, xdebug.mode='a,b', pcov.directory=/home/runner, pcov.exclude="~(.tests|vendor)~"
       - run: php -v && php -m     
