@@ -18,4 +18,4 @@ jobs:
           php-version: 8.1
           tools: composer:'2.4'
           ini-values: error_reporting=E_ALL & ~E_DEPRECATED, xdebug.mode='develop,coverage', pcov.directory=/home/runner, pcov.exclude="~(.tests|vendor)~"
-      - run: php -v && php -m && tail -20 /etc/php/8.1/cli/php.ini
+      - run: php -v && php -m && tail -20 /etc/php/8.1/cli/conf.d/99-pecl.ini
