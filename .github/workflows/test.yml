@@ -3,18 +3,22 @@ name: tests
 on: [push]
 
 jobs:
-  tests:
-    runs-on: ubuntu-20.04
-
+  run:
+    runs-on: ${{ matrix.operating-system }}
+    container: shivammathur/node:latest-${{ matrix.arch }}
     strategy:
-      fail-fast: true
-
-    name: Runner
-
+      matrix:
+        arch: ["amd64", "i386"]
+        operating-system: [ubuntu-latest]
+        php-versions: ['7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
+        php-extensions: ['bcmath', 'gmp']
+    name: "PHP ${{ matrix.php-versions }} (with ${{ matrix.php-extensions }}) test on ${{ matrix.operating-system }}/${{ matrix.arch }}"
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+      - name: Install PHP
+        uses: shivammathur/setup-php@verbose
         with:
-          php-version: 7.1
-          tools: phpunit
+          php-version: ${{ matrix.php-versions }}
+          extensions: "mbstring, intl, ${{ matrix.php-extensions }}"
+          tools: "composer, phpize"
+          coverage: xdebug
       - run: php -v && phpunit --version
