@@ -10,6 +10,13 @@ jobs:
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
     steps:
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 8.1
+          tools: castor
+      - run: |
+          castor -V
       - run: curl -o castor.php -sL https://raw.githubusercontent.com/pyrech/castor-setup-php/main/castor.php
       - name: Install PHP
         uses: shivammathur/setup-php@develop
