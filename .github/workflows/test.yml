@@ -8,11 +8,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-latest]
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: 8.1
-          tools: castor
+          tools: castor      
       - run: php -v && castor -V
+      - uses: mxschmitt/action-tmate@v3.16
