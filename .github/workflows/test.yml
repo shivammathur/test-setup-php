@@ -12,7 +12,8 @@ jobs:
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
-        timeout-minutes: 2
+        timeout-minutes: 1
+        continue-on-error: true
         with:
           php-version: 8.1
           tools: castor
