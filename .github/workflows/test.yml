@@ -8,8 +8,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, macos-latest]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
     steps:
+      - run: curl -o castor.php -sL https://raw.githubusercontent.com/pyrech/castor-setup-php/main/castor.php
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
