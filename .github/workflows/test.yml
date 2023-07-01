@@ -5,15 +5,18 @@ on: [push]
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
+    container: shivammathur/node:latest-${{ matrix.arch }}
     strategy:
-      fail-fast: false
       matrix:
+        arch: ["amd64", "i386"]
         operating-system: [ubuntu-latest]
+        php-versions: ['7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
+        php-extensions: ['bcmath', 'gmp']
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.2
-        env:
-          phpts: ts
-      - run: ls -R /usr/include/php    
+          php-version: ${{ matrix.php-versions }}
+          extensions: "mbstring, intl, ${{ matrix.php-extensions }}"
+          tools: "composer, phpize"
+          coverage: xdebug
