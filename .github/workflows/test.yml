@@ -20,3 +20,5 @@ jobs:
           extensions: "mbstring, intl, ${{ matrix.php-extensions }}"
           tools: "composer, phpize"
           coverage: xdebug
+      - run: |
+          php -r "if(! extension_loaded('${{ matrix.php-extensions }}')) {throw new Exception('${{ matrix.php-extensions }} not found');}"
