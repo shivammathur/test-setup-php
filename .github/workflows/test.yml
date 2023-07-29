@@ -5,20 +5,16 @@ on: [push]
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
-    container: shivammathur/node:latest-${{ matrix.arch }}
     strategy:
       matrix:
-        arch: ["amd64", "i386"]
-        operating-system: [ubuntu-latest]
-        php-versions: ['7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
-        php-extensions: ['bcmath', 'gmp']
+        operating-system: [ubuntu-22.04, ubuntu-20.04, windows-latest, macos-latest]
+        php-versions: ['8.2']
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: "mbstring, intl, ${{ matrix.php-extensions }}"
-          tools: "composer, phpize"
-          coverage: xdebug
+          extensions: none, opcache
       - run: |
-          php -r "if(! extension_loaded('${{ matrix.php-extensions }}')) {throw new Exception('${{ matrix.php-extensions }} not found');}"
+          php -v
+          php -m
