@@ -20,4 +20,6 @@ jobs:
           ini-values:
             apc.enabled=on,
             apc.enable_cli=on
+          env:
+            IMAGICK_LIBS: imagemagick
       - run: php -v && php -m      
