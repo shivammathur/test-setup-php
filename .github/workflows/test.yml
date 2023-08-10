@@ -10,7 +10,7 @@ jobs:
         php-versions: ['8.3']
 
     steps:
-      - run: apt-get install wget -y
+      - run: apt-get update && apt-get install wget -y
       - name: Set up php ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@verbose
         with:
