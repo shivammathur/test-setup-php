@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Set up php ${{ matrix.php-versions }}
-        uses: shivammathur/setup-php@72ae4ccbe57f82bbe08411e84e2130bd4ba1c10f #v2.25.5
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: ctype, curl, dom, fileinfo, gd, imagick, intl, json, mbstring, openssl, pdo_sqlite, posix, sqlite, xml, zip, apcu
