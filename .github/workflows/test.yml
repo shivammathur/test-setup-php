@@ -21,5 +21,5 @@ jobs:
             apc.enabled=on,
             apc.enable_cli=on
         env:
-          IMAGICK_LIBS: libmagickcore-dev libmagickcore-dev
+          IMAGICK_LIBS: libmagickwand-dev libmagickcore-dev
       - run: php -v && php -m      
