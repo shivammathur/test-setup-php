@@ -4,11 +4,19 @@ jobs:
   run:
     strategy:
       matrix:
-        php: ['7.2', '7.3', '7.4', '8.0', '8.1']  
-    runs-on: ubuntu-18.04
+        php: ['8.3']  
+    runs-on: macos-latest
     steps:
-    - uses: shivammathur/setup-php@verbose
-      with:
-        php-version: ${{ matrix.php }}
-        extensions: runkit7
-    - run: php -v && php -m    
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ds
+      - name: Testing Extensions
+        if: matrix.extensions != 'xdebug2'
+        run: |
+          php -v
+          php -m
+          php -r "if(! extension_loaded('ds')) {throw new Exception('ds not found');}"
+      - if: failure()
+        uses: mxschmitt/action-tmate@v3.16    
