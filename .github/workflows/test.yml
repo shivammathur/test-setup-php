@@ -8,7 +8,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
           extensions: ds
