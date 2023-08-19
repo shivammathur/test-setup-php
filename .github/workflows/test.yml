@@ -4,19 +4,19 @@ jobs:
   run:
     strategy:
       matrix:
-        php: ['8.3']  
+        php: ['8.3']
+        ext: [amqp, apcu, ast, couchbase, ds, event, expect, gearman, gnupg, grpc, igbinary, imagick, imap, mcrypt, memcache, memcached, mongodb, msgpack, pdo_sqlsrv, pecl_http, protobuf, psr, raphf, rdkafka, redis, sqlsrv, snmp, ssh2, swoole, v8js, uuid, vips, yaml, xlswriter, zmq, pcov]
     runs-on: macos-latest
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: ds
+          extensions: ${{ matrix.ext }}
       - name: Testing Extensions
-        if: matrix.extensions != 'xdebug2'
         run: |
           php -v
           php -m
-          php -r "if(! extension_loaded('ds')) {throw new Exception('ds not found');}"
+          php -r "if(! extension_loaded('${{ matrix.ext }}')) {throw new Exception('${{ matrix.ext }} not found');}"
       - if: failure()
         uses: mxschmitt/action-tmate@v3.16    
