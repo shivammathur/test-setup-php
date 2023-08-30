@@ -1,26 +1,52 @@
-name: 'Test workflow'
+name: Runner
 on:
   push:
 jobs:
-  phpunit-32bits:
-    runs-on: ubuntu-latest
-    container: shivammathur/node:latest-i386
+  run:
+    runs-on: ${{ matrix.operating-system }}
     strategy:
+      fail-fast: false
       matrix:
-        php-versions: ['8.3']
-
+        operating-system: [ubuntu-22.04, windows-latest, macos-latest]
+        php-versions: ['8.4']
+        coverage: [xdebug, pcov, none]
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
-      - run: apt-get update && apt-get install wget -y
-      - name: Set up php ${{ matrix.php-versions }}
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ctype, curl, dom, fileinfo, gd, imagick, intl, json, mbstring, openssl, pdo_sqlite, posix, sqlite, xml, zip, apcu
-          tools: phpunit:9
-          coverage: none
-          ini-values:
-            apc.enabled=on,
-            apc.enable_cli=on
-        env:
-          IMAGICK_LIBS: libmagickwand-dev libmagickcore-dev
-      - run: php -v && php -m      
+          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+          coverage: ${{ matrix.coverage }}
+      - name: Add Problem Matcher
+        run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+      - name: Test action side effects
+        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
+      - name: Testing PHP version
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+      - name: Testing Composer version
+        run: php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
+      - name: Testing Xdebug
+        if: matrix.coverage == 'xdebug3'
+        run: php -r "if(strpos(phpversion('xdebug'), '3.') === false) {throw new Exception('Wrong Xdebug version Installed');}"
+      - name: Testing Coverage if PCOV
+        if: matrix.coverage == 'pcov'
+        run: |
+          php -r "if(phpversion()>=7.1 && ini_get('pcov.enabled')!=1) {throw new Exception('PCOV not enabled');}"
+          php -r "if(phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
+          php -v
+      - name: Testing Coverage if Xdebug
+        if: matrix.coverage == 'xdebug'
+        run: |
+          php -r "if(! extension_loaded('xdebug')) {throw new Exception('Xdebug not found');}"
+          php -v
+      - name: Testing disabling coverage
+        if: matrix.coverage == 'none'
+        run: |
+          php -r "if(extension_loaded('xdebug')) {throw new Exception('Xdebug found');}"
+          php -r "if(extension_loaded('pcov')) {throw new Exception('PCOV found');}"
+          php -v
