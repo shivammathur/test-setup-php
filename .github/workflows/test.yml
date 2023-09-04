@@ -10,10 +10,4 @@ jobs:
         operating-system: [ubuntu-22.04, windows-latest, macos-latest]    
     name: Runner
     steps:
-      - shell: php {0}
-        run: |
-          <?php
-          $tmp = is_link(sys_get_temp_dir())
-                ? realpath(sys_get_temp_dir())
-                : sys_get_temp_dir();
-          echo $tmp;      
+      - run: php -r "echo realpath(sys_get_temp_dir());"    
