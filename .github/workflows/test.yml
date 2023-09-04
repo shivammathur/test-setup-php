@@ -12,6 +12,7 @@ jobs:
     steps:
       - shell: php {0}
         run: |
+          <?php
           $tmp = is_link(sys_get_temp_dir())
                 ? realpath(sys_get_temp_dir())
                 : sys_get_temp_dir();
