@@ -1,7 +1,7 @@
 name: Test ext workflow
 on: [push]
 jobs:
-  zephir_parser:
+  ext:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
