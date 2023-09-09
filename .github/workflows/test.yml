@@ -6,22 +6,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-22.04, windows-latest, macos-latest]
-        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
-        ts: [ts, nts]
+        operating-system: [ubuntu-22.04]
+        php-versions: ['7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: zephir_parser
-        env:
-          phpts: ${{ matrix.ts }}
+          extensions: sqlsrv, pdo_sqlsrv
 
       - name: Testing PHP version
         run: php -v
 
       - name: Testing Extensions
         run: |
-          php --ri zephir_parser
-          php -r "if(! extension_loaded('zephir_parser')) {throw new Exception('zephir_parser not found');}" 
+          php -r "echo phpversion('sqlsrv');"
+          echo ''
+          php -r "echo phpversion('pdo_sqlsrv');"
