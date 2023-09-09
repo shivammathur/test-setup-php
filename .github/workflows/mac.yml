@@ -11,8 +11,7 @@ jobs:
     name: Test
     steps:
     - name: Remove PHP
-      if: ${{ matrix.php == '8.2' }}
-      run: brew uninstall $(brew deps php) php
+      run: brew uninstall --ignore-dependencies $(brew deps php) php
     - name: Setup PHP
       env:
         update: true
