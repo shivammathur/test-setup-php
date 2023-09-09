@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
         php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
     steps:
       - name: Install PHP
@@ -20,6 +20,8 @@ jobs:
 
       - name: Testing Extensions
         run: |
+          php -r "if(! extension_loaded('sqlsrv')) {throw new Exception('sqlsrv not found');}"
+          php -r "if(! extension_loaded('pdo_sqlsrv')) {throw new Exception('pdo_sqlsrv not found');}"
           php -r "echo phpversion('sqlsrv');"
           echo ''
           php -r "echo phpversion('pdo_sqlsrv');"
