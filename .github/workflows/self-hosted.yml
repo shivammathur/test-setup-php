@@ -15,11 +15,11 @@ jobs:
           - "debian:buster"
           - "debian:bullseye"
           - "shivammathur/node:focal"
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
     steps:
       # Test that it works if php is installed but dev package is not.
       - name: Remove dev package for shivammathur/node image
-        if: matrix.containers == 'shivammathur/node:focal' && matrix.php-versions != '8.2' && matrix.php-versions != '8.3'
+        if: matrix.containers == 'shivammathur/node:focal' && matrix.php-versions != '8.2' && matrix.php-versions != '8.3' && matrix.php-versions != '8.4'
         run: |
           apt-get remove -y php${{ matrix.php-versions }}-dev
       - name: Install PHP
@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
@@ -72,7 +72,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
