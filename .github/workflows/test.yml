@@ -10,4 +10,4 @@ jobs:
         operating-system: [ubuntu-22.04, windows-latest, macos-latest]    
     name: Runner
     steps:
-      - run: php -r "echo realpath(sys_get_temp_dir());"    
+      - uses: shivammathur/setup-php@master 
