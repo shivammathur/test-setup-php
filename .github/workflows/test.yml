@@ -10,4 +10,5 @@ jobs:
         operating-system: [ubuntu-22.04, windows-latest, macos-latest]    
     name: Runner
     steps:
-      - uses: shivammathur/setup-php@master 
+      - uses: shivammathur/setup-php@v2
+        php-version: 8.4
