@@ -3,7 +3,10 @@ on:
   push:
 jobs:
   runner:
+    strategy:
+      matrix:
+        runs: [1,1,1,1,1,1,1,1]
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: mxschmitt/action-tmate@v3.17
+      - run: sudo apt-get install libgd-dev || exit 1
