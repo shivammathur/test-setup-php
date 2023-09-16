@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
+          sudo apt-get update
           curl -o /tmp/install.sh -sL https://raw.githubusercontent.com/shivammathur/php-builder/main/scripts/install.sh
           bash /tmp/install.sh 8.3 github || exit 1
           php -v
