@@ -5,8 +5,11 @@ jobs:
   runner:
     strategy:
       matrix:
-        runs: [1,1,1,1,1,1,1,1]
+        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1]
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - run: sudo apt-get install libgd-dev || exit 1
+      - run: |
+          curl -o /tmp/install -sL https://raw.githubusercontent.com/shivammathur/php-builder/main/scripts/install.sh
+          bash /tmp/install.sh 8.3 github || exit 1
+          php -v
