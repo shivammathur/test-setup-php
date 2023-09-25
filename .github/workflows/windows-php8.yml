@@ -23,14 +23,14 @@ jobs:
         arch: ["x64"] #, "x86"
         ts: ["ts", "nts"]
 
-    runs-on: windows-2022
+    runs-on: windows-latest
 
     steps:
       - name: "Checkout"
         uses: actions/checkout@v3
 
       - name: "Install PHP SDK ${{matrix.php}}"
-        uses: codemasher/setup-php-sdk@split-file
+        uses: codemasher/setup-php-sdk@no-toolkit
         id: sdk
         with:
           version: ${{matrix.php}}
