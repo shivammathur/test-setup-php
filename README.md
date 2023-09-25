@@ -5,7 +5,6 @@ PHP Extension providing XZ (LZMA2) compression/decompression functions.<br/>
 
 [![Linux build](https://github.com/codemasher/php-ext-xz/workflows/Linux/badge.svg)](https://github.com/codemasher/php-ext-xz/actions/workflows/linux.yml)
 [![Windows PHP8 build](https://github.com/codemasher/php-ext-xz/workflows/Windows-PHP8/badge.svg)](https://github.com/codemasher/php-ext-xz/actions/workflows/windows-php8.yml)
-[![Windows PHP7 build](https://github.com/codemasher/php-ext-xz/workflows/Windows-PHP7/badge.svg)](https://github.com/codemasher/php-ext-xz/actions/workflows/windows-php7.yml)
 
 ## Build & Installation
 
