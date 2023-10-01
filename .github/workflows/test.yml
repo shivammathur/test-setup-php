@@ -2,16 +2,14 @@ name: Test
 on:
   push:
 jobs:
-  phpunit:
-    name: PHPUnit tests on ${{ matrix.php }}
-    runs-on: ubuntu-latest
-    continue-on-error: false
+  runner:
+    name: Test
+    runs-on: macos-11
     strategy:
       matrix:
         php: [ '8.1', '8.2', '8.3', '8.4' ]
     steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          tools: composer:v2
+          extensions: redis
