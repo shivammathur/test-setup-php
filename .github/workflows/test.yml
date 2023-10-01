@@ -13,3 +13,4 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: redis
+      - run: php -v && php -m    
