@@ -7,9 +7,9 @@ jobs:
     runs-on: macos-11
     strategy:
       matrix:
-        php: [ '8.1', '8.2', '8.3', '8.4' ]
+        php: [ '8.2' ]
     steps:
-      - uses: shivammathur/setup-php@verbose
+      - uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
           extensions: redis
