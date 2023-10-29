@@ -9,6 +9,7 @@ jobs:
     name: Test
     runs-on: ${{ matrix.os }}
     steps:
-      - run: |
-          ping google.com -c 2
-          ping getcomposer.org -c 2
+      - uses: shivammathur/setup-php@verbose
+        with:
+          php-version: 8.1
+          tools: php-cs-fixer
