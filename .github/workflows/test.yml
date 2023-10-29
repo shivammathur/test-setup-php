@@ -9,11 +9,11 @@ jobs:
     name: Test
     runs-on: ${{ matrix.os }}
     steps:
-      - run: node -V
+      - run: node -v
       - uses: actions/setup-node@main
         with:
           node-version: 20.x
-      - run: node -V
+      - run: node -v
       - run: |
           git clone https://github.com/shivammathur/setup-php
       - run: |          
