@@ -48,3 +48,4 @@
 - Test 2.25.2 release.
 - Test 2.25.5 release.
 - Test 2.26.0 release.
+- Test 2.26.1 release.
