@@ -9,10 +9,10 @@ jobs:
     name: Test
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.1
-          tools: php-cs-fixer
-      - run:
-          cat /home/runner/work/_actions/shivammathur/setup-php/develop/src/scripts/run.sh
-      - uses: mxschmitt/action-tmate@v3.17    
+      - run: |
+          git clone https://github.com/shivammathur/setup-php
+          cd setup-php
+          tools=php-cs-fixer node dist/index.js
+      - run: |
+          php -v
+          php-cs-fixer -V
