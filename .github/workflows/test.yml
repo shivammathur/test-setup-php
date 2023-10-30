@@ -9,11 +9,6 @@ jobs:
     name: Test
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Update apt sources
-        run: |
-          sudo gem install apt-spy2
-          sudo apt-spy2 fix --commit --launchpad --country=US
-          sudo apt-get update
       - name: Install French Locale
         run: sudo apt-get install language-pack-fr
 
