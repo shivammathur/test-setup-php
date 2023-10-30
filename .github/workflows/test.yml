@@ -9,6 +9,11 @@ jobs:
     name: Test
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Update apt sources
+        run: |
+          sudo apt-get update
+          sudo apt-get check || sudo apt --fix-broken install -y
+    
       - name: Install French Locale
         run: sudo apt-get install language-pack-fr
 
