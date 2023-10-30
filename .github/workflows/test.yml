@@ -9,9 +9,20 @@ jobs:
     name: Test
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: shivammathur/setup-php@verbose
+      - name: Update apt sources
+        run: |
+          sudo gem install apt-spy2
+          sudo apt-spy2 fix --commit --launchpad --country=US
+          sudo apt-get update
+      - name: Install French Locale
+        run: sudo apt-get install language-pack-fr
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@verbose
         with:
-          php-version: '8.3'
+          php-version: 8.3
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
+          coverage: none
       - run: |
           php -v
           php -m
