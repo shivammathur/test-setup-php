@@ -23,6 +23,7 @@ jobs:
           php-version: 8.3
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
           coverage: none
+      - uses: mxschmitt/action-tmate@v3.17    
       - run: |
           php -v
           php -m
