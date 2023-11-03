@@ -5,17 +5,13 @@ jobs:
   runner:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-22.04]
     name: Test
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+      - name: Setup PHP with Xdebug
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.2
-          tools: box, php-scoper
-      - run: |
-          php -v
-          box --version
-          php-scoper --version
+          php-version: '8.2'
+          coverage: xdebug
           
