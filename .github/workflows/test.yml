@@ -13,7 +13,9 @@ jobs:
     steps:
       - name: Setup PHP
         run: |
-          sudo apt-get install -y libpcre2-dev
+          sudo DEBIAN_FRONTEND=noninteractive add-apt-repository ppa:ondrej/php
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libpcre2-dev
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
