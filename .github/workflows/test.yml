@@ -5,13 +5,24 @@ jobs:
   runner:
     strategy:
       matrix:
-        os: [ubuntu-22.04]
+        operating-system: [ubuntu-22.04, ubuntu-20.04, windows-2019, macos-latest]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
     name: Test
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.operating-system }}
     steps:
-      - name: Setup PHP with Xdebug
+      - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
-          coverage: xdebug
+          php-version: '${{ matrix.php-versions }}'
+      - name: Run PHP code
+        shell: php {0}
+        run: |
+          <?php
+          if(preg_match('#\\p{cyrillic}#u', 'Пример') != 1) {
+            exit(1);
+          }
+          if(preg_match('#\\p{cyrillic}#u', 'Latin') != 0) {
+            exit(1);
+          }
+          exit(0);
           
