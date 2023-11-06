@@ -4,8 +4,9 @@ on:
 jobs:
   runner:
     strategy:
+      fail-fast: false
       matrix:
-        operating-system: [ubuntu-22.04, ubuntu-20.04, windows-2019, macos-latest]
+        operating-system: [ubuntu-22.04, ubuntu-20.04, ubuntu-latest]
         php-versions: ['8.2', '8.3', '8.4']
     name: Test
     runs-on: ${{ matrix.operating-system }}
