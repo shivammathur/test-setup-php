@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: '${{ matrix.php-versions }}'
       - name: Run PHP code
