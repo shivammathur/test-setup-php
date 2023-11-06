@@ -12,6 +12,9 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     steps:
       - name: Setup PHP
+        run: |
+          sudo apt-get install -y libpcre2-dev
+      - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '${{ matrix.php-versions }}'
