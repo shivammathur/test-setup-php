@@ -6,28 +6,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-22.04, ubuntu-20.04, ubuntu-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        operating-system: [macos-12]
     name: Test
     runs-on: ${{ matrix.operating-system }}
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
-        with:
-          php-version: '${{ matrix.php-versions }}'
-        env:
-          phpts: ts
-      - name: Run PHP code
-        shell: php {0}
-        run: |
-          <?php
-          echo preg_match('#\\p{cyrillic}#u', 'Пример');
-          echo preg_match('#\\p{cyrillic}#u', 'Latin');
-          if(preg_match('#\\p{cyrillic}#u', 'Пример') != 1) {
-            exit(1);
-          }
-          if(preg_match('#\\p{cyrillic}#u', 'Latin') != 0) {
-            exit(1);
-          }
-          exit(0);
+      - uses: mxschmitt/action-tmate@v3.17
           
