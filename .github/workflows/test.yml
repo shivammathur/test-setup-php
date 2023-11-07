@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-12]
+        operating-system: [macos-13]
     name: Test
     runs-on: ${{ matrix.operating-system }}
     steps:
