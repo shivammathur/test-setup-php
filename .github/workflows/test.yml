@@ -6,9 +6,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-13]
+        operating-system: [ubuntu-latest]
     name: Test
     runs-on: ${{ matrix.operating-system }}
     steps:
-      - uses: mxschmitt/action-tmate@v3.17
+      - uses: shivammathur/setup-php@verbose
+        with:
+          php-version: 8.3
+          extensions: swoole
+      - run: |
+          php -v
+          php --ri swoole
           
