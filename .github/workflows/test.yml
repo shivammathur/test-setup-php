@@ -10,6 +10,7 @@ jobs:
     name: Test
     runs-on: ${{ matrix.operating-system }}
     steps:
+      - uses: mxschmitt/action-tmate@v3.17
       - uses: shivammathur/setup-php@develop
         with:
           php-version: 8.2
