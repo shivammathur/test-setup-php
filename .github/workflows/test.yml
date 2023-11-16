@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
+        operating-system: [ubuntu-latest]
         debug: [true, false]
     name: Test
     runs-on: ${{ matrix.operating-system }}
