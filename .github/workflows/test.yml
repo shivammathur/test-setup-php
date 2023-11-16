@@ -12,16 +12,16 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     steps:
     - uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.3
-          ini-file: development
-          coverage: none
-          tools: none
-        env:
-          phpts: ts
-          debug: ${{ matrix.debug }}
-      - run: |
-          php -v
-          php -m
-          ls -la /usr/lib/debug
+      with:
+        php-version: 8.3
+        ini-file: development
+        coverage: none
+        tools: none
+      env:
+        phpts: ts
+        debug: ${{ matrix.debug }}
+    - run: |
+        php -v
+        php -m
+        ls -la /usr/lib/debug
           
