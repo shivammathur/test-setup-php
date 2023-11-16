@@ -23,5 +23,6 @@ jobs:
     - run: |
         php -v
         php -m
+        mkdir -p /usr/lib/debug
         ls -la /usr/lib/debug
           
