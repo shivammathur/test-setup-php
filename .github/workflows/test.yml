@@ -26,7 +26,8 @@ jobs:
         objdump --syms $(which php)
         mkdir -p /usr/lib/debug
         ls -la /usr/lib/debug
-        sudo apt-get install -y dlocate && sudo update-dlocatedb
-        sudo dlocate /usr/lib/debug
+        sudo apt-get install -y dlocate
+        sudo update-dlocatedb || true
+        sudo dlocate /usr/lib/debug || true
         
           
