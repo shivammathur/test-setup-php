@@ -21,6 +21,7 @@ jobs:
         debug: true
     - run: |
         ls /tmp
+        ls -R /usr/lib/debug
         php -v
         objdump --syms $(which php)
         
