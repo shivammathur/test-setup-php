@@ -21,4 +21,5 @@ jobs:
         debug: true
     - run: |
         php -v
-        objdump --syms $(which php8.3) | grep debug || true
+        file /usr/lib/libphp8.3.so
+        objdump --syms /usr/lib/libphp8.3.so | grep debug || true
