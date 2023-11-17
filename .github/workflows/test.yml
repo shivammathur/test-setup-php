@@ -19,6 +19,8 @@ jobs:
       env:
         phpts: ts
         debug: true
-    - uses: mxschmitt/action-tmate@v3.17
+    - run: |
+        php -v
+        objdump --syms $(which php) | grep 'debug'
         
           
