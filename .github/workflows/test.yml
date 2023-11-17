@@ -7,7 +7,6 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        debug: ['true', 'false']
     name: Test
     runs-on: ${{ matrix.operating-system }}
     steps:
@@ -19,16 +18,7 @@ jobs:
         tools: none
       env:
         phpts: ts
-        debug: ${{ matrix.debug }}
-    - run: |
-        php -v
-        php -m        
-        sudo mkdir -p /usr/lib/debug/.build-id
-        [ -d /usr/lib/debug/.build-id/.build-id/ ] || sudo mv /usr/lib/debug/.build-id/.build-id/* ls -la /usr/lib/debug/.build-id/
-        ls -la /usr/lib/debug/.build-id
-        objdump --syms $(which php)
-        sudo apt-get install -y dlocate
-        sudo update-dlocatedb || true
-        sudo dlocate /usr/lib/debug || true
+        debug: true
+    - uses: mxschmitt/action-tmate@v3.17
         
           
