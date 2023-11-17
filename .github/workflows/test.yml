@@ -7,6 +7,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
+        debug: [true, false]
     name: Test
     runs-on: ${{ matrix.operating-system }}
     steps:
@@ -18,7 +19,7 @@ jobs:
         tools: none
       env:
         phpts: ts
-        debug: true
+        debug: ${{ matrix.debug }}
     - run: |
         php -v
         file /usr/lib/libphp8.3.so
