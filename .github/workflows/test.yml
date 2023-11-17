@@ -22,11 +22,11 @@ jobs:
         debug: ${{ matrix.debug }}
     - run: |
         php -v
-        php -m
-        objdump --syms $(which php)
+        php -m        
         sudo mkdir -p /usr/lib/debug/.build-id
-        ls -la /usr/lib/debug/
+        [ -d /usr/lib/debug/.build-id/.build-id/ ] || sudo mv /usr/lib/debug/.build-id/.build-id/* ls -la /usr/lib/debug/.build-id/
         ls -la /usr/lib/debug/.build-id
+        objdump --syms $(which php)
         sudo apt-get install -y dlocate
         sudo update-dlocatedb || true
         sudo dlocate /usr/lib/debug || true
