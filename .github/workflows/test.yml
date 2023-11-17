@@ -24,7 +24,7 @@ jobs:
         php -v
         php -m
         objdump --syms $(which php)
-        sudo mkdir -p /usr/lib/debug
+        sudo mkdir -p /usr/lib/debug/.build-id
         ls -la /usr/lib/debug/
         ls -la /usr/lib/debug/.build-id
         sudo apt-get install -y dlocate
