@@ -21,8 +21,6 @@ jobs:
         debug: true
     - run: |
         ls /tmp
-        ls -R /usr/lib/debug
+        ls -Rla /usr/lib/debug
         php -v
-        objdump --syms $(which php)
-        
-          
+        objdump --syms $(which php8.3)
