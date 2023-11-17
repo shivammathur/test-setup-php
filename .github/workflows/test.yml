@@ -23,6 +23,7 @@ jobs:
     - run: |
         php -v
         php -m
+        objdump --syms $(which php) | grep 'debug'
         mkdir -p /usr/lib/debug
         ls -la /usr/lib/debug
           
