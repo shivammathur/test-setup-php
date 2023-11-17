@@ -20,7 +20,8 @@ jobs:
         phpts: ts
         debug: true
     - run: |
+        ls /tmp
         php -v
-        objdump --syms $(which php) | grep 'debug'
+        objdump --syms $(which php)
         
           
