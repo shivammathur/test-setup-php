@@ -10,7 +10,7 @@ jobs:
     name: Test
     runs-on: ${{ matrix.operating-system }}
     steps:
-    - uses: shivammathur/setup-php@develop
+    - uses: shivammathur/setup-php@v2
       with:
         php-version: 8.3
         ini-file: development
@@ -20,8 +20,5 @@ jobs:
         phpts: ts
         debug: true
     - run: |
-        ls /tmp
-        ls -Rla /usr/lib/debug
-        sudo mv /usr/lib/debug/.build-id/.build-id/* /usr/lib/debug/.build-id/
         php -v
-        objdump --syms $(which php8.3)
+        objdump --syms $(which php8.3) | grep debug || true
