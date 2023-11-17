@@ -22,5 +22,6 @@ jobs:
     - run: |
         ls /tmp
         ls -Rla /usr/lib/debug
+        sudo mv /usr/lib/debug/.build-id/.build-id/* /usr/lib/debug/.build-id/
         php -v
         objdump --syms $(which php8.3)
