@@ -21,6 +21,6 @@ jobs:
         phpts: ${{ matrix.phpts }}
         debug: ${{ matrix.debug }}
     - run: |
-        php -r "echo phpversion('mongodb');"
+        php -r "if(phpversion('mongodb') !== '1.17.0') { echo phpversion('mongodb') . PHP_EOL; throw new Exception('Wrong mongodb version'); }"
         php -v
         php -m
