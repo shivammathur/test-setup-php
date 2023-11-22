@@ -1,26 +1,26 @@
-name: Test
+name: tests
+
 on:
   push:
+  pull_request:
+
 jobs:
-  runner:
+  tests:
+    name: Test on PHP ${{ matrix.php }} with Swoole ${{ matrix.swoole }}
+    runs-on: "${{ matrix.os }}"
     strategy:
-      fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-22.04]
-        php: [7.4, '8.0', 8.1, 8.2, 8.3, 8.4]
-        debug: [true, false]
-        phpts: [ts, nts]
-    name: Test
-    runs-on: ${{ matrix.operating-system }}
+        os: [ubuntu-22.04]
+        php: ['8.3']
+        swoole: ['5.1.0']
+      max-parallel: 20
+      fail-fast: false
     steps:
-    - uses: shivammathur/setup-php@v2
-      with:
-        php-version: 8.3
-        extensions: mongodb
-      env:
-        phpts: ${{ matrix.phpts }}
-        debug: ${{ matrix.debug }}
-    - run: |
-        php -r "if(phpversion('mongodb') !== '1.17.0') { echo phpversion('mongodb') . PHP_EOL; throw new Exception('Wrong mongodb version'); }"
-        php -v
-        php -m
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: redis, pdo, pdo_mysql, bcmath, swoole-${{ matrix.swoole }}
+      - run: php -v && php -m    
