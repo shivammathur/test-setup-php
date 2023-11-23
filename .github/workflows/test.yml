@@ -6,21 +6,14 @@ on:
 
 jobs:
   tests:
-    name: Test on PHP ${{ matrix.php }} with Swoole ${{ matrix.swoole }}
     runs-on: "${{ matrix.os }}"
     strategy:
       matrix:
-        os: [ubuntu-22.04]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         php: ['8.3']
-        swoole: ['5.1.0']
-      max-parallel: 20
-      fail-fast: false
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: :xdebug, redis, pdo, pdo_mysql, bcmath, swoole-${{ matrix.swoole }}
       - run: php -v && php -m    
