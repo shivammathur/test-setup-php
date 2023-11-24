@@ -11,9 +11,13 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         php: ['8.3', '8.4']
+        debug: [true, false]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
+        env:
+          debug: ${{ matrix.debug }}
       - run: php -v && php -m
+      - run: objdump --syms /usr/lib/libphp${{ matrix.php }}.so | grep debug || true
