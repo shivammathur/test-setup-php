@@ -20,4 +20,4 @@ jobs:
         env:
           debug: ${{ matrix.debug }}
       - run: php -v && php -m
-      - run: objdump --syms /usr/lib/libphp${{ matrix.php }}.so | grep debug || true
+      - run: gdb -ex 'run -v' -ex bt -ex quit $(which php${{ matrix.php }})
