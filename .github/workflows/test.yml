@@ -20,4 +20,6 @@ jobs:
         env:
           debug: ${{ matrix.debug }}
       - run: php -v && php -m
-      - run: gdb -ex 'run -v' -ex bt -ex quit $(which php${{ matrix.php }})
+      - run: |
+          sudo apt-get install -y gdb
+          gdb -ex 'run -v' -ex bt -ex quit $(which php${{ matrix.php }})
