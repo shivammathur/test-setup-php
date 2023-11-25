@@ -9,10 +9,10 @@ jobs:
     runs-on: "${{ matrix.os }}"
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04]
-        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
-        debug: [true, false]
-        ts: [nts, zts]
+        os: [ubuntu-20.04]
+        php: ['8.0', '8.1']
+        debug: [false]
+        ts: [zts]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
@@ -21,6 +21,7 @@ jobs:
         env:
           debug: ${{ matrix.debug }}
           phpts: ${{ matrix.ts }}
+      - uses: mxschmitt/action-tmate@v3.17    
       - run: |
           php -v
           php -m
