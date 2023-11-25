@@ -25,3 +25,4 @@ jobs:
           php -v
           php -m
           php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+          ls /tmp
