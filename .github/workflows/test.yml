@@ -8,14 +8,15 @@ jobs:
   tests:
     runs-on: "${{ matrix.os }}"
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-20.04, ubuntu-22.04]
-        php: ['8.0', '8.1']
+        php: ['8.3', '8.4']
         debug: [false]
         ts: [zts]
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
         env:
