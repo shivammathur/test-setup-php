@@ -17,10 +17,10 @@ jobs:
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@main
+        continue-on-error: true
         with:
           php-version: ${{ matrix.php }}
-        env:
-          continue-on-error: true
+        env:          
           debug: ${{ matrix.debug }}
           phpts: ${{ matrix.ts }}
       - uses: mxschmitt/action-tmate@v3.17
