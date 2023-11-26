@@ -23,7 +23,6 @@ jobs:
         env:          
           debug: ${{ matrix.debug }}
           phpts: ${{ matrix.ts }}
-      - uses: mxschmitt/action-tmate@v3.17
       - run: |
           sudo apt-cache policy unixodbc || true
           php -v
