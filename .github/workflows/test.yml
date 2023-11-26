@@ -1,31 +1,19 @@
-name: tests
-
+name: Test
 on:
   push:
-  pull_request:
-
 jobs:
-  tests:
-    runs-on: "${{ matrix.os }}"
+  runner:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04]
-        php: ['8.3', '8.4']
-        debug: [false, true]
-        ts: [zts, nts]
+        operating-system: [ubuntu-latest]
+    name: Test
+    runs-on: ${{ matrix.operating-system }}
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@main
-        continue-on-error: true
+      - uses: shivammathur/setup-php@verbose
         with:
-          php-version: ${{ matrix.php }}
-        env:          
-          debug: ${{ matrix.debug }}
-          phpts: ${{ matrix.ts }}
+          php-version: 8.3
+          extensions: swoole
       - run: |
-          sudo apt-cache policy unixodbc || true
           php -v
-          php -m
-          php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"
-          ls /tmp
+          php --ri swoole
