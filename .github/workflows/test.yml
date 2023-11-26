@@ -1,19 +1,28 @@
-name: Test
+name: tests
+
 on:
   push:
+  pull_request:
+
 jobs:
-  runner:
+  tests:
+    runs-on: "${{ matrix.os }}"
     strategy:
-      fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-    name: Test
-    runs-on: ${{ matrix.operating-system }}
+        os: [ubuntu-20.04, ubuntu-22.04]
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+        debug: [true, false]
+        ts: [nts, zts]
     steps:
-      - uses: shivammathur/setup-php@verbose
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
         with:
-          php-version: 8.3
-          extensions: swoole
+          php-version: ${{ matrix.php }}
+        env:
+          debug: ${{ matrix.debug }}
+          phpts: ${{ matrix.ts }}
       - run: |
           php -v
-          php --ri swoole
+          php -m
+          php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+          ls /tmp
