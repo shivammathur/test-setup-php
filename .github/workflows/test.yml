@@ -1,39 +1,36 @@
-name: DB ext workflow
-on: [push]
+name: Self-hosted develop workflow
+on:
+  push:
 jobs:
-  run:
-    runs-on: ${{ matrix.operating-system }}
+  ubuntu:
+    name: ubuntu
+    runs-on: ubuntu-latest
+    container: ${{ matrix.containers }}
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['8.2', '8.3']
-        operating-system: [ubuntu-22.04, windows-latest, macos-latest]
-    name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
+        containers:
+          - "ubuntu:jammy"
+        php-versions: ['8.4']
     steps:
-      - name: Setup PHP
+      # Test that it works if php is installed but dev package is not.
+      - name: Remove dev package for shivammathur/node image
+        if: matrix.containers == 'shivammathur/node:focal' && matrix.php-versions != '8.2' && matrix.php-versions != '8.3' && matrix.php-versions != '8.4'
+        run: |
+          apt-get remove -y php${{ matrix.php-versions }}-dev
+      - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: pdo, pdo_mysql, pdo_pgsql, pdo_sqlite, pdo_sqlsrv, pdo_firebird, couchbase, mysql, pgsql, sqlite3, sqlsrv
-
-      - name: Check PHP version
-        run: php -v
-
-      - name: Check ini files
-        run: php --ini
-
-      - name: Check PHP extensions
-        continue-on-error: ${{ matrix.php-versions == '8.2' || matrix.php-versions == '8.3' }}
+          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+      - name: Testing PHP version
         run: |
-          php -m
-          php -r "if(! extension_loaded('pdo')) {throw new Exception('pdo not found');}";
-          php -r "if(! extension_loaded('pdo_mysql')) {throw new Exception('pdo_mysql not found');}";
-          php -r "if(! extension_loaded('pdo_pgsql')) {throw new Exception('pdo_pgsql not found');}";
-          php -r "if(! extension_loaded('pdo_sqlite')) {throw new Exception('pdo_sqlite not found');}";
-          php -r "if(! extension_loaded('pdo_firebird')) {throw new Exception('pdo_firebird not found');}";
-          php -r "if(phpversion()>=7.0 && ! extension_loaded('pdo_sqlsrv')) {throw new Exception('pdo_sqlsrv not found');}";
-          php -r "if(! extension_loaded('couchbase')) {throw new Exception('couchbase not found');}";
-          php -r "if(! extension_loaded('mysqli')) {throw new Exception('mysqli not found');}";
-          php -r "if(! extension_loaded('pgsql')) {throw new Exception('pgsql not found');}";
-          php -r "if(! extension_loaded('sqlite3')) {throw new Exception('sqlite3 not found');}";
-          php -r "if(phpversion()>=7.0 && ! extension_loaded('sqlsrv')) {throw new Exception('sqlsrv not found');}";
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+      - name: Testing Composer version
+        run: php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
+      - name: Testing ini values
+        run: |
+          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
+          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
+          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
