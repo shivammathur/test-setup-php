@@ -1,19 +1,39 @@
-name: Test
-on:
-  push:
+name: DB ext workflow
+on: [push]
 jobs:
-  runner:
+  run:
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-    name: Test
-    runs-on: ${{ matrix.operating-system }}
+        php-versions: ['8.2', '8.3']
+        operating-system: [ubuntu-22.04, windows-latest, macos-latest]
+    name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
     steps:
-      - uses: shivammathur/setup-php@develop
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
         with:
-          php-version: 8.3
-          extensions: swoole
-      - run: |
-          php -v
-          php --ri swoole
+          php-version: ${{ matrix.php-versions }}
+          extensions: pdo, pdo_mysql, pdo_pgsql, pdo_sqlite, pdo_sqlsrv, pdo_firebird, couchbase, mysql, pgsql, sqlite3, sqlsrv
+
+      - name: Check PHP version
+        run: php -v
+
+      - name: Check ini files
+        run: php --ini
+
+      - name: Check PHP extensions
+        continue-on-error: ${{ matrix.php-versions == '8.2' || matrix.php-versions == '8.3' }}
+        run: |
+          php -m
+          php -r "if(! extension_loaded('pdo')) {throw new Exception('pdo not found');}";
+          php -r "if(! extension_loaded('pdo_mysql')) {throw new Exception('pdo_mysql not found');}";
+          php -r "if(! extension_loaded('pdo_pgsql')) {throw new Exception('pdo_pgsql not found');}";
+          php -r "if(! extension_loaded('pdo_sqlite')) {throw new Exception('pdo_sqlite not found');}";
+          php -r "if(! extension_loaded('pdo_firebird')) {throw new Exception('pdo_firebird not found');}";
+          php -r "if(phpversion()>=7.0 && ! extension_loaded('pdo_sqlsrv')) {throw new Exception('pdo_sqlsrv not found');}";
+          php -r "if(! extension_loaded('couchbase')) {throw new Exception('couchbase not found');}";
+          php -r "if(! extension_loaded('mysqli')) {throw new Exception('mysqli not found');}";
+          php -r "if(! extension_loaded('pgsql')) {throw new Exception('pgsql not found');}";
+          php -r "if(! extension_loaded('sqlite3')) {throw new Exception('sqlite3 not found');}";
+          php -r "if(phpversion()>=7.0 && ! extension_loaded('sqlsrv')) {throw new Exception('sqlsrv not found');}";
