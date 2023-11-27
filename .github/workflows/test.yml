@@ -22,3 +22,5 @@ jobs:
         with:
             php-version: 8.1
             extensions: xdebug, mbstring, raphf, pecl_http
+        env:
+          runner: self-hosted
