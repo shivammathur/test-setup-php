@@ -10,15 +10,6 @@ jobs:
       matrix:        
         os: ['ubuntu-latest']
     steps:
-jobs:
-  grumphp-test-suite:
-    runs-on:
-        group: PHP-8.1
-    strategy:
-        matrix:
-            php-versions: ['8.1']
-            composer-options: ['']
-    steps:
       - name: Init
         run: |
           LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php &&\
