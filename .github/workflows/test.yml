@@ -2,18 +2,19 @@ name: Runner
 on:
   push:
 jobs:
-  ubuntu:
-    runs-on: macos-latest
+  runner:
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:        
-        php-versions: ['8.0', '8.1', '8.2', '8.3', '8.4']
+        os: ['ubuntu-latest', 'windows-latest']
     steps:
-      - name: Install PHP
+      - name: Setup PHP 8.3 (ZTS)
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: event
+          php-version: '8.3'
+        env:
+          phpts: zts
       - name: Testing PHP version
         run: |
           php -v
