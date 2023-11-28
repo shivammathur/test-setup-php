@@ -12,9 +12,10 @@ jobs:
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
-            php-version: 8.3
-            ini-values: 'listen_test=localhost:${DRUPAL_FPM_PORT:-9000}'
+            php-version: 8.1
+            extensions: amqp-1.11.0
       - run: |
-          php -r "echo ini_get('listen_test');"
-          export DRUPAL_FPM_PORT=3000
-          php -r "echo ini_get('listen_test');"
+          php -r "echo phpversion('amqp');"
+          php -v
+          php -m
+          
