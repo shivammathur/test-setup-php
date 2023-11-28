@@ -4,23 +4,17 @@ on:
 jobs:
   runner:
     runs-on: ${{ matrix.os }}
-    container: summerwind/actions-runner:ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:        
         os: ['ubuntu-latest']
     steps:
-      - name: Init
-        run: |
-          sudo LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php &&\
-              sudo apt-get update &&\
-              sudo apt-get install software-properties-common ca-certificates lsb-release apt-transport-https unzip make zstd php8.1 php-cli zlib1g-dev libbrotli-dev libcurl4-openssl-dev libevent-dev libicu-dev libidn2-dev -y &&\
-              sudo rm -rf /tmp/* &&\
-              sudo apt-get clean
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
-            php-version: 8.1
-            extensions: xdebug, mbstring, raphf, pecl_http
-        env:
-          runner: self-hosted
+            php-version: 8.3
+            ini-values: listen_test = localhost:${DRUPAL_FPM_PORT:-9000}
+      - run: |
+          php -r "echo ini_get('listen_test');"
+          export DRUPAL_FPM_PORT=3000
+          php -r "echo ini_get('listen_test');"
