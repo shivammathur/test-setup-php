@@ -2,23 +2,30 @@ name: Runner
 on:
   push:
 jobs:
-  runner:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:        
-        os: ['ubuntu-latest']
-    steps:
-      - name: Install PHP
-        uses: shivammathur/setup-php@verbose
-        with:
-            php-version: 8.1
-            extensions: amqp-1.11.0
-        env:
-          AMQP_LIBS: librabbitmq-dev
-        
-      - run: |
-          php -r "echo phpversion('amqp');"
-          php -v
-          php -m
-          
+    static-checks:
+        name: "PHP ${{ matrix.php-version }} Lint"
+
+        runs-on: ubuntu-latest
+
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - php-version: '8.2'
+                      php-extensions: 'ctype, iconv, pgsql, pdo_pgsql, gd, intl, sysvsem, imagick, :xdebug'
+                      tools: 'composer:v2, symfony'
+
+        steps:
+            - name: Checkout project
+              uses: actions/checkout@v2
+              with:
+                  path: ${{ matrix.checkout-directory }}
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@verbose
+              with:
+                  php-version: ${{ matrix.php }}
+                  ini-values: date.timezone=Europe/Paris
+                  extensions: ${{ matrix.php-version }}
+                  tools: ${{ matrix.tools }}
+                  coverage: none
