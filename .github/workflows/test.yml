@@ -26,6 +26,6 @@ jobs:
               with:
                   php-version: ${{ matrix.php-version }}
                   ini-values: date.timezone=Europe/Paris
-                  extensions: ${{ matrix.php-version }}
+                  extensions: ${{ matrix.php-extensions }}
                   tools: ${{ matrix.tools }}
                   coverage: none
