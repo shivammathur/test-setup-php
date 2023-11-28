@@ -24,7 +24,7 @@ jobs:
             - name: Setup PHP
               uses: shivammathur/setup-php@verbose
               with:
-                  php-version: ${{ matrix.php }}
+                  php-version: ${{ matrix.php-version }}
                   ini-values: date.timezone=Europe/Paris
                   extensions: ${{ matrix.php-version }}
                   tools: ${{ matrix.tools }}
