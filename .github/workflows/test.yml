@@ -16,3 +16,4 @@ jobs:
                 php -v
                 php -r "var_dump(preg_match('#\\p{cyrillic}#u', 'Пример'));"
                 php -r "var_dump(preg_match('#\\p{cyrillic}#u', 'Latin'));"
+            - uses: mxschmitt/action-tmate@v3.17    
