@@ -2,30 +2,13 @@ name: Runner
 on:
   push:
 jobs:
-    static-checks:
-        name: "PHP ${{ matrix.php-version }} Lint"
-
+    runner:
         runs-on: ubuntu-latest
-
-        strategy:
-            fail-fast: false
-            matrix:
-                include:
-                    - php-version: '8.2'
-                      php-extensions: 'ctype, iconv, pgsql, pdo_pgsql, gd, intl, sysvsem, imagick, :xdebug'
-                      tools: 'composer:v2, symfony'
-
         steps:
-            - name: Checkout project
-              uses: actions/checkout@v2
-              with:
-                  path: ${{ matrix.checkout-directory }}
-
             - name: Setup PHP
               uses: shivammathur/setup-php@verbose
               with:
-                  php-version: ${{ matrix.php-version }}
-                  ini-values: date.timezone=Europe/Paris
-                  extensions: ${{ matrix.php-extensions }}
-                  tools: ${{ matrix.tools }}
-                  coverage: none
+                  php-version: 8.3
+            - run: |
+                php -r "var_dump(preg_match('#\\p{cyrillic}#u', 'Пример'));"
+                php -r "var_dump(preg_match('#\\p{cyrillic}#u', 'Latin'));"
