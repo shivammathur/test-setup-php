@@ -10,7 +10,7 @@ jobs:
               with:
                   php-version: 8.3
             - run: |
-                apt-cache policy libpcre2-dev
+                apt-cache policy libpcre2-8-0
                 php -r "var_dump(preg_match('#\\p{cyrillic}#u', 'Пример'));"
                 php -r "var_dump(preg_match('#\\p{cyrillic}#u', 'Latin'));"
                 ls /tmp
