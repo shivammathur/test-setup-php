@@ -11,14 +11,14 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ ubuntu-22.04, ubuntu-20.04, windows-latest, macos-latest ]
-        php-versions: [ '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2' ]
+        php-versions: [ '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4' ]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, xdebug, pcov, intl, gd, geos, redis, xml, soap, imagick, ast, psr, phalcon4, msgpack, gearman
+          extensions: mbstring, xdebug, pcov, intl, gd, geos, redis, xml, soap, imagick, ast, psr, msgpack, gearman
       - name: Testing PHP version
         run: php -v
       - name: Testing Extensions
@@ -41,10 +41,6 @@ jobs:
         if: matrix.operating-system != 'windows-latest'
         run: |
           php -r "if(! extension_loaded('geos')) {throw new Exception('geos not found');}"
-      - name: Testing phalcon
-        run: |
-          php -r "if(phpversion()>=7.2 && phpversion()<=7.4 && ! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
-          php -r "if(phpversion()>=7.2 && phpversion()<=7.4 && phpversion('phalcon')[0]!='4') {throw new Exception('Wrong phalcon version Installed');}"
       - name: Testing gearman
         if: matrix.operating-system == 'ubuntu-latest'
         run: |
