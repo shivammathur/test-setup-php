@@ -1,0 +1,47 @@
+name: App Tester
+on:
+  push:
+
+env:
+  php-version: '8.2'
+  php-extensions: :xdebug
+  key: php-cache
+
+jobs:
+  phpunit:
+    # Configuration
+    name: App Test
+    runs-on: ubuntu-22.04
+
+    # Steps
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # Install PHP
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.php-version }}
+          extensions: ${{ env.php-extensions }}
+          ini-values: sys_temp_dir=${{ runner.temp }}
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: |
+          echo "::set-output name=dir::$(composer config cache-files-dir)"
+      - uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      # Run Tests
+      - name: Install App Dependencies
+        run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+      - name: PHPCS Fixer
+        run: composer qa:lint
+      - name: PhpStan
+        run: composer qa:phpstan
+      - name: Execute PHPUnit
+        run: composer test:stop

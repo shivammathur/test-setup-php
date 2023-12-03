@@ -1,0 +1,52 @@
+{
+    "name": "cesurapp/swoole-bundle",
+    "description": "Symfony Swoole Bundle",
+    "homepage": "https://github.com/cesurapp/swoole-bundle",
+    "keywords": ["swoole-bundle", "bundle-template", "symfony", "http-server", "swoole-server"],
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Cesur APAYDIN",
+            "email": "apaydin541@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "symfony/dependency-injection": "*",
+        "symfony/http-kernel": "*",
+        "symfony/framework-bundle": "*"
+    },
+    "require-dev": {
+        "php-cs-fixer/shim": "^3.40",
+        "symfony/test-pack": "^1.1",
+        "phpstan/phpstan": "^1.10"
+    },
+    "autoload": {
+        "psr-4": {
+            "Cesurapp\\SwooleBundle\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Cesurapp\\SwooleBundle\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "@php ./vendor/bin/phpunit --verbose --testdox --colors",
+        "test:stop": "@php ./vendor/bin/phpunit --verbose --testdox --colors --stop-on-failure",
+        "qa:fix": "vendor/bin/php-cs-fixer fix --ansi --allow-risky=yes",
+        "qa:lint": "vendor/bin/php-cs-fixer fix --dry-run --diff --ansi --allow-risky=yes",
+        "qa:phpstan": "vendor/bin/phpstan analyse --no-progress --ansi --memory-limit 512m",
+        "fix": [
+            "@qa:fix",
+            "@qa:phpstan",
+            "@test"
+        ]
+    },
+    "extra": {
+        "symfony": {
+            "require": "7.0.*"
+        }
+    }
+}
