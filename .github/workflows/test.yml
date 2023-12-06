@@ -15,4 +15,4 @@ jobs:
           with:
             php-version: '8.1'
             extensions: phalcon, swoole  
-        - php -v && php -m
+        - run: php -v && php -m
