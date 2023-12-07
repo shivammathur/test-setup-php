@@ -5,16 +5,27 @@ jobs:
     runner:
         runs-on: ubuntu-latest
         container: ubuntu:22.04
+        strategy:
+          matrix:
+            php: [7.4, 8.0, 8.1]
         steps:
-        - run: |
+        - name: Install software-properties-common
+          run: |
             apt-get update
             DEBIAN_FRONTEND=noninteractive apt-get install software-properties-common -y
-        - run: |
+        - name: Add PPA
+          run: |
             DEBIAN_FRONTEND=noninteractive add-apt-repository ppa:ondrej/php
             apt-get update
-        - run: |
-            DEBIAN_FRONTEND=noninteractive apt-get install php8.1-cli -y
+        - name: Install PHP
+          run: |
+            DEBIAN_FRONTEND=noninteractive apt-get install php${{ matrix.php }}-cli -y
+        - name: Check PHP version
+          run: |
             php -v
-        - run: |
-            DEBIAN_FRONTEND=noninteractive apt-get install php8.1-phalcon5 -y
+        - name: Install phalcon5
+          run: |
+            DEBIAN_FRONTEND=noninteractive apt-get install php${{ matrix.php }}-phalcon5 -y
+        - name: Check PHP version
+          run: |
             php -v
