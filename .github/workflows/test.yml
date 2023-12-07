@@ -19,7 +19,7 @@ jobs:
             apt-get update
         - name: Install PHP
           run: |
-            DEBIAN_FRONTEND=noninteractive apt-get install php${{ matrix.php }}-cli php${{ matrix.php }}-common -y
+            DEBIAN_FRONTEND=noninteractive apt-get install php${{ matrix.php }}-cli -y
         - name: Check PHP version
           run: |
             php -v
