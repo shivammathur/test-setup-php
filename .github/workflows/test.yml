@@ -8,8 +8,7 @@ jobs:
         - name: Setup PHP
           uses: shivammathur/setup-php@develop
           with:
-            php-version: 8.1
-            extensions: phalcon, swoole
+            php-version: lowest
         - name: Check PHP version
           run: |
             php -v && php -m
