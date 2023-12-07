@@ -25,7 +25,7 @@ jobs:
             php -v
         - name: Install phalcon5
           run: |
-            DEBIAN_FRONTEND=noninteractive apt-get install php${{ matrix.php }}-phalcon5 -y
+            DEBIAN_FRONTEND=noninteractive apt-get install php${{ matrix.php }}-psr php${{ matrix.php }}-phalcon5 -y
         - name: Check PHP version
           run: |
             php -v
