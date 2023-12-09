@@ -14,5 +14,6 @@ jobs:
             php-version: ${{ matrix.php }}
         - name: Check PHP version
           run: |
-            sudo pecl config-get php_ini
+            pecl config-get php_ini
+            pecl install csv
             php -v && php -m
