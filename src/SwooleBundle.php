@@ -31,9 +31,9 @@ class SwooleBundle extends AbstractBundle
             ->scalarNode('entrypoint')->defaultValue('public/index.php')->end()
             ->scalarNode('watch_dir')->defaultValue('/config,/src,/templates')->end()
             ->scalarNode('watch_extension')->defaultValue('*.php,*.yaml,*.yml,*.twig')->end()
-            ->booleanNode('replace_http_client')->defaultFalse()->end()
+            ->booleanNode('replace_http_client')->defaultTrue()->end()
             ->booleanNode('cron_worker')->defaultTrue()->end()
-            ->booleanNode('task_worker')->defaultTrue()->end()
+            ->booleanNode('task_worker')->defaultFalse()->end()
             ->scalarNode('failed_task_retry')->defaultValue('@EveryMinute10')->end()
             ->scalarNode('failed_task_attempt')->defaultValue(1)->end()
             ->end();
