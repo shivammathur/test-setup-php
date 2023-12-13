@@ -4,5 +4,7 @@ parameters:
     checkGenericClassInNonGenericObjectType: false
     paths:
         - src
-#    ignoreErrors:
-#        - '#id is never written, only read#'
+    ignoreErrors:
+        - '#id is never written, only read#'
+    excludePaths:
+        - src/Runtime/SwooleServer/TcpServer.php

@@ -2,7 +2,7 @@
     "name": "cesurapp/swoole-bundle",
     "description": "Symfony Swoole Bundle",
     "homepage": "https://github.com/cesurapp/swoole-bundle",
-    "keywords": ["swoole-bundle", "bundle-template", "symfony", "http-server", "swoole-server"],
+    "keywords": ["swoole-bundle", "swoole", "symfony", "http-server", "swoole-server"],
     "type": "symfony-bundle",
     "license": "MIT",
     "authors": [
@@ -13,14 +13,26 @@
     ],
     "require": {
         "php": ">=8.2",
-        "symfony/dependency-injection": "*",
-        "symfony/http-kernel": "*",
-        "symfony/framework-bundle": "*"
+        "ext-openswoole": "*",
+        "symfony/dependency-injection": "^7.0",
+        "symfony/http-kernel": "^7.0",
+        "symfony/framework-bundle": "^7.0",
+        "symfony/runtime": "^7.0",
+        "symfony/console": "^7.0",
+        "dragonmantank/cron-expression": "^3.3",
+        "symfony/lock": "^7.0",
+        "symfony/dotenv": "^7.0",
+        "symfony/http-client": "^7.0"
     },
     "require-dev": {
-        "php-cs-fixer/shim": "^3.40",
         "symfony/test-pack": "^1.1",
-        "phpstan/phpstan": "^1.10"
+        "symfony/process": "^7.0",
+        "symfony/uid": "^7.0",
+        "openswoole/ide-helper": "~22.0.1",
+        "php-cs-fixer/shim": "^3.40",
+        "phpstan/phpstan": "^1.10",
+        "doctrine/orm": "^2.17",
+        "doctrine/doctrine-bundle": "^2.11"
     },
     "autoload": {
         "psr-4": {
@@ -44,9 +56,9 @@
             "@test"
         ]
     },
-    "extra": {
-        "symfony": {
-            "require": "7.0.*"
+    "config": {
+        "allow-plugins": {
+            "symfony/runtime": true
         }
     }
 }
