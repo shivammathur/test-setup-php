@@ -4,7 +4,7 @@ on:
 
 env:
   php-version: '8.2'
-  php-extensions: :xdebug
+  php-extensions: openswoole
   key: php-cache
 
 jobs:
@@ -18,6 +18,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      # PHP Extension
+      - name: Setup Cache PHP Extensions
+        id: extcache
+        uses: shivammathur/cache-extensions@v1
+        with:
+          php-version: ${{ env.php-version }}
+          extensions: ${{ env.php-extensions }}
+          key: ${{ env.key }}
+      - name: Cache PHP Extensions
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+
       # Install PHP
       - name: Install PHP
         uses: shivammathur/setup-php@v2
@@ -25,6 +40,8 @@ jobs:
           php-version: ${{ env.php-version }}
           extensions: ${{ env.php-extensions }}
           ini-values: sys_temp_dir=${{ runner.temp }}
+        env:
+          OPENSWOOLE_CONFIGURE_SUFFIX_OPTS: "--enable-openssl"
       - name: Get Composer Cache Directory
         id: composer-cache
         run: |
