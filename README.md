@@ -13,12 +13,39 @@ Required Symfony 7
 composer req cesurapp/swoole-bundle
 ```
 
-### Package Configuration
+__Edit: public/index.php__
+```php
+...
+require_once dirname(__DIR__).'/vendor/cesurapp/swoole-bundle/src/Runtime/entrypoint.php';
+require_once dirname(__DIR__).'/vendor/autoload_runtime.php';
+...
+```
+
+__Configuration:__
 ```shell
 # config/packages/swoole.yaml
 swoole:
+  entrypoint: public/index.php
+  watch_dir: /config,/src,/templates
+  watch_extension: *.php,*.yaml,*.yml,*.twig
+  replace_http_client: true # Replate Symfony HTTP Client to Swoole Client 
+  cron_worker: true # Enable Cron Worker Service
+  task_worker: true # Enable Task Worker Service
   failed_task_retry: '@EveryMinute10'
-  failed_task_attempt: 1 # Failed Task Retry Count
+  failed_task_attempt: 2 # Failed Task Retry Count
+```
+
+__Server Environment: .env__
+```dotenv
+SERVER_WORKER_CRON=true # Run Cron Worker
+SERVER_WORKER_TASK=true # Run Task Worker
+SERVER_HTTP_HOST=127.0.0.1
+SERVER_HTTP_PORT=9090
+SERVER_HTTP_CACHE_TABLE_SIZE=750 # Cache Table Row Count
+SERVER_HTTP_CACHE_TABLE_COLUMN_LENGTH=25000
+SERVER_HTTP_SETTINGS_WORKER_NUM=2
+SERVER_HTTP_SETTINGS_TASK_WORKER_NUM=1
+SERVER_HTTP_SETTINGS_LOG_LEVEL=4 # Details Openswoole\Constant LOG_LEVEL
 ```
 
 ### Server Commands
