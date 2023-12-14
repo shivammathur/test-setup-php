@@ -8,6 +8,7 @@ use Cesurapp\SwooleBundle\Runtime\SwooleServer\TaskServer;
 use Cesurapp\SwooleBundle\Runtime\SwooleServer\TcpServer;
 use OpenSwoole\Constant;
 use OpenSwoole\Server;
+use OpenSwoole\Util;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Runtime\RunnerInterface;
 
@@ -41,6 +42,9 @@ class SwooleRunner implements RunnerInterface
 
     public function __construct(private readonly HttpKernelInterface $application, array $options)
     {
+        self::$config['http']['settings']['worker_num'] = Util::getCPUNum();
+        self::$config['http']['settings']['task_worker_num'] = floor(Util::getCPUNum() / 2);
+
         self::$config = $this->replaceRuntimeEnv(self::$config);
         if (self::$config['worker']['task']) {
             self::$config['worker']['cron'] = true;
@@ -51,6 +55,7 @@ class SwooleRunner implements RunnerInterface
         if (false === self::$config['worker']['task']) {
             self::$config['http']['settings']['task_worker_num'] = 0;
         }
+
         self::$config['env'] = $_ENV[$options['env_var_name']];
         self::$config['debug'] = $options['debug'];
         self::$config['worker']['watch'] = (bool) ($_SERVER['watch'] ?? false);
