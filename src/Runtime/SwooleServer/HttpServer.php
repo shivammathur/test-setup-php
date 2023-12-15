@@ -122,7 +122,7 @@ class HttpServer extends Server
             echo 'Worker => '.$this->options['http']['settings']['worker_num'].PHP_EOL;
             echo 'Task Worker => '.$this->options['http']['settings']['task_worker_num'].PHP_EOL;
             echo 'Debug => '.($this->options['debug'] ? 'True' : 'False').PHP_EOL;
-            echo 'Log Level => '.match ($this->options['http']['settings']['log_level']) {
+            echo 'Log Level => '.match ((int) $this->options['http']['settings']['log_level']) {
                 0 => 'LOG_DEBUG',
                 1 => 'LOG_TRACE',
                 2 => 'LOG_INFO',
