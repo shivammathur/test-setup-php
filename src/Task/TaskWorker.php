@@ -6,9 +6,9 @@ use Cesurapp\SwooleBundle\Repository\FailedTaskRepository;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ServiceLocator;
 
-readonly class TaskWorker
+class TaskWorker
 {
-    public function __construct(private ServiceLocator $locator, private LoggerInterface $logger, private FailedTaskRepository $failedTaskRepo)
+    public function __construct(private readonly ServiceLocator $locator, private readonly LoggerInterface $logger, private readonly FailedTaskRepository $failedTaskRepo)
     {
     }
 
