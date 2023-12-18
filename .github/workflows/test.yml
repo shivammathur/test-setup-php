@@ -27,5 +27,5 @@ jobs:
         with:
           path: ${{ github.workspace }}/lists
       - run: 
-          find ${{ github.workspace }} -name '*.md' -exec mv {} ../{} \;
+          find ${{ github.workspace }} -name '*.md' -exec mv {} ../ \;
           ls -laR ${{ github.workspace }}/lists
