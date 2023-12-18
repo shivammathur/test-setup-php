@@ -15,7 +15,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.operating-system }}.md
+          name: ${{ matrix.operating-system }}
           path: ${{ matrix.operating-system }}.md
   test:
     name: Update
@@ -25,5 +25,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          path: ${{ github.workspace }}
-      - run: ls -laR ${{ github.workspace }}
+          path: ${{ github.workspace }}/lists
+      - run: 
+          find ${{ github.workspace }} -name '*.md' -exec mv {} ../{} \;
+          ls -laR ${{ github.workspace }}/lists
