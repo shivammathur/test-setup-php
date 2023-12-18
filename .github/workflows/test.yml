@@ -28,6 +28,6 @@ jobs:
           path: ${{ github.workspace }}/lists
       - run: 
           find ${{ github.workspace }} -name '*.md' -exec mv {} ${{ github.workspace }}/lists/ \;
-          find ${{ github.workspace }}/lists -type d -delete
+          find ${{ github.workspace }}/lists -name '*' -type d -delete
 
           ls -laR ${{ github.workspace }}/lists
