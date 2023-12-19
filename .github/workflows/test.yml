@@ -14,7 +14,11 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
-          php-version: 8.2 
+          php-version: 8.2
+      - name: Add keys
+        run: |
+          sudo curl -o ~/.composer/keys.tags.pub -sL https://composer.github.io/releases.pub
+          sudo curl -o ~/.composer/dev.tags.pub -sL https://composer.github.io/snapshots.pub
       - name: debug auth.json file content
         run: sudo cat ~/.composer/auth.json
       - name: Diagnose composer
