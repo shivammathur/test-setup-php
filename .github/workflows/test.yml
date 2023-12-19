@@ -16,6 +16,8 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: 8.2
+        env:
+          runner: self-hosted
       - name: Add keys
         run: |
           sudo curl -o ~/.composer/keys.tags.pub -sL https://composer.github.io/releases.pub
