@@ -6,7 +6,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: catthehacker/ubuntu:act-latest
     env:
       COMPOSER_AUTH_JSON: ${{ secrets.COMPOSER_AUTH_JSON }}
     steps:
@@ -20,6 +19,6 @@ jobs:
           tools: composer:v2, phpunit, phpstan
           coverage: none     
       - name: debug auth.json file content
-        run: cat /root/.composer/auth.json
+        run: sudo cat /root/.composer/auth.json
       - name: Diagnose composer
         run: composer diagnose
