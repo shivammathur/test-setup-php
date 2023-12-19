@@ -1,33 +1,27 @@
-name: Runner
+name: ci
+
 on:
   push:
-jobs:
-  create:
-    name: Create
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-22.04, ubuntu-20.04, windows-2022, macos-12]
-    steps:
-      - run: |
-          echo ${{ matrix.operating-system }} > ${{ matrix.operating-system }}.md
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.operating-system }}
-          path: ${{ matrix.operating-system }}.md
-  test:
-    name: Update
-    needs: create
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: ${{ github.workspace }}/lists
-      - run: 
-          find ${{ github.workspace }} -name '*.md' -exec mv {} ${{ github.workspace }}/lists/ \;
-          find ${{ github.workspace }}/lists -name '*' -type d -delete
+    branches:
+      - "trunk"
 
-          ls -laR ${{ github.workspace }}/lists
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: catthehacker/ubuntu:act-latest
+    env:
+      COMPOSER_AUTH_JSON: ${{ secrets.COMPOSER_AUTH_JSON }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          extensions: json, mbstring, pdo, pdo_sqlsrv, simplexml
+          tools: composer:v2, phpunit, phpstan
+          coverage: none     
+      - name: debug auth.json file content
+        run: cat /root/.composer/auth.json
+      - name: Diagnose composer
+        run: composer diagnose
