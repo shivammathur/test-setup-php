@@ -11,7 +11,7 @@ jobs:
     name: Test
     steps:
     - name: Remove PHP
-      run: brew uninstall --ignore-dependencies $(brew deps php) php
+      run: brew uninstall php
     - name: Setup PHP
       env:
         update: true
