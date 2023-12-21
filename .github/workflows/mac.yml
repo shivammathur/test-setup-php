@@ -16,11 +16,11 @@ jobs:
     - name: Setup PHP
       env:
         update: true
+        phpts: ${{ matrix.phpts }}
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php }}
-      env:
-        phpts: ${{ matrix.phpts }}
+
     - name: Test PHP
       run: |
         php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"
