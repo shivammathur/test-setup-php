@@ -27,5 +27,5 @@ jobs:
         brew services start php@${{ matrix.php }}
         brew services list
         formula='php@${{ matrix.php }}'
-        [ "$formula" = "php@8.2" ] && formula='php'
+        [ "$formula" = "php@8.3" ] && formula='php'
         cat ~/Library/LaunchAgents/homebrew.mxcl."$formula".plist
