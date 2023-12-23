@@ -5,27 +5,14 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container: catthehacker/ubuntu:act-latest
-    env:
-      COMPOSER_AUTH_JSON: ${{ secrets.COMPOSER_AUTH_JSON }}
+    runs-on: windows-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
-          php-version: 8.2
-          extensions: json, mbstring, pdo, pdo_sqlsrv, simplexml
-          tools: composer:v2, phpunit, phpstan
-          coverage: none
-        env:
-          runner: self-hosted
-      - name: Add keys
+          php-version: 8.1
+          extensions: msgpack
+      - name: Test
         run: |
-          sudo curl -o ~/.composer/keys.tags.pub -sL https://composer.github.io/releases.pub
-          sudo curl -o ~/.composer/keys.dev.pub -sL https://composer.github.io/snapshots.pub
-      - name: debug auth.json file content
-        run: sudo cat ~/.composer/auth.json
-      - name: Diagnose composer
-        run: composer diagnose
+          php -v
+          php -m
