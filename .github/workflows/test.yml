@@ -1,4 +1,4 @@
-name: ci
+name: runner
 
 on:
   push:
@@ -8,7 +8,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: 8.1
           extensions: msgpack
