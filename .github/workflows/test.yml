@@ -5,17 +5,21 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        debug: [true, false]
+        phpts: [zts, nts]
+    runs-on: macos-latest
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: 7.0
+          php-version: 7.2
+          extensions: redis
         env:
-          phpts: zts
-          debug: true
+          phpts: ${{ matrix.phpts }}
+          debug: ${{ matrix.debug }}
       - name: Test
         run: |
           php -v
           php -m
-          phpdbg -V
