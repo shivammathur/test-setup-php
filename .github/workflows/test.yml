@@ -15,7 +15,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: 7.2
-          extensions: redis
+          extensions: redis, http, event
         env:
           phpts: ${{ matrix.phpts }}
           debug: ${{ matrix.debug }}
