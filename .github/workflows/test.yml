@@ -9,18 +9,18 @@ jobs:
       matrix:
         debug: [true, false]
         phpts: [zts, nts]
+        coverage: [xdebug, pcov]
     runs-on: macos-latest
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: 7.4
-          extensions: redis, http, event
+          coverage: ${{ matrix.coverage }}
         env:
           phpts: ${{ matrix.phpts }}
           debug: ${{ matrix.debug }}
       - name: Test
         run: |
-          ls $(brew --cellar php@7.4)
           php -v
           php -m
