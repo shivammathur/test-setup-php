@@ -21,6 +21,6 @@ jobs:
           debug: ${{ matrix.debug }}
       - name: Test
         run: |
-          brew --cellar php@7.4
+          ls $(brew --cellar php@7.4)
           php -v
           php -m
