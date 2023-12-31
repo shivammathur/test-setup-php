@@ -27,7 +27,7 @@ jobs:
       - name: Testing PHP version
         run: |
           php -v
-          php -r "if(PHP_MAJOR_VERSION . '.x' !== '${{ matrix.php-versions }}' && '${{ matrix.php-versions }}' != 'latest' && '${{ matrix.php-versions }}' != 'nightly') {throw new Exception('Wrong PHP version Installed');}"
+          php -r "if(strpos('${{ matrix.php-versions }}', '.x') !== false && PHP_MAJOR_VERSION . '.x' !== '${{ matrix.php-versions }}') {throw new Exception('Wrong PHP version Installed');}"
       - name: Testing Composer version
         run: php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
       - name: Testing Extensions
