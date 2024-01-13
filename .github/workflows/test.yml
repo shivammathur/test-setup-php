@@ -5,21 +5,15 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        debug: [true, false]
-        phpts: [zts, nts]
-        coverage: [xdebug, pcov]
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
-          php-version: 7.4
-          coverage: ${{ matrix.coverage }}
-        env:
-          phpts: ${{ matrix.phpts }}
-          debug: ${{ matrix.debug }}
+          php-version: 8.4
+          coverage: xdebug
+          tools: php-cs-fixer
+          extensions: "ast, grpc, protobuf"
       - name: Test
         run: |
           php -v
