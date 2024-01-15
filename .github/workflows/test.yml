@@ -7,27 +7,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup cache environment
-        id: extcache
-        uses: shivammathur/cache-extensions@v1
-        with:
-          php-version: 8.4
-          extensions: "ast, grpc, protobuf"
-          key: cache-v1
-      
-      - name: Cache extensions
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.extcache.outputs.dir }}
-          key: ${{ steps.extcache.outputs.key }}
-          restore-keys: ${{ steps.extcache.outputs.key }}
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
           php-version: 8.4
-          coverage: xdebug
-          tools: php-cs-fixer
-          extensions: "ast, grpc, protobuf"
+          extensions: "yar"
       - name: Test
         run: |
           php -v
