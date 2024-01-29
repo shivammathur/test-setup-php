@@ -5,15 +5,18 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: [5.6, '7.0', 7.1, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3]
+    runs-on: macos-latest
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.4
-          extensions: redis-6.0.1
+          php-version: ${{ matrix.php }}
       - name: Test
+        shell: php {0}
         run: |
-          php -r "echo phpversion('redis');"
-          php -v
-          php -m
+          <?php
+          $func = function(array $param) { return $param; };
+          var_dump($func('hello'));
