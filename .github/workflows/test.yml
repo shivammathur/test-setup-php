@@ -11,5 +11,4 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Test
-        run: brew --prefix
-      - uses: mxschmitt/action-tmate@v3.17
+        run: arch
