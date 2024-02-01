@@ -7,16 +7,9 @@ jobs:
   build:
     strategy:
       matrix:
-        php: [5.6, '7.0', 7.1, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3]
-    runs-on: macos-latest
+        os: [macos-13, macos-14]
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
       - name: Test
-        shell: php {0}
-        run: |
-          <?php
-          $func = function(array $param) { return $param; };
-          var_dump($func('hello'));
+        run: brew --prefix
+      - uses: mxschmitt/action-tmate@v3.17
