@@ -11,4 +11,4 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: shivammathur/setup-php@v2
-      - php -v
+      - run: php -v
