@@ -10,5 +10,5 @@ jobs:
         os: [macos-13, macos-14]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Test
-        run: uname -a
+      - uses: shivammathur/setup-php@v2
+      - php -v
