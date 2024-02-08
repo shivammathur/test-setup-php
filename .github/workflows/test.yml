@@ -18,5 +18,5 @@ jobs:
           php -v
           php -m
           php -r "if(! extension_loaded('${{ matrix.ext }}')) {throw new Exception('${{ matrix.ext }} not found');}"
-      - if: failure()
-        uses: mxschmitt/action-tmate@v3.16    
+#      - if: failure()
+#        uses: mxschmitt/action-tmate@v3.16    
