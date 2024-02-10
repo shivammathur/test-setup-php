@@ -11,7 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     container: ${{ matrix.container }}
     steps:
-    -  run: |
+    - run: apk add bash
+    - shell: bash 
+      run: |
         set -x
         apk add docker
         docker run \
