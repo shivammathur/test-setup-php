@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         container: [alpine, '']
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     container: ${{ matrix.container }}
     steps:
       - run: cat /etc/os-release
