@@ -7,13 +7,14 @@ jobs:
   build:
     strategy:
       matrix:
-        container: [alpine, '']
+        container: [alpine]
     runs-on: ubuntu-latest
     container: ${{ matrix.container }}
     steps:
     - shell: bash
       run: |
         set -x
+        apk add docker
         docker run \
           -e "ACCEPT_EULA=Y" \
           -e "SA_PASSWORD=<YourStrong@Passw0rd>" \
