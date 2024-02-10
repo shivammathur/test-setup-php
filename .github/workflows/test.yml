@@ -7,8 +7,8 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-13, macos-14]
+        container: [alpine, '']
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     steps:
-      - uses: shivammathur/setup-php@v2
-      - run: php -v
+      - run: cat /etc/os-release
