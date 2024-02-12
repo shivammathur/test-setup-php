@@ -13,6 +13,9 @@ jobs:
           - "8.1"
           - "8.0"
           - "7.4"
+        debug:
+          - true
+          - false
     steps:
     - uses: actions/checkout@v4
     - name: "Install PHP"
@@ -20,8 +23,10 @@ jobs:
       with:
         php-version: "${{ matrix.php }}"
       env:
-        debug: true
+        debug: ${{ matrix.debug }}
     - run: ls /tmp    
     - run: php -i
     - run: |
         php -i |grep Debug
+        file /usr/lib/libphp${{ matrix.php }}.so
+        objdump --syms /usr/lib/libphp${{ matrix.php }}.so | grep debug || true
