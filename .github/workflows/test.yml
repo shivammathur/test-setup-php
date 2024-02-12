@@ -1,25 +1,26 @@
-name: runner
+name: Test
 
-on:
-  push:
+on: push
 
 jobs:
-  build:
+  test:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        container: [alpine]
-    runs-on: ubuntu-latest
-    container: ${{ matrix.container }}
+        php:
+          - "8.3"
+          - "8.2"
+          - "8.1"
+          - "8.0"
+          - "7.4"
     steps:
-    - run: apk add bash
-    - shell: bash 
-      run: |
-        set -x
-        apk add docker
-        docker run \
-          -e "ACCEPT_EULA=Y" \
-          -e "SA_PASSWORD=<YourStrong@Passw0rd>" \
-          -p 1433:1433 \
-          --name sql1 \
-          -h sql1 \
-          -d mcr.microsoft.com/mssql/server:2019-CU8-ubuntu-16.04
+    - uses: actions/checkout@v4
+    - name: "Install PHP"
+      uses: "shivammathur/setup-php@verbose"
+      with:
+        php-version: "${{ matrix.php }}"
+      env:
+        debug: true
+    - run: php -i
+    - run: |
+        php -i |grep Debug
