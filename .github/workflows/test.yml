@@ -28,5 +28,4 @@ jobs:
     - run: php -i
     - run: |
         php -i |grep Debug
-        file /usr/lib/libphp${{ matrix.php }}.so
-        objdump --syms /usr/lib/libphp${{ matrix.php }}.so | grep debug || true
+        objdump --syms $(which php) | grep debug || true
