@@ -21,6 +21,7 @@ jobs:
         php-version: "${{ matrix.php }}"
       env:
         debug: true
+    - run: ls /tmp    
     - run: php -i
     - run: |
         php -i |grep Debug
