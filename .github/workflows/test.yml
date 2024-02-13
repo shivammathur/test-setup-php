@@ -1,31 +1,20 @@
-name: Test
-
-on: push
-
+name: Runner
+on:
+  push:
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        php:
-          - "8.3"
-          - "8.2"
-          - "8.1"
-          - "8.0"
-          - "7.4"
-        debug:
-          - true
-          - false
-    steps:
-    - uses: actions/checkout@v4
-    - name: "Install PHP"
-      uses: "shivammathur/setup-php@verbose"
-      with:
-        php-version: "${{ matrix.php }}"
-      env:
-        debug: ${{ matrix.debug }}
-    - run: ls /tmp    
-    - run: php -i
-    - run: |
-        php -i |grep Debug
-        objdump --syms $(which php) | grep debug || true
+    runner:
+        runs-on: ubuntu-latest
+        container: ubuntu:22.04
+        steps:
+        - run: |
+            apt-get update
+            DEBIAN_FRONTEND=noninteractive apt-get install software-properties-common -y
+        - run: |
+            DEBIAN_FRONTEND=noninteractive add-apt-repository ppa:ondrej/php
+            apt-get update
+        - run: |
+            DEBIAN_FRONTEND=noninteractive apt-get install php8.1-cli -y
+            php -v
+        - run: |
+            DEBIAN_FRONTEND=noninteractive apt-get install php8.1-phalcon5 -y
+            php -v
