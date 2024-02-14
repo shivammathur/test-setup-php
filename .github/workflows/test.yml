@@ -15,6 +15,6 @@ jobs:
       with:
         php-version: "${{ matrix.php }}"
     - run: php -i
-    - if: failed()
+    - if: failure()
       uses: mxschmitt/action-tmate@v3.17
       
