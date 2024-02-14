@@ -9,6 +9,7 @@ jobs:
         operating-system: [macos-14, macos-13, macos-12]
         php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
         debug: ['true', 'false']
+        phpts: ['ts', 'nts']
     name: Test
     steps:
     - name: Remove PHP
@@ -16,7 +17,8 @@ jobs:
     - name: Setup PHP
       env:
         update: true
-        debug: ${{ matrix.phpts }}
+        debug: ${{ matrix.debug }}
+        phpts: ${{ matrix.phpts }}
       uses: shivammathur/setup-php@verbose
       with:
         php-version: ${{ matrix.php }}
