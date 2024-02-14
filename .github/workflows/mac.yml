@@ -29,8 +29,13 @@ jobs:
         php -v && php -m
     - name: Test PHP service
       run: |
-        brew services start php@${{ matrix.php }}
+        debug=
+        phpts=
+        [[ "${{ matrix.debug }}" = "true" ]] && debug='-debug'
+        [[ "${{ matrix.phpts }}" = "ts" ]] && phpts='-zts'
+        formula="php@${{ matrix.php }}$debug$phpts"
+        brew services start "$formula"
         brew services list
-        formula='php@${{ matrix.php }}'
-        [ "$formula" = "php@8.3" ] && formula='php'
+        
+        [ "$formula" = "php@8.3$debug$phpts" ] && formula="php$debug$phpts"
         cat ~/Library/LaunchAgents/homebrew.mxcl."$formula".plist
