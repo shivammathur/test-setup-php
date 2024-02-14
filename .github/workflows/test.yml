@@ -10,11 +10,12 @@ jobs:
         php:
           - "8.2"
     steps:
+    - run : |
+        echo $ImageVersion
+        echo $ImageOs
     - name: "Install PHP"
       uses: "shivammathur/setup-php@develop"
       with:
         php-version: "${{ matrix.php }}"
     - run: php -i
-    - if: failure()
-      uses: mxschmitt/action-tmate@v3.17
       
