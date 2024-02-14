@@ -11,8 +11,7 @@ jobs:
           - "8.2"
     steps:
     - run : |
-        echo $ImageVersion
-        echo $ImageOS
+        brew doctor
     - name: "Install PHP"
       uses: "shivammathur/setup-php@develop"
       with:
