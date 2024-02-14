@@ -11,7 +11,7 @@ jobs:
           - "8.2"
     steps:
     - name: "Install PHP"
-      uses: "shivammathur/setup-php@verbose"
+      uses: "shivammathur/setup-php@develop"
       with:
         php-version: "${{ matrix.php }}"
     - run: php -i
