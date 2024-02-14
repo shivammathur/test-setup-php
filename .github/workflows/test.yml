@@ -5,16 +5,6 @@ on: push
 jobs:
   test:
     runs-on: macos-13-xlarge
-    strategy:
-      matrix:
-        php:
-          - "8.2"
     steps:
-    - run : |
-        brew doctor
-    - name: "Install PHP"
-      uses: "shivammathur/setup-php@develop"
-      with:
-        php-version: "${{ matrix.php }}"
-    - run: php -i
+    - uses: mxschmitt/action-tmate@v3.17
       
