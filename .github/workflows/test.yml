@@ -12,8 +12,6 @@ jobs:
     - uses: shivammathur/setup-php@develop
       with:
         php-version: 8.2
-      env:
-        COMPOSER_PROCESS_TIMEOUT: 30
     - if: ${{ matrix.os != 'windows-latest' }}
       run: | 
         echo "COMPOSER_PROCESS_TIMEOUT: $COMPOSER_PROCESS_TIMEOUT"
