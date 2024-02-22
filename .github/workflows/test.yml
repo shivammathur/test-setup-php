@@ -14,7 +14,11 @@ jobs:
         php-version: 8.2
       env:
         COMPOSER_PROCESS_TIMEOUT: 30
-    - run: | 
+    - if: ${{ matrix.os != 'windows-latest' }}
+      run: | 
         echo "COMPOSER_PROCESS_TIMEOUT: $COMPOSER_PROCESS_TIMEOUT"
+    - if: ${{ matrix.os == 'windows-latest' }}
+      run: | 
+        echo "COMPOSER_PROCESS_TIMEOUT: $env:COMPOSER_PROCESS_TIMEOUT"
         
       
