@@ -4,11 +4,17 @@ on: push
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-    - uses: shivammathur/setup-php@v2
+    - uses: shivammathur/setup-php@develop
       with:
         php-version: 8.2
-    - run: ls /etc/php/8.2
+      env:
+        COMPOSER_PROCESS_TIMEOUT: 30
+    - run: | 
+        echo "COMPOSER_PROCESS_TIMEOUT: $COMPOSER_PROCESS_TIMEOUT"
         
       
