@@ -1,22 +1,45 @@
-name: Test
-
-on: push
-
+name: 'Test Formulae'
+on:
+  push:
 jobs:
-  test:
+  run:    
+    runs-on: ${{ matrix.operating-system }}
     strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+      fail-fast: false
+      matrix:      
+        operating-system: [macos-13]
+        php: ['7.3']
+        debug: ['false']
+        phpts: ['nts']
+    name: Test
     steps:
-    - uses: shivammathur/setup-php@develop
+    - name: Set up Homebrew
+      if: matrix.operating-system == 'macos-12'
+      uses: Homebrew/actions/setup-homebrew@master
+    - name: Remove PHP
+      run: brew uninstall --ignore-dependencies php || true
+    - name: Setup PHP
+      env:
+        update: true
+        debug: ${{ matrix.debug }}
+        phpts: ${{ matrix.phpts }}
+      uses: shivammathur/setup-php@verbose
       with:
-        php-version: 8.2
-    - if: ${{ matrix.os != 'windows-latest' }}
-      run: | 
-        echo "COMPOSER_PROCESS_TIMEOUT: $COMPOSER_PROCESS_TIMEOUT"
-    - if: ${{ matrix.os == 'windows-latest' }}
-      run: | 
-        echo "COMPOSER_PROCESS_TIMEOUT: $env:COMPOSER_PROCESS_TIMEOUT"
+        php-version: ${{ matrix.php }}
+    - uses: mxschmitt/action-tmate@v3.17
+    - name: Test PHP
+      run: |
+        php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+        php -v && php -m
+    - name: Test PHP service
+      run: |
+        debug=
+        phpts=
+        [[ "${{ matrix.debug }}" = "true" ]] && debug='-debug'
+        [[ "${{ matrix.phpts }}" = "ts" ]] && phpts='-zts'
+        formula="php@${{ matrix.php }}$debug$phpts"
+        brew services start "$formula"
+        brew services list
         
-      
+        [ "$formula" = "php@8.3$debug$phpts" ] && formula="php$debug$phpts"
+        cat ~/Library/LaunchAgents/homebrew.mxcl."$formula".plist
