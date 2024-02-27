@@ -1,8 +1,5 @@
 name: 'Test Formulae'
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: '30 7 * * *'
+on: ['push']
 jobs:
   run:    
     runs-on: ${{ matrix.operating-system }}
