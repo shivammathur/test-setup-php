@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [ubuntu-22.04, ubuntu-20.04]
+        operating-system: [macos-14, macos-13]
     name: Test
     steps:
-    - run: sudo apt-cache policy libheif-dev
+    - run: which git
