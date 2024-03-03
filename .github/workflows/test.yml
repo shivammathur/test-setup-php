@@ -9,4 +9,12 @@ jobs:
         operating-system: [macos-14, macos-13]
     name: Test
     steps:
-    - run: which git
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Brew cleanup
+        run: brew test-bot --only-cleanup-before
+
+      - name: Brew setup
+        run: brew test-bot --only-setup
+      - run: which git
