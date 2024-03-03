@@ -17,4 +17,4 @@ jobs:
 
       - name: Brew setup
         run: brew test-bot --only-setup
-      - run: which git
+      - run: which git && git -v
