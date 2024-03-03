@@ -6,10 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [windows-2019, windows-2022]
+        operating-system: [macos-14]
     name: Test
     steps:
-    - uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: x64
-        toolset: 14.1
+    - run: php -v
