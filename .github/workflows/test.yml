@@ -12,4 +12,4 @@ jobs:
       - name: Test
         run: |
           BREW_PREFIX="$(brew --prefix)"
-          ls -la "$BREW_PREFIX"/share/gettext/its || true
+          ls -la "$BREW_PREFIX"/share/gettext || true
