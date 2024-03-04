@@ -6,15 +6,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-14, macos-13]
+        operating-system: [macos-14, macos-13, macos-12, macos-11]
     name: Test
     steps:
-      - name: Set up Homebrew
-        uses: Homebrew/actions/setup-homebrew@master
-
-      - name: Brew cleanup
-        run: brew test-bot --only-cleanup-before
-
-      - name: Brew setup
-        run: brew test-bot --only-setup
-      - run: which git && git -v
+      - name: Test
+        run: |
+          BREW_PREFIX="$(brew --prefix)"
+          ls -la "$BREW_PREFIX"/share/gettext/its || true
