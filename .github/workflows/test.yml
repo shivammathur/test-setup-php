@@ -12,7 +12,8 @@ jobs:
     
     - run: |
         set -x
-        brew test-bot --only-cleanup-before
+        git -C $(brew --repo) fetch origin master
+        git -C $(brew --repo) reset --hard origin/master
         brew install --force --overwrite \
           pkg-config \
           autoconf \
