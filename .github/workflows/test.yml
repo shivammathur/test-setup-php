@@ -6,10 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [macos-14, macos-13, macos-12, macos-11]
+        operating-system: [ubuntu-22.04, ubuntu-20.04, windows-2019, windows-2022, macos-14, macos-13, macos-12]
     name: Test
     steps:
-      - name: Test
-        run: |
-          BREW_PREFIX="$(brew --prefix)"
-          ls -la "$BREW_PREFIX"/share/gettext || true
+    - run: php -v
