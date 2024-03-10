@@ -12,8 +12,9 @@ jobs:
     
     - run: |
         set -x
-        git -C $(brew --repo) fetch origin master
-        git -C $(brew --repo) reset --hard origin/master
+        formula_installer="$(brew --repo)"/Library/Homebrew/formula_installer.rb
+        code=" keg.link\(verbose: verbose\?"
+        sudo sed -Ei '' "s/$code.*/$code, overwrite: true\)/" "$formula_installer"
         brew install --force --overwrite \
           pkg-config \
           autoconf \
