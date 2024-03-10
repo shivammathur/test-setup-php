@@ -10,10 +10,12 @@ jobs:
     name: Test
     steps:
     - run: |
-        choco list mysql
+        Test-NetConnection -ComputerName https://google.com
+        Test-NetConnection -ComputerName https://community.chocolatey.org/api/v2
         choco sources
         choco source remove -n chocolatey
         choco source add -n chocolatey -s https://community.chocolatey.org/api/v2
         choco sources
         choco upgrade chocolatey
+        choco list mysql
         choco install mysql -y --debug --trace --no-progress --params="/port:3306"
