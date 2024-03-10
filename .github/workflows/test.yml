@@ -10,6 +10,7 @@ jobs:
     name: Test
     steps:
     - run: |
-        Invoke-RestMethod https://community.chocolatey.org/api/v2/Packages
+        $output = Invoke-RestMethod https://community.chocolatey.org/api/v2/Packages || true
+        echo $output.Content || true
         choco list mysql
         choco install mysql -y --debug --trace --no-progress --params="/port:3306"
