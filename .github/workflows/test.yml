@@ -6,7 +6,38 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        operating-system: [ubuntu-22.04, ubuntu-20.04, windows-2019, windows-2022, macos-14, macos-13, macos-12]
+        operating-system: [macos-14, macos-13, macos-12]
     name: Test
     steps:
-    - run: php -v
+    - run: |
+      set -x
+      brew install \
+        pkg-config \
+        autoconf \
+        bison \
+        re2c
+      brew install \
+        openssl@1.1 \
+        curl \
+        krb5 \
+        bzip2 \
+        enchant \
+        libffi \
+        libpng \
+        webp \
+        freetype \
+        intltool \
+        icu4c \
+        libiconv \
+        zlib \
+        t1lib \
+        gd \
+        libzip \
+        gmp \
+        tidy-html5 \
+        libxml2 \
+        libjpeg \
+        libsodium \
+        libxslt \
+        postgresql
+      brew link icu4c gettext --force
