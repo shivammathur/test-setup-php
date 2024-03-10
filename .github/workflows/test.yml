@@ -9,14 +9,17 @@ jobs:
         operating-system: [macos-14, macos-13, macos-12]
     name: Test
     steps:
+    - name: Set up Homebrew
+      id: set-up-homebrew
+      uses: Homebrew/actions/setup-homebrew@master
     - run: |
         set -x
-        brew install --force \
+        brew install \
           pkg-config \
           autoconf \
           bison \
           re2c
-        brew install --force \
+        brew install \
           openssl@1.1 \
           curl \
           krb5 \
@@ -40,4 +43,4 @@ jobs:
           libsodium \
           libxslt \
           postgresql
-        brew link icu4c gettext --force --overwrite
+        brew link icu4c gettext
