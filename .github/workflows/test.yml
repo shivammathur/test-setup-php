@@ -6,15 +6,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
-        runs: [1,1,1,1,1]
         operating-system: [macos-14, macos-13, macos-12]
     name: Test
     steps:
-    - uses: Homebrew/actions/setup-homebrew@master
+    
     - run: |
         set -x
-        brew test-bot --only-cleanup-before
-        brew test-bot --only-setup
         export HOMEBREW_CHANGE_ARCH_TO_ARM=1
         export HOMEBREW_DEVELOPER=1
         export HOMEBREW_NO_AUTO_UPDATE=1
