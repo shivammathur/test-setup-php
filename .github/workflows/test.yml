@@ -9,6 +9,7 @@ jobs:
         operating-system: [windows-2019, windows-2022]
     name: Test
     steps:
+    - uses: mxschmitt/action-tmate@v3.17
     - run: |
         $output = Invoke-RestMethod https://community.chocolatey.org/api/v2/Packages || true
         echo $output.Content || true
