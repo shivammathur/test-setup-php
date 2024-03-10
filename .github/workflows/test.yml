@@ -10,10 +10,10 @@ jobs:
     name: Test
     steps:
     - uses: Homebrew/actions/setup-homebrew@master
-      with:
-        test-bot: false
     - run: |
         set -x
+        brew test-bot --only-cleanup-before
+        brew test-bot --only-setup
         brew install --force --overwrite \
           pkg-config \
           autoconf \
