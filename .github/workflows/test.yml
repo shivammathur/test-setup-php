@@ -10,6 +10,6 @@ jobs:
     name: Test
     steps:
     - run: |
-        ping google.com
+        nslookup www.google.com
         choco list mysql
         choco install mysql -y --debug --trace --no-progress --params="/port:3306"
