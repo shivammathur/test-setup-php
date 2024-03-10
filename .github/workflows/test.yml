@@ -6,6 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:      
+        runs: [1,1,1,1,1]
         operating-system: [macos-14, macos-13, macos-12]
     name: Test
     steps:
