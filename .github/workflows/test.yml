@@ -11,12 +11,12 @@ jobs:
     steps:
     - run: |
         set -x
-        brew install \
+        brew install --force \
           pkg-config \
           autoconf \
           bison \
           re2c
-        brew install \
+        brew install --force \
           openssl@1.1 \
           curl \
           krb5 \
