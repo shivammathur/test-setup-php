@@ -9,6 +9,9 @@ jobs:
         operating-system: [macos-14, macos-13, macos-12]
     name: Test
     steps:
+    - uses: Homebrew/actions/setup-homebrew@master
+      with:
+        test-bot: false
     - run: |
         set -x
         brew install --force --overwrite \
