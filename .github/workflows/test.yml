@@ -10,6 +10,6 @@ jobs:
     name: Test
     steps:
     - run: |
-        Invoke-WebRequest -Uri https://community.chocolatey.org/api/v2/Packages
+        Invoke-WebRequest -UseBasicParsing -Uri https://community.chocolatey.org/api/v2/Packages
         choco list mysql
         choco install mysql -y --debug --trace --no-progress --params="/port:3306"
