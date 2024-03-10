@@ -1,4 +1,4 @@
-name: 'Test Formulae'
+name: 'Test'
 on: ['push']
 jobs:
   run:    
@@ -6,41 +6,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runs: [1,1,1,1,1,1,1]
-        operating-system: [macos-14, macos-13, macos-12]
+        operating-system: [windows-2019, windows-2022]
     name: Test
     steps:
-    
     - run: |
-        set -x
-        brew install --overwrite python
-        brew install --force --overwrite \
-          pkg-config \
-          autoconf \
-          bison \
-          re2c
-        brew install --force --overwrite \
-          openssl@1.1 \
-          curl \
-          krb5 \
-          bzip2 \
-          enchant \
-          libffi \
-          libpng \
-          webp \
-          freetype \
-          intltool \
-          icu4c \
-          libiconv \
-          zlib \
-          t1lib \
-          gd \
-          libzip \
-          gmp \
-          tidy-html5 \
-          libxml2 \
-          libjpeg \
-          libsodium \
-          libxslt \
-          postgresql
-        brew link icu4c gettext --force --overwrite
+        choco install mysql -y --no-progress --params="/port:3306"
