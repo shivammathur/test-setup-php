@@ -13,9 +13,7 @@ jobs:
     
     - run: |
         set -x
-        formula_installer="$(brew --repo)"/Library/Homebrew/formula_installer.rb
-        code=" keg.link\(verbose: verbose\?"
-        sudo sed -Ei '' "s/$code.*/$code, overwrite: true\)/" "$formula_installer"
+        brew install --overwrite python
         brew install --force --overwrite \
           pkg-config \
           autoconf \
