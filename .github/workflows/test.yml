@@ -12,7 +12,8 @@ jobs:
     - run: |
         choco list mysql
         choco sources
-        choco source add -n chocolatey -s 'https://chocolatey.org/api/v2/'
+        choco source remove -n chocolatey
+        choco source add -n chocolatey -s https://community.chocolatey.org/api/v2
         choco sources
         choco upgrade chocolatey
-        choco install mysql -y --no-progress --params="/port:3306"
+        choco install mysql -y --debug --trace --no-progress --params="/port:3306"
