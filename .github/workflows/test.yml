@@ -14,6 +14,7 @@ jobs:
       uses: Homebrew/actions/setup-homebrew@master
     - run: |
         set -x
+        brew cleanup
         brew install \
           pkg-config \
           autoconf \
