@@ -10,6 +10,6 @@ jobs:
     name: Test
     steps:
     - run: |
-        nslookup www.google.com
+        Invoke-WebRequest https://community.chocolatey.org/api/v2/
         choco list mysql
         choco install mysql -y --debug --trace --no-progress --params="/port:3306"
