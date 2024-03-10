@@ -10,5 +10,7 @@ jobs:
     name: Test
     steps:
     - run: |
+        choco list mysql
+        choco sources
         choco upgrade chocolatey
         choco install mysql -y --no-progress --params="/port:3306"
