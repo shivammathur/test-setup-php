@@ -15,6 +15,12 @@ jobs:
         set -x
         brew test-bot --only-cleanup-before
         brew test-bot --only-setup
+        export HOMEBREW_CHANGE_ARCH_TO_ARM=1
+        export HOMEBREW_DEVELOPER=1
+        export HOMEBREW_NO_AUTO_UPDATE=1
+        export HOMEBREW_NO_ENV_HINTS=1
+        export HOMEBREW_NO_INSTALL_CLEANUP=1
+        export HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK=1
         brew install --force --overwrite \
           pkg-config \
           autoconf \
