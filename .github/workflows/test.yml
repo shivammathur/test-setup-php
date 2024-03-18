@@ -1,17 +1,34 @@
-name: 'Test'
-on: ['push']
+name: Git release workflow
+on: [push]
 jobs:
-  run:    
-    runs-on: ${{ matrix.operating-system }}
+  update:
+    name: update
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-2019, windows-2022]
-    name: Test
+        os: [ubuntu-22.04, ubuntu-20.04]
     steps:
-    - uses: mxschmitt/action-tmate@v3.17
-    - run: |
-        $output = Invoke-RestMethod https://community.chocolatey.org/api/v2/Packages || true
-        echo $output.Content || true
-        choco list mysql
-        choco install mysql -y --debug --trace --no-progress --params="/port:3306"
+      - name: Update lists
+        run: |
+          . /etc/os-release
+          dpkg -l | awk '($1 == "ii") && ($2 ~ /^lib|lib$/) { print $2 }' | sed 's/:amd64//' > /tmp/"$VERSION_CODENAME"-libs
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lists-${{ matrix.os }}
+          path: |
+            /tmp/*-libs
+
+  sync:
+    name: sync
+    needs: update
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download lists
+        uses: actions/download-artifact@v4
+        with:
+          pattern: list-*
+          merge-multiple: true
+          path: src/lists
+      - run: ls -R src/lists
