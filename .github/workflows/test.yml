@@ -28,7 +28,7 @@ jobs:
       - name: Download lists
         uses: actions/download-artifact@v4
         with:
-          pattern: list-*
+          pattern: lists-*
           merge-multiple: true
           path: src/lists
       - run: ls -R src/lists
