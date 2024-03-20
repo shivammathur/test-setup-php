@@ -1,34 +1,14 @@
-name: Git release workflow
+name: Runner test
 on: [push]
 jobs:
-  update:
-    name: update
+  runner:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, ubuntu-20.04]
     steps:
-      - name: Update lists
-        run: |
-          . /etc/os-release
-          dpkg -l | awk '($1 == "ii") && ($2 ~ /^lib|lib$/) { print $2 }' | sed 's/:amd64//' > /tmp/"$VERSION_CODENAME"-libs
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+      - name: Test
+        uses: shivammathur/setup-php@verbose
         with:
-          name: lists-${{ matrix.os }}
-          path: |
-            /tmp/*-libs
-
-  sync:
-    name: sync
-    needs: update
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download lists
-        uses: actions/download-artifact@v4
-        with:
-          pattern: lists-*
-          merge-multiple: true
-          path: src/lists
-      - run: ls -R src/lists
+          extensions: gnupg
