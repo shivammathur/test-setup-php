@@ -2,13 +2,6 @@ name: Runner test
 on: [push]
 jobs:
   runner:
-    runs-on: macos-latest
+    runs-on: windows-latest
     steps:
-      - name: Test
-        uses: shivammathur/setup-php@develop
-        with:
-            php-version: 8.3
-            extensions: http
-            ini-file: production
-      - run: brew config      
-      - uses: mxschmitt/action-tmate@v3.17      
+      - run: echo $ExecutionContext.SessionState.LanguageMode
