@@ -10,4 +10,5 @@ jobs:
             php-version: 8.3
             extensions: http
             ini-file: production
+      - run: brew config      
       - uses: mxschmitt/action-tmate@v3.17      
