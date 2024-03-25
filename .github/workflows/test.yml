@@ -2,13 +2,12 @@ name: Runner test
 on: [push]
 jobs:
   runner:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-22.04, ubuntu-20.04]
+    runs-on: macos-latest
     steps:
       - name: Test
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
-          extensions: ssh2
+            php-version: 8.3
+            extensions: http
+            ini-file: production
+      - uses: mxschmitt/action-tmate@v3.17      
