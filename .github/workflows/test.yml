@@ -2,9 +2,7 @@ name: Runner test
 on: [push]
 jobs:
   runner:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-11, macos-12, macos-13, macos-14]
+    runs-on: ubuntu-latest
+    container: ubuntu:24.04
     steps:
-      - run: php -v && php -m    
+      - uses: mxschmitt/action-tmate@v3.17    
