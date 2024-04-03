@@ -8,5 +8,5 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: '8.2'
-          extensions: none, igbinary, redis, apcu, gd, bcmath, mbstring, SimpleXml, curl, dom, tokenizer, xml, xmlwriter, opcache, fileinfo, xmlreader, intl, mysqli, sockets, iconv
+          extensions: none, zip, igbinary, redis, apcu, gd, bcmath, mbstring, SimpleXml, curl, dom, tokenizer, xml, xmlwriter, opcache, fileinfo, xmlreader, intl, mysqli, sockets, iconv
       - run: php -v && php -m    
