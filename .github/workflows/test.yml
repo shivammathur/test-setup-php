@@ -3,6 +3,9 @@ on: [push]
 jobs:
   runner:
     runs-on: ubuntu-latest
-    container: ubuntu:24.04
     steps:
-      - uses: mxschmitt/action-tmate@v3.17    
+      - name: Setup PHP
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: '8.2'
+          extensions: none, igbinary, redis, apcu, gd, bcmath, mbstring, SimpleXml, curl, dom, tokenizer, xml, xmlwriter, opcache, fileinfo, xmlreader, intl, mysqli, sockets, iconv
