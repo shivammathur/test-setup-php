@@ -11,7 +11,7 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@2.30.2
       with:
-          php-version: '8.2'
+          php-version: ${{ matrix.php }}
           coverage: pcov
       env:
           runner: self-hosted
