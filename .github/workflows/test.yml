@@ -9,7 +9,7 @@ jobs:
     container: ubuntu:22.04
     steps:
     - name: Setup PHP
-      uses: shivammathur/setup-php@2.30.2
+      uses: shivammathur/setup-php@verbose
       with:
           php-version: ${{ matrix.php }}
           coverage: pcov
