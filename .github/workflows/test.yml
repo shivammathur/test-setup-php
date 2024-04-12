@@ -2,11 +2,19 @@ name: Runner test
 on: [push]
 jobs:
   runner:
+    strategy:
+      matrix:
+        php: [8.2, 8.3]
     runs-on: ubuntu-latest
+    container: ubuntu:22.04
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
+    - name: Setup PHP
+      uses: shivammathur/setup-php@2.30.2
+      with:
           php-version: '8.2'
-          extensions: none, zip, igbinary, redis, apcu, gd, bcmath, mbstring, SimpleXml, curl, dom, tokenizer, xml, xmlwriter, opcache, fileinfo, xmlreader, intl, mysqli, sockets, iconv
-      - run: php -v && php -m    
+          coverage: pcov
+      env:
+          runner: self-hosted
+
+    - name: list php modules
+      run: php -m 
