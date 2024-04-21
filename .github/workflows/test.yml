@@ -4,17 +4,19 @@ jobs:
   runner:
     strategy:
       matrix:
-        php: [8.2, 8.3]
-    runs-on: ubuntu-latest
-    container: ubuntu:22.04
+        php: [8.4]
+    runs-on: macos-latest
     steps:
-    - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
-      with:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
+        with:
           php-version: ${{ matrix.php }}
-          coverage: pcov
-      env:
-          runner: self-hosted
-
-    - name: list php modules
-      run: php -m 
+          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+        env:
+          debug: ${{ matrix.debug }}
+      - run: php -v && php -m    
+      - name: Add Problem Matcher
+        run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+      - uses: mxschmitt/action-tmate@v3.18  
