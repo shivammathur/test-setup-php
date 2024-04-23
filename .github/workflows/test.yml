@@ -4,13 +4,13 @@ jobs:
   runner:
     strategy:
       matrix:
-        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
-    runs-on: macos-latest
+        php: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
+    runs-on: windows-latest
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
+          extensions: pdo_sqlsrv, sqlsrv
       - run: |
-          php_config="$(command -v php-config)"
-          sed -n "s/.*extension_dir=['\"]\(.*\)['\"].*/\1/p" "$php_config"
+          php -v && php -m
