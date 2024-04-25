@@ -4,13 +4,15 @@ jobs:
   runner:
     strategy:
       matrix:
-        php: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
-    runs-on: windows-latest
+        php: ['7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo_sqlsrv, sqlsrv
+          tools: ecs
       - run: |
           php -v && php -m
+          ecs --version
