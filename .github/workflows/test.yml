@@ -4,15 +4,15 @@ jobs:
   runner:
     strategy:
       matrix:
-        php: ['7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
+        php: ['8.2']
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
+      - name: Setup PHP
+        uses: shivammathur/setup-php@verbose
         with:
-          php-version: ${{ matrix.php }}
-          tools: ecs
+          php-version: 8.2
+          extensions: soap, memcached, bcmath
       - run: |
           php -v
-          ecs --version
+          php -m
