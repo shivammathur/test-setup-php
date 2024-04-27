@@ -9,11 +9,10 @@ jobs:
     container: ubuntu
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: 8.2
           extensions: soap, memcached, bcmath
       - run: |
           php -v
           php -m
-      - uses: mxschmitt/action-tmate@v3.18    
