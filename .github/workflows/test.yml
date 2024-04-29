@@ -4,15 +4,9 @@ jobs:
   runner:
     strategy:
       matrix:
-        php: ['8.2']
-    runs-on: ubuntu-latest
-    container: ubuntu
+        os: [windows-2019, windows-2022]
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.2
-          extensions: soap, memcached, bcmath
       - run: |
-          php -v
-          php -m
+          $MSVCDirectory = vswhere -latest -find "VC\Tools\MSVC"
+          Get-ChildItem $MSVCDirectory)
