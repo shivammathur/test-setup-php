@@ -9,4 +9,4 @@ jobs:
     steps:
       - run: |
           $MSVCDirectory = vswhere -latest -find "VC\Tools\MSVC"
-          Get-ChildItem $MSVCDirectory)
+          Get-ChildItem $MSVCDirectory
