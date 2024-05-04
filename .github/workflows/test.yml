@@ -4,9 +4,8 @@ jobs:
   runner:
     strategy:
       matrix:
-        os: [windows-2019, windows-2022]
+        os: [ubuntu-24.04]
     runs-on: ${{ matrix.os }}
     steps:
       - run: |
-          $MSVCDirectory = vswhere -latest -find "VC\Tools\MSVC"
-          Get-ChildItem $MSVCDirectory
+          cat /etc/os-release
