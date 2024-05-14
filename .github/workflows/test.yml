@@ -12,7 +12,7 @@ jobs:
     steps:
 
       - name: Setup PHP
-        run: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@v2
         env:
           php-version: ${{ matrix.php-versions }}
           extensions: xml, opcache, xdebug, pcov, gd
