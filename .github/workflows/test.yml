@@ -1,11 +1,23 @@
-name: Runner test
+name: Main workflow
 on: [push]
 jobs:
-  runner:
+  run:
+    name: Run
+    runs-on: ${{ matrix.operating-system }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-24.04]
-    runs-on: ${{ matrix.os }}
+        operating-system: [ubuntu-24]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
     steps:
-      - run: |
-          cat /etc/os-release
+
+      - name: Setup PHP
+        run: shivammathur/setup-php@v2
+        env:
+          php-version: ${{ matrix.php-versions }}
+          extensions: xml, opcache, xdebug, pcov, gd
+
+      - name: Testing PHP version
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions || env.default-php-version }}') === false) {throw new Exception('Wrong PHP version Installed');}"
