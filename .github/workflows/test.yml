@@ -20,5 +20,5 @@ jobs:
       - name: Testing PHP version
         run: |
           php -v
-          php -r "if(! extension_loaded('ioncube')) {throw new Exception('ioncube not found');}"
+          php -r "if(! extension_loaded('ionCube Loader')) {throw new Exception('ioncube not found');}"
           php -m
