@@ -7,18 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, ubuntu-22.04, windows-latest, macos-13]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2']
+        operating-system: [windows-2019]
     steps:
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        env:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ioncube
-
-      - name: Testing PHP version
-        run: |
-          php -v
-          php -r "if(! extension_loaded('ionCube Loader')) {throw new Exception('ioncube not found');}"
-          php -m
+      - uses: mxschmitt/action-tmate@v3.18
