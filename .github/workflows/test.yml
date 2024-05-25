@@ -11,5 +11,7 @@ jobs:
     steps:
       - name: Test
         run: |
-          $MSVCDirectory = vswhere -latest -find "VC\Tools\MSVC"
-          Get-ChildItem $MSVCDirectory
+          vswhere -nologo -products * -latest -prerelease -property installationPath -format text
+      - name: Test
+        run: |
+          vswhere -nologo -products * -latest -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
