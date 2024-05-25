@@ -23,10 +23,6 @@ jobs:
           Start-Process -FilePath "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "modify","--add",$component,"--installPath",$iPath,"--passive","--includeRecommended","--norestart","--noUpdateInstaller" -Wait
   
           Start-Process -FilePath "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "export","--config","info-post.txt","--installPath",$iPath,"--passive","--noUpdateInstaller" -Wait
-          Write-Host (gc info-post.txt)
-  
-          Write-Host "Added:"
-          Write-Host (gc info-post.txt | Select-String $component)
       - name: Test
         run: |
           $MSVCDirectory = vswhere -latest -find "VC\Tools\MSVC"
