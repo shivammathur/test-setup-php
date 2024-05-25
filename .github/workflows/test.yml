@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Test
         run: |
-          Get-ChildItem "C:\Program Files\Microsoft Visual Studio"
+          Get-ChildItem "C:\Program Files (x86)\Microsoft Visual Studio"
           $vsYear = "${{ matrix.operating-system }}".split('-')[1]
           $currentDirectory = (Get-Location).Path
           $InstallPath = "C:\Program Files\Microsoft Visual Studio\$vsYear\Enterprise"
