@@ -10,6 +10,35 @@ jobs:
         operating-system: [windows-2019, windows-2022]
     steps:
 
+      - name: Delete components
+        run: |
+                $vsYear = "${{ matrix.operating-system }}".split('-')[1]
+                Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
+                $InstallPath = "C:\Program Files\Microsoft Visual Studio\$vsYear\Enterprise"
+                $componentsToRemove= @(
+                  "Microsoft.VisualStudio.Component.VC.x86.x64"
+                  "Microsoft.VisualStudio.Component.VC.v142.x86.x64"
+                  "Microsoft.VisualStudio.Component.VC.v141.x86.x64"
+                  "Microsoft.VisualStudio.Component.VC.v140.x86.x64"
+                )
+                [string]$workloadArgs = $componentsToRemove | ForEach-Object {" --remove " +  $_}
+                $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')
+                $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
+      
+      - name: Install components
+        run: |
+                Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
+                $InstallPath = "C:\Program Files\Microsoft Visual Studio\$vsYear\Enterprise"
+                $componentsToRemove= @(
+                  "Microsoft.VisualStudio.Component.VC.x86.x64"
+                  "Microsoft.VisualStudio.Component.VC.v142.x86.x64"
+                  "Microsoft.VisualStudio.Component.VC.v141.x86.x64"
+                  "Microsoft.VisualStudio.Component.VC.v140.x86.x64"
+                )
+                [string]$workloadArgs = $componentsToRemove | ForEach-Object {" --add " +  $_}
+                $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')
+                $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
+
       - run: |
           echo 'default'
           vswhere -nologo -version "[15,16)" -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
