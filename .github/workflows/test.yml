@@ -34,7 +34,7 @@ jobs:
                         [Parameter(Mandatory)] [String] $Edition,
                         [Parameter(Mandatory)] [String] $Channel,
                         [Parameter(Mandatory)] [String[]] $RequiredComponents,
-                        [String] $ExtraArgs = "",
+                        [String] $ExtraArgs = ""
                     )
                 
                     $bootstrapperUrl = "https://aka.ms/vs/${Version}/${Channel}/vs_${Edition}.exe"
