@@ -29,7 +29,8 @@ jobs:
                 }
                 $compoentToRemove | % {
                   $args = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$installPath`"", '--add', $_, '--quiet', '--norestart', '--nocache')
-                  $process = Start-Process -FilePath cmd.exe -ArgumentList $args -Wait -PassThru -WindowStyle Hidden
+                  Start-Process -FilePath cmd.exe -ArgumentList $args -Wait -PassThru -WindowStyle Hidden
+                  Start-Process -FilePath cmd.exe -ArgumentList $args -Wait -PassThru -WindowStyle Hidden
                 }
       - run: |
           vswhere -nologo -version "[15,16)" -property installationPath -format text
