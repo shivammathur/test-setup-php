@@ -10,6 +10,6 @@ jobs:
         operating-system: [windows-2019, windows-2022]
     steps:
 
-      - run: vswhere -nologo -version [15,16) -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
-      - run: vswhere -nologo -version [16,17) -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
-      - run: vswhere -nologo -version [17,18) -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
+      - run: vswhere -nologo -version "[15,16)" -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
+      - run: vswhere -nologo -version "[16,17)" -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
+      - run: vswhere -nologo -version "[17,18)" -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
