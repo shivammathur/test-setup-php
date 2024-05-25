@@ -19,7 +19,6 @@ jobs:
                   "Microsoft.VisualStudio.Component.VC.x86.x64"
                   "Microsoft.VisualStudio.Component.VC.v142.x86.x64"
                   "Microsoft.VisualStudio.Component.VC.v141.x86.x64"
-                  "Microsoft.VisualStudio.Component.VC.v140.x86.x64"
                 )
                 [string]$workloadArgs = $componentsToRemove | ForEach-Object {" --remove " +  $_}
                 $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')
@@ -33,7 +32,6 @@ jobs:
                   "Microsoft.VisualStudio.Component.VC.x86.x64"
                   "Microsoft.VisualStudio.Component.VC.v142.x86.x64"
                   "Microsoft.VisualStudio.Component.VC.v141.x86.x64"
-                  "Microsoft.VisualStudio.Component.VC.v140.x86.x64"
                 )
                 [string]$workloadArgs = $componentsToRemove | ForEach-Object {" --add " +  $_}
                 $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')
