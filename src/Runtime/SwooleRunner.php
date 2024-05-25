@@ -24,10 +24,6 @@ class SwooleRunner implements RunnerInterface
             'port' => 80,
             'mode' => Server::POOL_MODE,
             'sock_type' => Constant::SOCK_TCP,
-            'cache_table' => [
-                'size' => 750,
-                'column_length' => 25000,
-            ],
             'settings' => [
                 'worker_num' => 8,
                 'task_worker_num' => 8,
@@ -61,7 +57,7 @@ class SwooleRunner implements RunnerInterface
         self::$config['worker']['watch'] = (bool) ($_SERVER['watch'] ?? false);
     }
 
-    private function replaceRuntimeEnv(array $options, string $parentKey = null): array
+    private function replaceRuntimeEnv(array $options, ?string $parentKey = null): array
     {
         $parseType = static function (mixed $type) {
             return match ($type) {

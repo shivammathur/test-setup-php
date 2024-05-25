@@ -50,7 +50,7 @@ readonly class SwooleResponse implements ResponseInterface
     {
     }
 
-    public function getInfo(string $type = null): mixed
+    public function getInfo(?string $type = null): mixed
     {
         $info = [
             'canceled' => false,

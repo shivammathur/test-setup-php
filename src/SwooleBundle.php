@@ -2,8 +2,6 @@
 
 namespace Cesurapp\SwooleBundle;
 
-use Cesurapp\SwooleBundle\Adapter\SwooleCacheAdapter;
-use Cesurapp\SwooleBundle\Adapter\SwooleCacheFactory;
 use Cesurapp\SwooleBundle\Client\SwooleBridge;
 use Cesurapp\SwooleBundle\Cron\CronInterface;
 use Cesurapp\SwooleBundle\Cron\CronWorker;
@@ -19,8 +17,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
-
-use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 class SwooleBundle extends AbstractBundle
 {
@@ -58,16 +54,6 @@ class SwooleBundle extends AbstractBundle
                 $def->setPublic(true);
             }
         }
-
-        // Register Swoole Cache Adapter
-        $container->services()
-            ->set('cache.adapter.swoole', SwooleCacheAdapter::class)
-            ->abstract()
-            ->factory([SwooleCacheFactory::class, 'createAdapter'])
-            ->args(['', 0])
-            ->call('setLogger', [service('logger')->ignoreOnInvalid()])
-            ->tag('cache.pool', ['clearer' => 'cache.default_clearer', 'reset' => 'reset'])
-            ->tag('monolog.logger', ['channel' => 'cache']);
 
         // Register Task Service
         if ($builder->getParameter('swoole.task_worker')) {

@@ -26,7 +26,7 @@ class SwooleBridge implements HttpClientInterface
         return new SwooleResponse($client->execute(), $url);
     }
 
-    public function stream($responses, float $timeout = null): ResponseStreamInterface
+    public function stream($responses, ?float $timeout = null): ResponseStreamInterface
     {
         $generator = static function () use ($responses): \Generator {
             yield $responses;

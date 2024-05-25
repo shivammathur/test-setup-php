@@ -5,7 +5,6 @@ namespace Cesurapp\SwooleBundle\Runtime\SwooleServer;
 use OpenSwoole\Http\Request;
 use OpenSwoole\Http\Response;
 use OpenSwoole\Http\Server;
-use OpenSwoole\Table;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\HeaderBag;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
@@ -16,8 +15,6 @@ use Symfony\Component\HttpKernel\TerminableInterface;
 
 class HttpServer extends Server
 {
-    public Table $appCache;
-
     public function __construct(private readonly HttpKernelInterface $application, private readonly array $options)
     {
         parent::__construct(
@@ -27,25 +24,12 @@ class HttpServer extends Server
             (int) $this->options['http']['sock_type']
         );
         $this->set($this->options['http']['settings']);
-        $this->initCache();
 
         // Manager Start
         $this->on('request', [$this, 'onRequest']);
         $this->on('managerstart', [$this, 'onStart']);
 
         $GLOBALS['httpServer'] = $this;
-    }
-
-    /**
-     * Create Application Cache using SwooleTable.
-     */
-    private function initCache(): void
-    {
-        $this->appCache = new Table($this->options['http']['cache_table']['size']);
-        $this->appCache->column('value', Table::TYPE_STRING, (int) $this->options['http']['cache_table']['column_length']);
-        $this->appCache->column('expr', Table::TYPE_INT);
-        $this->appCache->column('key', Table::TYPE_STRING, 350);
-        $this->appCache->create();
     }
 
     /**

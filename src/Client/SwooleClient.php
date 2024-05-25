@@ -68,7 +68,7 @@ class SwooleClient
         $this->client->set($this->options);
     }
 
-    public function get(array $query = null): Client
+    public function get(?array $query = null): Client
     {
         if ($query) {
             $this->setQuery($query);
@@ -107,7 +107,7 @@ class SwooleClient
         return $this->client;
     }
 
-    public function delete(array $query = null): Client
+    public function delete(?array $query = null): Client
     {
         if ($query) {
             $this->setQuery($query);

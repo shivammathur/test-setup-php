@@ -54,8 +54,6 @@ readonly class TcpServer
     private function cmdMetrics(HttpServer $server): string
     {
         $options = $this->options;
-        $options['http']['cache_table']['current'] = $server->appCache->count();
-        $options['http']['cache_table']['memory_size'] = $server->appCache->memorySize;
 
         return json_encode([
             'server' => $options,

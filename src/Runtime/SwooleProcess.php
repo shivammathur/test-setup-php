@@ -70,7 +70,7 @@ class SwooleProcess
     /**
      * Stop Server.
      */
-    public function stop(string $tcpHost = null, int $tcpPort = null): bool
+    public function stop(?string $tcpHost = null, ?int $tcpPort = null): bool
     {
         $server = $this->getServer($tcpHost ?? '127.0.0.1', $tcpPort ?? 9502);
         if (!$server || !$server->isConnected()) {
@@ -95,7 +95,7 @@ class SwooleProcess
     /**
      * Get Current Process ID.
      */
-    public function getServer(string $tcpHost = null, int $tcpPort = null): ?Client
+    public function getServer(?string $tcpHost = null, ?int $tcpPort = null): ?Client
     {
         $tcpClient = new Client(Constant::SOCK_TCP);
 

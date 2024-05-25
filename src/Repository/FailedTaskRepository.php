@@ -25,7 +25,7 @@ class FailedTaskRepository extends ServiceEntityRepository
     /**
      * Get Failed Tasks.
      */
-    public function getFailedTask(FailedTask $nextTask = null, int $limit = 10): QueryBuilder
+    public function getFailedTask(?FailedTask $nextTask = null, int $limit = 10): QueryBuilder
     {
         $query = $this->createQueryBuilder('q')
             ->orderBy('q.id', 'DESC')

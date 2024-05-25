@@ -47,10 +47,10 @@ class TaskFailedRetryCommand extends Command
         /** @var FailedTask $task */
         foreach ($query->toIterable() as $index => $task) {
             $client->send('taskRetry::'.json_encode([
-                    'class' => $task->getTask(),
-                    'payload' => $task->getPayload(),
-                    'attempt' => $task->getAttempt() + 1,
-                ], JSON_THROW_ON_ERROR));
+                'class' => $task->getTask(),
+                'payload' => $task->getPayload(),
+                'attempt' => $task->getAttempt() + 1,
+            ], JSON_THROW_ON_ERROR));
             if ('1' === $client->recv()) {
                 $this->entityManager->remove($task);
             }

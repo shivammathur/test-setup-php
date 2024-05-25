@@ -71,12 +71,6 @@ class ServerStatusCommand extends Command
                             'Active > '.$data['metrics']['connections_active'],
                         ],
                         [
-                            'Cache Table',
-                            'Current > '.$data['server']['http']['cache_table']['current'],
-                            'Total > '.$data['server']['http']['cache_table']['size'],
-                            'Memory Size > '.round((int) $data['server']['http']['cache_table']['memory_size'] / (1024 * 1024), 2).'mb',
-                        ],
-                        [
                             'Memory',
                             ((int) $data['metrics']['worker_memory_usage'] / (1024 * 1024)).'mb',
                             'VM Object > '.$data['metrics']['worker_vm_object_num'],
