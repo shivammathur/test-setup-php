@@ -25,11 +25,9 @@ jobs:
           )
           [string]$removeWorkloadArgs = $componentsToRemove | ForEach-Object {" --remove " +  $_}
           [string]$addWorkloadArgs = $componentsToRemove | ForEach-Object {" --add " +  $_}
-          $removeArguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$addWorkloadArgs, '--quiet', '--norestart', '--nocache')
-          $addArguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$addWorkloadArgs, '--quiet', '--norestart', '--nocache')
+          $removeArguments = ('/c', "vs_installershell.exe", 'modify', '--installPath', "`"$InstallPath`"",$addWorkloadArgs, '--norestart', '--nocache')
+          $addArguments = ('/c', "vs_installershell.exe", 'modify', '--installPath', "`"$InstallPath`"",$addWorkloadArgs, '--norestart', '--nocache')
           Start-Process -FilePath cmd.exe -ArgumentList $removeArguments -Wait -PassThru -WindowStyle Hidden
-          Start-Process -FilePath cmd.exe -ArgumentList $removeArguments -Wait -PassThru -WindowStyle Hidden
-          Start-Process -FilePath cmd.exe -ArgumentList $addArguments -Wait -PassThru -WindowStyle Hidden
           Start-Process -FilePath cmd.exe -ArgumentList $addArguments -Wait -PassThru -WindowStyle Hidden
           Set-Location $currentDirectory
           Get-ChildItem $InstallPath
