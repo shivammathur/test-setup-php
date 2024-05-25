@@ -11,7 +11,9 @@ jobs:
     steps:
       - name: Test
         run: |
+          $vsYear = "${{ matrix.operating-system }}".split('-')[1]
           $currentDirectory = (Get-Location).Path
+          $InstallPath = "C:\Program Files\Microsoft Visual Studio\$vsYear\Enterprise"
           Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"         
           $componentsToRemove= @(
             "Microsoft.VisualStudio.Component.VC.v141.x86.x64"
@@ -20,7 +22,9 @@ jobs:
           $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')        # should be run twice
           $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
           Set-Location $currentDirectory
+          Get-ChildItem $InstallPath
       - name: Test
         run: |
           $MSVCDirectory = vswhere -latest -find "VC\Tools\MSVC"
           Get-ChildItem $MSVCDirectory
+          
