@@ -28,7 +28,7 @@ jobs:
                   )
                 }
                 [string]$workloadArgs = $componentsToRemove | ForEach-Object {" --add " +  $_}
-                $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')
+                $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--norestart', '--nocache')
                 $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
       - run: |
           vswhere -nologo -version "[15,16)" -property installationPath -format text
