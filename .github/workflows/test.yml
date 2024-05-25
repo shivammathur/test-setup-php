@@ -40,21 +40,39 @@ jobs:
       - run: |
           echo 'default'
           vswhere -nologo -version "[15,16)" -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[15,16)" -requires Microsoft.VisualStudio.Component.VC.Tools.v142.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[15,16)" -requires Microsoft.VisualStudio.Component.VC.Tools.v141.x86.x64 -property installationPath -format text
           echo 'buildTools'
           vswhere -nologo -version "[15,16)" -products Microsoft.VisualStudio.Product.BuildTools -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[15,16)" -products Microsoft.VisualStudio.Product.BuildTools -requires Microsoft.VisualStudio.Component.VC.Tools.v142.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[15,16)" -products Microsoft.VisualStudio.Product.BuildTools -requires Microsoft.VisualStudio.Component.VC.Tools.v141.x86.x64 -property installationPath -format text
           echo 'preRelease'
           vswhere -nologo -version "[15,16)" -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[15,16)" -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.v142.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[15,16)" -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.v141.x86.x64 -property installationPath -format text
       - run: |
           echo 'default'
           vswhere -nologo -version "[16,17)" -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[16,17)" -requires Microsoft.VisualStudio.Component.VC.Tools.v141.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[16,17)" -requires Microsoft.VisualStudio.Component.VC.Tools.v142.x86.x64 -property installationPath -format text
           echo 'buildTools'
           vswhere -nologo -version "[16,17)" -products Microsoft.VisualStudio.Product.BuildTools -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[16,17)" -products Microsoft.VisualStudio.Product.BuildTools -requires Microsoft.VisualStudio.Component.VC.v141.Tools.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[16,17)" -products Microsoft.VisualStudio.Product.BuildTools -requires Microsoft.VisualStudio.Component.VC.v142.Tools.x86.x64 -property installationPath -format text
           echo 'preRelease'
           vswhere -nologo -version "[16,17)" -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[16,17)" -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.v141.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[16,17)" -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.v142.x86.x64 -property installationPath -format text
       - run: |
           echo 'default'
           vswhere -nologo -version "[17,18)" -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[17,18)" -requires Microsoft.VisualStudio.Component.VC.Tools.v141.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[17,18)" -requires Microsoft.VisualStudio.Component.VC.Tools.v142.x86.x64 -property installationPath -format text
           echo 'buildTools'
           vswhere -nologo -version "[17,18)" -products Microsoft.VisualStudio.Product.BuildTools -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[17,18)" -products Microsoft.VisualStudio.Product.BuildTools -requires Microsoft.VisualStudio.Component.VC.Tools.v141.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[17,18)" -products Microsoft.VisualStudio.Product.BuildTools -requires Microsoft.VisualStudio.Component.VC.Tools.v142.x86.x64 -property installationPath -format text
           echo 'preRelease'
           vswhere -nologo -version "[17,18)" -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[17,18)" -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.v141.x86.x64 -property installationPath -format text
+          vswhere -nologo -version "[17,18)" -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.v142.x86.x64 -property installationPath -format text
