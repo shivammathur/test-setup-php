@@ -30,6 +30,13 @@ class ClientBridgeTest extends KernelTestCase
         $scheduler->add(function () use ($client) {
             $req = $client->request('GET', 'https://www.google.com');
             $this->assertSame(200, $req->getStatusCode());
+
+            // Test Query String Parameters
+            $req = $client->request('GET', 'https://www.google.com', [
+                'query' => ['test' => 'value'],
+            ]);
+            $this->assertSame(200, $req->getStatusCode());
+            $this->assertStringContainsString('test=value', urldecode($req->getContent()));
         });
         $scheduler->start();
     }
