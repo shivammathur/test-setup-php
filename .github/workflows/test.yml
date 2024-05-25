@@ -11,7 +11,16 @@ jobs:
     steps:
       - name: Test
         run: |
-          vswhere -nologo -products * -latest -prerelease -property installationPath -format text
+          $currentDirectory = (Get-Location).Path
+          Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"         
+          $componentsToRemove= @(
+            "Microsoft.VisualStudio.Component.VC.140"
+          )
+          [string]$workloadArgs = $componentsToRemove | ForEach-Object {" --add " +  $_}
+          $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')        # should be run twice
+          $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
+          Set-Location $currentDirectory
       - name: Test
         run: |
-          vswhere -nologo -products * -latest -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
+          $MSVCDirectory = vswhere -latest -find "VC\Tools\MSVC"
+          Get-ChildItem $MSVCDirectory
