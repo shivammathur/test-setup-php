@@ -72,6 +72,7 @@ jobs:
                     }
                 }
                 Install-VisualStudio -Version $vsYear -Edition Enterprise -Channel release -RequiredComponents $components -ExtraArgs "--allWorkloads --includeRecommended"
+      - run: vswhere -nologo 
       - run: |
           vswhere -nologo -version "[15,16)" -property installationPath -format text
           echo 'default'          
