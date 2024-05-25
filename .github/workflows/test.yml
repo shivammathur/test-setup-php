@@ -37,7 +37,8 @@ jobs:
                 $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')
                 $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
       - run: |
-          echo 'default'
+          vswhere -nologo -version "[15,16)" -property installationPath -format text
+          echo 'default'          
           vswhere -nologo -version "[15,16)" -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
           vswhere -nologo -version "[15,16)" -requires Microsoft.VisualStudio.Component.VC.Tools.v142.x86.x64 -property installationPath -format text
           vswhere -nologo -version "[15,16)" -requires Microsoft.VisualStudio.Component.VC.Tools.v141.x86.x64 -property installationPath -format text
@@ -50,6 +51,7 @@ jobs:
           vswhere -nologo -version "[15,16)" -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.v142.x86.x64 -property installationPath -format text
           vswhere -nologo -version "[15,16)" -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.v141.x86.x64 -property installationPath -format text
       - run: |
+          vswhere -nologo -version "[16,17)" -property installationPath -format text
           echo 'default'
           vswhere -nologo -version "[16,17)" -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
           vswhere -nologo -version "[16,17)" -requires Microsoft.VisualStudio.Component.VC.Tools.v141.x86.x64 -property installationPath -format text
@@ -63,6 +65,7 @@ jobs:
           vswhere -nologo -version "[16,17)" -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.v141.x86.x64 -property installationPath -format text
           vswhere -nologo -version "[16,17)" -prerelease -requires Microsoft.VisualStudio.Component.VC.Tools.v142.x86.x64 -property installationPath -format text
       - run: |
+          vswhere -nologo -version "[17,18)" -property installationPath -format text
           echo 'default'
           vswhere -nologo -version "[17,18)" -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -format text
           vswhere -nologo -version "[17,18)" -requires Microsoft.VisualStudio.Component.VC.Tools.v141.x86.x64 -property installationPath -format text
