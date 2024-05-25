@@ -16,9 +16,9 @@ jobs:
                 Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
                 $InstallPath = "C:\Program Files\Microsoft Visual Studio\$vsYear\Enterprise"
                 $componentsToRemove= @(
-                  "Microsoft.VisualStudio.Component.VC.x86.x64"
-                  "Microsoft.VisualStudio.Component.VC.v142.x86.x64"
-                  "Microsoft.VisualStudio.Component.VC.v141.x86.x64"
+                  "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
+                  "Microsoft.VisualStudio.Component.VC.Tools.v142.x86.x64"
+                  "Microsoft.VisualStudio.Component.VC.Tools.v141.x86.x64"
                 )
                 [string]$workloadArgs = $componentsToRemove | ForEach-Object {" --remove " +  $_}
                 $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')
@@ -29,9 +29,9 @@ jobs:
                 Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
                 $InstallPath = "C:\Program Files\Microsoft Visual Studio\$vsYear\Enterprise"
                 $componentsToRemove= @(
-                  "Microsoft.VisualStudio.Component.VC.x86.x64"
-                  "Microsoft.VisualStudio.Component.VC.v142.x86.x64"
-                  "Microsoft.VisualStudio.Component.VC.v141.x86.x64"
+                  "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
+                  "Microsoft.VisualStudio.Component.VC.Tools.v142.x86.x64"
+                  "Microsoft.VisualStudio.Component.VC.Tools.v141.x86.x64"
                 )
                 [string]$workloadArgs = $componentsToRemove | ForEach-Object {" --add " +  $_}
                 $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')
