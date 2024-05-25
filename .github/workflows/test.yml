@@ -14,12 +14,15 @@ jobs:
           $vsYear = "${{ matrix.operating-system }}".split('-')[1]
           $currentDirectory = (Get-Location).Path
           $InstallPath = "C:\Program Files\Microsoft Visual Studio\$vsYear\Enterprise"
+          if(-not(Test-Path $installPath)) {
+            $InstallPath = "C:\Program Files (x86)\Microsoft Visual Studio\$vsYear\Enterprise"
+          }
           Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"         
           $componentsToRemove= @(
             "Microsoft.VisualStudio.Component.VC.v141.x86.x64"
           )
           [string]$workloadArgs = $componentsToRemove | ForEach-Object {" --add " +  $_}
-          $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')        # should be run twice
+          $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')
           $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
           Set-Location $currentDirectory
           Get-ChildItem $InstallPath
