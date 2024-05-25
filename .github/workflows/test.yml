@@ -9,28 +9,19 @@ jobs:
       matrix:
         operating-system: [windows-2019, windows-2022]
     steps:
-      - name: Test
+      - name: Download Build Tools for Visual Studio 2019
         run: |
-          Get-ChildItem "C:\Program Files (x86)\Microsoft Visual Studio"
-          $vsYear = "${{ matrix.operating-system }}".split('-')[1]
-          $currentDirectory = (Get-Location).Path
-          $InstallPath = "C:\Program Files\Microsoft Visual Studio\$vsYear\Enterprise"
-          if(-not(Test-Path $installPath)) {
-            $InstallPath = "C:\Program Files (x86)\Microsoft Visual Studio\$vsYear\Enterprise"
+          if("${{ matrix.operating-system }}" -eq '2019') {
+            $vs='16'
+          } else {
+            $vs='17'
           }
-          Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"         
-          $componentsToRemove= @(
-            "Microsoft.VisualStudio.Component.VC.140"
-            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
-          )
-          [string]$removeWorkloadArgs = $componentsToRemove | ForEach-Object {" --remove " +  $_}
-          [string]$addWorkloadArgs = $componentsToRemove | ForEach-Object {" --add " +  $_}
-          $removeArguments = ('/c', "vs_installershell.exe", 'modify', '--installPath', "`"$InstallPath`"",$addWorkloadArgs, '--norestart', '--nocache')
-          $addArguments = ('/c', "vs_installershell.exe", 'modify', '--installPath', "`"$InstallPath`"",$addWorkloadArgs, '--norestart', '--nocache')
-          Start-Process -FilePath cmd.exe -ArgumentList $removeArguments -Wait -PassThru -WindowStyle Hidden
-          Start-Process -FilePath cmd.exe -ArgumentList $addArguments -Wait -PassThru -WindowStyle Hidden
-          Set-Location $currentDirectory
-          Get-ChildItem $InstallPath
+          Invoke-WebRequest -Uri https://aka.ms/vs/$vs/release/vs_buildtools.exe -OutFile vs_buildtools.exe
+      - name: Run vs_buildtools.exe install
+        run: ./vs_buildtools.exe --quiet --wait --norestart --nocache ^
+                                 --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 ^
+                                 --add Microsoft.VisualStudio.Component.VC.140 ^
+                                 --includeRecommended
       - name: Test
         run: |
           $MSVCDirectory = vswhere -latest -find "VC\Tools\MSVC"
