@@ -30,10 +30,10 @@ jobs:
                   )
                 }
                 $compoentToRemove | % {
-                  $args = ('/c', "vs_installershell.exe", 'modify', '--installPath', "`"$installPath`"", '--remove', $_, '--quiet', '--norestart', '--nocache')
+                  $args = ('/c', "vs_installershell.exe", 'modify', '--installPath', "`"$installPath`"", '--remove', $_, '--norestart', '--nocache')
                   Start-Process -FilePath cmd.exe -ArgumentList $args -Wait -PassThru -WindowStyle Hidden
                   Start-Process -FilePath cmd.exe -ArgumentList $args -Wait -PassThru -WindowStyle Hidden
-                  $args = ('/c', "vs_installershell.exe", 'modify', '--installPath', "`"$installPath`"", '--add', $_, '--quiet', '--norestart', '--nocache')
+                  $args = ('/c', "vs_installershell.exe", 'modify', '--installPath', "`"$installPath`"", '--add', $_, '--norestart', '--nocache')
                   Start-Process -FilePath cmd.exe -ArgumentList $args -Wait -PassThru -WindowStyle Hidden
                   Start-Process -FilePath cmd.exe -ArgumentList $args -Wait -PassThru -WindowStyle Hidden
                 }
