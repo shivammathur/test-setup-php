@@ -12,7 +12,7 @@ jobs:
       - name: Install components
         run: |
                 Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
-                $InstallPath = "C:\Program Files\Microsoft Visual Studio\$vsYear\Enterprise"Y
+                $InstallPath = "C:\Program Files\Microsoft Visual Studio\$vsYear\Enterprise"
                 if($vsYear -eq '2019') {
                   $componentsToRemove= @(
                     "Microsoft.VisualStudio.Component.VC.140"
