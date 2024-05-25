@@ -21,10 +21,16 @@ jobs:
           Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"         
           $componentsToRemove= @(
             "Microsoft.VisualStudio.Component.VC.140"
+            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
           )
-          [string]$workloadArgs = $componentsToRemove | ForEach-Object {" --add " +  $_}
-          $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')
-          $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
+          [string]$removeWorkloadArgs = $componentsToRemove | ForEach-Object {" --remove " +  $_}
+          [string]$addWorkloadArgs = $componentsToRemove | ForEach-Object {" --add " +  $_}
+          $removeArguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$addWorkloadArgs, '--quiet', '--norestart', '--nocache')
+          $addArguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$addWorkloadArgs, '--quiet', '--norestart', '--nocache')
+          Start-Process -FilePath cmd.exe -ArgumentList $removeArguments -Wait -PassThru -WindowStyle Hidden
+          Start-Process -FilePath cmd.exe -ArgumentList $removeArguments -Wait -PassThru -WindowStyle Hidden
+          Start-Process -FilePath cmd.exe -ArgumentList $addArguments -Wait -PassThru -WindowStyle Hidden
+          Start-Process -FilePath cmd.exe -ArgumentList $addArguments -Wait -PassThru -WindowStyle Hidden
           Set-Location $currentDirectory
           Get-ChildItem $InstallPath
       - name: Test
