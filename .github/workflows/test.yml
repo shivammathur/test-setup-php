@@ -14,7 +14,7 @@ jobs:
           $currentDirectory = (Get-Location).Path
           Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"         
           $componentsToRemove= @(
-            "Microsoft.VisualStudio.Component.VC.140"
+            "Microsoft.VisualStudio.Component.VC.v141.x86.x64"
           )
           [string]$workloadArgs = $componentsToRemove | ForEach-Object {" --add " +  $_}
           $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')        # should be run twice
