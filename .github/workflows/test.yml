@@ -12,14 +12,23 @@ jobs:
       - name: Install components
         run: |
                 Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
-                $InstallPath = "C:\Program Files\Microsoft Visual Studio\$vsYear\Enterprise"
-                $componentsToRemove= @(
-                  "Microsoft.VisualStudio.Component.VC.x86.x64"
-                  "Microsoft.VisualStudio.Component.VC.v142.x86.x64"
-                  "Microsoft.VisualStudio.Component.VC.v141.x86.x64"
-                )
+                $InstallPath = "C:\Program Files\Microsoft Visual Studio\$vsYear\Enterprise"Y
+                if($vsYear -eq '2019') {
+                  $componentsToRemove= @(
+                    "Microsoft.VisualStudio.Component.VC.140"
+                    "Microsoft.VisualStudio.Component.VC.v141.x86.x64"
+                    "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
+                  )
+                } else {
+                  $componentsToRemove= @(                  
+                    "Microsoft.VisualStudio.Component.VC.140"
+                    "Microsoft.VisualStudio.Component.VC.v141.x86.x64"
+                    "Microsoft.VisualStudio.ComponentGroup.VC.Tools.142.x86.x64"
+                    "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
+                  )
+                }
                 [string]$workloadArgs = $componentsToRemove | ForEach-Object {" --add " +  $_}
-                $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--norestart', '--nocache')
+                $Arguments = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$InstallPath`"",$workloadArgs, '--quiet', '--norestart', '--nocache')
                 $process = Start-Process -FilePath cmd.exe -ArgumentList $Arguments -Wait -PassThru -WindowStyle Hidden
       - run: |
           vswhere -nologo -version "[15,16)" -property installationPath -format text
