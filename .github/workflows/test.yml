@@ -43,7 +43,7 @@ jobs:
                     $productId = "Microsoft.VisualStudio.Product.${Edition}"
                 
                     Write-Host "Downloading Bootstrapper ..."
-                    $bootstrapperFilePath = $env:TEMP/vsinstaller.exe
+                    $bootstrapperFilePath = "$env:TEMP/vsinstaller.exe"
                     Invoke-WebRequest -Uri $BootstrapperUrl -OutFile $bootstrapperFilePath
                 
                     try {
