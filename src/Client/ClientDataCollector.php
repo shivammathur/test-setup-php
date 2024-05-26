@@ -13,6 +13,10 @@ class ClientDataCollector extends DataCollector implements TemplateAwareDataColl
     {
         $this->data['clients'] = SwooleBridge::$clients ?? [];
         $this->data['count'] = count($this->data['clients']);
+
+        if (is_array(SwooleBridge::$clients)) {
+            SwooleBridge::$clients = [];
+        }
     }
 
     public function getCount(): int

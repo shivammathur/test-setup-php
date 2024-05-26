@@ -28,7 +28,7 @@ class SwooleBridge implements HttpClientInterface
         }
 
         $response = new SwooleResponse($client->execute());
-        if (self::$clients) {
+        if (is_array(self::$clients)) {
             self::$clients[] = $response->getInfo();
         }
 
