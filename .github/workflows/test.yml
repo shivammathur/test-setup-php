@@ -7,8 +7,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019, windows-2022]
+        os: [windows-2022]
     steps:
+      - uses: mxschmitt/action-tmate@v3.18
       - name: Install
         run: |
           $component = "Microsoft.VisualStudio.Component.VC.140"
