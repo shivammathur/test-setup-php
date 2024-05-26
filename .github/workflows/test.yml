@@ -11,16 +11,11 @@ jobs:
     steps:
       - name: Install
         run: |
+          Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
+          $installPath = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise"
           $component = "Microsoft.VisualStudio.Component.VC.v141.x86.x64"
-          Write-Host "Adding:" $component
-          $vsYear = "${{ matrix.os }}".split('-')[1]
-          if($vsYear -eq '2019') {
-            $iPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise"
-          } else {
-            $iPath = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise"
-          }
-  
-          Start-Process -FilePath "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "modify","--add",$component,"--installPath",$iPath,"--passive","--includeRecommended","--norestart" -Wait
+          $args = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$installPath`"", '--add', $component, '--quiet', '--norestart', '--nocache')
+          $process = Start-Process -FilePath cmd.exe -ArgumentList $args -Wait -PassThru -WindowStyle Hidden
       - name: Test
         run: |
           $MSVCDirectory = vswhere -latest -find "VC\Tools\MSVC"
