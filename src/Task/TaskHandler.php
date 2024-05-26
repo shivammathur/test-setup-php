@@ -10,7 +10,8 @@ readonly class TaskHandler
 
     public function dispatch(TaskInterface|string $task, mixed $payload = null): void
     {
-        if ('test' === $_SERVER['APP_ENV']) {
+        // Test|Sync Mode
+        if ($this->worker) {
             $this->worker->handle([
                 'class' => is_string($task) ? $task : get_class($task),
                 'payload' => serialize($payload),

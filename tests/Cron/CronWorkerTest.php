@@ -61,4 +61,16 @@ class CronWorkerTest extends KernelTestCase
         $cmdTester->assertCommandIsSuccessful();
         $this->assertStringContainsString('AcmeCron', $cmdTester->getDisplay());
     }
+
+    public function testCronRunManuel(): void
+    {
+        static::bootKernel();
+        $application = new Application(self::$kernel);
+
+        $cmd = $application->find('cron:run');
+        $cmdTester = new CommandTester($cmd);
+        $this->expectOutputString('Acme Cron');
+        $cmdTester->execute(['class' => 'AcmeCron']);
+        $cmdTester->assertCommandIsSuccessful();
+    }
 }

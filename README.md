@@ -31,6 +31,7 @@ swoole:
   replace_http_client: true # Replate Symfony HTTP Client to Swoole Client 
   cron_worker: true # Enable Cron Worker Service
   task_worker: true # Enable Task Worker Service
+  task_sync_mode: false # Enable SYNC Mode -> Default false
   failed_task_retry: '@EveryMinute10'
   failed_task_attempt: 2 # Failed Task Retry Count
 ```
@@ -49,7 +50,8 @@ SERVER_HTTP_PORT=9090 # Default = 80
 ### Server Commands
 ```shell
 # Cron Commands
-bin/console cron:list     # List cron jobs
+bin/console cron:list         # List cron jobs
+bin/console cron:run AcmeCron # Run cron process one time, without locking.
 
 # Server Commands
 bin/console server:start  # Start http,cron,queue server

@@ -30,6 +30,7 @@ class SwooleBundle extends AbstractBundle
             ->booleanNode('replace_http_client')->defaultTrue()->end()
             ->booleanNode('cron_worker')->defaultTrue()->end()
             ->booleanNode('task_worker')->defaultFalse()->end()
+            ->booleanNode('task_sync_mode')->defaultFalse()->end()
             ->scalarNode('failed_task_retry')->defaultValue('@EveryMinute10')->end()
             ->scalarNode('failed_task_attempt')->defaultValue(1)->end()
             ->end();
@@ -62,7 +63,7 @@ class SwooleBundle extends AbstractBundle
                 ->setLazy(true);
 
             $def = $builder->register(TaskHandler::class, TaskHandler::class);
-            if ('test' === $container->env()) {
+            if ('test' === $container->env() || $builder->getParameter('swoole.task_sync_mode')) {
                 $def->setArguments(['$worker' => new Reference(TaskWorker::class)]);
             }
 
