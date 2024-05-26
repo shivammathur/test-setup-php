@@ -2,6 +2,7 @@
 
 namespace Cesurapp\SwooleBundle;
 
+use Cesurapp\SwooleBundle\Client\ClientDataCollector;
 use Cesurapp\SwooleBundle\Client\SwooleBridge;
 use Cesurapp\SwooleBundle\Cron\CronDataCollector;
 use Cesurapp\SwooleBundle\Cron\CronInterface;
@@ -52,6 +53,11 @@ class SwooleBundle extends AbstractBundle
                 ->setDecoratedService('http_client', invalidBehavior: ContainerInterface::IGNORE_ON_INVALID_REFERENCE);
             if ('test' === $container->env()) {
                 $def->setPublic(true);
+            }
+
+            if (in_array($container->env(), ['test', 'dev'])) {
+                $def->addMethodCall('enableTrace');
+                $services->set(ClientDataCollector::class);
             }
         }
 

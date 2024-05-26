@@ -8,6 +8,8 @@ use Symfony\Contracts\HttpClient\ResponseStreamInterface;
 
 class SwooleBridge implements HttpClientInterface
 {
+    public static ?array $clients = null;
+
     public function request(string $method, string $url, array $options = []): ResponseInterface
     {
         $client = SwooleClient::create($url)->setMethod($method)->setOptions($options);
@@ -25,7 +27,12 @@ class SwooleBridge implements HttpClientInterface
             $client->setQuery($options['query']);
         }
 
-        return new SwooleResponse($client->execute(), $url);
+        $response = new SwooleResponse($client->execute());
+        if (self::$clients) {
+            self::$clients[] = $response->getInfo();
+        }
+
+        return $response;
     }
 
     public function stream(ResponseInterface|iterable $responses, ?float $timeout = null): ResponseStreamInterface
@@ -36,5 +43,10 @@ class SwooleBridge implements HttpClientInterface
     public function withOptions(array $options): static
     {
         return $this;
+    }
+
+    public function enableTrace(): void
+    {
+        self::$clients = [];
     }
 }

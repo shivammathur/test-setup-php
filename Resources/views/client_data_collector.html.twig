@@ -1,0 +1,39 @@
+{% extends '@WebProfiler/Profiler/layout.html.twig' %}
+
+{% block head %}
+    {{ parent() }}
+{% endblock %}
+
+{% block menu %}
+    <span class="label {{ collector.count == 0 ? 'disabled' }}">
+    <span class="icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-ccw-dot"><path
+                    d="M3 2v6h6"/><path d="M21 12A9 9 0 0 0 6 5.3L3 8"/><path d="M21 22v-6h-6"/><path
+                    d="M3 12a9 9 0 0 0 15 6.7l3-2.7"/><circle cx="12" cy="12" r="1"/></svg>
+    </span>
+    <strong>Swoole Client</strong>
+</span>
+{% endblock %}
+
+{% block panel %}
+    <h2>Swoole Client</h2>
+
+    {% if collector.count == 0 %}
+        <div class="empty empty-panel">
+            <p>No HTTP requests were made.</p>
+        </div>
+    {% else %}
+        <div class="sf-tabs">
+            {% for index, client in collector.clients %}
+                <div class="tab">
+                    <h3 class="tab-title">{{ index }} <span class="badge">{{ client.requestMethod }}</span></h3>
+                    <div class="tab-content">
+                        {{ dump(client) }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

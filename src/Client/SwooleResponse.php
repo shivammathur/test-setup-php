@@ -8,7 +8,7 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
 
 readonly class SwooleResponse implements ResponseInterface
 {
-    public function __construct(private Client $client, private string $uri)
+    public function __construct(private Client $client)
     {
     }
 
@@ -52,20 +52,9 @@ readonly class SwooleResponse implements ResponseInterface
 
     public function getInfo(?string $type = null): mixed
     {
-        $info = [
-            'canceled' => false,
-            'error' => $this->client->errMsg,
-            'http_code' => $this->client->statusCode,
-            'http_method' => $this->client->requestMethod,
-            'redirect_count' => 0,
-            'redirect_url' => null,
-            'response_headers' => $this->client->getHeaders(),
-            'start_time' => 0.0,
-            'url' => $this->uri,
-            'user_data' => $this->client->requestBody,
-        ];
+        $info = get_object_vars($this->client);
 
-        return $info[$type] ?? $type;
+        return $info[$type] ?? $info;
     }
 
     public function __toString(): string
