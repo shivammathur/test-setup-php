@@ -3,7 +3,7 @@
 namespace Cesurapp\SwooleBundle\Client;
 
 use OpenSwoole\Coroutine\Http\Client;
-use Symfony\Component\HttpClient\Exception\JsonException;
+use Symfony\Component\HttpFoundation\Exception\JsonException;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 
 readonly class SwooleResponse implements ResponseInterface

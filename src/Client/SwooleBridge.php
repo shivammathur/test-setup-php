@@ -2,7 +2,6 @@
 
 namespace Cesurapp\SwooleBundle\Client;
 
-use Symfony\Component\HttpClient\Response\ResponseStream;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 use Symfony\Contracts\HttpClient\ResponseStreamInterface;
@@ -29,13 +28,9 @@ class SwooleBridge implements HttpClientInterface
         return new SwooleResponse($client->execute(), $url);
     }
 
-    public function stream($responses, ?float $timeout = null): ResponseStreamInterface
+    public function stream(ResponseInterface|iterable $responses, ?float $timeout = null): ResponseStreamInterface
     {
-        $generator = static function () use ($responses): \Generator {
-            yield $responses;
-        };
-
-        return new ResponseStream($generator());
+        throw new \Exception('Swoole bridge stream not configured!');
     }
 
     public function withOptions(array $options): static
