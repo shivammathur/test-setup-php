@@ -13,11 +13,12 @@ jobs:
         run: |
           Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
           $installPath = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise"
-          $components = "--add Microsoft.VisualStudio.Component.VC.140 --add Microsoft.Component.VC.Runtime.UCRTSDK"
+          $components = "--add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.140 --add Microsoft.Component.VC.Runtime.UCRTSDK"
           $args = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$installPath`"", $components, '--quiet', '--norestart', '--nocache')
           $process = Start-Process -FilePath cmd.exe -ArgumentList $args -Wait -PassThru -WindowStyle Hidden
       - name: Test
         run: |
           $MSVCDirectory = vswhere -latest -find "VC\Tools\MSVC"
+          echo $MSVCDirectory
           Get-ChildItem $MSVCDirectory
           
