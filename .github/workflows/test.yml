@@ -13,10 +13,13 @@ jobs:
         run: |
           Set-Location "C:\Program Files (x86)\Microsoft Visual Studio\Installer\"
           $installPath = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise"
+          git -C $installPath init
+          git -C $installPath add .
+          git -C $installPath commit -m "init"
           $component = "Microsoft.VisualStudio.Component.VC.140"
           $args = ('/c', "vs_installer.exe", 'modify', '--installPath', "`"$installPath`"", '--add', $component, '--quiet', '--norestart', '--nocache')
           $process = Start-Process -FilePath cmd.exe -ArgumentList $args -Wait -PassThru -WindowStyle Hidden
-          Get-ChildItem $installPath -Recurse
+          git -C $installPath status
       - name: Test
         run: |
           $MSVCDirectory = vswhere -latest -find "VC\Tools\MSVC"
