@@ -9,7 +9,6 @@ jobs:
       matrix:
         os: [windows-2022]
     steps:
-      - uses: mxschmitt/action-tmate@v3.18
       - name: Install
         run: |
           $component = "Microsoft.VisualStudio.Component.VC.140"
@@ -21,9 +20,7 @@ jobs:
             $iPath = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise"
           }
   
-          Start-Process -FilePath "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "modify","--add",$component,"--installPath",$iPath,"--passive","--includeRecommended","--norestart","--noUpdateInstaller" -Wait
-  
-          Start-Process -FilePath "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "export","--config","info-post.txt","--installPath",$iPath,"--passive","--noUpdateInstaller" -Wait
+          Start-Process -FilePath "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList "modify","--add",$component,"--installPath",$iPath,"--passive","--includeRecommended","--norestart" -Wait
       - name: Test
         run: |
           $MSVCDirectory = vswhere -latest -find "VC\Tools\MSVC"
