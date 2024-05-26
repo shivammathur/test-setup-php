@@ -3,6 +3,7 @@
 namespace Cesurapp\SwooleBundle;
 
 use Cesurapp\SwooleBundle\Client\SwooleBridge;
+use Cesurapp\SwooleBundle\Cron\CronDataCollector;
 use Cesurapp\SwooleBundle\Cron\CronInterface;
 use Cesurapp\SwooleBundle\Cron\CronWorker;
 use Cesurapp\SwooleBundle\Task\FailedTaskCron;
@@ -40,8 +41,6 @@ class SwooleBundle extends AbstractBundle
     {
         $services = $container->services()->defaults()->autowire()->autoconfigure();
         $services->load('Cesurapp\\SwooleBundle\\Command\\', './Command/Server*.*');
-
-        // Register Configuration
         foreach ($config as $key => $value) {
             $builder->setParameter('swoole.'.$key, $value);
         }
@@ -80,6 +79,9 @@ class SwooleBundle extends AbstractBundle
             $builder->registerForAutoconfiguration(CronInterface::class)
                 ->addTag('crons')
                 ->setLazy(true);
+
+            $builder->registerForAutoconfiguration(CronDataCollector::class)
+                ->addTag('data_collector');
 
             $services->load('Cesurapp\\SwooleBundle\\Command\\', './Command/Cron*.*');
         }

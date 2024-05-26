@@ -1,0 +1,57 @@
+{% extends '@WebProfiler/Profiler/layout.html.twig' %}
+
+{% block head %}
+    {{ parent() }}
+{% endblock %}
+
+{% block menu %}
+    <span class="label {{ collector.count == 0 ? 'disabled' }}">
+        <span class="icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 class="lucide lucide-cpu">
+                <rect width="16" height="16" x="4" y="4" rx="2"/>
+                <rect width="6" height="6" x="9" y="9" rx="1"/>
+                <path d="M15 2v2"/><path d="M15 20v2"/>
+                <path d="M2 15h2"/><path d="M2 9h2"/>
+                <path d="M20 15h2"/>
+                <path d="M20 9h2"/>
+                <path d="M9 2v2"/>
+                <path d="M9 20v2"/>
+            </svg>
+        </span>
+        <strong>Swoole Crons</strong>
+    </span>
+{% endblock %}
+
+{% block panel %}
+    <h2>Swoole Crons</h2>
+    {% if collector.count == 0 %}
+        <div class="empty empty-panel">
+            <p>Cron process not found.</p>
+        </div>
+    {% else %}
+        <table class="sf-profiler-httpclient-requests">
+            <thead>
+                <tr>
+                    <th>CLASS</th>
+                    <th>TIME</th>
+                    <th>ENABLED</th>
+                    <th>ISDUE</th>
+                    <th>NEXT</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cron in collector.crons %}
+                    <tr>
+                        <th>{{ cron.class }}</th>
+                        <th>{{ cron.time }}</th>
+                        <th>{{ cron.enable }}</th>
+                        <th>{{ cron.isDue }}</th>
+                        <th>{{ cron.next }}</th>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}
