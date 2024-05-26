@@ -43,6 +43,6 @@ class CronDataCollector extends DataCollector implements TemplateAwareDataCollec
 
     public static function getTemplate(): ?string
     {
-        return 'cron_data_collector.html.twig';
+        return '@Swoole/cron_data_collector.html.twig';
     }
 }

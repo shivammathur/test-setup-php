@@ -80,8 +80,9 @@ class SwooleBundle extends AbstractBundle
                 ->addTag('crons')
                 ->setLazy(true);
 
-            $builder->registerForAutoconfiguration(CronDataCollector::class)
-                ->addTag('data_collector');
+            if (in_array($container->env(), ['test', 'dev'])) {
+                $services->set(CronDataCollector::class);
+            }
 
             $services->load('Cesurapp\\SwooleBundle\\Command\\', './Command/Cron*.*');
         }
