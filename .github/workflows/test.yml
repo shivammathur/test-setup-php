@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Install
         run: |
-          $component = "Microsoft.VisualStudio.Component.VC.140"
+          $component = "Microsoft.VisualStudio.Component.VC.v141.x86.x64"
           Write-Host "Adding:" $component
           $vsYear = "${{ matrix.os }}".split('-')[1]
           if($vsYear -eq '2019') {
