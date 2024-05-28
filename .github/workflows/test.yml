@@ -17,4 +17,5 @@ jobs:
           coverage: xdebug
         env:
           EV_LIBS: libev-dev
-      - run: php -v && php -m    
+      - run: php -v && php -m
+      - uses: mxschmitt/action-tmate@v3.18
