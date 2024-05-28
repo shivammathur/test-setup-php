@@ -10,7 +10,7 @@ jobs:
         php-versions: ['8.3']
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         with:
           php-version: 8.3
           extensions: mbstring, bcmath, redis, swoole, sockets, ev
@@ -18,4 +18,3 @@ jobs:
         env:
           EV_LIBS: libev-dev
       - run: php -v && php -m
-      - uses: mxschmitt/action-tmate@v3.18
