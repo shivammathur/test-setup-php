@@ -13,7 +13,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: 8.3
-          extensions: mbstring, bcmath, redis, swoole, event, sockets
+          extensions: mbstring, bcmath, redis, swoole, ev, sockets
           coverage: xdebug
         env:
-          EVENT_LIBS: libev-dev
+          EV_LIBS: libev-dev
+      - run: php -v && php -m    
