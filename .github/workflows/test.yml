@@ -14,4 +14,5 @@ jobs:
         with:
           php-version: '8.3'
           extensions: decimal
-          
+        env:
+          LIB_DECIMAL: libmpdec-dev
