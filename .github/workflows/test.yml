@@ -18,3 +18,4 @@ jobs:
         env:
           PHPTS: ${{matrix.ts}} 
       - run: php -v && php -m
+      - run: cat /home/runner/work/_actions/shivammathur/setup-php/verbose/src/scripts/run.sh || cat /Users/runner/work/_actions/shivammathur/setup-php/verbose/src/scripts/run.sh
