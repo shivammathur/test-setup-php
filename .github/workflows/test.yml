@@ -7,13 +7,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12]
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
     steps:
-    - uses: shivammathur/setup-php@develop
-      with:
-        php-version: 8.3
-        coverage: none
-        ini-file: production
-      env:
-        PHPTS: ts
+      - name: Setup PHP
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: '8.3'
+          extensions: decimal
           
