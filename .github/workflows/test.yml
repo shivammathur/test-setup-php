@@ -7,10 +7,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019, windows-2022]
+        os: [macos-12]
     steps:
-      - name: Install
-        run: |
-          Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe
-          winget install NASM.NASM
+    - uses: shivammathur/setup-php@verbose
+      with:
+        php-version: 8.3
+        coverage: none
+        ini-file: production
+      env:
+        PHPTS: ts
           
