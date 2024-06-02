@@ -6,15 +6,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['8.3']
+        operating-system: [ubuntu-latest, macos-latest]
+        php-versions: ['8.0']
+        ts: [nts, ts]
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: 8.3
-          extensions: mbstring, bcmath, redis, swoole, sockets, ev
-          coverage: xdebug
+          extensions: zephir_parser
         env:
-          EV_LIBS: libev-dev
+          PHPTS: ${{matrix.ts}} 
       - run: php -v && php -m
