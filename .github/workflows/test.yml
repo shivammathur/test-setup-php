@@ -70,4 +70,20 @@ jobs:
           }
           
           (new FilterExtension)->applyToCollection();
+
+          trait Traita
+          {
+              #[Override]
+              public function methodWithDefaultImplementation(): int {}
+          }
+          
+          final class Childa extends Parenta
+          {
+              use Traita;
+          }
+          
+          abstract class Parenta
+          {
+              public function methodWithDefaultImplementation(): int {}
+          }
         
