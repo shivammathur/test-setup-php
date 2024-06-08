@@ -7,83 +7,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, macos-latest, windows-latest]
+        os: [macos-latest]
         php: [8.1, 8.2, 8.3]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-      - name: Test
-        shell: "php {0}"
+      - name: Install mongodb
         run: |
-          <?php
-          trait PropertyHelperTrait
-          {
-              protected function splitPropertyParts(): void
-              {
-              }
-          }
-          
-          trait OrmPropertyHelperTrait
-          {
-              abstract protected function splitPropertyParts(): void;
-              
-              protected function addJoinsForNestedProperty(): void
-              {
-                  $this->splitPropertyParts();
-              }
-          }
-          
-          trait SearchFilterTrait
-          {
-              use PropertyHelperTrait;
-          }
-          
-          abstract class AbstractFilter
-          {
-              use OrmPropertyHelperTrait, PropertyHelperTrait;
-              
-              public function apply(): void
-              {
-                  $this->filterProperty();
-              }
-              
-              abstract protected function filterProperty(): void;
-          }
-          
-          class SearchFilter extends AbstractFilter
-          {
-              use SearchFilterTrait;
-              protected function filterProperty(): void
-              {
-                  $this->addJoinsForNestedProperty();
-              }
-          }
-          
-          class FilterExtension
-          {
-              public function applyToCollection(): void
-              {
-                  (new SearchFilter())->apply();
-              }
-          }
-          
-          (new FilterExtension)->applyToCollection();
-
-          trait Traita
-          {
-              #[Override]
-              public function methodWithDefaultImplementation(): int {}
-          }
-          
-          final class Childa extends Parenta
-          {
-              use Traita;
-          }
-          
-          abstract class Parenta
-          {
-              public function methodWithDefaultImplementation(): int {}
-          }
-        
+          brew tap shivammathur/extensions
+          brew install mongodb@${{ matrix.php }}
+      - name: Test
+        run: |
+          php -v
+          php -m
