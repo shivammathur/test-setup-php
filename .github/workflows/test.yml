@@ -12,7 +12,7 @@ jobs:
     steps:
       - run: echo "127.0.0.2 ppa.launchpad.net" | sudo tee -a /etc/hosts
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
           extensions: grpc
