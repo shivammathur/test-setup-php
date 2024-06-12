@@ -15,7 +15,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: mongodb
+          extensions: grpc
       - name: Test
         run: |
           php -v
