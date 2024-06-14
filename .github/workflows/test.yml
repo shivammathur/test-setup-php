@@ -6,20 +6,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, macos-12]
-        php-versions: ['8.0', '8.1', '8.2']
-        ts: [nts, ts]
+        operating-system: [macos-latest]
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, fileinfo, gmp, sqlite, pdo_sqlite, psr-1.2.0, zip, mysqli, zephir_parser
-          tools: phpize, php-config
-          coverage: xdebug
-          ini-values: variables_order=EGPCS, enable_dl=On, allow_url_fopen=On, error_reporting=-1, memory_limit=1G, date.timezone=UTC, xdebug.max_nesting_level=256
-          ini-file: production
+      - run: |
+          brew determine-test-runners grpc
         env:
-          PHPTS: ${{matrix.ts}} 
-      - run: php -v && php -m
-      - run: cat /home/runner/work/_actions/shivammathur/setup-php/develop/src/scripts/run.sh || cat /Users/runner/work/_actions/shivammathur/setup-php/develop/src/scripts/run.sh
+          HOMEBREW_LINUX_RUNNER: linux-self-hosted-1
