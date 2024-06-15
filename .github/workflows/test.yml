@@ -19,6 +19,7 @@ jobs:
         path: ${{ steps.extcache.outputs.dir }}
         key: ${{ steps.extcache.outputs.key }}-foov4
         restore-keys: ${{ steps.extcache.outputs.key }}-foov4
+    - uses: mxschmitt/action-tmate@v3.18    
 
     - name: "Setup PHP"
       uses: shivammathur/setup-php@develop
