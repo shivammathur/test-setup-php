@@ -1,14 +1,28 @@
 name: Test ext workflow
 on: [push]
 jobs:
-  ext:
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [macos-latest]
+  standard:
+    runs-on: 'ubuntu-latest'
+    container: 'ubuntu:24.04'
     steps:
-      - run: |
-          brew determine-test-runners grpc
-        env:
-          HOMEBREW_LINUX_RUNNER: linux-self-hosted-1
+    - name: "Setup PHP extension caching"
+      id: extcache
+      uses: shivammathur/cache-extensions@v1
+      with:
+        php-version: 8.2
+        extensions: mongodb,redis,sqlite3,gd,bcmath
+        key: php-extensions-${{ runner.os }}-foov4
+
+    - name: "Cache extensions"
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.extcache.outputs.dir }}
+        key: ${{ steps.extcache.outputs.key }}-foov4
+        restore-keys: ${{ steps.extcache.outputs.key }}-foov4
+
+    - name: "Setup PHP"
+      uses: shivammathur/setup-php@verbose
+      with:
+        php-version: 8.2
+        extensions: mongodb,redis,sqlite3,gd,bcmath
+        coverage: none
