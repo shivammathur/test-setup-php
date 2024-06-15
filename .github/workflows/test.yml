@@ -21,7 +21,7 @@ jobs:
         restore-keys: ${{ steps.extcache.outputs.key }}-foov4
 
     - name: "Setup PHP"
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@develop
       with:
         php-version: 8.2
         extensions: mongodb,redis,sqlite3,gd,bcmath
