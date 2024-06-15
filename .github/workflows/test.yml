@@ -26,4 +26,4 @@ jobs:
         php-version: 8.2
         extensions: mongodb,redis,sqlite3,gd,bcmath
         coverage: none
-    - php -v && php -m    
+    - run: php -v && php -m    
