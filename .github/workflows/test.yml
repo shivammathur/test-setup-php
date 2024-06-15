@@ -7,7 +7,7 @@ jobs:
     steps:
     - name: "Setup PHP extension caching"
       id: extcache
-      uses: shivammathur/cache-extensions@v1
+      uses: shivammathur/cache-extensions@develop
       with:
         php-version: 8.2
         extensions: mongodb,redis,sqlite3,gd,bcmath
