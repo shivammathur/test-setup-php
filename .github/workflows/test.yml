@@ -7,16 +7,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        php: [8.1]
+        os: [ubuntu-24.04]
     steps:
-      - run: echo "127.0.0.2 ppa.launchpad.net" | sudo tee -a /etc/hosts
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: grpc
-      - name: Test
+      - name: Update lists
         run: |
-          php -v
-          php -m
+          . /etc/os-release
+          dpkg -l | awk '($1 == "ii") && ($2 ~ /^lib|lib$/) { print $2 }' | sed 's/:amd64//' > /tmp/"$VERSION_CODENAME"-libs
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lists-${{ matrix.os }}
+          path: |
+            /tmp/*-libs
