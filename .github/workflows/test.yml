@@ -2,7 +2,7 @@ name: Test ext workflow
 on: [push]
 jobs:
   standard:
-    runs-on: 'ubuntu-latest'
+    runs-on: 'macos-latest'
     steps:
     - name: "Setup PHP extension caching"
       id: extcache
