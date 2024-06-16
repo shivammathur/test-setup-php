@@ -2,14 +2,22 @@ name: Test ext workflow
 on: [push]
 jobs:
   standard:
-    runs-on: 'macos-latest'
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            container: ubuntu:22.04
+          - os: macos-latest
+          - os: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     steps:
     - name: "Setup PHP extension caching"
       id: extcache
       uses: shivammathur/cache-extensions@develop
       with:
         php-version: 8.2
-        extensions: mongodb,redis,sqlite3,gd,bcmath
+        extensions: mongodb,redis,sqlite3,gd,bcmath,pecl_http,memcached,grpc
         key: php-extensions-${{ runner.os }}-foov4
 
     - name: "Cache extensions"
@@ -23,6 +31,6 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: 8.2
-        extensions: mongodb,redis,sqlite3,gd,bcmath
+        extensions: mongodb,redis,sqlite3,gd,bcmath,pecl_http,memcached,grpc
         coverage: none
     - run: php -v && php -m    
