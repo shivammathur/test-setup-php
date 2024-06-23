@@ -11,6 +11,9 @@ jobs:
         php: [8.1]
     steps:
       - run: echo "127.0.0.2 ppa.launchpad.net" | sudo tee -a /etc/hosts
+      - uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6
+        with:
+          egress-policy: audit
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
