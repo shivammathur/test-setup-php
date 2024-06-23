@@ -17,7 +17,10 @@ jobs:
           - php: 8.3
             os: ubuntu-20.04
     steps:
-      - run: sudo iptables -A OUTPUT -d 185.125.190.80 -j DROP
+      - run: |
+          apt-get update
+          apt-get install sudo -y
+          sudo iptables -A OUTPUT -d 185.125.190.80 -j DROP
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
