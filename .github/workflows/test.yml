@@ -1,7 +1,7 @@
 name: DB ext workflow
 on: [push]
 env:
-  key: cache-v2-1632086189
+  key: cache-v2-1632086190
   extensions: couchbase
 jobs:
   run:
@@ -45,14 +45,4 @@ jobs:
         continue-on-error: ${{ matrix.php-versions == '8.2' || matrix.php-versions == '8.3' }}
         run: |
           php -m
-          php -r "if(! extension_loaded('pdo')) {throw new Exception('pdo not found');}";
-          php -r "if(! extension_loaded('pdo_mysql')) {throw new Exception('pdo_mysql not found');}";
-          php -r "if(! extension_loaded('pdo_pgsql')) {throw new Exception('pdo_pgsql not found');}";
-          php -r "if(! extension_loaded('pdo_sqlite')) {throw new Exception('pdo_sqlite not found');}";
-          php -r "if(! extension_loaded('pdo_firebird')) {throw new Exception('pdo_firebird not found');}";
-          php -r "if(phpversion()>=7.0 && ! extension_loaded('pdo_sqlsrv')) {throw new Exception('pdo_sqlsrv not found');}";
           php -r "if(! extension_loaded('couchbase')) {throw new Exception('couchbase not found');}";
-          php -r "if(! extension_loaded('mysqli')) {throw new Exception('mysqli not found');}";
-          php -r "if(! extension_loaded('pgsql')) {throw new Exception('pgsql not found');}";
-          php -r "if(! extension_loaded('sqlite3')) {throw new Exception('sqlite3 not found');}";
-          php -r "if(phpversion()>=7.0 && ! extension_loaded('sqlsrv')) {throw new Exception('sqlsrv not found');}";
