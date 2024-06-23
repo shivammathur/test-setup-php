@@ -16,6 +16,7 @@ jobs:
           sudo add-apt-repository ppa:ondrej/php
           sudo add-apt-repository https://setup-php.com/ondrej/php/ubuntu
           sudo apt update
+          sudo apt-cache policy php8.1-grpc
       - run: sudo iptables -A OUTPUT -d 185.125.190.80 -j DROP
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
