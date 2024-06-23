@@ -20,7 +20,7 @@ jobs:
       - run: |
           command -v sudo >/dev/null && SUDO=sudo
           ${SUDO} apt-get update
-          ${SUDO} apt-get install sudo iptables -y
+          ${SUDO} apt-get install sudo iptables-legacy -y
           sudo iptables -A OUTPUT -d 185.125.190.80 -j DROP
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
