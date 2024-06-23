@@ -18,7 +18,8 @@ jobs:
             os: ubuntu-20.04
     steps:
       - run: |
-          echo "127.0.0.1 http://ppa.launchpad.net" | tee -a /etc/hosts
+          command -v sudo >/dev/null && SUDO=sudo
+          echo "127.0.0.1 ppa.launchpad.net" | ${SUDO} tee -a /etc/hosts
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
