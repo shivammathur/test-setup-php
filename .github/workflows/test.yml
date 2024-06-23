@@ -1,48 +1,22 @@
-name: DB ext workflow
+name: Main workflow
 on: [push]
-env:
-  key: cache-v2-1632086192
-  extensions: couchbase
 jobs:
   run:
-    runs-on: ${{ matrix.operating-system }}
+    name: Run
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
-        operating-system: [macos-latest, macos-13]
-    name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
+        os: [ubuntu-latest]
+        php: [8.1]
     steps:
-      - name: Setup cache environment
-        id: extcache
-        uses: shivammathur/cache-extensions@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-          key: ${{ env.key }}
-
-      - name: Cache extensions
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.extcache.outputs.dir }}
-          key: ${{ steps.extcache.outputs.key }}
-          restore-keys: ${{ steps.extcache.outputs.key }}
-
-      - name: Install PHP
+      - run: echo "127.0.0.2 ppa.launchpad.net" | sudo tee -a /etc/hosts
+      - name: Setup PHP
         uses: shivammathur/setup-php@develop
-        continue-on-error: ${{ matrix.php-versions == '8.2' || matrix.php-versions == '8.3' }}
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-
-      - name: Check PHP version
-        run: php -v
-
-      - name: Check ini files
-        run: php --ini
-
-      - name: Check PHP extensions
-        continue-on-error: ${{ matrix.php-versions == '8.2' || matrix.php-versions == '8.3' }}
+          php-version: ${{ matrix.php }}
+          extensions: grpc
+      - name: Test
         run: |
+          php -v
           php -m
-          php -r "if(! extension_loaded('couchbase')) {throw new Exception('couchbase not found');}";
