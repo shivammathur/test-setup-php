@@ -16,8 +16,8 @@ jobs:
           sudo rm -rf $(which apt-fast)
           sudo add-apt-repository ppa:ondrej/php
           sudo add-apt-repository https://setup-php.com/ondrej/php/ubuntu
-          
-          sudo cat > /etc/apt/preferences.d/ppa-fallback <<EOL
+
+          sudo tee /etc/apt/preferences.d/ppa-fallback > /dev/null <<EOL
           Package: *
           Pin: origin ppa.launchpad.net
           Pin-Priority: 500
