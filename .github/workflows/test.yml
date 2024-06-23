@@ -18,8 +18,9 @@ jobs:
             os: ubuntu-20.04
     steps:
       - run: |
-          apt-get update
-          apt-get install sudo -y
+          command -v sudo >/dev/null && SUDO=sudo
+          ${SUDO} apt-get update
+          ${SUDO} apt-get install sudo iptables -y
           sudo iptables -A OUTPUT -d 185.125.190.80 -j DROP
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
