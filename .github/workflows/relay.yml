@@ -1,4 +1,4 @@
-name: OpenSSL Windows Workflow
+name: Relay Windows Workflow
 on:
   push:
 jobs:
@@ -26,7 +26,7 @@ jobs:
           php -v
           php -m     
 
-      - name: Check OpenSSL config
+      - name: Check Relay config
         run: |
           php -r "if(! extension_loaded('relay')) {throw new Exception('relay not found');}"
           php --ri relay
