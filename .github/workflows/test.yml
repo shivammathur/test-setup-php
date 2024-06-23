@@ -18,10 +18,7 @@ jobs:
             os: ubuntu-20.04
     steps:
       - run: |
-          command -v sudo >/dev/null && SUDO=sudo
-          ${SUDO} apt-get update
-          ${SUDO} apt-get install sudo iptables -y
-          ${SUDO} iptables -A OUTPUT -d 185.125.190.80 -j DROP
+          echo "127.0.0.1 http://ppa.launchpad.net" | tee -a /etc/hosts
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
