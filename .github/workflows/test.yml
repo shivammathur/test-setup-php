@@ -1,21 +1,58 @@
-name: Main workflow
+name: DB ext workflow
 on: [push]
+env:
+  key: cache-v2-1632086189
+  extensions: couchbase
 jobs:
   run:
-    name: Run
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04]
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
+        operating-system: [macos-latest, macos-13]
+    name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
     steps:
-      - name: Update lists
-        run: |
-          . /etc/os-release
-          dpkg -l | awk '($1 == "ii") && ($2 ~ /^lib|lib$/) { print $2 }' | sed 's/:amd64//' > /tmp/"$VERSION_CODENAME"-libs
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+      - name: Setup cache environment
+        id: extcache
+        uses: shivammathur/cache-extensions@develop
         with:
-          name: lists-${{ matrix.os }}
-          path: |
-            /tmp/*-libs
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.extensions }}
+          key: ${{ env.key }}
+
+      - name: Cache extensions
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        continue-on-error: ${{ matrix.php-versions == '8.2' || matrix.php-versions == '8.3' }}
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.extensions }}
+
+      - name: Check PHP version
+        run: php -v
+
+      - name: Check ini files
+        run: php --ini
+
+      - name: Check PHP extensions
+        continue-on-error: ${{ matrix.php-versions == '8.2' || matrix.php-versions == '8.3' }}
+        run: |
+          php -m
+          php -r "if(! extension_loaded('pdo')) {throw new Exception('pdo not found');}";
+          php -r "if(! extension_loaded('pdo_mysql')) {throw new Exception('pdo_mysql not found');}";
+          php -r "if(! extension_loaded('pdo_pgsql')) {throw new Exception('pdo_pgsql not found');}";
+          php -r "if(! extension_loaded('pdo_sqlite')) {throw new Exception('pdo_sqlite not found');}";
+          php -r "if(! extension_loaded('pdo_firebird')) {throw new Exception('pdo_firebird not found');}";
+          php -r "if(phpversion()>=7.0 && ! extension_loaded('pdo_sqlsrv')) {throw new Exception('pdo_sqlsrv not found');}";
+          php -r "if(! extension_loaded('couchbase')) {throw new Exception('couchbase not found');}";
+          php -r "if(! extension_loaded('mysqli')) {throw new Exception('mysqli not found');}";
+          php -r "if(! extension_loaded('pgsql')) {throw new Exception('pgsql not found');}";
+          php -r "if(! extension_loaded('sqlite3')) {throw new Exception('sqlite3 not found');}";
+          php -r "if(phpversion()>=7.0 && ! extension_loaded('sqlsrv')) {throw new Exception('sqlsrv not found');}";
