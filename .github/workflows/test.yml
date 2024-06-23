@@ -10,8 +10,9 @@ jobs:
         os: [ubuntu-latest]
         php: [8.1]
     steps:
-      - run: echo "127.0.0.2 ppa.launchpad.net" | sudo tee -a /etc/hosts
-      - run: echo "127.0.0.2 ppa.launchpadcontent.net" | sudo tee -a /etc/hosts
+#      - run: echo "127.0.0.2 ppa.launchpad.net" | sudo tee -a /etc/hosts
+#      - run: echo "127.0.0.2 ppa.launchpadcontent.net" | sudo tee -a /etc/hosts
+      - run: sudo iptables -A OUTPUT -d 185.125.190.80 -j DROP
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
