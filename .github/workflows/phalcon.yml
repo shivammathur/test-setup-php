@@ -21,7 +21,7 @@ jobs:
           key: ${{ env.key }}
 
       - name: Cache extensions
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.extcache.outputs.dir }}
           key: ${{ steps.extcache.outputs.key }}
@@ -63,7 +63,7 @@ jobs:
           key: ${{ env.key }}
 
       - name: Cache extensions
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.extcache.outputs.dir }}
           key: ${{ steps.extcache.outputs.key }}
@@ -107,7 +107,7 @@ jobs:
           key: ${{ env.key }}
 
       - name: Cache extensions
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.extcache.outputs.dir }}
           key: ${{ steps.extcache.outputs.key }}
