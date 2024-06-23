@@ -14,21 +14,6 @@ jobs:
 #      - run: echo "127.0.0.2 ppa.launchpadcontent.net" | sudo tee -a /etc/hosts
       - run: |
           sudo rm -rf $(which apt-fast)
-          sudo add-apt-repository ppa:ondrej/php
-          sudo add-apt-repository https://setup-php.com/ondrej/php/ubuntu
-
-          sudo tee /etc/apt/preferences.d/ppa-fallback > /dev/null <<EOL
-          Package: *
-          Pin: origin ppa.launchpad.net
-          Pin-Priority: 500
-          
-          Package: *
-          Pin: origin setup-php.com
-          Pin-Priority: 400
-          EOL
-
-          sudo apt update
-          sudo apt-cache policy php8.1-grpc
       - run: sudo iptables -A OUTPUT -d 185.125.190.80 -j DROP
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
