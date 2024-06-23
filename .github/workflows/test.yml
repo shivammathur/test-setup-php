@@ -13,6 +13,7 @@ jobs:
 #      - run: echo "127.0.0.2 ppa.launchpad.net" | sudo tee -a /etc/hosts
 #      - run: echo "127.0.0.2 ppa.launchpadcontent.net" | sudo tee -a /etc/hosts
       - run: |
+          sudo add-apt-repository ppa:ondrej/php
           sudo add-apt-repository https://setup-php.com/ondrej/php/ubuntu
           sudo apt update
       - run: sudo iptables -A OUTPUT -d 185.125.190.80 -j DROP
