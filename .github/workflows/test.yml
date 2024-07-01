@@ -3,28 +3,13 @@ on: [push]
 jobs:
   run:
     name: Run
-    runs-on: ${{ matrix.os }}
-    container: ${{ matrix.container }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - php: 8.1
-            os: ubuntu-latest
-          - php: 8.1
-            os: ubuntu-latest
-            container: ubuntu:22.04
-          - php: 8.3
-            os: ubuntu-20.04
+    runs-on: windows-latest
     steps:
-      - run: |
-          command -v sudo >/dev/null && SUDO=sudo
-          echo "127.0.0.1 ppa.launchpad.net" | ${SUDO} tee -a /etc/hosts
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php }}
-          extensions: grpc
+          php-version: 8.2
+          extensions: wincache-2.0.0.9
       - name: Test
         run: |
           php -v
