@@ -3,14 +3,13 @@ on: [push]
 jobs:
   run:
     name: Run
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Setup PHP with PECL extension
         uses: shivammathur/setup-php@v2
         with:
           php-version: 7.2
           extensions: intl, mbstring, gd, apcu, memcached, ioncube
-          coverage: xdebug
       - name: Test
         run: |
           php -v
