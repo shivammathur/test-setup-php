@@ -10,6 +10,7 @@ jobs:
         with:
           php-version: 7.2
           extensions: intl, mbstring, gd, apcu, memcached, ioncube
+          coverage: xdebug
       - name: Test
         run: |
           php -v
