@@ -10,7 +10,7 @@ jobs:
         with:
           php-version: 8.2
       - run: |
-          Install-PhpExtension xdebug -Path C:\tools\php -Version 3.3.1
+          Install-PhpExtension wincache -Path C:\tools\php -Version 2.0.0.9 -MinimumStability snapshot
       - name: Test
         run: |
           php -v
