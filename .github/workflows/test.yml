@@ -1,38 +1,17 @@
 name: Main workflow
 on: [push]
 jobs:
-  code-quality:
-      runs-on: ubuntu-latest
-      strategy:
-        matrix:
-          php-versions: ['7.2']
-      env:
-        extensions: intl, mbstring, gd, apcu, memcached, ioncube
-        key: cache-v1
-      name: Code Quality on PHP ${{ matrix.php-versions }}
-      steps:
-        - name: Setup cache environment
-          id: extcache
-          uses: shivammathur/cache-extensions@v1
-          with:
-            php-version: ${{ matrix.php-versions }}
-            extensions: ${{ env.extensions }}
-            key: ${{ env.key }}
-  
-        - name: Cache extensions
-          uses: actions/cache@v4
-          with:
-            path: ${{ steps.extcache.outputs.dir }}
-            key: ${{ steps.extcache.outputs.key }}
-            restore-keys: ${{ steps.extcache.outputs.key }}
-  
-        - name: Setup PHP with PECL extension
-          uses: shivammathur/setup-php@develop
-          with:
-            php-version: ${{ matrix.php-versions }}
-            extensions: ${{ env.extensions }}
-            coverage: xdebug
-        - name: Test
-          run: |
-            php -v
-            php -m
+  run:
+    name: Run
+    runs-on: windows-latest
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 8.2
+      - run: |
+          Install-PhpExtension wincache -Path C:\tools\php -Version 2.0.0.9
+      - name: Test
+        run: |
+          php -v
+          php -m
