@@ -39,7 +39,7 @@ class SwooleRunner implements RunnerInterface
     public function __construct(private readonly HttpKernelInterface $application, array $options)
     {
         self::$config['http']['settings']['worker_num'] = Util::getCPUNum();
-        self::$config['http']['settings']['task_worker_num'] = floor(Util::getCPUNum() / 2);
+        self::$config['http']['settings']['task_worker_num'] = ceil(Util::getCPUNum() / 2);
 
         self::$config = $this->replaceRuntimeEnv(self::$config);
         if (self::$config['worker']['task']) {
