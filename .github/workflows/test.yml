@@ -11,7 +11,7 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
       extensions: imagick, gd
-      key: cache-v2 # can be any string, change to clear the extension cache.
+      key: cache-v3 # can be any string, change to clear the extension cache.
     steps:
     - name: Checkout
       uses: actions/checkout@v4
