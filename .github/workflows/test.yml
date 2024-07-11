@@ -2,15 +2,10 @@ name: Main workflow
 on: [push]
 jobs:
   run:
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
     name: Run
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.2
-          extensions: wincache
-      - name: Test
-        run: |
-          php -v
-          php -m
+      - run: sudo apt-cache policy libraqm*
