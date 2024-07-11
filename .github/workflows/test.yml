@@ -3,10 +3,10 @@ on: [push]
 jobs:
   run:
     runs-on: ubuntu-latest
-    container: ${{ matrix.operating-system }}
+    container: ubuntu:${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu:20.04, ubuntu:22.04, ubuntu:24.04]
+        operating-system: [20.04, 22.04, 24.04]
         php-versions: ['8.2']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
