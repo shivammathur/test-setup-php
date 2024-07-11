@@ -2,15 +2,16 @@ name: Runner workflow
 on: [push]
 jobs:
   run:
-    runs-on: ${{ matrix.operating-system }}
+    runs-on: ubuntu-latest
+    container: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        operating-system: [ubuntu:20.04, ubuntu:22.04, ubuntu:24.04]
         php-versions: ['8.2']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     env:
       extensions: imagick, gd
-      key: cache-v1 # can be any string, change to clear the extension cache.
+      key: cache-v2 # can be any string, change to clear the extension cache.
     steps:
     - name: Checkout
       uses: actions/checkout@v3
