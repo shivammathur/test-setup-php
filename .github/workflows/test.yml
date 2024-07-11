@@ -1,11 +1,38 @@
-name: Main workflow
+name: Runner workflow
 on: [push]
 jobs:
   run:
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
-    name: Run
-    runs-on: ${{ matrix.os }}
+        operating-system: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        php-versions: ['8.2']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    env:
+      extensions: imagick, gd
+      key: cache-v1 # can be any string, change to clear the extension cache.
     steps:
-      - run: sudo apt-cache policy libraqm*
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup cache environment
+      id: extcache
+      uses: shivammathur/cache-extensions@v1
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.extensions }}
+        key: ${{ env.key }}
+
+    - name: Cache extensions
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.extcache.outputs.dir }}
+        key: ${{ steps.extcache.outputs.key }}
+        restore-keys: ${{ steps.extcache.outputs.key }}
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@verbose
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.extensions }}
+    - run: php -v && php -m    
