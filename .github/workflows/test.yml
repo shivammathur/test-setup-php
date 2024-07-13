@@ -11,4 +11,6 @@ jobs:
     - run: brew update
 
     - name: Test
-      run: brew install php@8.2
+      run: |
+        brew tap shivammathur/php
+        brew install shivammathur/php/php@8.2
