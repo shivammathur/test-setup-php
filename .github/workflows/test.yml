@@ -8,9 +8,11 @@ jobs:
         os: [macos-12, macos-13, macos-14]
     name: Test on ${{ matrix.os}}
     steps:
-    - run: brew update
+    - name: brew update
+      run: |
+        git -C $(brew --repo) pull origin master
+        git -C $(brew --repo homebrew/core) pull origin master
 
     - name: Test
       run: |
-        brew tap shivammathur/php
-        brew install shivammathur/php/php@8.2
+        brew install php@8.2
