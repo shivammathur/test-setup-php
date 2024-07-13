@@ -5,10 +5,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        operating-system: [macos-12, macos-13, macos-14]
+        os: [macos-12, macos-13, macos-14]
     name: Test on ${{ matrix.operating-system }}
     steps:
     - run: brew update
 
     - name: Test
-      run: brew install php
+      run: brew install php@8.2
