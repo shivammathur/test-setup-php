@@ -99,14 +99,14 @@ class HttpServer extends Server
         // Server Information
         $watch = $this->options['worker']['watch'] ?? 1;
         if ($watch < 2) {
-            echo 'Swoole HTTP Server Information'.PHP_EOL;
+            echo 'Swoole Server Information'.PHP_EOL;
             echo '------------------------------'.PHP_EOL;
-            echo 'Host => '.$this->options['http']['host'].':'.$this->options['http']['port'].PHP_EOL;
-            echo 'TCP Host => 127.0.0.1:9502'.PHP_EOL;
-            echo 'Worker => '.$this->options['http']['settings']['worker_num'].PHP_EOL;
-            echo 'Task Worker => '.$this->options['http']['settings']['task_worker_num'].PHP_EOL;
-            echo 'Debug => '.($this->options['debug'] ? 'True' : 'False').PHP_EOL;
-            echo 'Log Level => '.match ((int) $this->options['http']['settings']['log_level']) {
+            echo 'Host         => '.$this->options['http']['host'].':'.$this->options['http']['port'].PHP_EOL;
+            echo 'Tcp Host     => 127.0.0.1:9502'.PHP_EOL;
+            echo 'Http Worker  => True'.sprintf(' (%s Worker)', $this->options['http']['settings']['worker_num']).PHP_EOL;
+            echo 'Task Worker  => '.($this->options['worker']['task'] ? 'True' : 'False').sprintf(' (%s Worker)', $this->options['http']['settings']['task_worker_num']).PHP_EOL;
+            echo 'Cron Worker  => '.($this->options['worker']['cron'] ? 'True' : 'False').PHP_EOL;
+            echo 'Log Level    => '.match ((int) $this->options['http']['settings']['log_level']) {
                 0 => 'LOG_DEBUG',
                 1 => 'LOG_TRACE',
                 2 => 'LOG_INFO',
@@ -116,11 +116,19 @@ class HttpServer extends Server
                 6 => 'LOG_NONE',
                 default => '-'
             }.PHP_EOL;
-            echo 'Log File => '.($this->options['http']['settings']['log_file'] ?? 'STDOUT').PHP_EOL;
-            echo 'Environment => '.$this->options['env'].PHP_EOL;
-            echo 'Cron Worker => '.($this->options['worker']['cron'] ? 'True' : 'False').PHP_EOL;
-            echo 'Task Worker => '.($this->options['worker']['task'] ? 'True' : 'False').PHP_EOL;
-            echo '------------------------------'.PHP_EOL.PHP_EOL;
+            echo 'Log File     => '.($this->options['http']['settings']['log_file'] ?? 'STDOUT').PHP_EOL;
+            echo 'Max Request  => '.($this->options['http']['settings']['max_request'] ?? 0).' Req'.PHP_EOL;
+            echo 'Task Max Req => '.($this->options['http']['settings']['task_max_request'] ?? 0).' Req'.PHP_EOL;
+            echo 'Max WaitTime => '.($this->options['http']['settings']['max_wait_time'] ?? 30).' sec'.PHP_EOL;
+            echo PHP_EOL;
+
+            echo 'App Information'.PHP_EOL;
+            echo '------------------------------'.PHP_EOL;
+            echo 'Debug        => '.($this->options['debug'] ? 'True' : 'False').PHP_EOL;
+            echo 'Environment  => '.strtoupper($this->options['env']).PHP_EOL;
+            echo isset($_ENV['APP_LOG_LEVEL']) ? 'Log Level    => '.ucfirst($_ENV['APP_LOG_LEVEL']).PHP_EOL : '';
+            echo isset($_ENV['APP_LOG_FILE']) ? 'Log File     => '.$_ENV['APP_LOG_FILE'].PHP_EOL : '';
+            echo PHP_EOL;
         }
     }
 }

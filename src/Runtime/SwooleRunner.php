@@ -55,6 +55,11 @@ class SwooleRunner implements RunnerInterface
         self::$config['env'] = $_ENV[$options['env_var_name']];
         self::$config['debug'] = $options['debug'];
         self::$config['worker']['watch'] = (bool) ($_SERVER['watch'] ?? false);
+
+        // Setup Debug Mode MaxRequest
+        if (self::$config['debug']) {
+            self::$config['http']['settings']['max_request'] = 15;
+        }
     }
 
     private function replaceRuntimeEnv(array $options, ?string $parentKey = null): array
