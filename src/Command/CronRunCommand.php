@@ -25,7 +25,7 @@ class CronRunCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $class = $input->getArgument('class');
-        $crons = array_filter(iterator_to_array($this->cronWorker->getAll()), static fn ($cron) => str_contains(get_class($cron), $class));
+        $crons = array_values(array_filter(iterator_to_array($this->cronWorker->getAll()), static fn ($cron) => str_contains(get_class($cron), $class)));
         if (count($crons) > 0) {
             $output->writeln('Cron Job Process: '.get_class($crons[0]));
             $crons[0]();
