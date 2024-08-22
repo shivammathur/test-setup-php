@@ -14,4 +14,9 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: '8.3'
+      - name: Test
+        run: |
+          php -v
+          composer -V
+          ldd $(which php) | grep sodium
        
