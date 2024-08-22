@@ -5,11 +5,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-14]
+        os: [windows-latest]
     name: Test on ${{ matrix.os}}
     steps:
-    - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
-      with:
-        php-version: 8.4
-        extensions: ast-1.1.1
+    - run: |
+        python --version
+        gci env:
+       
