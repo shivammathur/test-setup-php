@@ -32,6 +32,7 @@ class SwooleRunner implements RunnerInterface
                 'max_wait_time' => 60,
                 'task_enable_coroutine' => true,
                 'task_max_request' => 0,
+                'package_max_length' => 10 * 1024 * 1024,
             ],
         ],
     ];
@@ -62,27 +63,38 @@ class SwooleRunner implements RunnerInterface
         }
     }
 
-    private function replaceRuntimeEnv(array $options, ?string $parentKey = null): array
+    private function assignArrayByPath(array &$arr, string $path, mixed $value): void
     {
+        $keys = explode('.', $path);
+
+        foreach ($keys as $key) {
+            $arr = &$arr[$key];
+        }
+
+        $arr = $value;
+    }
+
+    private function replaceRuntimeEnv(array $options): array
+    {
+        $opts = array_merge_recursive(
+            array_filter($_ENV, static fn ($k) => str_starts_with($k, 'SERVER_WORKER'), ARRAY_FILTER_USE_KEY),
+            array_filter($_ENV, static fn ($k) => str_starts_with($k, 'SERVER_HTTP'), ARRAY_FILTER_USE_KEY)
+        );
+
         $parseType = static function (mixed $type) {
+            if (is_numeric($type)) {
+                return (int) $type;
+            }
+
             return match ($type) {
                 'false' => false,
                 'true' => true,
-                is_numeric($type) => (int) $type,
                 default => $type
             };
         };
 
-        foreach ($options as $key => $option) {
-            if (is_array($option)) {
-                $options[$key] = $this->replaceRuntimeEnv($option, ($parentKey ? $parentKey.'_' : '').$key);
-                continue;
-            }
-
-            $searchKey = 'SERVER_'.strtoupper(($parentKey ? $parentKey.'_' : '').$key);
-            if (!empty($_ENV[$searchKey])) {
-                $options[$key] = $parseType($_ENV[$searchKey]);
-            }
+        foreach ($opts as $key => $value) {
+            $this->assignArrayByPath($options, strtolower(preg_replace(['/SERVER_/', '/_/'], ['', '.'], $key, 2)), $parseType($value));
         }
 
         return $options;
