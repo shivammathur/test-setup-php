@@ -2,8 +2,8 @@
 
 namespace Cesurapp\SwooleBundle\Client;
 
-use OpenSwoole\Coroutine\Http\Client;
-use OpenSwoole\Coroutine\Http\Client\Exception;
+use Swoole\Coroutine\Http\Client;
+use Swoole\Coroutine\Http\Client\Exception;
 
 /**
  * Swoole Coroutine Based Http Client.

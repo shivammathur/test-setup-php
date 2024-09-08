@@ -2,9 +2,9 @@
 
 namespace Cesurapp\SwooleBundle\Runtime\SwooleServer;
 
-use OpenSwoole\Http\Request;
-use OpenSwoole\Http\Response;
-use OpenSwoole\Http\Server;
+use Swoole\Http\Request;
+use Swoole\Http\Response;
+use Swoole\Http\Server;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\HeaderBag;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
@@ -114,7 +114,7 @@ class HttpServer extends Server
                 4 => 'LOG_WARNING',
                 5 => 'LOG_ERROR',
                 6 => 'LOG_NONE',
-                default => '-'
+                default => '-',
             }.PHP_EOL;
             echo 'Log File     => '.($this->options['http']['settings']['log_file'] ?? 'STDOUT').PHP_EOL;
             echo 'Max Request  => '.($this->options['http']['settings']['max_request'] ?? 0).' Req'.PHP_EOL;

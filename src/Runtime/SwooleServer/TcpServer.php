@@ -2,14 +2,13 @@
 
 namespace Cesurapp\SwooleBundle\Runtime\SwooleServer;
 
-use OpenSwoole\Constant;
-use OpenSwoole\Process;
+use Swoole\Process;
 
 readonly class TcpServer
 {
     public function __construct(HttpServer $server, private array $options)
     {
-        $tcpServer = $server->addlistener('127.0.0.1', 9502, Constant::SOCK_TCP);
+        $tcpServer = $server->addlistener('127.0.0.1', 9502, SWOOLE_SOCK_TCP);
         $tcpServer->set(['worker_num' => 1]);
         $tcpServer->on('receive', [$this, 'onReceive']);
     }
@@ -24,7 +23,7 @@ readonly class TcpServer
             'shutdown' => $this->cmdShutdown($server),
             'taskRetry' => $this->cmdTaskRetry($server, $cmd[1]),
             'getMetrics' => $this->cmdMetrics($server),
-            default => 0
+            default => 0,
         });
     }
 
@@ -33,7 +32,8 @@ readonly class TcpServer
      */
     private function cmdShutdown(HttpServer $server): int
     {
-        Process::kill($server->master_pid);
+        Process::kill($server->manager_pid, 15);
+        Process::kill($server->master_pid, 15);
 
         return 1;
     }

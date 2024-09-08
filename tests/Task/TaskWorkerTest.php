@@ -9,6 +9,7 @@ use Cesurapp\SwooleBundle\Tests\_App\Task\AcmeFailedTask;
 use Cesurapp\SwooleBundle\Tests\_App\Task\AcmeTask;
 use Cesurapp\SwooleBundle\Tests\Kernel;
 use Doctrine\ORM\Tools\SchemaTool;
+use Swoole\Event;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -83,6 +84,7 @@ class TaskWorkerTest extends KernelTestCase
         // Re Run Failed Task with Cron Process
         $worker = self::getContainer()->get(CronWorker::class);
         $worker->run();
+        Event::wait();
 
         $this->assertTrue(str_contains(json_encode($logger->getLogs()), 'Cron Job Process:'));
         $this->assertTrue(str_contains(json_encode($logger->getLogs()), 'Cron Job Finish:'));

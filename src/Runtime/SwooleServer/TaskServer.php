@@ -3,7 +3,7 @@
 namespace Cesurapp\SwooleBundle\Runtime\SwooleServer;
 
 use Cesurapp\SwooleBundle\Task\TaskWorker;
-use OpenSwoole\Server\Task;
+use Swoole\Server\Task;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 class TaskServer
@@ -13,7 +13,7 @@ class TaskServer
     public function __construct(
         private readonly HttpKernelInterface $application,
         private readonly HttpServer $server,
-        private readonly array $options
+        private readonly array $options,
     ) {
         if (!$this->options['worker']['task']) {
             return;
