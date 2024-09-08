@@ -4,7 +4,7 @@ on:
 
 env:
   php-version: '8.2'
-  php-extensions: :swoole, pecl_swoole, :xdebug,
+  php-extensions: :xdebug,
   key: php-cache
 
 jobs:
@@ -40,10 +40,11 @@ jobs:
           php-version: ${{ env.php-version }}
           extensions: ${{ env.php-extensions }}
           ini-values: sys_temp_dir=${{ runner.temp }}
-        env:
-          SWOOLE_CONFIGURE_SUFFIX_OPTS: "--enable-openssl"
-          #SWOOLE_CONFIGURE_OPTS: "--enable-openssl=yes"
-          #SWOOLE_CONFIGURE_PREFIX_OPTS: "--enable-openssl=yes"
+      - name: Install SWOOLE Extension
+        run: |
+          sudo apt-get update
+          pecl install swoole --enable-openssl=yes
+          echo "extension=swoole.so" >> $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||")
       - name: Get Composer Cache Directory
         id: composer-cache
         run: |
