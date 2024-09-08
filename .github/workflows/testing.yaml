@@ -4,8 +4,8 @@ on:
 
 env:
   php-version: '8.3'
-  php-extensions: swoole-5.1.4, :xdebug,
-  key: php-cache
+  php-extensions: swoole-5.1.3, :xdebug,
+  key: php-cache2
 
 jobs:
   phpunit:
@@ -20,7 +20,7 @@ jobs:
 
       # PHP Extension
       - name: Setup Cache PHP Extensions
-        id: extcache
+        id: extcache2
         uses: shivammathur/cache-extensions@v1
         with:
           php-version: ${{ env.php-version }}
@@ -29,9 +29,9 @@ jobs:
       - name: Cache PHP Extensions
         uses: actions/cache@v2
         with:
-          path: ${{ steps.extcache.outputs.dir }}
-          key: ${{ steps.extcache.outputs.key }}
-          restore-keys: ${{ steps.extcache.outputs.key }}
+          path: ${{ steps.extcache2.outputs.dir }}
+          key: ${{ steps.extcache2.outputs.key }}
+          restore-keys: ${{ steps.extcache2.outputs.key }}
 
       # Install PHP
       - name: Install PHP
