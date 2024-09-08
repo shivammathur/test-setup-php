@@ -29,9 +29,9 @@ jobs:
       - name: Cache PHP Extensions
         uses: actions/cache@v2
         with:
-          path: ${{ steps.extcache.outputs.dir }}
-          key: ${{ steps.extcache.outputs.key }}
-          restore-keys: ${{ steps.extcache.outputs.key }}
+          path: ${{ steps.extcache2.outputs.dir }}
+          key: ${{ steps.extcache2.outputs.key }}
+          restore-keys: ${{ steps.extcache2.outputs.key }}
 
       # Install PHP
       - name: Install PHP
