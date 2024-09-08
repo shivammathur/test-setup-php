@@ -28,6 +28,8 @@ class ServerCommandTest extends KernelTestCase
 
     public function test2StartStopSuccess(): void
     {
+        pcntl_signal(SIGTERM, SIG_IGN, false);
+
         self::bootKernel();
         $application = new Application(self::$kernel);
 

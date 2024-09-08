@@ -32,7 +32,8 @@ readonly class TcpServer
      */
     private function cmdShutdown(HttpServer $server): int
     {
-        Process::kill($server->manager_pid, 9);
+        Process::kill($server->manager_pid, 15);
+        Process::kill($server->master_pid, 15);
 
         return 1;
     }

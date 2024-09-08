@@ -20,10 +20,10 @@ class CronServer
             $worker = $kernel->getContainer()->get(CronWorker::class); // @phpstan-ignore-line
 
             while (true) { // @phpstan-ignore-line
-                sleep(2);
+                sleep(5);
                 $worker->run();
                 sleep(55);
             }
-        }, null, null, true));
+        }, false, 2, true));
     }
 }

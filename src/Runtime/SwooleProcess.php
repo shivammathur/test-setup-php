@@ -36,6 +36,7 @@ class SwooleProcess
         $process = proc_open(sprintf('%s %s%s', $phpBinary, $this->rootDir, $this->entrypoint), $descriptorSpec, $pipes);
         if (is_resource($process)) {
             fclose($pipes[0]);
+
             if (!$detach) {
                 proc_close($process);
             }
