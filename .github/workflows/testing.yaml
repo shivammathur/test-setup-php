@@ -43,7 +43,9 @@ jobs:
           ini-values: sys_temp_dir=${{ runner.temp }}
       - name: Install SWOOLE Extension
         run: |
-          pecl config-set php_dir ${{ runner.temp }}
+          export PHP_PEAR_PHP_BIN=$(which php)
+          pecl config-set download_dir ${{ runner.temp }}
+          pecl config-set temp_dir ${{ runner.temp }}
           pecl install swoole --enable-openssl
           echo "extension=swoole.so" >> $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||")
       - name: Get Composer Cache Directory
