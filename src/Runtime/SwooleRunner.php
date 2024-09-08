@@ -6,9 +6,6 @@ use Cesurapp\SwooleBundle\Runtime\SwooleServer\CronServer;
 use Cesurapp\SwooleBundle\Runtime\SwooleServer\HttpServer;
 use Cesurapp\SwooleBundle\Runtime\SwooleServer\TaskServer;
 use Cesurapp\SwooleBundle\Runtime\SwooleServer\TcpServer;
-use OpenSwoole\Constant;
-use OpenSwoole\Server;
-use OpenSwoole\Util;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Runtime\RunnerInterface;
 
@@ -22,13 +19,13 @@ class SwooleRunner implements RunnerInterface
         'http' => [
             'host' => '0.0.0.0',
             'port' => 80,
-            'mode' => Server::POOL_MODE,
-            'sock_type' => Constant::SOCK_TCP,
+            'mode' => SWOOLE_PROCESS,
+            'sock_type' => SWOOLE_SOCK_TCP,
             'settings' => [
                 'worker_num' => 8,
                 'task_worker_num' => 8,
                 'enable_static_handler' => false,
-                'log_level' => Constant::LOG_WARNING,
+                'log_level' => SWOOLE_LOG_WARNING,
                 'max_wait_time' => 60,
                 'task_enable_coroutine' => true,
                 'task_max_request' => 0,
@@ -39,8 +36,8 @@ class SwooleRunner implements RunnerInterface
 
     public function __construct(private readonly HttpKernelInterface $application, array $options)
     {
-        self::$config['http']['settings']['worker_num'] = Util::getCPUNum();
-        self::$config['http']['settings']['task_worker_num'] = ceil(Util::getCPUNum() / 2);
+        self::$config['http']['settings']['worker_num'] = swoole_cpu_num();
+        self::$config['http']['settings']['task_worker_num'] = ceil(swoole_cpu_num() / 2);
 
         self::$config = $this->replaceRuntimeEnv(self::$config);
         if (self::$config['worker']['task']) {

@@ -5,6 +5,7 @@ namespace Cesurapp\SwooleBundle\Tests\Cron;
 use Cesurapp\SwooleBundle\Cron\CronWorker;
 use Cesurapp\SwooleBundle\Tests\_App\Cron\AcmeCron;
 use Cesurapp\SwooleBundle\Tests\Kernel;
+use Swoole\Event;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -25,6 +26,7 @@ class CronWorkerTest extends KernelTestCase
 
         try {
             $worker->run();
+            Event::wait();
         } catch (\Exception $exception) {
             $this->throwException($exception);
         }
@@ -45,6 +47,7 @@ class CronWorkerTest extends KernelTestCase
         $logger = self::getContainer()->get('logger');
         $logger->enableDebug();
         $worker->run();
+        Event::wait();
 
         $this->assertTrue(str_contains(json_encode($logger->getLogs()), 'Cron Job Process:'));
         $this->assertTrue(str_contains(json_encode($logger->getLogs()), 'Cron Job Finish:'));

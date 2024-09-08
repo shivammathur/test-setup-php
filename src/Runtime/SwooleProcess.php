@@ -2,8 +2,7 @@
 
 namespace Cesurapp\SwooleBundle\Runtime;
 
-use OpenSwoole\Client;
-use OpenSwoole\Constant;
+use Swoole\Client;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\PhpExecutableFinder;
@@ -29,7 +28,18 @@ class SwooleProcess
         }
 
         // Start
-        exec(sprintf('%s %s%s %s', $phpBinary, $this->rootDir, $this->entrypoint, $detach ? '> /dev/null &' : ''));
+        $descriptorSpec = [
+            0 => ['pipe', 'r'],
+            1 => ['file', 'php://stdout', 'w'],
+            2 => ['file', 'php://stderr', 'w'],
+        ];
+        $process = proc_open(sprintf('%s %s%s', $phpBinary, $this->rootDir, $this->entrypoint), $descriptorSpec, $pipes);
+        if (is_resource($process)) {
+            fclose($pipes[0]);
+            if (!$detach) {
+                proc_close($process);
+            }
+        }
 
         $this->output->success('Swoole HTTP Server is Started');
 
@@ -97,7 +107,7 @@ class SwooleProcess
      */
     public function getServer(?string $tcpHost = null, ?int $tcpPort = null): ?Client
     {
-        $tcpClient = new Client(Constant::SOCK_TCP);
+        $tcpClient = new Client(SWOOLE_SOCK_TCP);
 
         try {
             @$tcpClient->connect($tcpHost ?? '127.0.0.1', $tcpPort ?? 9502, 1);

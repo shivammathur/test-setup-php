@@ -3,7 +3,7 @@
 namespace Cesurapp\SwooleBundle\Runtime\SwooleServer;
 
 use Cesurapp\SwooleBundle\Task\TaskWorker;
-use OpenSwoole\Server\Task;
+use Swoole\Server\Task;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 class TaskServer

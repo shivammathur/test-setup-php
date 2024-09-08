@@ -2,8 +2,7 @@
 
 namespace Cesurapp\SwooleBundle\Command;
 
-use OpenSwoole\Constant;
-use OpenSwoole\Client;
+use Swoole\Client;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -27,7 +26,7 @@ class ServerStatusCommand extends Command
         }
 
         $output = new SymfonyStyle($input, $section ?? $output);
-        $client = new Client(Constant::SOCK_TCP);
+        $client = new Client(SWOOLE_SOCK_TCP);
 
         while (true) {
             try {
@@ -41,19 +40,20 @@ class ServerStatusCommand extends Command
                     }
                     $table = $output->createTable();
 
+                    // /var_dump($data);
+
                     $table->setRows([
-                        ['Version', $data['metrics']['version'], ''],
                         ['Environment', $data['server']['env'], ''],
                         ['Host', $data['server']['http']['host'].':'.$data['server']['http']['port'], ''],
                         ['TCP Host', '127.0.0.1:9502', ''],
                         ['Cron Worker', $data['server']['worker']['cron'] ? 'True' : 'False', ''],
                         ['Task Worker', $data['server']['worker']['task'] ? 'True' : 'False', ''],
-                        [
+                        /*     [
                             'Process ID',
                             'Master > '.$data['metrics']['master_pid'],
                             'Manager > '.$data['metrics']['manager_pid'],
-                        ],
-                        [
+                        ],*/
+                        /* [
                             'Worker',
                             'Idle > '.$data['metrics']['workers_idle'],
                             'Total > '.$data['metrics']['workers_total'],
@@ -69,13 +69,13 @@ class ServerStatusCommand extends Command
                             'Max > '.number_format($data['metrics']['max_conn']),
                             'Total > '.number_format($data['metrics']['requests_total']),
                             'Active > '.$data['metrics']['connections_active'],
-                        ],
-                        [
+                        ],*/
+                        /*  [
                             'Memory',
                             ((int) $data['metrics']['worker_memory_usage'] / (1024 * 1024)).'mb',
                             'VM Object > '.$data['metrics']['worker_vm_object_num'],
                             'VM Resource > '.$data['metrics']['worker_vm_resource_num'],
-                        ],
+                        ],*/
                     ]);
                     $table->render();
 
@@ -88,7 +88,7 @@ class ServerStatusCommand extends Command
                     $section->clear();
                 }
                 $output->error("Could not connect to server!\n".$exception->getMessage());
-                $client = new Client(Constant::SOCK_TCP);
+                $client = new Client(SWOOLE_SOCK_TCP);
             }
 
             usleep(1500000);

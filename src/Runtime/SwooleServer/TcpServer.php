@@ -2,14 +2,13 @@
 
 namespace Cesurapp\SwooleBundle\Runtime\SwooleServer;
 
-use OpenSwoole\Constant;
-use OpenSwoole\Process;
+use Swoole\Process;
 
 readonly class TcpServer
 {
     public function __construct(HttpServer $server, private array $options)
     {
-        $tcpServer = $server->addlistener('127.0.0.1', 9502, Constant::SOCK_TCP);
+        $tcpServer = $server->addlistener('127.0.0.1', 9502, SWOOLE_SOCK_TCP);
         $tcpServer->set(['worker_num' => 1]);
         $tcpServer->on('receive', [$this, 'onReceive']);
     }

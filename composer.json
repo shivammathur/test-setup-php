@@ -13,7 +13,7 @@
     ],
     "require": {
         "php": ">=8.2",
-        "ext-openswoole": "*",
+        "ext-swoole": "*",
         "symfony/dependency-injection": "^7.0",
         "symfony/http-kernel": "^7.0",
         "symfony/framework-bundle": "^7.0",
@@ -22,14 +22,12 @@
         "dragonmantank/cron-expression": "^3.3",
         "symfony/lock": "^7.0",
         "symfony/dotenv": "^7.0",
-        "openswoole/core": "^22.1",
         "symfony/http-client-contracts": "^3.5"
     },
     "require-dev": {
         "symfony/test-pack": "^1.1",
         "symfony/process": "^7.0",
         "symfony/uid": "^7.0",
-        "openswoole/ide-helper": "~22.0.1",
         "php-cs-fixer/shim": "^3.40",
         "phpstan/phpstan": "^1.10",
         "doctrine/orm": "^2.17",

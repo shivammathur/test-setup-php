@@ -3,7 +3,7 @@
 namespace Cesurapp\SwooleBundle\Runtime\SwooleServer;
 
 use Cesurapp\SwooleBundle\Cron\CronWorker;
-use OpenSwoole\Timer;
+use Swoole\Process;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 class CronServer
@@ -14,13 +14,16 @@ class CronServer
             return;
         }
 
-        $kernel = clone $application;
-        $kernel->boot(); // @phpstan-ignore-line
-        $worker = $kernel->getContainer()->get(CronWorker::class); // @phpstan-ignore-line
+        $server->addProcess(new Process(function () use ($application) {
+            $kernel = clone $application;
+            $kernel->boot(); // @phpstan-ignore-line
+            $worker = $kernel->getContainer()->get(CronWorker::class); // @phpstan-ignore-line
 
-        // Work
-        $server->on('start', function () use ($worker) {
-            Timer::tick(1000 * 60, static fn () => $worker->run());
-        });
+            while (true) { // @phpstan-ignore-line
+                sleep(2);
+                $worker->run();
+                sleep(55);
+            }
+        }, null, null, true));
     }
 }

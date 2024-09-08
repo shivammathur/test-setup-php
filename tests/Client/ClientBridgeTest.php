@@ -5,7 +5,7 @@ namespace Cesurapp\SwooleBundle\Tests\Client;
 use Cesurapp\SwooleBundle\Client\SwooleBridge;
 use Cesurapp\SwooleBundle\Client\SwooleClient;
 use Cesurapp\SwooleBundle\Tests\Kernel;
-use OpenSwoole\Coroutine\Scheduler;
+use Swoole\Coroutine\Scheduler;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 class ClientBridgeTest extends KernelTestCase
