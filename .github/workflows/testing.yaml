@@ -5,7 +5,7 @@ on:
 env:
   php-version: '8.3'
   php-extensions: swoole, :xdebug,
-  key: php-cache2
+  key: php-cache
 
 jobs:
   phpunit:
@@ -20,7 +20,7 @@ jobs:
 
       # PHP Extension
       - name: Setup Cache PHP Extensions
-        id: extcache2
+        id: extcache
         uses: shivammathur/cache-extensions@v1
         with:
           php-version: ${{ env.php-version }}
@@ -29,9 +29,9 @@ jobs:
       - name: Cache PHP Extensions
         uses: actions/cache@v2
         with:
-          path: ${{ steps.extcache2.outputs.dir }}
-          key: ${{ steps.extcache2.outputs.key }}
-          restore-keys: ${{ steps.extcache2.outputs.key }}
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
 
       # Install PHP
       - name: Install PHP
@@ -42,9 +42,9 @@ jobs:
           tools: pecl
           ini-values: sys_temp_dir=${{ runner.temp }}
         env:
-          SWOOLE_CONFIGURE_OPTS: "--enable-openssl"
-          SWOOLE_CONFIGURE_SUFFIX_OPTS: "--enable-openssl"
-          SWOOLE_CONFIGURE_PREFIX_OPTS: "--enable-openssl"
+          SWOOLE_CONFIGURE_OPTS: 'enable-openssl="yes"'
+          SWOOLE_CONFIGURE_SUFFIX_OPTS: 'enable-openssl="yes"'
+          SWOOLE_CONFIGURE_PREFIX_OPTS: 'enable-openssl="yes"'
       - name: Get Composer Cache Directory
         id: composer-cache
         run: |
