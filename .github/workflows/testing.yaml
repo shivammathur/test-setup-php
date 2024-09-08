@@ -4,7 +4,7 @@ on:
 
 env:
   php-version: '8.2'
-  php-extensions: :swoole, swoole, :xdebug,
+  php-extensions: :swoole, pecl_swoole, :xdebug,
   key: php-cache
 
 jobs:
