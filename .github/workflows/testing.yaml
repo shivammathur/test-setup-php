@@ -4,7 +4,7 @@ on:
 
 env:
   php-version: '8.3'
-  php-extensions: swoole, :xdebug,
+  php-extensions: swoole-5.1.4, :xdebug,
   key: php-cache
 
 jobs:
@@ -42,9 +42,9 @@ jobs:
           tools: pecl
           ini-values: sys_temp_dir=${{ runner.temp }}
         env:
-          SWOOLE_CONFIGURE_OPTS: 'enable-openssl="yes"'
-          SWOOLE_CONFIGURE_SUFFIX_OPTS: 'enable-openssl="yes"'
-          SWOOLE_CONFIGURE_PREFIX_OPTS: 'enable-openssl="yes"'
+          SWOOLE_CONFIGURE_OPTS: "--enable-openssl=yes"
+          SWOOLE_CONFIGURE_SUFFIX_OPTS: "--enable-openssl=yes"
+          SWOOLE_CONFIGURE_PREFIX_OPTS: "--enable-openssl=yes"
       - name: Get Composer Cache Directory
         id: composer-cache
         run: |
