@@ -39,6 +39,7 @@ jobs:
         with:
           php-version: ${{ env.php-version }}
           extensions: ${{ env.php-extensions }}
+          tools: pecl
           ini-values: sys_temp_dir=${{ runner.temp }}
         env:
           SWOOLE_CONFIGURE_OPTS: "--enable-openssl"
