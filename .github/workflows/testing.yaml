@@ -44,7 +44,7 @@ jobs:
       - name: Install SWOOLE Extension
         run: |
           pecl config-set php_dir ${{ runner.temp }}
-          pecl install swoole '--enable-openssl=yes'
+          pecl install swoole
           echo "extension=swoole.so" >> $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||")
       - name: Get Composer Cache Directory
         id: composer-cache
