@@ -43,6 +43,7 @@ jobs:
           ini-values: sys_temp_dir=${{ runner.temp }}
       - name: Install SWOOLE Extension
         run: |
+          pecl config-set php_dir ${{ runner.temp }}
           pecl config-set temp_dir ${{ runner.temp }}
           pecl config-set download_dir ${{ runner.temp }}
           pecl install swoole '--enable-openssl'
