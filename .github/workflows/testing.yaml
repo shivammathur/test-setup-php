@@ -3,8 +3,8 @@ on:
   push:
 
 env:
-  php-version: '8.2'
-  php-extensions: swoole, :xdebug
+  php-version: '8.3'
+  php-extensions: swoole, :xdebug, openssl
   key: php-cache
 
 jobs:
