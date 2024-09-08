@@ -41,7 +41,7 @@ jobs:
           extensions: ${{ env.php-extensions }}
           ini-values: sys_temp_dir=${{ runner.temp }}
         env:
-          SWOOLE_CONFIGURE_SUFFIX_OPTS: "--enable-openssl"
+          SWOOLE_CONFIGURE_PREFIX_OPTS: "--enable-openssl"
       - name: Get Composer Cache Directory
         id: composer-cache
         run: |
