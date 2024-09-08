@@ -114,7 +114,7 @@ class HttpServer extends Server
                 4 => 'LOG_WARNING',
                 5 => 'LOG_ERROR',
                 6 => 'LOG_NONE',
-                default => '-'
+                default => '-',
             }.PHP_EOL;
             echo 'Log File     => '.($this->options['http']['settings']['log_file'] ?? 'STDOUT').PHP_EOL;
             echo 'Max Request  => '.($this->options['http']['settings']['max_request'] ?? 0).' Req'.PHP_EOL;

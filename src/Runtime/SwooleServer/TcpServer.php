@@ -23,7 +23,7 @@ readonly class TcpServer
             'shutdown' => $this->cmdShutdown($server),
             'taskRetry' => $this->cmdTaskRetry($server, $cmd[1]),
             'getMetrics' => $this->cmdMetrics($server),
-            default => 0
+            default => 0,
         });
     }
 

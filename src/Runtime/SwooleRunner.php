@@ -86,7 +86,7 @@ class SwooleRunner implements RunnerInterface
             return match ($type) {
                 'false' => false,
                 'true' => true,
-                default => $type
+                default => $type,
             };
         };
 

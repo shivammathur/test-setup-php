@@ -13,7 +13,7 @@ class TaskServer
     public function __construct(
         private readonly HttpKernelInterface $application,
         private readonly HttpServer $server,
-        private readonly array $options
+        private readonly array $options,
     ) {
         if (!$this->options['worker']['task']) {
             return;
