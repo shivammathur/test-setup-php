@@ -2,8 +2,6 @@
 
 namespace Cesurapp\SwooleBundle\Runtime\SwooleServer;
 
-use Swoole\Process;
-
 readonly class TcpServer
 {
     public function __construct(HttpServer $server, private array $options)
@@ -32,8 +30,7 @@ readonly class TcpServer
      */
     private function cmdShutdown(HttpServer $server): int
     {
-        Process::kill($server->manager_pid, 15);
-        Process::kill($server->master_pid, 15);
+        $server->shutdown();
 
         return 1;
     }

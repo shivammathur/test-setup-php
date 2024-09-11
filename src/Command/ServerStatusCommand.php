@@ -40,42 +40,29 @@ class ServerStatusCommand extends Command
                     }
                     $table = $output->createTable();
 
-                    // /var_dump($data);
-
                     $table->setRows([
-                        ['Environment', $data['server']['env'], ''],
-                        ['Host', $data['server']['http']['host'].':'.$data['server']['http']['port'], ''],
-                        ['TCP Host', '127.0.0.1:9502', ''],
-                        ['Cron Worker', $data['server']['worker']['cron'] ? 'True' : 'False', ''],
-                        ['Task Worker', $data['server']['worker']['task'] ? 'True' : 'False', ''],
-                        /*     [
-                            'Process ID',
-                            'Master > '.$data['metrics']['master_pid'],
-                            'Manager > '.$data['metrics']['manager_pid'],
-                        ],*/
-                        /* [
-                            'Worker',
-                            'Idle > '.$data['metrics']['workers_idle'],
-                            'Total > '.$data['metrics']['workers_total'],
-                        ],
-                        [
-                            'Task Worker',
-                            'Idle > '.$data['metrics']['task_workers_idle'],
-                            'Total > '.$data['metrics']['task_workers_total'],
-                            'Queue > '.$data['metrics']['tasking_num'],
-                        ],
-                        [
-                            'Connection',
-                            'Max > '.number_format($data['metrics']['max_conn']),
-                            'Total > '.number_format($data['metrics']['requests_total']),
-                            'Active > '.$data['metrics']['connections_active'],
-                        ],*/
-                        /*  [
-                            'Memory',
-                            ((int) $data['metrics']['worker_memory_usage'] / (1024 * 1024)).'mb',
-                            'VM Object > '.$data['metrics']['worker_vm_object_num'],
-                            'VM Resource > '.$data['metrics']['worker_vm_resource_num'],
-                        ],*/
+                        ['Environment', $data['server']['env']],
+                        ['Host', $data['server']['http']['host'].':'.$data['server']['http']['port']],
+                        ['TCP Host', '127.0.0.1:9502'],
+                        ['Cron Worker', $data['server']['worker']['cron'] ? 'True' : 'False'],
+                        ['Task Worker', $data['server']['worker']['task'] ? 'True' : 'False'],
+
+                        // HTTP
+                        ['--HTTP--'],
+                        ['Worker Count', $data['metrics']['worker_num']],
+                        ['Worker Idle', $data['metrics']['idle_worker_num']],
+                        ['Active Connection', $data['metrics']['connection_num']],
+
+                        // Task
+                        ['--Task--'],
+                        ['Task Worker Count', $data['metrics']['task_worker_num']],
+                        ['Task Worker Idle', $data['metrics']['task_idle_worker_num']],
+                        ['Task Processing Count', $data['metrics']['tasking_num']],
+
+                        // Coroutine
+                        ['--Coroutine--'],
+                        ['Coroutine Count', $data['metrics']['coroutine_num']],
+                        ['Coroutine Peek Count', $data['metrics']['coroutine_peek_num']],
                     ]);
                     $table->render();
 

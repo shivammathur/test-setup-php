@@ -26,10 +26,8 @@ class ServerCommandTest extends KernelTestCase
         $this->assertStringContainsString('Swoole HTTP server not found!', $cmdTester->getDisplay());
     }
 
-    /*public function test2StartStopSuccess(): void
+    public function test2StartStopSuccess(): void
     {
-        pcntl_signal(SIGTERM, SIG_IGN, false);
-
         self::bootKernel();
         $application = new Application(self::$kernel);
 
@@ -45,5 +43,5 @@ class ServerCommandTest extends KernelTestCase
         $cmdTester->execute([]);
         $this->assertStringContainsString('Swoole HTTP Server is Stopped', $cmdTester->getDisplay());
         sleep(1);
-    }*/
+    }
 }

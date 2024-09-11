@@ -29,7 +29,8 @@ class SwooleRunner implements RunnerInterface
                 'max_wait_time' => 60,
                 'task_enable_coroutine' => true,
                 'task_max_request' => 0,
-                'package_max_length' => 10 * 1024 * 1024,
+                'package_max_length' => 15 * 1024 * 1024,
+                'single_thread' => true,
             ],
         ],
     ];
