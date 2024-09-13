@@ -12,7 +12,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
       - run: php -v    
-      - shell: php {}
+      - shell: php {0}
         run: |
           <?php
           $output = array(
