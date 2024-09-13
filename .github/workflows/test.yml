@@ -7,7 +7,6 @@ jobs:
       matrix:
         os: [macos-14]
         php: [8.3, 8.4]
-    name: Test on ${{ matrix.os}}
     steps:
       - uses: shivammathur/setup-php@v2
         with:
