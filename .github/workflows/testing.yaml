@@ -37,10 +37,10 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.php-version }}
-          extensions: :xdebug, swoole/swoole-src
+          extensions: :xdebug, swoole/swoole-src@5.1.4
           ini-values: sys_temp_dir=${{ runner.temp }}
-        env:
-          SWOOLE_CONFIGURE_SUFFIX_OPTS: --enable-openssl
+        #env:
+          #SWOOLE_CONFIGURE_SUFFIX_OPTS: --enable-openssl
 #      - name: Install Swoole Ext With SSL
 #        run: |
 #          sudo pecl install -D 'enable-openssl="yes"' swoole || true
