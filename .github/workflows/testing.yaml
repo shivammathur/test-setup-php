@@ -37,7 +37,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.php-version }}
-          extensions: :xdebug, swoole@5.1.4
+          extensions: :xdebug, swoole
           ini-values: sys_temp_dir=${{ runner.temp }}
         env:
           SWOOLE_CONFIGURE_OPTS: --enable-openssl
