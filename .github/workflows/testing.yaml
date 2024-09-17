@@ -41,6 +41,8 @@ jobs:
           ini-values: sys_temp_dir=${{ runner.temp }}
         env:
           SWOOLE_CONFIGURE_OPTS: --enable-openssl
+      - name: PHP modüllerini listele
+        run: php --ri swoole
 #      - name: Install Swoole Ext With SSL
 #        run: |
 #          sudo pecl install -D 'enable-openssl="yes"' swoole || true
