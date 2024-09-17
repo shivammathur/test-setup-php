@@ -41,7 +41,8 @@ jobs:
           ini-values: sys_temp_dir=${{ runner.temp }}
       - name: Install Swoole Ext With SSL
         run: |
-          { sudo pecl install -D 'enable-openssl="yes"' swoole && echo "extension=swoole.so" >> $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||"); } || true
+          sudo pecl install -D 'enable-openssl="yes"' swoole || true
+          echo "extension=swoole.so" >> $(php --ini | grep "Loaded Configuration" | sed -e "s|.*:\s*||")
       - name: Get Composer Cache Directory
         id: composer-cache
         run: |
