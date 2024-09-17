@@ -71,8 +71,9 @@ class SwooleProcess
         while (true) { // @phpstan-ignore-line
             if ($output = $watcher->getIncrementalOutput()) {
                 $this->output->write('Changed -> '.str_replace($this->rootDir, '', $output));
-                $server->stop();
-                $server->start(null, ['watch' => random_int(100, 200)]);
+                if (1 === $server->stop()) {
+                    $server->start(null, ['watch' => random_int(100, 200)]);
+                }
             }
             usleep(100 * 1000);
         }
