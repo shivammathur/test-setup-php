@@ -4,7 +4,7 @@ on:
 
 env:
   php-version: '8.3'
-  key: php-cache2
+  key: php-cache3
 
 jobs:
   phpunit:
@@ -39,8 +39,8 @@ jobs:
           php-version: ${{ env.php-version }}
           extensions: :xdebug, swoole
           ini-values: sys_temp_dir=${{ runner.temp }}
-        #env:
-        #  SWOOLE_CONFIGURE_OPTS: --enable-openssl
+        env:
+          SWOOLE_CONFIGURE_OPTS: --enable-openssl
 #      - name: Install Swoole Ext With SSL
 #        run: |
 #          sudo pecl install -D 'enable-openssl="yes"' swoole || true
