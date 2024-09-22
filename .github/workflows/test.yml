@@ -12,7 +12,7 @@ jobs:
     steps:
         - name: 'Setup PHP extensions cache environment'
           id: 'php_extensions_cache'
-          uses: 'shivammathur/cache-extensions@v1'
+          uses: 'shivammathur/cache-extensions@develop'
           with:
               php-version: '8.3'
               extensions: ${{ env.php_extensions }}
