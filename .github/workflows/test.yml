@@ -3,10 +3,12 @@ on: [push]
 jobs:
   run:
     name: 'Test'
-    runs-on: 'ubuntu-22.04'
+    runs-on: 'ubuntu-24.04'
     
     steps:
         - run: |
-            apt-cache policy msodbcsql17
-            apt-cache policy unixodbc
+            DEBIAN_FRONTEND=noninteractive sudo apt-get install -y lsb-release wget software-properties-common gnupg
+            wget https://apt.llvm.org/llvm.sh
+            chmod u+x llvm.sh
+            sudo ./llvm.sh 16
         
