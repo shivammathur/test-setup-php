@@ -4,33 +4,9 @@ jobs:
   run:
     name: 'Test'
     runs-on: 'ubuntu-24.04'
-    container:
-        image: 'shivammathur/node:2404'
-    env:
-        php_extensions: 'apcu, gd, intl, bcmath, curl, openssl, mbstring, memcached'
-        php_cache_key: 'cache-php83-4-apcu-gd-intl-bcmath-curl-openssl-mbstring-memcached'
+    
     steps:
-        - name: 'Setup PHP extensions cache environment'
-          id: 'php_extensions_cache'
-          uses: 'shivammathur/cache-extensions@develop'
-          with:
-              php-version: '8.3'
-              extensions: ${{ env.php_extensions }}
-              key: ${{ env.php_cache_key }}
-        - name: 'Cache PHP extensions'
-          uses: 'actions/cache@v4'
-          with:
-              path: ${{ steps.php_extensions_cache.outputs.dir }}
-              key: ${{ steps.php_extensions_cache.outputs.key }}
-              restore-keys: ${{ steps.php_extensions_cache.outputs.key }}
-        - name: 'Setup PHP'
-          uses: 'shivammathur/setup-php@v2'
-          env:
-            update: true
-          with:
-              php-version: '8.3'
-              coverage: 'none'
-              extensions: ${{ env.php_extensions }}
-              tools: 'composer'
-        - run: php -v && php -m      
+        - run: |
+            apt-cache policy msodbcsql17
+            apt-cache policy unixodbc
         
