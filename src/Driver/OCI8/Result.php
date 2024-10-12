@@ -14,6 +14,7 @@ use function oci_cancel;
 use function oci_error;
 use function oci_fetch_all;
 use function oci_fetch_array;
+use function oci_field_name;
 use function oci_num_fields;
 use function oci_num_rows;
 
