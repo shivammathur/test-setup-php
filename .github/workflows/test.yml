@@ -16,6 +16,8 @@ jobs:
             ini-values: error_reporting=-1, memory_limit=512M, post_max_size=256M, xdebug.mode="coverage,debug,develop"
             coverage: xdebug
             ini-file: production
+          env:
+            fail-fast: true
       
         - name: Check PHP Version
           run: |
