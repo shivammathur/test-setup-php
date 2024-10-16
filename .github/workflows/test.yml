@@ -6,8 +6,20 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-12, macos-13, macos-14, macos-15]
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        php: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
     steps:        
-        - run: php -v || true
+        - uses: shivammathur/setup-php@v2
+          with:
+            php-version: ${{ matrix.php }}
+            extensions: intl, mysqli, oauth
+            ini-values: error_reporting=-1, memory_limit=512M, post_max_size=256M, xdebug.mode="coverage,debug,develop"
+            coverage: xdebug
+            ini-file: production
+      
+        - name: Check PHP Version
+          run: |
+            php -v
+            php -r 'echo "curl version: " . curl_version()["version"] . "\n";'
         
         
