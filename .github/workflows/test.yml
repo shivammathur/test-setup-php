@@ -10,7 +10,7 @@ jobs:
         os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
         php: [8.4]
     steps:        
-        - uses: shivammathur/setup-php@verbose
+        - uses: shivammathur/setup-php@v2
           with:
             php-version: ${{ matrix.php }}
             extensions: intl, mysqli, oauth
