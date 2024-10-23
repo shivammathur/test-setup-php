@@ -306,6 +306,10 @@ class Table extends AbstractAsset
         unset($this->_columns[$oldName]);
         $this->_addColumn($column);
 
+        $this->renameColumnInIndexes($oldName, $newName);
+        $this->renameColumnInForeignKeyConstraints($oldName, $newName);
+        $this->renameColumnInUniqueConstraints($oldName, $newName);
+
         // If a column is renamed multiple times, we only want to know the original and last new name
         if (isset($this->renamedColumns[$oldName])) {
             $toRemove = $oldName;
@@ -859,6 +863,90 @@ class Table extends AbstractAsset
         }
 
         return new Index($indexName, $columns, $isUnique, $isPrimary, $flags, $options);
+    }
+
+    private function renameColumnInIndexes(string $oldName, string $newName): void
+    {
+        foreach ($this->_indexes as $key => $index) {
+            $modified = false;
+            $columns  = [];
+            foreach ($index->getColumns() as $columnName) {
+                if ($columnName === $oldName) {
+                    $columns[] = $newName;
+                    $modified  = true;
+                } else {
+                    $columns[] = $columnName;
+                }
+            }
+
+            if (! $modified) {
+                continue;
+            }
+
+            $this->_indexes[$key] = new Index(
+                $index->getName(),
+                $columns,
+                $index->isUnique(),
+                $index->isPrimary(),
+                $index->getFlags(),
+                $index->getOptions(),
+            );
+        }
+    }
+
+    private function renameColumnInForeignKeyConstraints(string $oldName, string $newName): void
+    {
+        foreach ($this->_fkConstraints as $key => $constraint) {
+            $modified     = false;
+            $localColumns = [];
+            foreach ($constraint->getLocalColumns() as $columnName) {
+                if ($columnName === $oldName) {
+                    $localColumns[] = $newName;
+                    $modified       = true;
+                } else {
+                    $localColumns[] = $columnName;
+                }
+            }
+
+            if (! $modified) {
+                continue;
+            }
+
+            $this->_fkConstraints[$key] = new ForeignKeyConstraint(
+                $localColumns,
+                $constraint->getForeignTableName(),
+                $constraint->getForeignColumns(),
+                $constraint->getName(),
+                $constraint->getOptions(),
+            );
+        }
+    }
+
+    private function renameColumnInUniqueConstraints(string $oldName, string $newName): void
+    {
+        foreach ($this->uniqueConstraints as $key => $constraint) {
+            $modified = false;
+            $columns  = [];
+            foreach ($constraint->getColumns() as $columnName) {
+                if ($columnName === $oldName) {
+                    $columns[] = $newName;
+                    $modified  = true;
+                } else {
+                    $columns[] = $columnName;
+                }
+            }
+
+            if (! $modified) {
+                continue;
+            }
+
+            $this->uniqueConstraints[$key] = new UniqueConstraint(
+                $constraint->getName(),
+                $columns,
+                $constraint->getFlags(),
+                $constraint->getOptions(),
+            );
+        }
     }
 
     /** @return list<string> */

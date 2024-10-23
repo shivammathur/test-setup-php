@@ -104,6 +104,36 @@ class TableTest extends TestCase
         self::assertCount(0, $table->getRenamedColumns());
     }
 
+    public function testRenameColumnInIndex(): void
+    {
+        $table = new Table('t');
+        $table->addColumn('c1', Types::INTEGER);
+        $table->addColumn('c2', Types::INTEGER);
+        $table->addIndex(['c1', 'c2'], 'idx_c1_c2');
+        $table->renameColumn('c1', 'c1a');
+        self::assertSame(['c1a', 'c2'], $table->getIndex('idx_c1_c2')->getColumns());
+    }
+
+    public function testRenameColumnInForeignKeyConstraint(): void
+    {
+        $table = new Table('t1');
+        $table->addColumn('c1', Types::INTEGER);
+        $table->addColumn('c2', Types::INTEGER);
+        $table->addForeignKeyConstraint('t2', ['c1', 'c2'], ['c1', 'c2'], [], 'fk_c1_c2');
+        $table->renameColumn('c2', 'c2a');
+        self::assertSame(['c1', 'c2a'], $table->getForeignKey('fk_c1_c2')->getLocalColumns());
+    }
+
+    public function testRenameColumnInUniqueConstraint(): void
+    {
+        $table = new Table('t');
+        $table->addColumn('c1', Types::INTEGER);
+        $table->addColumn('c2', Types::INTEGER);
+        $table->addUniqueConstraint(['c1', 'c2'], 'uq_c1_c2');
+        $table->renameColumn('c1', 'c1a');
+        self::assertSame(['c1a', 'c2'], $table->getUniqueConstraint('uq_c1_c2')->getColumns());
+    }
+
     public function testColumnsCaseInsensitive(): void
     {
         $table  = new Table('foo');
