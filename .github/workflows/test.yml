@@ -1,28 +1,22 @@
 name: Runner workflow
 on: [push]
 jobs:
-  run:
-    name: 'Test'
+  build-deploy:
+    name: Build-Deploy
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
+        php-versions: ['8.1']
         os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
-        php: [8.4]
-    steps:        
-        - uses: shivammathur/setup-php@v2
-          with:
-            php-version: ${{ matrix.php }}
-            extensions: intl, mysqli, oauth
-            ini-values: error_reporting=-1, memory_limit=512M, post_max_size=256M, xdebug.mode="coverage,debug,develop"
-            coverage: xdebug
-            ini-file: production
-          env:
-            fail-fast: true
-      
-        - name: Check PHP Version
-          run: |
-            php -v
-            php -r 'echo "curl version: " . curl_version()["version"] . "\n";'
-        
+    env:
+      extensions: mbstring, dom, zip, phalcon5, psr, mysql
+    steps:
+      - name: Setup PHP, with composer and extensions
+        uses: shivammathur/setup-php@verbose
+        env:
+          update: true
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.extensions }}
+      - run: php -v && php -m  
         
