@@ -12,9 +12,10 @@ jobs:
       extensions: mbstring, dom, zip, phalcon5, psr, mysql
     steps:
       - name: Setup PHP, with composer and extensions
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@v2
         env:
           update: true
+          fail-fast: true
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: ${{ env.extensions }}
