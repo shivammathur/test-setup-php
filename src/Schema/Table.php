@@ -276,10 +276,7 @@ class Table extends AbstractAsset
         return $this->renamedColumns;
     }
 
-    /**
-     * @throws LogicException
-     * @throws SchemaException
-     */
+    /** @throws LogicException */
     final public function renameColumn(string $oldName, string $newName): Column
     {
         $oldName = $this->normalizeIdentifier($oldName);
