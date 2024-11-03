@@ -8,16 +8,16 @@ jobs:
       matrix:
         php-versions: ['8.1']
         os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
-    env:
-      extensions: mbstring, dom, zip, phalcon5, psr, mysql
     steps:
-      - name: Setup PHP, with composer and extensions
-        uses: shivammathur/setup-php@v2
-        env:
-          update: true
-          fail-fast: true
+      - uses: shivammathur/setup-php@verbose
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
+          php-version: 8.2
+          ini-file: development
+          coverage: none
+          tools: none
+        env:
+          phpts: ts
+          debug: true
+          runner: self-hosted
       - run: php -v && php -m  
         
