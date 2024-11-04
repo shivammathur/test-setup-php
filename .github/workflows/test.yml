@@ -7,16 +7,11 @@ jobs:
     container: ubuntu:${{ matrix.os }}
     strategy:
       matrix:
-        php-versions: ['8.1']
+        php-versions: ['8.2']
         os: [20.04, 22.04, 24.04]
     steps:
       - uses: shivammathur/setup-php@verbose
         with:
           php-version: 8.2
-          ini-file: development
-          coverage: none
-          tools: none
-        env:
-          debug: true
       - run: php -v && php -m  
         
