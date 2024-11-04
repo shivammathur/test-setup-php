@@ -1,21 +1,11 @@
 name: Runner workflow
 on: [push]
 jobs:
-  build-deploy:
-    name: Build-Deploy
-    runs-on: ubuntu-${{ matrix.os }}
-    container: ubuntu:${{ matrix.os }}
+  runner:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        php-versions: ['8.2']
-        #os: [20.04, 22.04, 24.04]
-        os: [22.04]
+        os: [macos-13, macos-14, macos-15]
     steps:
-      - uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.2
-        env:
-          phpts: ts
-          debug: true
-      - run: php -v && php -m
+      - run: php -v || true
         
