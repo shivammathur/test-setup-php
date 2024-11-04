@@ -15,5 +15,7 @@ jobs:
           php-version: 8.2
         env:
           debug: true
+      - uses: mxschmitt/action-tmate@v3.19
+        if: ${{ always() }}
       - run: php -v && php -m
         
