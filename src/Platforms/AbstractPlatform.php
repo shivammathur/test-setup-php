@@ -2294,6 +2294,18 @@ abstract class AbstractPlatform
     }
 
     /**
+     * Changes the case of unquoted identifier in the same way as the given platform would change it if it was specified
+     * in an SQL statement.
+     *
+     * Even though the default behavior is not the most common across supported platforms, it is part of the SQL92
+     * standard.
+     */
+    public function normalizeUnquotedIdentifier(string $identifier): string
+    {
+        return strtoupper($identifier);
+    }
+
+    /**
      * Creates the schema manager that can be used to inspect and change the underlying
      * database schema according to the dialect of the platform.
      */
