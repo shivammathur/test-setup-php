@@ -122,4 +122,5 @@ test_script:
 
 after_test:
   - appveyor DownloadFile https://codecov.io/bash -FileName codecov.sh
-  - bash codecov.sh -f clover.xml
+  - SET upload_name=appveyor-%db%-%db_version%-%driver%-php-%php%
+  - bash codecov.sh -f clover.xml -n %upload_name%
