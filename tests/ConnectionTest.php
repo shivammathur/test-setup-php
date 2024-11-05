@@ -183,11 +183,22 @@ class ConnectionTest extends TestCase
 
     public function testTransactionIsActiveAfterTransactionalInNoAutoCommitMode(): void
     {
+        $platformMock = $this->createMock(AbstractPlatform::class);
+        $platformMock
+            ->method('supportsSavepoints')
+            ->willReturn(true);
+
         $driverMock = $this->createMock(Driver::class);
         $driverMock
             ->method('connect')
             ->willReturn(
                 self::createStub(DriverConnection::class),
+            );
+
+        $driverMock
+            ->method('getDatabasePlatform')
+            ->willReturn(
+                $platformMock,
             );
 
         $conn = new Connection([], $driverMock);
