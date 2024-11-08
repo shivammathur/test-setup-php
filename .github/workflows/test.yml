@@ -15,5 +15,7 @@ jobs:
           ini-values: apc.enabled=1,apc.shm_size=32M,apc.enable_cli=1, date.timezone='UTC', session.save_path="${{ runner.temp }}"
           php-version: 8.4
           tools: pecl
-      - run: php -v && php -m    
+        env:
+          MCRYPT_LIBS: libmcrypt-dev
+      - run: php -v && php -m
         
