@@ -5,7 +5,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-13, macos-14, macos-15]
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
     steps:
-      - run: php -v || true
+      - name: Install PHP.
+        uses: shivammathur/setup-php@verbose
+        with:
+          coverage: ${{ matrix.coverage }}
+          extensions: apcu, curl, dom, imagick, intl, mbstring, mcrypt, memcached
+          ini-values: apc.enabled=1,apc.shm_size=32M,apc.enable_cli=1, date.timezone='UTC', session.save_path="${{ runner.temp }}"
+          php-version: 8.4
+          tools: pecl
+      - run: php -v && php -m    
         
