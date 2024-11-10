@@ -196,7 +196,7 @@ class SQLitePlatform extends AbstractPlatform
      */
     public function getBigIntTypeDeclarationSQL(array $column): string
     {
-        //  SQLite autoincrement is implicit for INTEGER PKs, but not for BIGINT fields.
+        // SQLite autoincrement is implicit for INTEGER PKs, but not for BIGINT fields.
         if (! empty($column['autoincrement'])) {
             return $this->getIntegerTypeDeclarationSQL($column);
         }
@@ -246,7 +246,7 @@ class SQLitePlatform extends AbstractPlatform
      */
     protected function _getCommonIntegerTypeDeclarationSQL(array $column): string
     {
-        // sqlite autoincrement is only possible for the primary key
+        // SQLite autoincrement is only possible for the primary key
         if (! empty($column['autoincrement'])) {
             return ' PRIMARY KEY AUTOINCREMENT';
         }

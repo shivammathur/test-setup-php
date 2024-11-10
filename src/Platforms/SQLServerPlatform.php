@@ -987,7 +987,11 @@ class SQLServerPlatform extends AbstractPlatform
      */
     protected function _getCommonIntegerTypeDeclarationSQL(array $column): string
     {
-        return ! empty($column['autoincrement']) ? ' IDENTITY' : '';
+        if (! empty($column['autoincrement'])) {
+            return ' IDENTITY';
+        }
+
+        return '';
     }
 
     /**

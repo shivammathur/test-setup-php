@@ -681,12 +681,13 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
      */
     protected function _getCommonIntegerTypeDeclarationSQL(array $column): string
     {
-        $autoinc = '';
+        $sql = $this->getUnsignedDeclaration($column);
+
         if (! empty($column['autoincrement'])) {
-            $autoinc = ' AUTO_INCREMENT';
+            $sql .= ' AUTO_INCREMENT';
         }
 
-        return $this->getUnsignedDeclaration($column) . $autoinc;
+        return $sql;
     }
 
     /** @internal The method should be only used from within the {@see AbstractPlatform} class hierarchy. */

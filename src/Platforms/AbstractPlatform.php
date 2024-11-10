@@ -1448,15 +1448,11 @@ abstract class AbstractPlatform
     public function getDecimalTypeDeclarationSQL(array $column): string
     {
         if (! isset($column['precision'])) {
-            $e = ColumnPrecisionRequired::new();
-        } elseif (! isset($column['scale'])) {
-            $e = ColumnScaleRequired::new();
-        } else {
-            $e = null;
+            throw InvalidColumnDeclaration::fromInvalidColumnType($column['name'], ColumnPrecisionRequired::new());
         }
 
-        if ($e !== null) {
-            throw InvalidColumnDeclaration::fromInvalidColumnType($column['name'], $e);
+        if (! isset($column['scale'])) {
+            throw InvalidColumnDeclaration::fromInvalidColumnType($column['name'], ColumnScaleRequired::new());
         }
 
         return 'NUMERIC(' . $column['precision'] . ', ' . $column['scale'] . ')';
