@@ -524,7 +524,7 @@ abstract class AbstractPlatformTestCase extends TestCase
         ]);
 
         self::assertStringContainsString(
-            $this->platform->quoteIdentifier('select'),
+            $this->platform->quoteSingleIdentifier('select'),
             implode(';', $this->platform->getAlterTableSQL($tableDiff)),
         );
     }

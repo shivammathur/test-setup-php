@@ -36,6 +36,7 @@ use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\DBAL\Types;
 use Doctrine\DBAL\Types\Exception\TypeNotFound;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\Deprecations\Deprecation;
 
 use function addcslashes;
 use function array_map;
@@ -1190,12 +1191,21 @@ abstract class AbstractPlatform
      * you SHOULD use them. In general, they end up causing way more
      * problems than they solve.
      *
+     * @deprecated Use {@link quoteSingleIdentifier()} individually for each part of a qualified name instead.
+     *
      * @param string $identifier The identifier name to be quoted.
      *
      * @return string The quoted identifier string.
      */
     public function quoteIdentifier(string $identifier): string
     {
+        Deprecation::trigger(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6590',
+            'Use quoteSingleIdentifier() individually for each part of a qualified name instead.',
+            __METHOD__,
+        );
+
         if (str_contains($identifier, '.')) {
             $parts = array_map($this->quoteSingleIdentifier(...), explode('.', $identifier));
 

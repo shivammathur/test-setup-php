@@ -131,7 +131,7 @@ abstract class AbstractAsset
         $keywords = $platform->getReservedKeywordsList();
         $parts    = explode('.', $this->getName());
         foreach ($parts as $k => $v) {
-            $parts[$k] = $this->_quoted || $keywords->isKeyword($v) ? $platform->quoteIdentifier($v) : $v;
+            $parts[$k] = $this->_quoted || $keywords->isKeyword($v) ? $platform->quoteSingleIdentifier($v) : $v;
         }
 
         return implode('.', $parts);

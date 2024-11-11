@@ -74,6 +74,12 @@
                 -->
                 <referencedMethod name="Doctrine\DBAL\Schema\Table::removeForeignKey" />
                 <referencedMethod name="Doctrine\DBAL\Schema\Table::removeUniqueConstraint" />
+
+                <!--
+                    https://github.com/doctrine/dbal/pull/6590
+                    TODO: remove in 5.0.0
+                -->
+                <referencedMethod name="Doctrine\DBAL\Platforms\AbstractPlatform::quoteIdentifier" />
             </errorLevel>
         </DeprecatedMethod>
         <DocblockTypeContradiction>
