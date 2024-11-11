@@ -8,6 +8,28 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Deprecated relying on the current implementation of the database object name parser
+
+The current object name parser implicitly quotes identifiers in the following cases:
+
+1. If the object name is a reserved keyword (e.g., `select`).
+2. If an unquoted identifier is preceded by a quoted identifier (e.g., `"inventory".product`).
+
+As a result, the original case of such identifiers is preserved on platforms that respect the SQL-92 standard (i.e.,
+identifiers are not upper-cased on Oracle and IBM DB2, and not lower-cased on PostgreSQL). This behavior is deprecated.
+
+If preserving the original case of an identifier is required, please explicitly quote it (e.g., `select` → `"select"`).
+
+Additionally, the current parser exhibits the following defects:
+
+1. It ignores a missing closing quote in a quoted identifier (e.g., `"inventory`).
+2. It allows names with more than two identifiers (e.g., `warehouse.inventory.product`) but only uses the first two,
+   ignoring the remaining ones.
+3. If a quoted identifier contains a dot, it incorrectly treats the part before the dot as a qualifier, despite the
+   identifier being quoted.
+
+Relying on the above behaviors is deprecated.
+
 ## Deprecated `AbstractPlatform::quoteIdentifier()` and `Connection::quoteIdentifier()`
 
 The `AbstractPlatform::quoteIdentifier()` and `Connection::quoteIdentifier()` methods have been deprecated.
