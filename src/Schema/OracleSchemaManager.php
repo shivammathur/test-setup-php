@@ -305,7 +305,7 @@ class OracleSchemaManager extends AbstractSchemaManager
     private function getQuotedIdentifierName(string $identifier): string
     {
         if (preg_match('/[a-z]/', $identifier) === 1) {
-            return $this->platform->quoteIdentifier($identifier);
+            return $this->platform->quoteSingleIdentifier($identifier);
         }
 
         return $identifier;

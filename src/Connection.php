@@ -544,13 +544,32 @@ class Connection implements ServerVersionProvider
      * you SHOULD use them. In general, they end up causing way more
      * problems than they solve.
      *
+     * @deprecated Use {@link quoteSingleIdentifier()} individually for each part of a qualified name instead.
+     *
      * @param string $identifier The identifier to be quoted.
      *
      * @return string The quoted identifier.
      */
     public function quoteIdentifier(string $identifier): string
     {
+        Deprecation::trigger(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6590',
+            'Use quoteSingleIdentifier() individually for each part of a qualified name instead.',
+            __METHOD__,
+        );
+
         return $this->getDatabasePlatform()->quoteIdentifier($identifier);
+    }
+
+    /**
+     * Quotes a string so that it can be safely used as an identifier in SQL.
+     *
+     * @throws Exception
+     */
+    public function quoteSingleIdentifier(string $identifier): string
+    {
+        return $this->getDatabasePlatform()->quoteSingleIdentifier($identifier);
     }
 
     /**

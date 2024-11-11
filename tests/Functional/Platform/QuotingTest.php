@@ -43,7 +43,7 @@ class QuotingTest extends FunctionalTestCase
         }
 
         $query = $platform->getDummySelectSQL(
-            'NULL AS ' . $platform->quoteIdentifier($identifier),
+            'NULL AS ' . $platform->quoteSingleIdentifier($identifier),
         );
 
         $row = $this->connection->fetchAssociative($query);

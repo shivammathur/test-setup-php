@@ -276,7 +276,7 @@ class TestUtil
                         $value = $platform->quoteStringLiteral($value);
                     }
 
-                    return $value . ' ' . $platform->quoteIdentifier($column);
+                    return $value . ' ' . $platform->quoteSingleIdentifier($column);
                 }, $columnNames, $row)),
             );
         }, $rows));

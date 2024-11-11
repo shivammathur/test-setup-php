@@ -525,7 +525,7 @@ class SQLServerPlatform extends AbstractPlatform
             );
         }
 
-        return 'DROP CONSTRAINT ' . $this->quoteIdentifier(
+        return 'DROP CONSTRAINT ' . $this->quoteSingleIdentifier(
             $column->getPlatformOption(self::OPTION_DEFAULT_CONSTRAINT_NAME),
         );
     }
