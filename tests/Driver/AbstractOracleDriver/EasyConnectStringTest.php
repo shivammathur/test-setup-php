@@ -57,6 +57,18 @@ class EasyConnectStringTest extends TestCase
                 '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=localhost)(PORT=41521))'
                     . '(CONNECT_DATA=(SID=XE)(INSTANCE_NAME=SALES)(SERVER=POOLED)))',
             ],
+            'tcps-params' => [
+                [
+                    'host' => 'localhost',
+                    'port' => 41521,
+                    'dbname' => 'XE',
+                    'instancename' => 'SALES',
+                    'pooled' => true,
+                    'driverOptions' => ['protocol' => 'TCPS'],
+                ],
+                '(DESCRIPTION=(ADDRESS=(PROTOCOL=TCPS)(HOST=localhost)(PORT=41521))'
+                . '(CONNECT_DATA=(SID=XE)(INSTANCE_NAME=SALES)(SERVER=POOLED)))',
+            ],
         ];
     }
 }
