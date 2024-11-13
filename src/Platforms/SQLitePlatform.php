@@ -973,4 +973,9 @@ class SQLitePlatform extends AbstractPlatform
     {
         return $subQuery;
     }
+
+    public function normalizeUnquotedIdentifier(string $identifier): string
+    {
+        return $identifier;
+    }
 }

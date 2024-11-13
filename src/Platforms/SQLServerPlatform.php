@@ -1241,4 +1241,9 @@ class SQLServerPlatform extends AbstractPlatform
     {
         return new SQLServerSchemaManager($connection, $this);
     }
+
+    public function normalizeUnquotedIdentifier(string $identifier): string
+    {
+        return $identifier;
+    }
 }
