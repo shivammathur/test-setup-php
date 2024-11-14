@@ -458,9 +458,11 @@ class PostgreSQLPlatformTest extends AbstractPlatformTestCase
         self::assertEquals($expectedSql, $sql);
     }
 
-    public function testDroppingPrimaryKey(): void
+    /** @param list<string> $expectedSql */
+    #[DataProvider('dropPrimaryKeyProvider')]
+    public function testDroppingPrimaryKey(string $tableName, array $expectedSql): void
     {
-        $oldTable = new Table('mytable');
+        $oldTable = new Table($tableName);
         $oldTable->addColumn('id', 'integer');
         $oldTable->setPrimaryKey(['id']);
 
@@ -472,9 +474,16 @@ class PostgreSQLPlatformTest extends AbstractPlatformTestCase
 
         $sql = $this->platform->getAlterTableSQL($diff);
 
-        $expectedSql = ['ALTER TABLE mytable DROP CONSTRAINT mytable_pkey'];
-
         self::assertEquals($expectedSql, $sql);
+    }
+
+    /** @return iterable<array{string,list<string>}> */
+    public static function dropPrimaryKeyProvider(): iterable
+    {
+        return [
+            ['test', ['ALTER TABLE test DROP CONSTRAINT test_pkey']],
+            ['"test"', ['ALTER TABLE "test" DROP CONSTRAINT "test_pkey"']],
+        ];
     }
 
     #[DataProvider('dataCreateSequenceWithCache')]
