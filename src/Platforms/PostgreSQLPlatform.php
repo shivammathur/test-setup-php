@@ -29,7 +29,9 @@ use function is_numeric;
 use function is_string;
 use function sprintf;
 use function str_contains;
+use function str_ends_with;
 use function strtolower;
+use function substr;
 use function trim;
 
 /**
@@ -363,7 +365,11 @@ class PostgreSQLPlatform extends AbstractPlatform
     public function getDropIndexSQL(string $name, string $table): string
     {
         if ($name === '"primary"') {
-            $constraintName = $table . '_pkey';
+            if (str_ends_with($table, '"')) {
+                $constraintName = substr($table, 0, -1) . '_pkey"';
+            } else {
+                $constraintName = $table . '_pkey';
+            }
 
             return $this->getDropConstraintSQL($constraintName, $table);
         }
