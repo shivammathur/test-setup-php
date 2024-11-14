@@ -44,6 +44,8 @@ init:
 
 ## Install PHP and composer, and run the appropriate composer command
 install:
+    - sc config wuauserv start=auto
+    - net start wuauserv
     - ps: |
         # Check if installation is cached
         if (!(Test-Path c:\tools\php)) {
