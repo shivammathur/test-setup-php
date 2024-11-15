@@ -44,12 +44,14 @@ init:
 
 ## Install PHP and composer, and run the appropriate composer command
 install:
+    - sc config wuauserv start=auto
+    - net start wuauserv
     - ps: |
         # Check if installation is cached
         if (!(Test-Path c:\tools\php)) {
-          appveyor-retry choco install --params '""/InstallDir:C:\tools\php""' --ignore-checksums -y php --version 7.4.27
+          appveyor-retry choco install --no-progress --params '""/InstallDir:C:\tools\php""' --ignore-checksums -y php --version 7.4.27
           # install sqlite
-          appveyor-retry choco install -y sqlite
+          appveyor-retry choco install --no-progress -y sqlite
           Get-ChildItem -Path c:\tools\php
           cd c:\tools\php
 
