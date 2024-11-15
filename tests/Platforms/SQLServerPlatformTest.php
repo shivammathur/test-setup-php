@@ -849,8 +849,8 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
     protected function getQuotedAlterTableRenameIndexSQL(): array
     {
         return [
-            "EXEC sp_rename N'[table].[create]', N'[select]', N'INDEX'",
-            "EXEC sp_rename N'[table].[foo]', N'[bar]', N'INDEX'",
+            "EXEC sp_rename N'[table].[create]', N'select', N'INDEX'",
+            "EXEC sp_rename N'[table].[foo]', N'bar', N'INDEX'",
         ];
     }
 
@@ -868,8 +868,8 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
     protected function getQuotedAlterTableRenameIndexInSchemaSQL(): array
     {
         return [
-            "EXEC sp_rename N'[schema].[table].[create]', N'[select]', N'INDEX'",
-            "EXEC sp_rename N'[schema].[table].[foo]', N'[bar]', N'INDEX'",
+            "EXEC sp_rename N'[schema].[table].[create]', N'select', N'INDEX'",
+            "EXEC sp_rename N'[schema].[table].[foo]', N'bar', N'INDEX'",
         ];
     }
 

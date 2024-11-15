@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Tests\Functional\Platform;
 
+use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
@@ -93,5 +94,32 @@ class RenameColumnTest extends FunctionalTestCase
         yield ['c1', 'c1_x'];
         yield ['C1', 'c1_x'];
         yield ['importantColumn', 'veryImportantColumn'];
+    }
+
+    /** @throws Exception */
+    public function testRenameColumToQuoted(): void
+    {
+        $table = new Table('test_rename');
+        $table->addColumn('c1', Types::INTEGER);
+
+        $this->dropAndCreateTable($table);
+
+        $table->dropColumn('c1')
+            ->addColumn('"c2"', Types::INTEGER);
+
+        $schemaManager = $this->connection->createSchemaManager();
+        $comparator    = $schemaManager->createComparator();
+
+        $diff = $comparator->compareTables($schemaManager->introspectTable('test_rename'), $table);
+        self::assertFalse($diff->isEmpty());
+
+        $schemaManager->alterTable($diff);
+
+        $platform = $this->connection->getDatabasePlatform();
+
+        self::assertEquals(1, $this->connection->insert(
+            'test_rename',
+            [$platform->quoteSingleIdentifier('c2') => 1],
+        ));
     }
 }

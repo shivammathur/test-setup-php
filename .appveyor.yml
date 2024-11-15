@@ -40,15 +40,15 @@ init:
 
 ## Install PHP and composer, and run the appropriate composer command
 install:
-    # Upgrade to 0.10.16-beta to benefit from a bugfix for
-    # https://github.com/chocolatey/choco/issues/1843
-    - ps: choco upgrade chocolatey --pre
+    - sc config wuauserv start=auto
+    - net start wuauserv
     - ps: |
         # Check if installation is cached
         if (!(Test-Path c:\tools\php)) {
-          appveyor-retry choco install --params '""/InstallDir:C:\tools\php""' --ignore-checksums -y php --version ((choco search php --exact --all-versions -r | select-string -pattern $env:php | sort { [version]($_ -split '\|' | select -last 1) } -Descending | Select-Object -first 1) -replace '[php|]','')
+          choco upgrade chocolatey
+          appveyor-retry choco install --no-progress --params '""/InstallDir:C:\tools\php""' --ignore-checksums -y php --version ((choco search php --exact --all-versions -r | select-string -pattern $env:php | sort { [version]($_ -split '\|' | select -last 1) } -Descending | Select-Object -first 1) -replace '[php|]','')
           # install sqlite
-          appveyor-retry choco install -y sqlite
+          appveyor-retry choco install --no-progress -y sqlite
           Get-ChildItem -Path c:\tools\php
           cd c:\tools\php
 
@@ -122,4 +122,5 @@ test_script:
 
 after_test:
   - appveyor DownloadFile https://codecov.io/bash -FileName codecov.sh
-  - bash codecov.sh -f clover.xml
+  - SET upload_name=appveyor-%db%-%db_version%-%driver%-php-%php%
+  - bash codecov.sh -f clover.xml -n %upload_name%

@@ -13,6 +13,7 @@ use Doctrine\DBAL\Types\TextType;
 use Doctrine\DBAL\Types\Type;
 
 use function array_change_key_case;
+use function array_map;
 use function array_merge;
 use function assert;
 use function count;
@@ -361,9 +362,8 @@ class SQLiteSchemaManager extends AbstractSchemaManager
 
     private function parseColumnCollationFromSQL(string $column, string $sql): ?string
     {
-        $pattern = '{(?:\W' . preg_quote($column) . '\W|\W'
-            . preg_quote($this->platform->quoteSingleIdentifier($column))
-            . '\W)[^,(]+(?:\([^()]+\)[^,]*)?(?:(?:DEFAULT|CHECK)\s*(?:\(.*?\))?[^,]*)*COLLATE\s+["\']?([^\s,"\')]+)}is';
+        $pattern = '{' . $this->buildIdentifierPattern($column)
+            . '[^,(]+(?:\([^()]+\)[^,]*)?(?:(?:DEFAULT|CHECK)\s*(?:\(.*?\))?[^,]*)*COLLATE\s+["\']?([^\s,"\')]+)}is';
 
         if (preg_match($pattern, $sql, $match) !== 1) {
             return null;
@@ -375,9 +375,7 @@ class SQLiteSchemaManager extends AbstractSchemaManager
     private function parseTableCommentFromSQL(string $table, string $sql): ?string
     {
         $pattern = '/\s* # Allow whitespace characters at start of line
-CREATE\sTABLE # Match "CREATE TABLE"
-(?:\W"' . preg_quote($this->platform->quoteSingleIdentifier($table), '/') . '"\W|\W' . preg_quote($table, '/')
-            . '\W) # Match table name (quoted and unquoted)
+CREATE\sTABLE' . $this->buildIdentifierPattern($table) . '
 ( # Start capture
    (?:\s*--[^\n]*\n?)+ # Capture anything that starts with whitespaces followed by -- until the end of the line(s)
 )/ix';
@@ -393,8 +391,8 @@ CREATE\sTABLE # Match "CREATE TABLE"
 
     private function parseColumnCommentFromSQL(string $column, string $sql): string
     {
-        $pattern = '{[\s(,](?:\W' . preg_quote($this->platform->quoteSingleIdentifier($column))
-            . '\W|\W' . preg_quote($column) . '\W)(?:\([^)]*?\)|[^,(])*?,?((?:(?!\n))(?:\s*--[^\n]*\n?)+)}i';
+        $pattern = '{[\s(,]' . $this->buildIdentifierPattern($column)
+            . '(?:\([^)]*?\)|[^,(])*?,?((?:(?!\n))(?:\s*--[^\n]*\n?)+)}i';
 
         if (preg_match($pattern, $sql, $match) !== 1) {
             return '';
@@ -404,6 +402,22 @@ CREATE\sTABLE # Match "CREATE TABLE"
         assert(is_string($comment));
 
         return $comment;
+    }
+
+    /**
+     * Returns a regular expression pattern that matches the given unquoted or quoted identifier.
+     */
+    private function buildIdentifierPattern(string $identifier): string
+    {
+        return '(?:' . implode('|', array_map(
+            static function (string $sql): string {
+                return '\W' . preg_quote($sql, '/') . '\W';
+            },
+            [
+                $identifier,
+                $this->platform->quoteSingleIdentifier($identifier),
+            ],
+        )) . ')';
     }
 
     /** @throws Exception */
