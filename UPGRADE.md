@@ -8,6 +8,18 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Deprecated Reserved Keyword Lists
+
+The use of DBAL as the source for platform-specific reserved keyword lists has been deprecated. The following components
+have been deprecated:
+
+1. The `KeywordList` class and all its subclasses.
+2. The methods `AbstractPlatform::createReservedKeywordsList()` and `::getReservedKeywordsList()`.
+3. The `AbstractPlatform::$_keywords` property.
+
+Please refer to the official documentation provided by the respective database vendor for up-to-date information on
+reserved keywords.
+
 ## Deprecated relying on the current implementation of the database object name parser
 
 The current object name parser implicitly quotes identifiers in the following cases:

@@ -9,6 +9,7 @@ use Doctrine\DBAL\Platforms\Keywords\MariaDBKeywords;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\JsonType;
+use Doctrine\Deprecations\Deprecation;
 
 use function array_diff_key;
 use function array_merge;
@@ -158,8 +159,16 @@ class MariaDBPlatform extends AbstractMySQLPlatform
         return parent::getColumnDeclarationSQL($name, $column);
     }
 
+    /** @deprecated */
     protected function createReservedKeywordsList(): KeywordList
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6607',
+            '%s is deprecated.',
+            __METHOD__,
+        );
+
         return new MariaDBKeywords();
     }
 }
