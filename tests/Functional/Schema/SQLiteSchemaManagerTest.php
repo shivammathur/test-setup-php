@@ -392,4 +392,25 @@ SQL;
             $createTableTrackSql,
         );
     }
+
+    /**
+     * This test duplicates {@see parent::testCommentInTable()} with the only difference that the name of the table
+     * being created is quoted. It is only meant to cover the logic of parsing the SQLite CREATE TABLE statement
+     * when the table name is quoted.
+     *
+     * Running the same test for all platforms, on the one hand, won't produce additional coverage, and on the other,
+     * is not feasible due to the differences in case sensitivity depending on whether the name is quoted.
+     *
+     * Once all identifiers are quoted by default, this test can be removed.
+     */
+    public function testCommentInQuotedTable(): void
+    {
+        $table = new Table('"table_with_comment"');
+        $table->addColumn('id', Types::INTEGER);
+        $table->setComment('This is a comment');
+        $this->dropAndCreateTable($table);
+
+        $table = $this->schemaManager->introspectTable('table_with_comment');
+        self::assertSame('This is a comment', $table->getComment());
+    }
 }
