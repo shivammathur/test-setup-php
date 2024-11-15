@@ -22,6 +22,7 @@ use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\DBAL\Types\Types;
 use InvalidArgumentException;
 
+use function array_map;
 use function array_merge;
 use function array_unique;
 use function array_values;
@@ -494,11 +495,7 @@ class SQLServerPlatform extends AbstractPlatform
 
     public function getRenameTableSQL(string $oldName, string $newName): string
     {
-        return sprintf(
-            'sp_rename %s, %s',
-            $this->quoteStringLiteral($oldName),
-            $this->quoteStringLiteral($newName),
-        );
+        return $this->getRenameSQL($oldName, $newName);
     }
 
     /**
@@ -632,13 +629,7 @@ class SQLServerPlatform extends AbstractPlatform
      */
     protected function getRenameIndexSQL(string $oldIndexName, Index $index, string $tableName): array
     {
-        return [sprintf(
-            "EXEC sp_rename N'%s.%s', N'%s', N'INDEX'",
-            $tableName,
-            $oldIndexName,
-            $index->getName(),
-        ),
-        ];
+        return [$this->getRenameSQL($tableName . '.' . $oldIndexName, $index->getName(), 'INDEX')];
     }
 
     /**
@@ -652,12 +643,18 @@ class SQLServerPlatform extends AbstractPlatform
      */
     protected function getRenameColumnSQL(string $tableName, string $oldColumnName, string $newColumnName): array
     {
-        return [sprintf(
-            "EXEC sp_rename %s, %s, 'COLUMN'",
-            $this->quoteStringLiteral($tableName . '.' . $oldColumnName),
-            $this->quoteStringLiteral($newColumnName),
-        ),
-        ];
+        return [$this->getRenameSQL($tableName . '.' . $oldColumnName, $newColumnName)];
+    }
+
+    /**
+     * Returns the SQL statement that will execute sp_rename with the given arguments.
+     */
+    private function getRenameSQL(string ...$arguments): string
+    {
+        return 'EXEC sp_rename '
+             . implode(', ', array_map(function (string $argument): string {
+                return 'N' . $this->quoteStringLiteral($argument);
+             }, $arguments));
     }
 
     /**
