@@ -9,6 +9,8 @@ namespace Doctrine\DBAL\Schema;
  *
  * Wraps identifier names like column names in indexes / foreign keys
  * in an abstract class for proper quotation capabilities.
+ *
+ * @internal
  */
 class Identifier extends AbstractAsset
 {
