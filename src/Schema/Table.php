@@ -848,6 +848,31 @@ class Table extends AbstractNamedObject
     }
 
     /**
+     * Instantiates a new table editor.
+     */
+    public static function editor(): TableEditor
+    {
+        return new TableEditor();
+    }
+
+    /**
+     * Instantiates a new table editor and initializes it with the table's properties.
+     */
+    public function edit(): TableEditor
+    {
+        return self::editor()
+            ->setName($this->getObjectName()->toString())
+            ->setColumns($this->_columns)
+            ->setIndexes($this->_indexes)
+            ->setUniqueConstraints($this->uniqueConstraints)
+            ->setForeignKeyConstraints($this->_fkConstraints)
+            ->setOptions($this->_options)
+            ->setConfiguration(
+                new TableConfiguration($this->maxIdentifierLength),
+            );
+    }
+
+    /**
      * @param array<string|int, string> $columns
      * @param array<int, string>        $flags
      * @param array<string, mixed>      $options
