@@ -8,6 +8,10 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Marked `Identifier` class as internal
+
+In order to build SQL identifiers, use `AbstractPlatform::quoteSingleIdentifier()`.
+
 ## Deprecated Reserved Keyword Lists
 
 The use of DBAL as the source for platform-specific reserved keyword lists has been deprecated. The following components
