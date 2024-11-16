@@ -20,6 +20,8 @@ have been deprecated:
 Please refer to the official documentation provided by the respective database vendor for up-to-date information on
 reserved keywords.
 
+Additionally, the `MySQL84Platform` class has been deprecated. Use the `MySQLPlatform` class instead.
+
 ## Deprecated relying on the current implementation of the database object name parser
 
 The current object name parser implicitly quotes identifiers in the following cases:

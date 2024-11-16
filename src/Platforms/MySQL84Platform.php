@@ -10,6 +10,8 @@ use Doctrine\Deprecations\Deprecation;
 
 /**
  * Provides the behavior, features and SQL dialect of the MySQL 8.4 database platform.
+ *
+ * @deprecated Please use {@link MySQLPlatform} instead.
  */
 class MySQL84Platform extends MySQL80Platform
 {
