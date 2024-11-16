@@ -57,7 +57,7 @@ class AbstractAssetTest extends TestCase
     {
         $identifier = new Identifier($name);
 
-        $this->expectNoDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/XXXX');
+        $this->expectNoDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6607');
         $identifier->getQuotedName($platform);
     }
 
