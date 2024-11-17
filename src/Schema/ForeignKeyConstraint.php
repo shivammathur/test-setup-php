@@ -53,7 +53,7 @@ class ForeignKeyConstraint extends AbstractAsset
         string $name = '',
         protected array $options = [],
     ) {
-        $this->_setName($name);
+        parent::__construct($name);
 
         $this->_localColumnNames = $this->createIdentifierMap($localColumnNames);
         $this->_foreignTableName = new Identifier($foreignTableName);

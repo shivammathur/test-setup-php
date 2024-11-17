@@ -11,7 +11,7 @@ class View extends AbstractAsset
 {
     public function __construct(string $name, private readonly string $sql)
     {
-        $this->_setName($name);
+        parent::__construct($name);
     }
 
     public function getSql(): string

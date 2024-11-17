@@ -82,7 +82,7 @@ class Table extends AbstractAsset
             throw InvalidTableName::new($name);
         }
 
-        $this->_setName($name);
+        parent::__construct($name);
 
         foreach ($columns as $column) {
             $this->_addColumn($column);
@@ -299,7 +299,8 @@ class Table extends AbstractAsset
         }
 
         $column = $this->getColumn($oldName);
-        $column->_setName($newName);
+
+        $column->_name = $newName;
         unset($this->_columns[$oldName]);
         $this->_addColumn($column);
 
