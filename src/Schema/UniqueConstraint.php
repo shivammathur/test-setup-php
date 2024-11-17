@@ -40,7 +40,7 @@ class UniqueConstraint extends AbstractAsset
         array $flags = [],
         private readonly array $options = [],
     ) {
-        $this->_setName($name);
+        parent::__construct($name);
 
         foreach ($columns as $column) {
             $this->addColumn($column);

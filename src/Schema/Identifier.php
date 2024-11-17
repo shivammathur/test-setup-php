@@ -20,7 +20,7 @@ class Identifier extends AbstractAsset
      */
     public function __construct(string $identifier, bool $quote = false)
     {
-        $this->_setName($identifier);
+        parent::__construct($identifier);
 
         if (! $quote || $this->_quoted) {
             return;

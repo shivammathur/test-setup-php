@@ -76,9 +76,7 @@ class Schema extends AbstractAsset
 
         $name = $schemaConfig->getName();
 
-        if ($name !== null) {
-            $this->_setName($name);
-        }
+        parent::__construct($name ?? '');
 
         foreach ($namespaces as $namespace) {
             $this->createNamespace($namespace);
@@ -290,7 +288,12 @@ class Schema extends AbstractAsset
     public function renameTable(string $oldName, string $newName): self
     {
         $table = $this->getTable($oldName);
-        $table->_setName($newName);
+
+        $identifier = new Identifier($newName);
+
+        $table->_name      = $identifier->_name;
+        $table->_namespace = $identifier->_namespace;
+        $table->_quoted    = $identifier->_quoted;
 
         $this->dropTable($oldName);
         $this->_addTable($table);

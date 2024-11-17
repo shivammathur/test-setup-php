@@ -50,7 +50,8 @@ class Column extends AbstractAsset
      */
     public function __construct(string $name, Type $type, array $options = [])
     {
-        $this->_setName($name);
+        parent::__construct($name);
+
         $this->setType($type);
         $this->setOptions($options);
     }

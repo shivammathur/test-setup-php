@@ -22,7 +22,8 @@ class Sequence extends AbstractAsset
         int $initialValue = 1,
         protected ?int $cache = null,
     ) {
-        $this->_setName($name);
+        parent::__construct($name);
+
         $this->setAllocationSize($allocationSize);
         $this->setInitialValue($initialValue);
     }

@@ -102,6 +102,12 @@
                 -->
                 <referencedMethod name="Doctrine\DBAL\Platforms\AbstractPlatform::createReservedKeywordsList" />
                 <referencedMethod name="Doctrine\DBAL\Platforms\AbstractPlatform::getReservedKeywordsList" />
+
+                <!--
+                    https://github.com/doctrine/dbal/pull/6610
+                    TODO: remove in 5.0.0
+                -->
+                <referencedMethod name="Doctrine\DBAL\Schema\AbstractAsset::_setName" />
             </errorLevel>
         </DeprecatedMethod>
         <DeprecatedProperty>

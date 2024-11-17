@@ -47,13 +47,9 @@ class Index extends AbstractAsset
         array $flags = [],
         private readonly array $options = [],
     ) {
-        $isUnique = $isUnique || $isPrimary;
+        parent::__construct($name ?? '');
 
-        if ($name !== null) {
-            $this->_setName($name);
-        }
-
-        $this->_isUnique  = $isUnique;
+        $this->_isUnique  = $isUnique || $isPrimary;
         $this->_isPrimary = $isPrimary;
 
         foreach ($columns as $column) {

@@ -45,11 +45,36 @@ abstract class AbstractAsset
 
     private bool $validateFuture = false;
 
+    public function __construct(?string $name = null)
+    {
+        if ($name === null) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6610',
+                'Not passing $name to %s is deprecated.',
+                __METHOD__,
+            );
+
+            return;
+        }
+
+        $this->_setName($name);
+    }
+
     /**
      * Sets the name of this asset.
+     *
+     * @deprecated Use the constructor instead.
      */
     protected function _setName(string $name): void
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6610',
+            '%s is deprecated. Use the constructor instead.',
+            __METHOD__,
+        );
+
         $input = $name;
 
         if ($this->isIdentifierQuoted($name)) {
