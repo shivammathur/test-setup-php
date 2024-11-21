@@ -161,6 +161,13 @@ class QueryBuilder
     private array $unionParts = [];
 
     /**
+     * The common table expression parts.
+     *
+     * @var With[]
+     */
+    private array $withParts = [];
+
+    /**
      * The query cache profile used for caching results.
      */
     private ?QueryCacheProfile $resultCacheProfile = null;
@@ -551,6 +558,33 @@ class QueryBuilder
         }
 
         $this->unionParts[] = new Union($part, $type);
+
+        $this->sql = null;
+
+        return $this;
+    }
+
+    /**
+     * Add a Common Table Expression to be used for a select query.
+     *
+     * <code>
+     *     // WITH cte_name AS (SELECT 1 AS column1)
+     *     $qb = $conn->createQueryBuilder()
+     *         ->with('cte_name', 'SELECT 1 AS column1');
+     *
+     *     // WITH cte_name(column1) AS (SELECT 1 AS column1)
+     *     $qb = $conn->createQueryBuilder()
+     *         ->with('cte_name', 'SELECT 1 AS column1', ['column1']);
+     * </code>
+     *
+     * @param string   $name    The name of the CTE
+     * @param string[] $columns The optional columns list to select in the CTE.
+     *
+     * @return $this This QueryBuilder instance.
+     */
+    public function with(string $name, string|QueryBuilder $part, array $columns = []): self
+    {
+        $this->withParts[] = new With($name, $part, $columns);
 
         $this->sql = null;
 
@@ -1266,7 +1300,15 @@ class QueryBuilder
             throw new QueryException('No SELECT expressions given. Please use select() or addSelect().');
         }
 
-        return $this->connection->getDatabasePlatform()
+        $databasePlatform = $this->connection->getDatabasePlatform();
+        $selectParts      = [];
+        if (count($this->withParts) > 0) {
+            $selectParts[] = $databasePlatform
+                ->createWithSQLBuilder()
+                ->buildSQL(...$this->withParts);
+        }
+
+        $selectParts[] = $databasePlatform
             ->createSelectSQLBuilder()
             ->buildSQL(
                 new SelectQuery(
@@ -1281,6 +1323,8 @@ class QueryBuilder
                     $this->forUpdate,
                 ),
             );
+
+        return implode(' ', $selectParts);
     }
 
     /**

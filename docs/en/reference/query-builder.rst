@@ -368,6 +368,26 @@ or QueryBuilder instances to one of the following methods:
         ->orderBy('field', 'DESC')
         ->setMaxResults(100);
 
+WITH-Clause
+~~~~~~~~~~~
+
+To define Common Table Expressions (CTEs) that can be used in select query.
+
+* ``with(string $name, string|QueryBuilder $queryBuilder, array $columns = [])``
+
+.. code-block:: php
+
+    <?php
+
+    $queryBuilder
+        ->with('cte_a', 'SELECT id FROM table_a')
+        ->with('cte_b', 'SELECT id FROM table_b')
+        ->select('id')
+        ->from('cte_b', 'b')
+        ->join('b', 'cte_a', 'a', 'a.id = b.id');
+
+Multiple CTEs can be defined by calling the with method multiple times.
+
 Building Expressions
 --------------------
 

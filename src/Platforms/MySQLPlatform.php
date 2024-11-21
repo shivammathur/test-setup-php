@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Platforms;
 
+use Doctrine\DBAL\Platforms\Exception\NotSupported;
 use Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use Doctrine\DBAL\Platforms\Keywords\MySQLKeywords;
 use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\SQL\Builder\WithSQLBuilder;
 use Doctrine\DBAL\Types\BlobType;
 use Doctrine\DBAL\Types\TextType;
 use Doctrine\Deprecations\Deprecation;
@@ -33,6 +35,11 @@ class MySQLPlatform extends AbstractMySQLPlatform
         }
 
         return parent::getDefaultValueDeclarationSQL($column);
+    }
+
+    public function createWithSQLBuilder(): WithSQLBuilder
+    {
+        throw NotSupported::new(__METHOD__);
     }
 
     /**

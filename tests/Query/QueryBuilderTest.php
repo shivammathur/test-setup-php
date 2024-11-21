@@ -16,6 +16,7 @@ use Doctrine\DBAL\Query\UnionType;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\SQL\Builder\DefaultSelectSQLBuilder;
 use Doctrine\DBAL\SQL\Builder\DefaultUnionSQLBuilder;
+use Doctrine\DBAL\SQL\Builder\WithSQLBuilder;
 use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -48,6 +49,8 @@ class QueryBuilderTest extends TestCase
             ->willReturn(new DefaultSelectSQLBuilder($platform, null, null));
         $platform->method('createUnionSQLBuilder')
             ->willReturn(new DefaultUnionSQLBuilder($platform));
+        $platform->method('createWithSQLBuilder')
+            ->willReturn(new WithSQLBuilder());
 
         $this->conn->method('getDatabasePlatform')
             ->willReturn($platform);
@@ -848,6 +851,34 @@ class QueryBuilderTest extends TestCase
             ->from('users');
 
         self::assertEquals('SELECT * FROM users', (string) $qb);
+    }
+
+    public function testSelectWithCTE(): void
+    {
+        $qbWith = new QueryBuilder($this->conn);
+        $qbWith->select('ta.id', 'ta.name', 'ta.table_b_id')
+            ->from('table_a', 'ta')
+            ->where('ta.name LIKE :name');
+
+        $qbAddWith = new QueryBuilder($this->conn);
+        $qbAddWith->select('ca.id AS virtual_id, ca.name AS virtual_name')
+            ->from('cte_a', 'ca')
+            ->join('ca', 'table_b', 'tb', 'ca.table_b_id = tb.id');
+
+        $qb = new QueryBuilder($this->conn);
+        $qb->with('cte_a', $qbWith)
+            ->with('cte_b', $qbAddWith, ['virtual_id', 'virtual_name'])
+            ->select('cb.*')
+            ->from('cte_b', 'cb');
+
+        self::assertEquals(
+            'WITH cte_a AS (SELECT ta.id, ta.name, ta.table_b_id FROM table_a ta WHERE ta.name LIKE :name)'
+            . ', cte_b(virtual_id, virtual_name) AS '
+            . '(SELECT ca.id AS virtual_id, ca.name AS virtual_name '
+            . 'FROM cte_a ca INNER JOIN table_b tb ON ca.table_b_id = tb.id) '
+            . 'SELECT cb.* FROM cte_b cb',
+            (string) $qb,
+        );
     }
 
     public function testGetParameterType(): void
