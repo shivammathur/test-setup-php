@@ -5,17 +5,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        os: [ubuntu-latest]
     steps:
       - name: Install PHP.
         uses: shivammathur/setup-php@verbose
         with:
-          coverage: ${{ matrix.coverage }}
-          extensions: apcu, curl, dom, imagick, intl, mbstring, mcrypt-1.0.7, memcached
-          ini-values: apc.enabled=1,apc.shm_size=32M,apc.enable_cli=1, date.timezone='UTC', session.save_path="${{ runner.temp }}"
+          extensions: mbstring, gnupg
           php-version: 8.4
-          tools: pecl
-        env:
-          MCRYPT_LIBS: libmcrypt-dev
       - run: php -v && php -m
+      - uses: mxschmitt/action-tmate@v3
+      
         
