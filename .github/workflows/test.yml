@@ -14,6 +14,3 @@ jobs:
           extensions: mbstring, gnupg
           php-version: ${{ matrix.php }}
       - run: php -v && php -m
-      - uses: mxschmitt/action-tmate@v3.19
-      
-        
