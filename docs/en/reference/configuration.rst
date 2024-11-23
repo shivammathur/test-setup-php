@@ -324,6 +324,7 @@ pdo_oci / oci8
 -  ``driverOptions`` (array):
     -  ``exclusive`` (boolean): Once specified for an ``oci8`` connection, forces the driver to always establish
        a new connection instead of reusing an existing one from the connection pool.
+    -  ``protocol`` (string): The protocol used to connect to Oracle (default TCP, Autonomous tends to be TCPS). See `docs.oracle.com/en/enterprise-manager/cloud-control/enterprise-manager-cloud-control/13.4/emsec/secured-communication-tcps-access-databases.html <https://docs.oracle.com/en/enterprise-manager/cloud-control/enterprise-manager-cloud-control/13.4/emsec/secured-communication-tcps-access-databases.html>`_.
 
 pdo_sqlsrv / sqlsrv
 ^^^^^^^^^^^^^^^^^^^
