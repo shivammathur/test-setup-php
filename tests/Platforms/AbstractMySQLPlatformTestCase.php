@@ -696,4 +696,13 @@ abstract class AbstractMySQLPlatformTestCase extends AbstractPlatformTestCase
             new ComparatorConfig(),
         );
     }
+
+    /** @return array<string, array{array<string>, string}> */
+    public static function getEnumDeclarationSQLProvider(): array
+    {
+        return [
+            'single value' => [['foo'], "ENUM('foo')"],
+            'multiple values' => [['foo', 'bar1'], "ENUM('foo', 'bar1')"],
+        ];
+    }
 }

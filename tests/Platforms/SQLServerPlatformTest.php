@@ -1125,4 +1125,13 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
     {
         self::assertEquals('DATETIMEOFFSET(6)', $this->platform->getDateTimeTzTypeDeclarationSQL([]));
     }
+
+    /** @return array<string, array{array<string>, string}> */
+    public static function getEnumDeclarationSQLProvider(): array
+    {
+        return [
+            'single value' => [['foo'], 'NVARCHAR(3)'],
+            'multiple values' => [['foo', 'bar1'], 'NVARCHAR(4)'],
+        ];
+    }
 }
