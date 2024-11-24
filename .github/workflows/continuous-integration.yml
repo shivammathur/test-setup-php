@@ -53,10 +53,6 @@ jobs:
             php-version: "7.4"
             dependencies: "highest"
             extension: "sqlite3"
-          - os: "ubuntu-22.04"
-            php-version: "8.1"
-            dependencies: "highest"
-            extension: "sqlite3"
 
     steps:
       - name: "Checkout"
