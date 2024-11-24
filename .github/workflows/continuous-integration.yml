@@ -38,8 +38,8 @@ jobs:
           - "ubuntu-22.04"
         php-version:
           - "7.4"
-          - "8.3"
           - "8.4"
+          - "8.5"
         dependencies:
           - "highest"
         extension:
@@ -51,10 +51,6 @@ jobs:
             extension: "pdo_sqlite"
           - os: "ubuntu-22.04"
             php-version: "7.4"
-            dependencies: "highest"
-            extension: "sqlite3"
-          - os: "ubuntu-22.04"
-            php-version: "8.1"
             dependencies: "highest"
             extension: "sqlite3"
 
@@ -104,16 +100,14 @@ jobs:
     strategy:
       matrix:
         php-version:
-          - "8.3"
+          - "8.4"
         oracle-version:
           - "21"
           - "23"
         include:
           - php-version: "7.4"
             oracle-version: "23"
-          - php-version: "8.2"
-            oracle-version: "23"
-          - php-version: "8.4"
+          - php-version: "8.5"
             oracle-version: "23"
 
     services:
@@ -165,16 +159,14 @@ jobs:
     strategy:
       matrix:
         php-version:
-          - "8.3"
+          - "8.4"
         oracle-version:
           - "21"
           - "23"
         include:
           - php-version: "7.4"
             oracle-version: "23"
-          - php-version: "8.2"
-            oracle-version: "23"
-          - php-version: "8.4"
+          - php-version: "8.5"
             oracle-version: "23"
 
     services:
@@ -226,7 +218,7 @@ jobs:
     strategy:
       matrix:
         php-version:
-          - "8.3"
+          - "8.4"
         postgres-version:
           - "9.4"
           - "11" # We have code specific to 10.0-12.0
@@ -238,19 +230,13 @@ jobs:
           - php-version: "7.4"
             postgres-version: "17"
             extension: "pgsql"
-          - php-version: "8.2"
-            postgres-version: "17"
-            extension: "pgsql"
-          - php-version: "8.4"
+          - php-version: "8.5"
             postgres-version: "17"
             extension: "pgsql"
           - php-version: "7.4"
             postgres-version: "17"
             extension: "pdo_pgsql"
-          - php-version: "8.2"
-            postgres-version: "17"
-            extension: "pdo_pgsql"
-          - php-version: "8.4"
+          - php-version: "8.5"
             postgres-version: "17"
             extension: "pdo_pgsql"
 
@@ -302,7 +288,7 @@ jobs:
     strategy:
       matrix:
         php-version:
-          - "8.3"
+          - "8.4"
         mariadb-version:
           # keep in sync with https://mariadb.org/about/#maintenance-policy
           - "10.0"  # Oldest version supported by DBAL
@@ -318,19 +304,13 @@ jobs:
           - php-version: "7.4"
             mariadb-version: "11.4"
             extension: "mysqli"
-          - php-version: "8.2"
-            mariadb-version: "11.4"
-            extension: "mysqli"
-          - php-version: "8.4"
+          - php-version: "8.5"
             mariadb-version: "11.4"
             extension: "mysqli"
           - php-version: "7.4"
             mariadb-version: "11.4"
             extension: "pdo_mysql"
-          - php-version: "8.2"
-            mariadb-version: "11.4"
-            extension: "pdo_mysql"
-          - php-version: "8.4"
+          - php-version: "8.5"
             mariadb-version: "11.4"
             extension: "pdo_mysql"
 
@@ -383,7 +363,7 @@ jobs:
     strategy:
       matrix:
         php-version:
-          - "8.3"
+          - "8.4"
         mysql-version:
           - "5.7"
           - "8.0" # We have code specific to ^8.0
@@ -401,19 +381,13 @@ jobs:
           - php-version: "7.4"
             mysql-version: "9.1"
             extension: "mysqli"
-          - php-version: "8.2"
-            mysql-version: "9.1"
-            extension: "mysqli"
-          - php-version: "8.4"
+          - php-version: "8.5"
             mysql-version: "9.1"
             extension: "mysqli"
           - php-version: "7.4"
             mysql-version: "9.1"
             extension: "pdo_mysql"
-          - php-version: "8.2"
-            mysql-version: "9.1"
-            extension: "pdo_mysql"
-          - php-version: "8.4"
+          - php-version: "8.5"
             mysql-version: "9.1"
             extension: "pdo_mysql"
 
@@ -471,9 +445,8 @@ jobs:
       matrix:
         php-version:
           - "7.4"
-          - "8.2"
-          - "8.3"
           - "8.4"
+          - "8.5"
         extension:
           - "sqlsrv"
           - "pdo_sqlsrv"
@@ -539,9 +512,8 @@ jobs:
       matrix:
         php-version:
           - "7.4"
-          - "8.2"
-          - "8.3"
           - "8.4"
+          - "8.5"
 
     services:
       ibm_db2:
