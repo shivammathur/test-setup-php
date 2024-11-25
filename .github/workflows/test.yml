@@ -5,12 +5,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [windows-latest]
         php: [8.4]
     steps:
       - name: Install PHP.
         uses: shivammathur/setup-php@verbose
         with:
-          extensions: mbstring, gnupg
           php-version: ${{ matrix.php }}
       - run: php -v && php -m
