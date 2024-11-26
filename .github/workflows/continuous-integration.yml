@@ -546,7 +546,7 @@ jobs:
       - name: "Install IBM DB2 CLI driver"
         working-directory: /tmp
         run: |
-          wget https://public.dhe.ibm.com/ibmdl/export/pub/software/data/db2/drivers/odbc_cli/linuxx64_odbc_cli.tar.gz
+          wget https://github.com/ibmdb/db2drivers/raw/refs/heads/main/clidriver/v11.5.9/linuxx64_odbc_cli.tar.gz
           tar xf linuxx64_odbc_cli.tar.gz
           rm linuxx64_odbc_cli.tar.gz
 
