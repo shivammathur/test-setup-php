@@ -93,8 +93,9 @@ abstract class AbstractComparatorTestCase extends TestCase
     {
         $schemaConfig = new SchemaConfig();
 
-        $table = new Table('bugdb', ['integercolumn1' => new Column('integercolumn1', Type::getType(Types::INTEGER))]);
-        $table->setSchemaConfig($schemaConfig);
+        $table = new Table('bugdb', [
+            'integercolumn1' => new Column('integercolumn1', Type::getType(Types::INTEGER)),
+        ], [], [], [], [], $schemaConfig->toTableConfiguration());
 
         $schema1 = new Schema([$table], [], $schemaConfig);
         $schema2 = new Schema([], [], $schemaConfig);
@@ -109,8 +110,9 @@ abstract class AbstractComparatorTestCase extends TestCase
     {
         $schemaConfig = new SchemaConfig();
 
-        $table = new Table('bugdb', ['integercolumn1' => new Column('integercolumn1', Type::getType(Types::INTEGER))]);
-        $table->setSchemaConfig($schemaConfig);
+        $table = new Table('bugdb', [
+            'integercolumn1' => new Column('integercolumn1', Type::getType(Types::INTEGER)),
+        ], [], [], [], [], $schemaConfig->toTableConfiguration());
 
         $schema1 = new Schema([], [], $schemaConfig);
         $schema2 = new Schema([$table], [], $schemaConfig);

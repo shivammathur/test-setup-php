@@ -698,8 +698,15 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             self::markTestSkipped('This test is only supported on platforms that have autoincrement');
         }
 
-        $table = new Table('test_autoincrement');
-        $table->setSchemaConfig($this->schemaManager->createSchemaConfig());
+        $table = new Table(
+            'test_autoincrement',
+            [],
+            [],
+            [],
+            [],
+            [],
+            $this->schemaManager->createSchemaConfig()->toTableConfiguration(),
+        );
         $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
         $table->setPrimaryKey(['id']);
 
@@ -716,8 +723,15 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             self::markTestSkipped('This test is only supported on platforms that have autoincrement');
         }
 
-        $table = new Table('test_not_autoincrement');
-        $table->setSchemaConfig($this->schemaManager->createSchemaConfig());
+        $table = new Table(
+            'test_not_autoincrement',
+            [],
+            [],
+            [],
+            [],
+            [],
+            $this->schemaManager->createSchemaConfig()->toTableConfiguration(),
+        );
         $table->addColumn('id', Types::INTEGER);
         $table->addColumn('other_id', Types::INTEGER);
         $table->setPrimaryKey(['id', 'other_id']);
@@ -735,8 +749,15 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $table->addColumn('id', Types::INTEGER);
         $table->setPrimaryKey(['id']);
 
-        $tableFK = new Table('test_fk_rename');
-        $tableFK->setSchemaConfig($this->schemaManager->createSchemaConfig());
+        $tableFK = new Table(
+            'test_fk_rename',
+            [],
+            [],
+            [],
+            [],
+            [],
+            $this->schemaManager->createSchemaConfig()->toTableConfiguration(),
+        );
         $tableFK->addColumn('id', Types::INTEGER);
         $tableFK->addColumn('fk_id', Types::INTEGER);
         $tableFK->setPrimaryKey(['id']);
@@ -749,8 +770,15 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $this->schemaManager->createTable($table);
         $this->schemaManager->createTable($tableFK);
 
-        $tableFKNew = new Table('test_fk_rename');
-        $tableFKNew->setSchemaConfig($this->schemaManager->createSchemaConfig());
+        $tableFKNew = new Table(
+            'test_fk_rename',
+            [],
+            [],
+            [],
+            [],
+            [],
+            $this->schemaManager->createSchemaConfig()->toTableConfiguration(),
+        );
         $tableFKNew->addColumn('id', Types::INTEGER);
         $tableFKNew->addColumn('rename_fk_id', Types::INTEGER);
         $tableFKNew->setPrimaryKey(['id']);
@@ -894,8 +922,15 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
     /** @param mixed[] $options */
     protected function getTestTable(string $name, array $options = []): Table
     {
-        $table = new Table($name, [], [], [], [], $options);
-        $table->setSchemaConfig($this->schemaManager->createSchemaConfig());
+        $table = new Table(
+            $name,
+            [],
+            [],
+            [],
+            [],
+            $options,
+            $this->schemaManager->createSchemaConfig()->toTableConfiguration(),
+        );
         $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
         $table->setPrimaryKey(['id']);
         $table->addColumn('test', Types::STRING, ['length' => 255]);
@@ -906,8 +941,15 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     protected function getTestCompositeTable(string $name): Table
     {
-        $table = new Table($name, [], [], [], [], []);
-        $table->setSchemaConfig($this->schemaManager->createSchemaConfig());
+        $table = new Table(
+            $name,
+            [],
+            [],
+            [],
+            [],
+            [],
+            $this->schemaManager->createSchemaConfig()->toTableConfiguration(),
+        );
         $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
         $table->addColumn('other_id', Types::INTEGER, ['notnull' => true]);
         $table->setPrimaryKey(['id', 'other_id']);

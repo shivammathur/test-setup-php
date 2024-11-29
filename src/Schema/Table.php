@@ -61,7 +61,10 @@ class Table extends AbstractAsset
         'create_options' => [],
     ];
 
+    /** @deprecated Pass a {@link TableConfiguration} instance to the constructor instead. */
     protected ?SchemaConfig $_schemaConfig = null;
+
+    private int $maxIdentifierLength;
 
     /**
      * @param array<Column>               $columns
@@ -77,12 +80,17 @@ class Table extends AbstractAsset
         array $uniqueConstraints = [],
         array $fkConstraints = [],
         array $options = [],
+        ?TableConfiguration $configuration = null,
     ) {
         if ($name === '') {
             throw InvalidTableName::new($name);
         }
 
         parent::__construct($name);
+
+        $configuration ??= (new SchemaConfig())->toTableConfiguration();
+
+        $this->maxIdentifierLength = $configuration->getMaxIdentifierLength();
 
         foreach ($columns as $column) {
             $this->_addColumn($column);
@@ -103,9 +111,19 @@ class Table extends AbstractAsset
         $this->_options = array_merge($this->_options, $options);
     }
 
+    /** @deprecated Pass a {@link TableConfiguration} instance to the constructor instead. */
     public function setSchemaConfig(SchemaConfig $schemaConfig): void
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6635',
+            '%s is deprecated. Pass TableConfiguration to the constructor instead.',
+            __METHOD__,
+        );
+
         $this->_schemaConfig = $schemaConfig;
+
+        $this->maxIdentifierLength = $schemaConfig->getMaxIdentifierLength();
     }
 
     /**
@@ -651,11 +669,17 @@ class Table extends AbstractAsset
         }
     }
 
+    /** @deprecated */
     protected function _getMaxIdentifierLength(): int
     {
-        return $this->_schemaConfig instanceof SchemaConfig
-            ? $this->_schemaConfig->getMaxIdentifierLength()
-            : 63;
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6635',
+            '%s is deprecated.',
+            __METHOD__,
+        );
+
+        return $this->maxIdentifierLength;
     }
 
     protected function _addColumn(Column $column): void

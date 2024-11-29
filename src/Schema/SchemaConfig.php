@@ -58,4 +58,9 @@ class SchemaConfig
     {
         $this->defaultTableOptions = $defaultTableOptions;
     }
+
+    public function toTableConfiguration(): TableConfiguration
+    {
+        return new TableConfiguration($this->maxIdentifierLength);
+    }
 }

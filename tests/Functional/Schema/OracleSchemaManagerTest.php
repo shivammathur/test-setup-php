@@ -206,8 +206,16 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testListTableIndexesPrimaryKeyConstraintNameDiffersFromIndexName(): void
     {
-        $table = new Table('list_table_indexes_pk_id_test');
-        $table->setSchemaConfig($this->schemaManager->createSchemaConfig());
+        $table = new Table(
+            'list_table_indexes_pk_id_test',
+            [],
+            [],
+            [],
+            [],
+            [],
+            $this->schemaManager->createSchemaConfig()->toTableConfiguration(),
+        );
+
         $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
         $table->addUniqueIndex(['id'], 'id_unique_index');
         $this->dropAndCreateTable($table);
