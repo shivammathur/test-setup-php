@@ -83,6 +83,7 @@ class Schema extends AbstractAsset
         }
 
         foreach ($tables as $table) {
+            $table->setSchemaConfig($this->_schemaConfig);
             $this->_addTable($table);
         }
 
@@ -109,7 +110,6 @@ class Schema extends AbstractAsset
         }
 
         $this->_tables[$tableName] = $table;
-        $table->setSchemaConfig($this->_schemaConfig);
     }
 
     protected function _addSequence(Sequence $sequence): void
@@ -270,7 +270,7 @@ class Schema extends AbstractAsset
      */
     public function createTable(string $name): Table
     {
-        $table = new Table($name);
+        $table = new Table($name, [], [], [], [], [], $this->_schemaConfig->toTableConfiguration());
         $this->_addTable($table);
 
         foreach ($this->_schemaConfig->getDefaultTableOptions() as $option => $value) {

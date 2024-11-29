@@ -202,6 +202,9 @@ abstract class AbstractSchemaManager
         $filter = $this->connection->getConfiguration()->getSchemaAssetsFilter();
         $tables = [];
 
+        $configuration = $this->createSchemaConfig()
+            ->toTableConfiguration();
+
         foreach ($tableColumnsByTable as $tableName => $tableColumns) {
             if (! $filter($tableName)) {
                 continue;
@@ -214,6 +217,7 @@ abstract class AbstractSchemaManager
                 [],
                 $this->_getPortableTableForeignKeysList($foreignKeyColumnsByTable[$tableName] ?? []),
                 $tableOptionsByTable[$tableName] ?? [],
+                $configuration,
             );
         }
 
