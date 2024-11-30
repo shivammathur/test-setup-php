@@ -4,12 +4,15 @@ jobs:
   runner:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [windows-latest]
-        php: [8.4]
+        os: ['ubuntu-latest', 'windows-latest']
     steps:
-      - name: Install PHP.
+      - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
-      - run: php -v && php -m
+          php-version: 7.2
+          ini-values: 'error_reporting=-1, display_errors=On'
+          extensions: none, xmlwriter, SimpleXML
+          coverage: none
+      - uses: mxschmitt/action-tmate@v3.19    
