@@ -50,7 +50,7 @@ jobs:
           echo "\`\`\`" >> "$file"
           php -m >> "$file.builtin"
           while IFS= read -r line; do
-            if [[ $line == [* || -z "${line// ]]; then
+            if [[ $line == [* || -z "${line// }" ]]; then
               echo "$line" >> "$file"
             elif grep -q "^$line" "$file.builtin"; then
               echo "$line (builtin)" >> "$file"
