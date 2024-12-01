@@ -50,10 +50,8 @@ jobs:
           echo "\`\`\`" >> "$file"
           php -m >> "$file.builtin"
           while IFS= read -r line; do
-            if [[ $line == [* ]]; then
+            if [[ $line == [* || -z "${line// ]]; then
               echo "$line" >> "$file"
-            elif [[ -z "${line// }" ]]; then
-              continue
             elif grep -q "^$line" "$file.builtin"; then
               echo "$line (builtin)" >> "$file"
             else
@@ -73,10 +71,8 @@ jobs:
           Write-Output "``````" | Out-File -FilePath "$env:file" -Append
           php -m | Out-File -FilePath "$env:file.builtin" -Append
           Get-Content "$env:file.all" | ForEach-Object {
-              if ($_.startsWith('[')) {
+              if ($_.startsWith('[') -or -not $_.trim()) {
                 Write-Output "$_" | Out-File -FilePath "$env:file" -Append
-              } elseif (-not $_.trim()) {
-                continue
               } elseif ($_ -in (Get-Content "$env:file.builtin")) {
                 Write-Output "$_ (builtin)" | Out-File -FilePath "$env:file" -Append
               } else {
