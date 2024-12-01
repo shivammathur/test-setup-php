@@ -33,7 +33,7 @@ jobs:
           version: ${{ matrix.php-versions }}
         if: matrix.operating-system == 'windows-2022'
         run: |
-          php -m | Out-File -FilePath "$env:file" -Append
+          php -m | Out-File -FilePath "$env:file.all" -Append
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
