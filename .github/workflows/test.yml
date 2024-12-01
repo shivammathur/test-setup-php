@@ -1,18 +1,86 @@
-name: Runner workflow
-on: [push]
+name: Docs workflow
+on:
+  push:
+permissions:
+  contents: read
+
 jobs:
-  runner:
-    runs-on: ${{ matrix.os }}
+  create:
+    permissions:
+      contents: none
+    name: Create
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-latest', 'windows-latest']
+        operating-system: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, windows-2022, macos-13]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
     steps:
-      - name: Install PHP
+      - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 7.2
-          ini-values: 'error_reporting=-1, display_errors=On'
-          extensions: none, xmlwriter, SimpleXML
-          coverage: none
-      - uses: mxschmitt/action-tmate@v3.19    
+          php-version: ${{ matrix.php-versions }}
+      - name: Create file with all extensions for Linux and macOS
+        env:
+          file: php${{ matrix.php-versions }}-${{ matrix.operating-system }}.md
+          version: ${{ matrix.php-versions }}
+        if: matrix.operating-system != 'windows-2022'
+        run: |
+          php -m >> "$file.all"
+      - name: Create file with all extensions for Windows
+        env:
+          file: php${{ matrix.php-versions }}-${{ matrix.operating-system }}.md
+          version: ${{ matrix.php-versions }}
+        if: matrix.operating-system == 'windows-2022'
+        run: |
+          php -m | Out-File -FilePath "$env:file" -Append
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: none
+      - name: Create final file for Linux and macOS
+        env:
+          file: php${{ matrix.php-versions }}-${{ matrix.operating-system }}.md
+          version: ${{ matrix.php-versions }}
+        if: matrix.operating-system != 'windows-2022'
+        run: |
+          echo "## PHP $version" >> "$file"
+          printf "\n" >> "$file"
+          echo "\`\`\`" >> "$file"
+          php -m >> "$file.builtin"
+          while IFS= read -r line; do
+            if [[ $line == [* ]]; then
+              echo "$line" >> "$file"
+            elif grep -q "^$line" "$file.builtin"; then
+              echo "$line (builtin)" >> "$file"
+            else
+              echo "$line (shared)" >> "$file
+            fi
+          done < "$file.all"
+          echo "\`\`\`" >> "$file"
+          printf "\n" >> "$file"
+      - name: Create final file for Windows
+        env:
+          file: php${{ matrix.php-versions }}-${{ matrix.operating-system }}.md
+          version: ${{ matrix.php-versions }}
+        if: matrix.operating-system == 'windows-2022'
+        run: |
+          Write-Output "## PHP ${{ matrix.php-versions }}`n" | Out-File -FilePath "$env:file"
+          Write-Output "``````" | Out-File -FilePath "$env:file" -Append
+          php -m | Out-File -FilePath "$env:file.builtin" -Append
+          Get-Content "$env:file.all" | ForEach-Object {
+              if ($_.startsWith('[')) {
+                Write-Output "$_" | Out-File -FilePath "$env:file" -Append
+              } elif ($_ -in (Get-Content "$env:file.builtin")) {
+                Write-Output "$_ (builtin)" | Out-File -FilePath "$env:file" -Append
+              } else {
+                Write-Output "$_ (shared)" | Out-File -FilePath "$env:file" -Append
+              }
+          }
+          Write-Output "```````n" | Out-File -FilePath "$env:file" -Append
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lists-php${{ matrix.php-versions }}-${{ matrix.operating-system }}.md
+          path: php${{ matrix.php-versions }}-${{ matrix.operating-system }}.md
