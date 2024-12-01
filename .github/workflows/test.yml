@@ -52,6 +52,8 @@ jobs:
           while IFS= read -r line; do
             if [[ $line == [* ]]; then
               echo "$line" >> "$file"
+            elif [[ -z "${line// }" ]]; then
+              continue
             elif grep -q "^$line" "$file.builtin"; then
               echo "$line (builtin)" >> "$file"
             else
@@ -60,6 +62,7 @@ jobs:
           done < "$file.all"
           echo "\`\`\`" >> "$file"
           printf "\n" >> "$file"
+          rm "$file.all" "$file.builtin"
       - name: Create final file for Windows
         env:
           file: php${{ matrix.php-versions }}-${{ matrix.operating-system }}.md
@@ -72,13 +75,17 @@ jobs:
           Get-Content "$env:file.all" | ForEach-Object {
               if ($_.startsWith('[')) {
                 Write-Output "$_" | Out-File -FilePath "$env:file" -Append
-              } elif ($_ -in (Get-Content "$env:file.builtin")) {
+              } elseif (-not $_.trim()) {
+                continue
+              } elseif ($_ -in (Get-Content "$env:file.builtin")) {
                 Write-Output "$_ (builtin)" | Out-File -FilePath "$env:file" -Append
               } else {
                 Write-Output "$_ (shared)" | Out-File -FilePath "$env:file" -Append
               }
           }
           Write-Output "```````n" | Out-File -FilePath "$env:file" -Append
+          Remove-Item "$env:file.all" -Force
+          Remove-Item "$env:file.builtin" -Force
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
