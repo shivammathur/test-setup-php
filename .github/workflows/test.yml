@@ -55,7 +55,7 @@ jobs:
             elif grep -q "^$line" "$file.builtin"; then
               echo "$line (builtin)" >> "$file"
             else
-              echo "$line (shared)" >> "$file
+              echo "$line (shared)" >> "$file"
             fi
           done < "$file.all"
           echo "\`\`\`" >> "$file"
