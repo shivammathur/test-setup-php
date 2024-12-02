@@ -9,8 +9,8 @@ use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Schema\AbstractAsset;
-use Doctrine\DBAL\Schema\GenericName;
 use Doctrine\DBAL\Schema\Identifier;
+use Doctrine\DBAL\Schema\Name\GenericName;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -39,9 +39,6 @@ class AbstractAssetTest extends TestCase
             // unquoted name not in normal case qualified by quoted name
             ['"_".id', new OraclePlatform()],
             ['"_".ID', new PostgreSQLPlatform()],
-
-            // name with more than one qualifier
-            ['i.am.overqualified', new MySQLPlatform()],
 
             // parse error
             ['table.', new MySQLPlatform()],
@@ -99,6 +96,15 @@ class AbstractAssetTest extends TestCase
 
         new /** @extends AbstractAsset<GenericName> */
         class extends AbstractAsset {
+        };
+    }
+
+    public function testCreateParserNotImplemented(): void
+    {
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6592');
+
+        new /** @extends AbstractAsset<GenericName> */
+        class ('foo') extends AbstractAsset {
         };
     }
 }

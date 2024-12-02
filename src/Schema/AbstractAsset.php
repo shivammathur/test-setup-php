@@ -5,9 +5,15 @@ declare(strict_types=1);
 namespace Doctrine\DBAL\Schema;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Schema\Exception\NotImplemented;
+use Doctrine\DBAL\Schema\Name\GenericName;
+use Doctrine\DBAL\Schema\Name\Identifier;
+use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\Parser;
-use Doctrine\DBAL\Schema\Name\Parser\Identifier;
+use Doctrine\DBAL\Schema\Name\Parser\GenericNameParser;
+use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\Deprecations\Deprecation;
+use Throwable;
 
 use function array_map;
 use function count;
@@ -28,10 +34,19 @@ use function substr;
  * This encapsulation hack is necessary to keep a consistent state of the database schema. Say we have a list of tables
  * array($tableName => Table($tableName)); if you want to rename the table, you have to make sure this does not get
  * recreated during schema migration.
+ *
+ * @internal This class should be extended only by DBAL itself.
+ *
+ * @template N of Name
  */
 abstract class AbstractAsset
 {
     protected string $_name = '';
+
+    /**
+     * Indicates whether the object name has been initialized.
+     */
+    protected bool $isNameInitialized = false;
 
     /**
      * Namespace of the asset. If none isset the default namespace is assumed.
@@ -62,12 +77,38 @@ abstract class AbstractAsset
     }
 
     /**
+     * Creates a parser for parsing the object name.
+     *
+     * @deprecated Parse the name in the constructor instead.
+     *
+     * @return Parser<N>
+     */
+    protected function createNameParser(GenericNameParser $genericNameParser): Parser
+    {
+        throw NotImplemented::fromMethod(static::class, __FUNCTION__);
+    }
+
+    /**
+     * Sets the object name.
+     *
+     * @deprecated Set the name in the constructor instead.
+     *
+     * @param ?N $name
+     */
+    protected function setName(?Name $name): void
+    {
+        throw NotImplemented::fromMethod(static::class, __FUNCTION__);
+    }
+
+    /**
      * Sets the name of this asset.
      *
      * @deprecated Use the constructor instead.
      */
     protected function _setName(string $name): void
     {
+        $this->isNameInitialized = false;
+
         Deprecation::triggerIfCalledFromOutside(
             'doctrine/dbal',
             'https://github.com/doctrine/dbal/pull/6610',
@@ -93,11 +134,9 @@ abstract class AbstractAsset
         $this->validateFuture = false;
 
         if ($input !== '') {
-            $parser = new Parser();
-
             try {
-                $identifiers = $parser->parse($input);
-            } catch (Parser\Exception $e) {
+                $parsedName = $this->createNameParser(new GenericNameParser())->parse($input);
+            } catch (Throwable $e) {
                 Deprecation::trigger(
                     'doctrine/dbal',
                     'https://github.com/doctrine/dbal/pull/6592',
@@ -108,14 +147,46 @@ abstract class AbstractAsset
                 return;
             }
         } else {
-            $identifiers = [];
+            $parsedName = null;
+        }
+
+        try {
+            $this->setName($parsedName);
+        } catch (Throwable $e) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6646',
+                'Using invalid database object names is deprecated: %s.',
+                $e->getMessage(),
+            );
+
+            return;
+        }
+
+        $this->isNameInitialized = true;
+
+        if ($parsedName === null) {
+            $this->identifiers = [];
+
+            return;
+        }
+
+        if ($parsedName instanceof UnqualifiedName) {
+            $identifiers = [$parsedName->getIdentifier()];
+        } elseif ($parsedName instanceof OptionallyQualifiedName) {
+            $unqualifiedName = $parsedName->getUnqualifiedName();
+            $qualifier       = $parsedName->getQualifier();
+
+            $identifiers = $qualifier !== null
+                ? [$qualifier, $unqualifiedName]
+                : [$unqualifiedName];
+        } elseif ($parsedName instanceof GenericName) {
+            $identifiers = $parsedName->getIdentifiers();
+        } else {
+            return;
         }
 
         switch (count($identifiers)) {
-            case 0:
-                $this->identifiers = [];
-
-                return;
             case 1:
                 $namespace = null;
                 $name      = $identifiers[0];
@@ -127,13 +198,6 @@ abstract class AbstractAsset
                 break;
 
             default:
-                Deprecation::trigger(
-                    'doctrine/dbal',
-                    'https://github.com/doctrine/dbal/pull/6592',
-                    'An object name may consist of at most 2 identifiers (<namespace>.<name>), %d given.',
-                    count($identifiers),
-                );
-
                 return;
         }
 

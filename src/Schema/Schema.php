@@ -11,6 +11,10 @@ use Doctrine\DBAL\Schema\Exception\SequenceAlreadyExists;
 use Doctrine\DBAL\Schema\Exception\SequenceDoesNotExist;
 use Doctrine\DBAL\Schema\Exception\TableAlreadyExists;
 use Doctrine\DBAL\Schema\Exception\TableDoesNotExist;
+use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
+use Doctrine\DBAL\Schema\Name\Parser\GenericNameParser;
+use Doctrine\DBAL\Schema\Name\Parser\UnqualifiedNameParser;
+use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\SQL\Builder\CreateSchemaObjectsSQLBuilder;
 use Doctrine\DBAL\SQL\Builder\DropSchemaObjectsSQLBuilder;
 
@@ -41,8 +45,10 @@ use function strtolower;
  * the CREATE/DROP SQL visitors will just filter this queries and do not
  * execute them. Only the queries for the currently connected database are
  * executed.
+ *
+ * @extends AbstractOptionallyNamedObject<UnqualifiedName>
  */
-class Schema extends AbstractAsset
+class Schema extends AbstractOptionallyNamedObject
 {
     /**
      * The namespaces in this schema.
@@ -90,6 +96,11 @@ class Schema extends AbstractAsset
         foreach ($sequences as $sequence) {
             $this->_addSequence($sequence);
         }
+    }
+
+    protected function createNameParser(GenericNameParser $genericNameParser): UnqualifiedNameParser
+    {
+        return new UnqualifiedNameParser($genericNameParser);
     }
 
     protected function _addTable(Table $table): void
@@ -180,6 +191,8 @@ class Schema extends AbstractAsset
      * Foo) then you will NOT be able to use Doctrine Schema abstraction.
      *
      * Every non-namespaced element is prefixed with this schema name.
+     *
+     * @param AbstractAsset<OptionallyQualifiedName> $asset
      */
     private function normalizeName(AbstractAsset $asset): string
     {

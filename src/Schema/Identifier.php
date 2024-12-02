@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Schema;
 
+use Doctrine\DBAL\Schema\Name\GenericName;
+use Doctrine\DBAL\Schema\Name\Parser\GenericNameParser;
+
 /**
  * An abstraction class for an asset identifier.
  *
@@ -11,8 +14,10 @@ namespace Doctrine\DBAL\Schema;
  * in an abstract class for proper quotation capabilities.
  *
  * @internal
+ *
+ * @extends AbstractNamedObject<GenericName>
  */
-class Identifier extends AbstractAsset
+class Identifier extends AbstractNamedObject
 {
     /**
      * @param string $identifier Identifier name to wrap.
@@ -27,5 +32,10 @@ class Identifier extends AbstractAsset
         }
 
         $this->_setName('"' . $this->getName() . '"');
+    }
+
+    protected function createNameParser(GenericNameParser $genericNameParser): GenericNameParser
+    {
+        return $genericNameParser;
     }
 }
