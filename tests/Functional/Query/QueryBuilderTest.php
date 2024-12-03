@@ -350,17 +350,17 @@ final class QueryBuilderTest extends FunctionalTestCase
         $cteQueryBuilder = $this->connection->createQueryBuilder();
         $cteQueryBuilder->select('id AS virtual_id')
             ->from('for_update')
-            ->where('virtual_id = :id');
+            ->where('virtual_id = :id')
+            ->setParameter('id', 1);
 
         $qb->with('cte_a', $cteQueryBuilder, ['virtual_id'])
             ->select('virtual_id')
-            ->from('cte_a')
-            ->setParameter('id', 1);
+            ->from('cte_a');
 
         self::assertSame($expectedRows, $qb->executeQuery()->fetchAllAssociative());
     }
 
-    public function testSelectWithCTEPositionalParameter(): void
+    public function testSelectWithCTEPositionalParametersBindForEachQuery(): void
     {
         if (! $this->platformSupportsCTEs()) {
             self::markTestSkipped('The database platform does not support CTE.');
@@ -376,19 +376,22 @@ final class QueryBuilderTest extends FunctionalTestCase
         $cteQueryBuilder1 = $this->connection->createQueryBuilder();
         $cteQueryBuilder1->select('id AS virtual_id')
             ->from('for_update')
-            ->where($qb->expr()->eq('virtual_id', '?'));
+            ->where($cteQueryBuilder1->expr()->eq('id', '?'))
+            ->setParameter(0, 1, ParameterType::INTEGER);
 
         $cteQueryBuilder2 = $this->connection->createQueryBuilder();
         $cteQueryBuilder2->select('id AS virtual_id')
             ->from('for_update')
-            ->where($qb->expr()->in('id', '?'));
+            ->where($cteQueryBuilder2->expr()->in('id', ':id'))
+            ->setParameter('id', [1, 2], ArrayParameterType::INTEGER);
 
         $qb->with('cte_a', $cteQueryBuilder1, ['virtual_id'])
             ->with('cte_b', $cteQueryBuilder2, ['virtual_id'])
             ->select('a.virtual_id')
             ->from('cte_a', 'a')
             ->join('a', 'cte_b', 'b', 'a.virtual_id = b.virtual_id')
-            ->setParameters([1, [1, 2]], [ParameterType::INTEGER, ArrayParameterType::INTEGER]);
+            ->where($qb->expr()->eq('a.virtual_id', '?'))
+            ->setParameter(0, 1, ParameterType::INTEGER);
 
         self::assertSame($expectedRows, $qb->executeQuery()->fetchAllAssociative());
     }

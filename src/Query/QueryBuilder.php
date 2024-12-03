@@ -309,12 +309,49 @@ class QueryBuilder
      */
     public function executeQuery(): Result
     {
+        [$params, $types] = $this->boundParameters();
+
         return $this->connection->executeQuery(
             $this->getSQL(),
-            $this->params,
-            $this->types,
+            $params,
+            $types,
             $this->resultCacheProfile,
         );
+    }
+
+    /**
+     * Retrieve parameters and types bound to all queries (optional CTEs and main query).
+     *
+     * @return array{
+     *     list<mixed>|array<string, mixed>,
+     *     WrapperParameterTypeArray,
+     * } The parameters and types bound to the CTE queries merged with those bound to the main query.
+     */
+    private function boundParameters(): array
+    {
+        if (count($this->withParts) === 0) {
+            return [$this->params, $this->types];
+        }
+
+        $cteParams = $cteParamsTypes = [];
+
+        foreach ($this->withParts as $withPart) {
+            if (! $withPart->query instanceof self) {
+                continue;
+            }
+
+            $cteParams      = array_merge($cteParams, $withPart->query->params);
+            $cteParamsTypes = array_merge($cteParamsTypes, $withPart->query->types);
+        }
+
+        if (count($cteParams) === 0) {
+            return [$this->params, $this->types];
+        }
+
+        return [
+            array_merge($cteParams, $this->params),
+            array_merge($cteParamsTypes, $this->types),
+        ];
     }
 
     /**
