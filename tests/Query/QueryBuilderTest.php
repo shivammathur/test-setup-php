@@ -855,19 +855,19 @@ class QueryBuilderTest extends TestCase
 
     public function testSelectWithCTE(): void
     {
-        $qbWith = new QueryBuilder($this->conn);
-        $qbWith->select('ta.id', 'ta.name', 'ta.table_b_id')
+        $cteQueryBuilder1 = new QueryBuilder($this->conn);
+        $cteQueryBuilder1->select('ta.id', 'ta.name', 'ta.table_b_id')
             ->from('table_a', 'ta')
             ->where('ta.name LIKE :name');
 
-        $qbAddWith = new QueryBuilder($this->conn);
-        $qbAddWith->select('ca.id AS virtual_id, ca.name AS virtual_name')
+        $cteQueryBuilder2 = new QueryBuilder($this->conn);
+        $cteQueryBuilder2->select('ca.id AS virtual_id, ca.name AS virtual_name')
             ->from('cte_a', 'ca')
             ->join('ca', 'table_b', 'tb', 'ca.table_b_id = tb.id');
 
         $qb = new QueryBuilder($this->conn);
-        $qb->with('cte_a', $qbWith)
-            ->with('cte_b', $qbAddWith, ['virtual_id', 'virtual_name'])
+        $qb->with('cte_a', $cteQueryBuilder1)
+            ->with('cte_b', $cteQueryBuilder2, ['virtual_id', 'virtual_name'])
             ->select('cb.*')
             ->from('cte_b', 'cb');
 
@@ -879,6 +879,15 @@ class QueryBuilderTest extends TestCase
             . 'SELECT cb.* FROM cte_b cb',
             (string) $qb,
         );
+    }
+
+    public function testSelectWithCTEAndEmptyColumns(): void
+    {
+        $this->expectException(QueryException::class);
+        $this->expectExceptionMessage('Columns defined in CTE "cte_a" should not be an empty array.');
+
+        $qb = new QueryBuilder($this->conn);
+        $qb->with('cte_a', 'SELECT 1 as id', []);
     }
 
     public function testGetParameterType(): void

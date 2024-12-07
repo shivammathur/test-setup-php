@@ -417,7 +417,7 @@ final class QueryBuilderTest extends FunctionalTestCase
 
         $subQueryBuilder3 = $this->connection->createQueryBuilder();
         $subQueryBuilder3->union($subQueryBuilder1)
-            ->addUnion($subQueryBuilder2, UnionType::DISTINCT);
+            ->addUnion($subQueryBuilder2);
 
         $qb->with('cte_a', $subQueryBuilder3)
             ->select('id')

@@ -163,9 +163,9 @@ class QueryBuilder
     /**
      * The common table expression parts.
      *
-     * @var With[]
+     * @var CommonTableExpression[]
      */
-    private array $withParts = [];
+    private array $commonTableExpressions = [];
 
     /**
      * The query cache profile used for caching results.
@@ -309,7 +309,7 @@ class QueryBuilder
      */
     public function executeQuery(): Result
     {
-        [$params, $types] = $this->boundParameters();
+        [$params, $types] = $this->buildParametersAndTypes();
 
         return $this->connection->executeQuery(
             $this->getSQL(),
@@ -320,28 +320,24 @@ class QueryBuilder
     }
 
     /**
-     * Retrieve parameters and types bound to all queries (optional CTEs and main query).
+     * Build then return parameters and types for the query.
      *
      * @return array{
      *     list<mixed>|array<string, mixed>,
      *     WrapperParameterTypeArray,
-     * } The parameters and types bound to the CTE queries merged with those bound to the main query.
+     * } The parameters and types for the query.
      */
-    private function boundParameters(): array
+    private function buildParametersAndTypes(): array
     {
-        if (count($this->withParts) === 0) {
-            return [$this->params, $this->types];
-        }
+        $cteParams = $cteParamTypes = [];
 
-        $cteParams = $cteParamsTypes = [];
-
-        foreach ($this->withParts as $withPart) {
-            if (! $withPart->query instanceof self) {
+        foreach ($this->commonTableExpressions as $cte) {
+            if (! $cte->query instanceof self) {
                 continue;
             }
 
-            $cteParams      = array_merge($cteParams, $withPart->query->params);
-            $cteParamsTypes = array_merge($cteParamsTypes, $withPart->query->types);
+            $cteParams     = array_merge($cteParams, $cte->query->params);
+            $cteParamTypes = array_merge($cteParamTypes, $cte->query->types);
         }
 
         if (count($cteParams) === 0) {
@@ -350,7 +346,7 @@ class QueryBuilder
 
         return [
             array_merge($cteParams, $this->params),
-            array_merge($cteParamsTypes, $this->types),
+            array_merge($cteParamTypes, $this->types),
         ];
     }
 
@@ -605,23 +601,26 @@ class QueryBuilder
      * Add a Common Table Expression to be used for a select query.
      *
      * <code>
-     *     // WITH cte_name AS (SELECT 1 AS column1)
+     *     // WITH cte_name AS (SELECT id AS column1 FROM table_a)
      *     $qb = $conn->createQueryBuilder()
-     *         ->with('cte_name', 'SELECT 1 AS column1');
+     *         ->with('cte_name', 'SELECT id AS column1 FROM table_a');
      *
-     *     // WITH cte_name(column1) AS (SELECT 1 AS column1)
+     *     // WITH cte_name(column1) AS (SELECT id AS column1 FROM table_a)
      *     $qb = $conn->createQueryBuilder()
-     *         ->with('cte_name', 'SELECT 1 AS column1', ['column1']);
+     *         ->with('cte_name', 'SELECT id AS column1 FROM table_a', ['column1']);
      * </code>
      *
-     * @param string   $name    The name of the CTE
-     * @param string[] $columns The optional columns list to select in the CTE.
+     * @param string        $name    The name of the CTE
+     * @param string[]|null $columns The optional columns list to select in the CTE.
+     *                               If not provided, the columns are inferred from the CTE.
      *
      * @return $this This QueryBuilder instance.
+     *
+     * @throws QueryException Setting an empty array as columns is not allowed.
      */
-    public function with(string $name, string|QueryBuilder $part, array $columns = []): self
+    public function with(string $name, string|QueryBuilder $part, ?array $columns = null): self
     {
-        $this->withParts[] = new With($name, $part, $columns);
+        $this->commonTableExpressions[] = new CommonTableExpression($name, $part, $columns);
 
         $this->sql = null;
 
@@ -1339,10 +1338,10 @@ class QueryBuilder
 
         $databasePlatform = $this->connection->getDatabasePlatform();
         $selectParts      = [];
-        if (count($this->withParts) > 0) {
+        if (count($this->commonTableExpressions) > 0) {
             $selectParts[] = $databasePlatform
                 ->createWithSQLBuilder()
-                ->buildSQL(...$this->withParts);
+                ->buildSQL(...$this->commonTableExpressions);
         }
 
         $selectParts[] = $databasePlatform
