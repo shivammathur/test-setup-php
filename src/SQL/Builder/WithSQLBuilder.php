@@ -19,7 +19,7 @@ final class WithSQLBuilder
         foreach (array_merge([$firstExpression], $otherExpressions) as $part) {
             $ctePart = [$part->name];
             if ($part->columns !== null && count($part->columns) > 0) {
-                $ctePart[] = '(' . implode(', ', $part->columns) . ')';
+                $ctePart[] = ' (' . implode(', ', $part->columns) . ')';
             }
 
             $ctePart[]  = ' AS (' . $part->query . ')';

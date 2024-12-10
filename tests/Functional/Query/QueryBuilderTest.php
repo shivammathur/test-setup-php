@@ -14,6 +14,7 @@ use Doctrine\DBAL\Platforms\MariaDB1060Platform;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\MySQL80Platform;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
+use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Query\ForUpdate\ConflictResolutionMode;
 use Doctrine\DBAL\Query\UnionType;
@@ -340,8 +341,8 @@ final class QueryBuilderTest extends FunctionalTestCase
             self::markTestSkipped('The database platform does not support CTE.');
         }
 
-        if (! $this->platformSupportsCTEColumnDefinition()) {
-            self::markTestSkipped('The database platform does not support CTE column definition.');
+        if (! $this->platformSupportsCTEColumnsDefinition()) {
+            self::markTestSkipped('The database platform does not support columns definition for CTE.');
         }
 
         $expectedRows = $this->prepareExpectedRows([['virtual_id' => 1]]);
@@ -350,7 +351,7 @@ final class QueryBuilderTest extends FunctionalTestCase
         $cteQueryBuilder = $this->connection->createQueryBuilder();
         $cteQueryBuilder->select('id AS virtual_id')
             ->from('for_update')
-            ->where('virtual_id = :id')
+            ->where('id = :id')
             ->setParameter('id', 1);
 
         $qb->with('cte_a', $cteQueryBuilder, ['virtual_id'])
@@ -360,14 +361,14 @@ final class QueryBuilderTest extends FunctionalTestCase
         self::assertSame($expectedRows, $qb->executeQuery()->fetchAllAssociative());
     }
 
-    public function testSelectWithCTEPositionalParametersBindForEachQuery(): void
+    public function testSelectWithCTEAndParametersBindForEachQuery(): void
     {
         if (! $this->platformSupportsCTEs()) {
             self::markTestSkipped('The database platform does not support CTE.');
         }
 
-        if (! $this->platformSupportsCTEColumnDefinition()) {
-            self::markTestSkipped('The database platform does not support CTE column definition.');
+        if (! $this->platformSupportsCTEColumnsDefinition()) {
+            self::markTestSkipped('The database platform does not support columns definition for CTE.');
         }
 
         $expectedRows = $this->prepareExpectedRows([['virtual_id' => 1]]);
@@ -387,9 +388,95 @@ final class QueryBuilderTest extends FunctionalTestCase
 
         $qb->with('cte_a', $cteQueryBuilder1, ['virtual_id'])
             ->with('cte_b', $cteQueryBuilder2, ['virtual_id'])
-            ->select('a.virtual_id')
+            ->with('cte_c', 'SELECT 1 AS virtual_id')
+            ->select('c.virtual_id')
             ->from('cte_a', 'a')
             ->join('a', 'cte_b', 'b', 'a.virtual_id = b.virtual_id')
+            ->join('b', 'cte_c', 'c', 'b.virtual_id = c.virtual_id')
+            ->where($qb->expr()->eq('a.virtual_id', '?'))
+            ->setParameter(0, 1, ParameterType::INTEGER);
+
+        self::assertSame($expectedRows, $qb->executeQuery()->fetchAllAssociative());
+    }
+
+    public function testSelectWithCTEAndCreateNamedParametersForEachQuery(): void
+    {
+        if (! $this->platformSupportsCTEs()) {
+            self::markTestSkipped('The database platform does not support CTE.');
+        }
+
+        if (! $this->platformSupportsCTEColumnsDefinition()) {
+            self::markTestSkipped('The database platform does not support columns definition for CTE.');
+        }
+
+        $expectedRows = $this->prepareExpectedRows([['virtual_id' => 1]]);
+        $qb           = $this->connection->createQueryBuilder();
+
+        $cteQueryBuilder1 = $this->connection->createQueryBuilder();
+        $cteQueryBuilder1->select('id AS virtual_id')
+            ->from('for_update')
+            ->where($cteQueryBuilder1->expr()->eq(
+                'id',
+                $cteQueryBuilder1->createNamedParameter(1, ParameterType::INTEGER, ':id1'),
+            ));
+
+        $cteQueryBuilder2 = $this->connection->createQueryBuilder();
+        $cteQueryBuilder2->select('id AS virtual_id')
+            ->from('for_update')
+            ->where($cteQueryBuilder2->expr()->in(
+                'id',
+                $cteQueryBuilder2->createNamedParameter([1, 2], ArrayParameterType::INTEGER, ':id2'),
+            ));
+
+        $qb->with('cte_a', $cteQueryBuilder1, ['virtual_id'])
+            ->with('cte_b', $cteQueryBuilder2, ['virtual_id'])
+            ->with('cte_c', 'SELECT 1 AS virtual_id')
+            ->select('c.virtual_id')
+            ->from('cte_a', 'a')
+            ->join('a', 'cte_b', 'b', 'a.virtual_id = b.virtual_id')
+            ->join('b', 'cte_c', 'c', 'b.virtual_id = c.virtual_id')
+            ->where($qb->expr()->eq('a.virtual_id', '?'))
+            ->setParameter(0, 1, ParameterType::INTEGER);
+
+        self::assertSame($expectedRows, $qb->executeQuery()->fetchAllAssociative());
+    }
+
+    public function testSelectWithCTEAndCreatePositionalParametersForEachQuery(): void
+    {
+        if (! $this->platformSupportsCTEs()) {
+            self::markTestSkipped('The database platform does not support CTE.');
+        }
+
+        if (! $this->platformSupportsCTEColumnsDefinition()) {
+            self::markTestSkipped('The database platform does not support columns definition for CTE.');
+        }
+
+        $expectedRows = $this->prepareExpectedRows([['virtual_id' => 1]]);
+        $qb           = $this->connection->createQueryBuilder();
+
+        $cteQueryBuilder1 = $this->connection->createQueryBuilder();
+        $cteQueryBuilder1->select('id AS virtual_id')
+            ->from('for_update')
+            ->where($cteQueryBuilder1->expr()->eq(
+                'id',
+                $cteQueryBuilder1->createPositionalParameter(1, ParameterType::INTEGER),
+            ));
+
+        $cteQueryBuilder2 = $this->connection->createQueryBuilder();
+        $cteQueryBuilder2->select('id AS virtual_id')
+            ->from('for_update')
+            ->where($cteQueryBuilder2->expr()->in(
+                'id',
+                $cteQueryBuilder2->createPositionalParameter([1, 2], ArrayParameterType::INTEGER),
+            ));
+
+        $qb->with('cte_a', $cteQueryBuilder1, ['virtual_id'])
+            ->with('cte_b', $cteQueryBuilder2, ['virtual_id'])
+            ->with('cte_c', 'SELECT 1 AS virtual_id')
+            ->select('c.virtual_id')
+            ->from('cte_a', 'a')
+            ->join('a', 'cte_b', 'b', 'a.virtual_id = b.virtual_id')
+            ->join('b', 'cte_c', 'c', 'b.virtual_id = c.virtual_id')
             ->where($qb->expr()->eq('a.virtual_id', '?'))
             ->setParameter(0, 1, ParameterType::INTEGER);
 
@@ -504,8 +591,14 @@ final class QueryBuilderTest extends FunctionalTestCase
         return ! $platform instanceof MySQLPlatform || $platform instanceof MySQL80Platform;
     }
 
-    private function platformSupportsCTEColumnDefinition(): bool
+    private function platformSupportsCTEColumnsDefinition(): bool
     {
-        return $this->connection->getDatabasePlatform() instanceof SQLitePlatform;
+        $platform = $this->connection->getDatabasePlatform();
+
+        if ($platform instanceof DB2Platform || $platform instanceof OraclePlatform) {
+            return false;
+        }
+
+        return ! $platform instanceof MySQLPlatform || $platform instanceof MySQL80Platform;
     }
 }

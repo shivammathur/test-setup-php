@@ -873,7 +873,7 @@ class QueryBuilderTest extends TestCase
 
         self::assertEquals(
             'WITH cte_a AS (SELECT ta.id, ta.name, ta.table_b_id FROM table_a ta WHERE ta.name LIKE :name)'
-            . ', cte_b(virtual_id, virtual_name) AS '
+            . ', cte_b (virtual_id, virtual_name) AS '
             . '(SELECT ca.id AS virtual_id, ca.name AS virtual_name '
             . 'FROM cte_a ca INNER JOIN table_b tb ON ca.table_b_id = tb.id) '
             . 'SELECT cb.* FROM cte_b cb',
