@@ -18,6 +18,8 @@ use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Statement;
 use Doctrine\DBAL\Types\Type;
 
+use function array_filter;
+use function array_intersect;
 use function array_key_exists;
 use function array_keys;
 use function array_merge;
@@ -25,6 +27,7 @@ use function array_unshift;
 use function count;
 use function implode;
 use function is_object;
+use function sprintf;
 use function substr;
 
 /**
@@ -332,9 +335,11 @@ class QueryBuilder
         $cteParams = $cteParamTypes = [];
 
         foreach ($this->commonTableExpressions as $cte) {
-            if (! $cte->query instanceof self) {
+            if (! $cte->query instanceof self || count($cte->query->params) === 0) {
                 continue;
             }
+
+            $this->guardDuplicatedParameterNames($cteParams, $cte->query->params);
 
             $cteParams     = array_merge($cteParams, $cte->query->params);
             $cteParamTypes = array_merge($cteParamTypes, $cte->query->types);
@@ -344,10 +349,37 @@ class QueryBuilder
             return [$this->params, $this->types];
         }
 
+        $this->guardDuplicatedParameterNames($cteParams, $this->params);
+
         return [
             array_merge($cteParams, $this->params),
             array_merge($cteParamTypes, $this->types),
         ];
+    }
+
+    /**
+     * Guards against duplicated parameter names.
+     *
+     * @param list<mixed>|array<string, mixed> $params
+     * @param list<mixed>|array<string, mixed> $paramsToMerge
+     *
+     * @throws QueryException
+     */
+    private function guardDuplicatedParameterNames(array $params, array $paramsToMerge): void
+    {
+        if (count($params) === 0 || count($paramsToMerge) === 0) {
+            return;
+        }
+
+        $paramKeys    = array_filter(array_keys($params), 'is_string');
+        $cteParamKeys = array_filter(array_keys($paramsToMerge), 'is_string');
+        $duplicated   = array_intersect($paramKeys, $cteParamKeys);
+        if (count($duplicated) > 0) {
+            throw new QueryException(sprintf(
+                'Found duplicated parameter in query. The duplicated parameter names are: "%s".',
+                implode(', ', $duplicated),
+            ));
+        }
     }
 
     /**

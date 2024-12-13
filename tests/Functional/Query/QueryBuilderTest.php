@@ -17,6 +17,7 @@ use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Query\ForUpdate\ConflictResolutionMode;
+use Doctrine\DBAL\Query\QueryException;
 use Doctrine\DBAL\Query\UnionType;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
@@ -24,6 +25,7 @@ use Doctrine\DBAL\Tests\TestUtil;
 use Doctrine\DBAL\Types\Types;
 
 use function array_change_key_case;
+use function sprintf;
 
 use const CASE_UPPER;
 
@@ -439,6 +441,71 @@ final class QueryBuilderTest extends FunctionalTestCase
             ->setParameter(0, 1, ParameterType::INTEGER);
 
         self::assertSame($expectedRows, $qb->executeQuery()->fetchAllAssociative());
+    }
+
+    /**
+     * @param array<string, string> $parameters
+     *
+     * @dataProvider selectWithCTEAndCreateNamedParametersAreDuplicatedProvider
+     */
+    public function testSelectWithCTEAndCreateNamedParametersAreDuplicated(
+        array $parameters,
+        string $expectedDuplicated,
+    ): void {
+        $qb = $this->connection->createQueryBuilder();
+
+        $cteQueryBuilder1 = $this->connection->createQueryBuilder();
+        $cteQueryBuilder1->select('id')
+            ->from('for_update')
+            ->where($cteQueryBuilder1->expr()->eq(
+                'id',
+                $cteQueryBuilder1->createNamedParameter(1, ParameterType::INTEGER, $parameters['cte_a']),
+            ));
+
+        $cteQueryBuilder2 = $this->connection->createQueryBuilder();
+        $cteQueryBuilder2->select('id')
+            ->from('for_update')
+            ->where($cteQueryBuilder2->expr()->in(
+                'id',
+                $cteQueryBuilder2->createNamedParameter([1, 2], ArrayParameterType::INTEGER, $parameters['cte_b']),
+            ));
+
+        $qb->with('cte_a', $cteQueryBuilder1)
+            ->with('cte_b', $cteQueryBuilder2)
+            ->where($qb->expr()->eq(
+                'id',
+                $qb->createNamedParameter(1, ParameterType::INTEGER, $parameters['main_query']),
+            ));
+
+        self::expectException(QueryException::class);
+        self::expectExceptionMessage(sprintf(
+            'Found duplicated parameter in query. The duplicated parameter names are: "%s".',
+            $expectedDuplicated,
+        ));
+        $qb->executeQuery();
+    }
+
+    /** @return array<string, array<string, array<string, string>|string>> */
+    public static function selectWithCTEAndCreateNamedParametersAreDuplicatedProvider(): array
+    {
+        return [
+            'duplicated parameters in CTE' => [
+                'parameters' => [
+                    'cte_a' => ':id1',
+                    'cte_b' => ':id1',
+                    'main_query' => ':id2',
+                ],
+                'expectedDuplicated' => 'id1',
+            ],
+            'duplicated parameters in main query' => [
+                'parameters' => [
+                    'cte_a' => ':id1',
+                    'cte_b' => ':id2',
+                    'main_query' => ':id1',
+                ],
+                'expectedDuplicated' => 'id1',
+            ],
+        ];
     }
 
     public function testSelectWithCTEAndCreatePositionalParametersForEachQuery(): void
