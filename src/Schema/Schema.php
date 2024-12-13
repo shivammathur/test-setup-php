@@ -12,8 +12,8 @@ use Doctrine\DBAL\Schema\Exception\SequenceDoesNotExist;
 use Doctrine\DBAL\Schema\Exception\TableAlreadyExists;
 use Doctrine\DBAL\Schema\Exception\TableDoesNotExist;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
-use Doctrine\DBAL\Schema\Name\Parser\GenericNameParser;
 use Doctrine\DBAL\Schema\Name\Parser\UnqualifiedNameParser;
+use Doctrine\DBAL\Schema\Name\Parsers;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\SQL\Builder\CreateSchemaObjectsSQLBuilder;
 use Doctrine\DBAL\SQL\Builder\DropSchemaObjectsSQLBuilder;
@@ -98,9 +98,9 @@ class Schema extends AbstractOptionallyNamedObject
         }
     }
 
-    protected function createNameParser(GenericNameParser $genericNameParser): UnqualifiedNameParser
+    protected function getNameParser(): UnqualifiedNameParser
     {
-        return new UnqualifiedNameParser($genericNameParser);
+        return Parsers::getUnqualifiedNameParser();
     }
 
     protected function _addTable(Table $table): void

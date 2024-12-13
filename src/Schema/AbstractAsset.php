@@ -10,7 +10,6 @@ use Doctrine\DBAL\Schema\Name\GenericName;
 use Doctrine\DBAL\Schema\Name\Identifier;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\Parser;
-use Doctrine\DBAL\Schema\Name\Parser\GenericNameParser;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\Deprecations\Deprecation;
 use Throwable;
@@ -77,13 +76,13 @@ abstract class AbstractAsset
     }
 
     /**
-     * Creates a parser for parsing the object name.
+     * Returns a parser for parsing the object name.
      *
      * @deprecated Parse the name in the constructor instead.
      *
      * @return Parser<N>
      */
-    protected function createNameParser(GenericNameParser $genericNameParser): Parser
+    protected function getNameParser(): Parser
     {
         throw NotImplemented::fromMethod(static::class, __FUNCTION__);
     }
@@ -135,7 +134,7 @@ abstract class AbstractAsset
 
         if ($input !== '') {
             try {
-                $parsedName = $this->createNameParser(new GenericNameParser())->parse($input);
+                $parsedName = $this->getNameParser()->parse($input);
             } catch (Throwable $e) {
                 Deprecation::trigger(
                     'doctrine/dbal',

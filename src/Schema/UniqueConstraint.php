@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Doctrine\DBAL\Schema;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\Schema\Name\Parser\GenericNameParser;
 use Doctrine\DBAL\Schema\Name\Parser\UnqualifiedNameParser;
+use Doctrine\DBAL\Schema\Name\Parsers;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 
 use function array_keys;
@@ -56,9 +56,9 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
         }
     }
 
-    protected function createNameParser(GenericNameParser $genericNameParser): UnqualifiedNameParser
+    protected function getNameParser(): UnqualifiedNameParser
     {
-        return new UnqualifiedNameParser($genericNameParser);
+        return Parsers::getUnqualifiedNameParser();
     }
 
     /**

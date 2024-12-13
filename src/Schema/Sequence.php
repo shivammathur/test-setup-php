@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Doctrine\DBAL\Schema;
 
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
-use Doctrine\DBAL\Schema\Name\Parser\GenericNameParser;
 use Doctrine\DBAL\Schema\Name\Parser\OptionallyQualifiedNameParser;
+use Doctrine\DBAL\Schema\Name\Parsers;
 
 use function count;
 use function sprintf;
@@ -34,9 +34,9 @@ class Sequence extends AbstractNamedObject
         $this->setInitialValue($initialValue);
     }
 
-    protected function createNameParser(GenericNameParser $genericNameParser): OptionallyQualifiedNameParser
+    protected function getNameParser(): OptionallyQualifiedNameParser
     {
-        return new OptionallyQualifiedNameParser($genericNameParser);
+        return Parsers::getOptionallyQualifiedNameParser();
     }
 
     public function getAllocationSize(): int

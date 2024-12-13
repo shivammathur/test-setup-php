@@ -14,8 +14,8 @@ use Doctrine\DBAL\Schema\Exception\InvalidTableName;
 use Doctrine\DBAL\Schema\Exception\PrimaryKeyAlreadyExists;
 use Doctrine\DBAL\Schema\Exception\UniqueConstraintDoesNotExist;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
-use Doctrine\DBAL\Schema\Name\Parser\GenericNameParser;
 use Doctrine\DBAL\Schema\Name\Parser\OptionallyQualifiedNameParser;
+use Doctrine\DBAL\Schema\Name\Parsers;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\Deprecations\Deprecation;
 use LogicException;
@@ -116,9 +116,9 @@ class Table extends AbstractNamedObject
         $this->_options = array_merge($this->_options, $options);
     }
 
-    protected function createNameParser(GenericNameParser $genericNameParser): OptionallyQualifiedNameParser
+    protected function getNameParser(): OptionallyQualifiedNameParser
     {
-        return new OptionallyQualifiedNameParser($genericNameParser);
+        return Parsers::getOptionallyQualifiedNameParser();
     }
 
     /** @deprecated Pass a {@link TableConfiguration} instance to the constructor instead. */
