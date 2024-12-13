@@ -9,11 +9,8 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04]
+        runs: [1,1,1,1,1,1,1]
     steps:
-      - run: |
-          if ! sudo apt-get check 2>/dev/null; then
-            sudo apt --fix-broken install -y || (sudo apt-get update && sudo apt --fix-broken install -y)
-          fi
       - uses: shivammathur/setup-php@verbose
         with:
             php-version: 8.5
