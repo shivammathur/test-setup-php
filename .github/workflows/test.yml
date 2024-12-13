@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: shivammathur/setup-php@verbose
         with:
-            php-version: 8.1
+            php-version: 8.5
             tools: cs2pr, parallel-lint
             coverage: none
       - name: Test
