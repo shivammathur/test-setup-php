@@ -3,18 +3,18 @@ on:
   push:
 jobs:
   create:
-    name: Create
+    name: Runner
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-2025]
-        php-versions: ['8.4']
+        operating-system: [ubuntu-latest]
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@verbose
         with:
-          php-version: ${{ matrix.php-versions }}
+            php-version: 8.1
+            tools: cs2pr, parallel-lint
+            coverage: none
       - name: Test
         run: |
           php -v
