@@ -15,8 +15,6 @@ jobs:
       - uses: shivammathur/setup-php@verbose
         with:
             php-version: ${{ matrix.php }}
-            tools: cs2pr, parallel-lint
-            coverage: none
       - name: Test
         run: |
           php -v
