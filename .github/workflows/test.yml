@@ -21,6 +21,8 @@ jobs:
           pcov.exclude="~(vendor|tests|.phan)~"
         extensions: swoole-5.1.6
         tools: pecl
+      env:
+        SWOOLE_LIBS: libbrotli-dev
     - name: Test
       run: |
         php -r "echo phpversion('swoole');"
