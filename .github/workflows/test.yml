@@ -8,19 +8,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04]
+        operating-system: [ubuntu-latest, macos-latest]
     steps:
-      - uses: shivammathur/setup-php@verbose
-        with:
-            php-version: 7.4
-      - name: Test
-        run: |
-          php -v
-          php -m
-      - uses: shivammathur/setup-php@verbose
-        with:
-            php-version: 8.1
-      - name: Test
-        run: |
-          php -v
-          php -m
+    - name: Setup PHP
+      uses: shivammathur/setup-php@verbose
+      with:
+        php-version: '8.1'
+        coverage: pcov
+        ini-values: >-
+          display_errors=On,
+          date.timezone=UTC,
+          pcov.exclude="~(vendor|tests|.phan)~"
+        extensions: swoole-5.1.6
+        tools: pecl
+    - name: Test
+      run: |
+        php -r "echo phpversion('swoole');"
+        php -v
+        php -m
