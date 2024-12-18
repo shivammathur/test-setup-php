@@ -19,9 +19,7 @@ jobs:
           php -m
       - uses: shivammathur/setup-php@verbose
         with:
-            php-version: 8.3
-        env:
-            update: true
+            php-version: 8.1
       - name: Test
         run: |
           php -v
