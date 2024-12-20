@@ -8,6 +8,10 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Deprecated `Sequence::isAutoIncrementsFor()`
+
+The `Sequence::isAutoIncrementsFor()` method has been deprecated.
+
 ## Deprecated using invalid database object names
 
 Using the following objects with an empty name is deprecated: `Column`, `View`, `Sequence`, `Identifier`.
