@@ -312,74 +312,12 @@ class QueryBuilder
      */
     public function executeQuery(): Result
     {
-        [$params, $types] = $this->buildParametersAndTypes();
-
         return $this->connection->executeQuery(
             $this->getSQL(),
-            $params,
-            $types,
+            $this->params,
+            $this->types,
             $this->resultCacheProfile,
         );
-    }
-
-    /**
-     * Build then return parameters and types for the query.
-     *
-     * @return array{
-     *     list<mixed>|array<string, mixed>,
-     *     WrapperParameterTypeArray,
-     * } The parameters and types for the query.
-     */
-    private function buildParametersAndTypes(): array
-    {
-        $cteParams = $cteParamTypes = [];
-
-        foreach ($this->commonTableExpressions as $cte) {
-            if (! $cte->query instanceof self || count($cte->query->params) === 0) {
-                continue;
-            }
-
-            $this->guardDuplicatedParameterNames($cteParams, $cte->query->params);
-
-            $cteParams     = array_merge($cteParams, $cte->query->params);
-            $cteParamTypes = array_merge($cteParamTypes, $cte->query->types);
-        }
-
-        if (count($cteParams) === 0) {
-            return [$this->params, $this->types];
-        }
-
-        $this->guardDuplicatedParameterNames($cteParams, $this->params);
-
-        return [
-            array_merge($cteParams, $this->params),
-            array_merge($cteParamTypes, $this->types),
-        ];
-    }
-
-    /**
-     * Guards against duplicated parameter names.
-     *
-     * @param list<mixed>|array<string, mixed> $params
-     * @param list<mixed>|array<string, mixed> $paramsToMerge
-     *
-     * @throws QueryException
-     */
-    private function guardDuplicatedParameterNames(array $params, array $paramsToMerge): void
-    {
-        if (count($params) === 0 || count($paramsToMerge) === 0) {
-            return;
-        }
-
-        $paramKeys    = array_filter(array_keys($params), 'is_string');
-        $cteParamKeys = array_filter(array_keys($paramsToMerge), 'is_string');
-        $duplicated   = array_intersect($paramKeys, $cteParamKeys);
-        if (count($duplicated) > 0) {
-            throw new QueryException(sprintf(
-                'Found duplicated parameter in query. The duplicated parameter names are: "%s".',
-                implode(', ', $duplicated),
-            ));
-        }
     }
 
     /**

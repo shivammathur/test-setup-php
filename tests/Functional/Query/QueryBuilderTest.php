@@ -17,7 +17,6 @@ use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Query\ForUpdate\ConflictResolutionMode;
-use Doctrine\DBAL\Query\QueryException;
 use Doctrine\DBAL\Query\UnionType;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
@@ -25,7 +24,6 @@ use Doctrine\DBAL\Tests\TestUtil;
 use Doctrine\DBAL\Types\Types;
 
 use function array_change_key_case;
-use function sprintf;
 
 use const CASE_UPPER;
 
@@ -353,12 +351,12 @@ final class QueryBuilderTest extends FunctionalTestCase
         $cteQueryBuilder = $this->connection->createQueryBuilder();
         $cteQueryBuilder->select('id AS virtual_id')
             ->from('for_update')
-            ->where('id = :id')
-            ->setParameter('id', 1);
+            ->where('id = :id');
 
         $qb->with('cte_a', $cteQueryBuilder, ['virtual_id'])
             ->select('virtual_id')
-            ->from('cte_a');
+            ->from('cte_a')
+            ->setParameter('id', 1);
 
         self::assertSame($expectedRows, $qb->executeQuery()->fetchAllAssociative());
     }
@@ -379,14 +377,14 @@ final class QueryBuilderTest extends FunctionalTestCase
         $cteQueryBuilder1 = $this->connection->createQueryBuilder();
         $cteQueryBuilder1->select('id AS virtual_id')
             ->from('for_update')
-            ->where($cteQueryBuilder1->expr()->eq('id', '?'))
-            ->setParameter(0, 1, ParameterType::INTEGER);
+            ->where($qb->expr()->eq('id', '?'));
+        $qb->setParameter(0, 1, ParameterType::INTEGER);
 
         $cteQueryBuilder2 = $this->connection->createQueryBuilder();
         $cteQueryBuilder2->select('id AS virtual_id')
             ->from('for_update')
-            ->where($cteQueryBuilder2->expr()->in('id', ':id'))
-            ->setParameter('id', [1, 2], ArrayParameterType::INTEGER);
+            ->where($qb->expr()->in('id', ':id'));
+        $qb->setParameter('id', [1, 2], ArrayParameterType::INTEGER);
 
         $qb->with('cte_a', $cteQueryBuilder1, ['virtual_id'])
             ->with('cte_b', $cteQueryBuilder2, ['virtual_id'])
@@ -396,7 +394,7 @@ final class QueryBuilderTest extends FunctionalTestCase
             ->join('a', 'cte_b', 'b', 'a.virtual_id = b.virtual_id')
             ->join('b', 'cte_c', 'c', 'b.virtual_id = c.virtual_id')
             ->where($qb->expr()->eq('a.virtual_id', '?'))
-            ->setParameter(0, 1, ParameterType::INTEGER);
+            ->setParameter(1, 1, ParameterType::INTEGER);
 
         self::assertSame($expectedRows, $qb->executeQuery()->fetchAllAssociative());
     }
@@ -417,17 +415,17 @@ final class QueryBuilderTest extends FunctionalTestCase
         $cteQueryBuilder1 = $this->connection->createQueryBuilder();
         $cteQueryBuilder1->select('id AS virtual_id')
             ->from('for_update')
-            ->where($cteQueryBuilder1->expr()->eq(
+            ->where($qb->expr()->eq(
                 'id',
-                $cteQueryBuilder1->createNamedParameter(1, ParameterType::INTEGER, ':id1'),
+                $qb->createNamedParameter(1, ParameterType::INTEGER, ':id1'),
             ));
 
         $cteQueryBuilder2 = $this->connection->createQueryBuilder();
         $cteQueryBuilder2->select('id AS virtual_id')
             ->from('for_update')
-            ->where($cteQueryBuilder2->expr()->in(
+            ->where($qb->expr()->in(
                 'id',
-                $cteQueryBuilder2->createNamedParameter([1, 2], ArrayParameterType::INTEGER, ':id2'),
+                $qb->createNamedParameter([1, 2], ArrayParameterType::INTEGER, ':id2'),
             ));
 
         $qb->with('cte_a', $cteQueryBuilder1, ['virtual_id'])
@@ -441,71 +439,6 @@ final class QueryBuilderTest extends FunctionalTestCase
             ->setParameter(0, 1, ParameterType::INTEGER);
 
         self::assertSame($expectedRows, $qb->executeQuery()->fetchAllAssociative());
-    }
-
-    /**
-     * @param array<string, string> $parameters
-     *
-     * @dataProvider selectWithCTEAndCreateNamedParametersAreDuplicatedProvider
-     */
-    public function testSelectWithCTEAndCreateNamedParametersAreDuplicated(
-        array $parameters,
-        string $expectedDuplicated,
-    ): void {
-        $qb = $this->connection->createQueryBuilder();
-
-        $cteQueryBuilder1 = $this->connection->createQueryBuilder();
-        $cteQueryBuilder1->select('id')
-            ->from('for_update')
-            ->where($cteQueryBuilder1->expr()->eq(
-                'id',
-                $cteQueryBuilder1->createNamedParameter(1, ParameterType::INTEGER, $parameters['cte_a']),
-            ));
-
-        $cteQueryBuilder2 = $this->connection->createQueryBuilder();
-        $cteQueryBuilder2->select('id')
-            ->from('for_update')
-            ->where($cteQueryBuilder2->expr()->in(
-                'id',
-                $cteQueryBuilder2->createNamedParameter([1, 2], ArrayParameterType::INTEGER, $parameters['cte_b']),
-            ));
-
-        $qb->with('cte_a', $cteQueryBuilder1)
-            ->with('cte_b', $cteQueryBuilder2)
-            ->where($qb->expr()->eq(
-                'id',
-                $qb->createNamedParameter(1, ParameterType::INTEGER, $parameters['main_query']),
-            ));
-
-        self::expectException(QueryException::class);
-        self::expectExceptionMessage(sprintf(
-            'Found duplicated parameter in query. The duplicated parameter names are: "%s".',
-            $expectedDuplicated,
-        ));
-        $qb->executeQuery();
-    }
-
-    /** @return array<string, array<string, array<string, string>|string>> */
-    public static function selectWithCTEAndCreateNamedParametersAreDuplicatedProvider(): array
-    {
-        return [
-            'duplicated parameters in CTE' => [
-                'parameters' => [
-                    'cte_a' => ':id1',
-                    'cte_b' => ':id1',
-                    'main_query' => ':id2',
-                ],
-                'expectedDuplicated' => 'id1',
-            ],
-            'duplicated parameters in main query' => [
-                'parameters' => [
-                    'cte_a' => ':id1',
-                    'cte_b' => ':id2',
-                    'main_query' => ':id1',
-                ],
-                'expectedDuplicated' => 'id1',
-            ],
-        ];
     }
 
     public function testSelectWithCTEAndCreatePositionalParametersForEachQuery(): void
@@ -524,17 +457,17 @@ final class QueryBuilderTest extends FunctionalTestCase
         $cteQueryBuilder1 = $this->connection->createQueryBuilder();
         $cteQueryBuilder1->select('id AS virtual_id')
             ->from('for_update')
-            ->where($cteQueryBuilder1->expr()->eq(
+            ->where($qb->expr()->eq(
                 'id',
-                $cteQueryBuilder1->createPositionalParameter(1, ParameterType::INTEGER),
+                $qb->createPositionalParameter(1, ParameterType::INTEGER),
             ));
 
         $cteQueryBuilder2 = $this->connection->createQueryBuilder();
         $cteQueryBuilder2->select('id AS virtual_id')
             ->from('for_update')
-            ->where($cteQueryBuilder2->expr()->in(
+            ->where($qb->expr()->in(
                 'id',
-                $cteQueryBuilder2->createPositionalParameter([1, 2], ArrayParameterType::INTEGER),
+                $qb->createPositionalParameter([1, 2], ArrayParameterType::INTEGER),
             ));
 
         $qb->with('cte_a', $cteQueryBuilder1, ['virtual_id'])
@@ -545,7 +478,7 @@ final class QueryBuilderTest extends FunctionalTestCase
             ->join('a', 'cte_b', 'b', 'a.virtual_id = b.virtual_id')
             ->join('b', 'cte_c', 'c', 'b.virtual_id = c.virtual_id')
             ->where($qb->expr()->eq('a.virtual_id', '?'))
-            ->setParameter(0, 1, ParameterType::INTEGER);
+            ->setParameter(2, 1, ParameterType::INTEGER);
 
         self::assertSame($expectedRows, $qb->executeQuery()->fetchAllAssociative());
     }
@@ -577,7 +510,7 @@ final class QueryBuilderTest extends FunctionalTestCase
             ->select('id')
             ->from('cte_a')
             ->orderBy('id', 'DESC')
-            ->setParameters([1, 2]);
+            ->setParameters([1, 2], [ParameterType::INTEGER, ParameterType::INTEGER]);
 
         self::assertSame($expectedRows, $qb->executeQuery()->fetchAllAssociative());
     }
