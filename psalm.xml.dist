@@ -128,6 +128,12 @@
                     TODO: remove in 5.0.0
                 -->
                 <referencedMethod name="Doctrine\DBAL\Schema\Sequence::isAutoIncrementsFor" />
+
+                <!--
+                    https://github.com/doctrine/dbal/pull/6657
+                    TODO: remove in 5.0.0
+                -->
+                <referencedMethod name="Doctrine\DBAL\Schema\AbstractAsset::getShortestName" />
             </errorLevel>
         </DeprecatedMethod>
         <DeprecatedProperty>

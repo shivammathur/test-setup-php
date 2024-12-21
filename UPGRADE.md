@@ -8,6 +8,10 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Deprecated `AbstractAsset::getShortestName()`
+
+The `AbstractAsset::getShortestName()` method has been deprecated. Use `AbstractAsset::getName()` instead.
+
 ## Deprecated `Sequence::isAutoIncrementsFor()`
 
 The `Sequence::isAutoIncrementsFor()` method has been deprecated.
