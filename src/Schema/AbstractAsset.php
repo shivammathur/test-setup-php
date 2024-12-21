@@ -250,9 +250,18 @@ abstract class AbstractAsset
     /**
      * The shortest name is stripped of the default namespace. All other
      * namespaced elements are returned as full-qualified names.
+     *
+     * @deprecated Use {@link getName()} instead.
      */
     public function getShortestName(?string $defaultNamespaceName): string
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6657',
+            '%s is deprecated and will be removed in 5.0.',
+            __METHOD__,
+        );
+
         $shortestName = $this->getName();
         if ($this->_namespace === $defaultNamespaceName) {
             $shortestName = $this->_name;
