@@ -8,6 +8,11 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## `Table::__construct()` marked as internal
+
+The `Table::__construct()` method has been marked as internal. Use `Table::editor()` to instantiate an editor and
+`TableEditor::create()` to create a table.
+
 ## Deprecated `AbstractAsset::getShortestName()`
 
 The `AbstractAsset::getShortestName()` method has been deprecated. Use `AbstractAsset::getName()` instead.
