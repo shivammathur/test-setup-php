@@ -72,6 +72,9 @@ class Table extends AbstractNamedObject
     private int $maxIdentifierLength;
 
     /**
+     * @internal Use {@link Table::editor()} to instantiate an editor and {@link TableEditor::create()}
+     *           to create a table.
+     *
      * @param array<Column>               $columns
      * @param array<Index>                $indexes
      * @param array<UniqueConstraint>     $uniqueConstraints
