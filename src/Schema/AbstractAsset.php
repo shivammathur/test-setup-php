@@ -49,6 +49,8 @@ abstract class AbstractAsset
 
     /**
      * Namespace of the asset. If none isset the default namespace is assumed.
+     *
+     * @deprecated Use {@see NamedObject::getObjectName()} and {@see OptionallyQualifiedName::getQualifier()} instead.
      */
     protected ?string $_namespace = null;
 
@@ -231,9 +233,18 @@ abstract class AbstractAsset
 
     /**
      * Is this asset in the default namespace?
+     *
+     * @deprecated
      */
     public function isInDefaultNamespace(string $defaultNamespaceName): bool
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6664',
+            '%s is deprecated and will be removed in 5.0.',
+            __METHOD__,
+        );
+
         return $this->_namespace === $defaultNamespaceName || $this->_namespace === null;
     }
 
@@ -241,9 +252,19 @@ abstract class AbstractAsset
      * Gets the namespace name of this asset.
      *
      * If NULL is returned this means the default namespace is used.
+     *
+     * @deprecated Use {@see NamedObject::getObjectName()} and {@see OptionallyQualifiedName::getQualifier()} instead.
      */
     public function getNamespaceName(): ?string
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6664',
+            '%s is deprecated and will be removed in 5.0. Use NamedObject::getObjectName()'
+                . ' and OptionallyQualifiedName::getQualifier() instead.',
+            __METHOD__,
+        );
+
         return $this->_namespace;
     }
 
