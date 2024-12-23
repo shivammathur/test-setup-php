@@ -385,7 +385,7 @@ class PostgreSQLPlatform extends AbstractPlatform
     {
         $queryFields = $this->getColumnDeclarationListSQL($columns);
 
-        if (isset($options['primary']) && ! empty($options['primary'])) {
+        if (! empty($options['primary'])) {
             $keyColumns   = array_unique(array_values($options['primary']));
             $queryFields .= ', PRIMARY KEY(' . implode(', ', $keyColumns) . ')';
         }
@@ -396,7 +396,7 @@ class PostgreSQLPlatform extends AbstractPlatform
 
         $sql = [$query];
 
-        if (isset($options['indexes']) && ! empty($options['indexes'])) {
+        if (! empty($options['indexes'])) {
             foreach ($options['indexes'] as $index) {
                 $sql[] = $this->getCreateIndexSQL($index, $name);
             }

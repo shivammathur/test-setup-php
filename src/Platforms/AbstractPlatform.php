@@ -987,17 +987,17 @@ abstract class AbstractPlatform
     {
         $columnListSql = $this->getColumnDeclarationListSQL($columns);
 
-        if (isset($options['uniqueConstraints']) && ! empty($options['uniqueConstraints'])) {
+        if (! empty($options['uniqueConstraints'])) {
             foreach ($options['uniqueConstraints'] as $definition) {
                 $columnListSql .= ', ' . $this->getUniqueConstraintDeclarationSQL($definition);
             }
         }
 
-        if (isset($options['primary']) && ! empty($options['primary'])) {
+        if (! empty($options['primary'])) {
             $columnListSql .= ', PRIMARY KEY(' . implode(', ', array_unique(array_values($options['primary']))) . ')';
         }
 
-        if (isset($options['indexes']) && ! empty($options['indexes'])) {
+        if (! empty($options['indexes'])) {
             foreach ($options['indexes'] as $definition) {
                 $columnListSql .= ', ' . $this->getIndexDeclarationSQL($definition);
             }
