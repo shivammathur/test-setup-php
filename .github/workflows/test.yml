@@ -10,14 +10,14 @@ jobs:
       matrix:
         operating-system: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04]
     steps:
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@develop
         with:
             php-version: 7.4
       - name: Test
         run: |
           php -v
           php -m
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@develop
         with:
             php-version: 8.3
       - name: Test
