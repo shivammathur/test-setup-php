@@ -829,7 +829,7 @@ abstract class AbstractPlatform
 
         foreach ($table->getIndexes() as $index) {
             if (! $index->isPrimary()) {
-                $options['indexes'][$index->getQuotedName($this)] = $index;
+                $options['indexes'][] = $index;
 
                 continue;
             }
@@ -839,7 +839,7 @@ abstract class AbstractPlatform
         }
 
         foreach ($table->getUniqueConstraints() as $uniqueConstraint) {
-            $options['uniqueConstraints'][$uniqueConstraint->getQuotedName($this)] = $uniqueConstraint;
+            $options['uniqueConstraints'][] = $uniqueConstraint;
         }
 
         if ($createForeignKeys) {
