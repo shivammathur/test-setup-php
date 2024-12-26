@@ -832,7 +832,7 @@ abstract class AbstractPlatform
 
         foreach ($table->getIndexes() as $index) {
             if (! $index->isPrimary()) {
-                $options['indexes'][$index->getQuotedName($this)] = $index;
+                $options['indexes'][] = $index;
 
                 continue;
             }
@@ -842,7 +842,7 @@ abstract class AbstractPlatform
         }
 
         foreach ($table->getUniqueConstraints() as $uniqueConstraint) {
-            $options['uniqueConstraints'][$uniqueConstraint->getQuotedName($this)] = $uniqueConstraint;
+            $options['uniqueConstraints'][] = $uniqueConstraint;
         }
 
         if ($createForeignKeys) {
@@ -1173,8 +1173,13 @@ abstract class AbstractPlatform
      */
     public function getCreateUniqueConstraintSQL(UniqueConstraint $constraint, string $tableName): string
     {
-        return 'ALTER TABLE ' . $tableName . ' ADD CONSTRAINT ' . $constraint->getQuotedName($this) . ' UNIQUE'
-            . ' (' . implode(', ', $constraint->getQuotedColumns($this)) . ')';
+        $sql = 'ALTER TABLE ' . $tableName . ' ADD';
+
+        if ($constraint->getName() !== '') {
+            $sql .= ' CONSTRAINT ' . $constraint->getQuotedName($this);
+        }
+
+        return $sql . ' UNIQUE (' . implode(', ', $constraint->getQuotedColumns($this)) . ')';
     }
 
     /**
@@ -1558,9 +1563,10 @@ abstract class AbstractPlatform
             throw new InvalidArgumentException('Incomplete definition. "columns" required.');
         }
 
-        $chunks = ['CONSTRAINT'];
+        $chunks = [];
 
         if ($constraint->getName() !== '') {
+            $chunks[] = 'CONSTRAINT';
             $chunks[] = $constraint->getQuotedName($this);
         }
 
