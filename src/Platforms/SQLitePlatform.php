@@ -273,7 +273,7 @@ class SQLitePlatform extends AbstractPlatform
     {
         $queryFields = $this->getColumnDeclarationListSQL($columns);
 
-        if (isset($options['uniqueConstraints']) && ! empty($options['uniqueConstraints'])) {
+        if (! empty($options['uniqueConstraints'])) {
             foreach ($options['uniqueConstraints'] as $definition) {
                 $queryFields .= ', ' . $this->getUniqueConstraintDeclarationSQL($definition);
             }
@@ -300,13 +300,13 @@ class SQLitePlatform extends AbstractPlatform
             return $query;
         }
 
-        if (isset($options['indexes']) && ! empty($options['indexes'])) {
+        if (! empty($options['indexes'])) {
             foreach ($options['indexes'] as $indexDef) {
                 $query[] = $this->getCreateIndexSQL($indexDef, $name);
             }
         }
 
-        if (isset($options['unique']) && ! empty($options['unique'])) {
+        if (! empty($options['unique'])) {
             foreach ($options['unique'] as $indexDef) {
                 $query[] = $this->getCreateIndexSQL($indexDef, $name);
             }
