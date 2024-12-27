@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: shivammathur/setup-php@develop
         with:
-          php-version: 8.4
+          php-version: 5.4
           extensions: pdo_oci, oci8
       - run: php -v && php -m    
       - uses: mxschmitt/action-tmate@v3.19
