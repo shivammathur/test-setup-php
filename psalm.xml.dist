@@ -141,6 +141,12 @@
                 -->
                 <referencedMethod name="Doctrine\DBAL\Schema\AbstractAsset::getNamespaceName" />
                 <referencedMethod name="Doctrine\DBAL\Schema\AbstractAsset::isInDefaultNamespace" />
+
+                <!--
+                    https://github.com/doctrine/dbal/pull/6674
+                    TODO: remove in 5.0.0
+                -->
+                <referencedMethod name="Doctrine\DBAL\Schema\AbstractAsset::getQuotedName" />
             </errorLevel>
         </DeprecatedMethod>
         <DeprecatedProperty>
