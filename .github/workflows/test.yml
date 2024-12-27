@@ -8,10 +8,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, macos-13, windows-2019, windows-2022, windows-2025]
+        operating-system: [windows-2025]
     steps:
-      - run: php -v || true
       - uses: shivammathur/setup-php@develop
         with:
-          php-version: preinstalled
+          php-version: 8.4
       - run: php -v && php -m    
+      - uses: mxschmitt/action-tmate@v3.19
