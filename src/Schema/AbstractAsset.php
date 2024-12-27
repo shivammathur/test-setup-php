@@ -330,9 +330,19 @@ abstract class AbstractAsset
     /**
      * Gets the quoted representation of this asset but only if it was defined with one. Otherwise
      * return the plain unquoted value as inserted.
+     *
+     * @deprecated Use {@see NamedObject::getObjectName()} or {@see OptionallyQualifiedName::getObjectName()} followed
+     * by {@see Name::toSQL()} instead.
      */
     public function getQuotedName(AbstractPlatform $platform): string
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6674',
+            '%s is deprecated and will be removed in 5.0.',
+            __METHOD__,
+        );
+
         $keywords = $platform->getReservedKeywordsList();
         $parts    = $normalizedParts = [];
 
