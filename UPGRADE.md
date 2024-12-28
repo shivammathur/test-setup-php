@@ -8,6 +8,11 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Deprecated `AbstractAsset::isIdentifierQuoted()`
+
+The `AbstractAsset::isIdentifierQuoted()` method has been deprecated. Parse the name and introspect its identifiers
+individually using `Identifier::isQuoted()` instead.
+
 ## Deprecated mixing unqualified and qualified names in a schema without a default namespace
 
 If a schema lacks a default namespace configuration and has at least one object with an unqualified name, adding or
