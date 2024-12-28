@@ -228,7 +228,10 @@ class SchemaTest extends TestCase
 
     public function testHasNamespace(): void
     {
-        $schema = new Schema();
+        $schemaConfig = new SchemaConfig();
+        $schemaConfig->setName('public');
+
+        $schema = new Schema([], [], $schemaConfig);
 
         self::assertFalse($schema->hasNamespace('foo'));
 
@@ -283,7 +286,10 @@ class SchemaTest extends TestCase
 
     public function testCreatesNamespaceThroughAddingTableImplicitly(): void
     {
-        $schema = new Schema();
+        $schemaConfig = new SchemaConfig();
+        $schemaConfig->setName('public');
+
+        $schema = new Schema([], [], $schemaConfig);
 
         self::assertFalse($schema->hasNamespace('foo'));
 
@@ -310,7 +316,10 @@ class SchemaTest extends TestCase
 
     public function testCreatesNamespaceThroughAddingSequenceImplicitly(): void
     {
-        $schema = new Schema();
+        $schemaConfig = new SchemaConfig();
+        $schemaConfig->setName('public');
+
+        $schema = new Schema([], [], $schemaConfig);
 
         self::assertFalse($schema->hasNamespace('foo'));
 
@@ -333,6 +342,84 @@ class SchemaTest extends TestCase
 
         self::assertTrue($schema->hasNamespace('baz'));
         self::assertFalse($schema->hasNamespace('moo'));
+    }
+
+    public function testAddObjectWithQualifiedNameAfterUnqualifiedName(): void
+    {
+        $this->expectDeprecationWithIdentifier(
+            'https://github.com/doctrine/dbal/pull/6677#user-content-qualified-names',
+        );
+
+        new Schema([new Table('t'), new Table('public.t')]);
+    }
+
+    public function testAddObjectWithUnqualifiedNameAfterQualifiedName(): void
+    {
+        $this->expectDeprecationWithIdentifier(
+            'https://github.com/doctrine/dbal/pull/6677#user-content-unqualified-names',
+        );
+
+        new Schema([new Table('public.t'), new Table('t')]);
+    }
+
+    public function testReferenceByQualifiedNameAmongUnqualifiedNames(): void
+    {
+        $schema = new Schema([new Table('t')]);
+
+        $this->expectDeprecationWithIdentifier(
+            'https://github.com/doctrine/dbal/pull/6677#user-content-qualified-names',
+        );
+
+        $schema->hasTable('public.t');
+    }
+
+    public function testReferenceByUnqualifiedNameAmongQualifiedNames(): void
+    {
+        $schema = new Schema([new Table('public.t')]);
+
+        $this->expectDeprecationWithIdentifier(
+            'https://github.com/doctrine/dbal/pull/6677#user-content-unqualified-names',
+        );
+
+        $schema->hasTable('t');
+    }
+
+    public function testAddObjectWithQualifiedNameAfterUnqualifiedNameWithDefaultNamespace(): void
+    {
+        $schemaConfig = new SchemaConfig();
+        $schemaConfig->setName('public');
+
+        $this->expectNoDeprecationWithIdentifier(
+            'https://github.com/doctrine/dbal/pull/6677#user-content-qualified-names',
+        );
+
+        new Schema([new Table('t'), new Table('public.s')], [], $schemaConfig);
+    }
+
+    public function testAddObjectWithUnqualifiedNameAfterQualifiedNameWithDefaultNamespace(): void
+    {
+        $schemaConfig = new SchemaConfig();
+        $schemaConfig->setName('public');
+
+        $this->expectNoDeprecationWithIdentifier(
+            'https://github.com/doctrine/dbal/pull/6677#user-content-unqualified-names',
+        );
+
+        new Schema([new Table('public.t'), new Table('s')], [], $schemaConfig);
+    }
+
+    public function testReferencingByUnqualifiedNameAmongQualifiedNamesWithDefaultNamespace(): void
+    {
+        $schemaConfig = new SchemaConfig();
+        $schemaConfig->setName('public');
+
+        $schema = new Schema([new Table('public.t')], [], $schemaConfig);
+
+        self::assertTrue($schema->hasTable('t'));
+        self::assertTrue($schema->hasTable('public.t'));
+
+        self::assertFalse($schema->hasTable('s'));
+        self::assertFalse($schema->hasTable('public.s'));
     }
 
     public function testQualifiedName(): void

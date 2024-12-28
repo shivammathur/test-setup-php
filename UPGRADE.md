@@ -8,6 +8,17 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Deprecated mixing unqualified and qualified names in a schema without a default namespace
+
+If a schema lacks a default namespace configuration and has at least one object with an unqualified name, adding or
+referencing objects with qualified names is deprecated.
+
+If a schema lacks a default namespace configuration and has at least one object with a qualified name, adding or
+referencing objects with unqualified names is deprecated.
+
+Mixing unqualified and qualified names is permitted as long as the schema is configured to use a default namespace. In
+this case, the default namespace will be used to resolve unqualified names.
+
 ## Deprecated `AbstractAsset::getQuotedName()`
 
 The `AbstractAsset::getQuotedName()` method has been deprecated. Use `NamedObject::getObjectName()` or
