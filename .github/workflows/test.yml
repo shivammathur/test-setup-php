@@ -2,37 +2,16 @@ name: Runner Workflow
 on:
   push:
 jobs:
-  cache:
+  runner:
     runs-on: ${{ matrix.operating-system }}
-    env:
-      key: cache-v2-1632086186
-      extensions: apcu, calendar, ctype, curl, ds, dom, fileinfo, filter, iconv, intl, json, ldap, mbstring, mysqlnd, pdo, pdo_mysql, pdo_sqlite
     strategy:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-22.04]
-        php-versions: ['8.2']
     steps:
-      - name: Setup cache environment
-        id: extcache
-        uses: shivammathur/cache-extensions@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-          key: ${{ env.key }}
-
-      - name: Cache extensions
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.extcache.outputs.dir }}
-          key: ${{ steps.extcache.outputs.key }}
-          restore-keys: ${{ steps.extcache.outputs.key }}
 
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
+        uses: shivammathur/setup-php@v2
 
       - name: Testing PHP version
         run: php -v && php -m
