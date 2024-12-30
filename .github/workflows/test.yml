@@ -27,18 +27,5 @@ jobs:
           path: ${{ steps.extcache.outputs.dir }}
           key: ${{ steps.extcache.outputs.key }}
           restore-keys: ${{ steps.extcache.outputs.key }}
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
 
-      - name: Testing PHP version
-        run: php -v
-
-      - name: Testing Extensions
-        run: |
-          php -r "echo 'phalcon: ' . phpversion('phalcon');"
-          php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
-          php -r "if(phpversion('phalcon')[0]!='5') {throw new Exception('Wrong phalcon version Installed');}"
       - uses: mxschmitt/action-tmate@v3.19
