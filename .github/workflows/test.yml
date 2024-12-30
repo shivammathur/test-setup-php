@@ -6,7 +6,7 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     env:
       key: cache-v2-1632086186
-      extensions: apcu, calendar, ctype, curl, ds, dom, fileinfo, filter, gd, iconv, imap, intl, json, ldap, mbstring, mysqlnd, pdo, pdo_mysql, pdo_sqlite, redis, session, simplexml, tokenizer, xml, xmlreader, xmlwriter, zip, zlib
+      extensions: apcu, calendar, ctype, curl, ds, dom, fileinfo, filter, iconv, intl, json, ldap, mbstring, mysqlnd, pdo, pdo_mysql, pdo_sqlite
     strategy:
       fail-fast: false
       matrix:
