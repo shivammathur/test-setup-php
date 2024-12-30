@@ -2,7 +2,7 @@ name: Runner Workflow
 on:
   push:
 jobs:
-  phalcon5:
+  cache:
     runs-on: ${{ matrix.operating-system }}
     env:
       key: cache-v2-1632086186
@@ -28,4 +28,11 @@ jobs:
           key: ${{ steps.extcache.outputs.key }}
           restore-keys: ${{ steps.extcache.outputs.key }}
 
-      - uses: mxschmitt/action-tmate@v3.19
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.extensions }}
+
+      - name: Testing PHP version
+        run: php -v && php -m
