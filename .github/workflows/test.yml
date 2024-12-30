@@ -5,13 +5,13 @@ jobs:
   phalcon5:
     runs-on: ${{ matrix.operating-system }}
     env:
-      key: cache-v2-1632086184
-      extensions: phalcon5
+      key: cache-v2-1632086186
+      extensions: apcu, calendar, ctype, curl, ds, dom, fileinfo, filter, gd, iconv, imap, intl, json, ldap, mbstring, mysqlnd, pdo, pdo_mysql, pdo_sqlite, redis, session, simplexml, tokenizer, xml, xmlreader, xmlwriter, zip, zlib
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04]
-        php-versions: ['8.1']
+        operating-system: [ubuntu-24.04]
+        php-versions: ['8.2']
     steps:
       - name: Setup cache environment
         id: extcache
