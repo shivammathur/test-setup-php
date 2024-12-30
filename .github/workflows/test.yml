@@ -11,7 +11,9 @@ jobs:
     steps:
 
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
+        with:
+          tools: composer-dependency-analyser
 
       - name: Testing PHP version
         run: php -v && php -m
