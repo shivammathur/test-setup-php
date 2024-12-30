@@ -2,17 +2,43 @@ name: Runner Workflow
 on:
   push:
 jobs:
-  create:
-    name: Runner
+  phalcon5:
     runs-on: ${{ matrix.operating-system }}
+    env:
+      key: cache-v2-1632086184
+      extensions: phalcon5
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-2025]
+        operating-system: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04]
+        php-versions: ['8.1']
     steps:
-      - uses: shivammathur/setup-php@develop
+      - name: Setup cache environment
+        id: extcache
+        uses: shivammathur/cache-extensions@develop
         with:
-          php-version: 5.4
-          extensions: pdo_oci, oci8
-      - run: php -v && php -m    
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.extensions }}
+          key: ${{ env.key }}
+
+      - name: Cache extensions
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: ${{ env.extensions }}
+
+      - name: Testing PHP version
+        run: php -v
+
+      - name: Testing Extensions
+        run: |
+          php -r "echo 'phalcon: ' . phpversion('phalcon');"
+          php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
+          php -r "if(phpversion('phalcon')[0]!='5') {throw new Exception('Wrong phalcon version Installed');}"
       - uses: mxschmitt/action-tmate@v3.19
