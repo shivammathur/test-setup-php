@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04]
+        operating-system: [ubuntu-22.04]
         php-versions: ['8.2']
     steps:
       - name: Setup cache environment
