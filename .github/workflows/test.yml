@@ -7,13 +7,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-22.04]
+        operating-system: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        php: ['8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+        swoole: [5.1.6, 6.0.0]
     steps:
 
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          tools: composer-dependency-analyser
+          extensions: swoole-${{ matrix.swoole }}
 
       - name: Testing PHP version
-        run: php -v && php -m
+        run: |
+          php -r "echo phpversion('swoole') . PHP_EOL;" || true
+          php -v && php -m
