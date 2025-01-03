@@ -15,6 +15,7 @@ jobs:
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
+          php-version: ${{ matrix.php }}
           extensions: swoole-${{ matrix.swoole }}
 
       - name: Testing PHP version
