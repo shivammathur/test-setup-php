@@ -27,6 +27,7 @@ jobs:
           extensions: swoole-${{ matrix.swoole }}
         env:
           SWOOLE_LIBS: libbrotli-dev
+          SWOOLE_CONFIGURE_ARGS: --with-brotli-dir=/usr
 
       - name: Testing PHP version
         run: |
