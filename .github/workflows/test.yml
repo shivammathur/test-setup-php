@@ -17,6 +17,8 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: swoole-${{ matrix.swoole }}
+        env:
+          SWOOLE_LIBS: libbrotli-dev
 
       - name: Testing PHP version
         run: |
