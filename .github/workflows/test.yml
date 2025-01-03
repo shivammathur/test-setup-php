@@ -33,3 +33,6 @@ jobs:
           php -r "echo phpversion('swoole') . PHP_EOL;"          
           php -v && php -m
           php -r "if(phpversion('swoole') != '${{ matrix.swoole }}') { throw new Exception('Wrong swoole version'); }"
+
+      - uses: mxschmitt/action-tmate@v3.19    
+        if: ${{ failure() }}
