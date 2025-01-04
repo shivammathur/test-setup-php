@@ -5,16 +5,20 @@ declare(strict_types=1);
 namespace Doctrine\DBAL\Schema;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Schema\Exception\InvalidState;
 use Doctrine\DBAL\Schema\Name\Parser\UnqualifiedNameParser;
 use Doctrine\DBAL\Schema\Name\Parsers;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
+use Doctrine\Deprecations\Deprecation;
+use Throwable;
 
 use function array_keys;
 use function array_map;
+use function count;
 use function strtolower;
 
 /**
- * Class for a unique constraint.
+ * Represents unique constraint definition.
  *
  * @extends AbstractOptionallyNamedObject<UnqualifiedName>
  */
@@ -33,6 +37,15 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
      * @var array<string, true>
      */
     protected array $flags = [];
+
+    /**
+     * Names of the columns covered by the unique constraint.
+     *
+     * @var list<UnqualifiedName>
+     */
+    private array $columnNames = [];
+
+    private bool $failedToParseColumnNames = false;
 
     /**
      * @param array<string>        $columns
@@ -62,10 +75,24 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
     }
 
     /**
-     * Returns the names of the referencing table columns the constraint is associated with.
+     * Returns the names of the columns the constraint is associated with.
      *
-     * @return list<string>
+     * @return non-empty-list<UnqualifiedName>
      */
+    public function getColumnNames(): array
+    {
+        if ($this->failedToParseColumnNames) {
+            throw InvalidState::uniqueConstraintHasInvalidColumnNames($this->getName());
+        }
+
+        if (count($this->columnNames) < 1) {
+            throw InvalidState::uniqueConstraintHasEmptyColumnNames($this->getName());
+        }
+
+        return $this->columnNames;
+    }
+
+    /** @return list<string> */
     public function getColumns(): array
     {
         return array_keys($this->columns);
@@ -132,6 +159,14 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
     }
 
     /**
+     * Returns whether the unique constraint is clustered.
+     */
+    public function isClustered(): bool
+    {
+        return $this->hasFlag('clustered');
+    }
+
+    /**
      * Removes a flag.
      */
     public function removeFlag(string $flag): void
@@ -158,5 +193,20 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
     protected function addColumn(string $column): void
     {
         $this->columns[$column] = new Identifier($column);
+
+        $parser = Parsers::getUnqualifiedNameParser();
+
+        try {
+            $this->columnNames[] = $parser->parse($column);
+        } catch (Throwable $e) {
+            $this->failedToParseColumnNames = true;
+
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/XXXX',
+                'Unable to parse column name: %s.',
+                $e->getMessage(),
+            );
+        }
     }
 }
