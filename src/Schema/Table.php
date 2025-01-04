@@ -161,9 +161,9 @@ class Table extends AbstractNamedObject
     }
 
     /**
-     * @param array<int, string>   $columnNames
-     * @param array<int, string>   $flags
-     * @param array<string, mixed> $options
+     * @param non-empty-list<string> $columnNames
+     * @param array<int, string>     $flags
+     * @param array<string, mixed>   $options
      */
     public function addUniqueConstraint(
         array $columnNames,
@@ -876,9 +876,9 @@ class Table extends AbstractNamedObject
     }
 
     /**
-     * @param array<string|int, string> $columns
-     * @param array<int, string>        $flags
-     * @param array<string, mixed>      $options
+     * @param non-empty-list<string> $columns
+     * @param array<int, string>     $flags
+     * @param array<string, mixed>   $options
      */
     private function _createUniqueConstraint(
         array $columns,
@@ -1000,9 +1000,10 @@ class Table extends AbstractNamedObject
                 continue;
             }
 
+            /** @psalm-suppress InvalidArgument */
             $this->uniqueConstraints[$key] = new UniqueConstraint(
                 $constraint->getName(),
-                $columns,
+                $columns, // @phpstan-ignore argument.type
                 $constraint->getFlags(),
                 $constraint->getOptions(),
             );

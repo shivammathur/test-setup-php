@@ -21,11 +21,14 @@ use function strtolower;
  * Represents unique constraint definition.
  *
  * @extends AbstractOptionallyNamedObject<UnqualifiedName>
+ * @final This class will be made final in DBAL 5.0.
  */
 class UniqueConstraint extends AbstractOptionallyNamedObject
 {
     /**
      * Asset identifier instances of the column names the unique constraint is associated with.
+     *
+     * @deprecated
      *
      * @var array<string, Identifier>
      */
@@ -33,6 +36,8 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
 
     /**
      * Platform specific flags
+     *
+     * @deprecated
      *
      * @var array<string, true>
      */
@@ -48,9 +53,9 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
     private bool $failedToParseColumnNames = false;
 
     /**
-     * @param array<string>        $columns
-     * @param array<string>        $flags
-     * @param array<string, mixed> $options
+     * @param non-empty-list<string> $columns
+     * @param array<string>          $flags
+     * @param array<string, mixed>   $options
      */
     public function __construct(
         string $name,
@@ -58,6 +63,23 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
         array $flags = [],
         private readonly array $options = [],
     ) {
+        if (count($columns) < 1) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6685',
+                'Instantiation of a unique constraint without columns is deprecated.',
+            );
+        }
+
+        if (count($options) > 0) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6685',
+                'Using %s options is deprecated.',
+                self::class,
+            );
+        }
+
         parent::__construct($name);
 
         foreach ($columns as $column) {
@@ -92,14 +114,25 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
         return $this->columnNames;
     }
 
-    /** @return list<string> */
+    /**
+     * @deprecated Use {@see getColumnNames()} instead.
+     *
+     * @return list<string>
+     */
     public function getColumns(): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6685',
+            '%s is deprecated. Use getColumnNames() instead.',
+            __METHOD__,
+        );
+
         return array_keys($this->columns);
     }
 
     /**
-     * Returns the quoted representation of the column names the constraint is associated with.
+     * @deprecated Use {@see getColumnNames()} and {@see UnqualifiedName::toSQL()} instead.
      *
      * But only if they were defined with one or a column name
      * is a keyword reserved by the platform.
@@ -108,9 +141,18 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
      * @param AbstractPlatform $platform The platform to use for quotation.
      *
      * @return list<string>
+     *
+     * Returns the quoted representation of the column names the constraint is associated with.
      */
     public function getQuotedColumns(AbstractPlatform $platform): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6685',
+            '%s is deprecated. Use getColumnNames() and UnqualifiedName::toSQL() instead.',
+            __METHOD__,
+        );
+
         $columns = [];
 
         foreach ($this->columns as $column) {
@@ -120,24 +162,46 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
         return $columns;
     }
 
-    /** @return array<int, string> */
+    /**
+     * @deprecated Use {@see getColumnNames()} instead.
+     *
+     * @return array<int, string>
+     */
     public function getUnquotedColumns(): array
     {
+        Deprecation::trigger(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6685',
+            '%s is deprecated. Use getColumnNames() instead.',
+            __METHOD__,
+        );
+
         return array_map($this->trimQuotes(...), $this->getColumns());
     }
 
     /**
+     * @deprecated Use {@see isClustered()} instead.
+     *
      * Returns platform specific flags for unique constraint.
      *
      * @return array<int, string>
      */
     public function getFlags(): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6685',
+            '%s is deprecated. Use isClustered() instead.',
+            __METHOD__,
+        );
+
         return array_keys($this->flags);
     }
 
     /**
      * Adds flag for a unique constraint that translates to platform specific handling.
+     *
+     * @deprecated
      *
      * @return $this
      *
@@ -145,6 +209,13 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
      */
     public function addFlag(string $flag): self
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6685',
+            '%s is deprecated.',
+            __METHOD__,
+        );
+
         $this->flags[strtolower($flag)] = true;
 
         return $this;
@@ -152,9 +223,18 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
 
     /**
      * Does this unique constraint have a specific flag?
+     *
+     * @deprecated Use {@see isClustered()} instead.
      */
     public function hasFlag(string $flag): bool
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6685',
+            '%s is deprecated. Use isClustered() instead.',
+            __METHOD__,
+        );
+
         return isset($this->flags[strtolower($flag)]);
     }
 
@@ -168,30 +248,74 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
 
     /**
      * Removes a flag.
+     *
+     * @deprecated
      */
     public function removeFlag(string $flag): void
     {
+        Deprecation::trigger(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6685',
+            '%s is deprecated.',
+            __METHOD__,
+        );
+
         unset($this->flags[strtolower($flag)]);
     }
 
+    /** @deprecated */
     public function hasOption(string $name): bool
     {
+        Deprecation::trigger(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6685',
+            '%s is deprecated.',
+            __METHOD__,
+        );
+
         return isset($this->options[strtolower($name)]);
     }
 
+    /** @deprecated */
     public function getOption(string $name): mixed
     {
+        Deprecation::trigger(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6685',
+            '%s is deprecated.',
+            __METHOD__,
+        );
+
         return $this->options[strtolower($name)];
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @deprecated
+     *
+     * @return array<string, mixed>
+     */
     public function getOptions(): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6685',
+            '%s is deprecated.',
+            __METHOD__,
+        );
+
         return $this->options;
     }
 
+    /** @deprecated */
     protected function addColumn(string $column): void
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6685',
+            '%s is deprecated.',
+            __METHOD__,
+        );
+
         $this->columns[$column] = new Identifier($column);
 
         $parser = Parsers::getUnqualifiedNameParser();
@@ -203,7 +327,7 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
 
             Deprecation::trigger(
                 'doctrine/dbal',
-                'https://github.com/doctrine/dbal/pull/XXXX',
+                'https://github.com/doctrine/dbal/pull/6685',
                 'Unable to parse column name: %s.',
                 $e->getMessage(),
             );

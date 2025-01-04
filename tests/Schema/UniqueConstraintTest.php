@@ -35,6 +35,13 @@ class UniqueConstraintTest extends TestCase
         self::assertNull($uniqueConstraint->getObjectName());
     }
 
+    public function testInstantiateWithOptions(): void
+    {
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6685');
+
+        new UniqueConstraint('', ['user_id'], [], ['option' => 'value']);
+    }
+
     public function testGetColumnNames(): void
     {
         $uniqueConstraint = new UniqueConstraint('', ['user_id']);
@@ -46,7 +53,7 @@ class UniqueConstraintTest extends TestCase
 
     public function testInvalidColumnNames(): void
     {
-        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/XXXX');
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6685');
         $uniqueConstraint = new UniqueConstraint('', ['']);
 
         $this->expectException(InvalidState::class);
@@ -55,6 +62,12 @@ class UniqueConstraintTest extends TestCase
 
     public function testEmptyColumnNames(): void
     {
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6685');
+
+        /**
+         * @psalm-suppress ArgumentTypeCoercion
+         * @phpstan-ignore argument.type
+         */
         $uniqueConstraint = new UniqueConstraint('', []);
 
         $this->expectException(InvalidState::class);

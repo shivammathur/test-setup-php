@@ -153,6 +153,18 @@
                     TODO: remove in 5.0.0
                 -->
                 <referencedMethod name="Doctrine\DBAL\Schema\AbstractAsset::isIdentifierQuoted" />
+
+                <!--
+                    https://github.com/doctrine/dbal/pull/6685
+                    TODO: remove in 5.0.0
+                -->
+                <referencedMethod name="Doctrine\DBAL\Schema\UniqueConstraint::addColumn" />
+                <referencedMethod name="Doctrine\DBAL\Schema\UniqueConstraint::addFlag" />
+                <referencedMethod name="Doctrine\DBAL\Schema\UniqueConstraint::getColumns" />
+                <referencedMethod name="Doctrine\DBAL\Schema\UniqueConstraint::getFlags" />
+                <referencedMethod name="Doctrine\DBAL\Schema\UniqueConstraint::getOptions" />
+                <referencedMethod name="Doctrine\DBAL\Schema\UniqueConstraint::getQuotedColumns" />
+                <referencedMethod name="Doctrine\DBAL\Schema\UniqueConstraint::hasFlag" />
             </errorLevel>
         </DeprecatedMethod>
         <DeprecatedProperty>
@@ -175,6 +187,13 @@
                 -->
                 <referencedProperty name="Doctrine\DBAL\Schema\AbstractAsset::$_namespace" />
                 <referencedProperty name="Doctrine\DBAL\Schema\Table::$_namespace" />
+
+                <!--
+                    https://github.com/doctrine/dbal/pull/6685
+                    TODO: remove in 5.0.0
+                -->
+                <referencedProperty name="Doctrine\DBAL\Schema\UniqueConstraint::$columns" />
+                <referencedProperty name="Doctrine\DBAL\Schema\UniqueConstraint::$flags" />
             </errorLevel>
         </DeprecatedProperty>
         <DocblockTypeContradiction>
