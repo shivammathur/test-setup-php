@@ -20,17 +20,26 @@ class UniqueConstraintTest extends TestCase
     /** @throws Exception */
     public function testGetNonNullObjectName(): void
     {
-        $uniqueConstraint = new UniqueConstraint('uq_user_id', ['user_id']);
-        $name             = $uniqueConstraint->getObjectName();
+        $name = new UnqualifiedName(Identifier::unquoted('uq_user_id'));
 
-        self::assertNotNull($name);
-        self::assertEquals(Identifier::unquoted('uq_user_id'), $name->getIdentifier());
+        $uniqueConstraint = UniqueConstraint::editor()
+            ->setName($name)
+            ->setColumnNames(
+                new UnqualifiedName(Identifier::unquoted('user_id')),
+            )
+            ->create();
+
+        self::assertEquals($name, $uniqueConstraint->getObjectName());
     }
 
     /** @throws Exception */
     public function testGetNullObjectName(): void
     {
-        $uniqueConstraint = new UniqueConstraint('', ['user_id']);
+        $uniqueConstraint = UniqueConstraint::editor()
+            ->setColumnNames(
+                new UnqualifiedName(Identifier::unquoted('user_id')),
+            )
+            ->create();
 
         self::assertNull($uniqueConstraint->getObjectName());
     }

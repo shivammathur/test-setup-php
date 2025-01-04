@@ -53,6 +53,9 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
     private bool $failedToParseColumnNames = false;
 
     /**
+     * @internal Use {@link UniqueConstraint::editor()} to instantiate an editor and
+     *           {@link UniqueConstraintEditor::create()} to create a unique constraint.
+     *
      * @param non-empty-list<string> $columns
      * @param array<string>          $flags
      * @param array<string, mixed>   $options
@@ -201,7 +204,7 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
     /**
      * Adds flag for a unique constraint that translates to platform specific handling.
      *
-     * @deprecated
+     * @deprecated Use {@see UniqueConstraintEditor::setIsClustered()} instead.
      *
      * @return $this
      *
@@ -249,7 +252,7 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
     /**
      * Removes a flag.
      *
-     * @deprecated
+     * @deprecated Use {@see UniqueConstraintEditor::setIsClustered()} instead.
      */
     public function removeFlag(string $flag): void
     {
@@ -332,5 +335,24 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
                 $e->getMessage(),
             );
         }
+    }
+
+    /**
+     * Instantiates a new unique constraint editor.
+     */
+    public static function editor(): UniqueConstraintEditor
+    {
+        return new UniqueConstraintEditor();
+    }
+
+    /**
+     * Instantiates a new unique constraint editor and initializes it with the constraint's properties.
+     */
+    public function edit(): UniqueConstraintEditor
+    {
+        return self::editor()
+            ->setName($this->getObjectName())
+            ->setColumnNames(...$this->getColumnNames())
+            ->setIsClustered($this->isClustered());
     }
 }

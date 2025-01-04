@@ -25,7 +25,9 @@ The following `UniqueConstraint` methods and property have been deprecated:
 Additionally,
 1. Extending the `UniqueConstraint` class has been deprecated. Use the `UniqueConstraint` class directly.
 2. Instantiation of a unique constraint without columns is deprecated.
-3. The `AbstractPlatform::getUniqueConstraintDeclarationSQL()` method has been marked as internal.
+3. The `UniqueConstraint` constructor has been marked as internal. Use `UniqueConstraint::editor()` to instantiate an
+   editor and `UniqueConstraintEditor::create()` to create a unique constraint.
+4. The `AbstractPlatform::getUniqueConstraintDeclarationSQL()` method has been marked as internal.
 
 ## Deprecated `AbstractAsset::isIdentifierQuoted()`
 

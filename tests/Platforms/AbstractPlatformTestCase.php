@@ -14,6 +14,8 @@ use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\ComparatorConfig;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\Name\Identifier;
+use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Schema\UniqueConstraint;
@@ -188,7 +190,13 @@ abstract class AbstractPlatformTestCase extends TestCase
     {
         $where            = 'test IS NULL AND test2 IS NOT NULL';
         $indexDef         = new Index('name', ['test', 'test2'], false, false, [], ['where' => $where]);
-        $uniqueConstraint = new UniqueConstraint('name', ['test', 'test2'], [], []);
+        $uniqueConstraint = UniqueConstraint::editor()
+            ->setName(new UnqualifiedName(Identifier::unquoted('name')))
+            ->setColumnNames(
+                new UnqualifiedName(Identifier::unquoted('test')),
+                new UnqualifiedName(Identifier::unquoted('test2')),
+            )
+            ->create();
 
         $expected = ' WHERE ' . $where;
 
