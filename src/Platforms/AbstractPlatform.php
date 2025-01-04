@@ -1179,13 +1179,7 @@ abstract class AbstractPlatform
      */
     public function getCreateUniqueConstraintSQL(UniqueConstraint $constraint, string $tableName): string
     {
-        $sql = 'ALTER TABLE ' . $tableName . ' ADD';
-
-        if ($constraint->getName() !== '') {
-            $sql .= ' CONSTRAINT ' . $constraint->getQuotedName($this);
-        }
-
-        return $sql . ' UNIQUE (' . implode(', ', $constraint->getQuotedColumns($this)) . ')';
+        return 'ALTER TABLE ' . $tableName . ' ADD ' . $this->getUniqueConstraintDeclarationSQL($constraint);
     }
 
     /**
@@ -1563,7 +1557,7 @@ abstract class AbstractPlatform
      */
     public function getUniqueConstraintDeclarationSQL(UniqueConstraint $constraint): string
     {
-        $columns = $constraint->getColumns();
+        $columns = $constraint->getQuotedColumns($this);
 
         if (count($columns) === 0) {
             throw new InvalidArgumentException('Incomplete definition. "columns" required.');
