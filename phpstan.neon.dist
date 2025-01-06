@@ -1,6 +1,6 @@
 parameters:
     level: 8
-    phpVersion: 80300
+    phpVersion: 80402
     paths:
         - src
         - static-analysis
@@ -85,7 +85,7 @@ parameters:
 
         # PHPStan does not understand the array shapes returned by pg_fetch_*() methods.
         - '~^Parameter #1 \$row of method Doctrine\\DBAL\\Driver\\PgSQL\\Result\:\:mapAssociativeRow\(\) expects array<string, string\|null>, array<int\|string, string\|null> given\.$~'
-        - '~^Parameter #1 \$row of method Doctrine\\DBAL\\Driver\\PgSQL\\Result\:\:mapNumericRow\(\) expects array<int, string\|null>, array<int\|string, string\|null> given\.$~'
+        - '~^Parameter #1 \$row of method Doctrine\\DBAL\\Driver\\PgSQL\\Result\:\:mapNumericRow\(\) expects list<string\|null>, .* given\.$~'
 
         # https://github.com/phpstan/phpstan-src/pull/2224
         -
@@ -112,6 +112,15 @@ parameters:
             message: '#^Parameter \#2 \$callback of function array_reduce expects callable\(\(callable&TIn\)\|Closure\(mixed \$value\)\: mixed\|null, callable\(T\)\: T\)\: \(\(callable&TIn\)\|Closure\(mixed \$value\)\: mixed\|null\), Closure\(callable\|null, callable\)\: \(callable\(T\)\: T\) given\.$#'
             path: src/Portability/Converter.php
 
+        # The @throws annotations are part of a contract. Even if the default implementation doen't throw those
+        # exceptions, the child implementations might do so.
+        -
+            identifier: throws.unusedType
+            path: src/Types/Type.php
+
+        # We don't narrow the return type of lastInsertId() yet.
+        - '/^Method Doctrine\\DBAL\\Driver\\.+\\Connection\:\:lastInsertId\(\) never returns (int|false) so it can be removed from the return type\.$/'
+
         # Type check for legacy implementations of the Result interface
         # TODO: remove in 5.0.0
         - '~^Call to function method_exists\(\) with Doctrine\\DBAL\\Driver\\Result and ''getColumnName'' will always evaluate to true\.$~'
@@ -119,7 +128,12 @@ parameters:
         # PHPStan does not know the new PDO classes yet.
         - '~^Class Pdo\\\w+ not found\.$~'
         - '~^Call to an undefined static method PDO\:\:connect\(\)\.$~'
+
+        # TODO: Review these errors and fix them.
+        - identifier: phpunit.assertEquals
 includes:
+    - phpstan-baseline.neon
+    - phar://phpstan.phar/conf/bleedingEdge.neon
     - vendor/phpstan/phpstan-phpunit/extension.neon
     - vendor/phpstan/phpstan-phpunit/rules.neon
     - vendor/phpstan/phpstan-strict-rules/rules.neon
