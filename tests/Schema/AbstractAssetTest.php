@@ -94,6 +94,7 @@ class AbstractAssetTest extends TestCase
     {
         $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6610');
 
+        // @phpstan-ignore expr.resultUnused
         new /** @extends AbstractAsset<GenericName> */
         class extends AbstractAsset {
         };
@@ -103,6 +104,7 @@ class AbstractAssetTest extends TestCase
     {
         $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6592');
 
+        // @phpstan-ignore expr.resultUnused
         new /** @extends AbstractAsset<GenericName> */
         class ('foo') extends AbstractAsset {
         };

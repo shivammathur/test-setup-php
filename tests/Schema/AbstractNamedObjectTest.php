@@ -18,6 +18,7 @@ class AbstractNamedObjectTest extends TestCase
     {
         $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6646');
 
+        // @phpstan-ignore expr.resultUnused
         new /** @extends AbstractNamedObject<Name> */
         class ('') extends AbstractNamedObject {
         };
