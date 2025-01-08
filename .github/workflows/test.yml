@@ -13,3 +13,4 @@ jobs:
                coverage: 'none'
                extensions: 'json, mbstring, tokenizer'
                tools: 'composer-normalize:2.28.3, php-cs-fixer:3.66.2'
+         - run: php-cs-fixer -V      
