@@ -6,8 +6,10 @@ jobs:
     runs-on: ubuntu-latest
         
     steps:
-
-      - name: Testing
-        run: |
-          sudo systemctl start mysql.service
-          mysql -e "CREATE DATABASE laravel;" -uroot -proot
+         - name: 'Setup PHP'
+           uses: 'shivammathur/setup-php@v2'
+           with:
+               php-version: '8.4'
+               coverage: 'none'
+               extensions: 'json, mbstring, tokenizer'
+               tools: 'composer-normalize:2.28.3, php-cs-fixer:3.66.2'
