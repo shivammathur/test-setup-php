@@ -9,7 +9,7 @@ jobs:
          - name: 'Setup PHP'
            uses: 'shivammathur/setup-php@develop'
            with:
-               php-version: '8.4'
+               php-version: '8.2'
                coverage: 'none'
                extensions: 'json, mbstring, tokenizer'
                tools: 'composer-normalize:2.28.3, php-cs-fixer:3.66.2'
