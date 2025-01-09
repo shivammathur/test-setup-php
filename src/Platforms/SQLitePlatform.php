@@ -910,9 +910,9 @@ class SQLitePlatform extends AbstractPlatform
             }
 
             $foreignKeys[$key] = new ForeignKeyConstraint(
-                $localColumns,
+                $localColumns, // @phpstan-ignore argument.type
                 $constraint->getForeignTableName(),
-                $constraint->getForeignColumns(),
+                $constraint->getForeignColumns(), // @phpstan-ignore argument.type
                 $constraint->getName(),
                 $constraint->getOptions(),
             );

@@ -97,7 +97,7 @@ EOS);
             new ForeignKeyConstraint(
                 ['t2_id'],
                 't2',
-                [],
+                [], // @phpstan-ignore argument.type
                 '',
                 ['onUpdate' => 'NO ACTION', 'onDelete' => 'NO ACTION', 'deferrable' => false, 'deferred' => false],
             ),

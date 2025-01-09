@@ -120,6 +120,7 @@ class ForeignKeyConstraintTest extends TestCase
     /** @throws Exception */
     public function testEmptyReferencingColumnNames(): void
     {
+        /** @phpstan-ignore argument.type */
         $foreignKey = new ForeignKeyConstraint([], 'users', ['id']);
 
         $this->expectException(InvalidState::class);
@@ -149,6 +150,7 @@ class ForeignKeyConstraintTest extends TestCase
     /** @throws Exception */
     public function testEmptyReferencedColumnNames(): void
     {
+        /** @phpstan-ignore argument.type */
         $foreignKey = new ForeignKeyConstraint(['user_id'], 'users', []);
 
         $this->expectException(InvalidState::class);

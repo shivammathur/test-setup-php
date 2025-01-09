@@ -283,21 +283,6 @@ class TableTest extends TestCase
         new Table('foo', $columns, $indexes, [], []);
     }
 
-    public function testConstraints(): void
-    {
-        $constraint = new ForeignKeyConstraint([], 'foo', []);
-
-        $tableA      = new Table('foo', [], [], [], [$constraint]);
-        $constraints = $tableA->getForeignKeys();
-
-        self::assertCount(1, $constraints);
-
-        $constraintNames = array_keys($constraints);
-
-        self::assertSame('fk_8c736521', $constraintNames[0]);
-        self::assertSame($constraint, $constraints['fk_8c736521']);
-    }
-
     public function testOptions(): void
     {
         $table = new Table('foo', [], [], [], [], ['foo' => 'bar']);

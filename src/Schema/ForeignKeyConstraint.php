@@ -29,11 +29,14 @@ use function substr;
  * An abstraction class for a foreign key constraint.
  *
  * @extends AbstractOptionallyNamedObject<UnqualifiedName>
+ * @final This class will be made final in DBAL 5.0.
  */
 class ForeignKeyConstraint extends AbstractOptionallyNamedObject
 {
     /**
      * Asset identifier instances of the referencing table column names the foreign key constraint is associated with.
+     *
+     * @deprecated
      *
      * @var array<string, Identifier>
      */
@@ -41,15 +44,28 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
 
     /**
      * Table or asset identifier instance of the referenced table name the foreign key constraint is associated with.
+     *
+     * @deprecated
      */
     protected Identifier $_foreignTableName;
 
     /**
      * Asset identifier instances of the referenced table column names the foreign key constraint is associated with.
      *
+     * @deprecated
+     *
      * @var array<string, Identifier>
      */
     protected array $_foreignColumnNames;
+
+    /**
+     * Options associated with the foreign key constraint.
+     *
+     * @deprecated
+     *
+     * @var array<string, mixed>
+     */
+    protected array $options;
 
     /**
      * Referencing table column names the foreign key constraint is associated with.
@@ -105,21 +121,49 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
     private readonly ?Deferrability $deferrability;
 
     /**
-     * Initializes the foreign key constraint.
+     * @internal Use {@link ForeignKeyConstraint::editor()} to instantiate an editor and
+     *           {@link ForeignKeyConstraintEditor::create()} to create a foreign key constraint.
      *
-     * @param array<int, string>   $localColumnNames   Names of the referencing table columns.
-     * @param string               $foreignTableName   Referenced table.
-     * @param array<int, string>   $foreignColumnNames Names of the referenced table columns.
-     * @param string               $name               Name of the foreign key constraint.
-     * @param array<string, mixed> $options            Options associated with the foreign key constraint.
+     * @param non-empty-list<string> $localColumnNames   Names of the referencing table columns.
+     * @param string                 $foreignTableName   Referenced table.
+     * @param non-empty-list<string> $foreignColumnNames Names of the referenced table columns.
+     * @param string                 $name               Name of the foreign key constraint.
+     * @param array<string, mixed>   $options            Options associated with the foreign key constraint.
      */
     public function __construct(
         array $localColumnNames,
         string $foreignTableName,
         array $foreignColumnNames,
         string $name = '',
-        protected array $options = [],
+        array $options = [],
     ) {
+        $this->options = $options;
+
+        if (count($localColumnNames) < 1) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6728',
+                'Instantiation of a foreign key constraint without local column names is deprecated.',
+            );
+        }
+
+        if (count($foreignColumnNames) < 1) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6728',
+                'Instantiation of a foreign key constraint without foreign column names is deprecated.',
+            );
+        }
+
+        if (count($foreignColumnNames) !== count($localColumnNames)) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6728',
+                'Instantiation of a foreign key constraint with a different number of local and foreign'
+                    . ' column names is deprecated.',
+            );
+        }
+
         parent::__construct($name);
 
         $this->_localColumnNames = $this->createIdentifierMap($localColumnNames);
@@ -251,14 +295,25 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
      * Returns the names of the referencing table columns
      * the foreign key constraint is associated with.
      *
+     * @deprecated Use {@see getReferencingColumnNames()} instead.
+     *
      * @return array<int, string>
      */
     public function getLocalColumns(): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6728',
+            '%s is deprecated. Use getReferencingColumnNames() instead.',
+            __METHOD__,
+        );
+
         return array_keys($this->_localColumnNames);
     }
 
     /**
+     * @deprecated Use {@see getReferencingColumnNames()} and {@see UnqualifiedName::toSQL()} instead.
+     *
      * Returns the quoted representation of the referencing table column names
      * the foreign key constraint is associated with.
      *
@@ -272,6 +327,13 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
      */
     public function getQuotedLocalColumns(AbstractPlatform $platform): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6728',
+            '%s is deprecated. Use getReferencingColumnNames() and UnqualifiedName::toSQL() instead.',
+            __METHOD__,
+        );
+
         $columns = [];
 
         foreach ($this->_localColumnNames as $column) {
@@ -282,39 +344,75 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
     }
 
     /**
+     * @deprecated Use {@see getReferencingColumnNames()} instead.
+     *
      * Returns unquoted representation of local table column names for comparison with other FK
      *
      * @return array<int, string>
      */
     public function getUnquotedLocalColumns(): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6728',
+            '%s is deprecated. Use getReferencingColumnNames() instead.',
+            __METHOD__,
+        );
+
         return array_map($this->trimQuotes(...), $this->getLocalColumns());
     }
 
     /**
+     * @deprecated Use {@see getReferencedColumnNames()} instead.
+     *
      * Returns unquoted representation of foreign table column names for comparison with other FK
      *
      * @return array<int, string>
      */
     public function getUnquotedForeignColumns(): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6728',
+            '%s is deprecated. Use getReferencedColumnNames() instead.',
+            __METHOD__,
+        );
+
         return array_map($this->trimQuotes(...), $this->getForeignColumns());
     }
 
     /**
+     * @deprecated Use {@see getReferencedTableName()} instead.
+     *
      * Returns the name of the referenced table
      * the foreign key constraint is associated with.
      */
     public function getForeignTableName(): string
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6728',
+            '%s is deprecated. Use getReferencedTableName() instead.',
+            __METHOD__,
+        );
+
         return $this->_foreignTableName->getName();
     }
 
     /**
+     * @deprecated Use {@see getReferencedTableName()} instead.
+     *
      * Returns the non-schema qualified foreign table name.
      */
     public function getUnqualifiedForeignTableName(): string
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6728',
+            '%s is deprecated. Use getReferencedTableName() instead.',
+            __METHOD__,
+        );
+
         $name     = $this->_foreignTableName->getName();
         $position = strrpos($name, '.');
 
@@ -326,6 +424,8 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
     }
 
     /**
+     * @deprecated Use {@see getReferencedTableName()} and {@see OptionallyQualifiedName::toSQL()} instead.
+     *
      * Returns the quoted representation of the referenced table name
      * the foreign key constraint is associated with.
      *
@@ -337,10 +437,19 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
      */
     public function getQuotedForeignTableName(AbstractPlatform $platform): string
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6728',
+            '%s is deprecated. Use getReferencedTableName() and OptionallyQualifiedName::toSQL() instead.',
+            __METHOD__,
+        );
+
         return $this->_foreignTableName->getQuotedName($platform);
     }
 
     /**
+     * @deprecated Use {@see getReferencedColumnNames()} instead.
+     *
      * Returns the names of the referenced table columns
      * the foreign key constraint is associated with.
      *
@@ -348,10 +457,19 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
      */
     public function getForeignColumns(): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6728',
+            '%s is deprecated. Use getReferencedColumnNames() instead.',
+            __METHOD__,
+        );
+
         return array_keys($this->_foreignColumnNames);
     }
 
     /**
+     * @deprecated Use {@see getReferencedColumnNames()} and {@see UnqualifiedName::toSQL()} instead.
+     *
      * Returns the quoted representation of the referenced table column names
      * the foreign key constraint is associated with.
      *
@@ -365,6 +483,13 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
      */
     public function getQuotedForeignColumns(AbstractPlatform $platform): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6728',
+            '%s is deprecated. Use getReferencedColumnNames() and UnqualifiedName::toSQL() instead.',
+            __METHOD__,
+        );
+
         $columns = [];
 
         foreach ($this->_foreignColumnNames as $column) {
@@ -375,47 +500,98 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
     }
 
     /**
+     * @deprecated Use {@see getMatchType()}, {@see getOnDeleteAction()}, {@see getOnUpdateAction()} or
+     *             {@see getDeferrability()} instead.
+     *
      * Returns whether or not a given option
      * is associated with the foreign key constraint.
      */
     public function hasOption(string $name): bool
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6728',
+            '%s is deprecated. Use getMatchType(), getOnDeleteAction(), getOnUpdateAction() or'
+                . ' getDeferrability() instead.',
+            __METHOD__,
+        );
+
         return isset($this->options[$name]);
     }
 
     /**
+     * @deprecated Use {@see getMatchType()}, {@see getOnDeleteAction()}, {@see getOnUpdateAction()} or
+     *             {@see getDeferrability()} instead.
+     *
      * Returns an option associated with the foreign key constraint.
      */
     public function getOption(string $name): mixed
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6728',
+            '%s is deprecated. Use getMatchType(), getOnDeleteAction(), getOnUpdateAction() or'
+                . ' getDeferrability() instead.',
+            __METHOD__,
+        );
+
         return $this->options[$name];
     }
 
     /**
+     * @deprecated Use {@see getMatchType()}, {@see getOnDeleteAction()}, {@see getOnUpdateAction()} or
+     *             {@see getDeferrability()} instead.
+     *
      * Returns the options associated with the foreign key constraint.
      *
      * @return array<string, mixed>
      */
     public function getOptions(): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6728',
+            '%s is deprecated. Use getMatchType(), getOnDeleteAction(), getOnUpdateAction() or'
+                . ' getDeferrability() instead.',
+            __METHOD__,
+        );
+
         return $this->options;
     }
 
     /**
+     * @deprecated Use {@see getOnUpdateAction()} instead.
+     *
      * Returns the referential action for UPDATE operations
      * on the referenced table the foreign key constraint is associated with.
      */
     public function onUpdate(): ?string
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6728',
+            '%s is deprecated. Use getOnUpdateAction() instead.',
+            __METHOD__,
+        );
+
         return $this->onEvent('onUpdate');
     }
 
     /**
+     * @deprecated Use {@see getOnDeleteAction()} instead.
+     *
      * Returns the referential action for DELETE operations
      * on the referenced table the foreign key constraint is associated with.
      */
     public function onDelete(): ?string
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6728',
+            '%s is deprecated. Use getOnDeleteAction() instead.',
+            __METHOD__,
+        );
+
         return $this->onEvent('onDelete');
     }
 
@@ -554,6 +730,8 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
     }
 
     /**
+     * @deprecated
+     *
      * Checks whether this foreign key constraint intersects the given index columns.
      *
      * Returns `true` if at least one of this foreign key's local columns
@@ -563,6 +741,13 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
      */
     public function intersectsIndexColumns(Index $index): bool
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6728',
+            '%s is deprecated.',
+            __METHOD__,
+        );
+
         foreach ($index->getColumns() as $indexColumn) {
             foreach ($this->_localColumnNames as $localColumn) {
                 if (strtolower($indexColumn) === strtolower($localColumn->getName())) {
