@@ -5,12 +5,21 @@ declare(strict_types=1);
 namespace Doctrine\DBAL\Schema;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Schema\Exception\InvalidState;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint\Deferrability;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint\MatchType;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint\ReferentialAction;
+use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\Parser\UnqualifiedNameParser;
 use Doctrine\DBAL\Schema\Name\Parsers;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
+use Doctrine\Deprecations\Deprecation;
+use Throwable;
+use ValueError;
 
 use function array_keys;
 use function array_map;
+use function count;
 use function strrpos;
 use function strtolower;
 use function strtoupper;
@@ -43,6 +52,59 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
     protected array $_foreignColumnNames;
 
     /**
+     * Referencing table column names the foreign key constraint is associated with.
+     *
+     * An empty list indicates that an attempt to parse column names failed.
+     *
+     * @var list<UnqualifiedName>
+     */
+    private readonly array $referencingColumnNames;
+
+    /**
+     * Referenced table name the foreign key constraint is associated with.
+     *
+     * A null value indicates that an attempt to parse the table name failed.
+     */
+    private readonly ?OptionallyQualifiedName $referencedTableName;
+
+    /**
+     * Referenced table column names the foreign key constraint is associated with.
+     *
+     * An empty list indicates that an attempt to parse column names failed.
+     *
+     * @var list<UnqualifiedName>
+     */
+    private readonly array $referencedColumnNames;
+
+    /**
+     * The match type of the foreign key constraint.
+     *
+     * A null value indicates that an attempt to parse the match type failed.
+     */
+    private readonly ?MatchType $matchType;
+
+    /**
+     * The referential action for <code>UPDATE</code> operations.
+     *
+     * A null value indicates that an attempt to parse the referential action failed.
+     */
+    private readonly ?ReferentialAction $onUpdateAction;
+
+    /**
+     * The referential action for <code>DELETE</code> operations.
+     *
+     * A null value indicates that an attempt to parse the referential action failed.
+     */
+    private readonly ?ReferentialAction $onDeleteAction;
+
+    /**
+     * Indicates whether the constraint is or can be deferred.
+     *
+     * A null value indicates that the combination of the options that defined deferrability was invalid.
+     */
+    private readonly ?Deferrability $deferrability;
+
+    /**
      * Initializes the foreign key constraint.
      *
      * @param array<int, string>   $localColumnNames   Names of the referencing table columns.
@@ -64,11 +126,109 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
         $this->_foreignTableName = new Identifier($foreignTableName);
 
         $this->_foreignColumnNames = $this->createIdentifierMap($foreignColumnNames);
+
+        $this->referencingColumnNames = $this->parseColumnNames($localColumnNames);
+        $this->referencedTableName    = $this->parseReferencedTableName($foreignTableName);
+        $this->referencedColumnNames  = $this->parseColumnNames($foreignColumnNames);
+
+        $this->matchType      = $this->parseMatchType($options);
+        $this->onUpdateAction = $this->parseReferentialAction($options, 'onUpdate');
+        $this->onDeleteAction = $this->parseReferentialAction($options, 'onDelete');
+
+        $this->deferrability = $this->parseDeferrability($options);
     }
 
     protected function getNameParser(): UnqualifiedNameParser
     {
         return Parsers::getUnqualifiedNameParser();
+    }
+
+    /**
+     * Returns the names of the referencing table columns the foreign key constraint is associated with.
+     *
+     * @return non-empty-list<UnqualifiedName>
+     */
+    public function getReferencingColumnNames(): array
+    {
+        if (count($this->referencingColumnNames) < 1) {
+            throw InvalidState::foreignKeyConstraintHasInvalidReferencingColumnNames($this->getName());
+        }
+
+        return $this->referencingColumnNames;
+    }
+
+    /**
+     * Returns the names of the referenced table columns the foreign key constraint is associated with.
+     */
+    public function getReferencedTableName(): OptionallyQualifiedName
+    {
+        if ($this->referencedTableName === null) {
+            throw InvalidState::foreignKeyConstraintHasInvalidReferencedTableName($this->getName());
+        }
+
+        return $this->referencedTableName;
+    }
+
+    /**
+     * Returns the names of the referenced table columns the foreign key constraint is associated with.
+     *
+     * @return non-empty-list<UnqualifiedName>
+     */
+    public function getReferencedColumnNames(): array
+    {
+        if (count($this->referencedColumnNames) < 1) {
+            throw InvalidState::foreignKeyConstraintHasInvalidReferencedColumnNames($this->getName());
+        }
+
+        return $this->referencedColumnNames;
+    }
+
+    /**
+     * Returns the match type of the foreign key constraint.
+     */
+    public function getMatchType(): MatchType
+    {
+        if ($this->matchType === null) {
+            throw InvalidState::foreignKeyConstraintHasInvalidMatchType($this->getName());
+        }
+
+        return $this->matchType;
+    }
+
+    /**
+     * Returns the referential action for <code>UPDATE</code> operations.
+     */
+    public function getOnUpdateAction(): ReferentialAction
+    {
+        if ($this->onUpdateAction === null) {
+            throw InvalidState::foreignKeyConstraintHasInvalidOnUpdateAction($this->getName());
+        }
+
+        return $this->onUpdateAction;
+    }
+
+    /**
+     * Returns the referential action for <code>DELETE</code> operations.
+     */
+    public function getOnDeleteAction(): ReferentialAction
+    {
+        if ($this->onDeleteAction === null) {
+            throw InvalidState::foreignKeyConstraintHasInvalidOnDeleteAction($this->getName());
+        }
+
+        return $this->onDeleteAction;
+    }
+
+    /**
+     * Returns whether the constraint is or can be deferred.
+     */
+    public function getDeferrability(): Deferrability
+    {
+        if ($this->deferrability === null) {
+            throw InvalidState::foreignKeyConstraintHasInvalidDeferrability($this->getName());
+        }
+
+        return $this->deferrability;
     }
 
     /**
@@ -257,6 +417,121 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
     public function onDelete(): ?string
     {
         return $this->onEvent('onDelete');
+    }
+
+    private function parseReferencedTableName(string $referencedTableName): ?OptionallyQualifiedName
+    {
+        $parser = Parsers::getOptionallyQualifiedNameParser();
+
+        try {
+            return $parser->parse($referencedTableName);
+        } catch (Throwable $e) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6728',
+                'Unable to parse referenced table name: %s.',
+                $e->getMessage(),
+            );
+
+            return null;
+        }
+    }
+
+    /**
+     * @param list<string> $columnNames
+     *
+     * @return list<UnqualifiedName>
+     */
+    private function parseColumnNames(array $columnNames): array
+    {
+        $parser = Parsers::getUnqualifiedNameParser();
+
+        try {
+            return array_map(
+                static fn (string $columnName) => $parser->parse($columnName),
+                $columnNames,
+            );
+        } catch (Throwable $e) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6728',
+                'Unable to parse column name: %s.',
+                $e->getMessage(),
+            );
+
+            return [];
+        }
+    }
+
+    /** @param array<string, mixed> $options */
+    private function parseMatchType(array $options): ?MatchType
+    {
+        if (isset($options['match'])) {
+            try {
+                return MatchType::from(strtoupper($options['match']));
+            } catch (ValueError $e) {
+                Deprecation::trigger(
+                    'doctrine/dbal',
+                    'https://github.com/doctrine/dbal/pull/6728',
+                    'Unable to parse match type: %s.',
+                    $e->getMessage(),
+                );
+
+                return null;
+            }
+        }
+
+        return MatchType::SIMPLE;
+    }
+
+    /** @param array<string, mixed> $options */
+    private function parseReferentialAction(array $options, string $option): ?ReferentialAction
+    {
+        if (isset($options[$option])) {
+            try {
+                return ReferentialAction::from(strtoupper($options[$option]));
+            } catch (ValueError $e) {
+                Deprecation::trigger(
+                    'doctrine/dbal',
+                    'https://github.com/doctrine/dbal/pull/6728',
+                    'Unable to parse referential action: %s.',
+                    $e->getMessage(),
+                );
+
+                return null;
+            }
+        }
+
+        return ReferentialAction::NO_ACTION;
+    }
+
+    /** @param array<string, mixed> $options */
+    private function parseDeferrability(array $options): ?Deferrability
+    {
+        // a constraint is INITIALLY IMMEDIATE unless explicitly declared as INITIALLY DEFERRED
+        $isDeferred = isset($options['deferred']) && $options['deferred'] !== false;
+
+        // a constraint is NOT DEFERRABLE unless explicitly declared as DEFERRABLE or is explicitly or implicitly
+        // INITIALLY DEFERRED
+        $isDeferrable = isset($options['deferrable'])
+            ? $options['deferrable'] !== false
+            : $isDeferred;
+
+        if ($isDeferred) {
+            if (! $isDeferrable) {
+                Deprecation::trigger(
+                    'doctrine/dbal',
+                    'https://github.com/doctrine/dbal/pull/6728',
+                    'Declaring a constraint as NOT DEFERRABLE INITIALLY DEFERRED is deprecated',
+                );
+
+                return null;
+            }
+
+            return Deferrability::DEFERRED;
+        }
+
+        return $isDeferrable ? Deferrability::DEFERRABLE : Deferrability::NOT_DEFERRABLE;
     }
 
     /**
