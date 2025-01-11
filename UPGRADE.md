@@ -8,6 +8,11 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Deprecated usage of `RESTRICT` with Oracle and SQL Server
+
+Relying on automatic conversion of the `RESTRICT` constraint referential action to `NO ACTION` on Oracle and SQL Server
+is deprecated. Use `NO ACTION` instead.
+
 ## Deprecated introspection of SQLite foreign key constraints with omitted referenced column names in an incomplete schema
 
 If the referenced column names are omitted in a foreign key constraint declaration, it implies that the constraint
