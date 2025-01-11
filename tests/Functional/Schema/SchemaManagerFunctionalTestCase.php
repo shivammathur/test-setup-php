@@ -518,11 +518,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertEquals('CASCADE', $fkeys[0]->getOption('onDelete'));
     }
 
-    protected function getCreateExampleViewSql(): void
-    {
-        self::markTestSkipped('No Create Example View SQL was defined for this SchemaManager');
-    }
-
     public function testSchemaIntrospection(): void
     {
         $this->createTestTable('test_table');
@@ -964,22 +959,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $table->addColumn('test', Types::STRING, ['length' => 255]);
 
         return $table;
-    }
-
-    /** @param Table[] $tables */
-    protected function assertHasTable(array $tables): void
-    {
-        $foundTable = false;
-
-        foreach ($tables as $table) {
-            if (strtolower($table->getName()) !== 'list_tables_test_new_name') {
-                continue;
-            }
-
-            $foundTable = true;
-        }
-
-        self::assertTrue($foundTable, 'Could not find new table');
     }
 
     public function testListForeignKeysComposite(): void
