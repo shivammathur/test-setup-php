@@ -11,7 +11,6 @@ use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
-use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\Schema;
@@ -464,60 +463,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertEmpty($indexes);
     }
 
-    public function testCreateTableWithForeignKeys(): void
-    {
-        $tableB = $this->getTestTable('test_foreign');
-
-        $this->dropAndCreateTable($tableB);
-
-        $tableA = $this->getTestTable('test_create_fk');
-        $tableA->addForeignKeyConstraint('test_foreign', ['foreign_key_test'], ['id']);
-
-        $this->dropAndCreateTable($tableA);
-
-        $fkTable       = $this->schemaManager->introspectTable('test_create_fk');
-        $fkConstraints = $fkTable->getForeignKeys();
-        self::assertCount(1, $fkConstraints, "Table 'test_create_fk' has to have one foreign key.");
-
-        $fkConstraint = array_shift($fkConstraints);
-        self::assertNotNull($fkConstraint);
-        self::assertEquals('test_foreign', strtolower($fkConstraint->getForeignTableName()));
-        self::assertEquals(['foreign_key_test'], array_map('strtolower', $fkConstraint->getLocalColumns()));
-        self::assertEquals(['id'], array_map('strtolower', $fkConstraint->getForeignColumns()));
-
-        self::assertTrue($fkTable->columnsAreIndexed($fkConstraint->getLocalColumns()));
-    }
-
-    public function testListForeignKeys(): void
-    {
-        $this->createTestTable('test_create_fk1');
-        $this->createTestTable('test_create_fk2');
-
-        $foreignKey = new ForeignKeyConstraint(
-            ['foreign_key_test'],
-            'test_create_fk2',
-            ['id'],
-            'foreign_key_test_fk',
-            ['onDelete' => 'CASCADE'],
-        );
-
-        $this->schemaManager->createForeignKey($foreignKey, 'test_create_fk1');
-
-        $fkeys = $this->schemaManager->listTableForeignKeys('test_create_fk1');
-
-        self::assertCount(1, $fkeys, "Table 'test_create_fk1' has to have one foreign key.");
-
-        self::assertEquals(['foreign_key_test'], array_map('strtolower', $fkeys[0]->getLocalColumns()));
-        self::assertEquals(['id'], array_map('strtolower', $fkeys[0]->getForeignColumns()));
-        self::assertEquals('test_create_fk2', strtolower($fkeys[0]->getForeignTableName()));
-
-        if (! $fkeys[0]->hasOption('onDelete')) {
-            return;
-        }
-
-        self::assertEquals('CASCADE', $fkeys[0]->getOption('onDelete'));
-    }
-
     public function testSchemaIntrospection(): void
     {
         $this->createTestTable('test_table');
@@ -961,28 +906,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         return $table;
     }
 
-    public function testListForeignKeysComposite(): void
-    {
-        $this->schemaManager->createTable($this->getTestTable('test_create_fk3'));
-        $this->schemaManager->createTable($this->getTestCompositeTable('test_create_fk4'));
-
-        $foreignKey = new ForeignKeyConstraint(
-            ['id', 'foreign_key_test'],
-            'test_create_fk4',
-            ['id', 'other_id'],
-            'foreign_key_test_fk2',
-        );
-
-        $this->schemaManager->createForeignKey($foreignKey, 'test_create_fk3');
-
-        $fkeys = $this->schemaManager->listTableForeignKeys('test_create_fk3');
-
-        self::assertCount(1, $fkeys, "Table 'test_create_fk3' has to have one foreign key.");
-
-        self::assertEquals(['id', 'foreign_key_test'], array_map('strtolower', $fkeys[0]->getLocalColumns()));
-        self::assertEquals(['id', 'other_id'], array_map('strtolower', $fkeys[0]->getForeignColumns()));
-    }
-
     public function testColumnDefaultLifecycle(): void
     {
         $oldTable = new Table('col_def_lifecycle');
@@ -1272,50 +1195,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $table = $this->schemaManager->introspectTable('table_with_comment');
         self::assertSame('Foo with control characters \'\\', $table->getComment());
-    }
-
-    public function testCreatedCompositeForeignKeyOrderIsCorrectAfterCreation(): void
-    {
-        $foreignKey     = 'fk_test_order';
-        $localTable     = 'test_table_foreign';
-        $foreignTable   = 'test_table_local';
-        $localColumns   = ['child_col2', 'child_col1'];
-        $foreignColumns = ['col2', 'col1'];
-
-        $this->dropTableIfExists($foreignTable);
-        $this->dropTableIfExists($localTable);
-
-        $table = new Table($localTable);
-
-        $table->addColumn('col1', Types::INTEGER);
-        $table->addColumn('col2', Types::INTEGER);
-        $table->setPrimaryKey($foreignColumns);
-
-        $this->schemaManager->createTable($table);
-
-        $table = new Table($foreignTable);
-
-        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table->addColumn('child_col1', Types::INTEGER);
-        $table->addColumn('child_col2', Types::INTEGER);
-        $table->setPrimaryKey(['id']);
-
-        $table->addForeignKeyConstraint(
-            $localTable,
-            $localColumns,
-            $foreignColumns,
-            [],
-            $foreignKey,
-        );
-
-        $this->schemaManager->createTable($table);
-
-        $table = $this->schemaManager->introspectTable($foreignTable);
-
-        $foreignKey = $table->getForeignKey($foreignKey);
-
-        self::assertSame($localColumns, array_map('strtolower', $foreignKey->getLocalColumns()));
-        self::assertSame($foreignColumns, array_map('strtolower', $foreignKey->getForeignColumns()));
     }
 
     public function testIntrospectReservedKeywordTableViaListTableDetails(): void

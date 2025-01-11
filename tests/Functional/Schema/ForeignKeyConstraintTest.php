@@ -17,6 +17,7 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint\ReferentialAction;
 use Doctrine\DBAL\Schema\ForeignKeyConstraintEditor;
+use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
@@ -30,6 +31,7 @@ use function sprintf;
 
 final class ForeignKeyConstraintTest extends FunctionalTestCase
 {
+    /** @throws Exception */
     public function testUnnamedForeignKeyConstraint(): void
     {
         $this->dropTableIfExists('users');
@@ -62,6 +64,73 @@ final class ForeignKeyConstraintTest extends FunctionalTestCase
         $table = $sm->introspectTable('users');
 
         self::assertCount(2, $table->getForeignKeys());
+    }
+
+    /** @throws Exception */
+    public function testColumnIntrospection(): void
+    {
+        $this->dropTableIfExists('users');
+        $this->dropTableIfExists('roles');
+        $this->dropTableIfExists('teams');
+
+        $rolesName = OptionallyQualifiedName::unquoted('roles');
+        $teamsName = OptionallyQualifiedName::unquoted('teams');
+
+        $roles = new Table($rolesName->toString());
+        $roles->addColumn('r_id1', Types::INTEGER);
+        $roles->addColumn('r_id2', Types::INTEGER);
+        $roles->setPrimaryKey(['r_id1', 'r_id2']);
+
+        $teams = new Table($teamsName->toString());
+        $teams->addColumn('t_id1', Types::INTEGER);
+        $teams->addColumn('t_id2', Types::INTEGER);
+        $teams->setPrimaryKey(['t_id1', 't_id2']);
+
+        $foreignKeyConstraints = [
+            ForeignKeyConstraint::editor()
+                ->setName(UnqualifiedName::unquoted('fk_roles'))
+                ->setReferencingColumnNames(
+                    UnqualifiedName::unquoted('role_id1'),
+                    UnqualifiedName::unquoted('role_id2'),
+                )
+                ->setReferencedTableName($roles->getObjectName())
+                ->setReferencedColumnNames(
+                    UnqualifiedName::unquoted('r_id1'),
+                    UnqualifiedName::unquoted('r_id2'),
+                )
+                ->create(),
+            ForeignKeyConstraint::editor()
+                ->setName(UnqualifiedName::unquoted('fk_teams'))
+                ->setReferencingColumnNames(
+                    UnqualifiedName::unquoted('team_id1'),
+                    UnqualifiedName::unquoted('team_id2'),
+                )
+                ->setReferencedTableName($teams->getObjectName())
+                ->setReferencedColumnNames(
+                    UnqualifiedName::unquoted('t_id1'),
+                    UnqualifiedName::unquoted('t_id2'),
+                )
+                ->create(),
+        ];
+
+        $users = new Table('users', [
+            new Column('u_id1', Type::getType(Types::INTEGER)),
+            new Column('u_id2', Type::getType(Types::INTEGER)),
+            new Column('role_id1', Type::getType(Types::INTEGER)),
+            new Column('role_id2', Type::getType(Types::INTEGER)),
+            new Column('team_id1', Type::getType(Types::INTEGER)),
+            new Column('team_id2', Type::getType(Types::INTEGER)),
+        ], [], [], $foreignKeyConstraints);
+        $users->setPrimaryKey(['u_id1', 'u_id2']);
+
+        $sm = $this->connection->createSchemaManager();
+        $sm->createTable($roles);
+        $sm->createTable($teams);
+        $sm->createTable($users);
+
+        $table = $sm->introspectTable('users');
+
+        $this->assertForeignKeyConstraintListEquals($foreignKeyConstraints, array_values($table->getForeignKeys()));
     }
 
     /** @throws Exception */
