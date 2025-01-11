@@ -32,7 +32,9 @@ Additionally,
 2. Instantiation of a foreign key constraint without referencing or referenced columns is deprecated.
 3. Instantiation of a foreign key constraint with a non-matching number of referencing and referenced columns is
    deprecated.
-4. The `AbstractPlatform::getForeignKeyBaseDeclarationSQL()` method has been marked as internal.
+4. The `ForeignKeyConstraint` constructor has been marked as internal. Use `ForeignKeyConstraint::editor()` to
+   instantiate an editor and `ForeignKeyConstraintEditor::create()` to create a foreign key constraint.
+5. The `AbstractPlatform::getForeignKeyBaseDeclarationSQL()` method has been marked as internal.
 
 ## Deprecated `Table::columnsAreIndexed()`
 

@@ -758,4 +758,28 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
 
         return false;
     }
+
+    /**
+     * Instantiates a new foreign key constraint editor.
+     */
+    public static function editor(): ForeignKeyConstraintEditor
+    {
+        return new ForeignKeyConstraintEditor();
+    }
+
+    /**
+     * Instantiates a new foreign key constraint editor and initializes it with the constraint's properties.
+     */
+    public function edit(): ForeignKeyConstraintEditor
+    {
+        return self::editor()
+            ->setName($this->getObjectName())
+            ->setReferencedTableName($this->getReferencedTableName())
+            ->setReferencingColumnNames(...$this->getReferencingColumnNames())
+            ->setReferencedColumnNames(...$this->getReferencedColumnNames())
+            ->setMatchType($this->getMatchType())
+            ->setOnDeleteAction($this->getOnDeleteAction())
+            ->setOnUpdateAction($this->getOnUpdateAction())
+            ->setDeferrability($this->getDeferrability());
+    }
 }
