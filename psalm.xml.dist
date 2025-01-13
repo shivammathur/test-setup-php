@@ -165,6 +165,12 @@
                 <referencedMethod name="Doctrine\DBAL\Schema\UniqueConstraint::getOptions" />
                 <referencedMethod name="Doctrine\DBAL\Schema\UniqueConstraint::getQuotedColumns" />
                 <referencedMethod name="Doctrine\DBAL\Schema\UniqueConstraint::hasFlag" />
+
+                <!--
+                    https://github.com/doctrine/dbal/pull/6710
+                    TODO: remove in 5.0.0
+                -->
+                <referencedMethod name="Doctrine\DBAL\Schema\Table::columnsAreIndexed" />
             </errorLevel>
         </DeprecatedMethod>
         <DeprecatedProperty>
