@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Types;
 
+use ArgumentCountError;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Types\Exception\TypeArgumentCountError;
 
 use function array_map;
 
@@ -50,11 +52,6 @@ abstract class Type
     ];
 
     private static ?TypeRegistry $typeRegistry = null;
-
-    /** @internal Do not instantiate directly - use {@see Type::addType()} method instead. */
-    final public function __construct()
-    {
-    }
 
     /**
      * Converts a value from its PHP representation to its database representation
@@ -144,7 +141,11 @@ abstract class Type
      */
     public static function addType(string $name, string $className): void
     {
-        self::getTypeRegistry()->register($name, new $className());
+        try {
+            self::getTypeRegistry()->register($name, new $className());
+        } catch (ArgumentCountError $e) {
+            throw TypeArgumentCountError::new($name, $e);
+        }
     }
 
     /**

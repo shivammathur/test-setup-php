@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Tests\Types;
 
+use Doctrine\DBAL\Types\Exception\TypeArgumentCountError;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -38,5 +39,13 @@ class TypeTest extends TestCase
 
             yield [$constantValue];
         }
+    }
+
+    public function testAddTypeWhenTypeRequiresArguments(): void
+    {
+        self::expectException(TypeArgumentCountError::class);
+        self::expectExceptionMessage('To register "some_type" use Type::getTypeRegistry()->register instead.');
+
+        Type::addType('some_type', TypeWithConstructor::class);
     }
 }
