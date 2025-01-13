@@ -12,7 +12,6 @@ use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
-use Doctrine\DBAL\Schema\Name\Identifier;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\Schema;
@@ -439,10 +438,10 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $uniqueConstraint = UniqueConstraint::editor()
             ->setName(
-                new UnqualifiedName(Identifier::unquoted('uniq_id')),
+                UnqualifiedName::unquoted('uniq_id'),
             )
             ->setColumnNames(
-                new UnqualifiedName(Identifier::unquoted('id')),
+                UnqualifiedName::unquoted('id'),
             )
             ->create();
 

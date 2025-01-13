@@ -6,7 +6,6 @@ namespace Doctrine\DBAL\Tests\Schema;
 
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\Exception\InvalidState;
-use Doctrine\DBAL\Schema\Name\Identifier;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\UniqueConstraint;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
@@ -20,12 +19,12 @@ class UniqueConstraintTest extends TestCase
     /** @throws Exception */
     public function testGetNonNullObjectName(): void
     {
-        $name = new UnqualifiedName(Identifier::unquoted('uq_user_id'));
+        $name = UnqualifiedName::unquoted('uq_user_id');
 
         $uniqueConstraint = UniqueConstraint::editor()
             ->setName($name)
             ->setColumnNames(
-                new UnqualifiedName(Identifier::unquoted('user_id')),
+                UnqualifiedName::unquoted('user_id'),
             )
             ->create();
 
@@ -37,7 +36,7 @@ class UniqueConstraintTest extends TestCase
     {
         $uniqueConstraint = UniqueConstraint::editor()
             ->setColumnNames(
-                new UnqualifiedName(Identifier::unquoted('user_id')),
+                UnqualifiedName::unquoted('user_id'),
             )
             ->create();
 
@@ -56,7 +55,7 @@ class UniqueConstraintTest extends TestCase
         $uniqueConstraint = new UniqueConstraint('', ['user_id']);
 
         self::assertEquals([
-            new UnqualifiedName(Identifier::unquoted('user_id')),
+            UnqualifiedName::unquoted('user_id'),
         ], $uniqueConstraint->getColumnNames());
     }
 
