@@ -501,6 +501,15 @@ END;';
     {
         $action = strtoupper($action);
 
+        if ($action === 'RESTRICT') {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6707',
+                'Relying on automatic conversion of RESTRICT to NO ACTION for Oracle is deprecated.'
+                    . ' Use NO ACTION explicitly instead.',
+            );
+        }
+
         return match ($action) {
             'RESTRICT',
             'NO ACTION' => '',
