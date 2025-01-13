@@ -11,6 +11,7 @@ use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\Schema;
@@ -40,7 +41,6 @@ use function array_filter;
 use function array_keys;
 use function array_map;
 use function array_search;
-use function array_shift;
 use function array_values;
 use function count;
 use function current;
@@ -499,6 +499,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertTrue($schema->hasTable('table_to_create'));
     }
 
+    /** @throws Exception */
     public function testAlterTableScenario(): void
     {
         $this->createTestTable('alter_table');
@@ -587,10 +588,10 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         // don't check for index size here, some platforms automatically add indexes for foreign keys.
         self::assertFalse($table->hasIndex('bar_idx'));
 
-        $fks = $table->getForeignKeys();
+        /** @var list<ForeignKeyConstraint> $fks */
+        $fks = array_values($table->getForeignKeys());
         self::assertCount(1, $fks);
-        $foreignKey = array_shift($fks);
-        self::assertNotNull($foreignKey);
+        $foreignKey = $fks[0];
 
         self::assertEquals('alter_table_foreign', strtolower($foreignKey->getForeignTableName()));
         self::assertEquals(['foreign_key_test'], array_map('strtolower', $foreignKey->getLocalColumns()));
@@ -691,6 +692,7 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertFalse($inferredTable->getColumn('id')->getAutoincrement());
     }
 
+    /** @throws Exception */
     public function testUpdateSchemaWithForeignKeyRenaming(): void
     {
         $table = new Table('test_fk_base');
@@ -741,10 +743,10 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $table = $this->schemaManager->introspectTable('test_fk_rename');
         self::assertTrue($table->hasColumn('rename_fk_id'));
 
-        $foreignKeys = $table->getForeignKeys();
+        /** @var list<ForeignKeyConstraint> $foreignKeys */
+        $foreignKeys = array_values($table->getForeignKeys());
         self::assertCount(1, $foreignKeys);
-        $foreignKey = array_shift($foreignKeys);
-        self::assertNotNull($foreignKey);
+        $foreignKey = $foreignKeys[0];
 
         self::assertSame(['rename_fk_id'], array_map('strtolower', $foreignKey->getLocalColumns()));
     }
