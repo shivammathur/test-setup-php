@@ -8,6 +8,10 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Deprecated `Table::columnsAreIndexed()`
+
+The `Table::columnsAreIndexed()` method has been deprecated.
+
 ## Deprecated usage of `RESTRICT` with Oracle and SQL Server
 
 Relying on automatic conversion of the `RESTRICT` constraint referential action to `NO ACTION` on Oracle and SQL Server
