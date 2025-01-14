@@ -6,22 +6,5 @@ jobs:
     runs-on: ubuntu-24.04
         
     steps:
-        - name: 'Setup PHP'
-          uses: 'shivammathur/setup-php@develop'
-          with:
-               php-version: '8.2'
-               coverage: 'none'
-               extensions: imagick
         - run: |
-            php -r 'print_r(Imagick::queryFormats());'
-            php -v && php -m
-
-        - name: Install Imagick
-          run: |
-            sudo apt-get update
-            sudo apt-get install -y imagemagick
-            sudo apt-get install -y php-imagick
-            sudo phpenmod imagick
-        - run: |
-            php -r 'print_r(Imagick::queryFormats());'
-            php -v && php -m
+            sudo apt-get install libmagickcore-dev
