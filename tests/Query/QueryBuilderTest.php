@@ -23,7 +23,7 @@ use PHPUnit\Framework\TestCase;
 
 use function hex2bin;
 
-/** @psalm-import-type WrapperParameterTypeArray from Connection */
+/** @phpstan-import-type WrapperParameterTypeArray from Connection */
 class QueryBuilderTest extends TestCase
 {
     protected Connection&MockObject $conn;
@@ -938,7 +938,7 @@ class QueryBuilderTest extends TestCase
 
     /**
      * @param list<mixed>|array<string, mixed> $parameters
-     * @psalm-param WrapperParameterTypeArray $parameterTypes
+     * @phpstan-param WrapperParameterTypeArray $parameterTypes
      */
     #[DataProvider('fetchProvider')]
     public function testFetchAssociative(
@@ -972,7 +972,7 @@ class QueryBuilderTest extends TestCase
 
     /**
      * @param list<mixed>|array<string, mixed> $parameters
-     * @psalm-param WrapperParameterTypeArray $parameterTypes
+     * @phpstan-param WrapperParameterTypeArray $parameterTypes
      */
     #[DataProvider('fetchProvider')]
     public function testFetchNumeric(
@@ -1040,7 +1040,7 @@ class QueryBuilderTest extends TestCase
 
     /**
      * @param list<mixed>|array<string, mixed> $parameters
-     * @psalm-param WrapperParameterTypeArray $parameterTypes
+     * @phpstan-param WrapperParameterTypeArray $parameterTypes
      */
     #[DataProvider('fetchProvider')]
     public function testFetchAllAssociative(
@@ -1085,7 +1085,7 @@ class QueryBuilderTest extends TestCase
 
     /**
      * @param list<mixed>|array<string, mixed> $parameters
-     * @psalm-param WrapperParameterTypeArray $parameterTypes
+     * @phpstan-param WrapperParameterTypeArray $parameterTypes
      */
     #[DataProvider('fetchProvider')]
     public function testFetchAllNumeric(
@@ -1130,7 +1130,7 @@ class QueryBuilderTest extends TestCase
 
     /**
      * @param list<mixed>|array<string, mixed> $parameters
-     * @psalm-param WrapperParameterTypeArray $parameterTypes
+     * @phpstan-param WrapperParameterTypeArray $parameterTypes
      */
     #[DataProvider('fetchProvider')]
     public function testFetchAllKeyValue(
@@ -1175,7 +1175,7 @@ class QueryBuilderTest extends TestCase
 
     /**
      * @param list<mixed>|array<string, mixed> $parameters
-     * @psalm-param WrapperParameterTypeArray $parameterTypes
+     * @phpstan-param WrapperParameterTypeArray $parameterTypes
      */
     #[DataProvider('fetchProvider')]
     public function testFetchAllAssociativeIndexed(
@@ -1224,7 +1224,7 @@ class QueryBuilderTest extends TestCase
 
     /**
      * @param list<mixed>|array<string, mixed> $parameters
-     * @psalm-param WrapperParameterTypeArray $parameterTypes
+     * @phpstan-param WrapperParameterTypeArray $parameterTypes
      */
     #[DataProvider('fetchProvider')]
     public function testFetchFirstColumn(
@@ -1268,7 +1268,7 @@ class QueryBuilderTest extends TestCase
     }
 
     /**
-     * @psalm-return iterable<
+     * @phpstan-return iterable<
      *     string,
      *     array{
      *          string,
@@ -1320,7 +1320,7 @@ class QueryBuilderTest extends TestCase
 
     /**
      * @param list<mixed>|array<string, mixed> $params
-     * @psalm-param WrapperParameterTypeArray $types
+     * @phpstan-param WrapperParameterTypeArray $types
      */
     #[DataProvider('fetchProvider')]
     public function testExecuteQuery(
@@ -1353,7 +1353,7 @@ class QueryBuilderTest extends TestCase
 
     /**
      * @param list<mixed>|array<string, mixed> $parameters
-     * @psalm-param WrapperParameterTypeArray $parameterTypes
+     * @phpstan-param WrapperParameterTypeArray $parameterTypes
      */
     #[DataProvider('fetchProvider')]
     public function testExecuteQueryWithResultCaching(

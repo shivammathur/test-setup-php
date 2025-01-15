@@ -37,7 +37,7 @@ use function substr;
  * underlying database vendor. Limit queries and joins are NOT applied to UPDATE and DELETE statements
  * even if some vendors such as MySQL support it.
  *
- * @psalm-import-type WrapperParameterTypeArray from Connection
+ * @phpstan-import-type WrapperParameterTypeArray from Connection
  */
 class QueryBuilder
 {
@@ -56,7 +56,7 @@ class QueryBuilder
     /**
      * The parameter type map of this query.
      *
-     * @psalm-var WrapperParameterTypeArray
+     * @phpstan-var WrapperParameterTypeArray
      */
     private array $types = [];
 
@@ -388,7 +388,7 @@ class QueryBuilder
      * </code>
      *
      * @param list<mixed>|array<string, mixed> $params
-     * @psalm-param WrapperParameterTypeArray $types
+     * @phpstan-param WrapperParameterTypeArray $types
      *
      * @return $this This QueryBuilder instance.
      */
@@ -425,7 +425,7 @@ class QueryBuilder
     /**
      * Gets all defined query parameter types for the query being constructed indexed by parameter index or name.
      *
-     * @psalm-return WrapperParameterTypeArray
+     * @phpstan-return WrapperParameterTypeArray
      */
     public function getParameterTypes(): array
     {
