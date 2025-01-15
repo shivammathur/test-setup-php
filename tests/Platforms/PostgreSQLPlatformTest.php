@@ -53,7 +53,7 @@ class PostgreSQLPlatformTest extends AbstractPlatformTestCase
     protected function getGenerateForeignKeySql(): string
     {
         return 'ALTER TABLE test ADD FOREIGN KEY (fk_name_id)'
-            . ' REFERENCES other_table (id) NOT DEFERRABLE INITIALLY IMMEDIATE';
+            . ' REFERENCES other_table (id)';
     }
 
     public function testGeneratesForeignKeySqlForNonStandardOptions(): void
@@ -67,7 +67,7 @@ class PostgreSQLPlatformTest extends AbstractPlatformTestCase
         );
         self::assertEquals(
             'CONSTRAINT my_fk FOREIGN KEY (foreign_id)'
-            . ' REFERENCES my_table (id) ON DELETE CASCADE NOT DEFERRABLE INITIALLY IMMEDIATE',
+            . ' REFERENCES my_table (id) ON DELETE CASCADE',
             $this->platform->getForeignKeyDeclarationSQL($foreignKey),
         );
 
@@ -80,7 +80,7 @@ class PostgreSQLPlatformTest extends AbstractPlatformTestCase
         );
         self::assertEquals(
             'CONSTRAINT my_fk FOREIGN KEY (foreign_id)'
-            . ' REFERENCES my_table (id) MATCH full NOT DEFERRABLE INITIALLY IMMEDIATE',
+            . ' REFERENCES my_table (id) MATCH full',
             $this->platform->getForeignKeyDeclarationSQL($foreignKey),
         );
 
@@ -93,7 +93,7 @@ class PostgreSQLPlatformTest extends AbstractPlatformTestCase
         );
         self::assertEquals(
             'CONSTRAINT my_fk FOREIGN KEY (foreign_id)'
-            . ' REFERENCES my_table (id) DEFERRABLE INITIALLY IMMEDIATE',
+            . ' REFERENCES my_table (id) DEFERRABLE',
             $this->platform->getForeignKeyDeclarationSQL($foreignKey),
         );
 
@@ -106,7 +106,7 @@ class PostgreSQLPlatformTest extends AbstractPlatformTestCase
         );
         self::assertEquals(
             'CONSTRAINT my_fk FOREIGN KEY (foreign_id)'
-            . ' REFERENCES my_table (id) NOT DEFERRABLE INITIALLY DEFERRED',
+            . ' REFERENCES my_table (id) INITIALLY DEFERRED',
             $this->platform->getForeignKeyDeclarationSQL($foreignKey),
         );
 
@@ -119,7 +119,7 @@ class PostgreSQLPlatformTest extends AbstractPlatformTestCase
         );
         self::assertEquals(
             'CONSTRAINT my_fk FOREIGN KEY (foreign_id)'
-            . ' REFERENCES my_table (id) NOT DEFERRABLE INITIALLY DEFERRED',
+            . ' REFERENCES my_table (id) INITIALLY DEFERRED',
             $this->platform->getForeignKeyDeclarationSQL($foreignKey),
         );
 
@@ -366,11 +366,11 @@ class PostgreSQLPlatformTest extends AbstractPlatformTestCase
             . 'foo VARCHAR(255) NOT NULL, "bar" VARCHAR(255) NOT NULL)',
             'CREATE INDEX IDX_22660D028FD6E0FB8C736521D79164E3 ON "quoted" ("create", foo, "bar")',
             'ALTER TABLE "quoted" ADD CONSTRAINT FK_WITH_RESERVED_KEYWORD FOREIGN KEY ("create", foo, "bar")'
-            . ' REFERENCES "foreign" ("create", bar, "foo-bar") NOT DEFERRABLE INITIALLY IMMEDIATE',
+            . ' REFERENCES "foreign" ("create", bar, "foo-bar")',
             'ALTER TABLE "quoted" ADD CONSTRAINT FK_WITH_NON_RESERVED_KEYWORD FOREIGN KEY ("create", foo, "bar")'
-            . ' REFERENCES foo ("create", bar, "foo-bar") NOT DEFERRABLE INITIALLY IMMEDIATE',
+            . ' REFERENCES foo ("create", bar, "foo-bar")',
             'ALTER TABLE "quoted" ADD CONSTRAINT FK_WITH_INTENDED_QUOTATION FOREIGN KEY ("create", foo, "bar")'
-            . ' REFERENCES "foo-bar" ("create", bar, "foo-bar") NOT DEFERRABLE INITIALLY IMMEDIATE',
+            . ' REFERENCES "foo-bar" ("create", bar, "foo-bar")',
         ];
     }
 
