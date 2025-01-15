@@ -228,10 +228,10 @@ class DriverManagerTest extends TestCase
         }
     }
 
-    /** @phpstan-return array<string, array{
-     *                    string|array<string, mixed>,
-     *                    array<string, mixed>|false,
-     *                }>
+    /** @return array<string, array{
+     *            string|array<string, mixed>,
+     *            array<string, mixed>|false,
+     *        }>
      */
     public static function databaseUrlProvider(): iterable
     {
