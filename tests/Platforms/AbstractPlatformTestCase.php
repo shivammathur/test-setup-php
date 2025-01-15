@@ -146,7 +146,6 @@ abstract class AbstractPlatformTestCase extends TestCase
         $this->platform->registerDoctrineTypeMapping('foo', 'bar');
     }
 
-    /** @psalm-suppress DeprecatedConstant */
     public function testRegistersCommentedDoctrineMappingTypeImplicitly(): void
     {
         $type = Type::getType(Types::ARRAY);
@@ -480,7 +479,6 @@ abstract class AbstractPlatformTestCase extends TestCase
     {
         $table = new Table('test');
         $table->addColumn('id', Types::INTEGER);
-        /** @psalm-suppress DeprecatedConstant */
         $table->addColumn('data', Types::ARRAY);
         $table->setPrimaryKey(['id']);
 

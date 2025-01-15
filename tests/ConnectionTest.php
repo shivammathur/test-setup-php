@@ -973,7 +973,6 @@ class ConnectionTest extends TestCase
         (new Connection($connectionParams, $driver))->executeCacheQuery($query, [], [], $queryCacheProfileMock);
     }
 
-    /** @psalm-suppress InvalidArgument */
     public function testThrowsExceptionWhenInValidPlatformSpecified(): void
     {
         $connectionParams             = self::CONNECTION_PARAMS;

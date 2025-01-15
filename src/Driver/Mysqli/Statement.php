@@ -66,7 +66,7 @@ final class Statement implements StatementInterface
      *
      * {@inheritDoc}
      *
-     * @psalm-assert ParameterType::* $type
+     * @phpstan-assert ParameterType::* $type
      */
     public function bindParam($param, &$variable, $type = ParameterType::STRING, $length = null): bool
     {
@@ -101,7 +101,7 @@ final class Statement implements StatementInterface
     /**
      * {@inheritDoc}
      *
-     * @psalm-assert ParameterType::* $type
+     * @phpstan-assert ParameterType::* $type
      */
     public function bindValue($param, $value, $type = ParameterType::STRING): bool
     {
