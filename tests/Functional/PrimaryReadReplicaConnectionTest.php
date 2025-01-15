@@ -14,7 +14,7 @@ use function array_change_key_case;
 
 use const CASE_LOWER;
 
-/** @psalm-import-type Params from DriverManager */
+/** @phpstan-import-type Params from DriverManager */
 class PrimaryReadReplicaConnectionTest extends FunctionalTestCase
 {
     protected function setUp(): void
@@ -48,7 +48,7 @@ class PrimaryReadReplicaConnectionTest extends FunctionalTestCase
 
     /**
      * @return mixed[]
-     * @psalm-return Params
+     * @phpstan-return Params
      */
     private function createPrimaryReadReplicaConnectionParams(bool $keepReplica = false): array
     {

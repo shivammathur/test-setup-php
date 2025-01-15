@@ -796,7 +796,6 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
         ];
     }
 
-    /** @psalm-suppress DeprecatedConstant */
     public function testGeneratesCreateTableSQLWithColumnComments(): void
     {
         $table = new Table('mytable');
@@ -864,7 +863,6 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
         );
     }
 
-    /** @psalm-suppress DeprecatedConstant */
     public function testGeneratesAlterTableSQLWithColumnComments(): void
     {
         $table = new Table('mytable');
@@ -1838,7 +1836,7 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
     }
 
     /**
-     * @psalm-param LockMode::* $lockMode
+     * @phpstan-param LockMode::* $lockMode
      *
      * @dataProvider getLockHints
      */

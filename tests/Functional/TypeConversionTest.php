@@ -16,7 +16,6 @@ class TypeConversionTest extends FunctionalTestCase
 {
     private static int $typeCounter = 0;
 
-    /** @psalm-suppress DeprecatedConstant */
     protected function setUp(): void
     {
         $table = new Table('type_conversion');
@@ -145,11 +144,7 @@ class TypeConversionTest extends FunctionalTestCase
         self::assertEquals($originalValue, $dbValue);
     }
 
-    /**
-     * @return mixed[][]
-     *
-     * @psalm-suppress DeprecatedConstant
-     */
+    /** @return mixed[][] */
     public static function toArrayProvider(): iterable
     {
         return [
@@ -171,11 +166,7 @@ class TypeConversionTest extends FunctionalTestCase
         self::assertEquals($originalValue, $dbValue);
     }
 
-    /**
-     * @return mixed[][]
-     *
-     * @psalm-suppress DeprecatedConstant
-     */
+    /** @return mixed[][] */
     public static function toObjectProvider(): iterable
     {
         $obj      = new stdClass();
