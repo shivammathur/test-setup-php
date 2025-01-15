@@ -1009,7 +1009,6 @@ class Table extends AbstractNamedObject
                 continue;
             }
 
-            /** @psalm-suppress InvalidArgument */
             $this->uniqueConstraints[$key] = new UniqueConstraint(
                 $constraint->getName(),
                 $columns, // @phpstan-ignore argument.type

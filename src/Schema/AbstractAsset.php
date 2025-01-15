@@ -194,7 +194,6 @@ abstract class AbstractAsset
                 break;
 
             case 2:
-                /** @psalm-suppress PossiblyUndefinedArrayOffset */
                 [$namespace, $name] = $identifiers;
                 break;
 

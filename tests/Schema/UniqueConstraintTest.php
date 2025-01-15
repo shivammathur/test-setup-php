@@ -73,10 +73,7 @@ class UniqueConstraintTest extends TestCase
     {
         $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6685');
 
-        /**
-         * @psalm-suppress ArgumentTypeCoercion
-         * @phpstan-ignore argument.type
-         */
+        /** @phpstan-ignore argument.type */
         $uniqueConstraint = new UniqueConstraint('', []);
 
         $this->expectException(InvalidState::class);
