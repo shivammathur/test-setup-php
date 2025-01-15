@@ -53,8 +53,8 @@ use function sprintf;
  * A database abstraction-level connection that implements features like events, transaction isolation levels,
  * configuration, emulated transaction nesting, lazy connecting and more.
  *
- * @psalm-import-type Params from DriverManager
- * @psalm-consistent-constructor
+ * @phpstan-import-type Params from DriverManager
+ * @phpstan-consistent-constructor
  */
 class Connection
 {
@@ -136,7 +136,7 @@ class Connection
      * The parameters used during creation of the Connection instance.
      *
      * @var array<string,mixed>
-     * @psalm-var Params
+     * @phpstan-var Params
      */
     private array $params;
 
@@ -180,7 +180,7 @@ class Connection
      * @param Driver              $driver       The driver to use.
      * @param Configuration|null  $config       The configuration, optional.
      * @param EventManager|null   $eventManager The event manager, optional.
-     * @psalm-param Params $params
+     * @phpstan-param Params $params
      *
      * @throws Exception
      */
@@ -244,7 +244,7 @@ class Connection
      * @internal
      *
      * @return array<string,mixed>
-     * @psalm-return Params
+     * @phpstan-return Params
      */
     public function getParams()
     {
@@ -365,7 +365,7 @@ class Connection
      *
      * @throws Exception
      *
-     * @psalm-assert !null $this->_conn
+     * @phpstan-assert !null $this->_conn
      */
     public function connect()
     {

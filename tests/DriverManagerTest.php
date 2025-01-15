@@ -20,7 +20,7 @@ use function get_class;
 use function in_array;
 use function is_array;
 
-/** @psalm-import-type Params from DriverManager */
+/** @phpstan-import-type Params from DriverManager */
 class DriverManagerTest extends TestCase
 {
     use VerifyDeprecations;
@@ -32,7 +32,6 @@ class DriverManagerTest extends TestCase
         DriverManager::getConnection([]);
     }
 
-    /** @psalm-suppress InvalidArgument */
     public function testInvalidDriver(): void
     {
         $this->expectException(Exception::class);
@@ -83,10 +82,7 @@ class DriverManagerTest extends TestCase
         self::assertSame(Connection::class, get_class($conn));
     }
 
-    /**
-     * @requires extension pdo_sqlite
-     * @psalm-suppress InvalidArgument
-     */
+    /** @requires extension pdo_sqlite */
     public function testInvalidWrapperClass(): void
     {
         $this->expectException(Exception::class);
@@ -100,7 +96,6 @@ class DriverManagerTest extends TestCase
         DriverManager::getConnection($options);
     }
 
-    /** @psalm-suppress InvalidArgument */
     public function testInvalidDriverClass(): void
     {
         $this->expectException(Exception::class);
@@ -164,7 +159,7 @@ class DriverManagerTest extends TestCase
 
     /**
      * @param array<string, mixed>|false $expected
-     * @psalm-param Params|string $url
+     * @phpstan-param Params|string $url
      *
      * @dataProvider databaseUrlProvider
      */
@@ -233,7 +228,7 @@ class DriverManagerTest extends TestCase
         }
     }
 
-    /** @psalm-return array<string, array{
+    /** @phpstan-return array<string, array{
      *                    string|array<string, mixed>,
      *                    array<string, mixed>|false,
      *                }>

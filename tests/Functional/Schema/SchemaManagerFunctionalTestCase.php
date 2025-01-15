@@ -977,7 +977,6 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertEmpty($columns['id']->getComment());
     }
 
-    /** @psalm-suppress DeprecatedConstant */
     public function testAutomaticallyAppendCommentOnMarkedColumns(): void
     {
         $platform = $this->connection->getDatabasePlatform();

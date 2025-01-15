@@ -843,7 +843,6 @@ class AbstractComparatorTestCase extends TestCase
         self::assertSame($diff->changedSequences[0], $schemaNew->getSequence('baz'));
     }
 
-    /** @psalm-suppress NullArgument */
     public function testDiffDecimalWithNullPrecision(): void
     {
         $column = new Column('foo', Type::getType(Types::DECIMAL));
@@ -1204,7 +1203,6 @@ class AbstractComparatorTestCase extends TestCase
         ];
     }
 
-    /** @psalm-suppress DeprecatedConstant */
     public function testCompareCommentedTypes(): void
     {
         $column1 = new Column('foo', Type::getType(Types::ARRAY));

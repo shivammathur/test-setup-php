@@ -97,10 +97,7 @@ class SQLServerSchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertEquals(666, $columns['df_integer']->getDefault());
     }
 
-    /**
-     * @dataProvider columnCommentsProvider
-     * @psalm-suppress DeprecatedConstant
-     */
+    /** @dataProvider columnCommentsProvider */
     public function testColumnComments(string $tableName): void
     {
         $table = new Table($tableName);
