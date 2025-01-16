@@ -3,7 +3,7 @@ on:
   push:
 jobs:
   runner:
-    runs-on: ubuntu-22.04-arm
+    runs-on: ubuntu-latest-arm
         
     steps:
         - uses: mxschmitt/action-tmate@v3.19
