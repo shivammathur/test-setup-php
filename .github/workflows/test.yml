@@ -3,8 +3,9 @@ on:
   push:
 jobs:
   runner:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04-arm
         
     steps:
-        - run: |
-            sudo apt-get install libmagickcore-dev
+        - uses: mxschmitt/action-tmate@v3.19
+
+
