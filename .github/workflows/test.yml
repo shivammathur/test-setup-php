@@ -6,6 +6,11 @@ jobs:
     runs-on: ubuntu-latest-arm
         
     steps:
-        - uses: mxschmitt/action-tmate@v3.19
+        - uses: shivammathur/setup-php@v2
+          with:
+            php-version: 8.5
+          env:
+            use_package_cache: false
+        - run: php -v && php -m    
 
 
