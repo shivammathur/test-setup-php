@@ -5,7 +5,15 @@ on:
 jobs:
   runner:
     runs-on: macos-15
+    strategy:
+      matrix:
+        os: [macos-13, macos-14, macos-15]
     steps:
         - run: |
             arch
-            sudo mkdir -p /usr/local/lib
+        - uses: shivammathur/setup-php@develop
+          with:
+            php-version: 8.4
+            extensions: oci8, pdo_oci
+        - run: |
+            php -v && php -m
