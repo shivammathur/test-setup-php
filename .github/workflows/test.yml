@@ -3,7 +3,7 @@ on:
   push:
 jobs:
   runner:
-    runs-on: ubuntu-latest-arm
+    runs-on: ubuntu-20.04-arm
         
     steps:
         - uses: shivammathur/setup-php@v2
