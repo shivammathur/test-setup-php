@@ -4,7 +4,7 @@ on:
   push:
 jobs:
   runner:
-    runs-on: macos-15
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [macos-13, macos-14, macos-15]
