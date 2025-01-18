@@ -14,8 +14,6 @@ jobs:
           with:
             php-version: ${{ matrix.php }}
             coverage: none
-          env:
-            use_package_cache: false
         - run: |            
             arch && php -v && php -m
             php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"
