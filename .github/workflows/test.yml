@@ -8,11 +8,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, ubuntu-22.04-arm, ubuntu-24.04-arm]
-        php: [7.4, '8.0', 8.1, 8.2]
+        php: ['8.0', 8.1, 8.2]
     steps:
         - uses: shivammathur/setup-php@verbose
           with:
             php-version: ${{ matrix.php }}
+            coverage: none
         - run: |            
             arch && php -v && php -m
             php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"
