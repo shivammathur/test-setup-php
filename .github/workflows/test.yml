@@ -6,12 +6,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04-arm, ubuntu-24.04-arm]
-        php: [5.3, 5.4, 5.5, 5.6, '7.0', 7.1, 7.2, 7.3, 7.4, '8.0', 8.1, 8.2, 8.3, 8.4, 8.5]
+        os: [ubuntu-24.04, ubuntu-22.04-arm, ubuntu-24.04-arm]
+        php: ['8.0', 8.1]
     steps:
-        - uses: shivammathur/setup-php@v2
+        - uses: shivammathur/setup-php@verbose
           with:
             php-version: ${{ matrix.php }}
         - run: |            
             arch && php -v && php -m
             php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+            php -r "if(! extension_loaded('Zend OPcache')) {throw new Exception('Zend OPcache not found');}"
+            php -r "if(ini_get('opcache.enable')!=1) {throw new Exception('opcache.jit not set');}"
+            php -r "if(ini_get('opcache.jit_buffer_size')!='256M') {throw new Exception('opcache.jit_buffer_size not set');}"
+            php -r "if(ini_get('opcache.jit')!=1235) {throw new Exception('opcache.jit not set');}"
