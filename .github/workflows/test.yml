@@ -5,9 +5,10 @@ jobs:
   runner:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-24.04, ubuntu-22.04-arm, ubuntu-24.04-arm]
-        php: ['8.0', 8.1]
+        php: [7.4, '8.0', 8.1, 8.2]
     steps:
         - uses: shivammathur/setup-php@verbose
           with:
