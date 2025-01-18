@@ -4,15 +4,15 @@ on:
 jobs:
   ubuntu:
     name: ubuntu
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.containers != 'arm64v8/ubuntu:noble' && 'ubuntu-latest' || 'ubuntu-24.04-arm' }}
     container: ${{ matrix.containers }}
     strategy:
       fail-fast: false
       matrix:
         containers:
+          - "arm64v8/ubuntu:noble"
           - "ubuntu:noble"
           - "ubuntu:jammy"
-          - "ubuntu:focal"
           - "debian:bullseye"
           - "debian:bookworm"
           - "shivammathur/node:focal"

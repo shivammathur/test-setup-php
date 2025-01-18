@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, windows-latest, macos-13]
+        operating-system: [ubuntu-24.04-arm, ubuntu-24.04, ubuntu-22.04, windows-latest, macos-13]
         php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
         debug: [false, true]
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
@@ -44,7 +44,7 @@ jobs:
           php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
           php -r "if(get_cfg_var('dsn')!='mysql:host=127.0.0.1') {throw new Exception('dsn not added');}"
       - name: Test JIT
-        if: startsWith(matrix.php-versions, '8')
+        if: matrix.php-versions >= '8.1' || (matrix.php-versions >= '8.0' && !contains(matrix.operating-system, 'arm'))
         run: |
           php -r "if(! extension_loaded('Zend OPcache')) {throw new Exception('Zend OPcache not found');}"
           php -r "if(ini_get('opcache.enable')!=1) {throw new Exception('opcache.jit not set');}"
