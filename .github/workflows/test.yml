@@ -21,7 +21,7 @@ jobs:
             php -r "if(!gd_info()['AVIF Support']) { throw new Exception('AVIF not supported in gd'); }"            
             php -m
         - name: Test avif
-          shell: 'php {}'
+          shell: 'php {0}'
           run: |
             <?php
             $avifUrl = 'https://raw.githubusercontent.com/link-u/avif-sample-images/refs/heads/master/fox.profile0.10bpc.yuv420.avif';          
