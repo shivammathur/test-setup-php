@@ -207,6 +207,8 @@ class OracleSchemaManager extends AbstractSchemaManager
                     'foreign' => [],
                     'foreignTable' => $value['references_table'],
                     'onDelete' => $value['delete_rule'],
+                    'deferrable' => $value['deferrable'] === 'DEFERRABLE',
+                    'deferred' => $value['deferred'] === 'DEFERRED',
                 ];
             }
 
@@ -230,7 +232,11 @@ class OracleSchemaManager extends AbstractSchemaManager
             $this->getQuotedIdentifierName($tableForeignKey['foreignTable']),
             $tableForeignKey['foreign'],
             $this->getQuotedIdentifierName($tableForeignKey['name']),
-            ['onDelete' => $tableForeignKey['onDelete']],
+            [
+                'onDelete' => $tableForeignKey['onDelete'],
+                'deferrable' => $tableForeignKey['deferrable'],
+                'deferred' => $tableForeignKey['deferred'],
+            ],
         );
     }
 
@@ -412,6 +418,8 @@ SQL;
         $sql .= <<<'SQL'
                  ALC.CONSTRAINT_NAME,
                  ALC.DELETE_RULE,
+                 ALC.DEFERRABLE,
+                 ALC.DEFERRED,
                  COLS.COLUMN_NAME LOCAL_COLUMN,
                  COLS.POSITION,
                  R_COLS.TABLE_NAME REFERENCES_TABLE,
