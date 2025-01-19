@@ -9,9 +9,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04]
-        php: ['7.4', '8.0', 8.1, 8.2, 8.3, 8.4, 8.5]
+        php: [8.1, 8.2, 8.3, 8.4, 8.5]
     steps:
-        - run: sudo apt-get install libavif16 -y
+        #- run: sudo apt-get install libavif16 -y
         - uses: shivammathur/setup-php@v2
           with:
             php-version: ${{ matrix.php }}
@@ -20,3 +20,42 @@ jobs:
             php -r "if(!in_array('AVIF', Imagick::queryFormats())) { throw new Exception('AVIF not supported in imagick'); }"
             php -r "if(!gd_info()['AVIF Support']) { throw new Exception('AVIF not supported in gd'); }"            
             php -m
+        - name: Test avif
+          shell: 'php {}'
+          run: |
+            <?php
+            $avifUrl = 'https://raw.githubusercontent.com/link-u/avif-sample-images/refs/heads/master/fox.profile0.10bpc.yuv420.avif';          
+            $avifData = file_get_contents($avifUrl);
+            if ($avifData === false) {
+                die("Failed to download the image.\n");
+            }
+            $tempFile = tempnam(sys_get_temp_dir(), 'avif');
+            file_put_contents($tempFile, $avifData);
+
+            try {
+                $imagick = new Imagick($tempFile);
+                $imagick->thumbnailImage(200, 200, true, true); // Resize to 200x200 pixels, keeping aspect ratio
+                $imagick->setImageFormat('jpeg');
+                $imagick->writeImage('resized_imagick.jpeg');
+                $imagick->clear();
+                $imagick->destroy();
+            } catch (Exception $e) {
+                echo "Imagick error: " . $e->getMessage() . "\n";
+            }
+
+            $gdImage = imagecreatefromavif($tempFile);
+            if ($gdImage !== false) {
+                $resizedImage = imagescale($gdImage, 200, 200); // Resize to 200x200 pixels
+                if ($resizedImage !== false) {
+                    imagejpeg($resizedImage, 'resized_gd.jpeg'); // Save as JPEG
+                    imagedestroy($resizedImage);
+                }
+                imagedestroy($gdImage);
+            }
+        - name: Upload Resized Images
+          uses: actions/upload-artifact@v4
+          with:
+            name: resized-images
+            path: |
+              resized_imagick.jpeg
+              resized_gd.jpeg
