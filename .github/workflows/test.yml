@@ -30,17 +30,13 @@ jobs:
             }
             $tempFile = tempnam(sys_get_temp_dir(), 'avif');
             file_put_contents($tempFile, $avifData);
+            $imagick = new Imagick($tempFile);
+            $imagick->thumbnailImage(200, 200, true, true);
+            $imagick->setImageFormat('jpeg');
+            $imagick->writeImage('resized_imagick.jpeg');
+            $imagick->clear();
+            $imagick->destroy();
 
-            try {
-                $imagick = new Imagick($tempFile);
-                $imagick->thumbnailImage(200, 200, true, true);
-                $imagick->setImageFormat('jpeg');
-                $imagick->writeImage('resized_imagick.jpeg');
-                $imagick->clear();
-                $imagick->destroy();
-            } catch (Exception $e) {
-                echo "Imagick error: " . $e->getMessage() . "\n";
-            }
             if(gd_info()['AVIF Support']) {
               $gdImage = imagecreatefromavif($tempFile);
               if ($gdImage !== false) {
