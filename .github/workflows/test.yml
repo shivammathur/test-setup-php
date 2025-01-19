@@ -55,7 +55,7 @@ jobs:
         - name: Upload Resized Images
           uses: actions/upload-artifact@v4
           with:
-            name: resized-images
+            name: resized-images-${{ matrix.php }}
             path: |
               resized_imagick.jpeg
               resized_gd.jpeg
