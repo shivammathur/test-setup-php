@@ -15,5 +15,6 @@ jobs:
             php-version: ${{ matrix.php }}
         - run: |            
             php -v
-            php -r "print_r(Imagick::queryFormats());"
+            php -r "if(!in_array(Imagick::queryFormats(), 'AVIF') { throw new Exception('AVIF not supported in imagick'); }"
+            php -r "if(gd_info()['AVIF Support']) { throw new Exception('AVIF not supported in gd'); }"
             php -m
