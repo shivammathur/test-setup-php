@@ -11,7 +11,7 @@ jobs:
         os: [ubuntu-24.04]
         php: ['7.4', '8.0', 8.1, 8.2, 8.3, 8.4, 8.5]
     steps:
-        - run: sudo apt-get install libavif6 -y
+        - run: sudo apt-get install libavif16 -y
         - uses: shivammathur/setup-php@v2
           with:
             php-version: ${{ matrix.php }}
