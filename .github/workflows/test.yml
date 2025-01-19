@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, ubuntu-22.04]
-        php: [8.1, 8.2, 8.3, 8.4, 8.5]
+        php: [7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5]
     steps:
         - uses: shivammathur/setup-php@v2
           with:
@@ -17,7 +17,7 @@ jobs:
         - run: |            
             php -v
             php -r "if(!in_array('AVIF', Imagick::queryFormats())) { throw new Exception('AVIF not supported in imagick'); }"
-            php -r "if(!gd_info()['AVIF Support']) { throw new Exception('AVIF not supported in gd'); }"            
+            php -r "if(phpversion() >= '8.1' && !gd_info()['AVIF Support']) { throw new Exception('AVIF not supported in gd'); }"
             php -m
         - name: Test avif
           shell: 'php {0}'
@@ -41,20 +41,19 @@ jobs:
             } catch (Exception $e) {
                 echo "Imagick error: " . $e->getMessage() . "\n";
             }
-
-            $gdImage = imagecreatefromavif($tempFile);
-            if ($gdImage !== false) {
-                $resizedImage = imagescale($gdImage, 200, 200);
-                if ($resizedImage !== false) {
-                    imagejpeg($resizedImage, 'resized_gd.jpeg');
-                    imagedestroy($resizedImage);
-                }
-                imagedestroy($gdImage);
+            if(gd_info()['AVIF Support']) {
+              $gdImage = imagecreatefromavif($tempFile);
+              if ($gdImage !== false) {
+                  $resizedImage = imagescale($gdImage, 200, 200);
+                  if ($resizedImage !== false) {
+                      imagejpeg($resizedImage, 'resized_gd.jpeg');
+                      imagedestroy($resizedImage);
+                  }
+                  imagedestroy($gdImage);
+              }
             }
         - name: Upload Resized Images
           uses: actions/upload-artifact@v4
           with:
             name: resized-images-${{ matrix.php }}-${{ matrix.os }}
-            path: |
-              resized_imagick.jpeg
-              resized_gd.jpeg
+            path: '*.jpeg'
