@@ -11,11 +11,12 @@ jobs:
         os: [ubuntu-24.04]
         php: ['7.4', '8.0', 8.1, 8.2, 8.3, 8.4, 8.5]
     steps:
+        - run: sudo apt-get install libavif6 -y
         - uses: shivammathur/setup-php@v2
           with:
             php-version: ${{ matrix.php }}
         - run: |            
             php -v
             php -r "if(!in_array('AVIF', Imagick::queryFormats())) { throw new Exception('AVIF not supported in imagick'); }"
-            php -r "if(!gd_info()['AVIF Support']) { throw new Exception('AVIF not supported in gd'); }"
+            php -r "if(!gd_info()['AVIF Support']) { throw new Exception('AVIF not supported in gd'); }"            
             php -m
