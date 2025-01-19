@@ -17,5 +17,5 @@ jobs:
         - run: |            
             php -v
             php -r "if(!in_array('AVIF', Imagick::queryFormats())) { throw new Exception('AVIF not supported in imagick'); }"
-            php -r "if(gd_info()['AVIF Support']) { throw new Exception('AVIF not supported in gd'); }"
+            php -r "print_r(gd_info());"
             php -m
