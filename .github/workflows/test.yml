@@ -14,7 +14,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
       - run: php -v && php -m
-      - run: service php8.3-fpm status
+      - run: service php${{ matrix.php }}-fpm status
       - run: |
           ls /lib/systemd/system/php${{ matrix.php }}-fpm.service
           readlink -f /etc/systemd/system/php${{ matrix.php }}-fpm.service
