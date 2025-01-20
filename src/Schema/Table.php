@@ -412,9 +412,9 @@ class Table extends AbstractNamedObject
      *
      * Name is inferred from the local columns.
      *
-     * @param array<int, string>   $localColumnNames
-     * @param array<int, string>   $foreignColumnNames
-     * @param array<string, mixed> $options
+     * @param non-empty-list<string> $localColumnNames
+     * @param non-empty-list<string> $foreignColumnNames
+     * @param array<string, mixed>   $options
      */
     public function addForeignKeyConstraint(
         string $foreignTableName,
@@ -982,9 +982,9 @@ class Table extends AbstractNamedObject
             }
 
             $this->_fkConstraints[$key] = new ForeignKeyConstraint(
-                $localColumns,
+                $localColumns, // @phpstan-ignore argument.type
                 $constraint->getForeignTableName(),
-                $constraint->getForeignColumns(),
+                $constraint->getForeignColumns(), // @phpstan-ignore argument.type
                 $constraint->getName(),
                 $constraint->getOptions(),
             );

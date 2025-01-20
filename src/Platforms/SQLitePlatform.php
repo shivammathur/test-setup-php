@@ -254,18 +254,6 @@ class SQLitePlatform extends AbstractPlatform
         return ! empty($column['unsigned']) ? ' UNSIGNED' : '';
     }
 
-    /** @internal The method should be only used from within the {@see AbstractPlatform} class hierarchy. */
-    public function getForeignKeyDeclarationSQL(ForeignKeyConstraint $foreignKey): string
-    {
-        return parent::getForeignKeyDeclarationSQL(new ForeignKeyConstraint(
-            $foreignKey->getQuotedLocalColumns($this),
-            $foreignKey->getQuotedForeignTableName($this),
-            $foreignKey->getQuotedForeignColumns($this),
-            $foreignKey->getName(),
-            $foreignKey->getOptions(),
-        ));
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -922,9 +910,9 @@ class SQLitePlatform extends AbstractPlatform
             }
 
             $foreignKeys[$key] = new ForeignKeyConstraint(
-                $localColumns,
+                $localColumns, // @phpstan-ignore argument.type
                 $constraint->getForeignTableName(),
-                $constraint->getForeignColumns(),
+                $constraint->getForeignColumns(), // @phpstan-ignore argument.type
                 $constraint->getName(),
                 $constraint->getOptions(),
             );
