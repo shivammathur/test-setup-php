@@ -12,3 +12,6 @@ jobs:
           php-version: "8.3"
       - run: php -v && php -m
       - run: service php8.3-fpm status
+      - run: |
+          ls /lib/systemd/system/php8.3-fpm.service
+          readlink -f /etc/systemd/system/php8.3-fpm.service
