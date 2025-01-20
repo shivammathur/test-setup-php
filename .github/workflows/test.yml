@@ -4,12 +4,11 @@ on:
   push:
 jobs:
   runner:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
-      - run: ls -la /tmp
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "5.4"
-          extensions: xdebug, xhprof-0.9.4, mongodb, tideways_xhprof
+          php-version: "8.3"
       - run: php -v && php -m
+      - run: service php8.3-fpm status
