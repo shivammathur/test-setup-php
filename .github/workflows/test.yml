@@ -12,13 +12,15 @@ jobs:
         os: [ubuntu-24.04]
         php: [8.4]
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: shivammathur/setup-php@verbose
-        env:
-          runner: self-hosted
+      - run: ls -la /tmp
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
-          tools: composer:v2
-          extensions: curl, mbstring, gd, zip, sqlite
-          coverage: none
+          php-version: "5.4"
+          extensions: xdebug, xhprof, mongodb, tideways_xhprof
+      - run: ls -la /tmp
+      - continue-on-error: true
+        run: 
+          pecl install xhprof-0.9.4
+      - run: 
+          sudo pecl install xhprof-0.9.4
