@@ -11,10 +11,5 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "5.4"
-          extensions: xdebug, xhprof, mongodb, tideways_xhprof
-      - run: ls -la /tmp
-      - continue-on-error: true
-        run: 
-          pecl install xhprof-0.9.4
-      - run: 
-          sudo pecl install xhprof-0.9.4
+          extensions: xdebug, xhprof-0.9.4, mongodb, tideways_xhprof
+      - run: php -v && php -m
