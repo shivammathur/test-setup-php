@@ -483,17 +483,23 @@ END;';
     /** @internal The method should be only used from within the {@see AbstractPlatform} class hierarchy. */
     public function getAdvancedForeignKeyOptionsSQL(ForeignKeyConstraint $foreignKey): string
     {
-        $referentialAction = '';
+        $sql = '';
 
         if ($foreignKey->hasOption('onDelete')) {
             $referentialAction = $this->getForeignKeyReferentialActionSQL($foreignKey->getOption('onDelete'));
+
+            if ($referentialAction !== '') {
+                $sql .= ' ON DELETE ' . $referentialAction;
+            }
         }
 
-        if ($referentialAction !== '') {
-            return ' ON DELETE ' . $referentialAction;
+        $deferrabilitySQL = $this->getConstraintDeferrabilitySQL($foreignKey);
+
+        if ($deferrabilitySQL !== '') {
+            $sql .= $deferrabilitySQL;
         }
 
-        return '';
+        return $sql;
     }
 
     /** @internal The method should be only used from within the {@see AbstractPlatform} class hierarchy. */

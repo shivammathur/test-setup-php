@@ -311,7 +311,7 @@ final class ForeignKeyConstraintTest extends FunctionalTestCase
 
         if ($platform instanceof SQLitePlatform) {
             self::markTestIncomplete('Not all combinations of options are currently properly introspected on SQLite.');
-        } elseif (! $platform instanceof PostgreSQLPlatform) {
+        } elseif (! $platform instanceof PostgreSQLPlatform && ! $platform instanceof OraclePlatform) {
             self::markTestSkipped(sprintf(
                 'Introspection of constraint deferrability is currently unsupported on %s.',
                 $platform::class,
