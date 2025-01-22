@@ -8,6 +8,11 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Deprecated using `Schema` as `AbstractAsset`
+
+Relying on the `Schema` class extending `AbstractAsset` is deprecated. Use only the methods declared immediately in
+the `Schema` class itself.
+
 ## Deprecated `ForeignKeyConstraint` methods, properties and behavior
 
 The following `ForeignKeyConstraint` methods and property have been deprecated:
