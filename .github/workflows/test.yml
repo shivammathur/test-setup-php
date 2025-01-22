@@ -5,7 +5,7 @@ on:
 jobs:
   runner:
     runs-on: ${{ matrix.os }}
-    container: ubuntu:24.04
+    container: shivammathur/node:noble
     strategy:
       matrix:
         os: [ubuntu-22.04-arm, ubuntu-24.04-arm]
