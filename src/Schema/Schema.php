@@ -52,9 +52,9 @@ use function strtolower;
  * execute them. Only the queries for the currently connected database are
  * executed.
  *
- * @extends AbstractOptionallyNamedObject<UnqualifiedName>
+ * @extends AbstractAsset<UnqualifiedName>
  */
-class Schema extends AbstractOptionallyNamedObject
+class Schema extends AbstractAsset
 {
     /**
      * The namespaces in this schema.
@@ -108,6 +108,19 @@ class Schema extends AbstractOptionallyNamedObject
         foreach ($sequences as $sequence) {
             $this->_addSequence($sequence);
         }
+    }
+
+    /** @deprecated */
+    public function getName(): string
+    {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6734',
+            'Using Schema as AbstractAsset, including %s, is deprecated.',
+            __METHOD__,
+        );
+
+        return parent::getName();
     }
 
     protected function getNameParser(): UnqualifiedNameParser
@@ -259,8 +272,12 @@ class Schema extends AbstractOptionallyNamedObject
      */
     private function resolveName(AbstractAsset $asset): AbstractAsset
     {
-        if ($asset->getNamespaceName() === null && $this->name !== null) {
-            return new Identifier($this->getName() . '.' . $asset->getName());
+        if ($asset->getNamespaceName() === null) {
+            $defaultNamespaceName = $this->getName();
+
+            if ($defaultNamespaceName !== '') {
+                return new Identifier($defaultNamespaceName . '.' . $asset->getName());
+            }
         }
 
         return $asset;
