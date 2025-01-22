@@ -10,4 +10,4 @@ jobs:
       matrix:
         os: [ubuntu-22.04-arm, ubuntu-24.04-arm]
     steps:
-      - run: php -v && php -m
+      - run: arch
