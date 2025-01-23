@@ -371,13 +371,12 @@ class Schema extends AbstractAsset
      */
     public function createTable(string $name): Table
     {
-        $table = Table::editor()
-            ->setName($name)
-            ->setOptions($this->_schemaConfig->getDefaultTableOptions())
-            ->setConfiguration($this->_schemaConfig->toTableConfiguration())
-            ->create();
-
+        $table = new Table($name, [], [], [], [], [], $this->_schemaConfig->toTableConfiguration());
         $this->_addTable($table);
+
+        foreach ($this->_schemaConfig->getDefaultTableOptions() as $option => $value) {
+            $table->addOption($option, $value);
+        }
 
         return $table;
     }
