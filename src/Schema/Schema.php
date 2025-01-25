@@ -128,6 +128,16 @@ class Schema extends AbstractAsset
         return Parsers::getUnqualifiedNameParser();
     }
 
+    /**
+     * The object representation of the name isn't used because {@see Schema} is not an {@see AbstractAsset}.
+     *
+     * This method implements the abstract method in the parent class and will be removed once {@see Schema} stops
+     * extending {@see AbstractAsset}.
+     */
+    protected function setName(?Name $name): void
+    {
+    }
+
     protected function _addTable(Table $table): void
     {
         $resolvedName = $this->resolveName($table);
