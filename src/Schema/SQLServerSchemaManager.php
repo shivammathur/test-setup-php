@@ -240,7 +240,7 @@ SQL,
      */
     protected function _getPortableTableDefinition(array $table): string
     {
-        if ($table['schema_name'] !== 'dbo') {
+        if ($table['schema_name'] !== $this->getCurrentSchemaName()) {
             return $table['schema_name'] . '.' . $table['table_name'];
         }
 
@@ -273,15 +273,6 @@ SQL,
         );
     }
 
-    public function createSchemaConfig(): SchemaConfig
-    {
-        $config = parent::createSchemaConfig();
-
-        $config->setName($this->getCurrentSchemaName());
-
-        return $config;
-    }
-
     /** @throws Exception */
     private function getDatabaseCollation(): string
     {
@@ -300,8 +291,7 @@ SQL,
         return $this->databaseCollation;
     }
 
-    /** @throws Exception */
-    private function getCurrentSchemaName(): ?string
+    protected function determineCurrentSchemaName(): ?string
     {
         $schemaName = $this->connection->fetchOne('SELECT SCHEMA_NAME()');
         assert($schemaName !== false);

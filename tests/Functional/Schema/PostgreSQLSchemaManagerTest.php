@@ -608,6 +608,12 @@ SQL;
         ));
         self::assertSame(1, $partitionsCount);
     }
+
+    /** @link https://www.postgresql.org/docs/current/ddl-schemas.html#DDL-SCHEMAS-PUBLIC */
+    public function getExpectedDefaultSchemaName(): string
+    {
+        return 'public';
+    }
 }
 
 class MoneyType extends Type

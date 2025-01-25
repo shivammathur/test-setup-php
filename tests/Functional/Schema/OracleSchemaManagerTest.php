@@ -278,4 +278,9 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
         $columns = $schemaManager->listTableColumns('"tester"');
         self::assertCount(1, $columns);
     }
+
+    public function getExpectedDefaultSchemaName(): ?string
+    {
+        return null;
+    }
 }
