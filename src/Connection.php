@@ -563,7 +563,10 @@ class Connection implements ServerVersionProvider
         Deprecation::trigger(
             'doctrine/dbal',
             'https://github.com/doctrine/dbal/pull/6590',
-            'Use quoteSingleIdentifier() individually for each part of a qualified name instead.',
+            <<<'DEPRECATION'
+            Method %s is deprecated and will be removed in 5.0.
+            Use quoteSingleIdentifier() individually for each part of a qualified name instead.
+            DEPRECATION,
             __METHOD__,
         );
 
