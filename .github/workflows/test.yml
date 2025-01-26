@@ -10,5 +10,5 @@ jobs:
         os: [windows-latest]
     steps:
       - run: |
-          Get-CimInstance -ClassName Win32_Processor | Select-Object -Property Name
+          wmic cpu get caption
 
