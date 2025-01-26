@@ -10,6 +10,5 @@ jobs:
         os: [windows-latest]
     steps:
       - run: |
-          $cpuInfo = Get-CimInstance Win32_Processor
-          $cpuInfo | $_.ExtensionData.InstructionSet
+          Get-CimInstance Win32_Processor
 
