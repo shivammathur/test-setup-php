@@ -11,5 +11,5 @@ jobs:
     steps:
       - run: |
           $cpuInfo = Get-CimInstance Win32_Processor
-          $cpuInfo | Select-Object Name, Caption, DeviceID, NumberOfCores, NumberOfLogicalProcessors, @{Name="AVX2 Supported"; Expression={$_.ExtensionData.InstructionSet.includes(190)}}, @{Name="AVX512 Supported"; Expression={$_.ExtensionData.InstructionSet.includes(205)}}
+          $cpuInfo | $_.ExtensionData.InstructionSet
 
