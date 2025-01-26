@@ -10,5 +10,5 @@ jobs:
         os: [windows-latest]
     steps:
       - run: |
-          wmic cpu get name, caption, DeviceID, NumberOfCores, NumberOfLogicalProcessors, Architecture, OtherFamilyDescription, SecondLevelAddressTranslationExtensions, VirtualizationFirmwareEnabled, VMMonitorModeExtensions, LargePageExtensions
+          Get-CimInstance -ClassName Win32_Processor | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors, Architecture, VirtualizationFirmwareEnabled, SecondLevelAddressTranslationExtensions, VMMonitorModeExtensions
 
