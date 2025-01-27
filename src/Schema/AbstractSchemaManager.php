@@ -120,8 +120,7 @@ abstract class AbstractSchemaManager
         return $this->_getPortableTableColumnList(
             $table,
             $database,
-            $this->selectTableColumns($database, $this->normalizeName($table))
-                ->fetchAllAssociative(),
+            $this->fetchTableColumns($database, $this->normalizeName($table)),
         );
     }
 
@@ -140,10 +139,7 @@ abstract class AbstractSchemaManager
         $table    = $this->normalizeName($table);
 
         return $this->_getPortableTableIndexesList(
-            $this->selectIndexColumns(
-                $database,
-                $table,
-            )->fetchAllAssociative(),
+            $this->fetchIndexColumns($database, $table),
             $table,
         );
     }
@@ -330,6 +326,45 @@ abstract class AbstractSchemaManager
     abstract protected function selectForeignKeyColumns(string $databaseName, ?string $tableName = null): Result;
 
     /**
+     * Fetches definitions of table columns in the specified database. If the table name is specified, narrows down
+     * the selection to this table.
+     *
+     * @return list<array<string, mixed>>
+     *
+     * @throws Exception
+     */
+    protected function fetchTableColumns(string $databaseName, ?string $tableName = null): array
+    {
+        return $this->selectTableColumns($databaseName, $tableName)->fetchAllAssociative();
+    }
+
+    /**
+     * Fetches definitions of index columns in the specified database. If the table name is specified, narrows down
+     * the selection to this table.
+     *
+     * @return list<array<string, mixed>>
+     *
+     * @throws Exception
+     */
+    protected function fetchIndexColumns(string $databaseName, ?string $tableName = null): array
+    {
+        return $this->selectIndexColumns($databaseName, $tableName)->fetchAllAssociative();
+    }
+
+    /**
+     * Fetches definitions of foreign key columns in the specified database. If the table name is specified,
+     * narrows down the selection to this table.
+     *
+     * @return list<array<string, mixed>>
+     *
+     * @throws Exception
+     */
+    protected function fetchForeignKeyColumns(string $databaseName, ?string $tableName = null): array
+    {
+        return $this->selectForeignKeyColumns($databaseName, $tableName)->fetchAllAssociative();
+    }
+
+    /**
      * Fetches definitions of table columns in the specified database and returns them grouped by table name.
      *
      * @return array<string,list<array<string,mixed>>>
@@ -338,7 +373,7 @@ abstract class AbstractSchemaManager
      */
     protected function fetchTableColumnsByTable(string $databaseName): array
     {
-        return $this->fetchAllAssociativeGrouped($this->selectTableColumns($databaseName));
+        return $this->groupByTable($this->fetchTableColumns($databaseName));
     }
 
     /**
@@ -350,7 +385,7 @@ abstract class AbstractSchemaManager
      */
     protected function fetchIndexColumnsByTable(string $databaseName): array
     {
-        return $this->fetchAllAssociativeGrouped($this->selectIndexColumns($databaseName));
+        return $this->groupByTable($this->fetchIndexColumns($databaseName));
     }
 
     /**
@@ -362,9 +397,7 @@ abstract class AbstractSchemaManager
      */
     protected function fetchForeignKeyColumnsByTable(string $databaseName): array
     {
-        return $this->fetchAllAssociativeGrouped(
-            $this->selectForeignKeyColumns($databaseName),
-        );
+        return $this->groupByTable($this->fetchForeignKeyColumns($databaseName));
     }
 
     /**
@@ -429,10 +462,10 @@ abstract class AbstractSchemaManager
         $database = $this->getDatabase(__METHOD__);
 
         return $this->_getPortableTableForeignKeysList(
-            $this->selectForeignKeyColumns(
+            $this->fetchForeignKeyColumns(
                 $database,
                 $this->normalizeName($table),
-            )->fetchAllAssociative(),
+            ),
         );
     }
 
@@ -908,15 +941,17 @@ abstract class AbstractSchemaManager
     }
 
     /**
-     * @return array<string,list<array<string,mixed>>>
+     * Groups the rows representing database object elements by table they belong to.
      *
-     * @throws Exception
+     * @param list<array<string, mixed>> $rows
+     *
+     * @return array<string,list<array<string,mixed>>>
      */
-    private function fetchAllAssociativeGrouped(Result $result): array
+    private function groupByTable(array $rows): array
     {
         $data = [];
 
-        foreach ($result->fetchAllAssociative() as $row) {
+        foreach ($rows as $row) {
             $tableName          = $this->_getPortableTableDefinition($row);
             $data[$tableName][] = $row;
         }
