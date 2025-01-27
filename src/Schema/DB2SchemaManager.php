@@ -116,14 +116,14 @@ class DB2SchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableTableIndexesList(array $tableIndexes, string $tableName): array
+    protected function _getPortableTableIndexesList(array $rows, string $tableName): array
     {
-        foreach ($tableIndexes as &$tableIndexRow) {
-            $tableIndexRow            = array_change_key_case($tableIndexRow, CASE_LOWER);
-            $tableIndexRow['primary'] = (bool) $tableIndexRow['primary'];
+        foreach ($rows as &$row) {
+            $row            = array_change_key_case($row, CASE_LOWER);
+            $row['primary'] = (bool) $row['primary'];
         }
 
-        return parent::_getPortableTableIndexesList($tableIndexes, $tableName);
+        return parent::_getPortableTableIndexesList($rows, $tableName);
     }
 
     /**
@@ -143,11 +143,11 @@ class DB2SchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableTableForeignKeysList(array $tableForeignKeys): array
+    protected function _getPortableTableForeignKeysList(array $rows): array
     {
         $foreignKeys = [];
 
-        foreach ($tableForeignKeys as $tableForeignKey) {
+        foreach ($rows as $tableForeignKey) {
             $tableForeignKey = array_change_key_case($tableForeignKey, CASE_LOWER);
 
             if (! isset($foreignKeys[$tableForeignKey['index_name']])) {

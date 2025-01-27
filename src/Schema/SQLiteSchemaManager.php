@@ -104,7 +104,7 @@ class SQLiteSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableTableIndexesList(array $tableIndexes, string $tableName): array
+    protected function _getPortableTableIndexesList(array $rows, string $tableName): array
     {
         $indexBuffer = [];
 
@@ -140,17 +140,17 @@ class SQLiteSchemaManager extends AbstractSchemaManager
         }
 
         // fetch regular indexes
-        foreach ($tableIndexes as $tableIndex) {
+        foreach ($rows as $row) {
             // Ignore indexes with reserved names, e.g. autoindexes
-            if (str_starts_with($tableIndex['name'], 'sqlite_')) {
+            if (str_starts_with($row['name'], 'sqlite_')) {
                 continue;
             }
 
-            $keyName           = $tableIndex['name'];
+            $keyName           = $row['name'];
             $idx               = [];
             $idx['key_name']   = $keyName;
             $idx['primary']    = false;
-            $idx['non_unique'] = ! $tableIndex['unique'];
+            $idx['non_unique'] = ! $row['unique'];
 
             $indexArray = $this->connection->fetchAllAssociative('SELECT * FROM PRAGMA_INDEX_INFO (?)', [$keyName]);
 
@@ -166,15 +166,15 @@ class SQLiteSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableTableColumnList(string $table, string $database, array $tableColumns): array
+    protected function _getPortableTableColumnList(string $table, string $database, array $rows): array
     {
-        $list = parent::_getPortableTableColumnList($table, $database, $tableColumns);
+        $list = parent::_getPortableTableColumnList($table, $database, $rows);
 
         // find column with autoincrement
         $autoincrementColumn = null;
         $autoincrementCount  = 0;
 
-        foreach ($tableColumns as $tableColumn) {
+        foreach ($rows as $tableColumn) {
             if ($tableColumn['pk'] === 0 || $tableColumn['pk'] === '0') {
                 continue;
             }
@@ -293,40 +293,40 @@ class SQLiteSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableTableForeignKeysList(array $tableForeignKeys): array
+    protected function _getPortableTableForeignKeysList(array $rows): array
     {
         $list = [];
-        foreach ($tableForeignKeys as $value) {
-            $value = array_change_key_case($value, CASE_LOWER);
-            $id    = $value['id'];
+        foreach ($rows as $row) {
+            $row = array_change_key_case($row, CASE_LOWER);
+            $id  = $row['id'];
             if (! isset($list[$id])) {
-                if (! isset($value['on_delete']) || $value['on_delete'] === 'RESTRICT') {
-                    $value['on_delete'] = null;
+                if (! isset($row['on_delete']) || $row['on_delete'] === 'RESTRICT') {
+                    $row['on_delete'] = null;
                 }
 
-                if (! isset($value['on_update']) || $value['on_update'] === 'RESTRICT') {
-                    $value['on_update'] = null;
+                if (! isset($row['on_update']) || $row['on_update'] === 'RESTRICT') {
+                    $row['on_update'] = null;
                 }
 
                 $list[$id] = [
-                    'name' => $value['constraint_name'],
+                    'name' => $row['constraint_name'],
                     'local' => [],
                     'foreign' => [],
-                    'foreignTable' => $value['table'],
-                    'onDelete' => $value['on_delete'],
-                    'onUpdate' => $value['on_update'],
-                    'deferrable' => $value['deferrable'],
-                    'deferred' => $value['deferred'],
+                    'foreignTable' => $row['table'],
+                    'onDelete' => $row['on_delete'],
+                    'onUpdate' => $row['on_update'],
+                    'deferrable' => $row['deferrable'],
+                    'deferred' => $row['deferred'],
                 ];
             }
 
-            $list[$id]['local'][] = $value['from'];
+            $list[$id]['local'][] = $row['from'];
 
-            if ($value['to'] === null) {
+            if ($row['to'] === null) {
                 continue;
             }
 
-            $list[$id]['foreign'][] = $value['to'];
+            $list[$id]['foreign'][] = $row['to'];
         }
 
         foreach ($list as $id => $value) {

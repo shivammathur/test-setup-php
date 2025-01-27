@@ -724,17 +724,17 @@ abstract class AbstractSchemaManager
      *
      * The name of the created column instance however is kept in its case.
      *
-     * @param array<int, array<string, mixed>> $tableColumns
+     * @param array<array<string, mixed>> $rows
      *
      * @return array<string, Column>
      *
      * @throws Exception
      */
-    protected function _getPortableTableColumnList(string $table, string $database, array $tableColumns): array
+    protected function _getPortableTableColumnList(string $table, string $database, array $rows): array
     {
         $list = [];
-        foreach ($tableColumns as $tableColumn) {
-            $column = $this->_getPortableTableColumnDefinition($tableColumn);
+        foreach ($rows as $row) {
+            $column = $this->_getPortableTableColumnDefinition($row);
 
             $name        = strtolower($column->getQuotedName($this->platform));
             $list[$name] = $column;
@@ -755,18 +755,18 @@ abstract class AbstractSchemaManager
     /**
      * Aggregates and groups the index results according to the required data result.
      *
-     * @param array<int, array<string, mixed>> $tableIndexes
+     * @param array<array<string, mixed>> $rows
      *
      * @return array<string, Index>
      *
      * @throws Exception
      */
-    protected function _getPortableTableIndexesList(array $tableIndexes, string $tableName): array
+    protected function _getPortableTableIndexesList(array $rows, string $tableName): array
     {
         $result = [];
-        foreach ($tableIndexes as $tableIndex) {
-            $indexName = $keyName = $tableIndex['key_name'];
-            if ($tableIndex['primary']) {
+        foreach ($rows as $row) {
+            $indexName = $keyName = $row['key_name'];
+            if ($row['primary']) {
                 $keyName = 'primary';
             }
 
@@ -777,22 +777,22 @@ abstract class AbstractSchemaManager
                     'lengths' => [],
                 ];
 
-                if (isset($tableIndex['where'])) {
-                    $options['where'] = $tableIndex['where'];
+                if (isset($row['where'])) {
+                    $options['where'] = $row['where'];
                 }
 
                 $result[$keyName] = [
                     'name' => $indexName,
                     'columns' => [],
-                    'unique' => ! $tableIndex['non_unique'],
-                    'primary' => $tableIndex['primary'],
-                    'flags' => $tableIndex['flags'] ?? [],
+                    'unique' => ! $row['non_unique'],
+                    'primary' => $row['primary'],
+                    'flags' => $row['flags'] ?? [],
                     'options' => $options,
                 ];
             }
 
-            $result[$keyName]['columns'][]            = $tableIndex['column_name'];
-            $result[$keyName]['options']['lengths'][] = $tableIndex['length'] ?? null;
+            $result[$keyName]['columns'][]            = $row['column_name'];
+            $result[$keyName]['options']['lengths'][] = $row['length'] ?? null;
         }
 
         $indexes = [];
@@ -817,15 +817,15 @@ abstract class AbstractSchemaManager
     abstract protected function _getPortableViewDefinition(array $view): View;
 
     /**
-     * @param array<int|string, array<string, mixed>> $tableForeignKeys
+     * @param array<array<string, mixed>> $rows
      *
      * @return array<int, ForeignKeyConstraint>
      */
-    protected function _getPortableTableForeignKeysList(array $tableForeignKeys): array
+    protected function _getPortableTableForeignKeysList(array $rows): array
     {
         $list = [];
 
-        foreach ($tableForeignKeys as $value) {
+        foreach ($rows as $value) {
             $list[] = $this->_getPortableTableForeignKeyDefinition($value);
         }
 
