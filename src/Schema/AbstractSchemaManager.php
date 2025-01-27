@@ -727,8 +727,6 @@ abstract class AbstractSchemaManager
      * @param array<array<string, mixed>> $rows
      *
      * @return array<string, Column>
-     *
-     * @throws Exception
      */
     protected function _getPortableTableColumnList(string $table, string $database, array $rows): array
     {
@@ -747,8 +745,6 @@ abstract class AbstractSchemaManager
      * Gets Table Column Definition.
      *
      * @param array<string, mixed> $tableColumn
-     *
-     * @throws Exception
      */
     abstract protected function _getPortableTableColumnDefinition(array $tableColumn): Column;
 
@@ -758,8 +754,6 @@ abstract class AbstractSchemaManager
      * @param array<array<string, mixed>> $rows
      *
      * @return array<string, Index>
-     *
-     * @throws Exception
      */
     protected function _getPortableTableIndexesList(array $rows, string $tableName): array
     {

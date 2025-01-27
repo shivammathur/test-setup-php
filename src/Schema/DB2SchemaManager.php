@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Schema;
 
-use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\DB2Platform;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Types\Type;
@@ -30,8 +29,6 @@ class DB2SchemaManager extends AbstractSchemaManager
 {
     /**
      * {@inheritDoc}
-     *
-     * @throws Exception
      */
     protected function _getPortableTableColumnDefinition(array $tableColumn): Column
     {
