@@ -8,9 +8,8 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\SQLite;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Result;
-use Doctrine\DBAL\Types\StringType;
-use Doctrine\DBAL\Types\TextType;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\Deprecation;
 
 use function array_change_key_case;
@@ -165,61 +164,6 @@ class SQLiteSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableTableColumnList(string $table, string $database, array $rows): array
-    {
-        $list = parent::_getPortableTableColumnList($table, $database, $rows);
-
-        // find column with autoincrement
-        $autoincrementColumn = null;
-        $autoincrementCount  = 0;
-
-        foreach ($rows as $tableColumn) {
-            if ($tableColumn['pk'] === 0 || $tableColumn['pk'] === '0') {
-                continue;
-            }
-
-            $autoincrementCount++;
-            if ($autoincrementColumn !== null || strtolower($tableColumn['type']) !== 'integer') {
-                continue;
-            }
-
-            $autoincrementColumn = $tableColumn['name'];
-        }
-
-        if ($autoincrementCount === 1 && $autoincrementColumn !== null) {
-            foreach ($list as $column) {
-                if ($autoincrementColumn !== $column->getName()) {
-                    continue;
-                }
-
-                $column->setAutoincrement(true);
-            }
-        }
-
-        // inspect column collation and comments
-        $createSql = $this->getCreateTableSQL($table);
-
-        foreach ($list as $columnName => $column) {
-            $type = $column->getType();
-
-            if ($type instanceof StringType || $type instanceof TextType) {
-                $column->setPlatformOption(
-                    'collation',
-                    $this->parseColumnCollationFromSQL($columnName, $createSql) ?? 'BINARY',
-                );
-            }
-
-            $comment = $this->parseColumnCommentFromSQL($columnName, $createSql);
-
-            $column->setComment($comment);
-        }
-
-        return $list;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     protected function _getPortableTableColumnDefinition(array $tableColumn): Column
     {
         $matchResult = preg_match('/^([^()]*)\\s*(\\(((\\d+)(,\\s*(\\d+))?)\\))?/', $tableColumn['type'], $matches);
@@ -269,6 +213,8 @@ class SQLiteSchemaManager extends AbstractSchemaManager
         }
 
         $options = [
+            'autoincrement' => $tableColumn['autoincrement'],
+            'comment'   => $tableColumn['comment'],
             'length'    => $length,
             'unsigned'  => $unsigned,
             'fixed'     => $fixed,
@@ -278,7 +224,13 @@ class SQLiteSchemaManager extends AbstractSchemaManager
             'scale'     => $scale,
         ];
 
-        return new Column($tableColumn['name'], Type::getType($type), $options);
+        $column = new Column($tableColumn['name'], Type::getType($type), $options);
+
+        if ($type === Types::STRING || $type === Types::TEXT) {
+            $column->setPlatformOption('collation', $tableColumn['collation'] ?? 'BINARY');
+        }
+
+        return $column;
     }
 
     /**
@@ -621,6 +573,45 @@ SQL;
         $sql .= ' WHERE ' . implode(' AND ', $conditions) . ' ORDER BY t.name, p.id DESC, p.seq';
 
         return $this->connection->executeQuery($sql, $params);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     *
+     * @throws Exception
+     */
+    protected function fetchTableColumns(string $databaseName, ?string $tableName = null): array
+    {
+        $rows = parent::fetchTableColumns($databaseName, $tableName);
+
+        $sqlByTable = $pkColumnNamesByTable = $result = [];
+
+        foreach ($rows as $row) {
+            $tableName = $row['table_name'];
+
+            $sqlByTable[$tableName] ??= $this->getCreateTableSQL($tableName);
+
+            if ($row['pk'] === 0 || $row['pk'] === '0' || $row['type'] !== 'INTEGER') {
+                continue;
+            }
+
+            $pkColumnNamesByTable[$tableName][] = $row['name'];
+        }
+
+        foreach ($rows as $row) {
+            $tableName  = $row['table_name'];
+            $columnName = $row['name'];
+            $tableSQL   = $sqlByTable[$row['table_name']];
+
+            $result[] = array_merge($row, [
+                'autoincrement' => isset($pkColumnNamesByTable[$tableName])
+                    && $pkColumnNamesByTable[$tableName] === [$columnName],
+                'collation' => $this->parseColumnCollationFromSQL($columnName, $tableSQL),
+                'comment' => $this->parseColumnCommentFromSQL($columnName, $tableSQL),
+            ]);
+        }
+
+        return $result;
     }
 
     /**
