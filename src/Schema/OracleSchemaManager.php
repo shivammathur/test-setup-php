@@ -212,8 +212,8 @@ class OracleSchemaManager extends AbstractSchemaManager
                 ];
             }
 
-            $localColumn   = $row['local_column'];
-            $foreignColumn = $row['foreign_column'];
+            $localColumn   = $this->getQuotedIdentifierName($row['local_column']);
+            $foreignColumn = $this->getQuotedIdentifierName($row['foreign_column']);
 
             $list[$row['constraint_name']]['local'][]   = $localColumn;
             $list[$row['constraint_name']]['foreign'][] = $foreignColumn;
