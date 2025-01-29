@@ -615,4 +615,9 @@ SQL;
             ' The column should be changed from VARCAHR TO INT',
         );
     }
+
+    public function getExpectedDefaultSchemaName(): ?string
+    {
+        return null;
+    }
 }

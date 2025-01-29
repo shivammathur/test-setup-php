@@ -8,6 +8,12 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Deprecated `PostgreSQLSchemaManager` methods related to the current schema
+
+The following `PostgreSQLSchemaManager` methods have been deprecated:
+- `getCurrentSchema()` - use `getCurrentSchemaName()` instead
+- `determineCurrentSchema()` - use `determineCurrentSchemaName()` instead
+
 ## Deprecated using `Schema` as `AbstractAsset`
 
 Relying on the `Schema` class extending `AbstractAsset` is deprecated. Use only the methods declared immediately in

@@ -1340,14 +1340,15 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         return null;
     }
-}
 
-interface ListTableColumnsDispatchEventListener
-{
-    public function onSchemaColumnDefinition(): void;
-}
+    /** @throws Exception */
+    public function testDefaultSchemaName(): void
+    {
+        self::assertSame(
+            $this->getExpectedDefaultSchemaName(),
+            $this->schemaManager->createSchemaConfig()->getName(),
+        );
+    }
 
-interface ListTableIndexesDispatchEventListener
-{
-    public function onSchemaIndexDefinition(): void;
+    abstract public function getExpectedDefaultSchemaName(): ?string;
 }

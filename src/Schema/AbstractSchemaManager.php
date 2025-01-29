@@ -29,6 +29,23 @@ use function strtolower;
  */
 abstract class AbstractSchemaManager
 {
+    /**
+     * The current schema name determined from the connection. The <code>null</code> value means that there is no
+     * schema currently selected within the connection.
+     *
+     * The property should be accessed only when {@link $currentSchemaDetermined} is set to <code>true</code>. If the
+     * currently used database platform doesn't support schemas, the property will remain uninitialized.
+     *
+     * The property is initialized only once. If the underlying connection switches to a different schema, a new schema
+     * manager instance will have to be created to reflect this change.
+     */
+    private ?string $currentSchemaName;
+
+    /**
+     * Indicates whether the current schema has been determined.
+     */
+    private bool $currentSchemaDetermined = false;
+
     /** @param T $platform */
     public function __construct(protected Connection $connection, protected AbstractPlatform $platform)
     {
@@ -233,6 +250,40 @@ abstract class AbstractSchemaManager
         }
 
         return $tables;
+    }
+
+    /**
+     * Returns the current schema name used by the schema manager connection.
+     *
+     * The <code>null</code> value means that there is no schema currently selected within the connection or the
+     * corresponding database platform doesn't support schemas.
+     *
+     * @throws Exception
+     */
+    final protected function getCurrentSchemaName(): ?string
+    {
+        if (! $this->platform->supportsSchemas()) {
+            return null;
+        }
+
+        if (! $this->currentSchemaDetermined) {
+            $this->currentSchemaName       = $this->determineCurrentSchemaName();
+            $this->currentSchemaDetermined = true;
+        }
+
+        return $this->currentSchemaName;
+    }
+
+    /**
+     * Determines the name of the current schema.
+     *
+     * If the corresponding database platform supports schemas, the schema manager must implement this method.
+     *
+     * @throws Exception
+     */
+    protected function determineCurrentSchemaName(): ?string
+    {
+        throw NotSupported::new(__METHOD__);
     }
 
     /**
@@ -829,6 +880,7 @@ abstract class AbstractSchemaManager
     {
         $schemaConfig = new SchemaConfig();
         $schemaConfig->setMaxIdentifierLength($this->platform->getMaxIdentifierLength());
+        $schemaConfig->setName($this->getCurrentSchemaName());
 
         $params = $this->connection->getParams();
         if (! isset($params['defaultTableOptions'])) {

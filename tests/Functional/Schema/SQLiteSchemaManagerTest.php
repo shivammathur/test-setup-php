@@ -442,4 +442,9 @@ SQL;
         $table = $this->schemaManager->introspectTable('table_with_comment');
         self::assertSame('This is a comment', $table->getComment());
     }
+
+    public function getExpectedDefaultSchemaName(): ?string
+    {
+        return null;
+    }
 }

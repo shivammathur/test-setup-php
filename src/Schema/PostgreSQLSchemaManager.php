@@ -35,8 +35,6 @@ use const CASE_LOWER;
  */
 class PostgreSQLSchemaManager extends AbstractSchemaManager
 {
-    private ?string $currentSchema = null;
-
     /**
      * {@inheritDoc}
      */
@@ -52,27 +50,22 @@ SQL,
         );
     }
 
-    public function createSchemaConfig(): SchemaConfig
-    {
-        $config = parent::createSchemaConfig();
-
-        $config->setName($this->getCurrentSchema());
-
-        return $config;
-    }
-
     /**
      * Returns the name of the current schema.
+     *
+     * @deprecated Use {@link getCurrentSchemaName()} instead
      *
      * @throws Exception
      */
     protected function getCurrentSchema(): ?string
     {
-        return $this->currentSchema ??= $this->determineCurrentSchema();
+        return $this->getCurrentSchemaName();
     }
 
     /**
      * Determines the name of the current schema.
+     *
+     * @deprecated Use {@link determineCurrentSchemaName()} instead
      *
      * @throws Exception
      */
@@ -82,6 +75,11 @@ SQL,
         assert(is_string($currentSchema));
 
         return $currentSchema;
+    }
+
+    protected function determineCurrentSchemaName(): ?string
+    {
+        return $this->determineCurrentSchema();
     }
 
     /**
