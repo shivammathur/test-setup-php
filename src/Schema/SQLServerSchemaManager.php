@@ -180,27 +180,27 @@ SQL,
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableTableForeignKeysList(array $tableForeignKeys): array
+    protected function _getPortableTableForeignKeysList(array $rows): array
     {
         $foreignKeys = [];
 
-        foreach ($tableForeignKeys as $tableForeignKey) {
-            $name = $tableForeignKey['ForeignKey'];
+        foreach ($rows as $row) {
+            $name = $row['ForeignKey'];
 
             if (! isset($foreignKeys[$name])) {
                 $foreignKeys[$name] = [
-                    'local_columns' => [$tableForeignKey['ColumnName']],
-                    'foreign_table' => $tableForeignKey['ReferenceTableName'],
-                    'foreign_columns' => [$tableForeignKey['ReferenceColumnName']],
+                    'local_columns' => [$row['ColumnName']],
+                    'foreign_table' => $row['ReferenceTableName'],
+                    'foreign_columns' => [$row['ReferenceColumnName']],
                     'name' => $name,
                     'options' => [
-                        'onUpdate' => str_replace('_', ' ', $tableForeignKey['update_referential_action_desc']),
-                        'onDelete' => str_replace('_', ' ', $tableForeignKey['delete_referential_action_desc']),
+                        'onUpdate' => str_replace('_', ' ', $row['update_referential_action_desc']),
+                        'onDelete' => str_replace('_', ' ', $row['delete_referential_action_desc']),
                     ],
                 ];
             } else {
-                $foreignKeys[$name]['local_columns'][]   = $tableForeignKey['ColumnName'];
-                $foreignKeys[$name]['foreign_columns'][] = $tableForeignKey['ReferenceColumnName'];
+                $foreignKeys[$name]['local_columns'][]   = $row['ColumnName'];
+                $foreignKeys[$name]['foreign_columns'][] = $row['ReferenceColumnName'];
             }
         }
 
@@ -210,15 +210,15 @@ SQL,
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableTableIndexesList(array $tableIndexes, string $tableName): array
+    protected function _getPortableTableIndexesList(array $rows, string $tableName): array
     {
-        foreach ($tableIndexes as &$tableIndex) {
-            $tableIndex['non_unique'] = (bool) $tableIndex['non_unique'];
-            $tableIndex['primary']    = (bool) $tableIndex['primary'];
-            $tableIndex['flags']      = $tableIndex['flags'] ? [$tableIndex['flags']] : null;
+        foreach ($rows as &$row) {
+            $row['non_unique'] = (bool) $row['non_unique'];
+            $row['primary']    = (bool) $row['primary'];
+            $row['flags']      = $row['flags'] ? [$row['flags']] : null;
         }
 
-        return parent::_getPortableTableIndexesList($tableIndexes, $tableName);
+        return parent::_getPortableTableIndexesList($rows, $tableName);
     }
 
     /**

@@ -158,10 +158,10 @@ SQL,
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableTableIndexesList(array $tableIndexes, string $tableName): array
+    protected function _getPortableTableIndexesList(array $rows, string $tableName): array
     {
         $buffer = [];
-        foreach ($tableIndexes as $row) {
+        foreach ($rows as $row) {
             $colNumbers    = array_map('intval', explode(' ', $row['indkey']));
             $columnNameSql = sprintf(
                 'SELECT attnum, attname FROM pg_attribute WHERE attrelid=%d AND attnum IN (%s) ORDER BY attnum ASC',

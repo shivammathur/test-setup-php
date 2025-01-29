@@ -8,12 +8,12 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\SQLite;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Result;
-use Doctrine\DBAL\Types\StringType;
-use Doctrine\DBAL\Types\TextType;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\Deprecation;
 
 use function array_change_key_case;
+use function array_column;
 use function array_map;
 use function array_merge;
 use function assert;
@@ -33,7 +33,6 @@ use function str_starts_with;
 use function strcasecmp;
 use function strtolower;
 use function trim;
-use function usort;
 
 use const CASE_LOWER;
 
@@ -83,8 +82,7 @@ class SQLiteSchemaManager extends AbstractSchemaManager
     {
         $table = $this->normalizeName($table);
 
-        $columns = $this->selectForeignKeyColumns('main', $table)
-            ->fetchAllAssociative();
+        $columns = $this->fetchForeignKeyColumns('main', $table);
 
         if (count($columns) > 0) {
             $columns = $this->addDetailsToTableForeignKeyColumns($table, $columns);
@@ -99,123 +97,6 @@ class SQLiteSchemaManager extends AbstractSchemaManager
     protected function _getPortableTableDefinition(array $table): string
     {
         return $table['table_name'];
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    protected function _getPortableTableIndexesList(array $tableIndexes, string $tableName): array
-    {
-        $indexBuffer = [];
-
-        // fetch primary
-        $indexArray = $this->connection->fetchAllAssociative('SELECT * FROM PRAGMA_TABLE_INFO (?)', [$tableName]);
-
-        usort(
-            $indexArray,
-            /**
-             * @param array<string,mixed> $a
-             * @param array<string,mixed> $b
-             */
-            static function (array $a, array $b): int {
-                if ($a['pk'] === $b['pk']) {
-                    return $a['cid'] - $b['cid'];
-                }
-
-                return $a['pk'] - $b['pk'];
-            },
-        );
-
-        foreach ($indexArray as $indexColumnRow) {
-            if ($indexColumnRow['pk'] === 0 || $indexColumnRow['pk'] === '0') {
-                continue;
-            }
-
-            $indexBuffer[] = [
-                'key_name' => 'primary',
-                'primary' => true,
-                'non_unique' => false,
-                'column_name' => $indexColumnRow['name'],
-            ];
-        }
-
-        // fetch regular indexes
-        foreach ($tableIndexes as $tableIndex) {
-            // Ignore indexes with reserved names, e.g. autoindexes
-            if (str_starts_with($tableIndex['name'], 'sqlite_')) {
-                continue;
-            }
-
-            $keyName           = $tableIndex['name'];
-            $idx               = [];
-            $idx['key_name']   = $keyName;
-            $idx['primary']    = false;
-            $idx['non_unique'] = ! $tableIndex['unique'];
-
-            $indexArray = $this->connection->fetchAllAssociative('SELECT * FROM PRAGMA_INDEX_INFO (?)', [$keyName]);
-
-            foreach ($indexArray as $indexColumnRow) {
-                $idx['column_name'] = $indexColumnRow['name'];
-                $indexBuffer[]      = $idx;
-            }
-        }
-
-        return parent::_getPortableTableIndexesList($indexBuffer, $tableName);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    protected function _getPortableTableColumnList(string $table, string $database, array $tableColumns): array
-    {
-        $list = parent::_getPortableTableColumnList($table, $database, $tableColumns);
-
-        // find column with autoincrement
-        $autoincrementColumn = null;
-        $autoincrementCount  = 0;
-
-        foreach ($tableColumns as $tableColumn) {
-            if ($tableColumn['pk'] === 0 || $tableColumn['pk'] === '0') {
-                continue;
-            }
-
-            $autoincrementCount++;
-            if ($autoincrementColumn !== null || strtolower($tableColumn['type']) !== 'integer') {
-                continue;
-            }
-
-            $autoincrementColumn = $tableColumn['name'];
-        }
-
-        if ($autoincrementCount === 1 && $autoincrementColumn !== null) {
-            foreach ($list as $column) {
-                if ($autoincrementColumn !== $column->getName()) {
-                    continue;
-                }
-
-                $column->setAutoincrement(true);
-            }
-        }
-
-        // inspect column collation and comments
-        $createSql = $this->getCreateTableSQL($table);
-
-        foreach ($list as $columnName => $column) {
-            $type = $column->getType();
-
-            if ($type instanceof StringType || $type instanceof TextType) {
-                $column->setPlatformOption(
-                    'collation',
-                    $this->parseColumnCollationFromSQL($columnName, $createSql) ?? 'BINARY',
-                );
-            }
-
-            $comment = $this->parseColumnCommentFromSQL($columnName, $createSql);
-
-            $column->setComment($comment);
-        }
-
-        return $list;
     }
 
     /**
@@ -270,6 +151,8 @@ class SQLiteSchemaManager extends AbstractSchemaManager
         }
 
         $options = [
+            'autoincrement' => $tableColumn['autoincrement'],
+            'comment'   => $tableColumn['comment'],
             'length'    => $length,
             'unsigned'  => $unsigned,
             'fixed'     => $fixed,
@@ -279,7 +162,13 @@ class SQLiteSchemaManager extends AbstractSchemaManager
             'scale'     => $scale,
         ];
 
-        return new Column($tableColumn['name'], Type::getType($type), $options);
+        $column = new Column($tableColumn['name'], Type::getType($type), $options);
+
+        if ($type === Types::STRING || $type === Types::TEXT) {
+            $column->setPlatformOption('collation', $tableColumn['collation'] ?? 'BINARY');
+        }
+
+        return $column;
     }
 
     /**
@@ -293,40 +182,40 @@ class SQLiteSchemaManager extends AbstractSchemaManager
     /**
      * {@inheritDoc}
      */
-    protected function _getPortableTableForeignKeysList(array $tableForeignKeys): array
+    protected function _getPortableTableForeignKeysList(array $rows): array
     {
         $list = [];
-        foreach ($tableForeignKeys as $value) {
-            $value = array_change_key_case($value, CASE_LOWER);
-            $id    = $value['id'];
+        foreach ($rows as $row) {
+            $row = array_change_key_case($row, CASE_LOWER);
+            $id  = $row['id'];
             if (! isset($list[$id])) {
-                if (! isset($value['on_delete']) || $value['on_delete'] === 'RESTRICT') {
-                    $value['on_delete'] = null;
+                if (! isset($row['on_delete']) || $row['on_delete'] === 'RESTRICT') {
+                    $row['on_delete'] = null;
                 }
 
-                if (! isset($value['on_update']) || $value['on_update'] === 'RESTRICT') {
-                    $value['on_update'] = null;
+                if (! isset($row['on_update']) || $row['on_update'] === 'RESTRICT') {
+                    $row['on_update'] = null;
                 }
 
                 $list[$id] = [
-                    'name' => $value['constraint_name'],
+                    'name' => $row['constraint_name'],
                     'local' => [],
                     'foreign' => [],
-                    'foreignTable' => $value['table'],
-                    'onDelete' => $value['on_delete'],
-                    'onUpdate' => $value['on_update'],
-                    'deferrable' => $value['deferrable'],
-                    'deferred' => $value['deferred'],
+                    'foreignTable' => $row['table'],
+                    'onDelete' => $row['on_delete'],
+                    'onUpdate' => $row['on_update'],
+                    'deferrable' => $row['deferrable'],
+                    'deferred' => $row['deferred'],
                 ];
             }
 
-            $list[$id]['local'][] = $value['from'];
+            $list[$id]['local'][] = $row['from'];
 
-            if ($value['to'] === null) {
+            if ($row['to'] === null) {
                 continue;
             }
 
-            $list[$id]['foreign'][] = $value['to'];
+            $list[$id]['foreign'][] = $row['to'];
         }
 
         foreach ($list as $id => $value) {
@@ -336,9 +225,9 @@ class SQLiteSchemaManager extends AbstractSchemaManager
 
             // Inferring a shorthand form for the foreign key constraint, where the "to" field is empty.
             // @see https://www.sqlite.org/foreignkeys.html#fk_indexes.
-            $foreignTableIndexes = $this->_getPortableTableIndexesList([], $value['foreignTable']);
+            $foreignTablePrimaryKeyColumnRows = $this->fetchPrimaryKeyColumns($value['foreignTable']);
 
-            if (! isset($foreignTableIndexes['primary'])) {
+            if (count($foreignTablePrimaryKeyColumnRows) < 1) {
                 Deprecation::trigger(
                     'doctrine/dbal',
                     'https://github.com/doctrine/dbal/pull/6701',
@@ -349,7 +238,7 @@ class SQLiteSchemaManager extends AbstractSchemaManager
                 continue;
             }
 
-            $list[$id]['foreign'] = $foreignTableIndexes['primary']->getColumns();
+            $list[$id]['foreign'] = array_column($foreignTablePrimaryKeyColumnRows, 'name');
         }
 
         return parent::_getPortableTableForeignKeysList($list);
@@ -577,7 +466,8 @@ SQL;
     {
         $sql = <<<'SQL'
             SELECT t.name AS table_name,
-                   i.*
+                   i.name,
+                   i."unique"
               FROM sqlite_master t
               JOIN pragma_index_list(t.name) i
 SQL;
@@ -622,6 +512,132 @@ SQL;
         $sql .= ' WHERE ' . implode(' AND ', $conditions) . ' ORDER BY t.name, p.id DESC, p.seq';
 
         return $this->connection->executeQuery($sql, $params);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected function fetchTableColumns(string $databaseName, ?string $tableName = null): array
+    {
+        $rows = parent::fetchTableColumns($databaseName, $tableName);
+
+        $sqlByTable = $pkColumnNamesByTable = $result = [];
+
+        foreach ($rows as $row) {
+            $tableName = $row['table_name'];
+
+            $sqlByTable[$tableName] ??= $this->getCreateTableSQL($tableName);
+
+            if ($row['pk'] === 0 || $row['pk'] === '0' || $row['type'] !== 'INTEGER') {
+                continue;
+            }
+
+            $pkColumnNamesByTable[$tableName][] = $row['name'];
+        }
+
+        foreach ($rows as $row) {
+            $tableName  = $row['table_name'];
+            $columnName = $row['name'];
+            $tableSQL   = $sqlByTable[$row['table_name']];
+
+            $result[] = array_merge($row, [
+                'autoincrement' => isset($pkColumnNamesByTable[$tableName])
+                    && $pkColumnNamesByTable[$tableName] === [$columnName],
+                'collation' => $this->parseColumnCollationFromSQL($columnName, $tableSQL),
+                'comment' => $this->parseColumnCommentFromSQL($columnName, $tableSQL),
+            ]);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @link https://www.sqlite.org/pragma.html#pragma_index_info
+     * @link https://www.sqlite.org/pragma.html#pragma_table_info
+     *
+     * {@inheritDoc}
+     */
+    protected function fetchIndexColumns(string $databaseName, ?string $tableName = null): array
+    {
+        $result = [];
+
+        $pkColumnNameRows = $this->fetchPrimaryKeyColumns($tableName);
+
+        foreach ($pkColumnNameRows as $pkColumnNameRow) {
+            $result[] = [
+                'table_name' => $pkColumnNameRow['table_name'],
+                'key_name' => 'primary',
+                'primary' => true,
+                'non_unique' => false,
+                'column_name' => $pkColumnNameRow['name'],
+            ];
+        }
+
+        $indexColumnRows = parent::fetchIndexColumns($databaseName, $tableName);
+
+        foreach ($indexColumnRows as $indexColumnRow) {
+            // Ignore indexes with reserved names, e.g. autoindexes
+            if (str_starts_with($indexColumnRow['name'], 'sqlite_')) {
+                continue;
+            }
+
+            $keyName = $indexColumnRow['name'];
+
+            $row = [
+                'table_name' => $indexColumnRow['table_name'],
+                'key_name'   => $keyName,
+                'primary'    => false,
+                'non_unique' => ! $indexColumnRow['unique'],
+            ];
+
+            $indexColumnNames = $this->connection->fetchFirstColumn(
+                'SELECT name FROM PRAGMA_INDEX_INFO (?)',
+                [$keyName],
+            );
+
+            foreach ($indexColumnNames as $indexColumnName) {
+                $row['column_name'] = $indexColumnName;
+                $result[]           = $row;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Fetches names of primary key columns. If the table name is specified, narrows down the selection to this table.
+     *
+     * @link https://www.sqlite.org/pragma.html#pragma_table_info
+     *
+     * @return list<array<string, mixed>>
+     *
+     * @throws Exception
+     */
+    private function fetchPrimaryKeyColumns(?string $tableName = null): array
+    {
+        $sql = <<<'SQL'
+            SELECT t.name AS table_name,
+                   p.name
+              FROM sqlite_master t
+              JOIN pragma_table_info(t.name) p
+        SQL;
+
+        $conditions = [
+            "t.type = 'table'",
+            "t.name NOT IN ('geometry_columns', 'spatial_ref_sys', 'sqlite_sequence')",
+        ];
+        $params     = [];
+
+        if ($tableName !== null) {
+            $conditions[] = 't.name = ?';
+            $params[]     = $tableName;
+        }
+
+        $conditions[] = 'p.pk > 0';
+
+        $sql .= ' WHERE ' . implode(' AND ', $conditions) . ' ORDER BY t.name, p.pk';
+
+        return $this->connection->fetchAllAssociative($sql, $params);
     }
 
     /**
