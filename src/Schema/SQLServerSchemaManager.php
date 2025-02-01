@@ -305,9 +305,8 @@ SQL,
         $sql = <<<'SQL'
 SELECT name AS table_name,
        SCHEMA_NAME(schema_id) AS schema_name
-FROM sys.objects
-WHERE type = 'U'
-  AND name != 'sysdiagrams'
+FROM sys.tables
+WHERE name != 'sysdiagrams'
 ORDER BY name
 SQL;
 
@@ -319,7 +318,7 @@ SQL;
         $sql = 'SELECT';
 
         if ($tableName === null) {
-            $sql .= ' obj.name AS table_name, scm.name AS schema_name,';
+            $sql .= ' tbl.name AS table_name, scm.name AS schema_name,';
         }
 
         $sql .= <<<'SQL'
@@ -338,25 +337,25 @@ SQL;
                 FROM      sys.columns AS col
                 JOIN      sys.types AS type
                 ON        col.user_type_id = type.user_type_id
-                JOIN      sys.objects AS obj
-                ON        col.object_id = obj.object_id
+                JOIN      sys.tables AS tbl
+                ON        col.object_id = tbl.object_id
                 JOIN      sys.schemas AS scm
-                ON        obj.schema_id = scm.schema_id
+                ON        tbl.schema_id = scm.schema_id
                 LEFT JOIN sys.default_constraints def
                 ON        col.default_object_id = def.object_id
                 AND       col.object_id = def.parent_object_id
                 LEFT JOIN sys.extended_properties AS prop
-                ON        obj.object_id = prop.major_id
+                ON        tbl.object_id = prop.major_id
                 AND       col.column_id = prop.minor_id
                 AND       prop.name = 'MS_Description'
 SQL;
 
         // The "sysdiagrams" table must be ignored as it's internal SQL Server table for Database Diagrams
-        $conditions = ["obj.type = 'U'", "obj.name != 'sysdiagrams'"];
+        $conditions = ["tbl.name != 'sysdiagrams'"];
         $params     = [];
 
         if ($tableName !== null) {
-            $conditions[] = $this->getTableWhereClause($tableName, 'scm.name', 'obj.name');
+            $conditions[] = $this->getTableWhereClause($tableName, 'scm.name', 'tbl.name');
         }
 
         $sql .= ' WHERE ' . implode(' AND ', $conditions);
@@ -421,14 +420,14 @@ SQL;
                 SCHEMA_NAME (f.SCHEMA_ID) AS SchemaName,
                 OBJECT_NAME (f.parent_object_id) AS TableName,
                 COL_NAME (fc.parent_object_id,fc.parent_column_id) AS ColumnName,
-                SCHEMA_NAME (o.SCHEMA_ID) ReferenceSchemaName,
+                SCHEMA_NAME (t.SCHEMA_ID) ReferenceSchemaName,
                 OBJECT_NAME (f.referenced_object_id) AS ReferenceTableName,
                 COL_NAME(fc.referenced_object_id,fc.referenced_column_id) AS ReferenceColumnName,
                 f.delete_referential_action_desc,
                 f.update_referential_action_desc
                 FROM sys.foreign_keys AS f
                 INNER JOIN sys.foreign_key_columns AS fc
-                INNER JOIN sys.objects AS o ON o.OBJECT_ID = fc.referenced_object_id
+                INNER JOIN sys.tables AS t ON t.OBJECT_ID = fc.referenced_object_id
                 ON f.OBJECT_ID = fc.constraint_object_id
 SQL;
 
