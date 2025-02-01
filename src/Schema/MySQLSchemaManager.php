@@ -438,7 +438,7 @@ SQL;
 
     protected function selectForeignKeyColumns(string $databaseName, ?string $tableName = null): Result
     {
-        $sql = 'SELECT DISTINCT';
+        $sql = 'SELECT';
 
         if ($tableName === null) {
             $sql .= ' k.TABLE_NAME,';
