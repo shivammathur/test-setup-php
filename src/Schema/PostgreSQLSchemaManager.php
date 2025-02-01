@@ -726,7 +726,8 @@ SQL;
     protected function fetchTableOptionsByTable(string $databaseName, ?string $tableName = null): array
     {
         $sql = <<<'SQL'
-SELECT c.relname,
+SELECT n.nspname AS schema_name,
+       c.relname AS table_name,
        CASE c.relpersistence WHEN 'u' THEN true ELSE false END as unlogged,
        obj_description(c.oid, 'pg_class') AS comment
 FROM pg_class c
@@ -738,7 +739,12 @@ SQL;
 
         $sql .= ' WHERE ' . implode(' AND ', $conditions);
 
-        return $this->_conn->fetchAllAssociativeIndexed($sql);
+        $tableOptions = [];
+        foreach ($this->_conn->iterateAssociative($sql) as $row) {
+            $tableOptions[$this->_getPortableTableDefinition($row)] = $row;
+        }
+
+        return $tableOptions;
     }
 
     /**
