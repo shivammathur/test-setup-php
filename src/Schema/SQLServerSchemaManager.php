@@ -412,23 +412,23 @@ SQL;
         $sql = 'SELECT';
 
         if ($tableName === null) {
-            $sql .= ' OBJECT_NAME (f.parent_object_id) AS table_name, SCHEMA_NAME(f.schema_id) AS schema_name,';
+            $sql .= ' OBJECT_NAME(f.parent_object_id) AS table_name, SCHEMA_NAME(f.schema_id) AS schema_name,';
         }
 
         $sql .= <<<'SQL'
                 f.name AS ForeignKey,
-                SCHEMA_NAME (f.SCHEMA_ID) AS SchemaName,
-                OBJECT_NAME (f.parent_object_id) AS TableName,
-                COL_NAME (fc.parent_object_id,fc.parent_column_id) AS ColumnName,
-                SCHEMA_NAME (t.SCHEMA_ID) ReferenceSchemaName,
-                OBJECT_NAME (f.referenced_object_id) AS ReferenceTableName,
-                COL_NAME(fc.referenced_object_id,fc.referenced_column_id) AS ReferenceColumnName,
+                SCHEMA_NAME(f.schema_id) AS SchemaName,
+                OBJECT_NAME(f.parent_object_id) AS TableName,
+                COL_NAME(fc.parent_object_id, fc.parent_column_id) AS ColumnName,
+                SCHEMA_NAME(t.schema_id) ReferenceSchemaName,
+                OBJECT_NAME(f.referenced_object_id) AS ReferenceTableName,
+                COL_NAME(fc.referenced_object_id, fc.referenced_column_id) AS ReferenceColumnName,
                 f.delete_referential_action_desc,
                 f.update_referential_action_desc
                 FROM sys.foreign_keys AS f
                 INNER JOIN sys.foreign_key_columns AS fc
-                INNER JOIN sys.tables AS t ON t.OBJECT_ID = fc.referenced_object_id
-                ON f.OBJECT_ID = fc.constraint_object_id
+                INNER JOIN sys.tables AS t ON t.object_id = fc.referenced_object_id
+                ON f.object_id = fc.constraint_object_id
 SQL;
 
         $conditions = [];
