@@ -23,6 +23,8 @@ use const CASE_LOWER;
 /**
  * IBM Db2 Schema Manager.
  *
+ * @link https://www.ibm.com/docs/en/db2/11.5?topic=sql-catalog-views
+ *
  * @extends AbstractSchemaManager<DB2Platform>
  */
 class DB2SchemaManager extends AbstractSchemaManager
@@ -194,10 +196,10 @@ class DB2SchemaManager extends AbstractSchemaManager
     protected function selectTableNames(string $databaseName): Result
     {
         $sql = <<<'SQL'
-SELECT NAME
-FROM SYSIBM.SYSTABLES
+SELECT TABNAME AS NAME
+FROM SYSCAT.TABLES
 WHERE TYPE = 'T'
-  AND CREATOR = ?
+  AND TABSCHEMA = ?
 SQL;
 
         return $this->connection->executeQuery($sql, [$databaseName]);
@@ -336,17 +338,17 @@ SQL;
      */
     protected function fetchTableOptionsByTable(string $databaseName, ?string $tableName = null): array
     {
-        $sql = 'SELECT NAME, REMARKS';
+        $sql = 'SELECT TABNAME AS NAME, REMARKS';
 
         $conditions = [];
         $params     = [];
 
         if ($tableName !== null) {
-            $conditions[] = 'NAME = ?';
+            $conditions[] = 'TABNAME = ?';
             $params[]     = $tableName;
         }
 
-        $sql .= ' FROM SYSIBM.SYSTABLES';
+        $sql .= ' FROM SYSCAT.TABLES';
 
         if ($conditions !== []) {
             $sql .= ' WHERE ' . implode(' AND ', $conditions);
