@@ -417,8 +417,6 @@ SQL;
 
         $sql .= <<<'SQL'
                 f.name AS ForeignKey,
-                SCHEMA_NAME(f.schema_id) AS SchemaName,
-                OBJECT_NAME(f.parent_object_id) AS TableName,
                 COL_NAME(fc.parent_object_id, fc.parent_column_id) AS ColumnName,
                 SCHEMA_NAME(t.schema_id) ReferenceSchemaName,
                 OBJECT_NAME(f.referenced_object_id) AS ReferenceTableName,
