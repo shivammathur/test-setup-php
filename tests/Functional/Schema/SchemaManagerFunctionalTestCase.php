@@ -1905,6 +1905,49 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         return null;
     }
+
+    public function testTableWithSchema(): void
+    {
+        if (! $this->connection->getDatabasePlatform()->supportsSchemas()) {
+            self::markTestSkipped('The currently used database platform does not support schemas.');
+        }
+
+        $this->connection->executeStatement('CREATE SCHEMA nested');
+
+        $nestedRelatedTable = new Table('nested.schemarelated');
+        $column             = $nestedRelatedTable->addColumn('id', Types::INTEGER);
+        $column->setAutoincrement(true);
+        $nestedRelatedTable->setPrimaryKey(['id']);
+
+        $nestedSchemaTable = new Table('nested.schematable');
+        $column            = $nestedSchemaTable->addColumn('id', Types::INTEGER);
+        $column->setAutoincrement(true);
+        $nestedSchemaTable->setPrimaryKey(['id']);
+        $nestedSchemaTable->addForeignKeyConstraint($nestedRelatedTable->getName(), ['id'], ['id']);
+        $nestedSchemaTable->setComment('This is a comment');
+
+        $this->schemaManager->createTable($nestedRelatedTable);
+        $this->schemaManager->createTable($nestedSchemaTable);
+
+        $tableNames = $this->schemaManager->listTableNames();
+        self::assertContains('nested.schematable', $tableNames);
+
+        $tables = $this->schemaManager->listTables();
+        self::assertNotNull($this->findTableByName($tables, 'nested.schematable'));
+
+        $nestedSchemaTable = $this->schemaManager->introspectTable('nested.schematable');
+        self::assertTrue($nestedSchemaTable->hasColumn('id'));
+
+        $primaryKey = $nestedSchemaTable->getPrimaryKey();
+        self::assertNotNull($primaryKey);
+        self::assertEquals(['id'], $primaryKey->getColumns());
+
+        $relatedFks = array_values($nestedSchemaTable->getForeignKeys());
+        self::assertCount(1, $relatedFks);
+        $relatedFk = $relatedFks[0];
+        self::assertEquals('nested.schemarelated', $relatedFk->getForeignTableName());
+        self::assertEquals('This is a comment', $nestedSchemaTable->getComment());
+    }
 }
 
 interface ListTableColumnsDispatchEventListener
