@@ -43,6 +43,8 @@ class OracleSchemaManager extends AbstractSchemaManager
     }
 
     /**
+     * @deprecated Use the schema name and the unqualified table name separately instead.
+     *
      * {@inheritDoc}
      */
     protected function _getPortableTableDefinition(array $table): string

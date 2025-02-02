@@ -61,6 +61,8 @@ class MySQLSchemaManager extends AbstractSchemaManager
     private ?DefaultTableOptions $defaultTableOptions = null;
 
     /**
+     * @deprecated Use the schema name and the unqualified table name separately instead.
+     *
      * {@inheritDoc}
      */
     protected function _getPortableTableDefinition(array $table): string
