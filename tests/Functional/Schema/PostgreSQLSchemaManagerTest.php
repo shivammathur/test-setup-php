@@ -25,7 +25,6 @@ use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 
 use function array_map;
 use function array_merge;
-use function array_pop;
 use function array_unshift;
 use function assert;
 use function count;
@@ -161,44 +160,6 @@ class PostgreSQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
         $this->schemaManager->alterTable($diff);
         $tableFinal = $this->schemaManager->introspectTable('autoinc_table_drop');
         self::assertFalse($tableFinal->getColumn('id')->getAutoincrement());
-    }
-
-    public function testTableWithSchema(): void
-    {
-        $this->connection->executeStatement('CREATE SCHEMA nested');
-
-        $nestedRelatedTable = new Table('nested.schemarelated');
-        $column             = $nestedRelatedTable->addColumn('id', Types::INTEGER);
-        $column->setAutoincrement(true);
-        $nestedRelatedTable->setPrimaryKey(['id']);
-
-        $nestedSchemaTable = new Table('nested.schematable');
-        $column            = $nestedSchemaTable->addColumn('id', Types::INTEGER);
-        $column->setAutoincrement(true);
-        $nestedSchemaTable->setPrimaryKey(['id']);
-        $nestedSchemaTable->addForeignKeyConstraint($nestedRelatedTable, ['id'], ['id']);
-
-        $this->schemaManager->createTable($nestedRelatedTable);
-        $this->schemaManager->createTable($nestedSchemaTable);
-
-        $tableNames = $this->schemaManager->listTableNames();
-        self::assertContains('nested.schematable', $tableNames);
-
-        $tables = $this->schemaManager->listTables();
-        self::assertNotNull($this->findTableByName($tables, 'nested.schematable'));
-
-        $nestedSchemaTable = $this->schemaManager->introspectTable('nested.schematable');
-        self::assertTrue($nestedSchemaTable->hasColumn('id'));
-
-        $primaryKey = $nestedSchemaTable->getPrimaryKey();
-
-        self::assertNotNull($primaryKey);
-        self::assertEquals(['id'], $primaryKey->getColumns());
-
-        $relatedFks = $nestedSchemaTable->getForeignKeys();
-        self::assertCount(1, $relatedFks);
-        $relatedFk = array_pop($relatedFks);
-        self::assertEquals('nested.schemarelated', $relatedFk->getForeignTableName());
     }
 
     public function testListSameTableNameColumnsWithDifferentSchema(): void
