@@ -10,6 +10,7 @@ use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Types\Type;
 
+use function array_change_key_case;
 use function assert;
 use function explode;
 use function func_get_arg;
@@ -21,6 +22,8 @@ use function sprintf;
 use function str_contains;
 use function str_replace;
 use function strtok;
+
+use const CASE_LOWER;
 
 /**
  * SQL Server Schema Manager.
@@ -185,9 +188,15 @@ SQL,
             $name = $row['ForeignKey'];
 
             if (! isset($foreignKeys[$name])) {
+                $referencedTableName = $row['ReferenceTableName'];
+
+                if ($row['ReferenceSchemaName'] !== $this->getCurrentSchemaName()) {
+                    $referencedTableName = $row['ReferenceSchemaName'] . '.' . $referencedTableName;
+                }
+
                 $foreignKeys[$name] = [
                     'local_columns' => [$row['ColumnName']],
-                    'foreign_table' => $row['ReferenceTableName'],
+                    'foreign_table' => $referencedTableName,
                     'foreign_columns' => [$row['ReferenceColumnName']],
                     'name' => $name,
                     'options' => [
@@ -447,7 +456,8 @@ SQL,
         $sql = sprintf(
             <<<'SQL'
           SELECT
-            tbl.name,
+            scm.name AS schema_name,
+            tbl.name AS table_name,
             p.value
           FROM
             sys.tables AS tbl
@@ -462,8 +472,12 @@ SQL,
         );
 
         $tableOptions = [];
-        foreach ($this->connection->iterateKeyValue($sql, $params) as $name => $value) {
-            $tableOptions[$name] = ['comment' => $value];
+        foreach ($this->connection->iterateAssociative($sql, $params) as $data) {
+            $data = array_change_key_case($data, CASE_LOWER);
+
+            $tableOptions[$this->_getPortableTableDefinition($data)] = [
+                'comment' => $data['value'],
+            ];
         }
 
         return $tableOptions;

@@ -165,9 +165,16 @@ SQL,
         foreach ($rows as $row) {
             $colNumbers    = array_map('intval', explode(' ', $row['indkey']));
             $columnNameSql = sprintf(
-                'SELECT attnum, attname FROM pg_attribute WHERE attrelid=%d AND attnum IN (%s) ORDER BY attnum ASC',
+                <<<'SQL'
+                SELECT attnum,
+                       quote_ident(attname) AS attname
+                FROM pg_attribute
+                WHERE attrelid = %d
+                  AND attnum IN (%s)
+                ORDER BY attnum
+                SQL,
                 $row['indrelid'],
-                implode(' ,', $colNumbers),
+                implode(', ', $colNumbers),
             );
 
             $indexColumns = $this->connection->fetchAllAssociative($columnNameSql);
@@ -418,8 +425,8 @@ SQL;
         $sql = sprintf(
             <<<'SQL'
             SELECT
-            n.nspname AS schema_name,
-            c.relname AS table_name,
+            quote_ident(n.nspname) AS schema_name,
+            quote_ident(c.relname) AS table_name,
             a.attnum,
             quote_ident(a.attname) AS field,
             t.typname AS type,
@@ -480,8 +487,8 @@ SQL;
         $sql = sprintf(
             <<<'SQL'
             SELECT
-                   tn.nspname AS schema_name,
-                   tc.relname AS table_name,
+                   quote_ident(tn.nspname) AS schema_name,
+                   quote_ident(tc.relname) AS table_name,
                    quote_ident(ic.relname) AS relname,
                    i.indisunique,
                    i.indisprimary,
@@ -512,8 +519,8 @@ SQL;
         $sql = sprintf(
             <<<'SQL'
            SELECT
-                  tn.nspname AS schema_name,
-                  tc.relname AS table_name,
+                  quote_ident(tn.nspname) AS schema_name,
+                  quote_ident(tc.relname) AS table_name,
                   quote_ident(r.conname) as conname,
                   pg_get_constraintdef(r.oid, true) as condef,
                   r.condeferrable,
@@ -545,7 +552,8 @@ SQL;
 
         $sql = sprintf(
             <<<'SQL'
-            SELECT c.relname,
+            SELECT quote_ident(n.nspname) AS schema_name,
+                   quote_ident(c.relname) AS table_name,
                    CASE c.relpersistence WHEN 'u' THEN true ELSE false END as unlogged,
                    obj_description(c.oid, 'pg_class') AS comment
             FROM pg_class c
@@ -558,7 +566,12 @@ SQL;
             implode(' AND ', $this->buildQueryConditions($tableName, $params)),
         );
 
-        return $this->connection->fetchAllAssociativeIndexed($sql, $params);
+        $tableOptions = [];
+        foreach ($this->connection->iterateAssociative($sql, $params) as $row) {
+            $tableOptions[$this->_getPortableTableDefinition($row)] = $row;
+        }
+
+        return $tableOptions;
     }
 
     /**
