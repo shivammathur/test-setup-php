@@ -7,8 +7,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        coverage: [pcov, xdebug, none]
     steps:
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          coverage: ${{ matrix.coverage }}
       - run: |
-          Get-CimInstance -ClassName Win32_Processor | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors, Architecture, VirtualizationFirmwareEnabled, SecondLevelAddressTranslationExtensions, VMMonitorModeExtensions
+          php -v
+          composer -V
 
