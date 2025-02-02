@@ -8,6 +8,11 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Deprecated `AbstractSchemaManager::_getPortableTableDefinition()`
+
+The `AbstractSchemaManager::_getPortableTableDefinition()` method has been deprecated. Use the schema name and the
+unqualified table name separately instead.
+
 ## Deprecated `PostgreSQLSchemaManager` methods related to the current schema
 
 The following `PostgreSQLSchemaManager` methods have been deprecated:
