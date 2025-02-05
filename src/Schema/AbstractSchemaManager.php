@@ -11,6 +11,9 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\Exception\NotSupported;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Schema\Exception\TableDoesNotExist;
+use Doctrine\DBAL\Schema\Name\Parsers;
+use Doctrine\Deprecations\Deprecation;
+use Throwable;
 
 use function array_filter;
 use function array_intersect;
@@ -115,6 +118,8 @@ abstract class AbstractSchemaManager
      */
     public function listTableColumns(string $table): array
     {
+        $this->validateTableName($table, __METHOD__);
+
         $database = $this->getDatabase(__METHOD__);
 
         return $this->_getPortableTableColumnList(
@@ -135,6 +140,8 @@ abstract class AbstractSchemaManager
      */
     public function listTableIndexes(string $table): array
     {
+        $this->validateTableName($table, __METHOD__);
+
         $database = $this->getDatabase(__METHOD__);
         $table    = $this->normalizeName($table);
 
@@ -294,6 +301,38 @@ abstract class AbstractSchemaManager
         $identifier = new Identifier($name);
 
         return $identifier->getName();
+    }
+
+    private function validateTableName(string $input, string $methodName): void
+    {
+        $parser = Parsers::getOptionallyQualifiedNameParser();
+
+        try {
+            $tableName = $parser->parse($input);
+        } catch (Throwable $e) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6768',
+                'Unable to parse table name passed to %s(): %s.',
+                $methodName,
+                $e->getMessage(),
+            );
+
+            return;
+        }
+
+        if ($tableName->getQualifier() === null || $this->platform->supportsSchemas()) {
+            return;
+        }
+
+        Deprecation::trigger(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6768',
+            'Relying on %s() not parsing an unquoted table name containing a dot while working with %s is'
+                . ' deprecated. Pass a quoted name instead.',
+            $methodName,
+            $this->platform::class,
+        );
     }
 
     /**
@@ -461,6 +500,8 @@ abstract class AbstractSchemaManager
      */
     public function listTableForeignKeys(string $table): array
     {
+        $this->validateTableName($table, __METHOD__);
+
         $database = $this->getDatabase(__METHOD__);
 
         return $this->_getPortableTableForeignKeysList(
@@ -478,6 +519,8 @@ abstract class AbstractSchemaManager
      */
     private function getTableOptions(string $name): array
     {
+        $this->validateTableName($name, __METHOD__);
+
         $normalizedName = $this->normalizeName($name);
 
         return $this->fetchTableOptionsByTable(

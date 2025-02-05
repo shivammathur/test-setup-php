@@ -8,6 +8,13 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Deprecated passing unquoted names containing dots for table introspection on platforms that don't support schemas
+
+Relying on table names containing dots not being parsed on platforms that don't support schemas is deprecated. If a
+table name contains a dot or other special characters, it should be quoted.
+
+Passing names that are not valid SQL to the schema introspection methods is also deprecated.
+
 ## Deprecated `AbstractSchemaManager::_normalizeName()`
 
 The `AbstractSchemaManager::_normalizeName()` method has been deprecated. Use `Identifier::toNormalizedValue()` to
