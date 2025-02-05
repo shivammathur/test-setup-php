@@ -479,6 +479,7 @@ SQL,
         return $tableOptions;
     }
 
+    /** @deprecated Use {@see Identifier::toNormalizedValue()} instead. */
     protected function normalizeName(string $name): string
     {
         $identifier = new Identifier($name);

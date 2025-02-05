@@ -8,6 +8,11 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Deprecated `AbstractSchemaManager::_normalizeName()`
+
+The `AbstractSchemaManager::_normalizeName()` method has been deprecated. Use `Identifier::toNormalizedValue()` to
+obtain the value of the identifier normalized according to the rules of the target database platform.
+
 ## Deprecated `AbstractSchemaManager::_getPortableTableDefinition()`
 
 The `AbstractSchemaManager::_getPortableTableDefinition()` method has been deprecated. Use the schema name and the
