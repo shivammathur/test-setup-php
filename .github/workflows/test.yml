@@ -5,14 +5,16 @@ on:
 jobs:
   runner:
     runs-on: ${{ matrix.os }}
+    container: ubuntu:24.04
     strategy:
       matrix:
         os: [ubuntu-22.04]
-        coverage: [pcov, xdebug, none]
     steps:
-      - uses: shivammathur/setup-php@more-verbose
+      - uses: shivammathur/setup-php@develop
         with:
           php-version: 8.0
+        env:
+          runner: self-hosted
       - run: |
           php -v
           composer -V
