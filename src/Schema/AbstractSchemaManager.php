@@ -286,6 +286,8 @@ abstract class AbstractSchemaManager
      * An extension point for those platforms where case sensitivity of the object name depends on whether it's quoted.
      *
      * Such platforms should convert a possibly quoted name into a value of the corresponding case.
+     *
+     * @deprecated Use {@see Identifier::toNormalizedValue()} instead.
      */
     protected function normalizeName(string $name): string
     {
