@@ -72,8 +72,12 @@ class ForeignKeyConstraintTest extends TestCase
     {
         return [
             ['schema.foreign_table', 'foreign_table'],
+            ['schema."foreign_table"', 'foreign_table'],
+            ['"schema"."foreign_table"', 'foreign_table'],
             ['foreign_table', 'foreign_table'],
             [new Table('schema.foreign_table'), 'foreign_table'],
+            [new Table('schema."foreign_table"'), 'foreign_table'],
+            [new Table('"schema"."foreign_table"'), 'foreign_table'],
             [new Table('foreign_table'), 'foreign_table'],
         ];
     }
