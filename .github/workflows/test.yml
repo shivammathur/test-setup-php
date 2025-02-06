@@ -10,10 +10,10 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
     steps:
-      - uses: shivammathur/setup-php@develop
+      - uses: shivammathur/setup-php@more-verbose
         with:
-          php-version: '8.0'
+          php-version: '8.1'
+          tools: phpunit
       - run: |
-          php -v
-          composer -V
+          phpunit -V
 
