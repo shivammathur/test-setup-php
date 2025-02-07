@@ -7,12 +7,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04]
+        os: [ubuntu-22.04, ubuntu-24.04]
     steps:
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@verbose
         with:
           php-version: '8.1'
-          tools: phpunit
+          extensions: pdo_sqlite, rdkafka
+          coverage: pcov
       - run: |
-          phpunit --version
+          php -v
+          php -m
 
