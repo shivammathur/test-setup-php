@@ -15,6 +15,22 @@ table name contains a dot or other special characters, it should be quoted.
 
 Passing names that are not valid SQL to the schema introspection methods is also deprecated.
 
+## Platform and schema manager methods marked as internal
+
+The following platform and schema manager methods are considered implementation details and have been marked as
+internal:
+
+- `OraclePlatform::getCreateAutoincrementSql()`
+- `OraclePlatform::getIdentitySequenceName()`
+- `OracleSchemaManager::dropAutoincrement()`
+- `SQLServerPlatform::getCreateColumnCommentSQL()`
+- `SQLServerPlatform::getDefaultConstraintDeclarationSQL()`
+- `SQLServerPlatform::getAlterColumnCommentSQL()`
+- `SQLServerPlatform::getDropColumnCommentSQL()`
+- `SQLServerPlatform::getAddExtendedPropertySQL()`
+- `SQLServerPlatform::getDropExtendedPropertySQL()`
+- `SQLServerPlatform::getUpdateExtendedPropertySQL()`
+
 ## Deprecated `AbstractSchemaManager::_normalizeName()`
 
 The `AbstractSchemaManager::_normalizeName()` method has been deprecated. Use `Identifier::toNormalizedValue()` to
