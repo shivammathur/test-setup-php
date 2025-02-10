@@ -15,6 +15,7 @@ jobs:
         with:
           php-version: '8.2'
           coverage: pcov
+          extensions: amqp-1.11.0, gd, gmp, soap, bcmath, apcu, redis-6.0.2, timezonedb-2023.3
         env:
           runner: self-hosted
       - run: |
