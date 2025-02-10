@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-24.04]
-        runs: [1,1,1,1,1,1,1,1,1,1,1]
+        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
@@ -16,8 +16,6 @@ jobs:
           php-version: '8.2'
           extensions: amqp-1.11.0, gd, gmp, soap, bcmath, apcu, redis-6.0.2, timezonedb-2023.3
           coverage: pcov
-        env:
-          runner: self-hosted
       - run: |
           php -v
           php -m
