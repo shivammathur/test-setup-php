@@ -14,8 +14,9 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: '8.2'
-          extensions: amqp-1.11.0, gd, gmp, soap, bcmath, apcu, redis-6.0.2, timezonedb-2023.3
           coverage: pcov
+        env:
+          runner: self-hosted
       - run: |
           php -v
           php -m
