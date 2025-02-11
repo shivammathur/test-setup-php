@@ -16,10 +16,15 @@ final class InvalidState extends LogicException implements SchemaException
         return new self('Object name has not been initialized.');
     }
 
+    public static function indexHasInvalidColumns(string $indexName): self
+    {
+        return new self(sprintf('Index "%s" has invalid columns.', $indexName));
+    }
+
     public static function foreignKeyConstraintHasInvalidReferencedTableName(string $constraintName): self
     {
         return new self(sprintf(
-            'Foreign key constraint "%s" has invalid referenced table names.',
+            'Foreign key constraint "%s" has invalid referenced table name.',
             $constraintName,
         ));
     }
