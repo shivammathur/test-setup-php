@@ -16,7 +16,7 @@ final class TypeArgumentCountError extends Exception implements TypesException
     {
         return new self(
             sprintf(
-                'To register "%s" use Type::getTypeRegistry()->register instead.',
+                'To register "%s" pass an instance to `Type::addType` instead.',
                 $name,
             ),
             previous: $previous,

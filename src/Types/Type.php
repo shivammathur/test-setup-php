@@ -134,13 +134,19 @@ abstract class Type
     /**
      * Adds a custom type to the type map.
      *
-     * @param string             $name      The name of the type.
-     * @param class-string<Type> $className The class name of the custom type.
+     * @param string                  $name      The name of the type.
+     * @param class-string<Type>|Type $className The custom type or the class name of the custom type.
      *
      * @throws Exception
      */
-    public static function addType(string $name, string $className): void
+    public static function addType(string $name, string|Type $className): void
     {
+        if ($className instanceof Type) {
+            self::getTypeRegistry()->register($name, $className);
+
+            return;
+        }
+
         try {
             self::getTypeRegistry()->register($name, new $className());
         } catch (ArgumentCountError $e) {
