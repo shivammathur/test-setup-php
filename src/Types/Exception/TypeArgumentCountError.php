@@ -9,7 +9,6 @@ use Exception;
 
 use function sprintf;
 
-/** @psalm-immutable */
 final class TypeArgumentCountError extends Exception implements TypesException
 {
     public static function new(string $name, ArgumentCountError $previous): self
