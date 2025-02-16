@@ -98,4 +98,19 @@ abstract class FunctionalTestCase extends TestCase
         $this->dropTableIfExists($tableName);
         $schemaManager->createTable($table);
     }
+
+    /**
+     * Drops the schema with the specified name, if it exists.
+     *
+     * @throws Exception
+     */
+    public function dropSchemaIfExists(string $name): void
+    {
+        $schemaManager = $this->connection->createSchemaManager();
+
+        try {
+            $schemaManager->dropSchema($name);
+        } catch (DatabaseObjectNotFoundException $e) {
+        }
+    }
 }
