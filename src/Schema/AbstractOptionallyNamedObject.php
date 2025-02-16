@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Schema;
 
-use Doctrine\DBAL\Schema\Exception\NameIsNotInitialized;
+use Doctrine\DBAL\Schema\Exception\InvalidState;
 
 /**
  * An abstract {@see OptionallyNamedObject}.
@@ -33,7 +33,7 @@ abstract class AbstractOptionallyNamedObject extends AbstractAsset implements Op
     public function getObjectName(): ?Name
     {
         if (! $this->isNameInitialized) {
-            throw NameIsNotInitialized::new();
+            throw InvalidState::objectNameNotInitialized();
         }
 
         return $this->name;

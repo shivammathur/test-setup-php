@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Doctrine\DBAL\Tests\Schema;
 
 use Doctrine\DBAL\Schema\AbstractOptionallyNamedObject;
-use Doctrine\DBAL\Schema\Exception\NameIsNotInitialized;
+use Doctrine\DBAL\Schema\Exception\InvalidState;
 use Doctrine\DBAL\Schema\Name;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -39,7 +39,7 @@ class AbstractOptionallyNamedObjectTest extends TestCase
             }
         };
 
-        $this->expectException(NameIsNotInitialized::class);
+        $this->expectException(InvalidState::class);
         $object->getObjectName();
     }
 }
