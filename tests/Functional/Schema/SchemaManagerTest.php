@@ -10,6 +10,7 @@ use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
+use Doctrine\DBAL\Types\Types;
 
 use function array_merge;
 
@@ -72,6 +73,58 @@ final class SchemaManagerTest extends FunctionalTestCase
                 ] as $testArguments
             ) {
                 yield array_merge($comparatorArguments, $testArguments);
+            }
+        }
+    }
+
+    /**
+     * @param callable(AbstractSchemaManager):Comparator $comparatorFactory
+     *
+     * @dataProvider dataDropIndexInAnotherSchema
+     */
+    public function testDropIndexInAnotherSchema(callable $comparatorFactory, string $tableName): void
+    {
+        if (! $this->connection->getDatabasePlatform()->supportsSchemas()) {
+            self::markTestSkipped('Platform does not support schemas.');
+        }
+
+        $this->dropTableIfExists('test_drop_index_schema.some_table');
+        $this->dropSchemaIfExists('test_drop_index_schema');
+        $this->connection->executeStatement('CREATE SCHEMA test_drop_index_schema');
+        $this->dropTableIfExists('"case".some_table');
+        $this->dropSchemaIfExists('"case"');
+        $this->connection->executeStatement('CREATE SCHEMA "case"');
+
+        $tableFrom = new Table($tableName);
+        $tableFrom->addColumn('id', Types::INTEGER);
+        $tableFrom->addColumn('name', Types::STRING);
+        $tableFrom->addUniqueIndex(['name'], 'some_table_name_unique_index');
+        $this->dropAndCreateTable($tableFrom);
+
+        $tableTo = clone $tableFrom;
+        $tableTo->dropIndex('some_table_name_unique_index');
+
+        $diff = $comparatorFactory($this->schemaManager)->compareTables($tableFrom, $tableTo);
+        self::assertNotFalse($diff);
+
+        $this->schemaManager->alterTable($diff);
+        $tableFinal = $this->schemaManager->introspectTable($tableName);
+        self::assertEmpty($tableFinal->getIndexes());
+    }
+
+    /** @return iterable<mixed[]> */
+    public static function dataDropIndexInAnotherSchema(): iterable
+    {
+        foreach (ComparatorTestUtils::comparatorProvider() as $comparatorScenario => $comparatorArguments) {
+            foreach (
+                [
+                    'default schema' => ['some_table'],
+                    'unquoted schema' => ['test_drop_index_schema.some_table'],
+                    'quoted schema' => ['"test_drop_index_schema".some_table'],
+                    'reserved schema' => ['case.some_table'],
+                ] as $testScenario => $testArguments
+            ) {
+                yield $comparatorScenario . ' - ' . $testScenario => array_merge($comparatorArguments, $testArguments);
             }
         }
     }
