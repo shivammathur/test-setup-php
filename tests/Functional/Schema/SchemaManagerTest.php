@@ -6,6 +6,7 @@ namespace Doctrine\DBAL\Tests\Functional\Schema;
 
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Types\Types;
@@ -26,14 +27,18 @@ final class SchemaManagerTest extends FunctionalTestCase
         $this->schemaManager = $this->connection->createSchemaManager();
     }
 
-    /** @dataProvider dataEmptyDiffRegardlessOfForeignTableQuotes */
+    /**
+     * @throws Exception
+     *
+     * @dataProvider dataEmptyDiffRegardlessOfForeignTableQuotes
+     */
     public function testEmptyDiffRegardlessOfForeignTableQuotes(string $foreignTableName): void
     {
         if (! $this->connection->getDatabasePlatform()->supportsSchemas()) {
             self::markTestSkipped('Platform does not support schemas.');
         }
 
-        $this->dropAndCreateSchema('other_schema');
+        $this->dropAndCreateSchema(UnqualifiedName::unquoted('other_schema'));
 
         $tableForeign = new Table($foreignTableName);
         $tableForeign->addColumn('id', 'integer');
@@ -64,15 +69,19 @@ final class SchemaManagerTest extends FunctionalTestCase
         ];
     }
 
-    /** @dataProvider dataDropIndexInAnotherSchema */
+    /**
+     * @throws Exception
+     *
+     * @dataProvider dataDropIndexInAnotherSchema
+     */
     public function testDropIndexInAnotherSchema(string $tableName): void
     {
         if (! $this->connection->getDatabasePlatform()->supportsSchemas()) {
             self::markTestSkipped('Platform does not support schemas.');
         }
 
-        $this->dropAndCreateSchema('other_schema');
-        $this->dropAndCreateSchema('case');
+        $this->dropAndCreateSchema(UnqualifiedName::unquoted('other_schema'));
+        $this->dropAndCreateSchema(UnqualifiedName::quoted('case'));
 
         $tableFrom = new Table($tableName);
         $tableFrom->addColumn('id', Types::INTEGER);

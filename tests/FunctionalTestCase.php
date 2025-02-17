@@ -9,8 +9,7 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Exception\DatabaseObjectNotFoundException;
 use Doctrine\DBAL\Platforms\Exception\NotSupported;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
-use Doctrine\DBAL\Schema\Identifier;
-use Doctrine\DBAL\Schema\Name;
+use Doctrine\DBAL\Schema\Name\Identifier;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\Schema;
@@ -118,20 +117,25 @@ abstract class FunctionalTestCase extends TestCase
      *
      * @throws Exception
      */
-    public function dropSchemaIfExists(string $schemaName): void
+    protected function dropSchemaIfExists(UnqualifiedName $schemaName): void
     {
         $platform = $this->connection->getDatabasePlatform();
         if (! $platform->supportsSchemas()) {
             throw NotSupported::new(__METHOD__);
         }
 
-        $schemaName     = (new Identifier($schemaName))->getName();
+        $normalizedSchemaName = $schemaName->getIdentifier()
+            ->toNormalizedValue($platform);
+
         $schemaManager  = $this->connection->createSchemaManager();
         $databaseSchema = $schemaManager->introspectSchema();
 
         $sequencesToDrop = [];
         foreach ($databaseSchema->getSequences() as $sequence) {
-            if ($sequence->getNamespaceName() !== $schemaName) {
+            $qualifier = $sequence->getObjectName()
+                ->getQualifier();
+
+            if ($qualifier === null || $qualifier->toNormalizedValue($platform) !== $normalizedSchemaName) {
                 continue;
             }
 
@@ -140,7 +144,10 @@ abstract class FunctionalTestCase extends TestCase
 
         $tablesToDrop = [];
         foreach ($databaseSchema->getTables() as $table) {
-            if ($table->getNamespaceName() !== $schemaName) {
+            $qualifier = $table->getObjectName()
+                ->getQualifier();
+
+            if ($qualifier === null || $qualifier->toNormalizedValue($platform) !== $normalizedSchemaName) {
                 continue;
             }
 
@@ -152,8 +159,7 @@ abstract class FunctionalTestCase extends TestCase
         }
 
         try {
-            $quotedSchemaName = (new Identifier($schemaName))->getQuotedName($platform);
-            $schemaManager->dropSchema($quotedSchemaName);
+            $schemaManager->dropSchema($schemaName->toSQL($platform));
         } catch (DatabaseObjectNotFoundException) {
         }
     }
@@ -163,18 +169,17 @@ abstract class FunctionalTestCase extends TestCase
      *
      * @throws Exception
      */
-    public function dropAndCreateSchema(string $schemaName): void
+    protected function dropAndCreateSchema(UnqualifiedName $schemaName): void
     {
         $platform = $this->connection->getDatabasePlatform();
         if (! $platform->supportsSchemas()) {
             throw NotSupported::new(__METHOD__);
         }
 
-        $schemaManager    = $this->connection->createSchemaManager();
-        $quotedSchemaName = (new Identifier($schemaName))->getQuotedName($platform);
-        $schemaToCreate   = new Schema([], [], null, [$quotedSchemaName]);
+        $schemaManager  = $this->connection->createSchemaManager();
+        $schemaToCreate = new Schema([], [], null, [$schemaName->toString()]);
 
-        $this->dropSchemaIfExists($quotedSchemaName);
+        $this->dropSchemaIfExists($schemaName);
         $schemaManager->createSchemaObjects($schemaToCreate);
     }
 
@@ -308,13 +313,13 @@ abstract class FunctionalTestCase extends TestCase
     }
 
     /** @throws Exception */
-    protected function toQuotedIdentifier(Name\Identifier $identifier): Name\Identifier
+    protected function toQuotedIdentifier(Identifier $identifier): Identifier
     {
         if ($identifier->isQuoted()) {
             return $identifier;
         }
 
-        return Name\Identifier::quoted(
+        return Identifier::quoted(
             $this->connection->getDatabasePlatform()
                 ->normalizeUnquotedIdentifier($identifier->getValue()),
         );
