@@ -151,6 +151,15 @@ class Table extends AbstractNamedObject
 
         foreach ($columnNames as $columnName) {
             $column = $this->getColumn($columnName);
+
+            if (! $column->getNotnull()) {
+                Deprecation::trigger(
+                    'doctrine/dbal',
+                    'https://github.com/doctrine/dbal/pull/6787',
+                    'Using nullable columns in a primary key index is deprecated.',
+                );
+            }
+
             $column->setNotnull(true);
         }
 
