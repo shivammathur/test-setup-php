@@ -7,10 +7,15 @@ namespace Doctrine\DBAL\Tests;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Exception\DatabaseObjectNotFoundException;
+use Doctrine\DBAL\Platforms\Exception\NotSupported;
+use Doctrine\DBAL\Schema\Identifier;
+use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use PHPUnit\Framework\Attributes\After;
 use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\TestCase;
+
+use function count;
 
 abstract class FunctionalTestCase extends TestCase
 {
@@ -101,5 +106,70 @@ abstract class FunctionalTestCase extends TestCase
 
         $this->dropTableIfExists($tableName);
         $schemaManager->createTable($table);
+    }
+
+    /**
+     * Drops the schema with the specified name, if it exists.
+     *
+     * @throws Exception
+     */
+    public function dropSchemaIfExists(string $schemaName): void
+    {
+        $platform = $this->connection->getDatabasePlatform();
+        if (! $platform->supportsSchemas()) {
+            throw NotSupported::new(__METHOD__);
+        }
+
+        $schemaName     = (new Identifier($schemaName))->getName();
+        $schemaManager  = $this->connection->createSchemaManager();
+        $databaseSchema = $schemaManager->introspectSchema();
+
+        $sequencesToDrop = [];
+        foreach ($databaseSchema->getSequences() as $sequence) {
+            if ($sequence->getNamespaceName() !== $schemaName) {
+                continue;
+            }
+
+            $sequencesToDrop[] = $sequence;
+        }
+
+        $tablesToDrop = [];
+        foreach ($databaseSchema->getTables() as $table) {
+            if ($table->getNamespaceName() !== $schemaName) {
+                continue;
+            }
+
+            $tablesToDrop[] = $table;
+        }
+
+        if (count($sequencesToDrop) > 0 || count($tablesToDrop) > 0) {
+            $schemaManager->dropSchemaObjects(new Schema($tablesToDrop, $sequencesToDrop));
+        }
+
+        try {
+            $quotedSchemaName = (new Identifier($schemaName))->getQuotedName($platform);
+            $schemaManager->dropSchema($quotedSchemaName);
+        } catch (DatabaseObjectNotFoundException) {
+        }
+    }
+
+    /**
+     * Drops and creates a new schema.
+     *
+     * @throws Exception
+     */
+    public function dropAndCreateSchema(string $schemaName): void
+    {
+        $platform = $this->connection->getDatabasePlatform();
+        if (! $platform->supportsSchemas()) {
+            throw NotSupported::new(__METHOD__);
+        }
+
+        $schemaManager    = $this->connection->createSchemaManager();
+        $quotedSchemaName = (new Identifier($schemaName))->getQuotedName($platform);
+        $schemaToCreate   = new Schema([], [], null, [$quotedSchemaName]);
+
+        $this->dropSchemaIfExists($quotedSchemaName);
+        $schemaManager->createSchemaObjects($schemaToCreate);
     }
 }
