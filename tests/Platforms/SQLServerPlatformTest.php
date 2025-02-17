@@ -657,7 +657,7 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
         $expectedSql = [
             'CREATE TABLE testschema.test (id INT NOT NULL, PRIMARY KEY (id))',
-            "EXEC sp_addextendedproperty N'MS_Description', N'This is a comment', "
+            "EXEC [sp_addextendedproperty] N'MS_Description', N'This is a comment', "
                 . "N'SCHEMA', 'testschema', N'TABLE', 'test', N'COLUMN', 'id'",
         ];
 
@@ -678,7 +678,7 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
         $expectedSql = [
             'ALTER TABLE testschema.mytable ADD quota INT NOT NULL',
-            "EXEC sp_addextendedproperty N'MS_Description', N'A comment', "
+            "EXEC [sp_addextendedproperty] N'MS_Description', N'A comment', "
                 . "N'SCHEMA', 'testschema', N'TABLE', 'mytable', N'COLUMN', 'quota'",
         ];
 
@@ -697,7 +697,7 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
         ]);
 
         $expectedSql = [
-            "EXEC sp_dropextendedproperty N'MS_Description'"
+            "EXEC [sp_dropextendedproperty] N'MS_Description'"
                 . ", N'SCHEMA', 'testschema', N'TABLE', 'mytable', N'COLUMN', 'quota'",
         ];
 
@@ -715,7 +715,7 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
             ),
         ]);
 
-        $expectedSql = ["EXEC sp_updateextendedproperty N'MS_Description', N'B comment', "
+        $expectedSql = ["EXEC [sp_updateextendedproperty] N'MS_Description', N'B comment', "
                 . "N'SCHEMA', 'testschema', N'TABLE', 'mytable', N'COLUMN', 'quota'",
         ];
 
@@ -840,7 +840,7 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
      */
     protected function getAlterTableRenameIndexSQL(): array
     {
-        return ["EXEC sp_rename N'mytable.idx_foo', N'idx_bar', N'INDEX'"];
+        return ["EXEC [sp_rename] N'mytable.idx_foo', N'idx_bar', N'INDEX'"];
     }
 
     /**
@@ -849,8 +849,8 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
     protected function getQuotedAlterTableRenameIndexSQL(): array
     {
         return [
-            "EXEC sp_rename N'[table].[create]', N'select', N'INDEX'",
-            "EXEC sp_rename N'[table].[foo]', N'bar', N'INDEX'",
+            "EXEC [sp_rename] N'[table].[create]', N'select', N'INDEX'",
+            "EXEC [sp_rename] N'[table].[foo]', N'bar', N'INDEX'",
         ];
     }
 
@@ -859,7 +859,7 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
      */
     protected function getAlterTableRenameIndexInSchemaSQL(): array
     {
-        return ["EXEC sp_rename N'myschema.mytable.idx_foo', N'idx_bar', N'INDEX'"];
+        return ["EXEC [sp_rename] N'myschema.mytable.idx_foo', N'idx_bar', N'INDEX'"];
     }
 
     /**
@@ -868,8 +868,8 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
     protected function getQuotedAlterTableRenameIndexInSchemaSQL(): array
     {
         return [
-            "EXEC sp_rename N'[schema].[table].[create]', N'select', N'INDEX'",
-            "EXEC sp_rename N'[schema].[table].[foo]', N'bar', N'INDEX'",
+            "EXEC [sp_rename] N'[schema].[table].[create]', N'select', N'INDEX'",
+            "EXEC [sp_rename] N'[schema].[table].[foo]', N'bar', N'INDEX'",
         ];
     }
 
@@ -933,7 +933,7 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
      */
     protected function getGeneratesAlterTableRenameIndexUsedByForeignKeySQL(): array
     {
-        return ["EXEC sp_rename N'mytable.idx_foo', N'idx_foo_renamed', N'INDEX'"];
+        return ["EXEC [sp_rename] N'mytable.idx_foo', N'idx_foo_renamed', N'INDEX'"];
     }
 
     protected function getLimitOffsetCastToIntExpectedQuery(): string
