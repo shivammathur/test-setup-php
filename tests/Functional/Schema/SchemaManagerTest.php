@@ -7,7 +7,6 @@ namespace Doctrine\DBAL\Tests\Functional\Schema;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Comparator;
-use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Types\Types;
@@ -37,22 +36,19 @@ final class SchemaManagerTest extends FunctionalTestCase
             self::markTestSkipped('Platform does not support schemas.');
         }
 
-        $this->dropTableIfExists('other_schema.other_table');
-        $this->dropTableIfExists('other_schema."user"');
-        $this->dropSchemaIfExists('other_schema');
+        $this->dropAndCreateSchema('other_schema');
 
         $tableForeign = new Table($foreignTableName);
         $tableForeign->addColumn('id', 'integer');
         $tableForeign->setPrimaryKey(['id']);
+        $this->dropAndCreateTable($tableForeign);
 
         $tableTo = new Table('other_schema.other_table');
         $tableTo->addColumn('id', 'integer');
         $tableTo->addColumn('user_id', 'integer');
         $tableTo->setPrimaryKey(['id']);
-        $tableTo->addForeignKeyConstraint($tableForeign, ['user_id'], ['id'], []);
-
-        $schemaTo = new Schema([$tableForeign, $tableTo]);
-        $this->schemaManager->createSchemaObjects($schemaTo);
+        $tableTo->addForeignKeyConstraint($tableForeign, ['user_id'], ['id']);
+        $this->dropAndCreateTable($tableTo);
 
         $schemaFrom = $this->schemaManager->introspectSchema();
         $tableFrom  = $schemaFrom->getTable('other_schema.other_table');
@@ -88,12 +84,8 @@ final class SchemaManagerTest extends FunctionalTestCase
             self::markTestSkipped('Platform does not support schemas.');
         }
 
-        $this->dropTableIfExists('test_drop_index_schema.some_table');
-        $this->dropSchemaIfExists('test_drop_index_schema');
-        $this->connection->executeStatement('CREATE SCHEMA test_drop_index_schema');
-        $this->dropTableIfExists('"case".some_table');
-        $this->dropSchemaIfExists('"case"');
-        $this->connection->executeStatement('CREATE SCHEMA "case"');
+        $this->dropAndCreateSchema('other_schema');
+        $this->dropAndCreateSchema('case');
 
         $tableFrom = new Table($tableName);
         $tableFrom->addColumn('id', Types::INTEGER);
@@ -119,8 +111,8 @@ final class SchemaManagerTest extends FunctionalTestCase
             foreach (
                 [
                     'default schema' => ['some_table'],
-                    'unquoted schema' => ['test_drop_index_schema.some_table'],
-                    'quoted schema' => ['"test_drop_index_schema".some_table'],
+                    'unquoted schema' => ['other_schema.some_table'],
+                    'quoted schema' => ['"other_schema".some_table'],
                     'reserved schema' => ['case.some_table'],
                 ] as $testScenario => $testArguments
             ) {
