@@ -11,6 +11,11 @@ use function sprintf;
 
 final class InvalidState extends LogicException implements SchemaException
 {
+    public static function objectNameNotInitialized(): self
+    {
+        return new self('Object name has not been initialized.');
+    }
+
     public static function foreignKeyConstraintHasInvalidReferencedTableName(string $constraintName): self
     {
         return new self(sprintf(
