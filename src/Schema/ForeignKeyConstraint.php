@@ -420,6 +420,10 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
             $name = substr($name, $position + 1);
         }
 
+        if ($this->isIdentifierQuoted($name)) {
+            $name = $this->trimQuotes($name);
+        }
+
         return strtolower($name);
     }
 
