@@ -6,17 +6,15 @@ jobs:
   runner:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
-        os: [ubuntu-24.04]
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        os: [codebuild]        
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@more-verbose
         with:
-          php-version: '8.2'
-          coverage: pcov
-          extensions: amqp-1.11.0, gd, gmp, soap, bcmath, apcu, redis-6.0.2, timezonedb-2023.3
+          php-version: 8.4
+          extensions: mbstring, json, pdo, redis, mailparse, bcmath, curl, gd, fileinfo, intl
+          coverage: none
         env:
           runner: self-hosted
       - run: |
