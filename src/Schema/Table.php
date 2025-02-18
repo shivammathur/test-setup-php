@@ -139,7 +139,7 @@ class Table extends AbstractNamedObject
     /**
      * Sets the Primary Key.
      *
-     * @param array<int, string> $columnNames
+     * @param non-empty-list<string> $columnNames
      */
     public function setPrimaryKey(array $columnNames, ?string $indexName = null): self
     {
@@ -187,9 +187,9 @@ class Table extends AbstractNamedObject
     }
 
     /**
-     * @param array<int, string>   $columnNames
-     * @param array<int, string>   $flags
-     * @param array<string, mixed> $options
+     * @param non-empty-list<string> $columnNames
+     * @param array<int, string>     $flags
+     * @param array<string, mixed>   $options
      */
     public function addIndex(
         array $columnNames,
@@ -234,8 +234,8 @@ class Table extends AbstractNamedObject
     }
 
     /**
-     * @param array<int, string>   $columnNames
-     * @param array<string, mixed> $options
+     * @param non-empty-list<string> $columnNames
+     * @param array<string, mixed>   $options
      */
     public function addUniqueIndex(array $columnNames, ?string $indexName = null, array $options = []): self
     {
@@ -915,9 +915,9 @@ class Table extends AbstractNamedObject
     }
 
     /**
-     * @param array<int, string>   $columns
-     * @param array<int, string>   $flags
-     * @param array<string, mixed> $options
+     * @param non-empty-list<string> $columns
+     * @param array<int, string>     $flags
+     * @param array<string, mixed>   $options
      */
     private function _createIndex(
         array $columns,

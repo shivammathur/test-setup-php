@@ -22,18 +22,13 @@ class ForeignKeyConstraintTest extends TestCase
 {
     use VerifyDeprecations;
 
-    /** @param string[] $indexColumns */
+    /** @param non-empty-list<string> $indexColumns */
     #[DataProvider('getIntersectsIndexColumnsData')]
     public function testIntersectsIndexColumns(array $indexColumns, bool $expectedResult): void
     {
         $foreignKey = new ForeignKeyConstraint(['foo', 'bar'], 'foreign_table', ['fk_foo', 'fk_bar']);
 
-        $index = $this->getMockBuilder(Index::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $index->expects(self::once())
-            ->method('getColumns')
-            ->willReturn($indexColumns);
+        $index = new Index('foo', $indexColumns);
 
         self::assertSame($expectedResult, $foreignKey->intersectsIndexColumns($index));
     }
