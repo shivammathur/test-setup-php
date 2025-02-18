@@ -120,7 +120,7 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
     /**
      * @deprecated Use {@see getColumnNames()} instead.
      *
-     * @return list<string>
+     * @return non-empty-list<string>
      */
     public function getColumns(): array
     {
@@ -131,6 +131,7 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
             __METHOD__,
         );
 
+        /** @phpstan-ignore return.type */
         return array_keys($this->columns);
     }
 

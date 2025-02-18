@@ -38,7 +38,7 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
      *
      * @deprecated
      *
-     * @var array<string, Identifier>
+     * @var non-empty-array<string, Identifier>
      */
     protected array $_localColumnNames;
 
@@ -54,7 +54,7 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
      *
      * @deprecated
      *
-     * @var array<string, Identifier>
+     * @var non-empty-array<string, Identifier>
      */
     protected array $_foreignColumnNames;
 
@@ -276,9 +276,9 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
     }
 
     /**
-     * @param array<int, string> $names
+     * @param non-empty-array<int, string> $names
      *
-     * @return array<string, Identifier>
+     * @return non-empty-array<string, Identifier>
      */
     private function createIdentifierMap(array $names): array
     {
@@ -297,7 +297,7 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
      *
      * @deprecated Use {@see getReferencingColumnNames()} instead.
      *
-     * @return array<int, string>
+     * @return non-empty-list<string>
      */
     public function getLocalColumns(): array
     {
@@ -323,7 +323,7 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
      *
      * @param AbstractPlatform $platform The platform to use for quotation.
      *
-     * @return array<int, string>
+     * @return non-empty-array<int, string>
      */
     public function getQuotedLocalColumns(AbstractPlatform $platform): array
     {
@@ -348,7 +348,7 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
      *
      * Returns unquoted representation of local table column names for comparison with other FK
      *
-     * @return array<int, string>
+     * @return non-empty-array<int, string>
      */
     public function getUnquotedLocalColumns(): array
     {
@@ -367,7 +367,7 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
      *
      * Returns unquoted representation of foreign table column names for comparison with other FK
      *
-     * @return array<int, string>
+     * @return non-empty-array<int, string>
      */
     public function getUnquotedForeignColumns(): array
     {
@@ -457,7 +457,7 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
      * Returns the names of the referenced table columns
      * the foreign key constraint is associated with.
      *
-     * @return array<int, string>
+     * @return non-empty-array<int, string>
      */
     public function getForeignColumns(): array
     {
@@ -483,7 +483,7 @@ class ForeignKeyConstraint extends AbstractOptionallyNamedObject
      *
      * @param AbstractPlatform $platform The platform to use for quotation.
      *
-     * @return array<int, string>
+     * @return non-empty-array<int, string>
      */
     public function getQuotedForeignColumns(AbstractPlatform $platform): array
     {
