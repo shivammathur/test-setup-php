@@ -9,7 +9,7 @@ use Doctrine\DBAL\Types\Type;
 
 class TypeWithConstructor extends Type
 {
-    public function __construct(private bool $requirement)
+    public function __construct(public bool $requirement)
     {
     }
 

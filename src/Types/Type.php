@@ -145,7 +145,7 @@ abstract class Type
         if (is_string($type)) {
             try {
                 $type = new $type();
-            } catch (ArgumentCountError $e) {
+            } catch (ArgumentCountError $e) { // @phpstan-ignore catch.neverThrown (it can be thrown)
                 throw TypeArgumentCountError::new($name, $e);
             }
         }
@@ -177,7 +177,7 @@ abstract class Type
         if (is_string($type)) {
             try {
                 $type = new $type();
-            } catch (ArgumentCountError $e) {
+            } catch (ArgumentCountError $e) { // @phpstan-ignore catch.neverThrown (it can be thrown)
                 throw TypeArgumentCountError::new($name, $e);
             }
         }
