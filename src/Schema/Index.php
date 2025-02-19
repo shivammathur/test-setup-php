@@ -28,7 +28,7 @@ use function strtolower;
  * @final
  * @extends AbstractNamedObject<UnqualifiedName>
  */
-final class Index extends AbstractNamedObject
+class Index extends AbstractNamedObject
 {
     /**
      * Asset identifier instances of the column names the index is associated with.
