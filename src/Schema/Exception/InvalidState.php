@@ -74,4 +74,9 @@ final class InvalidState extends LogicException implements SchemaException
     {
         return new self(sprintf('Unique constraint "%s" has no column names.', $constraintName));
     }
+
+    public static function tableHasInvalidPrimaryKeyConstraint(string $tableName): self
+    {
+        return new self(sprintf('Table "%s" has invalid primary key constraint.', $tableName));
+    }
 }
