@@ -178,6 +178,8 @@ class SQLServerPlatform extends AbstractPlatform
      */
     protected function _getCreateTableSQL(string $name, array $columns, array $options = []): array
     {
+        $this->validateCreateTableOptions($options, __METHOD__);
+
         $defaultConstraintsSql = [];
         $commentsSql           = [];
 

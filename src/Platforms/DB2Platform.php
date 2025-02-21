@@ -242,6 +242,8 @@ class DB2Platform extends AbstractPlatform
      */
     protected function _getCreateTableSQL(string $name, array $columns, array $options = []): array
     {
+        $this->validateCreateTableOptions($options, __METHOD__);
+
         $indexes = [];
         if (isset($options['indexes'])) {
             $indexes = $options['indexes'];

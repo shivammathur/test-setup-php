@@ -839,9 +839,10 @@ abstract class AbstractPlatform
 
         $tableName                    = $table->getQuotedName($this);
         $options                      = $table->getOptions();
-        $options['uniqueConstraints'] = [];
-        $options['indexes']           = [];
         $options['primary']           = [];
+        $options['indexes']           = [];
+        $options['uniqueConstraints'] = [];
+        $options['foreignKeys']       = [];
 
         foreach ($table->getIndexes() as $index) {
             if (! $index->isPrimary()) {
@@ -859,8 +860,6 @@ abstract class AbstractPlatform
         }
 
         if ($createForeignKeys) {
-            $options['foreignKeys'] = [];
-
             foreach ($table->getForeignKeys() as $fkConstraint) {
                 $options['foreignKeys'][] = $fkConstraint;
             }
@@ -992,6 +991,8 @@ abstract class AbstractPlatform
      */
     protected function _getCreateTableSQL(string $name, array $columns, array $options = []): array
     {
+        $this->validateCreateTableOptions($options, __METHOD__);
+
         $columnListSql = $this->getColumnDeclarationListSQL($columns);
 
         if (! empty($options['uniqueConstraints'])) {
@@ -1028,6 +1029,33 @@ abstract class AbstractPlatform
         }
 
         return $sql;
+    }
+
+    /**
+     * @internal
+     *
+     * @param CreateTableParameters $options
+     */
+    final protected function validateCreateTableOptions(array $options, string $methodName): void
+    {
+        if (
+            isset(
+                $options['primary'],
+                $options['indexes'],
+                $options['uniqueConstraints'],
+                $options['foreignKeys'],
+            )
+        ) {
+            return;
+        }
+
+        Deprecation::trigger(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6805',
+            'Not passing $options or any of its following keys to %s() is deprecated:'
+                . ' "primary", "indexes", "uniqueConstraints", "foreignKeys".',
+            $methodName,
+        );
     }
 
     public function getCreateTemporaryTableSnippetSQL(): string
