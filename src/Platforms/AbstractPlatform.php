@@ -1517,6 +1517,8 @@ abstract class AbstractPlatform
      * Obtains DBMS specific SQL code portion needed to set a CHECK constraint
      * declaration to be used in statements like CREATE TABLE.
      *
+     * @internal The method should be only used from within the {@see AbstractPlatform} class hierarchy.
+     *
      * @param string[]|mixed[][] $definition The check definition.
      *
      * @return string DBMS specific SQL code portion needed to set a CHECK constraint.
@@ -1526,6 +1528,14 @@ abstract class AbstractPlatform
         $constraints = [];
         foreach ($definition as $def) {
             if (is_string($def)) {
+                Deprecation::trigger(
+                    'doctrine/dbal',
+                    'https://github.com/doctrine/dbal/pull/6805',
+                    'Passing column definition to %s() as string is deprecated. Pass the definition as array'
+                        . ' instead.',
+                    __METHOD__,
+                );
+
                 $constraints[] = 'CHECK (' . $def . ')';
             } else {
                 if (isset($def['min'])) {
