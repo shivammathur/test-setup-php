@@ -48,7 +48,6 @@ use function assert;
 use function count;
 use function explode;
 use function implode;
-use function in_array;
 use function is_array;
 use function is_bool;
 use function is_float;
@@ -862,13 +861,7 @@ abstract class AbstractPlatform
         $columns = [];
 
         foreach ($table->getColumns() as $column) {
-            $columnData = $this->columnToArray($column);
-
-            if (in_array($column->getName(), $options['primary'], true)) {
-                $columnData['primary'] = true;
-            }
-
-            $columns[] = $columnData;
+            $columns[] = $this->columnToArray($column);
         }
 
         $sql = $this->_getCreateTableSQL($tableName, $columns, $options);

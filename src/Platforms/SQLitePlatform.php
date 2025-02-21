@@ -294,12 +294,6 @@ class SQLitePlatform extends AbstractPlatform
             }
         }
 
-        if (! empty($options['unique'])) {
-            foreach ($options['unique'] as $indexDef) {
-                $query[] = $this->getCreateIndexSQL($indexDef, $name);
-            }
-        }
-
         return $query;
     }
 
