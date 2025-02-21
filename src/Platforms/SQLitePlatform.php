@@ -742,16 +742,12 @@ class SQLitePlatform extends AbstractPlatform
         $sql = [];
 
         foreach ($diff->getAddedColumns() as $column) {
-            $definition = array_merge([
-                'unique' => null,
-                'autoincrement' => null,
-                'default' => null,
-            ], $column->toArray());
+            $definition = $column->toArray();
 
             $type = $definition['type'];
 
             switch (true) {
-                case isset($definition['columnDefinition']) || $definition['autoincrement'] || $definition['unique']:
+                case isset($definition['columnDefinition']) || $definition['autoincrement']:
                 case $type instanceof Types\DateTimeType && $definition['default'] === $this->getCurrentTimestampSQL():
                 case $type instanceof Types\DateType && $definition['default'] === $this->getCurrentDateSQL():
                 case $type instanceof Types\TimeType && $definition['default'] === $this->getCurrentTimeSQL():
