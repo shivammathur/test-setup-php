@@ -101,35 +101,35 @@ abstract class AbstractPlatform
     /**
      * Returns the SQL snippet that declares a boolean column.
      *
-     * @param mixed[] $column
+     * @param array<string, mixed> $column
      */
     abstract public function getBooleanTypeDeclarationSQL(array $column): string;
 
     /**
      * Returns the SQL snippet that declares a 4 byte integer column.
      *
-     * @param mixed[] $column
+     * @param array<string, mixed> $column
      */
     abstract public function getIntegerTypeDeclarationSQL(array $column): string;
 
     /**
      * Returns the SQL snippet that declares an 8 byte integer column.
      *
-     * @param mixed[] $column
+     * @param array<string, mixed> $column
      */
     abstract public function getBigIntTypeDeclarationSQL(array $column): string;
 
     /**
      * Returns the SQL snippet that declares a 2 byte integer column.
      *
-     * @param mixed[] $column
+     * @param array<string, mixed> $column
      */
     abstract public function getSmallIntTypeDeclarationSQL(array $column): string;
 
     /**
      * Returns the SQL snippet that declares common properties of an integer column.
      *
-     * @param mixed[] $column
+     * @param array<string, mixed> $column
      */
     abstract protected function _getCommonIntegerTypeDeclarationSQL(array $column): string;
 
@@ -250,7 +250,7 @@ abstract class AbstractPlatform
      * By default this maps directly to a CLOB and only maps to more
      * special datatypes when the underlying databases support this datatype.
      *
-     * @param mixed[] $column
+     * @param array<string, mixed> $column
      */
     public function getJsonTypeDeclarationSQL(array $column): string
     {
@@ -320,14 +320,14 @@ abstract class AbstractPlatform
     /**
      * Returns the SQL snippet used to declare a CLOB column type.
      *
-     * @param mixed[] $column
+     * @param array<string, mixed> $column
      */
     abstract public function getClobTypeDeclarationSQL(array $column): string;
 
     /**
      * Returns the SQL Snippet used to declare a BLOB column type.
      *
-     * @param mixed[] $column
+     * @param array<string, mixed> $column
      */
     abstract public function getBlobTypeDeclarationSQL(array $column): string;
 
@@ -1415,7 +1415,7 @@ abstract class AbstractPlatform
     /**
      * Returns the SQL snippet that declares a floating point column of arbitrary precision.
      *
-     * @param mixed[] $column
+     * @param array<string, mixed> $column
      */
     public function getDecimalTypeDeclarationSQL(array $column): string
     {
@@ -1440,7 +1440,7 @@ abstract class AbstractPlatform
      *
      * @internal The method should be only used from within the {@see AbstractPlatform} class hierarchy.
      *
-     * @param mixed[] $column The column definition array.
+     * @param array<string, mixed> $column The column definition array.
      *
      * @return string DBMS specific SQL code portion needed to set a default value.
      */
@@ -1908,14 +1908,14 @@ abstract class AbstractPlatform
      * Obtains DBMS specific SQL to be used to create datetime columns in
      * statements like CREATE TABLE.
      *
-     * @param mixed[] $column
+     * @param array<string, mixed> $column
      */
     abstract public function getDateTimeTypeDeclarationSQL(array $column): string;
 
     /**
      * Obtains DBMS specific SQL to be used to create datetime with timezone offset columns.
      *
-     * @param mixed[] $column
+     * @param array<string, mixed> $column
      */
     public function getDateTimeTzTypeDeclarationSQL(array $column): string
     {
@@ -1926,7 +1926,7 @@ abstract class AbstractPlatform
      * Obtains DBMS specific SQL to be used to create date columns in statements
      * like CREATE TABLE.
      *
-     * @param mixed[] $column
+     * @param array<string, mixed> $column
      */
     abstract public function getDateTypeDeclarationSQL(array $column): string;
 
@@ -1934,17 +1934,17 @@ abstract class AbstractPlatform
      * Obtains DBMS specific SQL to be used to create time columns in statements
      * like CREATE TABLE.
      *
-     * @param mixed[] $column
+     * @param array<string, mixed> $column
      */
     abstract public function getTimeTypeDeclarationSQL(array $column): string;
 
-    /** @param mixed[] $column */
+    /** @param array<string, mixed> $column */
     public function getFloatDeclarationSQL(array $column): string
     {
         return 'DOUBLE PRECISION';
     }
 
-    /** @param mixed[] $column */
+    /** @param array<string, mixed> $column */
     public function getSmallFloatDeclarationSQL(array $column): string
     {
         return 'REAL';
