@@ -178,6 +178,8 @@ class SQLServerPlatform extends AbstractPlatform
      */
     protected function _getCreateTableSQL(string $name, array $columns, array $options = []): array
     {
+        $this->validateCreateTableOptions($options, __METHOD__);
+
         $defaultConstraintsSql = [];
         $commentsSql           = [];
 
@@ -985,7 +987,11 @@ class SQLServerPlatform extends AbstractPlatform
      */
     protected function _getCommonIntegerTypeDeclarationSQL(array $column): string
     {
-        return ! empty($column['autoincrement']) ? ' IDENTITY' : '';
+        if (! empty($column['autoincrement'])) {
+            return ' IDENTITY';
+        }
+
+        return '';
     }
 
     /**

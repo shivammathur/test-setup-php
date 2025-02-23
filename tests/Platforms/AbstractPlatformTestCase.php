@@ -275,6 +275,7 @@ abstract class AbstractPlatformTestCase extends TestCase
     {
         self::assertEquals(
             'foo MEDIUMINT(6) UNSIGNED',
+            /** @phpstan-ignore argument.type */
             $this->platform->getColumnDeclarationSQL('foo', ['columnDefinition' => 'MEDIUMINT(6) UNSIGNED']),
         );
     }
