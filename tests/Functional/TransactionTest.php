@@ -20,8 +20,17 @@ use const E_WARNING;
 
 class TransactionTest extends FunctionalTestCase
 {
+    public function testBeginTransactionFailure(): void
+    {
+        $this->expectConnectionLoss(static function (Connection $connection): void {
+            $connection->beginTransaction();
+        });
+    }
+
     public function testCommitFailure(): void
     {
+        $this->connection->beginTransaction();
+
         $this->expectConnectionLoss(static function (Connection $connection): void {
             $connection->commit();
         });
@@ -29,6 +38,8 @@ class TransactionTest extends FunctionalTestCase
 
     public function testRollbackFailure(): void
     {
+        $this->connection->beginTransaction();
+
         $this->expectConnectionLoss(static function (Connection $connection): void {
             $connection->rollBack();
         });
@@ -36,7 +47,6 @@ class TransactionTest extends FunctionalTestCase
 
     private function expectConnectionLoss(callable $scenario): void
     {
-        $this->connection->beginTransaction();
         $this->killCurrentSession();
         $this->expectException(ConnectionLost::class);
 

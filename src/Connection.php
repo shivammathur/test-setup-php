@@ -1027,7 +1027,11 @@ class Connection implements ServerVersionProvider
         ++$this->transactionNestingLevel;
 
         if ($this->transactionNestingLevel === 1) {
-            $connection->beginTransaction();
+            try {
+                $connection->beginTransaction();
+            } catch (Driver\Exception $e) {
+                throw $this->convertException($e);
+            }
         } else {
             $this->createSavepoint($this->_getNestedTransactionSavePointName());
         }
