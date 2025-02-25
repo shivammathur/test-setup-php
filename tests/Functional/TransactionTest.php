@@ -9,12 +9,12 @@ use Doctrine\DBAL\Exception\ConnectionLost;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
+use Doctrine\DBAL\Tests\TestUtil;
 use Doctrine\DBAL\Types\Types;
 
 use function func_get_args;
 use function restore_error_handler;
 use function set_error_handler;
-use function sleep;
 
 use const E_WARNING;
 
@@ -36,16 +36,8 @@ class TransactionTest extends FunctionalTestCase
 
     private function expectConnectionLoss(callable $scenario): void
     {
-        if (! $this->connection->getDatabasePlatform() instanceof AbstractMySQLPlatform) {
-            self::markTestSkipped('Restricted to MySQL.');
-        }
-
-        $this->connection->executeStatement('SET SESSION wait_timeout=1');
         $this->connection->beginTransaction();
-
-        // during the sleep MySQL will close the connection
-        sleep(2);
-
+        $this->killCurrentSession();
         $this->expectException(ConnectionLost::class);
 
         // prevent the PHPUnit error handler from handling the "MySQL server has gone away" warning
@@ -63,6 +55,24 @@ class TransactionTest extends FunctionalTestCase
         } finally {
             restore_error_handler();
         }
+    }
+
+    private function killCurrentSession(): void
+    {
+        $this->markConnectionNotReusable();
+
+        $databasePlatform = $this->connection->getDatabasePlatform();
+
+        [$currentProcessQuery, $killProcessStatement] = match (true) {
+            $databasePlatform instanceof AbstractMySqlPlatform => ['SELECT CONNECTION_ID()', 'KILL ?'],
+            default => self::markTestSkipped('Unsupported test platform.'),
+        };
+
+        $privilegedConnection = TestUtil::getPrivilegedConnection();
+        $privilegedConnection->executeStatement(
+            $killProcessStatement,
+            [$this->connection->executeQuery($currentProcessQuery)->fetchOne()],
+        );
     }
 
     public function testNestedTransactionWalkthrough(): void
