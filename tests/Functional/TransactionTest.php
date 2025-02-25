@@ -7,6 +7,7 @@ namespace Doctrine\DBAL\Tests\Functional;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\ConnectionLost;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Tests\TestUtil;
@@ -74,7 +75,14 @@ class TransactionTest extends FunctionalTestCase
         $databasePlatform = $this->connection->getDatabasePlatform();
 
         [$currentProcessQuery, $killProcessStatement] = match (true) {
-            $databasePlatform instanceof AbstractMySqlPlatform => ['SELECT CONNECTION_ID()', 'KILL ?'],
+            $databasePlatform instanceof AbstractMySqlPlatform => [
+                'SELECT CONNECTION_ID()',
+                'KILL ?',
+            ],
+            $databasePlatform instanceof PostgreSQLPlatform => [
+                'SELECT pg_backend_pid()',
+                'SELECT pg_terminate_backend(?)',
+            ],
             default => self::markTestSkipped('Unsupported test platform.'),
         };
 
