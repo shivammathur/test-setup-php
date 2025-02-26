@@ -7,16 +7,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [codebuild]        
+        os: [ubuntu-latest]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.4
-          extensions: mbstring, json, pdo, redis, mailparse, bcmath, curl, gd, fileinfo, intl
-          coverage: none
-        env:
-          runner: self-hosted
+          php-version: 8.5
+          extensions: mbstring, json, pdo, redis, mailparse, bcmath, curl, gd, fileinfo, intl        
       - run: |
           php -v
           php -m
