@@ -14,6 +14,8 @@ use function implode;
 
 /**
  * A generic {@see Name} consisting of one or more identifiers.
+ *
+ * @internal
  */
 final class GenericName implements Name
 {
