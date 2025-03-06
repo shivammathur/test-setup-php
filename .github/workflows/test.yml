@@ -15,6 +15,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: xdebug-3.4.0
+          coverage: xdebug
       - run: |
           php -r "echo phpversion('xdebug') . PHP_EOL;"
           php -v
