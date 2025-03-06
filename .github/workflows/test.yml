@@ -14,7 +14,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: xdebug-3.4.0
+          extensions: xdebug-3.3.2
       - run: |
           php -r "echo phpversion('xdebug') . PHP_EOL;"
           php -v
