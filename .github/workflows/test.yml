@@ -7,14 +7,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [windows-latest]
+        php: [7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.5
-          extensions: mbstring, json, pdo, redis, mailparse, bcmath, curl, gd, fileinfo, intl        
+          php-version: ${{ matrix.php }}
+          coverage: xdebug
       - run: |
+          php -r "echo phpversion('xdebug') . PHP_EOL;"
           php -v
           php -m
 
