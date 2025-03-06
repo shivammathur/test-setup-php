@@ -13,6 +13,7 @@ use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\MySQLSchemaManager;
+use Doctrine\DBAL\Schema\Name\UnquotedIdentifierFolding;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\SQL\Builder\DefaultSelectSQLBuilder;
 use Doctrine\DBAL\SQL\Builder\SelectSQLBuilder;
@@ -45,6 +46,11 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
     final public const LENGTH_LIMIT_TINYBLOB   = 255;
     final public const LENGTH_LIMIT_BLOB       = 65535;
     final public const LENGTH_LIMIT_MEDIUMBLOB = 16777215;
+
+    public function __construct()
+    {
+        parent::__construct(UnquotedIdentifierFolding::NONE);
+    }
 
     protected function doModifyLimitQuery(string $query, ?int $limit, int $offset): string
     {
@@ -886,10 +892,5 @@ SQL;
         $conditions[] = "t.TABLE_TYPE = 'BASE TABLE'";
 
         return $sql . ' WHERE ' . implode(' AND ', $conditions);
-    }
-
-    public function normalizeUnquotedIdentifier(string $identifier): string
-    {
-        return $identifier;
     }
 }

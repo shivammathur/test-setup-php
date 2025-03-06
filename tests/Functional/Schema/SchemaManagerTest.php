@@ -123,7 +123,7 @@ final class SchemaManagerTest extends FunctionalTestCase
         }
 
         $name           = 'example.com';
-        $normalizedName = $platform->normalizeUnquotedIdentifier($name);
+        $normalizedName = $platform->getUnquotedIdentifierFolding()->foldUnquotedIdentifier($name);
         $quotedName     = $this->connection->quoteSingleIdentifier($normalizedName);
 
         // create the table manually since identifiers with dots are not supported in DBAL 4.x

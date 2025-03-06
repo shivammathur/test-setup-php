@@ -14,6 +14,7 @@ use Doctrine\DBAL\Schema\Exception\ColumnDoesNotExist;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\Name\UnquotedIdentifierFolding;
 use Doctrine\DBAL\Schema\SQLiteSchemaManager;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
@@ -46,6 +47,11 @@ use function trim;
  */
 class SQLitePlatform extends AbstractPlatform
 {
+    public function __construct()
+    {
+        parent::__construct(UnquotedIdentifierFolding::NONE);
+    }
+
     public function getCreateDatabaseSQL(string $name): string
     {
         throw NotSupported::new(__METHOD__);
@@ -960,10 +966,5 @@ class SQLitePlatform extends AbstractPlatform
     public function getUnionSelectPartSQL(string $subQuery): string
     {
         return $subQuery;
-    }
-
-    public function normalizeUnquotedIdentifier(string $identifier): string
-    {
-        return $identifier;
     }
 }

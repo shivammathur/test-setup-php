@@ -22,6 +22,7 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\Name\UnquotedIdentifierFolding;
 use Doctrine\DBAL\Schema\SchemaDiff;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
@@ -97,6 +98,25 @@ abstract class AbstractPlatform
      * @deprecated
      */
     protected ?KeywordList $_keywords = null;
+
+    /**
+     * Defines how the platform folds the case of unquoted identifiers.
+     */
+    private ?UnquotedIdentifierFolding $unquotedIdentifierFolding = null;
+
+    public function __construct(?UnquotedIdentifierFolding $unquotedIdentifierFolding = null)
+    {
+        if ($unquotedIdentifierFolding === null) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6823',
+                'Not passing $unquotedIdentifierFolding to %s() is deprecated.',
+                __METHOD__,
+            );
+        }
+
+        $this->unquotedIdentifierFolding = $unquotedIdentifierFolding ?? UnquotedIdentifierFolding::UPPER;
+    }
 
     /**
      * Returns the SQL snippet that declares a boolean column.
@@ -2349,16 +2369,20 @@ abstract class AbstractPlatform
         return 'UNION';
     }
 
-    /**
-     * Changes the case of unquoted identifier in the same way as the given platform would change it if it was specified
-     * in an SQL statement.
-     *
-     * Even though the default behavior is not the most common across supported platforms, it is part of the SQL92
-     * standard.
-     */
-    public function normalizeUnquotedIdentifier(string $identifier): string
+    public function getUnquotedIdentifierFolding(): UnquotedIdentifierFolding
     {
-        return strtoupper($identifier);
+        if ($this->unquotedIdentifierFolding === null) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6823',
+                'Not calling the %s constructor from child class constructors is deprecated.',
+                self::class,
+            );
+
+            $this->unquotedIdentifierFolding = UnquotedIdentifierFolding::UPPER;
+        }
+
+        return $this->unquotedIdentifierFolding;
     }
 
     /**
