@@ -411,7 +411,6 @@ BEGIN
       WHILE (last_InsertID > last_Sequence) LOOP
          SELECT %4$s.NEXTVAL INTO last_Sequence FROM DUAL;
       END LOOP;
-      SELECT %4$s.NEXTVAL INTO last_Sequence FROM DUAL;
    END IF;
 END;
 SQL,

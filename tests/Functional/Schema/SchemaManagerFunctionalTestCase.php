@@ -11,6 +11,7 @@ use Doctrine\DBAL\Platforms\DB2Platform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
+use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
@@ -1373,8 +1374,21 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertTrue($child->hasIndex('idx_2'));
     }
 
+    /** @throws Exception */
     public function testSwitchPrimaryKeyOrder(): void
     {
+        $platform = $this->connection->getDatabasePlatform();
+
+        if (
+            $platform instanceof DB2Platform
+            || $platform instanceof OraclePlatform
+            || $platform instanceof SQLServerPlatform
+        ) {
+            self::markTestIncomplete(
+                'Dropping primary key constraint on the currently used database platform is not implemented.',
+            );
+        }
+
         $prototype = new Table('test_switch_pk_order');
         $prototype->addColumn('foo_id', Types::INTEGER);
         $prototype->addColumn('bar_id', Types::INTEGER);
@@ -1392,11 +1406,13 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             $schemaManager->introspectTable('test_switch_pk_order'),
             $table,
         );
+        self::assertFalse($diff->isEmpty());
+        $schemaManager->alterTable($diff);
 
         $table      = $schemaManager->introspectTable('test_switch_pk_order');
         $primaryKey = $table->getPrimaryKey();
         self::assertNotNull($primaryKey);
-        self::assertSame(['foo_id', 'bar_id'], array_map('strtolower', $primaryKey->getColumns()));
+        self::assertSame(['bar_id', 'foo_id'], array_map('strtolower', $primaryKey->getColumns()));
     }
 
     public function testDropColumnWithDefault(): void
