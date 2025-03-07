@@ -176,6 +176,44 @@ class AlterTableTest extends FunctionalTestCase
         });
     }
 
+    public function testReplaceForeignKeyConstraint(): void
+    {
+        $articles = new Table('articles');
+        $articles->addColumn('id', Types::INTEGER);
+        $articles->addColumn('sku', Types::INTEGER);
+        $articles->setPrimaryKey(['id']);
+        $articles->addUniqueConstraint(['sku']);
+
+        $orders = new Table('orders');
+        $orders->addColumn('id', Types::INTEGER);
+        $orders->addColumn('article_id', Types::INTEGER);
+        $orders->addColumn('article_sku', Types::INTEGER);
+        $orders->addForeignKeyConstraint(
+            'articles',
+            ['article_id'],
+            ['id'],
+            [],
+            'articles_fk',
+        );
+
+        $this->dropTableIfExists('orders');
+        $this->dropTableIfExists('articles');
+
+        $this->connection->createSchemaManager()
+            ->createTable($articles);
+
+        $this->testMigration($orders, static function (Table $table): void {
+            $table->removeForeignKey('articles_fk');
+            $table->addForeignKeyConstraint(
+                'articles',
+                ['article_sku'],
+                ['sku'],
+                [],
+                'articles_fk',
+            );
+        });
+    }
+
     private function ensureDroppingPrimaryKeyConstraintIsSupported(): void
     {
         $platform = $this->connection->getDatabasePlatform();
