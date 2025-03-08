@@ -11,6 +11,7 @@ use Doctrine\DBAL\Platforms\Keywords\OracleKeywords;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Identifier;
 use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\Name\UnquotedIdentifierFolding;
 use Doctrine\DBAL\Schema\OracleSchemaManager;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\TableDiff;
@@ -35,6 +36,11 @@ use function substr;
  */
 class OraclePlatform extends AbstractPlatform
 {
+    public function __construct()
+    {
+        parent::__construct(UnquotedIdentifierFolding::UPPER);
+    }
+
     public function getSubstringExpression(string $string, string $start, ?string $length = null): string
     {
         if ($length === null) {

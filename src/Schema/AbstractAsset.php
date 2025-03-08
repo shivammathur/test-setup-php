@@ -353,6 +353,7 @@ abstract class AbstractAsset
         );
 
         $keywords = $platform->getReservedKeywordsList();
+        $folding  = $platform->getUnquotedIdentifierFolding();
         $parts    = $normalizedParts = [];
 
         foreach (explode('.', $this->getName()) as $identifier) {
@@ -360,7 +361,7 @@ abstract class AbstractAsset
 
             if (! $isQuoted) {
                 $parts[]           = $identifier;
-                $normalizedParts[] = $platform->normalizeUnquotedIdentifier($identifier);
+                $normalizedParts[] = $folding->foldUnquotedIdentifier($identifier);
             } else {
                 $parts[]           = $platform->quoteSingleIdentifier($identifier);
                 $normalizedParts[] = $identifier;
@@ -370,11 +371,11 @@ abstract class AbstractAsset
         $name = implode('.', $parts);
 
         if ($this->validateFuture) {
-            $futureParts = array_map(static function (Identifier $identifier) use ($platform): string {
+            $futureParts = array_map(static function (Identifier $identifier) use ($folding): string {
                 $value = $identifier->getValue();
 
                 if (! $identifier->isQuoted()) {
-                    $value = $platform->normalizeUnquotedIdentifier($value);
+                    $value = $folding->foldUnquotedIdentifier($value);
                 }
 
                 return $value;
