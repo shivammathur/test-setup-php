@@ -1314,7 +1314,11 @@ class Connection implements ServerVersionProvider
                     $bindingType = ParameterType::STRING;
                 }
 
-                $stmt->bindValue($bindIndex, $value, $bindingType);
+                try {
+                    $stmt->bindValue($bindIndex, $value, $bindingType);
+                } catch (Driver\Exception $e) {
+                    throw $this->convertException($e);
+                }
 
                 ++$bindIndex;
             }
@@ -1328,7 +1332,11 @@ class Connection implements ServerVersionProvider
                     $bindingType = ParameterType::STRING;
                 }
 
-                $stmt->bindValue($name, $value, $bindingType);
+                try {
+                    $stmt->bindValue($name, $value, $bindingType);
+                } catch (Driver\Exception $e) {
+                    throw $this->convertException($e);
+                }
             }
         }
     }
