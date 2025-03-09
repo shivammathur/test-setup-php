@@ -8,6 +8,15 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Deprecated handling of modified indexes in `TableDiff`
+
+Passing a non-empty `$modifiedIndexes` value to the `TableDiff` constructor is deprecated. Instead, pass dropped
+indexes via `$droppedIndexes` and added indexes via `$addedIndexes`.
+
+The `TableDiff::getModifiedIndexes()` method has been deprecated. The old version of the index is included in the return
+value of `TableDiff::getDroppedIndexes()`, the new version is included in the return value of
+`TableDiff::getAddedIndexes()`.
+
 ## Deprecated handling of modified foreign keys in `TableDiff`
 
 Passing a non-empty `$modifiedForeignKeys` value to the `TableDiff` constructor is deprecated. Instead, pass dropped
@@ -15,7 +24,7 @@ constraints via `$droppedForeignKeys` and added constraints via `$addedForeignKe
 
 The `TableDiff::getModifiedForeignKeys()` method has been deprecated. The old version of the foreign key constraint is
 included in the return value of `TableDiff::getDroppedForeignKeys()`, the new version is included in the return value of
-`TableDiff::getModifiedForeignKeys()`.
+`TableDiff::getAddedForeignKeys()`.
 
 ## Deprecated not passing `$options` to `AbstractPlatform::_getCreateTableSQL()`
 
