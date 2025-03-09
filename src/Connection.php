@@ -20,6 +20,7 @@ use Doctrine\DBAL\Exception\DeadlockException;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\DBAL\Exception\NoActiveTransaction;
+use Doctrine\DBAL\Exception\ParseError;
 use Doctrine\DBAL\Exception\SavepointsNotSupported;
 use Doctrine\DBAL\Exception\TransactionRolledBack;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -1405,6 +1406,8 @@ class Connection implements ServerVersionProvider
      *     list<mixed>|array<string, mixed>,
      *     array<int<0, max>, string|ParameterType|Type>|array<string, string|ParameterType|Type>
      * }
+     *
+     * @throws Exception
      */
     private function expandArrayParameters(string $sql, array $params, array $types): array
     {
@@ -1431,7 +1434,11 @@ class Connection implements ServerVersionProvider
         $this->parser ??= $this->getDatabasePlatform()->createSQLParser();
         $visitor        = new ExpandArrayParameters($params, $types);
 
-        $this->parser->parse($sql, $visitor);
+        try {
+            $this->parser->parse($sql, $visitor);
+        } catch (Parser\Exception $e) {
+            throw ParseError::fromParserException($e);
+        }
 
         return [
             $visitor->getSQL(),
