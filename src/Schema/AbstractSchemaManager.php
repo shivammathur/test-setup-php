@@ -12,6 +12,7 @@ use Doctrine\DBAL\Platforms\Exception\NotSupported;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Schema\Exception\TableDoesNotExist;
 use Doctrine\DBAL\Schema\Name\Parsers;
+use Doctrine\DBAL\Types\Exception\TypesException;
 use Doctrine\Deprecations\Deprecation;
 use Throwable;
 
@@ -795,6 +796,8 @@ abstract class AbstractSchemaManager
      * @param array<array<string, mixed>> $rows
      *
      * @return array<string, Column>
+     *
+     * @throws TypesException
      */
     protected function _getPortableTableColumnList(string $table, string $database, array $rows): array
     {
@@ -813,6 +816,8 @@ abstract class AbstractSchemaManager
      * Gets Table Column Definition.
      *
      * @param array<string, mixed> $tableColumn
+     *
+     * @throws TypesException
      */
     abstract protected function _getPortableTableColumnDefinition(array $tableColumn): Column;
 
