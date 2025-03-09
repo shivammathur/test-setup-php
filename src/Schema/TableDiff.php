@@ -44,6 +44,16 @@ class TableDiff
         private readonly array $modifiedForeignKeys = [],
         private readonly array $droppedForeignKeys = [],
     ) {
+        if (count($this->modifiedIndexes) !== 0) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6831',
+                'Passing a non-empty $modifiedIndexes value to %s() is deprecated. Instead, pass dropped'
+                    . ' indexes via $droppedIndexes and added indexes via $addedIndexes.',
+                __METHOD__,
+            );
+        }
+
         if (count($modifiedForeignKeys) === 0) {
             return;
         }
@@ -146,9 +156,20 @@ class TableDiff
         );
     }
 
-    /** @return array<Index> */
+    /**
+     * @deprecated Use {@see getAddedIndexes()} and {@see getDroppedIndexes()} instead.
+     *
+     * @return array<Index>
+     */
     public function getModifiedIndexes(): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6831',
+            '%s() is deprecated, use getAddedIndexes() and getDroppedIndexes() instead.',
+            __METHOD__,
+        );
+
         return $this->modifiedIndexes;
     }
 

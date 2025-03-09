@@ -149,7 +149,6 @@ class Comparator
         $modifiedColumns    = [];
         $droppedColumns     = [];
         $addedIndexes       = [];
-        $modifiedIndexes    = [];
         $droppedIndexes     = [];
         $renamedIndexes     = [];
         $addedForeignKeys   = [];
@@ -245,7 +244,8 @@ class Comparator
                 continue;
             }
 
-            $modifiedIndexes[] = $newIndex;
+            $droppedIndexes[$oldIndexName] = $oldIndex;
+            $addedIndexes[$oldIndexName]   = $newIndex;
         }
 
         if ($this->config->getDetectRenamedIndexes()) {
@@ -284,7 +284,6 @@ class Comparator
             changedColumns: $modifiedColumns,
             droppedColumns: $droppedColumns,
             addedIndexes: $addedIndexes,
-            modifiedIndexes: $modifiedIndexes,
             droppedIndexes: $droppedIndexes,
             renamedIndexes: $renamedIndexes,
             addedForeignKeys: $addedForeignKeys,
