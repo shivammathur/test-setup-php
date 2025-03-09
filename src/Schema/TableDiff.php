@@ -44,6 +44,17 @@ class TableDiff
         private readonly array $modifiedForeignKeys = [],
         private readonly array $droppedForeignKeys = [],
     ) {
+        if (count($modifiedForeignKeys) === 0) {
+            return;
+        }
+
+        Deprecation::trigger(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6827',
+            'Passing a non-empty $modifiedForeignKeys value to %s() is deprecated. Instead, pass dropped'
+                . ' constraints via $droppedForeignKeys and added constraints via $addedForeignKeys.',
+            __METHOD__,
+        );
     }
 
     public function getOldTable(): Table
@@ -173,9 +184,20 @@ class TableDiff
         return $this->addedForeignKeys;
     }
 
-    /** @return array<ForeignKeyConstraint> */
+    /**
+     * @deprecated Use {@see getAddedForeignKeys()} and {@see getDroppedForeignKeys()} instead.
+     *
+     * @return array<ForeignKeyConstraint>
+     */
     public function getModifiedForeignKeys(): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6827',
+            '%s() is deprecated, use getDroppedForeignKeys() and getAddedForeignKeys() instead.',
+            __METHOD__,
+        );
+
         return $this->modifiedForeignKeys;
     }
 

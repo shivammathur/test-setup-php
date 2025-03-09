@@ -8,6 +8,15 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Deprecated handling of modified foreign keys in `TableDiff`
+
+Passing a non-empty `$modifiedForeignKeys` value to the `TableDiff` constructor is deprecated. Instead, pass dropped
+constraints via `$droppedForeignKeys` and added constraints via `$addedForeignKeys`.
+
+The `TableDiff::getModifiedForeignKeys()` method has been deprecated. The old version of the foreign key constraint is
+included in the return value of `TableDiff::getDroppedForeignKeys()`, the new version is included in the return value of
+`TableDiff::getModifiedForeignKeys()`.
+
 ## Deprecated not passing `$options` to `AbstractPlatform::_getCreateTableSQL()`
 
 Not passing the `$options` argument or any of its following keys to the `AbstractPlatform::_getCreateTableSQL()` method
