@@ -37,6 +37,7 @@ use Doctrine\DBAL\SQL\Parser;
 use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\DBAL\Types;
 use Doctrine\DBAL\Types\Exception\TypeNotFound;
+use Doctrine\DBAL\Types\Exception\TypesException;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\Deprecations\Deprecation;
 
@@ -161,6 +162,8 @@ abstract class AbstractPlatform
     /**
      * Initializes Doctrine Type Mappings with the platform defaults
      * and with all additional type mappings.
+     *
+     * @throws TypesException
      */
     private function initializeAllDoctrineTypeMappings(): void
     {
@@ -372,6 +375,8 @@ abstract class AbstractPlatform
 
     /**
      * Gets the Doctrine type that is mapped for the given database column type.
+     *
+     * @throws TypesException
      */
     public function getDoctrineTypeMapping(string $dbType): string
     {
@@ -394,6 +399,8 @@ abstract class AbstractPlatform
 
     /**
      * Checks if a database type is currently supported by this platform.
+     *
+     * @throws TypesException
      */
     public function hasDoctrineTypeMappingFor(string $dbType): bool
     {

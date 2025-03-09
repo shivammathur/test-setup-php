@@ -7,8 +7,22 @@ parameters:
         - tests
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: false
+    exceptions:
+        check:
+            missingCheckedExceptionInThrows: true
+        uncheckedExceptionClasses:
+            - ErrorException
+            - LogicException
+            - RuntimeException
     ignoreErrors:
         - identifier: missingType.generics
+
+        # Ignore missing declarations of checked exceptions in tests
+        -
+            identifier: missingType.checkedException
+            paths:
+                - static-analysis
+                - tests
 
         # https://github.com/phpstan/phpstan-strict-rules/issues/103
         -

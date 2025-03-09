@@ -147,6 +147,7 @@ SQL,
      */
     protected function _getPortableTableDefinition(array $table): string
     {
+        // @phpstan-ignore missingType.checkedException
         $currentSchema = $this->getCurrentSchema();
 
         if ($table['schema_name'] === $currentSchema) {
@@ -177,6 +178,7 @@ SQL,
                 implode(', ', $colNumbers),
             );
 
+            // @phpstan-ignore missingType.checkedException
             $indexColumns = $this->connection->fetchAllAssociative($columnNameSql);
 
             // required for getting the order of the columns right.

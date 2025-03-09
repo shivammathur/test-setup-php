@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Doctrine\DBAL\Platforms;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\Exception\NotSupported;
 use Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use Doctrine\DBAL\Platforms\Keywords\SQLiteKeywords;
@@ -704,8 +703,6 @@ class SQLitePlatform extends AbstractPlatform
      * @param array<string,Column> $columns
      *
      * @return array<string,Column>
-     *
-     * @throws Exception
      */
     private function replaceColumn(string $tableName, array $columns, string $columnName, Column $column): array
     {
@@ -724,11 +721,7 @@ class SQLitePlatform extends AbstractPlatform
         return array_combine($keys, $values);
     }
 
-    /**
-     * @return list<string>|false
-     *
-     * @throws Exception
-     */
+    /** @return list<string>|false */
     private function getSimpleAlterTableSQL(TableDiff $diff): array|false
     {
         if (

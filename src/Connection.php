@@ -20,6 +20,7 @@ use Doctrine\DBAL\Exception\DeadlockException;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 use Doctrine\DBAL\Exception\NoActiveTransaction;
+use Doctrine\DBAL\Exception\ParseError;
 use Doctrine\DBAL\Exception\SavepointsNotSupported;
 use Doctrine\DBAL\Exception\TransactionRolledBack;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -268,8 +269,7 @@ class Connection implements ServerVersionProvider
      *
      * @see isAutoCommit
      *
-     * @throws ConnectionException
-     * @throws DriverException
+     * @throws Exception
      */
     public function setAutoCommit(bool $autoCommit): void
     {
@@ -557,6 +557,8 @@ class Connection implements ServerVersionProvider
      * @param string $identifier The identifier to be quoted.
      *
      * @return string The quoted identifier.
+     *
+     * @throws Exception
      */
     public function quoteIdentifier(string $identifier): string
     {
@@ -586,6 +588,8 @@ class Connection implements ServerVersionProvider
     /**
      * The usage of this method is discouraged. Use prepared statements
      * or {@see AbstractPlatform::quoteStringLiteral()} instead.
+     *
+     * @throws Exception
      */
     public function quote(string $value): string
     {
@@ -832,6 +836,7 @@ class Connection implements ServerVersionProvider
 
         [$cacheKey, $realKey] = $qcp->generateCacheKeys($sql, $params, $types, $connectionParams);
 
+        // @phpstan-ignore missingType.checkedException
         $item = $resultCache->getItem($cacheKey);
 
         if ($item->isHit()) {
@@ -1087,6 +1092,7 @@ class Connection implements ServerVersionProvider
         }
     }
 
+    /** @throws Exception */
     private function updateTransactionStateAfterCommit(): void
     {
         if ($this->transactionNestingLevel !== 0) {
@@ -1314,7 +1320,11 @@ class Connection implements ServerVersionProvider
                     $bindingType = ParameterType::STRING;
                 }
 
-                $stmt->bindValue($bindIndex, $value, $bindingType);
+                try {
+                    $stmt->bindValue($bindIndex, $value, $bindingType);
+                } catch (Driver\Exception $e) {
+                    throw $this->convertException($e);
+                }
 
                 ++$bindIndex;
             }
@@ -1328,7 +1338,11 @@ class Connection implements ServerVersionProvider
                     $bindingType = ParameterType::STRING;
                 }
 
-                $stmt->bindValue($name, $value, $bindingType);
+                try {
+                    $stmt->bindValue($name, $value, $bindingType);
+                } catch (Driver\Exception $e) {
+                    throw $this->convertException($e);
+                }
             }
         }
     }
@@ -1397,6 +1411,8 @@ class Connection implements ServerVersionProvider
      *     list<mixed>|array<string, mixed>,
      *     array<int<0, max>, string|ParameterType|Type>|array<string, string|ParameterType|Type>
      * }
+     *
+     * @throws Exception
      */
     private function expandArrayParameters(string $sql, array $params, array $types): array
     {
@@ -1423,7 +1439,11 @@ class Connection implements ServerVersionProvider
         $this->parser ??= $this->getDatabasePlatform()->createSQLParser();
         $visitor        = new ExpandArrayParameters($params, $types);
 
-        $this->parser->parse($sql, $visitor);
+        try {
+            $this->parser->parse($sql, $visitor);
+        } catch (Parser\Exception $e) {
+            throw ParseError::fromParserException($e);
+        }
 
         return [
             $visitor->getSQL(),
