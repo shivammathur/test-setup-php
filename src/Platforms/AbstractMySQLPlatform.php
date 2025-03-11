@@ -377,11 +377,17 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
             unset($addedIndexes['primary']);
             $diffModified = true;
         } elseif (isset($modifiedIndexes['primary'])) {
+            $oldTable     = $diff->getOldTable();
             $addedColumns = $this->indexAssetsByLowerCaseName($diff->getAddedColumns());
 
-            // Necessary in case the new primary key includes a new auto_increment column
+            // Necessary in case the new primary key includes an auto_increment column
             foreach ($modifiedIndexes['primary']->getColumns() as $columnName) {
-                if (isset($addedColumns[$columnName]) && $addedColumns[$columnName]->getAutoincrement()) {
+                if (
+                    (isset($addedColumns[$columnName]) && $addedColumns[$columnName]->getAutoincrement())
+                    || (
+                        $oldTable->hasColumn($columnName)
+                        && $oldTable->getColumn($columnName)->getAutoincrement())
+                ) {
                     $keyColumns   = array_values(array_unique($modifiedIndexes['primary']->getColumns()));
                     $queryParts[] = 'DROP PRIMARY KEY';
                     $queryParts[] = 'ADD PRIMARY KEY (' . implode(', ', $keyColumns) . ')';
