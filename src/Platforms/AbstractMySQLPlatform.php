@@ -8,7 +8,6 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\InvalidColumnType\ColumnValuesRequired;
 use Doctrine\DBAL\Platforms\Keywords\KeywordList;
 use Doctrine\DBAL\Platforms\Keywords\MySQLKeywords;
-use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\MySQLSchemaManager;
@@ -20,6 +19,7 @@ use Doctrine\DBAL\TransactionIsolationLevel;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\Deprecation;
 
+use function array_diff;
 use function array_map;
 use function array_merge;
 use function array_unique;
@@ -375,29 +375,52 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
                 . $this->getColumnDeclarationSQL($newColumn->getQuotedName($this), $newColumnProperties);
         }
 
-        $addedIndexes    = $this->indexAssetsByLowerCaseName($diff->getAddedIndexes());
-        $modifiedIndexes = $this->indexAssetsByLowerCaseName($diff->getModifiedIndexes());
-        $diffModified    = false;
+        $droppedIndexes = $this->indexIndexesByLowerCaseName($diff->getDroppedIndexes());
+        $addedIndexes   = $this->indexIndexesByLowerCaseName($diff->getAddedIndexes());
+        $diffModified   = false;
+
+        $noLongerPrimaryKeyColumns = [];
+
+        if (isset($droppedIndexes['primary'])) {
+            $queryParts[] = 'DROP PRIMARY KEY';
+
+            $noLongerPrimaryKeyColumns = $droppedIndexes['primary']->getColumns();
+        }
 
         if (isset($addedIndexes['primary'])) {
             $keyColumns   = array_values(array_unique($addedIndexes['primary']->getColumns()));
             $queryParts[] = 'ADD PRIMARY KEY (' . implode(', ', $keyColumns) . ')';
+
+            $noLongerPrimaryKeyColumns = array_diff(
+                $noLongerPrimaryKeyColumns,
+                $addedIndexes['primary']->getColumns(),
+            );
+
             unset($addedIndexes['primary']);
             $diffModified = true;
-        } elseif (isset($modifiedIndexes['primary'])) {
-            $addedColumns = $this->indexAssetsByLowerCaseName($diff->getAddedColumns());
+        }
 
-            // Necessary in case the new primary key includes a new auto_increment column
-            foreach ($modifiedIndexes['primary']->getColumns() as $columnName) {
-                if (isset($addedColumns[$columnName]) && $addedColumns[$columnName]->getAutoincrement()) {
-                    $keyColumns   = array_values(array_unique($modifiedIndexes['primary']->getColumns()));
-                    $queryParts[] = 'DROP PRIMARY KEY';
-                    $queryParts[] = 'ADD PRIMARY KEY (' . implode(', ', $keyColumns) . ')';
-                    unset($modifiedIndexes['primary']);
-                    $diffModified = true;
+        $tableSql = [];
+
+        if (isset($droppedIndexes['primary'])) {
+            $oldTable = $diff->getOldTable();
+            foreach ($noLongerPrimaryKeyColumns as $columnName) {
+                if (! $oldTable->hasColumn($columnName)) {
+                    continue;
+                }
+
+                $column = $oldTable->getColumn($columnName);
+                if ($column->getAutoincrement()) {
+                    $tableSql = array_merge(
+                        $tableSql,
+                        $this->getPreAlterTableAlterPrimaryKeySQL($diff, $droppedIndexes['primary']),
+                    );
                     break;
                 }
             }
+
+            unset($droppedIndexes['primary']);
+            $diffModified = true;
         }
 
         if ($diffModified) {
@@ -407,16 +430,13 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
                 changedColumns: $diff->getChangedColumns(),
                 droppedColumns: $diff->getDroppedColumns(),
                 addedIndexes: array_values($addedIndexes),
-                modifiedIndexes: array_values($modifiedIndexes),
-                droppedIndexes: $diff->getDroppedIndexes(),
+                droppedIndexes: array_values($droppedIndexes),
                 renamedIndexes: $diff->getRenamedIndexes(),
                 addedForeignKeys: $diff->getAddedForeignKeys(),
                 modifiedForeignKeys: $diff->getModifiedForeignKeys(),
                 droppedForeignKeys: $diff->getDroppedForeignKeys(),
             );
         }
-
-        $tableSql = [];
 
         if (count($queryParts) > 0) {
             $tableSql[] = 'ALTER TABLE ' . $diff->getOldTable()->getQuotedName($this) . ' '
@@ -844,18 +864,16 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
     }
 
     /**
-     * @param array<T> $assets
+     * @param array<Index> $indexes
      *
-     * @return array<string,T>
-     *
-     * @template T of AbstractAsset
+     * @return array<string,Index>
      */
-    private function indexAssetsByLowerCaseName(array $assets): array
+    private function indexIndexesByLowerCaseName(array $indexes): array
     {
         $result = [];
 
-        foreach ($assets as $asset) {
-            $result[strtolower($asset->getName())] = $asset;
+        foreach ($indexes as $index) {
+            $result[strtolower($index->getName())] = $index;
         }
 
         return $result;
