@@ -396,8 +396,7 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
                 $addedIndexes['primary']->getColumns(),
             );
 
-            unset($addedIndexes['primary']);
-            $diffModified = true;
+            $diff->unsetAddedIndex($addedIndexes['primary']);
         }
 
         $tableSql = [];
@@ -419,23 +418,7 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
                 }
             }
 
-            unset($droppedIndexes['primary']);
-            $diffModified = true;
-        }
-
-        if ($diffModified) {
-            $diff = new TableDiff(
-                $diff->getOldTable(),
-                addedColumns: $diff->getAddedColumns(),
-                changedColumns: $diff->getChangedColumns(),
-                droppedColumns: $diff->getDroppedColumns(),
-                addedIndexes: array_values($addedIndexes),
-                droppedIndexes: array_values($droppedIndexes),
-                renamedIndexes: $diff->getRenamedIndexes(),
-                addedForeignKeys: $diff->getAddedForeignKeys(),
-                modifiedForeignKeys: $diff->getModifiedForeignKeys(),
-                droppedForeignKeys: $diff->getDroppedForeignKeys(),
-            );
+            $diff->unsetDroppedIndex($droppedIndexes['primary']);
         }
 
         if (count($queryParts) > 0) {
@@ -524,6 +507,14 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
             if (! $column->getAutoincrement()) {
                 continue;
             }
+
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6841',
+                'Relying on the auto-increment attribute of a column being automatically dropped once a column'
+                    . ' is no longer part of the primary key constraint is deprecated. Instead, drop the auto-increment'
+                    . ' attribute explicitly.',
+            );
 
             $column->setAutoincrement(false);
 
