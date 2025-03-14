@@ -5,7 +5,7 @@ on:
 jobs:
   runner:
     runs-on: ${{ matrix.os }}
-    container: ubuntu:24.04
+    container: ubuntu:22.04
     strategy:
       matrix:
         os: [ubuntu-latest]        
