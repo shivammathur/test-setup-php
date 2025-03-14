@@ -5,18 +5,15 @@ on:
 jobs:
   runner:
     runs-on: ${{ matrix.os }}
-    container: ubuntu:24.04
     strategy:
       matrix:
-        os: [ubuntu-latest]        
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]        
     steps:
       - name: "prepare php version"
         uses: "shivammathur/setup-php@develop"
         with:
             php-version: "8.4"
             extensions: pdo_oci
-        env:
-            runner: self-hosted
       - run: |
           php -v
           php -m
