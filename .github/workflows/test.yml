@@ -10,14 +10,13 @@ jobs:
       matrix:
         os: [ubuntu-latest]        
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+      - name: "prepare php version"
+        uses: "shivammathur/setup-php@more-verbose"
         with:
-          php-version: '8.1.16'
-          tools: composer
-          extensions: pdo_pgsql, pgsql, bcmath, intl, zip, gd
+            php-version: "8.2"
+            coverage: xdebug
         env:
-          runner: self-hosted
+            runner: self-hosted
       - run: |
           php -v
           php -m
