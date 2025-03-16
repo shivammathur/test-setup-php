@@ -129,7 +129,7 @@ SQL,
             'autoincrement' => (bool) $tableColumn['autoincrement'],
         ];
 
-        if (isset($tableColumn['comment'])) {
+        if ($tableColumn['comment'] !== null) {
             $options['comment'] = $tableColumn['comment'];
         }
 
@@ -149,9 +149,7 @@ SQL,
             );
         }
 
-        if (isset($tableColumn['collation']) && $tableColumn['collation'] !== 'NULL') {
-            $column->setPlatformOption('collation', $tableColumn['collation']);
-        }
+        $column->setPlatformOption('collation', $tableColumn['collation']);
 
         return $column;
     }
