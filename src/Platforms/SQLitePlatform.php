@@ -25,6 +25,7 @@ use Doctrine\Deprecations\Deprecation;
 use InvalidArgumentException;
 
 use function array_combine;
+use function array_fill_keys;
 use function array_keys;
 use function array_merge;
 use function array_search;
@@ -43,6 +44,9 @@ use function trim;
 /**
  * The SQLitePlatform class describes the specifics and dialects of the SQLite
  * database platform.
+ *
+ * @phpstan-import-type ColumnProperties from Column
+ * @phpstan-import-type CreateTableParameters from AbstractPlatform
  */
 class SQLitePlatform extends AbstractPlatform
 {
@@ -266,6 +270,10 @@ class SQLitePlatform extends AbstractPlatform
     {
         $this->validateCreateTableOptions($options, __METHOD__);
 
+        if ($this->hasAutoIncrementColumn($columns, $options)) {
+            $options['primary'] = [];
+        }
+
         $queryFields = $this->getColumnDeclarationListSQL($columns);
 
         if (! empty($options['uniqueConstraints'])) {
@@ -274,7 +282,10 @@ class SQLitePlatform extends AbstractPlatform
             }
         }
 
-        $queryFields .= $this->getNonAutoincrementPrimaryKeyDefinition($columns, $options);
+        if (! empty($options['primary'])) {
+            $keyColumns   = array_unique(array_values($options['primary']));
+            $queryFields .= ', PRIMARY KEY(' . implode(', ', $keyColumns) . ')';
+        }
 
         if (isset($options['foreignKeys'])) {
             foreach ($options['foreignKeys'] as $foreignKey) {
@@ -305,28 +316,36 @@ class SQLitePlatform extends AbstractPlatform
     }
 
     /**
-     * Generate a PRIMARY KEY definition if no autoincrement value is used
-     *
-     * @param mixed[][] $columns
-     * @param mixed[]   $options
+     * @param list<ColumnProperties> $columns
+     * @param CreateTableParameters  $options
      */
-    private function getNonAutoincrementPrimaryKeyDefinition(array $columns, array $options): string
+    private function hasAutoIncrementColumn(array $columns, array $options): bool
     {
-        if (empty($options['primary'])) {
-            return '';
-        }
+        $primaryKeyColumnNames = array_fill_keys($options['primary'] ?? [], true);
 
-        $keyColumns = array_unique(array_values($options['primary']));
-
-        foreach ($keyColumns as $keyColumn) {
-            foreach ($columns as $column) {
-                if ($column['name'] === $keyColumn && ! empty($column['autoincrement'])) {
-                    return '';
-                }
+        foreach ($columns as $column) {
+            if (empty($column['autoincrement'])) {
+                continue;
             }
+
+            if (! isset($primaryKeyColumnNames[$column['name']])) {
+                Deprecation::trigger(
+                    'doctrine/dbal',
+                    'https://github.com/doctrine/dbal/pull/6849',
+                    'Declaring a column that is not part of the primary key as auto-increment is deprecated.',
+                );
+            } elseif (count($primaryKeyColumnNames) > 1) {
+                Deprecation::trigger(
+                    'doctrine/dbal',
+                    'https://github.com/doctrine/dbal/pull/6849',
+                    'Declaring a column that is part of a composite primary key as auto-increment is deprecated.',
+                );
+            }
+
+            return true;
         }
 
-        return ', PRIMARY KEY(' . implode(', ', $keyColumns) . ')';
+        return false;
     }
 
     protected function getBinaryTypeDeclarationSQLSnippet(?int $length): string
