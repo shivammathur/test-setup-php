@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Doctrine\DBAL\Tests\Functional\Schema;
 
 use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\Table;
@@ -109,6 +110,58 @@ final class SchemaManagerTest extends FunctionalTestCase
             'quoted schema' => ['"other_schema".some_table'],
             'reserved schema' => ['case.some_table'],
         ];
+    }
+
+    #[TestWith([false])]
+    #[TestWith([true])]
+    public function testAutoIncrementColumnIntrospection(bool $autoincrement): void
+    {
+        $platform = $this->connection->getDatabasePlatform();
+
+        if (! $platform->supportsIdentityColumns()) {
+            self::markTestSkipped('This test is only supported on platforms that have autoincrement');
+        }
+
+        if (! $autoincrement && $platform instanceof SQLitePlatform) {
+            self::markTestIncomplete('See https://github.com/doctrine/dbal/issues/6844');
+        }
+
+        $table = new Table('test_autoincrement');
+        $table->addColumn('id', Types::INTEGER, ['autoincrement' => $autoincrement]);
+        $table->setPrimaryKey(['id']);
+        $this->dropAndCreateTable($table);
+
+        $table = $this->schemaManager->introspectTable('test_autoincrement');
+
+        self::assertSame($autoincrement, $table->getColumn('id')->getAutoincrement());
+    }
+
+    #[TestWith([false])]
+    #[TestWith([true])]
+    public function testAutoIncrementColumnInCompositePrimaryKeyIntrospection(bool $autoincrement): void
+    {
+        $platform = $this->connection->getDatabasePlatform();
+
+        if (! $platform->supportsIdentityColumns()) {
+            self::markTestSkipped('This test is only supported on platforms that have autoincrement');
+        }
+
+        if ($autoincrement && $platform instanceof SQLitePlatform) {
+            self::markTestSkipped(
+                'SQLite does not support auto-increment columns as part of composite primary key constraint',
+            );
+        }
+
+        $table = new Table('test_autoincrement');
+        $table->addColumn('id1', Types::INTEGER, ['autoincrement' => $autoincrement]);
+        $table->addColumn('id2', Types::INTEGER);
+        $table->setPrimaryKey(['id1', 'id2']);
+        $this->dropAndCreateTable($table);
+
+        $table = $this->schemaManager->introspectTable('test_autoincrement');
+
+        self::assertSame($autoincrement, $table->getColumn('id1')->getAutoincrement());
+        self::assertFalse($table->getColumn('id2')->getAutoincrement());
     }
 
     /** @throws Exception */
