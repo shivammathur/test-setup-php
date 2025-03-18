@@ -145,10 +145,6 @@ class SQLiteSchemaManager extends AbstractSchemaManager
 
         $notnull = (bool) $tableColumn['notnull'];
 
-        if (! isset($tableColumn['name'])) {
-            $tableColumn['name'] = '';
-        }
-
         if ($dbType === 'char') {
             $fixed = true;
         }

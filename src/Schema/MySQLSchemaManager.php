@@ -86,11 +86,8 @@ class MySQLSchemaManager extends AbstractSchemaManager
     {
         foreach ($rows as $i => $row) {
             $row = array_change_key_case($row, CASE_LOWER);
-            if ($row['key_name'] === 'PRIMARY') {
-                $row['primary'] = true;
-            } else {
-                $row['primary'] = false;
-            }
+
+            $row['primary'] = $row['key_name'] === 'PRIMARY';
 
             if (str_contains($row['index_type'], 'FULLTEXT')) {
                 $row['flags'] = ['FULLTEXT'];
@@ -131,10 +128,6 @@ class MySQLSchemaManager extends AbstractSchemaManager
         $length = $tableColumn['length'] ?? strtok('(), ');
 
         $fixed = false;
-
-        if (! isset($tableColumn['name'])) {
-            $tableColumn['name'] = '';
-        }
 
         $scale     = 0;
         $precision = null;
@@ -225,19 +218,13 @@ class MySQLSchemaManager extends AbstractSchemaManager
             'values'        => $values,
         ];
 
-        if (isset($tableColumn['comment'])) {
+        if ($tableColumn['comment'] !== null) {
             $options['comment'] = $tableColumn['comment'];
         }
 
         $column = new Column($tableColumn['field'], Type::getType($type), $options);
-
-        if (isset($tableColumn['characterset'])) {
-            $column->setPlatformOption('charset', $tableColumn['characterset']);
-        }
-
-        if (isset($tableColumn['collation'])) {
-            $column->setPlatformOption('collation', $tableColumn['collation']);
-        }
+        $column->setPlatformOption('charset', $tableColumn['characterset']);
+        $column->setPlatformOption('collation', $tableColumn['collation']);
 
         return $column;
     }
