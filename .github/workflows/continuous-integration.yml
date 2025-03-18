@@ -521,17 +521,15 @@ jobs:
           LICENSE: "accept"
           DBNAME: "doctrine"
 
-        options: >-
-          --health-cmd "su - ${DB2INSTANCE} -c \"db2 -t CONNECT TO ${DBNAME};\""
-          --health-interval 30s
-          --health-timeout 10s
-          --health-retries 5
-          --privileged
+        options: "--privileged"
 
         ports:
           - "50000:50000"
 
     steps:
+      - name: "Perform healthcheck"
+        run: "docker logs -f ${{ job.services.ibm_db2.id }} | sed '/(*) Setup has completed./ q'"
+
       - name: "Create temporary tablespace"
         run: "docker exec ${{ job.services.ibm_db2.id }} su - db2inst1 -c 'db2 -t CONNECT TO doctrine; db2 -t CREATE USER TEMPORARY TABLESPACE doctrine_tbsp PAGESIZE 4 K;'"
 
