@@ -96,7 +96,7 @@ class ResultTest extends FunctionalTestCase
             $this->createOrReplacePipelinedFunction($expectedTotalRowCount + 10);
         }
 
-        while ($result->fetchOne()) {
+        while ($result->fetchOne() !== false) {
             // Attempt to access all remaining rows from the original fetch
             // The rows locally cached from the default prefetch will first be used
             // but when the result attempts to get the remaining 10 rows beyond
