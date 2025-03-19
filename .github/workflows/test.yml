@@ -7,7 +7,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]        
+        os: [ubuntu-latest, ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        runs: [1,1,1,1,1,1,1,1]
     steps:
       - name: Setup PHP
         id: setup-php
