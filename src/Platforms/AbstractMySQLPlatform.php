@@ -262,7 +262,7 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
         // attach all primary keys
         if (! empty($options['primary'])) {
             $keyColumns   = array_unique(array_values($options['primary']));
-            $queryFields .= ', PRIMARY KEY(' . implode(', ', $keyColumns) . ')';
+            $queryFields .= ', PRIMARY KEY (' . implode(', ', $keyColumns) . ')';
         }
 
         $sql = ['CREATE'];
