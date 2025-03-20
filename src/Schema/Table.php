@@ -57,6 +57,7 @@ class Table extends AbstractNamedObject
      */
     private array $implicitIndexNames = [];
 
+    /** @deprecated Use {@see $primaryKeyConstraint} instead. */
     protected ?string $_primaryKeyName = null;
 
     /** @var UniqueConstraint[] */
@@ -152,10 +153,19 @@ class Table extends AbstractNamedObject
     /**
      * Sets the Primary Key.
      *
+     * @deprecated Use {@see addPrimaryKeyConstraint()} instead.
+     *
      * @param non-empty-list<string> $columnNames
      */
     public function setPrimaryKey(array $columnNames, ?string $indexName = null): self
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6867',
+            '%s() is deprecated. Use Table::addPrimaryKeyConstraint() instead.',
+            __METHOD__,
+        );
+
         if ($indexName === null) {
             $indexName = 'primary';
         }
@@ -306,6 +316,14 @@ class Table extends AbstractNamedObject
         $oldIndex = $this->_indexes[$oldName];
 
         if ($oldIndex->isPrimary()) {
+            Deprecation::triggerIfCalledFromOutside(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6867',
+                'Renaming primary key constraint via %s() is deprecated. Use Table::dropPrimaryKey() and '
+                    . ' Table::addPrimaryKeyConstraint() instead.',
+                __METHOD__,
+            );
+
             $this->dropPrimaryKey();
 
             return $this->setPrimaryKey($oldIndex->getColumns(), $newName ?? null);
@@ -638,9 +656,18 @@ class Table extends AbstractNamedObject
 
     /**
      * Returns the primary key.
+     *
+     * @deprecated Use {@see getPrimaryKeyConstraint()} instead.
      */
     public function getPrimaryKey(): ?Index
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6867',
+            '%s() is deprecated. Use Table::getPrimaryKeyConstraint() instead.',
+            __METHOD__,
+        );
+
         if ($this->_primaryKeyName !== null) {
             return $this->getIndex($this->_primaryKeyName);
         }

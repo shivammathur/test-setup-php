@@ -371,6 +371,14 @@ class PostgreSQLPlatform extends AbstractPlatform
         }
 
         if ($name === '"primary"' || $name === $primaryKeyName) {
+            Deprecation::triggerIfCalledFromOutside(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6867',
+                'Building the SQL for dropping primary key constraint via %s() is deprecated. Use'
+                    . ' getDropConstraintSQL() instead.',
+                __METHOD__,
+            );
+
             return $this->getDropConstraintSQL($primaryKeyName, $table);
         }
 
