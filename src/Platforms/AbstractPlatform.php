@@ -1029,7 +1029,7 @@ abstract class AbstractPlatform
         }
 
         if (! empty($options['primary'])) {
-            $columnListSql .= ', PRIMARY KEY(' . implode(', ', array_unique(array_values($options['primary']))) . ')';
+            $columnListSql .= ', PRIMARY KEY (' . implode(', ', array_unique(array_values($options['primary']))) . ')';
         }
 
         if (! empty($options['indexes'])) {
