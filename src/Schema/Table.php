@@ -748,12 +748,12 @@ class Table extends AbstractNamedObject
             $replacedImplicitIndexNames[$implicitIndexName] = true;
         }
 
-        if (isset($this->_indexes[$indexName]) && ! isset($replacedImplicitIndexNames[$indexName])) {
-            throw IndexAlreadyExists::new($indexName, $this->_name);
-        }
-
         if ($this->_primaryKeyName !== null && $index->isPrimary()) {
             throw PrimaryKeyAlreadyExists::new($this->_name);
+        }
+
+        if (isset($this->_indexes[$indexName]) && ! isset($replacedImplicitIndexNames[$indexName])) {
+            throw IndexAlreadyExists::new($indexName, $this->_name);
         }
 
         foreach ($replacedImplicitIndexNames as $name => $_) {
