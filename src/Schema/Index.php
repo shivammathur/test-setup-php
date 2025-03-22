@@ -162,7 +162,7 @@ class Index extends AbstractNamedObject
         return $columns;
     }
 
-    /** @return array<int, string> */
+    /** @return non-empty-list<string> */
     public function getUnquotedColumns(): array
     {
         return array_map($this->trimQuotes(...), $this->getColumns());

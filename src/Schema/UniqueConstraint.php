@@ -169,7 +169,7 @@ class UniqueConstraint extends AbstractOptionallyNamedObject
     /**
      * @deprecated Use {@see getColumnNames()} instead.
      *
-     * @return array<int, string>
+     * @return non-empty-list<string>
      */
     public function getUnquotedColumns(): array
     {
