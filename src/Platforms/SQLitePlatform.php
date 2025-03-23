@@ -602,6 +602,7 @@ class SQLitePlatform extends AbstractPlatform
         return $sql;
     }
 
+    /** @deprecated */
     public function getCreatePrimaryKeySQL(Index $index, string $table): string
     {
         throw NotSupported::new(__METHOD__);

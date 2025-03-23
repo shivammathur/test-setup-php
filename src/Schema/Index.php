@@ -39,6 +39,7 @@ class Index extends AbstractNamedObject
 
     protected bool $_isUnique = false;
 
+    /** @deprecated Use {@see PrimaryKeyConstraint()} instead. */
     protected bool $_isPrimary = false;
 
     /**
@@ -77,6 +78,14 @@ class Index extends AbstractNamedObject
                 'doctrine/dbal',
                 'https://github.com/doctrine/dbal/pull/6787',
                 'Instantiation of an index without column names is deprecated.',
+            );
+        }
+
+        if ($isPrimary) {
+            Deprecation::triggerIfCalledFromOutside(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6867',
+                'Declaring an index as primary is deprecated. Use PrimaryKeyConstraint instead.',
             );
         }
 
@@ -162,7 +171,7 @@ class Index extends AbstractNamedObject
         return $columns;
     }
 
-    /** @return array<int, string> */
+    /** @return non-empty-list<string> */
     public function getUnquotedColumns(): array
     {
         return array_map($this->trimQuotes(...), $this->getColumns());
@@ -181,8 +190,15 @@ class Index extends AbstractNamedObject
         return $this->_isUnique;
     }
 
+    /** @deprecated Use {@see PrimaryKeyConstraint()} instead. */
     public function isPrimary(): bool
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6867',
+            'Checking whether an index is primary is deprecated. Use PrimaryKeyConstraint instead.',
+        );
+
         return $this->_isPrimary;
     }
 
