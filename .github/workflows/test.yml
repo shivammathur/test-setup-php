@@ -3,15 +3,65 @@ name: Runner Workflow
 on:
   push:
 jobs:
-  runner:
-    runs-on: ${{ matrix.os }}
+  build_windows:
+    name: 'Build ${{ matrix.quantum }}${{ matrix.hdri_flag }} (${{ matrix.platform }})'
+    runs-on: windows-2022
+
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
-        runs: [1,1,1,1,1,1,1,1]
+        platform: [ x64, x86 ]
+        quantum: [ Q8, Q16 ]
+        hdri: [ HDRI, noHDRI ]        
+        exclude:
+          - quantum: Q8
+            hdri: HDRI
+        include:
+          - hdri: HDRI
+            hdri_flag: '-HDRI'
+
     steps:
-      - run: sudo apt-get check
-      - run: |
-          php -v
-          php -m
+    - name: Clone ImageMagick
+      uses: actions/checkout@v4
+      with:
+        repository: ImageMagick/ImageMagick
+        path: ImageMagick
+
+    - name: Clone ImageMagick-Windows
+      uses: actions/checkout@v4
+      with:
+        repository: ImageMagick/ImageMagick-Windows
+        path: ImageMagick-Windows
+
+    - name: Clone repositories
+      shell: cmd
+      run: |
+        cd ImageMagick-Windows
+        CloneRepositories.IM7.cmd
+
+    - name: Build configure
+      shell: cmd
+      run: |
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
+        cd ImageMagick-Windows\Configure
+        msbuild Configure.sln /m /t:Rebuild /p:Configuration=Release,Platform=x64
+
+    - name: Configure ImageMagick
+      shell: cmd
+      run: |
+        cd ImageMagick-Windows\Configure
+        Configure.exe /VS2022 /noWizard /noAliases /${{ matrix.hdri }} /${{ matrix.quantum }} /${{ matrix.platform }} /smtd
+
+    - name: Build ImageMagick (${{ matrix.platform }})
+      shell: cmd
+      run: |
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
+        cd ImageMagick-Windows
+        msbuild /m /t:Rebuild /p:Configuration=Release,Platform=${{matrix.platform}}
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: Windows-${{matrix.quantum}}${{matrix.hdri_flag}}-${{matrix.platform}}
+        path: |
+          ImageMagick-Windows\Artifacts
 
