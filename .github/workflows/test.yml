@@ -50,7 +50,7 @@ jobs:
       shell: cmd
       run: |
         cd ImageMagick-Windows\Configure
-        Configure.exe /VS2022 /noWizard /noAliases /${{ matrix.hdri }} /${{ matrix.quantum }} /${{ matrix.platform }} /smtd
+        Configure.exe /VS2022 /noWizard /noAliases /${{ matrix.hdri }} /${{ matrix.quantum }} /${{ matrix.platform }} /dmt
 
     - name: Build ImageMagick (${{ matrix.platform }})
       shell: cmd
