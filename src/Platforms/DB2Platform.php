@@ -451,41 +451,6 @@ class DB2Platform extends AbstractPlatform
     /**
      * {@inheritDoc}
      */
-    protected function getPreAlterTableIndexForeignKeySQL(TableDiff $diff): array
-    {
-        $sql = [];
-
-        $tableNameSQL = $diff->getOldTable()->getQuotedName($this);
-
-        foreach ($diff->getDroppedIndexes() as $droppedIndex) {
-            foreach ($diff->getAddedIndexes() as $addedIndex) {
-                if ($droppedIndex->getColumns() !== $addedIndex->getColumns()) {
-                    continue;
-                }
-
-                if ($droppedIndex->isPrimary()) {
-                    $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' DROP PRIMARY KEY';
-                } elseif ($droppedIndex->isUnique()) {
-                    $sql[] = 'ALTER TABLE ' . $tableNameSQL . ' DROP UNIQUE ' . $droppedIndex->getQuotedName($this);
-                } else {
-                    $sql[] = $this->getDropIndexSQL($droppedIndex->getQuotedName($this), $tableNameSQL);
-                }
-
-                $sql[] = $this->getCreateIndexSQL($addedIndex, $tableNameSQL);
-
-                $diff->unsetAddedIndex($addedIndex);
-                $diff->unsetDroppedIndex($droppedIndex);
-
-                break;
-            }
-        }
-
-        return array_merge($sql, parent::getPreAlterTableIndexForeignKeySQL($diff));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     protected function getRenameIndexSQL(string $oldIndexName, Index $index, string $tableName): array
     {
         if (str_contains($tableName, '.')) {
