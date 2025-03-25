@@ -44,7 +44,7 @@ jobs:
       #       --add Microsoft.VisualStudio.Component.VC.14.29.16.11.MFC --quiet --norestart --nocache
       - name: Compute virtual inputs
         id: virtuals
-        run: powershell winlib-builder/scripts/compute-virtuals -version ${{github.event.matrix.php}} -arch ${{matrix.arch}}
+        run: powershell winlib-builder/scripts/compute-virtuals -version ${{matrix.php}} -arch ${{matrix.arch}}
       - name: Fetch dependencies
         run: cd imagemagick-windows && CloneRepositories.IM7.cmd
       - name: Patch imagemagick
