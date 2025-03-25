@@ -54,12 +54,12 @@ jobs:
       - name: Configure imagemagick
         run: |
           cd imagemagick-windows\configure
-          msbuild /p:Configuration=Release;Platform=Win32;PlatformToolset=${{steps.virtuals.outputs.msts}};WindowsTargetPlatformVersion=${{steps.virtuals.outputs.winsdk}} configure.2017.sln
+          msbuild /p:Configuration=Release;Platform=Win32;PlatformToolset=${{steps.virtuals.outputs.msts}};WindowsTargetPlatformVersion=${{steps.virtuals.outputs.winsdk}};LanguageStandard=stdcpp20 configure.2017.sln
           start /wait configure /noWizard /${{matrix.arch}} /noHdri /noOpenCL /deprecated /VS2017
       - name: Build imagemagick
         run: |
           cd imagemagick-windows
-          msbuild /p:Configuration=Release;Platform=${{matrix.arch}};PlatformToolset=${{steps.virtuals.outputs.msts}};WindowsTargetPlatformVersion=${{steps.virtuals.outputs.winsdk}} IM7.Dynamic.${{ matrix.arch }}.sln
+          msbuild /p:Configuration=Release;Platform=${{matrix.arch}};PlatformToolset=${{steps.virtuals.outputs.msts}};WindowsTargetPlatformVersion=${{steps.virtuals.outputs.winsdk}};LanguageStandard=stdcpp20 IM7.Dynamic.${{ matrix.arch }}.sln
       - name: Install imagemagick
         run: |
           cd imagemagick-windows\Artifacts
