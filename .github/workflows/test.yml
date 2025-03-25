@@ -44,7 +44,7 @@ jobs:
       run: |
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
         cd ImageMagick-Windows\Configure
-        msbuild Configure.sln /m /t:Rebuild /p:Configuration=Release,Platform=x64,PlatformToolset=v142
+        msbuild Configure.sln /m /t:Rebuild /p:Configuration=Release,Platform=x64
 
     - name: Configure ImageMagick
       shell: cmd
