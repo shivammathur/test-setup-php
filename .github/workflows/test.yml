@@ -42,7 +42,7 @@ jobs:
     - name: Build configure
       shell: cmd
       run: |
-        call "C:\Program Files\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
         cd ImageMagick-Windows\Configure
         msbuild Configure.sln /m /t:Rebuild /p:Configuration=Release,Platform=x64,PlatformToolset=v142
 
@@ -55,7 +55,7 @@ jobs:
     - name: Build ImageMagick (${{ matrix.platform }})
       shell: cmd
       run: |
-        call "C:\Program Files\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat"
         cd ImageMagick-Windows
         msbuild /m /t:Rebuild /p:Configuration=Release,Platform=${{matrix.platform}},PlatformToolset=v142
 
