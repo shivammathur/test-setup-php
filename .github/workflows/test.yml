@@ -4,6 +4,6 @@ on:
   push:
 jobs:
   build_windows:
-    runs-on: windows-2022
+    runs-on: windows-2019
     steps:
     - run: Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Include"
