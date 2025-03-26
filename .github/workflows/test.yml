@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
           arch: [x64, x86]
-          php: [8.3]
+          php: [7.4]
     runs-on: windows-2019
     steps:
       - name: Checkout winlib-builder
@@ -58,7 +58,7 @@ jobs:
         run: |
           cd imagemagick-windows\configure          
           msbuild /p:Configuration=Release;Platform=Win32;PlatformToolset=${{steps.virtuals.outputs.msts}};WindowsTargetPlatformVersion=${{steps.virtuals.outputs.winsdk}} configure.2017.sln
-          start /wait configure /noWizard /${{matrix.arch}} /noHdri /noOpenCL /deprecated /VS2019
+          start /wait configure /noWizard /${{matrix.arch}} /noHdri /noOpenCL /deprecated /VS2017
       - name: Build imagemagick
         run: |
           cd imagemagick-windows
