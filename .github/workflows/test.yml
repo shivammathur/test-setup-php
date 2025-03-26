@@ -30,6 +30,11 @@ jobs:
           path: imagemagick
           repository: ImageMagick/ImageMagick.git
           ref: 7.1.1-46
+      - name: Patch Imagemagick
+        run: |
+          cd imagemagick && powershell -c "(Get-Content MagickCore/method-attribute.h) | ForEach-Object { $_.replace('[[fallthrough]]', '') } | Set-Content MagickCore/method-attribute.h"
+          powershell -c "Get-Content MagickCore/method-attribute.h"
+        # cd ../../imagemagick && git apply --ignore-whitespace ..\winlib-builder\patches\imagemagick-emf.patch
       - name: Setup msbuild
         uses: microsoft/setup-msbuild@v2
       # - name: Install VS Components for VS15
@@ -47,12 +52,8 @@ jobs:
         run: powershell winlib-builder/scripts/compute-virtuals -version ${{matrix.php}} -arch ${{matrix.arch}}
       - name: Fetch dependencies
         run: cd imagemagick-windows && CloneRepositories.IM7.cmd
-      - name: Patch imagemagick
-        run: |
-          cd imagemagick-windows\configure && git apply --ignore-whitespace ..\..\winlib-builder\patches\imagemagick.patch
-          cd ../../imagemagick && powershell -c "(Get-Content MagickCore/method-attribute.h) | ForEach-Object { $_.replace('[[fallthrough]]', '') } | Set-Content MagickCore/method-attribute.h"
-          powershell -c "Get-Content MagickCore/method-attribute.h"
-      # cd ../../imagemagick && git apply --ignore-whitespace ..\winlib-builder\patches\imagemagick-emf.patch
+      - name: Patch imagemagick-windows
+        run: cd imagemagick-windows\configure && git apply --ignore-whitespace ..\..\winlib-builder\patches\imagemagick.patch
       - name: Configure imagemagick
         run: |
           cd imagemagick-windows\configure          
