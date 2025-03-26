@@ -50,7 +50,7 @@ jobs:
       - name: Patch imagemagick
         run: |
           cd imagemagick-windows\configure && git apply --ignore-whitespace ..\..\winlib-builder\patches\imagemagick.patch
-          powershell -c "(Get-Content MagickCore/method-attribute.h) | ForEach-Object { $_ -replace '[[fallthrough]]', '' } | Set-Content MagickCore/method-attribute.h"
+          cd ../../imagemagick && powershell -c "(Get-Content MagickCore/method-attribute.h) | ForEach-Object { $_ -replace '[[fallthrough]]', '' } | Set-Content MagickCore/method-attribute.h"
       # cd ../../imagemagick && git apply --ignore-whitespace ..\winlib-builder\patches\imagemagick-emf.patch
       - name: Configure imagemagick
         run: |
