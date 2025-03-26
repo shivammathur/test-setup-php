@@ -54,7 +54,7 @@ jobs:
       - name: Configure imagemagick
         run: |
           cd imagemagick-windows\configure
-          powershell -c "(Get-Content configure.2017.sln) | ForEach-Object { $_ -replace 'stdcpp17', 'stdcpp20' } | Set-Content configure.2017.sln"
+          powershell -c "(Get-Content configure.2017.vcxproj) | ForEach-Object { $_ -replace 'stdcpp17', 'stdcpp20' } | Set-Content configure.2017.vcxproj"
           msbuild /p:Configuration=Release;Platform=Win32;PlatformToolset=${{steps.virtuals.outputs.msts}};WindowsTargetPlatformVersion=${{steps.virtuals.outputs.winsdk}} configure.2017.sln
           start /wait configure /noWizard /${{matrix.arch}} /noHdri /noOpenCL /deprecated /VS2017
       - name: Build imagemagick
