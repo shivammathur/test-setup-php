@@ -60,7 +60,7 @@ jobs:
           php-bin\php.exe -m
           Add-Content -Value "<?php" -Path dither.php
           Add-Content -Value "$imagick = new \Imagick(__DIR__ . '/tests/Biter_500.jpg');" -Path dither.php
-          Add-Content -Value "$imagick->orderedDitherImage("o3x3,6");" -Path dither.php
+          Add-Content -Value "$imagick->orderedDitherImage('o3x3,6');" -Path dither.php
           Add-Content -Value "$imagick->writeImage(__DIR__ . '/output_image.png');" -Path dither.php
           php-bin\php.exe dither.php
       - uses: actions/upload-artifact@v4
