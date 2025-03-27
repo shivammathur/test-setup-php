@@ -55,7 +55,7 @@ jobs:
         if: ${{ failure() }}
         shell: pwsh
         run: |
-          Add-Content 'extension=D:\a\test-setup-php\test-setup-php\x64\Release_TS\php_imagick.dll'
+          Add-Content 'extension=D:\a\test-setup-php\test-setup-php\x64\Release_TS\php_imagick.dll' php-bin\php.ini
           php-bin\php.exe -v
           php-bin\php.exe -m
           Add-Content "<?php" dither.php
