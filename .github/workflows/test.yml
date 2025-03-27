@@ -37,6 +37,10 @@ jobs:
         run: |
           curl -LO https://downloads.php.net/~windows/pecl/deps/TestImageMagick-7.1.1-46-vc15-${{matrix.arch}}.zip
           7z x TestImageMagick-7.1.1-46-vc15-${{matrix.arch}}.zip -o..\deps
+          curl -LO https://downloads.php.net/~windows/pecl/deps/ImageMagick-7.1.0-18-vc15-${{matrix.arch}}.zip
+          7z x ImageMagick-7.1.0-18-vc15-${{matrix.arch}}.zip -o..\olddeps
+          cp ..\olddeps\bin\thresholds.xml ..\deps\bin\thresholds.xml
+          powershell -c "gc ..\deps\bin\thresholds.xml"
       - name: Enable Developer Command Prompt
         uses: ilammy/msvc-dev-cmd@v1
         with:
