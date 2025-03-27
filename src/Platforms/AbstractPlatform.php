@@ -2053,9 +2053,18 @@ abstract class AbstractPlatform
 
     /**
      * Whether the platform supports indexes with column length definitions.
+     *
+     * @deprecated
      */
     public function supportsColumnLengthIndexes(): bool
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6886',
+            '%s is deprecated.',
+            __METHOD__,
+        );
+
         return false;
     }
 

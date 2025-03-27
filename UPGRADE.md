@@ -8,6 +8,32 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## Deprecated `Index` methods, properties and behavior
+
+The following `Index` methods and properties have been deprecated:
+
+- `Index::getColumns()`, `Index::getQuotedColumns()`, `Index::getUnquotedColumns()`,
+  `Index::$_columns` – use `Index::getIndexedColumns()` instead.
+- `Index::isSimpleIndex()`, `Index::isUnique()`, `Index::$_isUnique` – use `Index::getType()` and compare with
+  `IndexType::REGULAR` or `IndexType::UNIQUE` instead.
+- `Index::addFlag()`, `Index::removeFlag()`, `Index::getFlags()`, `Index::hasFlag()`, `Index::$_flags` – use
+  `IndexEditor::setType()`, `Index::getType()`, `IndexEditor::setIsClustered()` and `Index::isClustered()` instead.
+- `Index::getOption()`, `Index::hasOption()` and `Index::getOptions()` – use `Index::getIndexedColumns()` and
+  `Index::getPredicate()` instead.
+- `Index::overrules()`, `Index::hasColumnAtPosition()` – no replacement provided.
+- `AbstractPlatform::supportsColumnLengthIndexes()` – no replacement provided.
+
+Additionally,
+1. Instantiation of an index without columns is deprecated.
+2. The `Index::spansColumns()` method has been marked as internal.
+3. Passing an empty string as partial index predicate has been deprecated.
+
+The following conflicting index configurations have been deprecated:
+1. Spatial index with column lengths specified.
+2. Clustered fulltext or spatial index.
+3. Partial fulltext or spatial index.
+4. Clustered partial index.
+
 ## Deprecated features related to primary key constraints
 
 1. The `AbstractPlatform::getCreatePrimaryKeySQL()` method has been deprecated. Use the schema manager to create and
@@ -129,7 +155,7 @@ the `Schema` class itself.
 
 ## Deprecated `ForeignKeyConstraint` methods, properties and behavior
 
-The following `ForeignKeyConstraint` methods and property have been deprecated:
+The following `ForeignKeyConstraint` methods and properties have been deprecated:
 
 - `ForeignKeyConstraint::getForeignTableName()`, `ForeignKeyConstraint::getQuotedForeignTableName()`,
   `ForeignKeyConstraint::getUnqualifiedForeignTableName()`, `ForeignKeyConstraint::$_foreignTableName` – use

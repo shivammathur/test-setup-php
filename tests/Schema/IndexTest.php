@@ -282,12 +282,19 @@ class IndexTest extends TestCase
         self::assertNull($indexedColumns[1]->getLength());
     }
 
+    public function testUnsupportedFlag(): void
+    {
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6886');
+        new Index('idx_user_name', ['name'], false, false, ['banana']);
+    }
+
     /** @param list<string> $flags */
     #[TestWith([true, ['fulltext']])]
     #[TestWith([true, ['spatial']])]
     #[TestWith([false, ['fulltext', 'spatial']])]
     public function testConflictInFlagsSignificantForTypeInference(bool $isUnique, array $flags): void
     {
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6886');
         $index = new Index('idx_user_name', ['name'], $isUnique, false, $flags);
 
         $this->expectException(InvalidState::class);
@@ -300,6 +307,7 @@ class IndexTest extends TestCase
     #[TestWith([['nonclustered', 'clustered'], IndexType::REGULAR])]
     public function testConflictInFlagsInsignificantForTypeInference(array $flags, IndexType $expectedType): void
     {
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6886');
         $index = new Index('idx_user_name', ['name'], false, false, $flags);
 
         self::assertEquals($expectedType, $index->getType());
@@ -312,6 +320,7 @@ class IndexTest extends TestCase
     #[TestWith([true, [], IndexType::UNIQUE])]
     public function testParseType(bool $isUnique, array $flags, IndexType $expectedType): void
     {
+        $this->expectNoDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6886');
         $index = new Index('idx_user_name', ['user_id'], $isUnique, false, $flags);
 
         self::assertEquals($expectedType, $index->getType());
@@ -321,6 +330,7 @@ class IndexTest extends TestCase
     #[TestWith(['is_active = 1'])]
     public function testGetPredicate(?string $predicate): void
     {
+        $this->expectNoDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6886');
         $index = new Index('idx_user_name', ['user_id'], false, false, [], ['where' => $predicate]);
 
         self::assertEquals($predicate, $index->getPredicate());
@@ -328,9 +338,19 @@ class IndexTest extends TestCase
 
     public function testEmptyPredicate(): void
     {
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6886');
         $index = new Index('idx_user_name', ['user_id'], false, false, [], ['where' => '']);
 
         $this->expectException(InvalidState::class);
         $index->getPredicate();
+    }
+
+    #[TestWith(['fulltext'])]
+    #[TestWith(['spatial'])]
+    #[TestWith(['clustered'])]
+    public function testPartialIndexWithConflictingFlags(string $flag): void
+    {
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6886');
+        new Index('idx_user_name', ['user_id'], false, false, [$flag], ['where' => 'is_active = 1']);
     }
 }

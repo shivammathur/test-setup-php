@@ -36,10 +36,13 @@ class Index extends AbstractNamedObject
     /**
      * Asset identifier instances of the column names the index is associated with.
      *
+     * @deprecated Use {@see getIndexedColumns()} instead.
+     *
      * @var array<string, Identifier>
      */
     protected array $_columns = [];
 
+    /** @deprecated Use {@see getType()} and compare with {@see IndexType::UNIQUE} instead. */
     protected bool $_isUnique = false;
 
     /** @deprecated Use {@see PrimaryKeyConstraint()} instead. */
@@ -47,6 +50,8 @@ class Index extends AbstractNamedObject
 
     /**
      * Platform specific flags for indexes.
+     *
+     * @deprecated
      *
      * @var array<string, true>
      */
@@ -114,6 +119,12 @@ class Index extends AbstractNamedObject
             $predicate = $options['where'];
 
             if (strlen($predicate) === 0) {
+                Deprecation::trigger(
+                    'doctrine/dbal',
+                    'https://github.com/doctrine/dbal/pull/6886',
+                    'Passing an empty string as index predicate is deprecated.',
+                );
+
                 $this->failedToParsePredicate = true;
             } else {
                 $this->predicate = $predicate;
@@ -191,10 +202,19 @@ class Index extends AbstractNamedObject
     /**
      * Returns the names of the referencing table columns the constraint is associated with.
      *
+     * @deprecated Use {@see getIndexedColumns()} instead.
+     *
      * @return non-empty-list<string>
      */
     public function getColumns(): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6886',
+            '%s is deprecated. Use Index::getIndexedColumns() instead.',
+            __METHOD__,
+        );
+
         /** @phpstan-ignore return.type */
         return array_keys($this->_columns);
     }
@@ -206,12 +226,21 @@ class Index extends AbstractNamedObject
      * is a keyword reserved by the platform.
      * Otherwise, the plain unquoted value as inserted is returned.
      *
+     * @deprecated Use {@see getIndexedColumns()} instead.
+     *
      * @param AbstractPlatform $platform The platform to use for quotation.
      *
      * @return list<string>
      */
     public function getQuotedColumns(AbstractPlatform $platform): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6886',
+            '%s is deprecated. Use Index::getIndexedColumns() instead.',
+            __METHOD__,
+        );
+
         $subParts = $platform->supportsColumnLengthIndexes() && $this->hasOption('lengths')
             ? $this->getOption('lengths') : [];
 
@@ -232,22 +261,50 @@ class Index extends AbstractNamedObject
         return $columns;
     }
 
-    /** @return non-empty-list<string> */
+    /**
+     * @deprecated Use {@see getIndexedColumns()} instead.
+     *
+     * @return non-empty-list<string>
+     */
     public function getUnquotedColumns(): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6886',
+            '%s is deprecated. Use Index::getIndexedColumns() instead.',
+            __METHOD__,
+        );
+
         return array_map($this->trimQuotes(...), $this->getColumns());
     }
 
     /**
      * Is the index neither unique nor primary key?
+     *
+     * @deprecated Use {@see getType()} and compare with {@see IndexType::REGULAR} instead.
      */
     public function isSimpleIndex(): bool
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6886',
+            '%s is deprecated. Use Index::getType() and compare with IndexType::REGULAR instead.',
+            __METHOD__,
+        );
+
         return ! $this->_isPrimary && ! $this->_isUnique;
     }
 
+    /** @deprecated Use {@see getType()} and compare with {@see IndexType::UNIQUE} instead. */
     public function isUnique(): bool
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6886',
+            '%s is deprecated. Use Index::getType() and compare with IndexType::UNIQUE instead.',
+            __METHOD__,
+        );
+
         return $this->_isUnique;
     }
 
@@ -263,8 +320,16 @@ class Index extends AbstractNamedObject
         return $this->_isPrimary;
     }
 
+    /** @deprecated Use {@see getIndexedColumns()} instead. */
     public function hasColumnAtPosition(string $name, int $pos = 0): bool
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6886',
+            '%s is deprecated. Use Index::getIndexedColumns() instead.',
+            __METHOD__,
+        );
+
         $name         = $this->trimQuotes(strtolower($name));
         $indexColumns = array_map('strtolower', $this->getUnquotedColumns());
 
@@ -273,6 +338,8 @@ class Index extends AbstractNamedObject
 
     /**
      * Checks if this index exactly spans the given column names in the correct order.
+     *
+     * @internal
      *
      * @param array<int, string> $columnNames
      */
@@ -339,9 +406,18 @@ class Index extends AbstractNamedObject
 
     /**
      * Detects if the other index is a non-unique, non primary index that can be overwritten by this one.
+     *
+     * @deprecated
      */
     public function overrules(Index $other): bool
     {
+        Deprecation::trigger(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6886',
+            '%s is deprecated.',
+            __METHOD__,
+        );
+
         if ($other->isPrimary()) {
             return false;
         }
@@ -358,20 +434,39 @@ class Index extends AbstractNamedObject
     /**
      * Returns platform specific flags for indexes.
      *
+     * @deprecated Use {@see getType()} and {@see isClustered()} instead.
+     *
      * @return array<int, string>
      */
     public function getFlags(): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6886',
+            '%s is deprecated. Use Index::getType() and Index::isClustered() instead.',
+            __METHOD__,
+        );
+
         return array_keys($this->_flags);
     }
 
     /**
      * Adds Flag for an index that translates to platform specific handling.
      *
+     * @deprecated Use {@see edit()}, {@see IndexEditor::setType()} and {@see IndexEditor::setIsClustered()} instead.
+     *
      * @example $index->addFlag('CLUSTERED')
      */
     public function addFlag(string $flag): self
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6886',
+            '%s is deprecated. Use Index::edit(), IndexEditor::setType() and IndexEditor::setIsClustered()'
+                . ' instead.',
+            __METHOD__,
+        );
+
         $this->_flags[strtolower($flag)] = true;
 
         $this->validateFlags();
@@ -383,35 +478,80 @@ class Index extends AbstractNamedObject
 
     /**
      * Does this index have a specific flag?
+     *
+     * @deprecated Use {@see getType()} and {@see isClustered()} instead.
      */
     public function hasFlag(string $flag): bool
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6886',
+            '%s is deprecated. Use Index::getType() and Index::isClustered() instead.',
+            __METHOD__,
+        );
+
         return isset($this->_flags[strtolower($flag)]);
     }
 
     /**
-     * Removes a flag.
+     * @deprecated Use {@see edit()}, {@see IndexEditor::setType()} and {@see IndexEditor::setIsClustered()}
+     *             instead.
      */
     public function removeFlag(string $flag): void
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6886',
+            '%s is deprecated. Use Index::edit(), IndexEditor::setType() and IndexEditor::setIsClustered()'
+            . ' instead.',
+            __METHOD__,
+        );
+
         unset($this->_flags[strtolower($flag)]);
 
         $this->type = $this->inferType();
     }
 
+    /** @deprecated Use {@see getIndexedColumns()} and {@see getPredicate()} instead. */
     public function hasOption(string $name): bool
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6886',
+            '%s is deprecated. Use Index::getIndexedColumns() and Index::getPredicate() instead.',
+            __METHOD__,
+        );
+
         return isset($this->options[strtolower($name)]);
     }
 
+    /** @deprecated Use {@see getIndexedColumns()} and {@see getPredicate()} instead. */
     public function getOption(string $name): mixed
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6886',
+            '%s is deprecated. Use Index::getIndexedColumns() and Index::getPredicate() instead.',
+            __METHOD__,
+        );
+
         return $this->options[strtolower($name)];
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @deprecated Use {@see getIndexedColumns()} and {@see getPredicate()} instead.
+     *
+     * @return array<string, mixed>
+     */
     public function getOptions(): array
     {
+        Deprecation::triggerIfCalledFromOutside(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6886',
+            '%s is deprecated. Use Index::getIndexedColumns() and Index::getPredicate() instead.',
+            __METHOD__,
+        );
+
         return $this->options;
     }
 
