@@ -9,7 +9,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2019, windows-2022]
-        version: ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]
+        #version: ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]
+        version: [8.4]
         arch: [x64, x86]
         ts: [ts, nts]
         exclude:
@@ -36,8 +37,8 @@ jobs:
           cache: true
       - name: Download deps
         run: |
-          curl -LO https://downloads.php.net/~windows/pecl/deps/TestIM-7.1.1-46-vc15-${{matrix.arch}}.zip
-          7z x TestIM-7.1.1-46-vc15-${{matrix.arch}}.zip -o..\deps
+          curl -LO https://downloads.php.net/~windows/pecl/deps/TestIM-7.1.1-46-vc17-${{matrix.arch}}.zip
+          7z x TestIM-7.1.1-46-vc17-${{matrix.arch}}.zip -o..\deps
       - name: Enable Developer Command Prompt
         uses: ilammy/msvc-dev-cmd@v1
         with:
