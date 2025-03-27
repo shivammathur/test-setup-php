@@ -55,7 +55,8 @@ jobs:
         if: ${{ failure() }}
         shell: pwsh
         run: |
-          Add-Content -Value "extension=D:\a\test-setup-php\test-setup-php\x64\Release_TS\php_imagick.dll" -Path php-bin\php.ini
+          if("${{ matrix.ts = "ts" }}") { $dir='Release_TS' } else { $dir='Release' }
+          Add-Content -Value "extension=D:\a\test-setup-php\test-setup-php\${{ matrix.arch }}\$dir\php_imagick.dll" -Path php-bin\php.ini
           php-bin\php.exe -v
           php-bin\php.exe -m
           Add-Content -Value "<?php" -Path dither.php
