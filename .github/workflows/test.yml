@@ -55,13 +55,13 @@ jobs:
         if: ${{ failure() }}
         shell: pwsh
         run: |
-          Add-Content 'extension=D:\a\test-setup-php\test-setup-php\x64\Release_TS\php_imagick.dll' php-bin\php.ini
+          Add-Content -Value "extension=D:\a\test-setup-php\test-setup-php\x64\Release_TS\php_imagick.dll" -Path php-bin\php.ini
           php-bin\php.exe -v
           php-bin\php.exe -m
-          Add-Content "<?php" dither.php
-          Add-Content "$imagick = new \Imagick(__DIR__ . '/tests/Biter_500.jpg');" dither.php
-          Add-Content "$imagick->orderedDitherImage("o3x3,6");" dither.php
-          Add-Content "$imagick->writeImage(__DIR__ . '/output_image.png');" dither.php
+          Add-Content -Value "<?php" -Path dither.php
+          Add-Content -Value "$imagick = new \Imagick(__DIR__ . '/tests/Biter_500.jpg');" -Path dither.php
+          Add-Content -Value "$imagick->orderedDitherImage("o3x3,6");" -Path dither.php
+          Add-Content -Value "$imagick->writeImage(__DIR__ . '/output_image.png');" -Path dither.php
           php-bin\php.exe dither.php
       - uses: actions/upload-artifact@v4
         if: ${{ failure() }}
