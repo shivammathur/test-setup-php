@@ -24,8 +24,8 @@ jobs:
       - name: Checkout imagick
         uses: actions/checkout@v4
         with:
-          repository: imagick/imagick
-          ref: master
+          repository: shivammathur/imagick
+          ref: imagemagick_cxx
       - name: Setup PHP
         id: setup-php
         uses: php/setup-php-sdk@v0.10
@@ -46,9 +46,10 @@ jobs:
       - name: phpize
         run: phpize
       - name: configure
-        run: configure --with-imagick --with-php-build=..\deps --with-prefix=${{steps.setup-php.outputs.prefix}}
-      - uses: mxschmitt/action-tmate@v3  
+        run: configure --with-imagick --with-php-build=..\deps --with-prefix=${{steps.setup-php.outputs.prefix}}    
       - name: make
         run: nmake
       - name: test
         run: nmake test TESTS="-j4 --show-diff -g FAIL,BORK,WARN,LEAK tests"
+      - uses: mxschmitt/action-tmate@v3
+        if: ${{ failure() }}
