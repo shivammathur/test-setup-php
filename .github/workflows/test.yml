@@ -37,8 +37,8 @@ jobs:
           cache: true
       - name: Download deps
         run: |
-          curl -LO https://downloads.php.net/~windows/pecl/deps/TestIM-7.1.1-46-vc17-${{matrix.arch}}.zip
-          7z x TestIM-7.1.1-46-vc17-${{matrix.arch}}.zip -o..\deps
+          curl -LO https://downloads.php.net/~windows/pecl/deps/TestIM-7.1.1-46-vs17-${{matrix.arch}}.zip
+          7z x TestIM-7.1.1-46-vs17-${{matrix.arch}}.zip -o..\deps
       - name: Enable Developer Command Prompt
         uses: ilammy/msvc-dev-cmd@v1
         with:
