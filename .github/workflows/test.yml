@@ -47,6 +47,7 @@ jobs:
         run: phpize
       - name: configure
         run: configure --with-imagick --with-php-build=..\deps --with-prefix=${{steps.setup-php.outputs.prefix}}
+      - uses: mxschmitt/action-tmate@v3  
       - name: make
         run: nmake
       - name: test
