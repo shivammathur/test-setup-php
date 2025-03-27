@@ -8,68 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019, windows-2022]
-        version: ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]
-        arch: [x64, x86]
-        ts: [ts, nts]
-        exclude:
-          - {os: windows-2019, version: "8.4"}
-          - {os: windows-2019, version: "8.3"}
-          - {os: windows-2019, version: "8.2"}
-          - {os: windows-2019, version: "8.1"}
-          - {os: windows-2019, version: "8.0"}
-          - {os: windows-2022, version: "7.4"}
+        os: [windows-2022]
     runs-on: ${{matrix.os}}
     steps:
-      - name: Checkout imagick
-        uses: actions/checkout@v4
-        with:
-          repository: shivammathur/imagick
-          ref: imagemagick_cxx
-      - name: Setup PHP
-        id: setup-php
-        uses: php/setup-php-sdk@v0.10
-        with:
-          version: ${{matrix.version}}
-          arch: ${{matrix.arch}}
-          ts: ${{matrix.ts}}
-          cache: true
-      - name: Download deps
-        run: |
-          curl -LO https://downloads.php.net/~windows/pecl/deps/TestImageMagick-7.1.1-46-vc15-${{matrix.arch}}.zip
-          7z x TestImageMagick-7.1.1-46-vc15-${{matrix.arch}}.zip -o..\deps
-      - name: Enable Developer Command Prompt
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: ${{matrix.arch}}
-          toolset: ${{steps.setup-php.outputs.toolset}}
-      - name: phpize
-        run: phpize
-      - name: configure
-        run: configure --with-imagick --with-php-build=..\deps --with-prefix=${{steps.setup-php.outputs.prefix}}    
-      - name: make
-        run: nmake
-      - name: test
-        run: |
-          set MAGICK_CONFIGURE_PATH=D:\a\test-setup-php\deps\bin
-          nmake test TESTS="-j4 --show-diff -g FAIL,BORK,WARN,LEAK tests"
-      - name: Test
-        if: ${{ failure() }}
-        shell: pwsh
-        run: |
-          if("${{ matrix.ts }}" -eq "ts") { $dir='Release_TS' } else { $dir='Release' }
-          Add-Content -Value "extension=D:\a\test-setup-php\test-setup-php\${{ matrix.arch }}\$dir\php_imagick.dll" -Path php-bin\php.ini
-          php-bin\php.exe -v
-          php-bin\php.exe -m
-          Add-Content -Value "<?php" -Path dither.php
-          Add-Content -Value "`$imagick = new \Imagick(__DIR__ . '/tests/Biter_500.jpg');`n" -Path dither.php
-          Add-Content -Value "`$imagick->orderedDitherImage('o3x3,6');`n" -Path dither.php
-          Add-Content -Value "`$imagick->writeImage(__DIR__ . '/output_image.png');`n" -Path dither.php
-          gc dither.php
-          php-bin\php.exe dither.php
-      - uses: actions/upload-artifact@v4
-        if: ${{ failure() }}
-        with:
-          name: output_image_${{ matrix.version }}_${{ matrix.arch }}_${{ matrix.ts }}.png
-          path: output_image.png
-
+      - uses: mxschmitt/action-tmate@v3
