@@ -1,99 +1,52 @@
-name: Build imagemagick
-on:
-  push
-defaults:
-  run:
-    shell: cmd
+name: Build and Test on Windows
+on: [push]
 jobs:
-  build:
+  windows:
+    defaults:
+      run:
+        shell: cmd
     strategy:
-      fail-fast: false
       matrix:
-          arch: [x64, x86]
-          php: [7.4]
-    runs-on: windows-2019
+        os: [windows-2019, windows-2022]
+        version: ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]
+        arch: [x64]
+        ts: [ts]
+        exclude:
+          - {os: windows-2019, version: "8.4"}
+          - {os: windows-2019, version: "8.3"}
+          - {os: windows-2019, version: "8.2"}
+          - {os: windows-2019, version: "8.1"}
+          - {os: windows-2019, version: "8.0"}
+          - {os: windows-2022, version: "7.4"}
+    runs-on: ${{matrix.os}}
     steps:
-      - name: Checkout winlib-builder
+      - name: Checkout imagick
         uses: actions/checkout@v4
         with:
-          path: winlib-builder
-          repository: shivammathur/winlib-builder
-      - name: Checkout imagemagick-windows
-        uses: actions/checkout@v4
+          repository: imagick/imagick
+          ref: master
+      - name: Setup PHP
+        id: setup-php
+        uses: php/setup-php-sdk@v0.10
         with:
-          path: imagemagick-windows
-          repository: ImageMagick/ImageMagick-Windows.git
-          ref: main
-      - name: Checkout imagemagick
-        uses: actions/checkout@v4
+          version: ${{matrix.version}}
+          arch: ${{matrix.arch}}
+          ts: ${{matrix.ts}}
+          cache: true
+      - name: Download deps
+        run: |
+          curl -LO https://downloads.php.net/~windows/pecl/deps/ImageMagick-7.1.1-46-vc15-${{matrix.arch}}.zip
+          7z x ImageMagick-7.1.1-46-vc15-${{matrix.arch}}.zip -o..\deps
+      - name: Enable Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
         with:
-          path: imagemagick
-          repository: ImageMagick/ImageMagick.git
-          ref: 7.1.1-46
-      - name: Patch Imagemagick
-        run: |
-          cd imagemagick && powershell -c "(Get-Content MagickCore/method-attribute.h) | ForEach-Object { $_.replace('[[fallthrough]]', '') } | Set-Content MagickCore/method-attribute.h"
-          git apply --ignore-whitespace ..\winlib-builder\patches\imagemagick-emf.patch
-          powershell -c "Get-Content MagickCore/method-attribute.h"
-      - name: Setup msbuild
-        uses: microsoft/setup-msbuild@v2
-      # - name: Install VS Components for VS15
-      #   if: ${{ matrix.php < '8.0' }}
-      #   run: |
-      #     "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" modify --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" ^
-      #       --add Microsoft.VisualStudio.Component.VC.v141.x86.x64 --add Microsoft.VisualStudio.Component.Windows10SDK.17763 --add Microsoft.VisualStudio.Component.VC.v141.MFC --quiet --norestart --nocache
-      # - name: Install VS Components for VS16
-      #   if: ${{ matrix.php < '8.4' && matrix.php >= '8.0' }}
-      #   run: |
-      #     "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" modify --installPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise" ^
-      #       --add Microsoft.VisualStudio.Component.VC.14.29.16.11.MFC --quiet --norestart --nocache
-      - name: Compute virtual inputs
-        id: virtuals
-        run: powershell winlib-builder/scripts/compute-virtuals -version ${{matrix.php}} -arch ${{matrix.arch}}
-      - name: Fetch dependencies
-        run: cd imagemagick-windows && CloneRepositories.IM7.cmd
-      - name: Patch imagemagick-windows
-        run: cd imagemagick-windows\configure && git apply --ignore-whitespace ..\..\winlib-builder\patches\imagemagick.patch
-      - name: Configure imagemagick
-        run: |
-          cd imagemagick-windows\configure          
-          msbuild /p:Configuration=Release;Platform=Win32;PlatformToolset=${{steps.virtuals.outputs.msts}};WindowsTargetPlatformVersion=${{steps.virtuals.outputs.winsdk}} configure.2017.sln
-          start /wait configure /noWizard /${{matrix.arch}} /noHdri /noOpenCL /deprecated /VS2017
-      - name: Build imagemagick
-        run: |
-          cd imagemagick-windows
-          msbuild /p:Configuration=Release;Platform=${{matrix.arch}};PlatformToolset=${{steps.virtuals.outputs.msts}};WindowsTargetPlatformVersion=${{steps.virtuals.outputs.winsdk}} IM7.Dynamic.${{ matrix.arch }}.sln
-      - name: Install imagemagick
-        run: |
-          cd imagemagick-windows\Artifacts
-          xcopy bin\* ..\..\install\bin\*
-          del ..\..\install\bin\CORE_RL_aom_.pdb
-          del ..\..\install\bin\CORE_RL_brotli_.pdb
-          del ..\..\install\bin\CORE_RL_croco_.pdb
-          del ..\..\install\bin\CORE_RL_ffi_.pdb
-          del ..\..\install\bin\CORE_RL_highway_.pdb
-          del ..\..\install\bin\CORE_RL_libde265_.pdb
-          del ..\..\install\bin\CORE_RL_pixman_.pdb
-          del ..\..\install\bin\CORE_RL_raqm_.pdb
-          del ..\..\install\bin\*fuzzer.pdb
-          xcopy ..\ImageMagick\MagickCore\*.h ..\..\install\include\MagickCore\*
-          del ..\..\install\include\MagickCore\*-private.h
-          xcopy ..\ImageMagick\MagickWand\*.h ..\..\install\include\MagickWand\*
-          del ..\..\install\include\MagickWand\*-private.h
-          xcopy lib\*.lib ..\..\install\lib\*
-          xcopy lib\*.exp ..\..\install\lib\*
-          xcopy lib\*.pdb ..\..\install\lib\*
-          del ..\..\install\lib\CORE_RL_aom_.pdb
-          del ..\..\install\lib\CORE_RL_brotli_.pdb
-          del ..\..\install\lib\CORE_RL_croco_.pdb
-          del ..\..\install\lib\CORE_RL_ffi_.pdb
-          del ..\..\install\lib\CORE_RL_highway_.pdb
-          del ..\..\install\lib\CORE_RL_libde265_.pdb
-          del ..\..\install\lib\CORE_RL_pixman_.pdb
-          del ..\..\install\lib\CORE_RL_raqm_.pdb
-          xcopy ..\ImageMagick\LICENSE ..\..\install\*
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ImageMagick-${{steps.virtuals.outputs.vs}}-${{matrix.arch}}
-          path: install
+          arch: ${{matrix.arch}}
+          toolset: ${{steps.setup-php.outputs.toolset}}
+      - name: phpize
+        run: phpize
+      - name: configure
+        run: configure --with-imagick --with-php-build=..\deps --with-prefix=${{steps.setup-php.outputs.prefix}}
+      - name: make
+        run: nmake
+      - name: test
+        run: nmake test TESTS="-j4 --show-diff -g FAIL,BORK,WARN,LEAK tests"
