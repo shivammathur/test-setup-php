@@ -50,7 +50,9 @@ jobs:
       - name: make
         run: nmake
       - name: test
-        run: nmake test TESTS="-j4 --show-diff -g FAIL,BORK,WARN,LEAK tests"
+        run: |
+          set MAGICK_CONFIGURE_PATH=D:\a\test-setup-php\deps\bin
+          nmake test TESTS="-j4 --show-diff -g FAIL,BORK,WARN,LEAK tests"
       - name: Test
         if: ${{ failure() }}
         shell: pwsh
