@@ -197,7 +197,7 @@ SQL,
 
     private function parseDefaultExpression(string $value): ?string
     {
-        while (preg_match('/^\((.*)\)$/s', $value, $matches)) {
+        while (preg_match('/^\((.*)\)$/s', $value, $matches) === 1) {
             $value = $matches[1];
         }
 
