@@ -78,6 +78,9 @@ class Index extends AbstractNamedObject
     private bool $failedToParsePredicate = false;
 
     /**
+     * @internal Use {@link Index::editor()} to instantiate an editor and {@link IndexEditor::create()} to create an
+     *           index.
+     *
      * @param non-empty-list<string> $columns
      * @param array<int, string>     $flags
      * @param array<string, mixed>   $options
@@ -733,5 +736,26 @@ class Index extends AbstractNamedObject
 
         return array_filter($this->options['lengths'] ?? [], $filter)
             === array_filter($other->options['lengths'] ?? [], $filter);
+    }
+
+    /**
+     * Instantiates a new index editor.
+     */
+    public static function editor(): IndexEditor
+    {
+        return new IndexEditor();
+    }
+
+    /**
+     * Instantiates a new index editor and initializes it with the properties of the current index.
+     */
+    public function edit(): IndexEditor
+    {
+        return self::editor()
+            ->setName($this->getObjectName())
+            ->setType($this->getType())
+            ->setColumns(...$this->getIndexedColumns())
+            ->setIsClustered($this->isClustered())
+            ->setPredicate($this->getPredicate());
     }
 }

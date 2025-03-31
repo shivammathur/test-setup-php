@@ -27,6 +27,8 @@ Additionally,
 1. Instantiation of an index without columns is deprecated.
 2. The `Index::spansColumns()` method has been marked as internal.
 3. Passing an empty string as partial index predicate has been deprecated.
+4. The `Index` constructor has been marked as internal. Use `Index::editor()` to instantiate an editor and
+   `IndexEditor::create()` to create an index.
 
 The following conflicting index configurations have been deprecated:
 1. Spatial index with column lengths specified.
