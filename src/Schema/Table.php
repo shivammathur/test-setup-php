@@ -298,22 +298,25 @@ class Table extends AbstractNamedObject
      */
     public function renameIndex(string $oldName, ?string $newName = null): self
     {
-        $oldName           = $this->normalizeIdentifier($oldName);
-        $normalizedNewName = $this->normalizeIdentifier($newName);
-
-        if ($oldName === $normalizedNewName) {
-            return $this;
-        }
-
         if (! $this->hasIndex($oldName)) {
             throw IndexDoesNotExist::new($oldName, $this->_name);
         }
 
-        if ($this->hasIndex($normalizedNewName)) {
-            throw IndexAlreadyExists::new($normalizedNewName, $this->_name);
+        $normalizedOldName = $this->normalizeIdentifier($oldName);
+
+        if ($newName !== null) {
+            $normalizedNewName = $this->normalizeIdentifier($newName);
+
+            if ($normalizedOldName === $normalizedNewName) {
+                return $this;
+            }
+
+            if ($this->hasIndex($newName)) {
+                throw IndexAlreadyExists::new($newName, $this->_name);
+            }
         }
 
-        $oldIndex = $this->_indexes[$oldName];
+        $oldIndex = $this->_indexes[$normalizedOldName];
 
         if ($oldIndex->isPrimary()) {
             Deprecation::triggerIfCalledFromOutside(
@@ -329,7 +332,7 @@ class Table extends AbstractNamedObject
             return $this->setPrimaryKey($oldIndex->getColumns(), $newName ?? null);
         }
 
-        unset($this->_indexes[$oldName]);
+        unset($this->_indexes[$normalizedOldName]);
 
         if ($oldIndex->isUnique()) {
             return $this->addUniqueIndex($oldIndex->getColumns(), $newName, $oldIndex->getOptions());
@@ -944,12 +947,8 @@ class Table extends AbstractNamedObject
      *
      * Trims quotes and lowercases the given identifier.
      */
-    private function normalizeIdentifier(?string $identifier): string
+    private function normalizeIdentifier(string $identifier): string
     {
-        if ($identifier === null) {
-            return '';
-        }
-
         return $this->trimQuotes(strtolower($identifier));
     }
 
