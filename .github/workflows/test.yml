@@ -2,9 +2,6 @@ name: Build and Test on Windows
 on: [push]
 jobs:
   runner:
-    defaults:
-      run:
-        shell: cmd
     strategy:
       fail-fast: false
       matrix:
