@@ -7,10 +7,12 @@ namespace Doctrine\DBAL\Tests\Schema;
 use Doctrine\DBAL\Schema\Exception\InvalidState;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Index\IndexedColumn;
+use Doctrine\DBAL\Schema\Index\IndexType;
 use Doctrine\DBAL\Schema\Name\Identifier;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 
 class IndexTest extends TestCase
@@ -147,10 +149,12 @@ class IndexTest extends TestCase
         self::assertTrue($idx1->hasFlag('clustered'));
         self::assertTrue($idx1->hasFlag('CLUSTERED'));
         self::assertSame(['clustered'], $idx1->getFlags());
+        self::assertTrue($idx1->isClustered());
 
         $idx1->removeFlag('clustered');
         self::assertFalse($idx1->hasFlag('clustered'));
         self::assertEmpty($idx1->getFlags());
+        self::assertFalse($idx1->isClustered());
     }
 
     public function testIndexQuotes(): void
@@ -276,5 +280,57 @@ class IndexTest extends TestCase
 
         self::assertEquals(UnqualifiedName::unquoted('last_name'), $indexedColumns[1]->getColumnName());
         self::assertNull($indexedColumns[1]->getLength());
+    }
+
+    /** @param list<string> $flags */
+    #[TestWith([true, ['fulltext']])]
+    #[TestWith([true, ['spatial']])]
+    #[TestWith([false, ['fulltext', 'spatial']])]
+    public function testConflictInFlagsSignificantForTypeInference(bool $isUnique, array $flags): void
+    {
+        $index = new Index('idx_user_name', ['name'], $isUnique, false, $flags);
+
+        $this->expectException(InvalidState::class);
+        $index->getType();
+    }
+
+    /** @param list<string> $flags */
+    #[TestWith([['fulltext', 'clustered'], IndexType::FULLTEXT])]
+    #[TestWith([['spatial', 'clustered'], IndexType::SPATIAL])]
+    #[TestWith([['nonclustered', 'clustered'], IndexType::REGULAR])]
+    public function testConflictInFlagsInsignificantForTypeInference(array $flags, IndexType $expectedType): void
+    {
+        $index = new Index('idx_user_name', ['name'], false, false, $flags);
+
+        self::assertEquals($expectedType, $index->getType());
+    }
+
+    /** @param list<string> $flags */
+    #[TestWith([false, [], IndexType::REGULAR])]
+    #[TestWith([false, ['fulltext'], IndexType::FULLTEXT])]
+    #[TestWith([false, ['spatial'], IndexType::SPATIAL])]
+    #[TestWith([true, [], IndexType::UNIQUE])]
+    public function testParseType(bool $isUnique, array $flags, IndexType $expectedType): void
+    {
+        $index = new Index('idx_user_name', ['user_id'], $isUnique, false, $flags);
+
+        self::assertEquals($expectedType, $index->getType());
+    }
+
+    #[TestWith([null])]
+    #[TestWith(['is_active = 1'])]
+    public function testGetPredicate(?string $predicate): void
+    {
+        $index = new Index('idx_user_name', ['user_id'], false, false, [], ['where' => $predicate]);
+
+        self::assertEquals($predicate, $index->getPredicate());
+    }
+
+    public function testEmptyPredicate(): void
+    {
+        $index = new Index('idx_user_name', ['user_id'], false, false, [], ['where' => '']);
+
+        $this->expectException(InvalidState::class);
+        $index->getPredicate();
     }
 }

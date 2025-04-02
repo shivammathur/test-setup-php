@@ -7,6 +7,7 @@ namespace Doctrine\DBAL\Schema;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Schema\Exception\InvalidState;
 use Doctrine\DBAL\Schema\Index\IndexedColumn;
+use Doctrine\DBAL\Schema\Index\IndexType;
 use Doctrine\DBAL\Schema\Name\Parser\UnqualifiedNameParser;
 use Doctrine\DBAL\Schema\Name\Parsers;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
@@ -20,8 +21,10 @@ use function array_search;
 use function array_shift;
 use function count;
 use function gettype;
+use function implode;
 use function is_int;
 use function is_object;
+use function strlen;
 use function strtolower;
 
 /**
@@ -57,6 +60,17 @@ class Index extends AbstractNamedObject
      * @var list<IndexedColumn>
      */
     private readonly array $columns;
+
+    /**
+     * Index type.
+     *
+     * A null value indicates that an attempt to parse the index type failed.
+     */
+    private ?IndexType $type = null;
+
+    private ?string $predicate = null;
+
+    private bool $failedToParsePredicate = false;
 
     /**
      * @param non-empty-list<string> $columns
@@ -96,8 +110,22 @@ class Index extends AbstractNamedObject
             $this->_addColumn($column);
         }
 
+        if (isset($options['where'])) {
+            $predicate = $options['where'];
+
+            if (strlen($predicate) === 0) {
+                $this->failedToParsePredicate = true;
+            } else {
+                $this->predicate = $predicate;
+            }
+        }
+
         foreach ($flags as $flag) {
             $this->addFlag($flag);
+        }
+
+        if (count($flags) === 0) {
+            $this->type = $this->inferType();
         }
 
         $this->columns = $this->parseColumns($isPrimary, $columns, $options['lengths'] ?? []);
@@ -106,6 +134,15 @@ class Index extends AbstractNamedObject
     protected function getNameParser(): UnqualifiedNameParser
     {
         return Parsers::getUnqualifiedNameParser();
+    }
+
+    public function getType(): IndexType
+    {
+        if ($this->type === null) {
+            throw InvalidState::indexHasInvalidType($this->getName());
+        }
+
+        return $this->type;
     }
 
     /**
@@ -120,6 +157,30 @@ class Index extends AbstractNamedObject
         }
 
         return $this->columns;
+    }
+
+    /**
+     * Returns whether the index is clustered.
+     */
+    public function isClustered(): bool
+    {
+        return $this->hasFlag('clustered');
+    }
+
+    /**
+     * Returns the index predicate.
+     *
+     * @return ?non-empty-string
+     */
+    public function getPredicate(): ?string
+    {
+        if ($this->failedToParsePredicate) {
+            throw InvalidState::indexHasInvalidPredicate($this->getName());
+        }
+
+        return $this->hasOption('where')
+            ? $this->getOption('where')
+            : null;
     }
 
     protected function _addColumn(string $column): void
@@ -313,6 +374,10 @@ class Index extends AbstractNamedObject
     {
         $this->_flags[strtolower($flag)] = true;
 
+        $this->validateFlags();
+
+        $this->type = $this->inferType();
+
         return $this;
     }
 
@@ -330,6 +395,8 @@ class Index extends AbstractNamedObject
     public function removeFlag(string $flag): void
     {
         unset($this->_flags[strtolower($flag)]);
+
+        $this->type = $this->inferType();
     }
 
     public function hasOption(string $name): bool
@@ -346,6 +413,89 @@ class Index extends AbstractNamedObject
     public function getOptions(): array
     {
         return $this->options;
+    }
+
+    private function validateFlags(): void
+    {
+        $unsupportedFlags = $this->_flags;
+        unset(
+            $unsupportedFlags['fulltext'],
+            $unsupportedFlags['spatial'],
+            $unsupportedFlags['clustered'],
+            $unsupportedFlags['nonclustered'],
+        );
+
+        if (count($unsupportedFlags) > 0) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6886',
+                'Configuring an index with non-standard flags is deprecated: %s',
+                implode(', ', array_keys($unsupportedFlags)),
+            );
+        }
+
+        if (
+            $this->hasFlag('clustered') && (
+                $this->hasFlag('nonclustered')
+                || $this->hasFlag('fulltext')
+                || $this->hasFlag('spatial')
+            )
+        ) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6886',
+                'A fulltext, spatial or non-clustered index cannot be clustered.',
+            );
+        }
+
+        if (
+            $this->predicate === null
+            || (! $this->hasFlag('fulltext')
+                && ! $this->hasFlag('spatial')
+                && ! $this->hasFlag('clustered'))
+        ) {
+            return;
+        }
+
+        Deprecation::trigger(
+            'doctrine/dbal',
+            'https://github.com/doctrine/dbal/pull/6886',
+            'A fulltext, spatial or clustered index cannot be partial.',
+        );
+    }
+
+    private function inferType(): ?IndexType
+    {
+        $type    = IndexType::REGULAR;
+        $matches = [];
+
+        if ($this->_isUnique) {
+            $type      = IndexType::UNIQUE;
+            $matches[] = 'unique';
+        }
+
+        if ($this->hasFlag('fulltext')) {
+            $type      = IndexType::FULLTEXT;
+            $matches[] = 'fulltext';
+        }
+
+        if ($this->hasFlag('spatial')) {
+            $type      = IndexType::SPATIAL;
+            $matches[] = 'spatial';
+        }
+
+        if (count($matches) > 1) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6886',
+                'Configuring an index with mutually exclusive properties is deprecated: %s',
+                implode(', ', $matches),
+            );
+
+            return null;
+        }
+
+        return $type;
     }
 
     /**

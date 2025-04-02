@@ -16,6 +16,16 @@ final class InvalidState extends LogicException implements SchemaException
         return new self('Object name has not been initialized.');
     }
 
+    public static function indexHasInvalidType(string $indexName): self
+    {
+        return new self(sprintf('Index "%s" has invalid type.', $indexName));
+    }
+
+    public static function indexHasInvalidPredicate(string $indexName): self
+    {
+        return new self(sprintf('Index "%s" has invalid predicate.', $indexName));
+    }
+
     public static function indexHasInvalidColumns(string $indexName): self
     {
         return new self(sprintf('Index "%s" has invalid columns.', $indexName));
