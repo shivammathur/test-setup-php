@@ -1,7 +1,7 @@
 name: Build and Test on Windows
 on: [push]
 jobs:
-  windows:
+  runner:
     defaults:
       run:
         shell: cmd
@@ -21,3 +21,4 @@ jobs:
           coverage: pcov
         env:
           runner: self-hosted
+      - run: php -v && php -m    
