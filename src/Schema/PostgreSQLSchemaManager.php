@@ -23,7 +23,6 @@ use function sprintf;
 use function str_contains;
 use function str_replace;
 use function strtolower;
-use function trim;
 
 use const CASE_LOWER;
 
@@ -162,44 +161,19 @@ SQL,
      */
     protected function _getPortableTableIndexesList(array $rows, string $tableName): array
     {
-        $buffer = [];
-        foreach ($rows as $row) {
-            $colNumbers    = array_map('intval', explode(' ', $row['indkey']));
-            $columnNameSql = sprintf(
-                <<<'SQL'
-                SELECT attnum,
-                       quote_ident(attname) AS attname
-                FROM pg_attribute
-                WHERE attrelid = %d
-                  AND attnum IN (%s)
-                ORDER BY attnum
-                SQL,
-                $row['indrelid'],
-                implode(', ', $colNumbers),
-            );
-
-            // @phpstan-ignore missingType.checkedException
-            $indexColumns = $this->connection->fetchAllAssociative($columnNameSql);
-
-            // required for getting the order of the columns right.
-            foreach ($colNumbers as $colNum) {
-                foreach ($indexColumns as $colRow) {
-                    if ($colNum !== $colRow['attnum']) {
-                        continue;
-                    }
-
-                    $buffer[] = [
-                        'key_name' => $row['relname'],
-                        'column_name' => trim($colRow['attname']),
-                        'non_unique' => ! $row['indisunique'],
-                        'primary' => $row['indisprimary'],
-                        'where' => $row['where'],
-                    ];
-                }
-            }
-        }
-
-        return parent::_getPortableTableIndexesList($buffer, $tableName);
+        return parent::_getPortableTableIndexesList(array_map(
+            /** @param array<string, mixed> $row */
+            static function (array $row): array {
+                return [
+                    'key_name' => $row['relname'],
+                    'non_unique' => ! $row['indisunique'],
+                    'primary' => $row['indisprimary'],
+                    'where' => $row['where'],
+                    'column_name' => $row['attname'],
+                ];
+            },
+            $rows,
+        ), $tableName);
     }
 
     /**
@@ -496,24 +470,26 @@ SQL;
         $sql = sprintf(
             <<<'SQL'
             SELECT
-                   quote_ident(tn.nspname) AS schema_name,
-                   quote_ident(tc.relname) AS table_name,
+                   quote_ident(n.nspname) AS schema_name,
+                   quote_ident(c.relname) AS table_name,
                    quote_ident(ic.relname) AS relname,
                    i.indisunique,
                    i.indisprimary,
                    i.indkey,
                    i.indrelid,
-                   pg_get_expr(indpred, indrelid) AS "where"
+                   pg_get_expr(indpred, indrelid) AS "where",
+                   quote_ident(attname) AS attname
               FROM pg_index i
-                   JOIN pg_class AS tc ON tc.oid = i.indrelid
-                   JOIN pg_namespace tn ON tn.oid = tc.relnamespace
+                   JOIN pg_class AS c ON c.oid = i.indrelid
+                   JOIN pg_namespace n ON n.oid = c.relnamespace
                    JOIN pg_class AS ic ON ic.oid = i.indexrelid
-             WHERE ic.oid IN (
-                SELECT indexrelid
-                FROM pg_index i
-                JOIN pg_class AS c ON c.oid = i.indrelid
-                JOIN pg_namespace n ON n.oid = c.relnamespace
-                WHERE %s)
+                   JOIN LATERAL UNNEST(i.indkey) WITH ORDINALITY AS keys(attnum, ord)
+                        ON TRUE
+                   JOIN pg_attribute a
+                        ON a.attrelid = c.oid
+                            AND a.attnum = keys.attnum
+             WHERE %s
+             ORDER BY 1, 2, keys.ord;
             SQL,
             implode(' AND ', $this->buildQueryConditions($tableName, $params)),
         );
