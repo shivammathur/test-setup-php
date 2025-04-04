@@ -7,15 +7,15 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     runs-on: ${{matrix.os}}
-    container: ubuntu:24.04
+    container: shivammathur/node:latest-i386
     steps:
       - name: Install PHP with extensions.
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.4
-          extensions: pdo, pdo_oci
-          ini-values: date.timezone='UTC'
-          coverage: pcov
-        env:
-          runner: self-hosted
+          coverage: "none"
+          extensions: "intl, zip"
+          ini-values: "memory_limit=-1, phar.readonly=0, error_reporting=E_ALL, display_errors=On"
+          php-version: "8.4"
+          tools: composer
       - run: php -v && php -m    
+      - uses: mxschmitt/action-tmate@v3
