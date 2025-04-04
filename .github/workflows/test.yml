@@ -15,12 +15,11 @@ jobs:
     name: "CI"
 
     runs-on: ubuntu-latest
-    container: ubuntu:24.04
-
+    container: shivammathue/node:bookwork-i386
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          repository: composer/composer
+          repository: shivammathur/composer
 
       - uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # 2.32.0
         with:
@@ -29,10 +28,6 @@ jobs:
           ini-values: "memory_limit=-1, phar.readonly=0, error_reporting=E_ALL, display_errors=On"
           php-version: "8.4"
           tools: composer
-
-      - name: Install requirements
-        run: |
-          apt-get install git -y
 
       - name: "Install dependencies from composer.lock using composer binary provided by system"
         run: "composer install ${{ env.COMPOSER_FLAGS }}"
