@@ -2,10 +2,6 @@ name: "Continuous Integration (32bit)"
 
 on:
   push:
-    branches:
-      - main
-    paths-ignore:
-      - 'doc/**'
 
 env:
   COMPOSER_FLAGS: "--ansi --no-interaction --no-progress --prefer-dist"
