@@ -32,7 +32,7 @@ jobs:
 
       - name: Install requirements
         run: |
-          apt-get install git
+          apt-get install git -y
 
       - name: "Install dependencies from composer.lock using composer binary provided by system"
         run: "composer install ${{ env.COMPOSER_FLAGS }}"
