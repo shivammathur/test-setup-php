@@ -21,6 +21,7 @@ use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Tests\Functional\Platform\RenameColumnTest;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -29,6 +30,8 @@ use function current;
 
 abstract class AbstractComparatorTestCase extends TestCase
 {
+    use VerifyDeprecations;
+
     private Comparator $comparator;
 
     abstract protected function createComparator(ComparatorConfig $config): Comparator;
@@ -528,6 +531,43 @@ abstract class AbstractComparatorTestCase extends TestCase
         /** @var ColumnDiff $modifiedColumn */
         $modifiedColumn = current($modifiedColumns);
         self::assertEquals('id', $modifiedColumn->getOldColumn()->getName());
+    }
+
+    public function testReportModifiedIndexesEnabled(): void
+    {
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6890');
+
+        $tableDiff = $this->compareTablesWithModifiedIndex(true);
+
+        self::assertCount(0, $tableDiff->getDroppedIndexes());
+        self::assertCount(0, $tableDiff->getAddedIndexes());
+        self::assertCount(1, $tableDiff->getModifiedIndexes());
+    }
+
+    public function testReportModifiedIndexesDisabled(): void
+    {
+        $this->expectNoDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6890');
+
+        $tableDiff = $this->compareTablesWithModifiedIndex(false);
+
+        self::assertCount(1, $tableDiff->getDroppedIndexes());
+        self::assertCount(1, $tableDiff->getAddedIndexes());
+        self::assertCount(0, $tableDiff->getModifiedIndexes());
+    }
+
+    private function compareTablesWithModifiedIndex(bool $reportModifiedIndexes): TableDiff
+    {
+        $tableA = new Table('foo');
+        $tableA->addColumn('id', Types::INTEGER);
+        $tableA->addIndex(['id'], 'idx_id');
+
+        $tableB = new Table('foo');
+        $tableB->addColumn('id', Types::INTEGER);
+        $tableB->addUniqueIndex(['id'], 'idx_id');
+
+        return $this->createComparator(
+            (new ComparatorConfig())->withReportModifiedIndexes($reportModifiedIndexes),
+        )->compareTables($tableA, $tableB);
     }
 
     public function testDiff(): void

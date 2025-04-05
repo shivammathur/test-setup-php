@@ -72,9 +72,12 @@ of the primary key constraint is deprecated. Instead, drop the auto-increment at
 Passing a non-empty `$modifiedIndexes` value to the `TableDiff` constructor is deprecated. Instead, pass dropped
 indexes via `$droppedIndexes` and added indexes via `$addedIndexes`.
 
-The `TableDiff::getModifiedIndexes()` method has been deprecated. The old version of the index is included in the return
-value of `TableDiff::getDroppedIndexes()`, the new version is included in the return value of
-`TableDiff::getAddedIndexes()`.
+Detection of modified indexes is deprecated. Please disable it by configuring the comparator using
+`ComparatorConfig::withReportModifiedIndexes(false)`. With this configuration, the old version of the index will be
+included in the return value of `TableDiff::getDroppedIndexes()`, and the new version will be included in the return
+value of `TableDiff::getAddedIndexes()`.
+
+The `TableDiff::getModifiedIndexes()` method has been deprecated.
 
 ## Deprecated handling of modified foreign keys in `TableDiff`
 
