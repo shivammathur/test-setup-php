@@ -9,6 +9,7 @@ use Doctrine\DBAL\Platforms\DB2Platform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
+use Doctrine\DBAL\Schema\ComparatorConfig;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Types\Types;
@@ -129,7 +130,7 @@ class AlterTableTest extends FunctionalTestCase
         $this->testMigration($table, static function (Table $table): void {
             $table->dropPrimaryKey();
             $table->setPrimaryKey(['id1']);
-        });
+        }, (new ComparatorConfig())->withReportModifiedIndexes(false));
     }
 
     public function testAddNonAutoincrementColumnToPrimaryKeyWithAutoincrementColumn(): void
@@ -152,7 +153,7 @@ class AlterTableTest extends FunctionalTestCase
         $this->testMigration($table, static function (Table $table): void {
             $table->dropPrimaryKey();
             $table->setPrimaryKey(['id1', 'id2']);
-        });
+        }, (new ComparatorConfig())->withReportModifiedIndexes(false));
     }
 
     public function testAddNewColumnToPrimaryKey(): void
@@ -225,7 +226,7 @@ class AlterTableTest extends FunctionalTestCase
         );
     }
 
-    private function testMigration(Table $oldTable, callable $migration): void
+    private function testMigration(Table $oldTable, callable $migration, ?ComparatorConfig $config = null): void
     {
         $this->dropAndCreateTable($oldTable);
 
@@ -235,7 +236,7 @@ class AlterTableTest extends FunctionalTestCase
 
         $schemaManager = $this->connection->createSchemaManager();
 
-        $diff = $schemaManager->createComparator()
+        $diff = $schemaManager->createComparator($config ?? new ComparatorConfig())
             ->compareTables($oldTable, $newTable);
 
         self::assertFalse($diff->isEmpty());

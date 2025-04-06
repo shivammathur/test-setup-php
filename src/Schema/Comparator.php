@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Doctrine\DBAL\Schema;
 
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\Deprecations\Deprecation;
 
 use function array_map;
 use function assert;
@@ -145,10 +146,21 @@ class Comparator
      */
     public function compareTables(Table $oldTable, Table $newTable): TableDiff
     {
+        $shouldReportModifiedIndexes = $this->config->getReportModifiedIndexes();
+        if ($shouldReportModifiedIndexes) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6890',
+                'Detection of modified indexes is deprecated. Please disable it by configuring the comparator'
+                    . ' using ComparatorConfig::withReportModifiedIndexes(false).',
+            );
+        }
+
         $addedColumns       = [];
         $modifiedColumns    = [];
         $droppedColumns     = [];
         $addedIndexes       = [];
+        $modifiedIndexes    = [];
         $droppedIndexes     = [];
         $renamedIndexes     = [];
         $addedForeignKeys   = [];
@@ -244,8 +256,12 @@ class Comparator
                 continue;
             }
 
-            $droppedIndexes[$oldIndexName] = $oldIndex;
-            $addedIndexes[$oldIndexName]   = $newIndex;
+            if ($shouldReportModifiedIndexes) {
+                $modifiedIndexes[] = $newIndex;
+            } else {
+                $droppedIndexes[$oldIndexName] = $oldIndex;
+                $addedIndexes[$oldIndexName]   = $newIndex;
+            }
         }
 
         if ($this->config->getDetectRenamedIndexes()) {
@@ -284,6 +300,7 @@ class Comparator
             changedColumns: $modifiedColumns,
             droppedColumns: $droppedColumns,
             addedIndexes: $addedIndexes,
+            modifiedIndexes: $modifiedIndexes,
             droppedIndexes: $droppedIndexes,
             renamedIndexes: $renamedIndexes,
             addedForeignKeys: $addedForeignKeys,
