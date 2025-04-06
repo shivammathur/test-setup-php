@@ -39,7 +39,6 @@ use function str_replace;
 use function strpos;
 use function strtolower;
 use function substr;
-use function trim;
 
 /**
  * The SQLitePlatform class describes the specifics and dialects of the SQLite
@@ -295,9 +294,7 @@ class SQLitePlatform extends AbstractPlatform
 
         $tableComment = '';
         if (isset($options['comment'])) {
-            $comment = trim($options['comment'], " '");
-
-            $tableComment = $this->getInlineTableCommentSQL($comment);
+            $tableComment = $this->getInlineTableCommentSQL($options['comment']);
         }
 
         $query = ['CREATE TABLE ' . $name . ' ' . $tableComment . '(' . $queryFields . ')'];
