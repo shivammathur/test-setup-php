@@ -50,6 +50,7 @@ final class ComparatorConfig
         );
     }
 
+    /** @internal This method is intended solely to provide an upgrade path to DBAL 5.0. */
     public function getReportModifiedIndexes(): bool
     {
         return $this->reportModifiedIndexes;
