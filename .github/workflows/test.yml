@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: ['macos-latest']
+        operating-system: ['macos-13', 'macos-14']
     steps:
     - name: Setup PHP
       uses: shivammathur/setup-php@more-verbose
