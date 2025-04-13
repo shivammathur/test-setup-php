@@ -1,43 +1,25 @@
-name: Runner
-on: push
+name: HTTP workflow
+on:
+  push:
 jobs:
-  runner:    
+  run:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
-      matrix:      
-        operating-system: [macos-14, macos-13]
-        php: ['8.2', '8.3', '8.4']
-        debug: ['true', 'false']
-        phpts: ['ts', 'nts']
-    name: Test
+      matrix:
+        operating-system: [ubuntu-22.04]
+        php-versions: ['8.3', '8.4', '8.5']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-    - name: Set up Homebrew
-      uses: Homebrew/actions/setup-homebrew@master
-    - name: Remove PHP
-      run: brew uninstall --ignore-dependencies php || true
-    - name: Setup PHP
-      env:
-        update: true
-        debug: ${{ matrix.debug }}
-        phpts: ${{ matrix.phpts }}
-      uses: shivammathur/setup-php@verbose
-      with:
-        php-version: ${{ matrix.php }}
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: http
 
-    - name: Test PHP
-      run: |
-        php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"
-        php -v && php -m
-    - name: Test PHP service
-      run: |
-        debug=
-        phpts=
-        [[ "${{ matrix.debug }}" = "true" ]] && debug='-debug'
-        [[ "${{ matrix.phpts }}" = "ts" ]] && phpts='-zts'
-        formula="php@${{ matrix.php }}$debug$phpts"
-        brew services start "$formula"
-        brew services list
-        
-        [ "$formula" = "php@8.4$debug$phpts" ] && formula="php$debug$phpts"
-        cat ~/Library/LaunchAgents/homebrew.mxcl."$formula".plist
+      - name: Testing PHP version
+        run: php -v
+
+      - name: Testing Extensions
+        run: php -m
+      - uses: mxschmitt/action-tmate@v3.19
