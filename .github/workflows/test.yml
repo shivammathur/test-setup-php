@@ -22,4 +22,8 @@ jobs:
 
       - name: Testing Extensions
         run: php -m
-      - run: cat /etc/apt/sources.list.d/ondrej-php.list
+      - run: |
+          sudo mv /etc/apt/sources.list.d/ondrej-php.list /etc/apt/sources.list.d/ondrej-php.list.bak
+          sudo apt-get update
+      - uses: mxschmitt/action-tmate@v3.19
+    
