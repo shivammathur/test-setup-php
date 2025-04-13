@@ -11,19 +11,17 @@ jobs:
         php-versions: ['8.3', '8.4', '8.5']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
+      - run: ls -la /etc/apt/sources.list.d/
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: http
+      - run: ls -la /etc/apt/sources.list.d/
 
       - name: Testing PHP version
         run: php -v
 
       - name: Testing Extensions
         run: php -m
-      - run: |
-          sudo mv /etc/apt/sources.list.d/ondrej-php.list /etc/apt/sources.list.d/ondrej-php.list.bak
-          sudo apt-get update
-      - uses: mxschmitt/action-tmate@v3.19
     
