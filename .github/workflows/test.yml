@@ -13,7 +13,7 @@ jobs:
     steps:
       - run: ls -la /etc/apt/sources.list.d/
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: http
