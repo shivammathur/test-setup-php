@@ -40,7 +40,7 @@ jobs:
           php -r "if(phpversion()<=8.1 && ! extension_loaded('imagick')) {throw new Exception('imagick not found');}"
           php -r "if(phpversion()>=7.0 && ! extension_loaded('ast')) {throw new Exception('ast not found');}"
           php -r "if(phpversion()>=7.1 && ! extension_loaded('pcov')) {throw new Exception('PCOV not found');}"
-          php -r "if(phpversion()>=7.2 && ! extension_loaded('psr')) {throw new Exception('psr not found');}"
+          php -r "if(phpversion()>=7.3 && ! extension_loaded('psr')) {throw new Exception('psr not found');}"
           php -r "if(phpversion()>=7.0 && ! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}"
       - name: Testing on unix
         if: matrix.operating-system != 'windows-latest'
