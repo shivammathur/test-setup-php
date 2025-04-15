@@ -12,14 +12,11 @@ jobs:
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@more-verbose
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: mongodb-1.21.0
 
-      - name: Testing PHP version
-        run: php -v
-
-      - name: Testing Extensions
-        run: php -m
+      - name: Testing
+        run: php -r "echo phpversion('mongodb');" && php -v && php -m
     
