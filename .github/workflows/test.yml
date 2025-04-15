@@ -2,21 +2,18 @@ name: HTTP workflow
 on:
   push:
 jobs:
-  run:
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-24.04]
-        php-versions: ['8.3', '8.4']
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+  php-stan:
+    runs-on: ubuntu-22.04
+    container: shivammathur/node:latest
+    defaults:
+      run:
+        working-directory: ./app
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+      - uses: shivammathur/setup-php@more-verbose
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: mongodb-1.21.0
-
-      - name: Testing
-        run: php -r "echo phpversion('mongodb');" && php -v && php -m
-    
+          php-version: 8.3
+          extensions: mbstring, intl, gd, bcmath, imagick-imagick/imagick@3.7.0
+        env:
+          runner: self-hosted
+          debug: true
+      - run: php -v && php -m
