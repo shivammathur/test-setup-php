@@ -7,17 +7,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
-        php-versions: ['8.4', '8.5']
+        operating-system: [ubuntu-24.04]
+        php-versions: ['8.3', '8.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-      - run: ls -la /etc/apt/sources.list.d/
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@more-verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: http
-      - run: ls -la /etc/apt/sources.list.d/
+          extensions: mongodb-1.21.0
 
       - name: Testing PHP version
         run: php -v
