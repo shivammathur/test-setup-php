@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, windows-latest, macos-latest]
+        operating-system: [ubuntu-24.04, ubuntu-22.04, windows-latest, macos-latest]
         php-versions: ['8.0']
     steps:
       - name: Checkout
@@ -87,7 +87,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, windows-latest, macOS-latest]
+        operating-system: [ubuntu-24.04, ubuntu-22.04, windows-latest, macOS-latest]
         php-versions: ['8.0']
     steps:
       - name: Checkout
@@ -145,7 +145,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, windows-latest, macOS-latest]
+        operating-system: [ubuntu-24.04, ubuntu-22.04, windows-latest, macOS-latest]
         php-versions: ['5.5']
     steps:
       - name: Checkout
@@ -194,7 +194,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, windows-latest, macOS-latest]
+        operating-system: [ubuntu-24.04, ubuntu-22.04, windows-latest, macOS-latest]
         php-versions: ['8.0']
     steps:
       - name: Checkout

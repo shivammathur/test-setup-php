@@ -23,6 +23,11 @@ jobs:
           - operating-system: macos-latest
             php-versions: '7.4'
             coverage: xdebug2
+        exclude:
+          - operating-system: macos-latest
+            php-versions: 5.3
+          - operating-system: macos-latest
+            php-versions: 5.5
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }} with ${{ matrix.coverage }}
     steps:
       - name: Checkout
