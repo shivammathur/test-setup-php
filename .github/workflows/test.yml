@@ -5,11 +5,8 @@ jobs:
   php-stan:
     runs-on: ubuntu-22.04
     container: shivammathur/node:latest
-    defaults:
-      run:
-        working-directory: ./app
     steps:
-      - uses: shivammathur/setup-php@more-verbose
+      - uses: shivammathur/setup-php@verbose
         with:
           php-version: 8.3
           extensions: mbstring, intl, gd, bcmath, imagick-imagick/imagick@3.7.0
