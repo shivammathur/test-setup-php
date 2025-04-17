@@ -45,7 +45,7 @@ jobs:
         extension:
           - "pdo_sqlite"
         include:
-          - os: "ubuntu-20.04"
+          - os: "ubuntu-22.04"
             php-version: "7.4"
             dependencies: "lowest"
             extension: "pdo_sqlite"
@@ -438,7 +438,7 @@ jobs:
 
   phpunit-mssql:
     name: "PHPUnit with SQL Server"
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-22.04"
     needs: "phpunit-smoke-check"
 
     strategy:
