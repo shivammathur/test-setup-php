@@ -515,7 +515,9 @@ class QueryBuilder
      *
      * <code>
      *     $qb = $conn->createQueryBuilder()
-     *         ->union('SELECT 1 AS field1');
+     *         ->union('SELECT 1 AS field1')
+     *         ->addUnion('SELECT 2 AS field1')
+     *         ->addUnion('SELECT 3 AS field1');
      * </code>
      *
      * @return $this
