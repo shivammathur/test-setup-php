@@ -549,7 +549,7 @@ class Table extends AbstractNamedObject
         Deprecation::trigger(
             'doctrine/dbal',
             'https://github.com/doctrine/dbal/pull/6560',
-            'Table::removeForeignKey() is deprecated. Use Table::removeForeignKey() instead.',
+            'Table::removeForeignKey() is deprecated. Use Table::dropForeignKey() instead.',
         );
 
         $this->dropForeignKey($name);
