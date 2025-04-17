@@ -74,6 +74,7 @@ class Table extends AbstractNamedObject
     /** @deprecated Pass a {@link TableConfiguration} instance to the constructor instead. */
     protected ?SchemaConfig $_schemaConfig = null;
 
+    /** @var positive-int */
     private int $maxIdentifierLength;
 
     private ?PrimaryKeyConstraint $primaryKeyConstraint = null;
@@ -386,7 +387,12 @@ class Table extends AbstractNamedObject
         return $this->renamedColumns;
     }
 
-    /** @throws LogicException */
+    /**
+     * @param non-empty-string $oldName
+     * @param non-empty-string $newName
+     *
+     * @throws LogicException
+     */
     final public function renameColumn(string $oldName, string $newName): Column
     {
         $oldName = $this->normalizeIdentifier($oldName);
@@ -771,7 +777,11 @@ class Table extends AbstractNamedObject
         }
     }
 
-    /** @deprecated */
+    /**
+     * @deprecated
+     *
+     * @return positive-int
+     */
     protected function _getMaxIdentifierLength(): int
     {
         Deprecation::triggerIfCalledFromOutside(
@@ -946,9 +956,12 @@ class Table extends AbstractNamedObject
      * Normalizes a given identifier.
      *
      * Trims quotes and lowercases the given identifier.
+     *
+     * @return non-empty-string
      */
     private function normalizeIdentifier(string $identifier): string
     {
+        /** @phpstan-ignore return.type */
         return $this->trimQuotes(strtolower($identifier));
     }
 
@@ -1040,6 +1053,7 @@ class Table extends AbstractNamedObject
         return new Index($indexName, $columns, $isUnique, $isPrimary, $flags, $options);
     }
 
+    /** @param non-empty-string $newName */
     private function renameColumnInIndexes(string $oldName, string $newName): void
     {
         foreach ($this->_indexes as $key => $index) {
@@ -1069,6 +1083,10 @@ class Table extends AbstractNamedObject
         }
     }
 
+    /**
+     * @param non-empty-string $oldName
+     * @param non-empty-string $newName
+     */
     private function renameColumnInForeignKeyConstraints(string $oldName, string $newName): void
     {
         foreach ($this->_fkConstraints as $key => $constraint) {
@@ -1097,6 +1115,10 @@ class Table extends AbstractNamedObject
         }
     }
 
+    /**
+     * @param non-empty-string $oldName
+     * @param non-empty-string $newName
+     */
     private function renameColumnInUniqueConstraints(string $oldName, string $newName): void
     {
         foreach ($this->uniqueConstraints as $key => $constraint) {

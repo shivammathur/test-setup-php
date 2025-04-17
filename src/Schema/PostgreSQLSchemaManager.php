@@ -22,6 +22,7 @@ use function preg_match;
 use function sprintf;
 use function str_contains;
 use function str_replace;
+use function strlen;
 use function strtolower;
 
 use const CASE_LOWER;
@@ -65,12 +66,15 @@ SQL,
      *
      * @deprecated Use {@link determineCurrentSchemaName()} instead
      *
+     * @return non-empty-string
+     *
      * @throws Exception
      */
     protected function determineCurrentSchema(): string
     {
         $currentSchema = $this->connection->fetchOne('SELECT current_schema()');
         assert(is_string($currentSchema));
+        assert(strlen($currentSchema) > 0);
 
         return $currentSchema;
     }

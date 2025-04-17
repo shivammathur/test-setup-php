@@ -482,6 +482,8 @@ SQL,
      *
      * if the new string exceeds max identifier length,
      * keeps $suffix, cuts from $identifier as much as the part exceeding.
+     *
+     * @param non-empty-string $suffix
      */
     private function addSuffix(string $identifier, string $suffix): string
     {

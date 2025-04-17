@@ -42,6 +42,8 @@ abstract class AbstractSchemaManager
      *
      * The property is initialized only once. If the underlying connection switches to a different schema, a new schema
      * manager instance will have to be created to reflect this change.
+     *
+     * @var ?non-empty-string
      */
     private ?string $currentSchemaName;
 
@@ -175,7 +177,7 @@ abstract class AbstractSchemaManager
     /**
      * Returns a list of all tables in the current database.
      *
-     * @return array<int, string>
+     * @return array<int, non-empty-string>
      *
      * @throws Exception
      */
@@ -252,6 +254,8 @@ abstract class AbstractSchemaManager
      * The <code>null</code> value means that there is no schema currently selected within the connection or the
      * corresponding database platform doesn't support schemas.
      *
+     * @return ?non-empty-string
+     *
      * @throws Exception
      */
     final protected function getCurrentSchemaName(): ?string
@@ -272,6 +276,8 @@ abstract class AbstractSchemaManager
      * Determines the name of the current schema.
      *
      * If the corresponding database platform supports schemas, the schema manager must implement this method.
+     *
+     * @return ?non-empty-string
      *
      * @throws Exception
      */
@@ -399,7 +405,7 @@ abstract class AbstractSchemaManager
     /**
      * Fetches definitions of table columns in the specified database and returns them grouped by table name.
      *
-     * @return array<string,list<array<string,mixed>>>
+     * @return array<non-empty-string,list<array<string,mixed>>>
      *
      * @throws Exception
      */
@@ -411,7 +417,7 @@ abstract class AbstractSchemaManager
     /**
      * Fetches definitions of index columns in the specified database and returns them grouped by table name.
      *
-     * @return array<string,list<array<string,mixed>>>
+     * @return array<non-empty-string,list<array<string,mixed>>>
      *
      * @throws Exception
      */
@@ -423,7 +429,7 @@ abstract class AbstractSchemaManager
     /**
      * Fetches definitions of foreign key columns in the specified database and returns them grouped by table name.
      *
-     * @return array<string, list<array<string, mixed>>>
+     * @return array<non-empty-string, list<array<string, mixed>>>
      *
      * @throws Exception
      */
@@ -436,7 +442,9 @@ abstract class AbstractSchemaManager
      * Fetches table options for the tables in the specified database and returns them grouped by table name.
      * If the table name is specified, narrows down the selection to this table.
      *
-     * @return array<string,array<string,mixed>>
+     * @param ?non-empty-string $tableName
+     *
+     * @return array<non-empty-string, array<string,mixed>>
      *
      * @throws Exception
      */
@@ -517,7 +525,7 @@ abstract class AbstractSchemaManager
 
         return $this->fetchTableOptionsByTable(
             $this->getDatabase(__METHOD__),
-            $normalizedName,
+            $normalizedName, // @phpstan-ignore argument.type
         )[$normalizedName] ?? [];
     }
 
@@ -881,7 +889,9 @@ abstract class AbstractSchemaManager
     /**
      * @deprecated Use the schema name and the unqualified table name separately instead.
      *
-     * @param array<string, string> $table
+     * @param array<string, mixed> $table
+     *
+     * @return non-empty-string
      */
     abstract protected function _getPortableTableDefinition(array $table): string;
 
@@ -968,7 +978,11 @@ abstract class AbstractSchemaManager
         return $schemaConfig;
     }
 
-    /** @throws Exception */
+    /**
+     * @return non-empty-string
+     *
+     * @throws Exception
+     */
     private function getDatabase(string $methodName): string
     {
         $database = $this->connection->getDatabase();
@@ -990,7 +1004,7 @@ abstract class AbstractSchemaManager
      *
      * @param list<array<string, mixed>> $rows
      *
-     * @return array<string,list<array<string,mixed>>>
+     * @return array<non-empty-string,list<array<string,mixed>>>
      */
     private function groupByTable(array $rows): array
     {
@@ -1001,6 +1015,7 @@ abstract class AbstractSchemaManager
             $data[$tableName][] = $row;
         }
 
+        /** @phpstan-ignore return.type */
         return $data;
     }
 }

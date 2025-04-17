@@ -52,6 +52,7 @@ class OracleSchemaManager extends AbstractSchemaManager
     {
         $table = array_change_key_case($table, CASE_LOWER);
 
+        /** @phpstan-ignore return.type */
         return $this->getQuotedIdentifierName($table['table_name']);
     }
 

@@ -15,6 +15,7 @@ class IdentifierTest extends TestCase
     {
         $this->expectException(InvalidIdentifier::class);
 
+        /** @phpstan-ignore argument.type */
         Identifier::unquoted('');
     }
 

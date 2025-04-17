@@ -478,7 +478,7 @@ SQL,
             $params[] = $tableName;
         }
 
-        /** @var array<string,array<string,mixed>> $metadata */
+        /** @var array<non-empty-string,array<string,mixed>> $metadata */
         $metadata = $this->connection->executeQuery($sql, $params)
             ->fetchAllAssociativeIndexed();
 

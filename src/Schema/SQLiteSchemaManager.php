@@ -601,6 +601,7 @@ SQL,
             $tableOptions[$table]['comment'] = $comment;
         }
 
+        /** @phpstan-ignore return.type */
         return $tableOptions;
     }
 
