@@ -2199,6 +2199,8 @@ abstract class AbstractPlatform
 
     /**
      * Maximum length of any given database identifier, like tables or column names.
+     *
+     * @return positive-int
      */
     public function getMaxIdentifierLength(): int
     {

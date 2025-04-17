@@ -50,6 +50,9 @@ final class OptionallyQualifiedName implements Name
 
     /**
      * Creates an optionally qualified name with all identifiers quoted.
+     *
+     * @param non-empty-string  $unqualifiedName
+     * @param ?non-empty-string $qualifier
      */
     public static function quoted(string $unqualifiedName, ?string $qualifier = null): self
     {
@@ -61,6 +64,9 @@ final class OptionallyQualifiedName implements Name
 
     /**
      * Creates an optionally qualified name with all identifiers unquoted.
+     *
+     * @param non-empty-string  $unqualifiedName
+     * @param ?non-empty-string $qualifier
      */
     public static function unquoted(string $unqualifiedName, ?string $qualifier = null): self
     {

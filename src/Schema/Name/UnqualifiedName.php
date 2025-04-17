@@ -33,6 +33,8 @@ final class UnqualifiedName implements Name
 
     /**
      * Creates a quoted unqualified name.
+     *
+     * @param non-empty-string $value
      */
     public static function quoted(string $value): self
     {
@@ -41,6 +43,8 @@ final class UnqualifiedName implements Name
 
     /**
      * Creates an unquoted unqualified name.
+     *
+     * @param non-empty-string $value
      */
     public static function unquoted(string $value): self
     {
