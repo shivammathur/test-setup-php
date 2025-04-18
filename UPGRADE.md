@@ -8,6 +8,8 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## The `Doctrine\DBAL\Query\Limit` class has been marked as internal
+
 ## Deprecated extension of some classes
 
 Extending the following classes has been deprecated. Use them directly.
