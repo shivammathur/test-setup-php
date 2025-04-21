@@ -3,14 +3,10 @@ on:
   push:
 jobs:
   php-stan:
-    runs-on: ubuntu-22.04
-    container: shivammathur/node:latest
+    runs-on: macos-latest
     steps:
-      - uses: shivammathur/setup-php@verbose
+      - uses: shivammathur/setup-php@more-verbose
         with:
-          php-version: 8.3
-          extensions: mbstring, intl, gd, bcmath, imagick-imagick/imagick@3.7.0
-        env:
-          runner: self-hosted
-          debug: true
+          php-version: 8.1
+          extensions: amqp
       - run: php -v && php -m
