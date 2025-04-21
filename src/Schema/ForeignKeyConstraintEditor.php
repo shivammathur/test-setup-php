@@ -52,10 +52,10 @@ final class ForeignKeyConstraintEditor
     }
 
     public function setReferencingColumnNames(
-        UnqualifiedName $firstColumName,
+        UnqualifiedName $firstColumnName,
         UnqualifiedName ...$otherColumnNames,
     ): self {
-        $this->referencingColumnNames = array_merge([$firstColumName], array_values($otherColumnNames));
+        $this->referencingColumnNames = array_merge([$firstColumnName], array_values($otherColumnNames));
 
         return $this;
     }
@@ -68,10 +68,10 @@ final class ForeignKeyConstraintEditor
     }
 
     public function setReferencedColumnNames(
-        UnqualifiedName $firstColumName,
+        UnqualifiedName $firstColumnName,
         UnqualifiedName ...$otherColumnNames,
     ): self {
-        $this->referencedColumnNames = array_merge([$firstColumName], array_values($otherColumnNames));
+        $this->referencedColumnNames = array_merge([$firstColumnName], array_values($otherColumnNames));
 
         return $this;
     }

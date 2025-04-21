@@ -33,9 +33,9 @@ final class UniqueConstraintEditor
         return $this;
     }
 
-    public function setColumnNames(UnqualifiedName $firstColumName, UnqualifiedName ...$otherColumnNames): self
+    public function setColumnNames(UnqualifiedName $firstColumnName, UnqualifiedName ...$otherColumnNames): self
     {
-        $this->columnNames = array_merge([$firstColumName], array_values($otherColumnNames));
+        $this->columnNames = array_merge([$firstColumnName], array_values($otherColumnNames));
 
         return $this;
     }
