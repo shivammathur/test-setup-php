@@ -17,7 +17,6 @@ use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\ComparatorConfig;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
-use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\SchemaDiff;
 use Doctrine\DBAL\Schema\SchemaException;
@@ -440,12 +439,8 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $this->dropAndCreateTable($table);
 
         $uniqueConstraint = UniqueConstraint::editor()
-            ->setName(
-                UnqualifiedName::unquoted('uniq_id'),
-            )
-            ->setColumnNames(
-                UnqualifiedName::unquoted('id'),
-            )
+            ->setUnquotedName('uniq_id')
+            ->setUnquotedColumnNames('id')
             ->create();
 
         $this->schemaManager->createUniqueConstraint($uniqueConstraint, $table->getName());
