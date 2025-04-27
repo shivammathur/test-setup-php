@@ -7,6 +7,7 @@ namespace Doctrine\DBAL\Tests\Schema;
 use Doctrine\DBAL\Schema\Exception\InvalidTableDefinition;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\TestCase;
 
 class TableEditorTest extends TestCase
@@ -15,8 +16,10 @@ class TableEditorTest extends TestCase
     {
         $name = OptionallyQualifiedName::unquoted('contacts');
 
-        $table = (new Table('accounts'))
-            ->edit()
+        $table = new Table('accounts');
+        $table->addColumn('id', Types::INTEGER);
+
+        $table = $table->edit()
             ->setName($name)
             ->create();
 
