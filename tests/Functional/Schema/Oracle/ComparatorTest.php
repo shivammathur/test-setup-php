@@ -7,6 +7,7 @@ namespace Doctrine\DBAL\Tests\Functional\Schema\Oracle;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ColumnEditor;
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\Functional\Schema\ComparatorTestUtils;
@@ -50,8 +51,11 @@ final class ComparatorTest extends FunctionalTestCase
         ]);
         $this->dropAndCreateTable($table);
 
-        $table->getColumn('id')
-            ->setFixed(false);
+        $table = $table->edit()
+            ->modifyColumnByUnquotedName('id', static function (ColumnEditor $editor): void {
+                $editor->setFixed(false);
+            })
+            ->create();
 
         self::assertTrue(ComparatorTestUtils::diffFromActualToDesiredTable(
             $this->schemaManager,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Doctrine\DBAL\Tests\Functional\Schema;
 
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ColumnEditor;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Types\Types;
@@ -68,8 +69,11 @@ class ColumnCommentTest extends FunctionalTestCase
 
         $this->dropAndCreateTable($table1);
 
-        $table2 = clone $table1;
-        $table2->getColumn('id')->setComment($comment2);
+        $table2 = $table1->edit()
+            ->modifyColumnByUnquotedName('id', static function (ColumnEditor $editor) use ($comment2): void {
+                $editor->setComment($comment2);
+            })
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
 

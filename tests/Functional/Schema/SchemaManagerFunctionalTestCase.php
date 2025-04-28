@@ -15,6 +15,7 @@ use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Doctrine\DBAL\Schema\AbstractAsset;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ColumnEditor;
 use Doctrine\DBAL\Schema\ComparatorConfig;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
@@ -38,7 +39,6 @@ use Doctrine\DBAL\Types\SmallFloatType;
 use Doctrine\DBAL\Types\StringType;
 use Doctrine\DBAL\Types\TextType;
 use Doctrine\DBAL\Types\TimeType;
-use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -801,13 +801,14 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $this->dropAndCreateTable($oldTable);
 
-        $newTable = clone $oldTable;
-
-        $newTable->getColumn('col_int')
-            ->setType(Type::getType(Types::INTEGER));
-
-        $newTable->getColumn('col_string')
-            ->setFixed(true);
+        $newTable = $oldTable->edit()
+            ->modifyColumnByUnquotedName('col_int', static function (ColumnEditor $editor): void {
+                $editor->setTypeName(Types::INTEGER);
+            })
+            ->modifyColumnByUnquotedName('col_string', static function (ColumnEditor $editor): void {
+                $editor->setFixed(true);
+            })
+            ->create();
 
         $diff = $this->schemaManager->createComparator()
             ->compareTables(
@@ -969,12 +970,20 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertSame('default1', $oldTable->getColumn('column3')->getDefault());
         self::assertSame('0', $oldTable->getColumn('column4')->getDefault());
 
-        $newTable = clone $oldTable;
-
-        $newTable->modifyColumn('column1', ['default' => '']);
-        $newTable->modifyColumn('column2', ['default' => null]);
-        $newTable->modifyColumn('column3', ['default' => 'default2']);
-        $newTable->modifyColumn('column4', ['default' => null]);
+        $newTable = $oldTable->edit()
+            ->modifyColumnByUnquotedName('column1', static function (ColumnEditor $editor): void {
+                $editor->setDefaultValue('');
+            })
+            ->modifyColumnByUnquotedName('column2', static function (ColumnEditor $editor): void {
+                $editor->setDefaultValue(null);
+            })
+            ->modifyColumnByUnquotedName('column3', static function (ColumnEditor $editor): void {
+                $editor->setDefaultValue('default2');
+            })
+            ->modifyColumnByUnquotedName('column4', static function (ColumnEditor $editor): void {
+                $editor->setDefaultValue(null);
+            })
+            ->create();
 
         $diff = $this->schemaManager->createComparator()
             ->compareTables(

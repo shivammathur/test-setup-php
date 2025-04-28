@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Doctrine\DBAL\Tests\Functional\Platform;
 
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ColumnEditor;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Types\Types;
@@ -28,9 +29,16 @@ class AlterDecimalColumnTest extends FunctionalTestCase
 
         $this->dropAndCreateTable($table);
 
-        $table->getColumn('val')
-            ->setPrecision($newPrecision)
-            ->setScale($newScale);
+        $table = $table->edit()
+            ->modifyColumnByUnquotedName(
+                'val',
+                static function (ColumnEditor $editor) use ($newPrecision, $newScale): void {
+                    $editor
+                        ->setPrecision($newPrecision)
+                        ->setScale($newScale);
+                },
+            )
+            ->create();
 
         $schemaManager = $this->connection->createSchemaManager();
 

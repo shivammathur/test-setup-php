@@ -883,16 +883,21 @@ class PostgreSQLPlatformTest extends AbstractPlatformTestCase
 
     public function testAlterTableChangeJsonToJsonb(): void
     {
-        $table = new Table('mytable');
-        $table->addColumn('payload', Types::JSON);
+        $table = new Table('mytable', [
+            Column::editor()
+                ->setUnquotedName('payload')
+                ->setTypeName(Types::JSON)
+                ->create(),
+        ]);
 
         $tableDiff = new TableDiff($table, changedColumns: [
             'payload' => new ColumnDiff(
                 $table->getColumn('payload'),
-                (new Column(
-                    'payload',
-                    Type::getType(Types::JSON),
-                ))->setPlatformOption('jsonb', true),
+                Column::editor()
+                    ->setUnquotedName('payload')
+                    ->setTypeName(Types::JSON)
+                    ->create()
+                    ->setPlatformOption('jsonb', true),
             ),
         ]);
 
@@ -904,8 +909,13 @@ class PostgreSQLPlatformTest extends AbstractPlatformTestCase
 
     public function testAlterTableChangeJsonbToJson(): void
     {
-        $table = new Table('mytable');
-        $table->addColumn('payload', Types::JSON)->setPlatformOption('jsonb', true);
+        $table = new Table('mytable', [
+            Column::editor()
+                ->setUnquotedName('payload')
+                ->setTypeName(Types::JSON)
+                ->create()
+                ->setPlatformOption('jsonb', true),
+        ]);
 
         $tableDiff = new TableDiff($table, changedColumns: [
             'payload' => new ColumnDiff(

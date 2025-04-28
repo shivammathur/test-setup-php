@@ -8,6 +8,7 @@ use Doctrine\DBAL\Exception\DatabaseObjectNotFoundException;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ColumnEditor;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\TestUtil;
@@ -64,9 +65,14 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertTrue($columns['foo']->getNotnull());
         self::assertTrue($columns['bar']->getNotnull());
 
-        $diffTable = clone $table;
-        $diffTable->modifyColumn('foo', ['notnull' => false]);
-        $diffTable->modifyColumn('bar', ['length' => 1024]);
+        $diffTable = $table->edit()
+            ->modifyColumnByUnquotedName('foo', static function (ColumnEditor $editor): void {
+                $editor->setNotNull(false);
+            })
+            ->modifyColumnByUnquotedName('bar', static function (ColumnEditor $editor): void {
+                $editor->setLength(1024);
+            })
+            ->create();
 
         $diff = $this->schemaManager->createComparator()
             ->compareTables($table, $diffTable);

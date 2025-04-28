@@ -392,16 +392,19 @@ class TableTest extends TestCase
 
     public function testSetPrimaryKeyOnANullableColumn(): void
     {
-        $table = new Table('users');
-
-        $id = $table->addColumn('id', Types::INTEGER)
-            ->setNotnull(false);
+        $table = new Table('users', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->setNotNull(false)
+                ->create(),
+        ]);
 
         $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6787');
 
         $table->setPrimaryKey(['id']);
 
-        self::assertTrue($id->getNotnull());
+        self::assertTrue($table->getColumn('id')->getNotnull());
     }
 
     public function testBuilderAddUniqueIndex(): void

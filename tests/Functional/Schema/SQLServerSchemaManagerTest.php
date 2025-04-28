@@ -7,6 +7,7 @@ namespace Doctrine\DBAL\Tests\Functional\Schema;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ColumnEditor;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 
@@ -35,8 +36,11 @@ class SQLServerSchemaManagerTest extends SchemaManagerFunctionalTestCase
         // SQL Server should report a default collation on the column
         self::assertNotNull($columns['test']->getCollation());
 
-        $table->getColumn('test')
-            ->setPlatformOption('collation', 'Icelandic_CS_AS');
+        $table = $table->edit()
+            ->modifyColumnByUnquotedName('test', static function (ColumnEditor $editor): void {
+                $editor->setCollation('Icelandic_CS_AS');
+            })
+            ->create();
 
         $this->dropAndCreateTable($table);
         $columns = $this->schemaManager->listTableColumns('test_collation');
@@ -88,8 +92,6 @@ class SQLServerSchemaManagerTest extends SchemaManagerFunctionalTestCase
                 ->create(),
         ]);
 
-        $newTable = clone $oldTable;
-
         $this->schemaManager->createTable($oldTable);
         $columns = $this->schemaManager->listTableColumns('sqlsrv_default_constraints');
 
@@ -100,17 +102,19 @@ class SQLServerSchemaManagerTest extends SchemaManagerFunctionalTestCase
         self::assertEquals('another default value', $columns['df_string_3']->getDefault());
         self::assertEquals(1, $columns['df_boolean']->getDefault());
 
-        $newTable->getColumn('df_integer')
-            ->setDefault(0);
+        $newTable = $oldTable->edit()
+            ->modifyColumnByUnquotedName('df_integer', static function (ColumnEditor $editor): void {
+                $editor->setDefaultValue(0);
+            })
+            ->modifyColumnByUnquotedName('df_string_2', static function (ColumnEditor $editor): void {
+                $editor->setDefaultValue(null);
+            })
+            ->modifyColumnByUnquotedName('df_boolean', static function (ColumnEditor $editor): void {
+                $editor->setDefaultValue(false);
+            })
+            ->create();
 
         $newTable->dropColumn('df_string_1');
-
-        $newTable->getColumn('df_string_2')
-            ->setDefault(null);
-
-        $newTable->getColumn('df_boolean')
-            ->setDefault(false);
-
         $newTable->dropColumn('df_string_4');
         $newTable->addColumn('df_string_4_renamed', Types::STRING, [
             'length' => 32,

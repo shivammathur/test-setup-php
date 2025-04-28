@@ -11,6 +11,7 @@ use Doctrine\DBAL\Platforms\MySQL\CharsetMetadataProvider;
 use Doctrine\DBAL\Platforms\MySQL\CollationMetadataProvider;
 use Doctrine\DBAL\Platforms\MySQL\DefaultTableOptions;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ColumnEditor;
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\ComparatorConfig;
 use Doctrine\DBAL\Schema\Table;
@@ -405,11 +406,20 @@ abstract class AbstractMySQLPlatformTestCase extends AbstractPlatformTestCase
             $this->platform->getCreateTableSQL($table),
         );
 
-        $diffTable = clone $table;
-        $diffTable->modifyColumn('def_text', ['default' => null]);
-        $diffTable->modifyColumn('def_text_null', ['default' => null]);
-        $diffTable->modifyColumn('def_blob', ['default' => null]);
-        $diffTable->modifyColumn('def_blob_null', ['default' => null]);
+        $diffTable = $table->edit()
+            ->modifyColumnByUnquotedName('def_text', static function (ColumnEditor $editor): void {
+                $editor->setDefaultValue(null);
+            })
+            ->modifyColumnByUnquotedName('def_text_null', static function (ColumnEditor $editor): void {
+                $editor->setDefaultValue(null);
+            })
+            ->modifyColumnByUnquotedName('def_blob', static function (ColumnEditor $editor): void {
+                $editor->setDefaultValue(null);
+            })
+            ->modifyColumnByUnquotedName('def_blob_null', static function (ColumnEditor $editor): void {
+                $editor->setDefaultValue(null);
+            })
+            ->create();
 
         $comparator = $this->createComparator();
 
@@ -541,10 +551,19 @@ abstract class AbstractMySQLPlatformTestCase extends AbstractPlatformTestCase
 
     public function testGetCreateTableSQLWithColumnCollation(): void
     {
-        $table = new Table('foo');
-        $table->addColumn('no_collation', Types::STRING, ['length' => 255]);
-        $table->addColumn('column_collation', Types::STRING, ['length' => 255])
-            ->setPlatformOption('collation', 'ascii_general_ci');
+        $table = new Table('foo', [
+            Column::editor()
+                ->setUnquotedName('no_collation')
+                ->setTypeName(Types::STRING)
+                ->setLength(255)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('column_collation')
+                ->setTypeName(Types::STRING)
+                ->setLength(255)
+                ->setCollation('ascii_general_ci')
+                ->create(),
+        ]);
 
         self::assertSame(
             [

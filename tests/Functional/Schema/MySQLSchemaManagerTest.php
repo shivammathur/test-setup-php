@@ -11,6 +11,7 @@ use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ColumnEditor;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\Functional\Schema\MySQL\CustomType;
 use Doctrine\DBAL\Tests\Functional\Schema\MySQL\PointType;
@@ -182,10 +183,23 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testColumnCharset(): void
     {
-        $table = new Table('test_column_charset');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('foo', Types::TEXT)->setPlatformOption('charset', 'ascii');
-        $table->addColumn('bar', Types::TEXT)->setPlatformOption('charset', 'latin1');
+        $table = new Table('test_column_charset', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('foo')
+                ->setTypeName(Types::TEXT)
+                ->setCharset('ascii')
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('bar')
+                ->setTypeName(Types::TEXT)
+                ->setCharset('latin1')
+                ->create(),
+        ]);
+
         $this->dropAndCreateTable($table);
 
         $columns = $this->schemaManager->listTableColumns('test_column_charset');
@@ -199,13 +213,21 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
     {
         $tableName = 'test_alter_column_charset';
 
-        $table = new Table($tableName);
-        $table->addColumn('col_text', Types::TEXT)->setPlatformOption('charset', 'utf8');
+        $table = new Table($tableName, [
+            Column::editor()
+                ->setUnquotedName('col_text')
+                ->setTypeName(Types::TEXT)
+                ->setCharset('utf8')
+                ->create(),
+        ]);
 
         $this->dropAndCreateTable($table);
 
-        $diffTable = clone $table;
-        $diffTable->getColumn('col_text')->setPlatformOption('charset', 'ascii');
+        $diffTable = $table->edit()
+            ->modifyColumnByUnquotedName('col_text', static function (ColumnEditor $editor): void {
+                $editor->setCharset('ascii');
+            })
+            ->create();
 
         $diff = $this->schemaManager->createComparator()
             ->compareTables($table, $diffTable);
@@ -229,8 +251,11 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
         ]);
         $this->dropAndCreateTable($table);
 
-        $diffTable = clone $table;
-        $diffTable->getColumn('col_string')->setPlatformOption('charset', 'ascii');
+        $diffTable = $table->edit()
+            ->modifyColumnByUnquotedName('col_string', static function (ColumnEditor $editor): void {
+                $editor->setCharset('ascii');
+            })
+            ->create();
 
         $diff = $this->schemaManager->createComparator()
             ->compareTables($table, $diffTable);
@@ -247,14 +272,33 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testColumnCollation(): void
     {
-        $table = new Table('test_collation');
+        $table = new Table('test_collation', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('text')
+                ->setTypeName(Types::TEXT)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('foo')
+                ->setTypeName(Types::TEXT)
+                ->setCollation('latin1_swedish_ci')
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('bar')
+                ->setTypeName(Types::TEXT)
+                ->setCollation('utf8mb4_general_ci')
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('baz')
+                ->setTypeName(Types::TEXT)
+                ->setCollation('binary')
+                ->create(),
+        ]);
         $table->addOption('collation', 'latin1_swedish_ci');
         $table->addOption('charset', 'latin1');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('text', Types::TEXT);
-        $table->addColumn('foo', Types::TEXT)->setPlatformOption('collation', 'latin1_swedish_ci');
-        $table->addColumn('bar', Types::TEXT)->setPlatformOption('collation', 'utf8mb4_general_ci');
-        $table->addColumn('baz', Types::TEXT)->setPlatformOption('collation', 'binary');
         $this->dropAndCreateTable($table);
 
         $columns = $this->schemaManager->listTableColumns('test_collation');

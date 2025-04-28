@@ -110,11 +110,26 @@ EOS);
 
     public function testColumnCollation(): void
     {
-        $table = new Table('test_collation');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('text', Types::TEXT);
-        $table->addColumn('foo', Types::TEXT)->setPlatformOption('collation', 'BINARY');
-        $table->addColumn('bar', Types::TEXT)->setPlatformOption('collation', 'NOCASE');
+        $table = new Table('test_collation', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('text')
+                ->setTypeName(Types::TEXT)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('foo')
+                ->setTypeName(Types::TEXT)
+                ->setCollation('BINARY')
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('bar')
+                ->setTypeName(Types::TEXT)
+                ->setCollation('NOCASE')
+                ->create(),
+        ]);
         $this->dropAndCreateTable($table);
 
         $columns = $this->schemaManager->listTableColumns('test_collation');

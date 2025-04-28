@@ -402,8 +402,13 @@ class PostgreSQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testJsonbColumn(): void
     {
-        $table = new Table('test_jsonb');
-        $table->addColumn('foo', Types::JSON)->setPlatformOption('jsonb', true);
+        $table = new Table('test_jsonb', [
+            Column::editor()
+                ->setUnquotedName('foo')
+                ->setTypeName(Types::JSON)
+                ->create()
+                ->setPlatformOption('jsonb', true),
+        ]);
         $this->dropAndCreateTable($table);
 
         $columns = $this->schemaManager->listTableColumns('test_jsonb');

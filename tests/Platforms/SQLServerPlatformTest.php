@@ -1077,10 +1077,19 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
     public function testGetCreateTableSQLWithColumnCollation(): void
     {
-        $table = new Table('foo');
-        $table->addColumn('no_collation', Types::STRING, ['length' => 255]);
-        $table->addColumn('column_collation', Types::STRING, ['length' => 255])
-            ->setPlatformOption('collation', 'Latin1_General_CS_AS_KS_WS');
+        $table = new Table('foo', [
+            Column::editor()
+                ->setUnquotedName('no_collation')
+                ->setTypeName(Types::STRING)
+                ->setLength(255)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('column_collation')
+                ->setTypeName(Types::STRING)
+                ->setLength(255)
+                ->setCollation('Latin1_General_CS_AS_KS_WS')
+                ->create(),
+        ]);
 
         self::assertSame(
             ['CREATE TABLE foo (no_collation NVARCHAR(255) NOT NULL, '

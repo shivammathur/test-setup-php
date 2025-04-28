@@ -687,13 +687,19 @@ class SQLitePlatformTest extends AbstractPlatformTestCase
 
     public function testGetCreateTableSQLWithColumnCollation(): void
     {
-        $table = new Table('foo');
-        $table->addColumn('no_collation', Types::STRING, ['length' => 255]);
-        $table->addColumn(
-            'column_collation',
-            Types::STRING,
-            ['length' => 255],
-        )->setPlatformOption('collation', 'NOCASE');
+        $table = new Table('foo', [
+            Column::editor()
+                ->setUnquotedName('no_collation')
+                ->setTypeName(Types::STRING)
+                ->setLength(255)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('column_collation')
+                ->setTypeName(Types::STRING)
+                ->setLength(255)
+                ->setCollation('NOCASE')
+                ->create(),
+        ]);
 
         self::assertSame(
             [
