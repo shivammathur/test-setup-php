@@ -45,6 +45,28 @@ final class TableEditor
         return $this;
     }
 
+    /**
+     * @param non-empty-string  $unqualifiedName
+     * @param ?non-empty-string $qualifier
+     */
+    public function setUnquotedName(string $unqualifiedName, ?string $qualifier = null): self
+    {
+        $this->name = OptionallyQualifiedName::unquoted($unqualifiedName, $qualifier);
+
+        return $this;
+    }
+
+    /**
+     * @param non-empty-string  $unqualifiedName
+     * @param ?non-empty-string $qualifier
+     */
+    public function setQuotedName(string $unqualifiedName, ?string $qualifier = null): self
+    {
+        $this->name = OptionallyQualifiedName::quoted($unqualifiedName, $qualifier);
+
+        return $this;
+    }
+
     public function setColumns(Column $firstColumn, Column ...$otherColumns): self
     {
         $this->columns = [$firstColumn, ...$otherColumns];
