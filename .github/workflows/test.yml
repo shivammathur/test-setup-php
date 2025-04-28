@@ -3,12 +3,9 @@ on:
   push:
 jobs:
   php-stan:
-    strategy:
-      matrix: 
-        sp: [2.33.0, 2.32.0]
     runs-on: ubuntu-latest
     steps:
-      - uses: shivammathur/setup-php@${{ matrix.sp }}
+      - uses: shivammathur/setup-php@more-verbose
         with:
           php-version: 8.3
           extensions: gnupg
