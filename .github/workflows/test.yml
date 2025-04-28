@@ -3,10 +3,13 @@ on:
   push:
 jobs:
   php-stan:
-    runs-on: macos-latest
+    strategy:
+      matrix: 
+        sp: [2.33.0, 2.32.0]
+    runs-on: ubuntu-latest
     steps:
-      - uses: shivammathur/setup-php@more-verbose
+      - uses: shivammathur/setup-php@${{ matrix.sp }}
         with:
-          php-version: 8.1
-          extensions: amqp
+          php-version: 8.3
+          extensions: gnupg
       - run: php -v && php -m
