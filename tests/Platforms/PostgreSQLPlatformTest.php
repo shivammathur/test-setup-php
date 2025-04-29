@@ -654,14 +654,23 @@ class PostgreSQLPlatformTest extends AbstractPlatformTestCase
 
     public function testAltersTableColumnCommentWithExplicitlyQuotedIdentifiers(): void
     {
-        $table1 = new Table('"foo"', [new Column('"bar"', Type::getType(Types::INTEGER))]);
-        $table2 = new Table('"foo"', [new Column('"bar"', Type::getType(Types::INTEGER), ['comment' => 'baz'])]);
+        $table1 = new Table('"Foo"', [Column::editor()
+            ->setQuotedName('Bar')
+            ->setTypeName(Types::INTEGER)
+            ->create(),
+        ]);
+        $table2 = new Table('"Foo"', [Column::editor()
+            ->setQuotedName('Bar')
+            ->setTypeName(Types::INTEGER)
+            ->setComment('Baz')
+            ->create(),
+        ]);
 
         $tableDiff = $this->createComparator()
             ->compareTables($table1, $table2);
 
         self::assertSame(
-            ['COMMENT ON COLUMN "foo"."bar" IS \'baz\''],
+            ['COMMENT ON COLUMN "Foo"."Bar" IS \'Baz\''],
             $this->platform->getAlterTableSQL($tableDiff),
         );
     }
@@ -823,10 +832,10 @@ class PostgreSQLPlatformTest extends AbstractPlatformTestCase
         $tableDiff = new TableDiff($table, changedColumns: [
             'payload' => new ColumnDiff(
                 $table->getColumn('payload'),
-                new Column(
-                    'payload',
-                    Type::getType(Types::JSON),
-                ),
+                Column::editor()
+                    ->setUnquotedName('payload')
+                    ->setTypeName(Types::JSON)
+                    ->create(),
             ),
         ]);
 

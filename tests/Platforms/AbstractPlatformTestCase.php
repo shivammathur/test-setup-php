@@ -487,11 +487,11 @@ abstract class AbstractPlatformTestCase extends TestCase
         $tableDiff = new TableDiff($table, changedColumns: [
             'select' => new ColumnDiff(
                 $table->getColumn('select'),
-                new Column(
-                    'select',
-                    Type::getType(Types::STRING),
-                    ['length' => 255],
-                ),
+                Column::editor()
+                    ->setUnquotedName('select')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(255)
+                    ->create(),
             ),
         ]);
 
@@ -879,11 +879,12 @@ abstract class AbstractPlatformTestCase extends TestCase
         $tableDiff = new TableDiff($table, changedColumns: [
             'name' => new ColumnDiff(
                 $table->getColumn('name'),
-                new Column(
-                    'name',
-                    Type::getType(Types::STRING),
-                    ['fixed' => true, 'length' => 2],
-                ),
+                Column::editor()
+                    ->setUnquotedName('name')
+                    ->setTypeName(Types::STRING)
+                    ->setFixed(true)
+                    ->setLength(2)
+                    ->create(),
             ),
         ]);
 

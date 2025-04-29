@@ -668,12 +668,11 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
     {
         $table = new Table('testschema.mytable');
 
-        $tableDiff = new TableDiff($table, addedColumns: [
-            new Column(
-                'quota',
-                Type::getType(Types::INTEGER),
-                ['comment' => 'A comment'],
-            ),
+        $tableDiff = new TableDiff($table, addedColumns: [Column::editor()
+                ->setUnquotedName('quota')
+                ->setTypeName(Types::INTEGER)
+                ->setComment('A comment')
+                ->create(),
         ]);
 
         $expectedSql = [
@@ -691,8 +690,15 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
         $tableDiff = new TableDiff($table, changedColumns: [
             'quota' => new ColumnDiff(
-                new Column('quota', Type::getType(Types::INTEGER), ['comment' => 'A comment']),
-                new Column('quota', Type::getType(Types::INTEGER), []),
+                Column::editor()
+                    ->setUnquotedName('quota')
+                    ->setTypeName(Types::INTEGER)
+                    ->setComment('A comment')
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('quota')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
             ),
         ]);
 
@@ -710,8 +716,16 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
         $tableDiff = new TableDiff($table, changedColumns: [
             'quota' => new ColumnDiff(
-                new Column('quota', Type::getType(Types::INTEGER), ['comment' => 'A comment']),
-                new Column('quota', Type::getType(Types::INTEGER), ['comment' => 'B comment']),
+                Column::editor()
+                    ->setUnquotedName('quota')
+                    ->setTypeName(Types::INTEGER)
+                    ->setComment('A comment')
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('quota')
+                    ->setTypeName(Types::INTEGER)
+                    ->setComment('B comment')
+                    ->create(),
             ),
         ]);
 
@@ -1091,8 +1105,17 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
         $tableDiff = new TableDiff($table, changedColumns: [
             'quota' => new ColumnDiff(
-                new Column('quota', Type::getType(Types::INTEGER), ['comment' => 'A comment', 'notnull' => false]),
-                new Column('quota', Type::getType(Types::INTEGER), ['comment' => 'A comment', 'notnull' => true]),
+                Column::editor()
+                    ->setUnquotedName('quota')
+                    ->setTypeName(Types::INTEGER)
+                    ->setComment('A comment')
+                    ->setNotNull(false)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('quota')
+                    ->setTypeName(Types::INTEGER)
+                    ->setComment('A comment')
+                    ->create(),
             ),
         ]);
 

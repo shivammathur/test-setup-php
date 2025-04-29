@@ -47,11 +47,16 @@ class TableTest extends TestCase
 
     public function testColumns(): void
     {
-        $type      = Type::getType(Types::INTEGER);
-        $columns   = [];
-        $columns[] = new Column('foo', $type);
-        $columns[] = new Column('bar', $type);
-        $table     = new Table('foo', $columns, [], []);
+        $table = new Table('foo', [
+            Column::editor()
+                ->setUnquotedName('foo')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('bar')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
 
         self::assertTrue($table->hasColumn('foo'));
         self::assertTrue($table->hasColumn('bar'));
@@ -167,11 +172,16 @@ class TableTest extends TestCase
 
     public function testDropColumn(): void
     {
-        $type      = Type::getType(Types::INTEGER);
-        $columns   = [];
-        $columns[] = new Column('foo', $type);
-        $columns[] = new Column('bar', $type);
-        $table     = new Table('foo', $columns, [], []);
+        $table = new Table('foo', [
+            Column::editor()
+                ->setUnquotedName('foo')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('bar')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
 
         self::assertTrue($table->hasColumn('foo'));
         self::assertTrue($table->hasColumn('bar'));
@@ -194,18 +204,34 @@ class TableTest extends TestCase
     {
         $this->expectException(SchemaException::class);
 
-        $type      = Type::getType(Types::INTEGER);
-        $columns   = [];
-        $columns[] = new Column('foo', $type);
-        $columns[] = new Column('foo', $type);
-        new Table('foo', $columns, [], []);
+        new Table('foo', [
+            Column::editor()
+                ->setUnquotedName('foo')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('foo')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
     }
 
     public function testCreateIndex(): void
     {
-        $type    = Type::getType(Types::INTEGER);
-        $columns = [new Column('foo', $type), new Column('bar', $type), new Column('baz', $type)];
-        $table   = new Table('foo', $columns);
+        $table = new Table('foo', [
+            Column::editor()
+                ->setUnquotedName('foo')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('bar')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('baz')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
 
         $table->addIndex(['foo', 'bar'], 'foo_foo_bar_idx');
         $table->addUniqueIndex(['bar', 'baz'], 'foo_bar_baz_uniq');
@@ -216,13 +242,20 @@ class TableTest extends TestCase
 
     public function testIndexCaseInsensitive(): void
     {
-        $type    = Type::getType(Types::INTEGER);
-        $columns = [
-            new Column('foo', $type),
-            new Column('bar', $type),
-            new Column('baz', $type),
-        ];
-        $table   = new Table('foo', $columns);
+        $table = new Table('foo', [
+            Column::editor()
+                ->setUnquotedName('foo')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('bar')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('baz')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
 
         $table->addIndex(['foo', 'bar', 'baz'], 'Foo_Idx');
 
@@ -233,10 +266,15 @@ class TableTest extends TestCase
 
     public function testAddIndexes(): void
     {
-        $type    = Type::getType(Types::INTEGER);
         $columns = [
-            new Column('foo', $type),
-            new Column('bar', $type),
+            Column::editor()
+                ->setUnquotedName('foo')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('bar')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
         ];
         $indexes = [
             new Index('the_primary', ['foo'], true, true),
@@ -265,8 +303,17 @@ class TableTest extends TestCase
     {
         $this->expectException(SchemaException::class);
 
-        $type    = Type::getType(Types::INTEGER);
-        $columns = [new Column('foo', $type), new Column('bar', $type)];
+        $columns = [
+            Column::editor()
+                ->setUnquotedName('foo')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('bar')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ];
+
         $indexes = [
             new Index('the_primary', ['foo'], true, true),
             new Index('other_primary', ['bar'], true, true),
@@ -278,8 +325,16 @@ class TableTest extends TestCase
     {
         $this->expectException(SchemaException::class);
 
-        $type    = Type::getType(Types::INTEGER);
-        $columns = [new Column('foo', $type), new Column('bar', $type)];
+        $columns = [
+            Column::editor()
+                ->setUnquotedName('foo')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('bar')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ];
         $indexes = [
             new Index('an_idx', ['foo'], false, false),
             new Index('an_idx', ['bar'], false, false),
@@ -636,9 +691,17 @@ class TableTest extends TestCase
 
     public function testAddForeignKeyWithQuotedColumnsAndTable(): void
     {
-        $table = new Table('test');
-        $table->addColumn('"foo"', Types::INTEGER);
-        $table->addColumn('bar', Types::INTEGER);
+        $table = new Table('foo', [
+            Column::editor()
+                ->setQuotedName('foo')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('bar')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
+
         $table->addForeignKeyConstraint('"boing"', ['"foo"', '"bar"'], ['id']);
 
         self::assertCount(1, $table->getForeignKeys());
@@ -874,10 +937,22 @@ class TableTest extends TestCase
     public function testUniqueConstraintWithEmptyName(): void
     {
         $columns = [
-            new Column('column1', Type::getType(Types::STRING)),
-            new Column('column2', Type::getType(Types::STRING)),
-            new Column('column3', Type::getType(Types::STRING)),
-            new Column('column4', Type::getType(Types::STRING)),
+            Column::editor()
+                ->setUnquotedName('column1')
+                ->setTypeName(Types::STRING)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('column2')
+                ->setTypeName(Types::STRING)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('column3')
+                ->setTypeName(Types::STRING)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('column4')
+                ->setTypeName(Types::STRING)
+                ->create(),
         ];
 
         $uniqueConstraints = [

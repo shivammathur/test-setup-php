@@ -247,8 +247,14 @@ SQL;
 
         $tableDiff = new TableDiff($table, changedColumns: [
             'a' => new ColumnDiff(
-                new Column('a', Type::getType(Types::INTEGER)),
-                new Column('b', Type::getType(Types::INTEGER)),
+                Column::editor()
+                    ->setUnquotedName('a')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('b')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
             ),
         ]);
         $this->schemaManager->alterTable($tableDiff);

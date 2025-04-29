@@ -16,7 +16,6 @@ use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\TransactionIsolationLevel;
-use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 
@@ -258,11 +257,16 @@ class SQLitePlatformTest extends AbstractPlatformTestCase
         $table = new Table('user');
 
         $diff = new TableDiff($table, addedColumns: [
-            new Column('foo', Type::getType(Types::STRING)),
-            new Column('count', Type::getType(Types::INTEGER), [
-                'notnull' => false,
-                'default' => 1,
-            ]),
+            Column::editor()
+                ->setUnquotedName('foo')
+                ->setTypeName(Types::STRING)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('count')
+                ->setTypeName(Types::INTEGER)
+                ->setNotNull(false)
+                ->setDefaultValue(1)
+                ->create(),
         ]);
 
         $expected = [
@@ -280,8 +284,14 @@ class SQLitePlatformTest extends AbstractPlatformTestCase
 
         $tableDiff = new TableDiff($table, changedColumns: [
             'value' => new ColumnDiff(
-                new Column('data', Type::getType(Types::STRING)),
-                new Column('value', Type::getType(Types::STRING)),
+                Column::editor()
+                    ->setUnquotedName('data')
+                    ->setTypeName(Types::STRING)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('value')
+                    ->setTypeName(Types::STRING)
+                    ->create(),
             ),
         ]);
 
@@ -338,15 +348,24 @@ class SQLitePlatformTest extends AbstractPlatformTestCase
             changedColumns: [
                 'id' => new ColumnDiff(
                     $table->getColumn('id'),
-                    new Column('key', Type::getType(Types::INTEGER)),
+                    Column::editor()
+                        ->setUnquotedName('key')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
                 ),
                 'post' => new ColumnDiff(
                     $table->getColumn('post'),
-                    new Column('comment', Type::getType(Types::INTEGER)),
+                    Column::editor()
+                        ->setUnquotedName('comment')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
                 ),
             ],
             droppedColumns: [
-                new Column('parent', Type::getType(Types::INTEGER), []),
+                Column::editor()
+                    ->setUnquotedName('parent')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
             ],
             droppedIndexes: [
                 $table->getIndex('index1'),
@@ -500,8 +519,14 @@ class SQLitePlatformTest extends AbstractPlatformTestCase
 
         $tableDiff = new TableDiff($table, changedColumns: [
             'a' => new ColumnDiff(
-                new Column('a', Type::getType(Types::INTEGER)),
-                new Column('b', Type::getType(Types::INTEGER)),
+                Column::editor()
+                    ->setUnquotedName('a')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('b')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
             ),
         ]);
 
