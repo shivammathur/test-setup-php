@@ -8,6 +8,7 @@ use Doctrine\DBAL\Schema\Exception\InvalidTableDefinition;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 
 use function array_filter;
+use function count;
 
 final class TableEditor
 {
@@ -44,16 +45,36 @@ final class TableEditor
         return $this;
     }
 
-    /** @param array<Column> $columns */
-    public function setColumns(array $columns): self
+    /**
+     * @param non-empty-string  $unqualifiedName
+     * @param ?non-empty-string $qualifier
+     */
+    public function setUnquotedName(string $unqualifiedName, ?string $qualifier = null): self
     {
-        $this->columns = $columns;
+        $this->name = OptionallyQualifiedName::unquoted($unqualifiedName, $qualifier);
 
         return $this;
     }
 
-    /** @param array<Index> $indexes */
-    public function setIndexes(array $indexes): self
+    /**
+     * @param non-empty-string  $unqualifiedName
+     * @param ?non-empty-string $qualifier
+     */
+    public function setQuotedName(string $unqualifiedName, ?string $qualifier = null): self
+    {
+        $this->name = OptionallyQualifiedName::quoted($unqualifiedName, $qualifier);
+
+        return $this;
+    }
+
+    public function setColumns(Column $firstColumn, Column ...$otherColumns): self
+    {
+        $this->columns = [$firstColumn, ...$otherColumns];
+
+        return $this;
+    }
+
+    public function setIndexes(Index ...$indexes): self
     {
         $this->indexes = $indexes;
 
@@ -72,16 +93,14 @@ final class TableEditor
         return $this;
     }
 
-    /** @param array<UniqueConstraint> $uniqueConstraints */
-    public function setUniqueConstraints(array $uniqueConstraints): self
+    public function setUniqueConstraints(UniqueConstraint ...$uniqueConstraints): self
     {
         $this->uniqueConstraints = $uniqueConstraints;
 
         return $this;
     }
 
-    /** @param array<ForeignKeyConstraint> $foreignKeyConstraints */
-    public function setForeignKeyConstraints(array $foreignKeyConstraints): self
+    public function setForeignKeyConstraints(ForeignKeyConstraint ...$foreignKeyConstraints): self
     {
         $this->foreignKeyConstraints = $foreignKeyConstraints;
 
@@ -107,6 +126,10 @@ final class TableEditor
     {
         if ($this->name === null) {
             throw InvalidTableDefinition::nameNotSet();
+        }
+
+        if (count($this->columns) === 0) {
+            throw InvalidTableDefinition::columnsNotSet();
         }
 
         return new Table(
