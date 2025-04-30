@@ -18,6 +18,7 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ComparatorConfig;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\SchemaDiff;
 use Doctrine\DBAL\Schema\SchemaException;
@@ -1316,17 +1317,48 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $this->dropTableIfExists($platform->quoteSingleIdentifier('user'));
         $this->dropTableIfExists($platform->quoteSingleIdentifier('group'));
 
-        $schema = new Schema();
+        $user = Table::editor()
+            ->setUnquotedName('user')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('group_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('group_id')
+                    ->setUnquotedReferencedTableName('group')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
-        $user = $schema->createTable('user');
-        $user->addColumn('id', Types::INTEGER);
-        $user->addColumn('group_id', Types::INTEGER);
-        $user->setPrimaryKey(['id']);
-        $user->addForeignKeyConstraint('group', ['group_id'], ['id']);
+        $group = Table::editor()
+            ->setUnquotedName('group')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
-        $group = $schema->createTable('group');
-        $group->addColumn('id', Types::INTEGER);
-        $group->setPrimaryKey(['id']);
+        $schema = new Schema([$user, $group]);
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createSchemaObjects($schema);

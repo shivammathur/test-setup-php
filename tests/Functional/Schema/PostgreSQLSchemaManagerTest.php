@@ -314,13 +314,16 @@ class PostgreSQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
     {
         $this->dropTableIfExists('test_autoincrement');
 
-        $schema = new Schema();
-        $table  = $schema->createTable('test_autoincrement');
-        $table->addColumn('id', Types::INTEGER, [
-            'notnull' => true,
-            'autoincrement' => true,
+        $table = new Table('test_autoincrement', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->setAutoincrement(true)
+                ->create(),
         ]);
         $table->setPrimaryKey(['id']);
+
+        $schema = new Schema([$table]);
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createSchemaObjects($schema);

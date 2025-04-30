@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Tests\Schema;
 
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\SchemaConfig;
 use Doctrine\DBAL\Schema\SchemaException;
@@ -192,16 +193,27 @@ class SchemaTest extends TestCase
 
     public function testDeepClone(): void
     {
-        $schema   = new Schema();
-        $sequence = $schema->createSequence('baz');
+        $tableA = new Table('foo', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
 
-        $tableA = $schema->createTable('foo');
-        $tableA->addColumn('id', Types::INTEGER);
-
-        $tableB = $schema->createTable('bar');
-        $tableB->addColumn('id', Types::INTEGER);
-        $tableB->addColumn('foo_id', Types::INTEGER);
+        $tableB = new Table('bar', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('foo_id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
         $tableB->addForeignKeyConstraint($tableA->getName(), ['foo_id'], ['id']);
+
+        $schema   = new Schema([$tableA, $tableB]);
+        $sequence = $schema->createSequence('baz');
 
         $schemaNew = clone $schema;
 
@@ -216,10 +228,14 @@ class SchemaTest extends TestCase
 
     public function testHasTableForQuotedAsset(): void
     {
-        $schema = new Schema();
+        $tableA = new Table('foo', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
 
-        $tableA = $schema->createTable('foo');
-        $tableA->addColumn('id', Types::INTEGER);
+        $schema = new Schema([$tableA]);
 
         self::assertTrue($schema->hasTable('`foo`'));
     }

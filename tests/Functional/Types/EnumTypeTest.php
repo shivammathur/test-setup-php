@@ -6,7 +6,9 @@ namespace Doctrine\DBAL\Tests\Functional\Types;
 
 use Doctrine\DBAL\Exception\InvalidColumnType\ColumnValuesRequired;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Schema;
+use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Types\EnumType;
 use Doctrine\DBAL\Types\Type;
@@ -78,15 +80,17 @@ final class EnumTypeTest extends FunctionalTestCase
     public function testDeployEmptyEnum(): void
     {
         $schemaManager = $this->connection->createSchemaManager();
-        $schema        = new Schema(schemaConfig: $schemaManager->createSchemaConfig());
-        $table         = $schema->createTable('my_enum_table');
-        $table->addColumn('id', Types::BIGINT, ['notnull' => true]);
-        $table->addColumn('suit', Types::ENUM);
-        $table->setPrimaryKey(['id']);
+
+        $table = new Table('my_enum_table', [
+            Column::editor()
+                ->setUnquotedName('suit')
+                ->setTypeName(Types::ENUM)
+                ->create(),
+        ]);
 
         $this->expectException(ColumnValuesRequired::class);
 
-        $schemaManager->createSchemaObjects($schema);
+        $schemaManager->createTable($table);
     }
 
     /** @param list<string> $expectedValues */

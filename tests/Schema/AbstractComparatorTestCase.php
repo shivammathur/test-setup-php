@@ -12,6 +12,7 @@ use Doctrine\DBAL\Schema\ComparatorConfig;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\SchemaConfig;
 use Doctrine\DBAL\Schema\SchemaDiff;
@@ -410,17 +411,19 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testTablesCaseInsensitive(): void
     {
-        $schemaA = new Schema();
-        $schemaA->createTable('foo');
-        $schemaA->createTable('bAr');
-        $schemaA->createTable('BAZ');
-        $schemaA->createTable('new');
+        $schemaA = new Schema([
+            $this->createTable('foo'),
+            $this->createTable('bAr'),
+            $this->createTable('BAZ'),
+            $this->createTable('new'),
+        ]);
 
-        $schemaB = new Schema();
-        $schemaB->createTable('FOO');
-        $schemaB->createTable('bar');
-        $schemaB->createTable('Baz');
-        $schemaB->createTable('old');
+        $schemaB = new Schema([
+            $this->createTable('FOO'),
+            $this->createTable('bar'),
+            $this->createTable('Baz'),
+            $this->createTable('old'),
+        ]);
 
         $diff = $this->comparator->compareSchemas($schemaA, $schemaB);
 
@@ -825,11 +828,13 @@ abstract class AbstractComparatorTestCase extends TestCase
         $config = new SchemaConfig();
         $config->setName('foo');
 
-        $oldSchema = new Schema([], [], $config);
-        $oldSchema->createTable('bar');
+        $oldSchema = new Schema([
+            $this->createTable('bar'),
+        ], [], $config);
 
-        $newSchema = new Schema([], [], $config);
-        $newSchema->createTable('foo.bar');
+        $newSchema = new Schema([
+            $this->createTable('foo.bar'),
+        ], [], $config);
 
         self::assertEquals(
             new SchemaDiff([], [], [], [], [], [], [], []),
@@ -842,14 +847,16 @@ abstract class AbstractComparatorTestCase extends TestCase
         $config = new SchemaConfig();
         $config->setName('schemaName');
 
-        $oldSchema = new Schema([], [], $config);
-        $oldSchema->createTable('taz');
-        $oldSchema->createTable('war.tab');
+        $oldSchema = new Schema([
+            $this->createTable('taz'),
+            $this->createTable('war.tab'),
+        ], [], $config);
 
-        $newSchema = new Schema([], [], $config);
-        $newSchema->createTable('bar.tab');
-        $newSchema->createTable('baz.tab');
-        $newSchema->createTable('war.tab');
+        $newSchema = new Schema([
+            $this->createTable('bar.tab'),
+            $this->createTable('baz.tab'),
+            $this->createTable('war.tab'),
+        ], [], $config);
 
         $diff = $this->comparator->compareSchemas($oldSchema, $newSchema);
 
@@ -878,11 +885,9 @@ abstract class AbstractComparatorTestCase extends TestCase
     {
         $config = new SchemaConfig();
         $config->setName('foo');
-        $oldSchema = new Schema([], [], $config);
-        $oldSchema->createTable('bar');
+        $oldSchema = new Schema([$this->createTable('bar')], [], $config);
 
-        $newSchema = new Schema();
-        $newSchema->createTable('bar');
+        $newSchema = new Schema([$this->createTable('bar')]);
 
         self::assertEquals(
             new SchemaDiff([], [], [], [], [], [], [], []),
@@ -892,16 +897,26 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testAutoIncrementSequences(): void
     {
-        $oldSchema = new Schema();
-        $table     = $oldSchema->createTable('foo');
-        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
+        $oldSchema = new Schema([$table]);
         $oldSchema->createSequence('foo_id_seq');
 
-        $newSchema = new Schema();
-        $table     = $newSchema->createTable('foo');
-        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table->setPrimaryKey(['id']);
+        $newSchema = new Schema([$table]);
 
         $diff = $this->comparator->compareSchemas($oldSchema, $newSchema);
 
@@ -913,15 +928,25 @@ abstract class AbstractComparatorTestCase extends TestCase
      */
     public function testAutoIncrementNoSequences(): void
     {
-        $oldSchema = new Schema();
-        $table     = $oldSchema->createTable('foo');
-        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
-        $newSchema = new Schema();
-        $table     = $newSchema->createTable('foo');
-        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table->setPrimaryKey(['id']);
+        $oldSchema = new Schema([$table]);
+
+        $newSchema = new Schema([$table]);
         $newSchema->createSequence('foo_id_seq');
 
         $diff = $this->comparator->compareSchemas($oldSchema, $newSchema);
@@ -1076,5 +1101,15 @@ abstract class AbstractComparatorTestCase extends TestCase
         }
 
         return $names;
+    }
+
+    private function createTable(string $name): Table
+    {
+        return new Table($name, [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
     }
 }

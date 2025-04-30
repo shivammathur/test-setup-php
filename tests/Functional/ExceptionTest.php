@@ -8,7 +8,6 @@ use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Schema\Column;
-use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Tests\TestUtil;
@@ -210,9 +209,17 @@ class ExceptionTest extends FunctionalTestCase
         ];
         $conn   = DriverManager::getConnection($params);
 
-        $schema = new Schema();
-        $table  = $schema->createTable('no_connection');
-        $table->addColumn('id', Types::INTEGER);
+        $table = Table::editor()
+            ->setUnquotedName('no_connection')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
+
+        $schemaManager = $conn->createSchemaManager();
 
         $this->expectException(Exception\ReadOnlyException::class);
         $this->expectExceptionMessage(
@@ -221,9 +228,7 @@ class ExceptionTest extends FunctionalTestCase
         );
 
         try {
-            foreach ($schema->toSql($conn->getDatabasePlatform()) as $sql) {
-                $conn->executeStatement($sql);
-            }
+            $schemaManager->createTable($table);
         } finally {
             $this->cleanupReadOnlyFile($filename);
         }
