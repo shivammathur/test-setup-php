@@ -642,16 +642,28 @@ SQL;
 
     public function testColumnIntrospection(): void
     {
-        $table = new Table('test_column_introspection');
+        $tableEditor = Table::editor()
+            ->setUnquotedName('test_column_introspection');
 
         $doctrineTypes = array_keys(Type::getTypesMap());
 
         foreach ($doctrineTypes as $type) {
-            $table->addColumn('col_' . $type, $type, match ($type) {
-                Types::ENUM => ['values' => ['foo', 'bar']],
-                default => ['length' => 8, 'precision' => 8, 'scale' => 2],
-            });
+            $columnEditor = Column::editor()
+                ->setUnquotedName('col_' . $type)
+                ->setTypeName($type);
+
+            $tableEditor->addColumn(
+                (match ($type) {
+                    Types::ENUM => $columnEditor->setValues(['foo', 'bar']),
+                    default => $columnEditor
+                        ->setLength(8)
+                        ->setPrecision(8)
+                        ->setScale(2),
+                })->create(),
+            );
         }
+
+        $table = $tableEditor->create();
 
         $this->dropAndCreateTable($table);
 
