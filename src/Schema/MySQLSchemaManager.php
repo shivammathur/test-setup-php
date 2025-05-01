@@ -23,13 +23,10 @@ use function explode;
 use function func_get_arg;
 use function func_num_args;
 use function implode;
-use function is_string;
 use function preg_match;
 use function preg_match_all;
 use function sprintf;
 use function str_contains;
-use function strtok;
-use function strtolower;
 use function strtr;
 
 use const CASE_LOWER;
@@ -121,44 +118,24 @@ class MySQLSchemaManager extends AbstractSchemaManager
     {
         $tableColumn = array_change_key_case($tableColumn, CASE_LOWER);
 
-        $dbType = strtolower($tableColumn['type']);
-        $dbType = strtok($dbType, '(), ');
-        assert(is_string($dbType));
-
-        $length = $tableColumn['length'] ?? strtok('(), ');
-
-        $fixed = false;
-
+        $dbType    = $tableColumn['type'];
+        $length    = null;
         $scale     = 0;
         $precision = null;
+        $fixed     = false;
+        $values    = [];
 
         $type = $this->platform->getDoctrineTypeMapping($dbType);
 
-        $values = [];
-
         switch ($dbType) {
             case 'char':
-            case 'binary':
-                $fixed = true;
+            case 'varchar':
+                $length = $tableColumn['character_maximum_length'];
                 break;
 
-            case 'float':
-            case 'double':
-            case 'real':
-            case 'numeric':
-            case 'decimal':
-                if (
-                    preg_match(
-                        '([A-Za-z]+\(([0-9]+),([0-9]+)\))',
-                        $tableColumn['type'],
-                        $match,
-                    ) === 1
-                ) {
-                    $precision = (int) $match[1];
-                    $scale     = (int) $match[2];
-                    $length    = null;
-                }
-
+            case 'binary':
+            case 'varbinary':
+                $length = $tableColumn['character_octet_length'];
                 break;
 
             case 'tinytext':
@@ -185,18 +162,28 @@ class MySQLSchemaManager extends AbstractSchemaManager
                 $length = AbstractMySQLPlatform::LENGTH_LIMIT_MEDIUMBLOB;
                 break;
 
-            case 'tinyint':
-            case 'smallint':
-            case 'mediumint':
-            case 'int':
-            case 'integer':
-            case 'bigint':
-            case 'year':
-                $length = null;
+            case 'float':
+            case 'double':
+            case 'real':
+            case 'numeric':
+            case 'decimal':
+                $precision = $tableColumn['numeric_precision'];
+
+                if (isset($tableColumn['numeric_scale'])) {
+                    $scale = $tableColumn['numeric_scale'];
+                }
+
+                break;
+        }
+
+        switch ($dbType) {
+            case 'char':
+            case 'binary':
+                $fixed = true;
                 break;
 
             case 'enum':
-                $values = $this->parseEnumExpression($tableColumn['type']);
+                $values = $this->parseEnumExpression($tableColumn['column_type']);
                 break;
         }
 
@@ -207,8 +194,8 @@ class MySQLSchemaManager extends AbstractSchemaManager
         }
 
         $options = [
-            'length'        => $length !== null ? (int) $length : null,
-            'unsigned'      => str_contains($tableColumn['type'], 'unsigned'),
+            'length'        => $length,
+            'unsigned'      => str_contains($tableColumn['column_type'], 'unsigned'),
             'fixed'         => $fixed,
             'default'       => $columnDefault,
             'notnull'       => $tableColumn['null'] !== 'YES',
@@ -374,6 +361,11 @@ SELECT
        c.TABLE_NAME,
        c.COLUMN_NAME        AS field,
        %s                   AS type,
+       c.COLUMN_TYPE,
+       c.CHARACTER_MAXIMUM_LENGTH,
+       c.CHARACTER_OCTET_LENGTH,
+       c.NUMERIC_PRECISION,
+       c.NUMERIC_SCALE,
        c.IS_NULLABLE        AS `null`,
        c.COLUMN_KEY         AS `key`,
        c.COLUMN_DEFAULT     AS `default`,
