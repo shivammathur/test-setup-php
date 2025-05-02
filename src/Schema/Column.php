@@ -18,6 +18,7 @@ use function method_exists;
 /**
  * Object representation of a database column.
  *
+ * @final
  * @extends AbstractNamedObject<UnqualifiedName>
  * @phpstan-type ColumnProperties = array{
  *     name: string,
@@ -70,7 +71,8 @@ class Column extends AbstractNamedObject
     protected string $_comment = '';
 
     /**
-     * Creates a new Column.
+     * @internal Use {@link Column::editor()} to instantiate an editor and {@link ColumnEditor::create()} to create a
+     *           column.
      *
      * @param array<string, mixed> $options
      */
@@ -386,5 +388,33 @@ class Column extends AbstractNamedObject
             'comment'          => $this->_comment,
             'values'           => $this->_values,
         ], $this->_platformOptions);
+    }
+
+    public static function editor(): ColumnEditor
+    {
+        return new ColumnEditor();
+    }
+
+    public function edit(): ColumnEditor
+    {
+        return self::editor()
+            ->setName($this->getObjectName())
+            ->setType($this->_type)
+            ->setLength($this->_length)
+            ->setPrecision($this->_precision)
+            ->setScale($this->_scale)
+            ->setUnsigned($this->_unsigned)
+            ->setFixed($this->_fixed)
+            ->setNotNull($this->_notnull)
+            ->setDefaultValue($this->_default)
+            ->setAutoincrement($this->_autoincrement)
+            ->setComment($this->_comment)
+            ->setValues($this->_values)
+            ->setColumnDefinition($this->_columnDefinition)
+            ->setCharset($this->getCharset())
+            ->setCollation($this->getCollation())
+            ->setMinimumValue($this->getMinimumValue())
+            ->setMaximumValue($this->getMaximumValue())
+            ->setDefaultConstraintName($this->getDefaultConstraintName());
     }
 }
