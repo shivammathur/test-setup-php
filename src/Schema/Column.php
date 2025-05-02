@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Schema;
 
+use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Doctrine\DBAL\Schema\Exception\UnknownColumnOption;
 use Doctrine\DBAL\Schema\Name\Parser\UnqualifiedNameParser;
 use Doctrine\DBAL\Schema\Name\Parsers;
@@ -238,19 +239,82 @@ class Column extends AbstractNamedObject
         return $this->_default;
     }
 
-    /** @return PlatformOptions */
+    /**
+     * Returns the name of the character set to use with the column.
+     *
+     * @return ?non-empty-string
+     */
+    public function getCharset(): ?string
+    {
+        return $this->_platformOptions['charset'] ?? null;
+    }
+
+    /**
+     * Returns the name of the collation to use with the column.
+     *
+     * @return ?non-empty-string
+     */
+    public function getCollation(): ?string
+    {
+        return $this->_platformOptions['collation'] ?? null;
+    }
+
+    /**
+     * Returns the minimum value to enforce on the column.
+     */
+    public function getMinimumValue(): mixed
+    {
+        return $this->_platformOptions['min'] ?? null;
+    }
+
+    /**
+     * Returns the maximum value to enforce on the column.
+     */
+    public function getMaximumValue(): mixed
+    {
+        return $this->_platformOptions['max'] ?? null;
+    }
+
+    /**
+     * @internal Should be used only from within the {@see AbstractSchemaManager} class hierarchy.
+     *
+     * Returns the name of the DEFAULT constraint that implements the default value for the column on SQL Server.
+     *
+     * @return ?non-empty-string
+     */
+    public function getDefaultConstraintName(): ?string
+    {
+        return $this->_platformOptions[SQLServerPlatform::OPTION_DEFAULT_CONSTRAINT_NAME] ?? null;
+    }
+
+    /**
+     * @deprecated Use {@see getCharset()}, {@see getCollation()}, {@see getMinimumValue()} or {@see getMaximumValue()}
+     *             instead.
+     *
+     * @return PlatformOptions
+     */
     public function getPlatformOptions(): array
     {
         return $this->_platformOptions;
     }
 
-    /** @param key-of<PlatformOptions> $name */
+    /**
+     * @deprecated Use {@see getCharset()}, {@see getCollation()}, {@see getMinimumValue()} or {@see getMaximumValue()}
+     *             instead.
+     *
+     * @param key-of<PlatformOptions> $name
+     */
     public function hasPlatformOption(string $name): bool
     {
         return isset($this->_platformOptions[$name]);
     }
 
-    /** @param key-of<PlatformOptions> $name */
+    /**
+     * @deprecated Use {@see getCharset()}, {@see getCollation()}, {@see getMinimumValue()} or {@see getMaximumValue()}
+     *             instead.
+     *
+     * @param key-of<PlatformOptions> $name
+     */
     public function getPlatformOption(string $name): mixed
     {
         /** @phpstan-ignore offsetAccess.notFound */
