@@ -173,6 +173,12 @@ abstract class AbstractMySQLPlatform extends AbstractPlatform
     public function getDateTimeTypeDeclarationSQL(array $column): string
     {
         if (isset($column['version']) && $column['version'] === true) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6940',
+                'The "version" column platform option is deprecated.',
+            );
+
             return 'TIMESTAMP';
         }
 
