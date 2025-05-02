@@ -670,6 +670,14 @@ abstract class AbstractPlatformTestCase extends TestCase
         );
     }
 
+    public function testReturnsJsonbTypeDeclarationSQL(): void
+    {
+        self::assertSame(
+            $this->platform->getJsonTypeDeclarationSQL(['jsonb' => true]),
+            $this->platform->getJsonbTypeDeclarationSQL([]),
+        );
+    }
+
     public function testAlterTableRenameIndex(): void
     {
         $table = new Table('mytable');

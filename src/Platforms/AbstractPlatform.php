@@ -281,6 +281,16 @@ abstract class AbstractPlatform
     }
 
     /**
+     * Returns the SQL snippet to declare a JSONB column.
+     *
+     * @param array<string, mixed> $column
+     */
+    public function getJsonbTypeDeclarationSQL(array $column): string
+    {
+        return $this->getJsonTypeDeclarationSQL($column);
+    }
+
+    /**
      * @param int|null $length The length of the column in characters
      *                         or NULL if the length should be omitted.
      */

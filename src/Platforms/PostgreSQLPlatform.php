@@ -808,6 +808,14 @@ class PostgreSQLPlatform extends AbstractPlatform
         return 'JSON';
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public function getJsonbTypeDeclarationSQL(array $column): string
+    {
+        return 'JSONB';
+    }
+
     public function createSchemaManager(Connection $connection): PostgreSQLSchemaManager
     {
         return new PostgreSQLSchemaManager($connection, $this);
