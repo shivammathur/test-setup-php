@@ -8,6 +8,10 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## The `jsonb` column platform option has been deprecated
+
+The `jsonb` column platform option has been deprecated. To define a `JSONB` column, use the `JSONB` type instead.
+
 ## The `version` column platform option has been deprecated
 
 The `version` column platform option has been deprecated without a replacement.

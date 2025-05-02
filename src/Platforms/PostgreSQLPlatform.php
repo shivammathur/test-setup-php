@@ -802,6 +802,12 @@ class PostgreSQLPlatform extends AbstractPlatform
     public function getJsonTypeDeclarationSQL(array $column): string
     {
         if (! empty($column['jsonb'])) {
+            Deprecation::trigger(
+                'doctrine/dbal',
+                'https://github.com/doctrine/dbal/pull/6939',
+                'The "jsonb" column platform option is deprecated. Use the "JSONB" type instead.',
+            );
+
             return 'JSONB';
         }
 
