@@ -178,4 +178,20 @@ class ColumnTest extends TestCase
 
         self::assertEquals(Identifier::unquoted('id'), $column->getObjectName()->getIdentifier());
     }
+
+    public function testSetPlatformOptionJsonb(): void
+    {
+        $column = new Column('jsonb', Type::getType(Types::JSON));
+
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6939');
+        $column->setPlatformOption('jsonb', true);
+    }
+
+    public function testSetPlatformOptionsJsonb(): void
+    {
+        $column = new Column('jsonb', Type::getType(Types::JSON));
+
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6939');
+        $column->setPlatformOptions(['jsonb' => true]);
+    }
 }

@@ -19,6 +19,7 @@ use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Schema\UniqueConstraint;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -29,6 +30,8 @@ use function sprintf;
 /** @template T of AbstractPlatform */
 abstract class AbstractPlatformTestCase extends TestCase
 {
+    use VerifyDeprecations;
+
     /** @var T */
     protected AbstractPlatform $platform;
 
@@ -667,6 +670,16 @@ abstract class AbstractPlatformTestCase extends TestCase
         self::assertSame(
             $this->platform->getClobTypeDeclarationSQL($column),
             $this->platform->getJsonTypeDeclarationSQL($column),
+        );
+    }
+
+    public function testReturnsJsonbTypeDeclarationSQL(): void
+    {
+        $this->expectDeprecationWithIdentifier('https://github.com/doctrine/dbal/pull/6939');
+
+        self::assertSame(
+            $this->platform->getJsonTypeDeclarationSQL(['jsonb' => true]),
+            $this->platform->getJsonbTypeDeclarationSQL([]),
         );
     }
 
