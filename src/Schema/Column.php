@@ -24,15 +24,15 @@ use function method_exists;
  *     default: mixed,
  *     notnull?: bool,
  *     autoincrement: bool,
- *     columnDefinition: ?string,
+ *     columnDefinition: ?non-empty-string,
  *     comment: string,
- *     charset?: ?string,
- *     collation?: ?string,
+ *     charset?: ?non-empty-string,
+ *     collation?: ?non-empty-string,
  * }
  * @phpstan-type PlatformOptions = array{
- *     charset?: ?string,
- *     collation?: ?string,
- *     default_constraint_name?: string,
+ *     charset?: ?non-empty-string,
+ *     collation?: ?non-empty-string,
+ *     default_constraint_name?: non-empty-string,
  *     jsonb?: bool,
  *     version?: bool,
  * }
@@ -63,6 +63,7 @@ class Column extends AbstractNamedObject
     /** @var PlatformOptions */
     protected array $_platformOptions = [];
 
+    /** @var ?non-empty-string */
     protected ?string $_columnDefinition = null;
 
     protected string $_comment = '';
@@ -189,6 +190,7 @@ class Column extends AbstractNamedObject
         return $this;
     }
 
+    /** @param  ?non-empty-string $value */
     public function setColumnDefinition(?string $value): self
     {
         $this->_columnDefinition = $value;
