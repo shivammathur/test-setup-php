@@ -8,6 +8,10 @@ awareness about deprecated code.
 
 # Upgrade to 4.3
 
+## The `version` column platform option has been deprecated
+
+The `version` column platform option has been deprecated without a replacement.
+
 ## The `Doctrine\DBAL\Query\Limit` class has been marked as internal
 
 ## Deprecated extension of some classes
