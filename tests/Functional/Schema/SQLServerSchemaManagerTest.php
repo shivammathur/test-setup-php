@@ -27,14 +27,14 @@ class SQLServerSchemaManagerTest extends SchemaManagerFunctionalTestCase
         $columns = $this->schemaManager->listTableColumns($tableName);
 
         // SQL Server should report a default collation on the column
-        self::assertTrue($columns['test']->hasPlatformOption('collation'));
+        self::assertNotNull($columns['test']->getCollation());
 
-        $column->setPlatformOption('collation', $collation = 'Icelandic_CS_AS');
+        $column->setPlatformOption('collation', 'Icelandic_CS_AS');
 
         $this->dropAndCreateTable($table);
         $columns = $this->schemaManager->listTableColumns($tableName);
 
-        self::assertEquals($collation, $columns['test']->getPlatformOption('collation'));
+        self::assertEquals('Icelandic_CS_AS', $columns['test']->getCollation());
     }
 
     public function testDefaultConstraints(): void

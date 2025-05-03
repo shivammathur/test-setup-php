@@ -119,10 +119,10 @@ EOS);
 
         $columns = $this->schemaManager->listTableColumns('test_collation');
 
-        self::assertArrayNotHasKey('collation', $columns['id']->getPlatformOptions());
-        self::assertEquals('BINARY', $columns['text']->getPlatformOption('collation'));
-        self::assertEquals('BINARY', $columns['foo']->getPlatformOption('collation'));
-        self::assertEquals('NOCASE', $columns['bar']->getPlatformOption('collation'));
+        self::assertNull($columns['id']->getCollation());
+        self::assertEquals('BINARY', $columns['text']->getCollation());
+        self::assertEquals('BINARY', $columns['foo']->getCollation());
+        self::assertEquals('NOCASE', $columns['bar']->getCollation());
     }
 
     /**

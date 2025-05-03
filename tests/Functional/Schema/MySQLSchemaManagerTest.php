@@ -157,9 +157,9 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
         $columns = $this->schemaManager->listTableColumns('test_column_charset');
 
-        self::assertFalse($columns['id']->hasPlatformOption('charset'));
-        self::assertEquals('ascii', $columns['foo']->getPlatformOption('charset'));
-        self::assertEquals('latin1', $columns['bar']->getPlatformOption('charset'));
+        self::assertNull($columns['id']->getCharset());
+        self::assertEquals('ascii', $columns['foo']->getCharset());
+        self::assertEquals('latin1', $columns['bar']->getCharset());
     }
 
     public function testAlterColumnCharset(): void
@@ -181,7 +181,7 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
         $table = $this->schemaManager->introspectTable($tableName);
 
-        self::assertEquals('ascii', $table->getColumn('col_text')->getPlatformOption('charset'));
+        self::assertEquals('ascii', $table->getColumn('col_text')->getCharset());
     }
 
     public function testColumnCharsetChange(): void
@@ -205,7 +205,7 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
             'ascii',
             $this->schemaManager->introspectTable('test_column_charset_change')
                 ->getColumn('col_string')
-                ->getPlatformOption('charset'),
+                ->getCharset(),
         );
     }
 
@@ -223,10 +223,10 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
         $columns = $this->schemaManager->listTableColumns('test_collation');
 
-        self::assertFalse($columns['id']->hasPlatformOption('collation'));
-        self::assertEquals('latin1_swedish_ci', $columns['text']->getPlatformOption('collation'));
-        self::assertEquals('latin1_swedish_ci', $columns['foo']->getPlatformOption('collation'));
-        self::assertEquals('utf8mb4_general_ci', $columns['bar']->getPlatformOption('collation'));
+        self::assertNull($columns['id']->getCollation());
+        self::assertEquals('latin1_swedish_ci', $columns['text']->getCollation());
+        self::assertEquals('latin1_swedish_ci', $columns['foo']->getCollation());
+        self::assertEquals('utf8mb4_general_ci', $columns['bar']->getCollation());
         self::assertInstanceOf(BlobType::class, $columns['baz']->getType());
     }
 
