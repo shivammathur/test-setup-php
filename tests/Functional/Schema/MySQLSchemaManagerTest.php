@@ -10,6 +10,7 @@ use Doctrine\DBAL\Exception\DatabaseRequired;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\Functional\Schema\MySQL\CustomType;
 use Doctrine\DBAL\Tests\Functional\Schema\MySQL\PointType;
@@ -40,8 +41,12 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testFulltextIndex(): void
     {
-        $table = new Table('fulltext_index');
-        $table->addColumn('text', Types::TEXT);
+        $table = new Table('fulltext_index', [
+            Column::editor()
+                ->setUnquotedName('text')
+                ->setTypeName(Types::TEXT)
+                ->create(),
+        ]);
         $table->addIndex(['text'], 'f_index');
         $table->addOption('engine', 'MyISAM');
 
@@ -57,8 +62,12 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testSpatialIndex(): void
     {
-        $table = new Table('spatial_index');
-        $table->addColumn('point', 'point');
+        $table = new Table('spatial_index', [
+            Column::editor()
+                ->setUnquotedName('point')
+                ->setTypeName('point')
+                ->create(),
+        ]);
         $table->addIndex(['point'], 's_index');
         $table->addOption('engine', 'MyISAM');
 
@@ -78,8 +87,13 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testIndexWithLength(): void
     {
-        $table = new Table('index_length');
-        $table->addColumn('text', Types::STRING, ['length' => 255]);
+        $table = new Table('index_length', [
+            Column::editor()
+                ->setUnquotedName('text')
+                ->setTypeName(Types::STRING)
+                ->setLength(255)
+                ->create(),
+        ]);
         $table->addIndex(['text'], 'text_index', [], ['lengths' => [128]]);
 
         $this->dropAndCreateTable($table);
@@ -123,11 +137,30 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
             );
         }
 
-        $table = new Table('text_blob_default_value');
-        $table->addColumn('def_text', Types::TEXT, ['default' => 'def']);
-        $table->addColumn('def_text_null', Types::TEXT, ['notnull' => false, 'default' => 'def']);
-        $table->addColumn('def_blob', Types::BLOB, ['default' => 'def']);
-        $table->addColumn('def_blob_null', Types::BLOB, ['notnull' => false, 'default' => 'def']);
+        $table = new Table('text_blob_default_value', [
+            Column::editor()
+                ->setUnquotedName('def_text')
+                ->setTypeName(Types::TEXT)
+                ->setDefaultValue('def')
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('def_text_null')
+                ->setTypeName(Types::TEXT)
+                ->setNotNull(false)
+                ->setDefaultValue('def')
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('def_blob')
+                ->setTypeName(Types::BLOB)
+                ->setDefaultValue('def')
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('def_blob_null')
+                ->setTypeName(Types::BLOB)
+                ->setNotNull(false)
+                ->setDefaultValue('def')
+                ->create(),
+        ]);
 
         $this->dropAndCreateTable($table);
 
@@ -186,11 +219,14 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testColumnCharsetChange(): void
     {
-        $table = new Table('test_column_charset_change');
-        $table->addColumn('col_string', Types::STRING)
-            ->setLength(100)
-            ->setNotnull(true)
-            ->setPlatformOption('charset', 'utf8');
+        $table = new Table('test_column_charset_change', [
+            Column::editor()
+                ->setUnquotedName('col_string')
+                ->setTypeName(Types::STRING)
+                ->setCharset('utf8')
+                ->setLength(100)
+                ->create(),
+        ]);
         $this->dropAndCreateTable($table);
 
         $diffTable = clone $table;
@@ -233,17 +269,46 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
     public function testListLobTypeColumns(): void
     {
         $tableName = 'lob_type_columns';
-        $table     = new Table($tableName);
-
-        $table->addColumn('col_tinytext', Types::TEXT, ['length' => AbstractMySQLPlatform::LENGTH_LIMIT_TINYTEXT]);
-        $table->addColumn('col_text', Types::TEXT, ['length' => AbstractMySQLPlatform::LENGTH_LIMIT_TEXT]);
-        $table->addColumn('col_mediumtext', Types::TEXT, ['length' => AbstractMySQLPlatform::LENGTH_LIMIT_MEDIUMTEXT]);
-        $table->addColumn('col_longtext', Types::TEXT);
-
-        $table->addColumn('col_tinyblob', Types::TEXT, ['length' => AbstractMySQLPlatform::LENGTH_LIMIT_TINYBLOB]);
-        $table->addColumn('col_blob', Types::BLOB, ['length' => AbstractMySQLPlatform::LENGTH_LIMIT_BLOB]);
-        $table->addColumn('col_mediumblob', Types::BLOB, ['length' => AbstractMySQLPlatform::LENGTH_LIMIT_MEDIUMBLOB]);
-        $table->addColumn('col_longblob', Types::BLOB);
+        $table     = new Table($tableName, [
+            Column::editor()
+                ->setUnquotedName('col_tinytext')
+                ->setTypeName(Types::TEXT)
+                ->setLength(AbstractMySQLPlatform::LENGTH_LIMIT_TINYTEXT)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_text')
+                ->setTypeName(Types::TEXT)
+                ->setLength(AbstractMySQLPlatform::LENGTH_LIMIT_TEXT)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_mediumtext')
+                ->setTypeName(Types::TEXT)
+                ->setLength(AbstractMySQLPlatform::LENGTH_LIMIT_MEDIUMTEXT)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_longtext')
+                ->setTypeName(Types::TEXT)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_tinyblob')
+                ->setTypeName(Types::TEXT)
+                ->setLength(AbstractMySQLPlatform::LENGTH_LIMIT_TINYBLOB)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_blob')
+                ->setTypeName(Types::BLOB)
+                ->setLength(AbstractMySQLPlatform::LENGTH_LIMIT_BLOB)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_mediumblob')
+                ->setTypeName(Types::BLOB)
+                ->setLength(AbstractMySQLPlatform::LENGTH_LIMIT_MEDIUMBLOB)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_longblob')
+                ->setTypeName(Types::BLOB)
+                ->create(),
+        ]);
 
         $this->dropAndCreateTable($table);
 
@@ -287,8 +352,12 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testDiffListGuidTableColumn(): void
     {
-        $offlineTable = new Table('list_guid_table_column');
-        $offlineTable->addColumn('col_guid', Types::GUID);
+        $offlineTable = new Table('list_guid_table_column', [
+            Column::editor()
+                ->setUnquotedName('col_guid')
+                ->setTypeName(Types::GUID)
+                ->create(),
+        ]);
 
         $this->dropAndCreateTable($offlineTable);
 
@@ -306,17 +375,20 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
     public function testListDecimalTypeColumns(): void
     {
         $tableName = 'test_list_decimal_columns';
-        $table     = new Table($tableName);
-
-        $table->addColumn('col', Types::DECIMAL, [
-            'precision' => 10,
-            'scale' => 6,
-        ]);
-
-        $table->addColumn('col_unsigned', Types::DECIMAL, [
-            'precision' => 10,
-            'scale' => 6,
-            'unsigned' => true,
+        $table     = new Table($tableName, [
+            Column::editor()
+                ->setUnquotedName('col')
+                ->setTypeName(Types::DECIMAL)
+                ->setPrecision(10)
+                ->setScale(6)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_unsigned')
+                ->setTypeName(Types::DECIMAL)
+                ->setPrecision(10)
+                ->setScale(6)
+                ->setUnsigned(true)
+                ->create(),
         ]);
 
         $this->dropAndCreateTable($table);
@@ -332,10 +404,18 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
     public function testListUnsignedFloatTypeColumns(): void
     {
         $tableName = 'test_unsigned_float_columns';
-        $table     = new Table($tableName);
-
-        $table->addColumn('col_unsigned', Types::FLOAT, ['unsigned' => true]);
-        $table->addColumn('col_smallfloat_unsigned', Types::SMALLFLOAT, ['unsigned' => true]);
+        $table     = new Table($tableName, [
+            Column::editor()
+                ->setUnquotedName('col_unsigned')
+                ->setTypeName(Types::FLOAT)
+                ->setUnsigned(true)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_smallfloat_unsigned')
+                ->setTypeName(Types::SMALLFLOAT)
+                ->setUnsigned(true)
+                ->create(),
+        ]);
 
         $this->dropAndCreateTable($table);
 
@@ -349,8 +429,12 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testJsonColumnType(): void
     {
-        $table = new Table('test_mysql_json');
-        $table->addColumn('col_json', Types::JSON);
+        $table = new Table('test_mysql_json', [
+            Column::editor()
+                ->setUnquotedName('col_json')
+                ->setTypeName(Types::JSON)
+                ->create(),
+        ]);
         $this->dropAndCreateTable($table);
 
         $columns = $this->schemaManager->listTableColumns('test_mysql_json');
@@ -362,16 +446,20 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
     {
         $platform = $this->connection->getDatabasePlatform();
 
-        $table = new Table('test_column_defaults_current_timestamp');
-
         $currentTimeStampSql = $platform->getCurrentTimestampSQL();
 
-        $table->addColumn(
-            'col_datetime',
-            Types::DATETIME_MUTABLE,
-            ['notnull' => true, 'default' => $currentTimeStampSql],
-        );
-        $table->addColumn('col_datetime_nullable', Types::DATETIME_MUTABLE, ['default' => $currentTimeStampSql]);
+        $table = new Table('test_column_defaults_current_timestamp', [
+            Column::editor()
+                ->setUnquotedName('col_datetime')
+                ->setTypeName(Types::DATETIME_MUTABLE)
+                ->setDefaultValue($currentTimeStampSql)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_datetime_nullable')
+                ->setTypeName(Types::DATETIME_MUTABLE)
+                ->setDefaultValue($currentTimeStampSql)
+                ->create(),
+        ]);
 
         $this->dropAndCreateTable($table);
 
@@ -389,19 +477,48 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testColumnDefaultsAreValid(): void
     {
-        $table = new Table('test_column_defaults_are_valid');
-
         $currentTimeStampSql = $this->connection->getDatabasePlatform()->getCurrentTimestampSQL();
-        $table->addColumn('col_datetime', Types::DATETIME_MUTABLE, ['default' => $currentTimeStampSql]);
-        $table->addColumn('col_datetime_null', Types::DATETIME_MUTABLE, ['notnull' => false, 'default' => null]);
-        $table->addColumn('col_int', Types::INTEGER, ['default' => 1]);
-        $table->addColumn('col_neg_int', Types::INTEGER, ['default' => -1]);
-        $table->addColumn('col_string', Types::STRING, [
-            'length' => 1,
-            'default' => 'A',
+
+        $table = new Table('test_column_defaults_are_valid', [
+            Column::editor()
+                ->setUnquotedName('col_datetime')
+                ->setTypeName(Types::DATETIME_MUTABLE)
+                ->setDefaultValue($currentTimeStampSql)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_datetime_null')
+                ->setTypeName(Types::DATETIME_MUTABLE)
+                ->setNotNull(false)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_int')
+                ->setTypeName(Types::INTEGER)
+                ->setDefaultValue(1)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_neg_int')
+                ->setTypeName(Types::INTEGER)
+                ->setDefaultValue(-1)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_string')
+                ->setTypeName(Types::STRING)
+                ->setLength(1)
+                ->setDefaultValue('A')
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_decimal')
+                ->setTypeName(Types::DECIMAL)
+                ->setPrecision(6)
+                ->setScale(3)
+                ->setDefaultValue(-2.3)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_date')
+                ->setTypeName(Types::DATE_MUTABLE)
+                ->setDefaultValue('2012-12-12')
+                ->create(),
         ]);
-        $table->addColumn('col_decimal', Types::DECIMAL, ['scale' => 3, 'precision' => 6, 'default' => -2.3]);
-        $table->addColumn('col_date', Types::DATE_MUTABLE, ['default' => '2012-12-12']);
 
         $this->dropAndCreateTable($table);
 
@@ -442,15 +559,27 @@ class MySQLSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
         $platform = $this->connection->getDatabasePlatform();
 
-        $table = new Table('test_column_defaults_current_time_and_date');
-
         $currentTimestampSql = $platform->getCurrentTimestampSQL();
         $currentTimeSql      = $platform->getCurrentTimeSQL();
         $currentDateSql      = $platform->getCurrentDateSQL();
 
-        $table->addColumn('col_datetime', Types::DATETIME_MUTABLE, ['default' => $currentTimestampSql]);
-        $table->addColumn('col_date', Types::DATE_MUTABLE, ['default' => $currentDateSql]);
-        $table->addColumn('col_time', Types::TIME_MUTABLE, ['default' => $currentTimeSql]);
+        $table = new Table('test_column_defaults_current_time_and_date', [
+            Column::editor()
+                ->setUnquotedName('col_datetime')
+                ->setTypeName(Types::DATETIME_MUTABLE)
+                ->setDefaultValue($currentTimestampSql)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_date')
+                ->setTypeName(Types::DATE_MUTABLE)
+                ->setDefaultValue($currentDateSql)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('col_time')
+                ->setTypeName(Types::TIME_MUTABLE)
+                ->setDefaultValue($currentTimeSql)
+                ->create(),
+        ]);
 
         $this->dropAndCreateTable($table);
 
@@ -550,8 +679,12 @@ SQL;
     {
         Type::addType('custom_type', CustomType::class);
 
-        $metadataTable = new Table('table_with_custom_type');
-        $metadataTable->addColumn('col1', 'custom_type');
+        $metadataTable = new Table('table_with_custom_type', [
+            Column::editor()
+                ->setUnquotedName('col1')
+                ->setTypeName('custom_type')
+                ->create(),
+        ]);
 
         self::assertSame(
             ['CREATE TABLE table_with_custom_type (col1 INT NOT NULL)'],
@@ -569,7 +702,7 @@ SQL;
         self::assertSame(
             ['ALTER TABLE table_with_custom_type CHANGE col1 col1 INT NOT NULL'],
             $this->connection->getDatabasePlatform()->getAlterTableSQL($tablesDiff),
-            ' The column should be changed from VARCAHR TO INT',
+            ' The column should be changed from VARCHAR TO INT',
         );
     }
 

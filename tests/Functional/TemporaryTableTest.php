@@ -33,8 +33,12 @@ class TemporaryTableTest extends FunctionalTestCase
                 . $platform->getColumnDeclarationListSQL([$column->toArray()]) . ')';
         $this->connection->executeStatement($createTempTableSQL);
 
-        $table = new Table('nontemporary');
-        $table->addColumn('id', Types::INTEGER);
+        $table = new Table('nontemporary', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
         $table->setPrimaryKey(['id']);
 
         $this->dropAndCreateTable($table);
@@ -68,8 +72,12 @@ class TemporaryTableTest extends FunctionalTestCase
         $createTempTableSQL = $platform->getCreateTemporaryTableSnippetSQL() . ' ' . $tempTable . ' ('
                 . $platform->getColumnDeclarationListSQL([$column->toArray()]) . ')';
 
-        $table = new Table('nontemporary');
-        $table->addColumn('id', Types::INTEGER);
+        $table = new Table('nontemporary', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
         $table->setPrimaryKey(['id']);
 
         $this->dropAndCreateTable($table);

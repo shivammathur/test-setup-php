@@ -18,6 +18,7 @@ use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Query\ForUpdate\ConflictResolutionMode;
 use Doctrine\DBAL\Query\UnionType;
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Tests\TestUtil;
@@ -31,8 +32,12 @@ final class QueryBuilderTest extends FunctionalTestCase
 {
     protected function setUp(): void
     {
-        $table = new Table('for_update');
-        $table->addColumn('id', Types::INTEGER);
+        $table = new Table('for_update', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
         $table->setPrimaryKey(['id']);
 
         $this->dropAndCreateTable($table);

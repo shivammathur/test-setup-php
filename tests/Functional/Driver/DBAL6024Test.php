@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Tests\Functional\Driver;
 
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Tests\TestUtil;
+use Doctrine\DBAL\Types\Types;
 
 class DBAL6024Test extends FunctionalTestCase
 {
@@ -21,8 +23,12 @@ class DBAL6024Test extends FunctionalTestCase
 
     public function testDropPrimaryKey(): void
     {
-        $table = new Table('mytable');
-        $table->addColumn('id', 'integer');
+        $table = new Table('mytable', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
         $table->setPrimaryKey(['id']);
         $this->dropAndCreateTable($table);
 

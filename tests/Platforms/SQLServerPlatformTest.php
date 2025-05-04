@@ -567,8 +567,12 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
     public function testCreateNonClusteredPrimaryKeyInTable(): void
     {
-        $table = new Table('tbl');
-        $table->addColumn('id', Types::INTEGER);
+        $table = new Table('tbl', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
         $table->setPrimaryKey(['id']);
         $table->getIndex('primary')->addFlag('nonclustered');
 
@@ -651,8 +655,13 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
     public function testCreateTableWithSchemaColumnComments(): void
     {
-        $table = new Table('testschema.test');
-        $table->addColumn('id', Types::INTEGER, ['comment' => 'This is a comment']);
+        $table = new Table('testschema.test', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->setComment('This is a comment')
+                ->create(),
+        ]);
         $table->setPrimaryKey(['id']);
 
         $expectedSql = [

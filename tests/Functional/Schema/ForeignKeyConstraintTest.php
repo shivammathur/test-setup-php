@@ -36,12 +36,20 @@ final class ForeignKeyConstraintTest extends FunctionalTestCase
         $this->dropTableIfExists('roles');
         $this->dropTableIfExists('teams');
 
-        $roles = new Table('roles');
-        $roles->addColumn('id', Types::INTEGER);
+        $roles = new Table('roles', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
         $roles->setPrimaryKey(['id']);
 
-        $teams = new Table('teams');
-        $teams->addColumn('id', Types::INTEGER);
+        $teams = new Table('teams', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
         $teams->setPrimaryKey(['id']);
 
         $users = new Table('users', [
@@ -83,14 +91,28 @@ final class ForeignKeyConstraintTest extends FunctionalTestCase
         $rolesName = OptionallyQualifiedName::unquoted('roles');
         $teamsName = OptionallyQualifiedName::unquoted('teams');
 
-        $roles = new Table($rolesName->toString());
-        $roles->addColumn('r_id1', Types::INTEGER);
-        $roles->addColumn('r_id2', Types::INTEGER);
+        $roles = new Table($rolesName->toString(), [
+            Column::editor()
+                ->setUnquotedName('r_id1')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('r_id2')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
         $roles->setPrimaryKey(['r_id1', 'r_id2']);
 
-        $teams = new Table($teamsName->toString());
-        $teams->addColumn('t_id1', Types::INTEGER);
-        $teams->addColumn('t_id2', Types::INTEGER);
+        $teams = new Table($teamsName->toString(), [
+            Column::editor()
+                ->setUnquotedName('t_id1')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('t_id2')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
         $teams->setPrimaryKey(['t_id1', 't_id2']);
 
         $foreignKeyConstraints = [
@@ -206,8 +228,12 @@ final class ForeignKeyConstraintTest extends FunctionalTestCase
         $this->dropTableIfExists('users');
         $this->dropTableIfExists('roles');
 
-        $roles = new Table('roles');
-        $roles->addColumn('id', Types::INTEGER);
+        $roles = new Table('roles', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
         $roles->setPrimaryKey(['id']);
 
         $editor = ForeignKeyConstraint::editor()
@@ -337,8 +363,12 @@ final class ForeignKeyConstraintTest extends FunctionalTestCase
         $this->dropTableIfExists('users');
         $this->dropTableIfExists('roles');
 
-        $roles = new Table('roles');
-        $roles->addColumn('id', Types::INTEGER);
+        $roles = new Table('roles', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
         $roles->setPrimaryKey(['id']);
 
         $users = new Table('users', [

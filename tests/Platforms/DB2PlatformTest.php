@@ -115,9 +115,17 @@ class DB2PlatformTest extends AbstractPlatformTestCase
 
     public function testGeneratesCreateTableSQLWithCommonIndexes(): void
     {
-        $table = new Table('test');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('name', Types::STRING, ['length' => 50]);
+        $table = new Table('test', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('name')
+                ->setTypeName(Types::STRING)
+                ->setLength(50)
+                ->create(),
+        ]);
         $table->setPrimaryKey(['id']);
         $table->addIndex(['name']);
         $table->addIndex(['id', 'name'], 'composite_idx');
@@ -134,10 +142,20 @@ class DB2PlatformTest extends AbstractPlatformTestCase
 
     public function testGeneratesCreateTableSQLWithForeignKeyConstraints(): void
     {
-        $table = new Table('test');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('fk_1', Types::INTEGER);
-        $table->addColumn('fk_2', Types::INTEGER);
+        $table = new Table('test', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('fk_1')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('fk_2')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
         $table->setPrimaryKey(['id']);
         $table->addForeignKeyConstraint('foreign_table', ['fk_1', 'fk_2'], ['pk_1', 'pk_2']);
         $table->addForeignKeyConstraint(
@@ -164,10 +182,22 @@ class DB2PlatformTest extends AbstractPlatformTestCase
 
     public function testGeneratesCreateTableSQLWithCheckConstraints(): void
     {
-        $table = new Table('test');
-        $table->addColumn('id', Types::INTEGER);
-        $table->addColumn('check_max', Types::INTEGER, ['platformOptions' => ['max' => 10]]);
-        $table->addColumn('check_min', Types::INTEGER, ['platformOptions' => ['min' => 10]]);
+        $table = new Table('test', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('check_max')
+                ->setTypeName(Types::INTEGER)
+                ->setMaximumValue(10)
+                ->create(),
+            Column::editor()
+                ->setUnquotedName('check_min')
+                ->setTypeName(Types::INTEGER)
+                ->setMinimumValue(10)
+                ->create(),
+        ]);
         $table->setPrimaryKey(['id']);
 
         self::assertEquals(
