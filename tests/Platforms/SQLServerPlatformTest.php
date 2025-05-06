@@ -15,6 +15,7 @@ use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\ComparatorConfig;
 use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
@@ -567,14 +568,21 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
     public function testCreateNonClusteredPrimaryKeyInTable(): void
     {
-        $table = new Table('tbl', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['id']);
-        $table->getIndex('primary')->addFlag('nonclustered');
+        $table = Table::editor()
+            ->setUnquotedName('tbl')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->setIsClustered(false)
+                    ->create(),
+            )
+            ->create();
 
         self::assertEquals(
             ['CREATE TABLE tbl (id INT NOT NULL, PRIMARY KEY NONCLUSTERED (id))'],

@@ -26,6 +26,7 @@ use LogicException;
 use function array_map;
 use function array_merge;
 use function array_values;
+use function assert;
 use function count;
 use function implode;
 use function in_array;
@@ -199,6 +200,13 @@ class Table extends AbstractNamedObject
             ),
             $primaryKeyConstraint->getObjectName()?->toString(),
         );
+
+        // there is no way to set a primary index with flags. we have to set it and then add the flag
+        if (! $primaryKeyConstraint->isClustered()) {
+            $index = $this->getPrimaryKey();
+            assert($index !== null);
+            $index->addFlag('nonclustered');
+        }
 
         $this->primaryKeyConstraint = $primaryKeyConstraint;
 
