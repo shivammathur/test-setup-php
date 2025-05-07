@@ -5,8 +5,14 @@ jobs:
   runner:
     runs-on: ubuntu-latest
     steps:
-      - uses: shivammathur/setup-php@more-verbose
+      - name: Setup PHP
+        uses: shivammathur/setup-php@more-verbose
         with:
-          php-version: 8.4
+          php-version: '8.4'
+          extensions: grpc, protobuf, sodium, :php-psr
+          tools: composer:v2
+          coverage: none
+        env:
+          update: true
 
       - run: php -v && php -m
