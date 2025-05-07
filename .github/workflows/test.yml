@@ -1,12 +1,12 @@
-name: HTTP workflow
+name: Test
 on:
   push:
 jobs:
-  php-stan:
+  runner:
     runs-on: ubuntu-latest
     steps:
       - uses: shivammathur/setup-php@more-verbose
         with:
-          php-version: 8.3
-          extensions: gnupg
+          php-version: 8.4
+
       - run: php -v && php -m
