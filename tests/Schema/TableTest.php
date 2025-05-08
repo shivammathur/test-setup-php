@@ -375,26 +375,19 @@ class TableTest extends TestCase
 
     public function testAddForeignKeyConstraintUnknownLocalColumnThrowsException(): void
     {
-        $this->expectException(SchemaException::class);
-
         $table = new Table('foo');
         $table->addColumn('id', Types::INTEGER);
 
-        $foreignTable = new Table('bar');
-        $foreignTable->addColumn('id', Types::INTEGER);
+        $this->expectException(SchemaException::class);
 
-        $table->addForeignKeyConstraint($foreignTable->getName(), ['foo'], ['id']);
+        $table->addForeignKeyConstraint('bar', ['foo'], ['id']);
     }
 
     public function testAddForeignKeyConstraint(): void
     {
         $table = new Table('foo');
         $table->addColumn('id', Types::INTEGER);
-
-        $foreignTable = new Table('bar');
-        $foreignTable->addColumn('id', Types::INTEGER);
-
-        $table->addForeignKeyConstraint($foreignTable->getName(), ['id'], ['id'], ['foo' => 'bar']);
+        $table->addForeignKeyConstraint('bar', ['id'], ['id'], ['foo' => 'bar']);
 
         $constraints = $table->getForeignKeys();
         self::assertCount(1, $constraints);
@@ -443,11 +436,7 @@ class TableTest extends TestCase
     {
         $table = new Table('foo');
         $table->addColumn('id', Types::INTEGER);
-
-        $foreignTable = new Table('bar');
-        $foreignTable->addColumn('id', Types::INTEGER);
-
-        $table->addForeignKeyConstraint($foreignTable->getName(), ['id'], ['id'], ['foo' => 'bar']);
+        $table->addForeignKeyConstraint('bar', ['id'], ['id'], ['foo' => 'bar']);
 
         $indexes = $table->getIndexes();
         self::assertCount(1, $indexes);
@@ -463,11 +452,7 @@ class TableTest extends TestCase
         $table = new Table('foo');
         $table->addColumn('bar', Types::INTEGER);
         $table->addIndex(['bar'], 'bar_idx');
-
-        $foreignTable = new Table('bar');
-        $foreignTable->addColumn('foo', Types::INTEGER);
-
-        $table->addForeignKeyConstraint($foreignTable->getName(), ['bar'], ['foo']);
+        $table->addForeignKeyConstraint('bar', ['bar'], ['foo']);
 
         self::assertCount(1, $table->getIndexes());
         self::assertTrue($table->hasIndex('bar_idx'));
@@ -482,12 +467,7 @@ class TableTest extends TestCase
         $table->addColumn('bloo', Types::STRING);
         $table->addIndex(['baz', 'bar'], 'composite_idx');
         $table->addIndex(['bar', 'baz', 'bloo'], 'full_idx');
-
-        $foreignTable = new Table('bar');
-        $foreignTable->addColumn('foo', Types::INTEGER);
-        $foreignTable->addColumn('baz', Types::STRING);
-
-        $table->addForeignKeyConstraint($foreignTable->getName(), ['bar', 'baz'], ['foo', 'baz']);
+        $table->addForeignKeyConstraint('bar', ['bar', 'baz'], ['foo', 'baz']);
 
         self::assertCount(3, $table->getIndexes());
         self::assertTrue($table->hasIndex('composite_idx'));
@@ -562,12 +542,9 @@ class TableTest extends TestCase
 
     public function testAddingFulfillingRegularIndexOverridesImplicitForeignKeyConstraintIndex(): void
     {
-        $foreignTable = new Table('foreign');
-        $foreignTable->addColumn('id', Types::INTEGER);
-
         $localTable = new Table('local');
         $localTable->addColumn('id', Types::INTEGER);
-        $localTable->addForeignKeyConstraint($foreignTable->getName(), ['id'], ['id']);
+        $localTable->addForeignKeyConstraint('foreign', ['id'], ['id']);
 
         self::assertCount(1, $localTable->getIndexes());
 
@@ -579,12 +556,9 @@ class TableTest extends TestCase
 
     public function testAddingFulfillingUniqueIndexOverridesImplicitForeignKeyConstraintIndex(): void
     {
-        $foreignTable = new Table('foreign');
-        $foreignTable->addColumn('id', Types::INTEGER);
-
         $localTable = new Table('local');
         $localTable->addColumn('id', Types::INTEGER);
-        $localTable->addForeignKeyConstraint($foreignTable->getName(), ['id'], ['id']);
+        $localTable->addForeignKeyConstraint('foreign', ['id'], ['id']);
 
         self::assertCount(1, $localTable->getIndexes());
 
@@ -596,12 +570,9 @@ class TableTest extends TestCase
 
     public function testAddingFulfillingPrimaryKeyOverridesImplicitForeignKeyConstraintIndex(): void
     {
-        $foreignTable = new Table('foreign');
-        $foreignTable->addColumn('id', Types::INTEGER);
-
         $localTable = new Table('local');
         $localTable->addColumn('id', Types::INTEGER);
-        $localTable->addForeignKeyConstraint($foreignTable->getName(), ['id'], ['id']);
+        $localTable->addForeignKeyConstraint('foreign', ['id'], ['id']);
 
         self::assertCount(1, $localTable->getIndexes());
 
@@ -613,12 +584,9 @@ class TableTest extends TestCase
 
     public function testAddingFulfillingExplicitIndexOverridingImplicitForeignKeyConstraintIndexWithSameName(): void
     {
-        $foreignTable = new Table('foreign');
-        $foreignTable->addColumn('id', Types::INTEGER);
-
         $localTable = new Table('local');
         $localTable->addColumn('id', Types::INTEGER);
-        $localTable->addForeignKeyConstraint($foreignTable->getName(), ['id'], ['id']);
+        $localTable->addForeignKeyConstraint('foreign', ['id'], ['id']);
 
         self::assertCount(1, $localTable->getIndexes());
         self::assertTrue($localTable->hasIndex('IDX_8BD688E8BF396750'));

@@ -391,60 +391,24 @@ abstract class AbstractPlatformTestCase extends TestCase
         $table->addColumn('foo', Types::STRING, ['length' => 255]);
         $table->addColumn('`bar`', Types::STRING, ['length' => 255]);
 
-        // Foreign table with reserved keyword as name (needs quotation).
-        $foreignTable = new Table('foreign');
-
-        // Foreign column with reserved keyword as name (needs quotation).
-        $foreignTable->addColumn('create', Types::STRING);
-
-        // Foreign column with non-reserved keyword as name (does not need quotation).
-        $foreignTable->addColumn('bar', Types::STRING);
-
-        // Foreign table with special character in name (needs quotation on some platforms, e.g. Sqlite).
-        $foreignTable->addColumn('`foo-bar`', Types::STRING);
-
         $table->addForeignKeyConstraint(
-            $foreignTable->getQuotedName($this->platform),
+            'foreign',
             ['create', 'foo', '`bar`'],
             ['create', 'bar', '`foo-bar`'],
             [],
             'FK_WITH_RESERVED_KEYWORD',
         );
 
-        // Foreign table with non-reserved keyword as name (does not need quotation).
-        $foreignTable = new Table('foo');
-
-        // Foreign column with reserved keyword as name (needs quotation).
-        $foreignTable->addColumn('create', Types::STRING);
-
-        // Foreign column with non-reserved keyword as name (does not need quotation).
-        $foreignTable->addColumn('bar', Types::STRING);
-
-        // Foreign table with special character in name (needs quotation on some platforms, e.g. Sqlite).
-        $foreignTable->addColumn('`foo-bar`', Types::STRING);
-
         $table->addForeignKeyConstraint(
-            $foreignTable->getQuotedName($this->platform),
+            'foo',
             ['create', 'foo', '`bar`'],
             ['create', 'bar', '`foo-bar`'],
             [],
             'FK_WITH_NON_RESERVED_KEYWORD',
         );
 
-        // Foreign table with special character in name (needs quotation on some platforms, e.g. Sqlite).
-        $foreignTable = new Table('`foo-bar`');
-
-        // Foreign column with reserved keyword as name (needs quotation).
-        $foreignTable->addColumn('create', Types::STRING);
-
-        // Foreign column with non-reserved keyword as name (does not need quotation).
-        $foreignTable->addColumn('bar', Types::STRING);
-
-        // Foreign table with special character in name (needs quotation on some platforms, e.g. Sqlite).
-        $foreignTable->addColumn('`foo-bar`', Types::STRING);
-
         $table->addForeignKeyConstraint(
-            $foreignTable->getQuotedName($this->platform),
+            '`foo-bar`',
             ['create', 'foo', '`bar`'],
             ['create', 'bar', '`foo-bar`'],
             [],
