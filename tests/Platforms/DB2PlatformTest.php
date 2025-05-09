@@ -477,7 +477,17 @@ class DB2PlatformTest extends AbstractPlatformTestCase
         ?string $expectedSQLClause,
         bool $shouldReorg = true,
     ): void {
-        $tableDiff = new TableDiff(new Table('foo'), changedColumns: [
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
+
+        $tableDiff = new TableDiff($table, changedColumns: [
             $oldColumn->getName() => new ColumnDiff($oldColumn, $newColumn),
         ]);
 

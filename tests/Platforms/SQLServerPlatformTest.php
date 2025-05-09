@@ -683,7 +683,15 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
     public function testAlterTableWithSchemaColumnComments(): void
     {
-        $table = new Table('testschema.mytable');
+        $table = Table::editor()
+            ->setUnquotedName('mytable', 'testschema')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = new TableDiff($table, addedColumns: [Column::editor()
                 ->setUnquotedName('quota')
@@ -703,7 +711,15 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
     public function testAlterTableWithSchemaDropColumnComments(): void
     {
-        $table = new Table('testschema.mytable');
+        $table = Table::editor()
+            ->setUnquotedName('mytable', 'testschema')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = new TableDiff($table, changedColumns: [
             'quota' => new ColumnDiff(
@@ -729,7 +745,15 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
     public function testAlterTableWithSchemaUpdateColumnComments(): void
     {
-        $table = new Table('testschema.mytable');
+        $table = Table::editor()
+            ->setUnquotedName('mytable', 'testschema')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = new TableDiff($table, changedColumns: [
             'quota' => new ColumnDiff(
@@ -1127,7 +1151,15 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
     public function testAlterTableWithSchemaSameColumnComments(): void
     {
-        $table = new Table('testschema.mytable');
+        $table = Table::editor()
+            ->setUnquotedName('mytable', 'testschema')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = new TableDiff($table, changedColumns: [
             'quota' => new ColumnDiff(

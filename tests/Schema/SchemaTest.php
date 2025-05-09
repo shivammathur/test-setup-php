@@ -24,7 +24,15 @@ class SchemaTest extends TestCase
     public function testAddTable(): void
     {
         $tableName = 'public.foo';
-        $table     = new Table($tableName);
+        $table     = Table::editor()
+            ->setUnquotedName($tableName)
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $schema = new Schema([$table]);
 
@@ -37,7 +45,7 @@ class SchemaTest extends TestCase
 
     public function testTableMatchingCaseInsensitive(): void
     {
-        $table = new Table('Foo');
+        $table = $this->createTable('Foo');
 
         $schema = new Schema([$table]);
         self::assertTrue($schema->hasTable('foo'));
@@ -60,9 +68,8 @@ class SchemaTest extends TestCase
     {
         $this->expectException(SchemaException::class);
 
-        $tableName = 'foo';
-        $table     = new Table($tableName);
-        $tables    = [$table, $table];
+        $table  = $this->createTable('foo');
+        $tables = [$table, $table];
 
         new Schema($tables);
     }
@@ -82,9 +89,8 @@ class SchemaTest extends TestCase
 
     public function testDropTable(): void
     {
-        $tableName = 'foo';
-        $table     = new Table($tableName);
-        $schema    = new Schema([$table]);
+        $table  = $this->createTable('foo');
+        $schema = new Schema([$table]);
 
         self::assertTrue($schema->hasTable('foo'));
 
@@ -364,7 +370,7 @@ class SchemaTest extends TestCase
             'https://github.com/doctrine/dbal/pull/6677#user-content-qualified-names',
         );
 
-        new Schema([new Table('t'), new Table('public.t')]);
+        new Schema([$this->createTable('t'), $this->createTable('t', 'public')]);
     }
 
     public function testAddObjectWithUnqualifiedNameAfterQualifiedName(): void
@@ -373,12 +379,12 @@ class SchemaTest extends TestCase
             'https://github.com/doctrine/dbal/pull/6677#user-content-unqualified-names',
         );
 
-        new Schema([new Table('public.t'), new Table('t')]);
+        new Schema([$this->createTable('t', 'public'), $this->createTable('t')]);
     }
 
     public function testReferenceByQualifiedNameAmongUnqualifiedNames(): void
     {
-        $schema = new Schema([new Table('t')]);
+        $schema = new Schema([$this->createTable('t')]);
 
         $this->expectDeprecationWithIdentifier(
             'https://github.com/doctrine/dbal/pull/6677#user-content-qualified-names',
@@ -389,7 +395,7 @@ class SchemaTest extends TestCase
 
     public function testReferenceByUnqualifiedNameAmongQualifiedNames(): void
     {
-        $schema = new Schema([new Table('public.t')]);
+        $schema = new Schema([$this->createTable('t', 'public')]);
 
         $this->expectDeprecationWithIdentifier(
             'https://github.com/doctrine/dbal/pull/6677#user-content-unqualified-names',
@@ -407,7 +413,10 @@ class SchemaTest extends TestCase
             'https://github.com/doctrine/dbal/pull/6677#user-content-qualified-names',
         );
 
-        new Schema([new Table('t'), new Table('public.s')], [], $schemaConfig);
+        new Schema([
+            $this->createTable('t'),
+            $this->createTable('s', 'public'),
+        ], [], $schemaConfig);
     }
 
     public function testAddObjectWithUnqualifiedNameAfterQualifiedNameWithDefaultNamespace(): void
@@ -419,7 +428,10 @@ class SchemaTest extends TestCase
             'https://github.com/doctrine/dbal/pull/6677#user-content-unqualified-names',
         );
 
-        new Schema([new Table('public.t'), new Table('s')], [], $schemaConfig);
+        new Schema([
+            $this->createTable('t', 'public'),
+            $this->createTable('s'),
+        ], [], $schemaConfig);
     }
 
     public function testReferencingByUnqualifiedNameAmongQualifiedNamesWithDefaultNamespace(): void
@@ -427,12 +439,31 @@ class SchemaTest extends TestCase
         $schemaConfig = new SchemaConfig();
         $schemaConfig->setName('public');
 
-        $schema = new Schema([new Table('public.t')], [], $schemaConfig);
+        $schema = new Schema([
+            $this->createTable('t', 'public'),
+        ], [], $schemaConfig);
 
         self::assertTrue($schema->hasTable('t'));
         self::assertTrue($schema->hasTable('public.t'));
 
         self::assertFalse($schema->hasTable('s'));
         self::assertFalse($schema->hasTable('public.s'));
+    }
+
+    /**
+     * @param non-empty-string  $unqualifiedName
+     * @param ?non-empty-string $qualifier
+     */
+    private function createTable(string $unqualifiedName, ?string $qualifier = null): Table
+    {
+        return Table::editor()
+            ->setUnquotedName($unqualifiedName, $qualifier)
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
     }
 }

@@ -259,7 +259,15 @@ class SQLitePlatformTest extends AbstractPlatformTestCase
 
     public function testAlterTableAddColumns(): void
     {
-        $table = new Table('user');
+        $table = Table::editor()
+            ->setUnquotedName('user')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $diff = new TableDiff($table, addedColumns: [
             Column::editor()
