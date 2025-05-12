@@ -9,7 +9,6 @@ use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
-use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Throwable;
 
@@ -23,7 +22,10 @@ class TemporaryTableTest extends FunctionalTestCase
             self::markTestSkipped('Test does not work on Oracle.');
         }
 
-        $column = new Column('id', Type::getType(Types::INTEGER));
+        $column = Column::editor()
+            ->setUnquotedName('id')
+            ->setTypeName(Types::INTEGER)
+            ->create();
 
         $tempTable = $platform->getTemporaryTableName('my_temporary');
 
@@ -31,8 +33,12 @@ class TemporaryTableTest extends FunctionalTestCase
                 . $platform->getColumnDeclarationListSQL([$column->toArray()]) . ')';
         $this->connection->executeStatement($createTempTableSQL);
 
-        $table = new Table('nontemporary');
-        $table->addColumn('id', Types::INTEGER);
+        $table = new Table('nontemporary', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
         $table->setPrimaryKey(['id']);
 
         $this->dropAndCreateTable($table);
@@ -56,15 +62,22 @@ class TemporaryTableTest extends FunctionalTestCase
             self::markTestSkipped('Test does not work on Oracle.');
         }
 
-        $column = new Column('id', Type::getType(Types::INTEGER));
+        $column = Column::editor()
+            ->setUnquotedName('id')
+            ->setTypeName(Types::INTEGER)
+            ->create();
 
         $tempTable = $platform->getTemporaryTableName('my_temporary');
 
         $createTempTableSQL = $platform->getCreateTemporaryTableSnippetSQL() . ' ' . $tempTable . ' ('
                 . $platform->getColumnDeclarationListSQL([$column->toArray()]) . ')';
 
-        $table = new Table('nontemporary');
-        $table->addColumn('id', Types::INTEGER);
+        $table = new Table('nontemporary', [
+            Column::editor()
+                ->setUnquotedName('id')
+                ->setTypeName(Types::INTEGER)
+                ->create(),
+        ]);
         $table->setPrimaryKey(['id']);
 
         $this->dropAndCreateTable($table);
