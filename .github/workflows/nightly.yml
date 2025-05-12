@@ -4,9 +4,6 @@ on:
   schedule:
     - cron: "12 3 * * *"
 
-env:
-  fail-fast: true
-
 jobs:
   phpunit-mariadb-devel:
     name: "PHPUnit with MariaDB"
