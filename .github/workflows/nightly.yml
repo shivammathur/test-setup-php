@@ -50,6 +50,8 @@ jobs:
           coverage: "pcov"
           ini-values: "zend.assertions=1"
           extensions: "${{ matrix.extension }}"
+        env:
+          fail-fast: true
 
       - name: "Install dependencies with Composer"
         uses: "ramsey/composer-install@v3"
