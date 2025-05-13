@@ -1,41 +1,22 @@
 name: Test ext workflow
 on: [push]
 jobs:
-  standard:
+  ext:
     strategy:
       matrix:
-        include:
-          - os: ubuntu-latest
-            container: ubuntu:20.04
-          - os: ubuntu-latest
-            container: ubuntu:22.04
-          - os: ubuntu-latest
-            container: ubuntu:24.04
-          - os: ubuntu-20.04
-          - os: ubuntu-22.04
-          - os: ubuntu-24.04
+        os: [windows-latest]
+        php: [7.4, 8.0, 8.1, 8.2, 8.3, 8.4]
+        ts: [nts, ts]
     runs-on: ${{ matrix.os }}
-    container: ${{ matrix.container }}
     steps:
-    - name: "Setup PHP extension caching"
-      id: extcache
-      uses: shivammathur/cache-extensions@develop
-      with:
-        php-version: 8.2
-        extensions: mongodb,redis,sqlite3,gd,bcmath,pecl_http,memcached,grpc
-        key: php-extensions-${{ runner.os }}-foov4
-
-    - name: "Cache extensions"
-      uses: actions/cache@v4
-      with:
-        path: ${{ steps.extcache.outputs.dir }}
-        key: ${{ steps.extcache.outputs.key }}-foov4
-        restore-keys: ${{ steps.extcache.outputs.key }}-foov4
-
     - name: "Setup PHP"
-      uses: shivammathur/setup-php@develop
+      uses: shivammathur/setup-php@verbose
       with:
-        php-version: 8.2
-        extensions: mongodb,redis,sqlite3,gd,bcmath,pecl_http,memcached,grpc
-        coverage: none
-    - run: php -v && php -m    
+        php-version: ${{ matrix.php }}
+        extensions: amqp
+      env:
+        phpts: ${{ matrix.ts }}
+    - run: |
+        php -v
+        php -r "echo phpversion('amqp') . PHP_EOL;"
+        php -m    
