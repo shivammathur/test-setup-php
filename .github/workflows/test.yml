@@ -74,7 +74,7 @@ jobs:
             -DOPENSSL_INCLUDE_DIR="$opensslRoot\include" `
             -DCMAKE_BUILD_TYPE=Debug `
             -DBUILD_SHARED_LIBS=ON `
-            -DCMAKE_INSTALL_PREFIX="${{ runner.workspace }}/build/install"
+            -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/build/install"
 
       - name: Build & install
         run: cmake --build build --config Release --target install
@@ -83,4 +83,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rabbitmq-c-${{ matrix.label }}-${{ matrix.arch }}
-          path: ${{github.workspace}}/../build/install
+          path: ${{github.workspace}}/build/install
