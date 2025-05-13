@@ -13,26 +13,32 @@ jobs:
             generator: "Visual Studio 16 2019"
             arch: x64
             toolset: v141
+            label: vc15
           - os: windows-2019
             generator: "Visual Studio 16 2019"
             arch: x64
             toolset: v142
+            label: vs16
           - os: windows-2022
             generator: "Visual Studio 17 2022"
             arch: x64
             toolset: v143
+            label: vs17
           - os: windows-2019
             generator: "Visual Studio 16 2019"
             arch: Win32
             toolset: v141
+            label: vc15
           - os: windows-2019
             generator: "Visual Studio 16 2019"
             arch: Win32
             toolset: v142
+            label: vs16
           - os: windows-2022
             generator: "Visual Studio 17 2022"
             arch: Win32
             toolset: v143
+            label: vs17
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -68,5 +74,5 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rabbitmq-c-${{ matrix.os }}-${{ matrix.generator }}-${{ matrix.arch }}
-          path: build
+          name: rabbitmq-c-${{ matrix.label }}-${{ matrix.arch }}
+          path: build/install
