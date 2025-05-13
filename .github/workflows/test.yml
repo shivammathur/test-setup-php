@@ -51,15 +51,15 @@ jobs:
 
       - name: Install OpenSSL (x64 or Win32)
         run: |
+          $ver = (choco search openssl --exact --limit-output).split('\|')[1]
+          $verUnd = $ver -replace '\.', '_'
+          $archName = '${{ matrix.arch }}'
           if ('${{ matrix.arch }}' -eq 'x64') {
-            # install the 64‑bit MSI into C:\OpenSSL-Win64
-            choco install openssl -y --no-progress `
-              --install-arguments="'/SP- /silent /DIR=C:\OpenSSL-Win64'"
-          } else {
-            # force the 32‑bit MSI into C:\OpenSSL-Win32
-            choco install openssl -y --no-progress --x86 `
-              --install-arguments="'/SP- /silent /DIR=C:\OpenSSL-Win32'"
+            $archName = 'Win64'
           }
+          Invoke-WebRequest "https://slproweb.com/download/${archName}OpenSSL-$verUnd.exe" -OutFile openssl-installer.exe
+          Start-Process -FilePath openssl-installer.exe -ArgumentList '/SP-','/VERYSILENT','/NORESTART',"/DIR=C:\OpenSSL-$archName" -NoNewWindow -Wait
+          refreshenv
 
       - name: Configure with CMake
         run: |
