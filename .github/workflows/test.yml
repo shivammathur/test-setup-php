@@ -31,7 +31,7 @@ jobs:
 
     steps:
       - name: Checkout source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: alanxz/rabbitmq-c
           ref: v0.15.0
@@ -51,7 +51,7 @@ jobs:
         run: cmake --build build --config Release --target install
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: rabbitmq-c-${{ matrix.os }}-${{ matrix.generator }}-${{ matrix.arch }}
           path: build
