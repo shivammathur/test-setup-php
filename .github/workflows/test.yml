@@ -43,7 +43,7 @@ jobs:
           ref: v0.15.0
 
       - name: Install openssl
-        if: matrix.arch == "Win32"
+        if: matrix.arch != 'x64'
         run: |
           choco uninstall openssl.light
           choco install openssl.light --x86 -f -y
