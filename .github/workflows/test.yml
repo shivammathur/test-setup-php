@@ -8,14 +8,25 @@ jobs:
   build:
     strategy:
       matrix:
-        arch: [x64, x86]
         include:
           - os: windows-2019
             generator: "Visual Studio 15 2017"
+            arch: x64
           - os: windows-2019
             generator: "Visual Studio 16 2019"
+            arch: x64
           - os: windows-2022
             generator: "Visual Studio 17 2022"
+            arch: x64
+          - os: windows-2019
+            generator: "Visual Studio 15 2017"
+            arch: x86
+          - os: windows-2019
+            generator: "Visual Studio 16 2019"
+            arch: x86
+          - os: windows-2022
+            generator: "Visual Studio 17 2022"
+            arch: x86
     runs-on: ${{ matrix.os }}
 
     steps:
