@@ -51,6 +51,7 @@ jobs:
 
       - name: Install OpenSSL (x64 or Win32)
         run: |
+          choco search openssl --exact --limit-output
           $ver = (choco search openssl --exact --limit-output).split('\|')[1]
           $verUnd = $ver -replace '\.', '_'
           $archName = '${{ matrix.arch }}'
