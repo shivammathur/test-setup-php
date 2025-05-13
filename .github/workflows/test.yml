@@ -40,11 +40,11 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. \
-            -G "${{ matrix.generator }}" \
-            -A ${{ matrix.arch }} \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_SHARED_LIBS=ON \
+          cmake .. `
+            -G "${{ matrix.generator }}" `
+            -A ${{ matrix.arch }} `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DBUILD_SHARED_LIBS=ON `
             -DCMAKE_INSTALL_PREFIX="${{ runner.workspace }}/build/install"
 
       - name: Build & install
