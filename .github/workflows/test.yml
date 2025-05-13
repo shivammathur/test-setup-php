@@ -7,6 +7,7 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-2019
@@ -67,6 +68,7 @@ jobs:
           } else {
             'C:\OpenSSL-Win32'
           }
+          Write-Host "OpenSSL: $opensslRoot"
           mkdir build
           cd build
           cmake .. `
