@@ -64,6 +64,7 @@ jobs:
             -T "${{ matrix.toolset }}" `
             -DWITH_TLS=ON `
             -DOPENSSL_ROOT_DIR="C:\Program Files\OpenSSL" `
+            -DOPENSSL_USE_STATIC_LIBS=TRUE `
             -DCMAKE_BUILD_TYPE=Debug `
             -DBUILD_SHARED_LIBS=ON `
             -DCMAKE_INSTALL_PREFIX="${{ runner.workspace }}/build/install"
