@@ -1,9 +1,6 @@
-# .github/workflows/windows-build.yml
-name: Build rabbitmq-c v0.15.0 on Windows
-
+name: Build rabbitmq-c
 on:
   push:
-
 jobs:
   build:
     strategy:
@@ -13,31 +10,37 @@ jobs:
           - os: windows-2019
             generator: "Visual Studio 16 2019"
             arch: x64
+            archName: Win64
             toolset: v141
             label: vc15
           - os: windows-2019
             generator: "Visual Studio 16 2019"
             arch: x64
+            archName: Win64
             toolset: v142
             label: vs16
           - os: windows-2022
             generator: "Visual Studio 17 2022"
             arch: x64
+            archName: Win64
             toolset: v143
             label: vs17
           - os: windows-2019
             generator: "Visual Studio 16 2019"
             arch: Win32
+            archName: Win32
             toolset: v141
             label: vc15
           - os: windows-2019
             generator: "Visual Studio 16 2019"
             arch: Win32
+            archName: Win32
             toolset: v142
             label: vs16
           - os: windows-2022
             generator: "Visual Studio 17 2022"
             arch: Win32
+            archName: Win32
             toolset: v143
             label: vs17
     runs-on: ${{ matrix.os }}
@@ -53,21 +56,13 @@ jobs:
         run: |
           $ver = (choco search openssl --exact --limit-output).split('|')[1]
           $verUnd = $ver -replace '\.', '_'
-          $archName = '${{ matrix.arch }}'
-          if ('${{ matrix.arch }}' -eq 'x64') {
-            $archName = 'Win64'
-          }
+          $archName = '${{ matrix.archName }}'
           Start-BitsTransfer -Source "https://slproweb.com/download/${archName}OpenSSL-$verUnd.exe" -Destination openssl-installer.exe
           Start-Process -FilePath openssl-installer.exe -ArgumentList '/SP-','/VERYSILENT','/NORESTART',"/DIR=C:\OpenSSL-$archName" -NoNewWindow -Wait
 
       - name: Configure with CMake
         run: |
-          $opensslRoot = if ('${{ matrix.arch }}' -eq 'x64') {
-            'C:\OpenSSL-Win64'
-          } else {
-            'C:\OpenSSL-Win32'
-          }
-          Write-Host "OpenSSL: $opensslRoot"
+          $opensslRoot = 'C:\OpenSSL-${{ matrix.archName }}'
           mkdir build
           cd build
           cmake .. `
@@ -88,4 +83,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rabbitmq-c-${{ matrix.label }}-${{ matrix.arch }}
-          path: ${{github.workspace}}/build/install
+          path: ${{github.workspace}}/../build/install
