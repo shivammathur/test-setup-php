@@ -53,11 +53,11 @@ jobs:
         run: |
           if ('${{ matrix.arch }}' -eq 'x64') {
             # install the 64‑bit MSI into C:\OpenSSL-Win64
-            choco install openssl.light -y --no-progress `
+            choco install openssl -y --no-progress `
               --install-arguments="'/SP- /silent /DIR=C:\OpenSSL-Win64'"
           } else {
             # force the 32‑bit MSI into C:\OpenSSL-Win32
-            choco install openssl.light -y --no-progress --x86 `
+            choco install openssl -y --no-progress --x86 `
               --install-arguments="'/SP- /silent /DIR=C:\OpenSSL-Win32'"
           }
 
