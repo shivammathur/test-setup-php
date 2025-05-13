@@ -1,18 +1,46 @@
-name: Test
+# .github/workflows/windows-build.yml
+name: Build rabbitmq-c v0.15.0 on Windows
+
 on:
   push:
-jobs:
-  runner:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@more-verbose
-        with:
-          php-version: '8.4'
-          extensions: grpc, protobuf, sodium, :php-psr
-          tools: composer:v2
-          coverage: none
-        env:
-          update: true
 
-      - run: php -v && php -m
+jobs:
+  build:
+    strategy:
+      matrix:
+        arch: [x64, x86]
+        include:
+          - os: windows-2019
+            generator: "Visual Studio 15 2017"
+          - os: windows-2019
+            generator: "Visual Studio 16 2019"
+          - os: windows-2022
+            generator: "Visual Studio 17 2022"
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+        with:
+          repository: alanxz/rabbitmq-c
+          ref: v0.15.0
+
+      - name: Configure with CMake
+        run: |
+          mkdir build
+          cd build
+          cmake .. \
+            -G "${{ matrix.generator }}" \
+            -A ${{ matrix.arch }} \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=ON \
+            -DCMAKE_INSTALL_PREFIX="${{ runner.workspace }}/build/install"
+
+      - name: Build & install
+        run: cmake --build build --config Release --target install
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: rabbitmq-c-${{ matrix.os }}-${{ matrix.generator }}-${{ matrix.arch }}
+          path: build
