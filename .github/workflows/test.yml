@@ -10,23 +10,29 @@ jobs:
       matrix:
         include:
           - os: windows-2019
-            generator: "Visual Studio 15 2017"
+            generator: "Visual Studio 16 2019"
             arch: x64
+            toolset: v141
           - os: windows-2019
             generator: "Visual Studio 16 2019"
             arch: x64
+            toolset: v142
           - os: windows-2022
             generator: "Visual Studio 17 2022"
             arch: x64
-          - os: windows-2019
-            generator: "Visual Studio 15 2017"
-            arch: x86
+            toolset: v143
           - os: windows-2019
             generator: "Visual Studio 16 2019"
             arch: x86
+            toolset: v141
+          - os: windows-2019
+            generator: "Visual Studio 16 2019"
+            arch: x86
+            toolset: v142
           - os: windows-2022
             generator: "Visual Studio 17 2022"
             arch: x86
+            toolset: v143
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -43,6 +49,7 @@ jobs:
           cmake .. `
             -G "${{ matrix.generator }}" `
             -A ${{ matrix.arch }} `
+            -T "${{ matrix.toolset }}" `
             -DCMAKE_BUILD_TYPE=Release `
             -DBUILD_SHARED_LIBS=ON `
             -DCMAKE_INSTALL_PREFIX="${{ runner.workspace }}/build/install"
