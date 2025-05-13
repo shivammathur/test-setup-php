@@ -63,9 +63,9 @@ jobs:
             -A ${{ matrix.arch }} `
             -T "${{ matrix.toolset }}" `
             -DOPENSSL_ROOT_DIR="C:\Program Files\OpenSSL" `
-            -DOPENSSL_INCLUDE_DIR=C:\Program Files\OpenSSL\include" `
-            -DOPENSSL_CRYPTO_LIBRARY=C:\Program Files\OpenSSL\lib\libcrypto.lib" `
-            -DOPENSSL_SSL_LIBRARY=C:\Program Files\OpenSSL\lib\libssl.lib" `
+            -DOPENSSL_INCLUDE_DIR="C:\Program Files\OpenSSL\include" `
+            -DOPENSSL_CRYPTO_LIBRARY="C:\Program Files\OpenSSL\lib\libcrypto.lib" `
+            -DOPENSSL_SSL_LIBRARY="C:\Program Files\OpenSSL\lib\libssl.lib" `
             -DOPENSSL_USE_STATIC_LIBS=TRUE `
             -DCMAKE_BUILD_TYPE=Debug `
             -DBUILD_SHARED_LIBS=ON `
