@@ -57,10 +57,8 @@ jobs:
           if ('${{ matrix.arch }}' -eq 'x64') {
             $archName = 'Win64'
           }
-          Write-Host "Url: https://slproweb.com/download/${archName}OpenSSL-$verUnd.exe"
-          Invoke-WebRequest "https://slproweb.com/download/${archName}OpenSSL-$verUnd.exe" -OutFile openssl-installer.exe
+          Start-BitsTransfer -Source "https://slproweb.com/download/${archName}OpenSSL-$verUnd.exe" -Destination openssl-installer.exe
           Start-Process -FilePath openssl-installer.exe -ArgumentList '/SP-','/VERYSILENT','/NORESTART',"/DIR=C:\OpenSSL-$archName" -NoNewWindow -Wait
-          refreshenv
 
       - name: Configure with CMake
         run: |
