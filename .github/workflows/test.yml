@@ -54,11 +54,12 @@ jobs:
 
       - name: Install OpenSSL (x64 or Win32)
         run: |
-          $ver = (choco search openssl --exact --limit-output).split('|')[1]
-          $verUnd = $ver -replace '\.', '_'
-          $archName = '${{ matrix.archName }}'
-          Start-BitsTransfer -Source "https://slproweb.com/download/${archName}OpenSSL-$verUnd.exe" -Destination openssl-installer.exe
-          Start-Process -FilePath openssl-installer.exe -ArgumentList '/SP-','/VERYSILENT','/NORESTART',"/DIR=C:\OpenSSL-$archName" -NoNewWindow -Wait
+          #$ver = (choco search openssl --exact --limit-output).split('|')[1]
+          #$verUnd = $ver -replace '\.', '_'
+          #$archName = '${{ matrix.archName }}'
+          #Start-BitsTransfer -Source "https://slproweb.com/download/${archName}OpenSSL-$verUnd.exe" -Destination openssl-installer.exe
+          #Start-Process -FilePath openssl-installer.exe -ArgumentList '/SP-','/VERYSILENT','/NORESTART',"/DIR=C:\OpenSSL-$archName" -NoNewWindow -Wait
+          choco install openssl --version=1.1.1.2100 {{ matrix.arch == 'x86' && '-x86' || '' }} -y -f --install-arguments="'/SP- /silent /DIR=C:\OpenSSL-${{ matrix.archName }}'"
 
       - name: Configure with CMake
         run: |
