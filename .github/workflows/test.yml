@@ -77,9 +77,6 @@ jobs:
             -T "${{ matrix.toolset }}" `
             -DCMAKE_C_FLAGS=" /W4" `
             -DOPENSSL_ROOT_DIR="$opensslRoot" `
-            -DOPENSSL_INCLUDE_DIR="$opensslRoot\include" `
-            -DOPENSSL_CRYPTO_LIBRARY="$opensslRoot\lib\libcrypto.lib" `
-            -DOPENSSL_SSL_LIBRARY="$opensslRoot\lib\libssl.lib" `
             -DOPENSSL_USE_STATIC_LIBS=TRUE `
             -DCMAKE_BUILD_TYPE=Debug `
             -DBUILD_SHARED_LIBS=ON `
