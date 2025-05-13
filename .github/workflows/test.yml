@@ -48,24 +48,36 @@ jobs:
           repository: alanxz/rabbitmq-c
           ref: v0.15.0
 
-      - name: Install openssl
-        if: matrix.arch != 'x64'
+      - name: Install OpenSSL (x64 or Win32)
         run: |
-          choco uninstall openssl.light
-          choco install openssl.light --x86 -f -y
+          if ('${{ matrix.arch }}' -eq 'x64') {
+            # install the 64‑bit MSI into C:\OpenSSL-Win64
+            choco install openssl.light -y --no-progress `
+              --install-arguments="'/SP- /silent /DIR=C:\OpenSSL-Win64'"
+          } else {
+            # force the 32‑bit MSI into C:\OpenSSL-Win32
+            choco install openssl.light -y --no-progress --x86 `
+              --install-arguments="'/SP- /silent /DIR=C:\OpenSSL-Win32'"
+          }
 
       - name: Configure with CMake
         run: |
+          $opensslRoot = if ('${{ matrix.arch }}' -eq 'x64') {
+            'C:\OpenSSL-Win64'
+          } else {
+            'C:\OpenSSL-Win32'
+          }
           mkdir build
           cd build
           cmake .. `
             -G "${{ matrix.generator }}" `
             -A ${{ matrix.arch }} `
             -T "${{ matrix.toolset }}" `
-            -DOPENSSL_ROOT_DIR="C:\Program Files\OpenSSL" `
-            -DOPENSSL_INCLUDE_DIR="C:\Program Files\OpenSSL\include" `
-            -DOPENSSL_CRYPTO_LIBRARY="C:\Program Files\OpenSSL\lib\libcrypto.lib" `
-            -DOPENSSL_SSL_LIBRARY="C:\Program Files\OpenSSL\lib\libssl.lib" `
+            -DCMAKE_C_FLAGS=" /W4" `
+            -DOPENSSL_ROOT_DIR="$opensslRoot" `
+            -DOPENSSL_INCLUDE_DIR="$opensslRoot\include" `
+            -DOPENSSL_CRYPTO_LIBRARY="$opensslRoot\lib\libcrypto.lib" `
+            -DOPENSSL_SSL_LIBRARY="$opensslRoot\lib\libssl.lib" `
             -DOPENSSL_USE_STATIC_LIBS=TRUE `
             -DCMAKE_BUILD_TYPE=Debug `
             -DBUILD_SHARED_LIBS=ON `
