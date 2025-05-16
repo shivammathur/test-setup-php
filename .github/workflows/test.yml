@@ -5,7 +5,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.4']
+        php: ['8.5']
         ext: [amqp, apcu, ast, couchbase, ds, event, expect, gearman, gnupg, grpc, igbinary, imagick, imap, mcrypt, memcache, memcached, mongodb, msgpack, pdo_sqlsrv, http, protobuf, psr, raphf, rdkafka, redis, sqlsrv, snmp, ssh2, swoole, uuid, vips, yaml, xlswriter, zmq, pcov]
     runs-on: macos-latest
     steps:
