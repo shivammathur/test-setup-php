@@ -11,7 +11,10 @@ use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ComparatorConfig;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Schema\TableEditor;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Types\Types;
 
@@ -37,8 +40,12 @@ class AlterTableTest extends FunctionalTestCase
                 ->create(),
         ]);
 
-        $this->testMigration($table, static function (Table $table): void {
-            $table->setPrimaryKey(['id']);
+        $this->testMigration($table, static function (TableEditor $editor): void {
+            $editor->addPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            );
         });
     }
 
@@ -57,9 +64,20 @@ class AlterTableTest extends FunctionalTestCase
                 ->create(),
         ]);
 
-        $this->testMigration($table, static function (Table $table): void {
-            $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-            $table->setPrimaryKey(['id']);
+        $this->testMigration($table, static function (TableEditor $editor): void {
+            $editor
+                ->addColumn(
+                    Column::editor()
+                        ->setUnquotedName('id')
+                        ->setTypeName(Types::INTEGER)
+                        ->setAutoincrement(true)
+                        ->create(),
+                )
+                ->setPrimaryKeyConstraint(
+                    PrimaryKeyConstraint::editor()
+                        ->setUnquotedColumnNames('id')
+                        ->create(),
+                );
         });
     }
 
@@ -95,9 +113,14 @@ class AlterTableTest extends FunctionalTestCase
         ]);
         $table->setPrimaryKey(['id1']);
 
-        $this->testMigration($table, static function (Table $table): void {
-            $table->dropPrimaryKey();
-            $table->setPrimaryKey(['id2']);
+        $this->testMigration($table, static function (TableEditor $editor): void {
+            $editor
+                ->dropPrimaryKeyConstraint()
+                ->addPrimaryKeyConstraint(
+                    PrimaryKeyConstraint::editor()
+                        ->setUnquotedColumnNames('id2')
+                        ->create(),
+                );
         });
     }
 
@@ -133,8 +156,8 @@ class AlterTableTest extends FunctionalTestCase
         ]);
         $table->setPrimaryKey(['id1', 'id2']);
 
-        $this->testMigration($table, static function (Table $table): void {
-            $table->dropPrimaryKey();
+        $this->testMigration($table, static function (TableEditor $editor): void {
+            $editor->dropPrimaryKeyConstraint();
         });
     }
 
@@ -163,9 +186,14 @@ class AlterTableTest extends FunctionalTestCase
         ]);
         $table->setPrimaryKey(['id1', 'id2']);
 
-        $this->testMigration($table, static function (Table $table): void {
-            $table->dropPrimaryKey();
-            $table->setPrimaryKey(['id1']);
+        $this->testMigration($table, static function (TableEditor $editor): void {
+            $editor
+                ->dropPrimaryKeyConstraint()
+                ->addPrimaryKeyConstraint(
+                    PrimaryKeyConstraint::editor()
+                        ->setUnquotedColumnNames('id1')
+                        ->create(),
+                );
         }, (new ComparatorConfig())->withReportModifiedIndexes(false));
     }
 
@@ -194,9 +222,14 @@ class AlterTableTest extends FunctionalTestCase
         ]);
         $table->setPrimaryKey(['id1']);
 
-        $this->testMigration($table, static function (Table $table): void {
-            $table->dropPrimaryKey();
-            $table->setPrimaryKey(['id1', 'id2']);
+        $this->testMigration($table, static function (TableEditor $editor): void {
+            $editor
+                ->dropPrimaryKeyConstraint()
+                ->addPrimaryKeyConstraint(
+                    PrimaryKeyConstraint::editor()
+                        ->setUnquotedColumnNames('id1', 'id2')
+                        ->create(),
+                );
         }, (new ComparatorConfig())->withReportModifiedIndexes(false));
     }
 
@@ -212,10 +245,20 @@ class AlterTableTest extends FunctionalTestCase
         ]);
         $table->setPrimaryKey(['id1']);
 
-        $this->testMigration($table, static function (Table $table): void {
-            $table->addColumn('id2', Types::INTEGER);
-            $table->dropPrimaryKey();
-            $table->setPrimaryKey(['id1', 'id2']);
+        $this->testMigration($table, static function (TableEditor $editor): void {
+            $editor
+                ->addColumn(
+                    Column::editor()
+                        ->setUnquotedName('id2')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
+                )
+                ->dropPrimaryKeyConstraint()
+                ->addPrimaryKeyConstraint(
+                    PrimaryKeyConstraint::editor()
+                        ->setUnquotedColumnNames('id1', 'id2')
+                        ->create(),
+                );
         });
     }
 
@@ -262,15 +305,17 @@ class AlterTableTest extends FunctionalTestCase
         $this->connection->createSchemaManager()
             ->createTable($articles);
 
-        $this->testMigration($orders, static function (Table $table): void {
-            $table->removeForeignKey('articles_fk');
-            $table->addForeignKeyConstraint(
-                'articles',
-                ['article_sku'],
-                ['sku'],
-                [],
-                'articles_fk',
-            );
+        $this->testMigration($orders, static function (TableEditor $editor): void {
+            $editor
+                ->dropForeignKeyConstraintByUnquotedName('articles_fk')
+                ->addForeignKeyConstraint(
+                    ForeignKeyConstraint::editor()
+                        ->setUnquotedName('articles_fk')
+                        ->setUnquotedReferencingColumnNames('article_sku')
+                        ->setUnquotedReferencedTableName('articles')
+                        ->setUnquotedReferencedColumnNames('sku')
+                        ->create(),
+                );
         });
     }
 
@@ -291,13 +336,16 @@ class AlterTableTest extends FunctionalTestCase
         );
     }
 
+    /** @param callable(TableEditor): void $migration */
     private function testMigration(Table $oldTable, callable $migration, ?ComparatorConfig $config = null): void
     {
         $this->dropAndCreateTable($oldTable);
 
-        $newTable = clone $oldTable;
+        $editor = $oldTable->edit();
 
-        $migration($newTable);
+        $migration($editor);
+
+        $newTable = $editor->create();
 
         $schemaManager = $this->connection->createSchemaManager();
 
