@@ -7,8 +7,8 @@ jobs:
       fail-fast: false
       matrix:
         php-version: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-        os: [macos-14]
+        os: [macos-14-arm64]
     steps:
       - name: "Install PHP"
-        uses: "shivammathur/setup-php@verbose"
+        uses: "shivammathur/setup-php@develop"
       - run: php -v  
