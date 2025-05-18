@@ -9,7 +9,7 @@ jobs:
         php-version: [8.3, 8.4, 8.5]
     steps:
       - name: "Install PHP"
-        uses: "shivammathur/setup-php@v2"
+        uses: "shivammathur/setup-php@develop"
         with:
           php-version: "${{ matrix.php-version }}"
           extensions: pdo_oci, oci8
