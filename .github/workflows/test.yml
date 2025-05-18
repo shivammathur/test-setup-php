@@ -10,7 +10,7 @@ jobs:
         os: [ubuntu-22.04, ubuntu-24.04]
     steps:
       - name: "Install PHP"
-        uses: "shivammathur/setup-php@v2"
+        uses: "shivammathur/setup-php@verbose"
         with:
           php-version: "${{ matrix.php-version }}"
           extensions: pdo_oci, oci8
