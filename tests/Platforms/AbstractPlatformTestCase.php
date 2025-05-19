@@ -442,8 +442,8 @@ abstract class AbstractPlatformTestCase extends TestCase
 
         $table->addForeignKeyConstraint(
             'foreign',
-            ['create', 'foo', '`bar`'],
-            ['create', 'bar', '`foo-bar`'],
+            ['create', 'foo', '"bar"'],
+            ['create', 'bar', '"foo-bar"'],
             [],
             'FK_WITH_RESERVED_KEYWORD',
         );
