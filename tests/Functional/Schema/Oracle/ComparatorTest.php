@@ -41,14 +41,18 @@ final class ComparatorTest extends FunctionalTestCase
      */
     public function testChangeBinaryColumnFixed(): void
     {
-        $table = new Table('comparator_test', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::BINARY)
-                ->setLength(32)
-                ->setFixed(true)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('comparator_test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::BINARY)
+                    ->setLength(32)
+                    ->setFixed(true)
+                    ->create(),
+            )
+            ->create();
+
         $this->dropAndCreateTable($table);
 
         $table = $table->edit()

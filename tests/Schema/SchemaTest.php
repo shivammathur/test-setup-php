@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Doctrine\DBAL\Tests\Schema;
 
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\SchemaConfig;
 use Doctrine\DBAL\Schema\SchemaException;
@@ -76,9 +77,17 @@ class SchemaTest extends TestCase
 
     public function testRenameTable(): void
     {
-        $tableName = 'foo';
-        $table     = new Table($tableName);
-        $schema    = new Schema([$table]);
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
+
+        $schema = new Schema([$table]);
 
         self::assertTrue($schema->hasTable('foo'));
         $schema->renameTable('foo', 'bar');
@@ -199,24 +208,36 @@ class SchemaTest extends TestCase
 
     public function testDeepClone(): void
     {
-        $tableA = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $tableA = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
-        $tableB = new Table('bar', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('foo_id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $tableB->addForeignKeyConstraint($tableA->getName(), ['foo_id'], ['id']);
+        $tableB = Table::editor()
+            ->setUnquotedName('bar')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('foo_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('foo_id')
+                    ->setUnquotedReferencedTableName('foo')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $schema   = new Schema([$tableA, $tableB]);
         $sequence = $schema->createSequence('baz');
@@ -234,12 +255,15 @@ class SchemaTest extends TestCase
 
     public function testHasTableForQuotedAsset(): void
     {
-        $tableA = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $tableA = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $schema = new Schema([$tableA]);
 

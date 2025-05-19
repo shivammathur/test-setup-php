@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Doctrine\DBAL\Tests\Schema;
 
 use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Name\Identifier;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Sequence;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
@@ -18,9 +20,21 @@ class SequenceTest extends TestCase
 
     public function testIsAutoincrementFor(): void
     {
-        $table = new Table('foo');
-        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $sequence  = new Sequence('foo_id_seq');
         $sequence2 = new Sequence('bar_id_seq');
@@ -33,9 +47,21 @@ class SequenceTest extends TestCase
 
     public function testIsAutoincrementForCaseInsensitive(): void
     {
-        $table = new Table('foo');
-        $table->addColumn('ID', Types::INTEGER, ['autoincrement' => true]);
-        $table->setPrimaryKey(['ID']);
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('ID')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('ID')
+                    ->create(),
+            )
+            ->create();
 
         $sequence  = new Sequence('foo_id_seq');
         $sequence1 = new Sequence('foo_ID_seq');

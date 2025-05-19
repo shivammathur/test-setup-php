@@ -25,16 +25,26 @@ class ColumnCommentTest extends FunctionalTestCase
 
         self::$initialized = true;
 
-        $table = new Table('column_comments', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $editor = Table::editor()
+            ->setUnquotedName('column_comments')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            );
 
         foreach (self::commentProvider() as [$columnName, $comment]) {
-            $table->addColumn($columnName, Types::INTEGER, ['comment' => $comment]);
+            $editor->addColumn(
+                Column::editor()
+                    ->setUnquotedName($columnName)
+                    ->setTypeName(Types::INTEGER)
+                    ->setComment($comment)
+                    ->create(),
+            );
         }
+
+        $table = $editor->create();
 
         $this->dropAndCreateTable($table);
     }
@@ -59,13 +69,16 @@ class ColumnCommentTest extends FunctionalTestCase
     #[DataProvider('alterColumnCommentProvider')]
     public function testAlterColumnComment(string $comment1, string $comment2): void
     {
-        $table1 = new Table('column_comments', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->setComment($comment1)
-                ->create(),
-        ]);
+        $table1 = Table::editor()
+            ->setUnquotedName('column_comments')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setComment($comment1)
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table1);
 

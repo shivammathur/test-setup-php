@@ -18,7 +18,11 @@ use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnEditor;
 use Doctrine\DBAL\Schema\ComparatorConfig;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
+use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\Index\IndexedColumn;
+use Doctrine\DBAL\Schema\Index\IndexType;
 use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
+use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\SchemaDiff;
@@ -261,45 +265,50 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function createListTableColumns(): Table
     {
-        $table = new Table('list_table_columns', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('test')
-                ->setTypeName(Types::STRING)
-                ->setLength(255)
-                ->setNotNull(false)
-                ->setDefaultValue('expected default')
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('foo')
-                ->setTypeName(Types::TEXT)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('bar')
-                ->setTypeName(Types::DECIMAL)
-                ->setPrecision(10)
-                ->setScale(4)
-                ->setNotNull(false)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('baz1')
-                ->setTypeName(Types::DATETIME_MUTABLE)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('baz2')
-                ->setTypeName(Types::TIME_MUTABLE)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('baz3')
-                ->setTypeName(Types::DATE_MUTABLE)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['id']);
-
-        return $table;
+        return Table::editor()
+            ->setUnquotedName('list_table_columns')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('test')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(255)
+                    ->setNotNull(false)
+                    ->setDefaultValue('expected default')
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::TEXT)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('bar')
+                    ->setTypeName(Types::DECIMAL)
+                    ->setPrecision(10)
+                    ->setScale(4)
+                    ->setNotNull(false)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('baz1')
+                    ->setTypeName(Types::DATETIME_MUTABLE)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('baz2')
+                    ->setTypeName(Types::TIME_MUTABLE)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('baz3')
+                    ->setTypeName(Types::DATE_MUTABLE)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
     }
 
     public function testListTableColumns(): void
@@ -374,20 +383,21 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testListTableColumnsWithFixedStringColumn(): void
     {
-        $tableName = 'test_list_table_fixed_string';
-
-        $table = new Table($tableName, [
-            Column::editor()
-                ->setUnquotedName('column_char')
-                ->setTypeName(Types::STRING)
-                ->setFixed(true)
-                ->setLength(2)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('test_list_table_fixed_string')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('column_char')
+                    ->setTypeName(Types::STRING)
+                    ->setFixed(true)
+                    ->setLength(2)
+                    ->create(),
+            )
+            ->create();
 
         $this->schemaManager->createTable($table);
 
-        $columns = $this->schemaManager->listTableColumns($tableName);
+        $columns = $this->schemaManager->listTableColumns('test_list_table_fixed_string');
 
         self::assertArrayHasKey('column_char', $columns);
         self::assertInstanceOf(StringType::class, $columns['column_char']->getType());
@@ -417,9 +427,22 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testListTableIndexes(): void
     {
-        $table = $this->getTestCompositeTable('list_table_indexes_test');
-        $table->addUniqueIndex(['test'], 'test_index_name');
-        $table->addIndex(['id', 'test'], 'test_composite_idx');
+        $table = $this->getTestCompositeTable('list_table_indexes_test')
+            ->edit()
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('test_index_name')
+                    ->setUnquotedColumnNames('test')
+                    ->setType(IndexType::UNIQUE)
+                    ->create(),
+            )
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('test_composite_idx')
+                    ->setUnquotedColumnNames('id', 'test')
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 
@@ -445,8 +468,17 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testDropAndCreateIndex(): void
     {
-        $table = $this->getTestTable('test_create_index');
-        $table->addUniqueIndex(['test'], 'test');
+        $table = $this->getTestTable('test_create_index')
+            ->edit()
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('test')
+                    ->setUnquotedColumnNames('test')
+                    ->setType(IndexType::UNIQUE)
+                    ->create(),
+            )
+            ->create();
+
         $this->dropAndCreateTable($table);
 
         $index = $table->getIndex('test');
@@ -466,12 +498,16 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             self::markTestSkipped('SQLite does not support adding constraints to a table');
         }
 
-        $table = new Table('test_unique_constraint', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('test_unique_constraint')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
+
         $this->dropAndCreateTable($table);
 
         $uniqueConstraint = UniqueConstraint::editor()
@@ -547,9 +583,15 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertCount(0, $table->getForeignKeys());
         self::assertCount(1, $table->getIndexes());
 
-        $newTable = clone $table;
-        $newTable->addColumn('foo', Types::INTEGER);
-        $newTable->dropColumn('test');
+        $newTable = $table->edit()
+            ->addColumn(
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->dropColumnByUnquotedName('test')
+            ->create();
 
         $comparator = $this->schemaManager->createComparator();
 
@@ -561,8 +603,14 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertFalse($table->hasColumn('test'));
         self::assertTrue($table->hasColumn('foo'));
 
-        $newTable = clone $table;
-        $newTable->addIndex(['foo'], 'foo_idx');
+        $newTable = $table->edit()
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('foo_idx')
+                    ->setUnquotedColumnNames('foo')
+                    ->create(),
+            )
+            ->create();
 
         $diff = $comparator->compareTables($table, $newTable);
 
@@ -575,9 +623,15 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertFalse($table->getIndex('foo_idx')->isPrimary());
         self::assertFalse($table->getIndex('foo_idx')->isUnique());
 
-        $newTable = clone $table;
-        $newTable->dropIndex('foo_idx');
-        $newTable->addIndex(['foo', 'foreign_key_test'], 'foo_idx');
+        $fooIndex = Index::editor()
+            ->setUnquotedName('foo_idx')
+            ->setUnquotedColumnNames('foo', 'foreign_key_test')
+            ->create();
+
+        $newTable = $table->edit()
+            ->dropIndexByUnquotedName('foo_idx')
+            ->addIndex($fooIndex)
+            ->create();
 
         $diff = $comparator->compareTables($table, $newTable);
 
@@ -586,14 +640,18 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $table = $this->schemaManager->introspectTable('alter_table');
         self::assertCount(2, $table->getIndexes());
         self::assertTrue($table->hasIndex('foo_idx'));
-        self::assertEquals(
-            ['foo', 'foreign_key_test'],
-            array_map('strtolower', $table->getIndex('foo_idx')->getColumns()),
-        );
 
-        $newTable = clone $table;
-        $newTable->dropIndex('foo_idx');
-        $newTable->addIndex(['foo', 'foreign_key_test'], 'bar_idx');
+        $this->assertIndexEquals($fooIndex, $table->getIndex('foo_idx'));
+
+        $barIndex = Index::editor()
+            ->setUnquotedName('bar_idx')
+            ->setUnquotedColumnNames('foo', 'foreign_key_test')
+            ->create();
+
+        $newTable = $table->edit()
+            ->dropIndexByUnquotedName('foo_idx')
+            ->addIndex($barIndex)
+            ->create();
 
         $diff = $comparator->compareTables($table, $newTable);
 
@@ -603,16 +661,19 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertCount(2, $table->getIndexes());
         self::assertTrue($table->hasIndex('bar_idx'));
         self::assertFalse($table->hasIndex('foo_idx'));
-        self::assertEquals(
-            ['foo', 'foreign_key_test'],
-            array_map('strtolower', $table->getIndex('bar_idx')->getColumns()),
-        );
-        self::assertFalse($table->getIndex('bar_idx')->isPrimary());
-        self::assertFalse($table->getIndex('bar_idx')->isUnique());
 
-        $newTable = clone $table;
-        $newTable->dropIndex('bar_idx');
-        $newTable->addForeignKeyConstraint('alter_table_foreign', ['foreign_key_test'], ['id']);
+        $this->assertIndexEquals($barIndex, $table->getIndex('bar_idx'));
+
+        $newTable = $table->edit()
+            ->dropIndexByUnquotedName('bar_idx')
+            ->addForeignKeyConstraint(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('foreign_key_test')
+                    ->setUnquotedReferencedTableName('alter_table_foreign')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $diff = $comparator->compareTables($table, $newTable);
 
@@ -678,28 +739,55 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testUpdateSchemaWithForeignKeyRenaming(): void
     {
-        $table = new Table('test_fk_base', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('test_fk_base')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
-        $table->setPrimaryKey(['id']);
-
-        $tableFK = new Table('test_fk_rename', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('fk_id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ], [], [], [], [], $this->schemaManager->createSchemaConfig()->toTableConfiguration());
-        $tableFK->setPrimaryKey(['id']);
-        $tableFK->addIndex(['fk_id'], 'fk_idx');
-        $tableFK->addForeignKeyConstraint('test_fk_base', ['fk_id'], ['id']);
+        $tableFK = Table::editor()
+            ->setUnquotedName('test_fk_rename')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('fk_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('fk_idx')
+                    ->setUnquotedColumnNames('fk_id')
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('fk_id')
+                    ->setUnquotedReferencedTableName('test_fk_base')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->setConfiguration(
+                $this->schemaManager->createSchemaConfig()->toTableConfiguration(),
+            )
+            ->create();
 
         $this->dropTableIfExists($tableFK->getName());
         $this->dropTableIfExists($table->getName());
@@ -707,22 +795,46 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $this->schemaManager->createTable($table);
         $this->schemaManager->createTable($tableFK);
 
-        $tableFKNew = new Table('test_fk_rename', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('rename_fk_id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ], [], [], [], [], $this->schemaManager->createSchemaConfig()->toTableConfiguration());
-        $tableFKNew->setPrimaryKey(['id']);
-        $tableFKNew->addIndex(['rename_fk_id'], 'fk_idx');
-        $tableFKNew->addForeignKeyConstraint('test_fk_base', ['rename_fk_id'], ['id']);
+        $tableFKNew = Table::editor()
+            ->setUnquotedName('test_fk_rename')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('rename_fk_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('fk_idx')
+                    ->setUnquotedColumnNames('rename_fk_id')
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('rename_fk_id')
+                    ->setUnquotedReferencedTableName('test_fk_base')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->setConfiguration(
+                $this->schemaManager->createSchemaConfig()->toTableConfiguration(),
+            )
+            ->create();
 
         $diff = $this->schemaManager->createComparator()
-            ->compareTables($tableFK, $tableFKNew);
+            ->compareTables(
+                $this->schemaManager->introspectTable($tableFK->getName()),
+                $tableFKNew,
+            );
 
         $this->schemaManager->alterTable($diff);
 
@@ -739,28 +851,44 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testRenameIndexUsedInForeignKeyConstraint(): void
     {
-        $primaryTable = new Table('test_rename_index_primary', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $primaryTable->setPrimaryKey(['id']);
+        $primaryTable = Table::editor()
+            ->setUnquotedName('test_rename_index_primary')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
-        $foreignTable = new Table('test_rename_index_foreign', [
-            Column::editor()
-                ->setUnquotedName('fk')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $foreignTable->addIndex(['fk'], 'rename_index_fk_idx');
-        $foreignTable->addForeignKeyConstraint(
-            'test_rename_index_primary',
-            ['fk'],
-            ['id'],
-            [],
-            'fk_constraint',
-        );
+        $foreignTable = Table::editor()
+            ->setUnquotedName('test_rename_index_foreign')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('fk')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('rename_index_fk_idx')
+                    ->setUnquotedColumnNames('fk')
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedName('fk_constraint')
+                    ->setUnquotedReferencingColumnNames('fk')
+                    ->setUnquotedReferencedTableName('test_rename_index_primary')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $this->dropTableIfExists($foreignTable->getName());
         $this->dropTableIfExists($primaryTable->getName());
@@ -768,8 +896,9 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $this->schemaManager->createTable($primaryTable);
         $this->schemaManager->createTable($foreignTable);
 
-        $foreignTable2 = clone $foreignTable;
-        $foreignTable2->renameIndex('rename_index_fk_idx', 'renamed_index_fk_idx');
+        $foreignTable2 = $foreignTable->edit()
+            ->renameIndexByUnquotedName('rename_index_fk_idx', 'renamed_index_fk_idx')
+            ->create();
 
         $diff = $this->schemaManager->createComparator()
             ->compareTables($foreignTable, $foreignTable2);
@@ -785,19 +914,22 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testChangeColumnsTypeWithDefaultValue(): void
     {
-        $oldTable = new Table('column_def_change_type', [
-            Column::editor()
-                ->setUnquotedName('col_int')
-                ->setTypeName('smallint')
-                ->setDefaultValue(666)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('col_string')
-                ->setTypeName('string')
-                ->setLength(3)
-                ->setDefaultValue('foo')
-                ->create(),
-        ]);
+        $oldTable = Table::editor()
+            ->setUnquotedName('column_def_change_type')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('col_int')
+                    ->setTypeName('smallint')
+                    ->setDefaultValue(666)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('col_string')
+                    ->setTypeName('string')
+                    ->setLength(3)
+                    ->setDefaultValue('foo')
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($oldTable);
 
@@ -829,12 +961,15 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testListTableWithBlob(): void
     {
-        $table = new Table('test_blob_table', [
-            Column::editor()
-                ->setUnquotedName('binarydata')
-                ->setTypeName(Types::BLOB)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('test_blob_table')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('binarydata')
+                    ->setTypeName(Types::BLOB)
+                    ->create(),
+            )
+            ->create();
 
         $this->schemaManager->createTable($table);
 
@@ -846,21 +981,23 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testListTableFloatTypeColumns(): void
     {
-        $tableName = 'test_float_columns';
-        $table     = new Table($tableName, [
-            Column::editor()
-                ->setUnquotedName('col_float')
-                ->setTypeName(Types::FLOAT)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('col_smallfloat')
-                ->setTypeName(Types::SMALLFLOAT)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('test_float_columns')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('col_float')
+                    ->setTypeName(Types::FLOAT)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('col_smallfloat')
+                    ->setTypeName(Types::SMALLFLOAT)
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 
-        $columns = $this->schemaManager->listTableColumns($tableName);
+        $columns = $this->schemaManager->listTableColumns('test_float_columns');
 
         self::assertInstanceOf(FloatType::class, $columns['col_float']->getType());
         self::assertInstanceOf(SmallFloatType::class, $columns['col_smallfloat']->getType());
@@ -868,8 +1005,11 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         self::assertFalse($columns['col_smallfloat']->getUnsigned());
     }
 
-    /** @param mixed[] $data */
-    protected function createTestTable(string $name = 'test_table', array $data = []): Table
+    /**
+     * @param non-empty-string $name
+     * @param mixed[]          $data
+     */
+    protected function createTestTable(string $name, array $data = []): Table
     {
         $options = $data['options'] ?? [];
 
@@ -880,85 +1020,112 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         return $table;
     }
 
-    /** @param mixed[] $options */
-    protected function getTestTable(string $name, array $options = []): Table
+    /**
+     * @param non-empty-string $unquotedName
+     * @param mixed[]          $options
+     */
+    protected function getTestTable(string $unquotedName, array $options = []): Table
     {
-        $table = new Table($name, [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('test')
-                ->setTypeName(Types::STRING)
-                ->setLength(255)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('foreign_key_test')
-                ->setTypeName(Types::INTEGER)
-                ->setNotNull(false)
-                ->create(),
-        ], [], [], [], $options, $this->schemaManager->createSchemaConfig()->toTableConfiguration());
-
-        $table->setPrimaryKey(['id']);
-
-        return $table;
+        return Table::editor()
+            ->setUnquotedName($unquotedName)
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('test')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(255)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('foreign_key_test')
+                    ->setTypeName(Types::INTEGER)
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->setOptions($options)
+            ->setConfiguration(
+                $this->schemaManager->createSchemaConfig()->toTableConfiguration(),
+            )
+            ->create();
     }
 
-    protected function getTestCompositeTable(string $name): Table
+    /** @param non-empty-string $unquotedName */
+    protected function getTestCompositeTable(string $unquotedName): Table
     {
-        $table = new Table($name, [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('other_id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('test')
-                ->setTypeName(Types::STRING)
-                ->setLength(255)
-                ->create(),
-        ], [], [], [], [], $this->schemaManager->createSchemaConfig()->toTableConfiguration());
-        $table->setPrimaryKey(['id', 'other_id']);
-
-        return $table;
+        return Table::editor()
+            ->setUnquotedName($unquotedName)
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('other_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('test')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(255)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id', 'other_id')
+                    ->create(),
+            )
+            ->setConfiguration(
+                $this->schemaManager->createSchemaConfig()->toTableConfiguration(),
+            )
+            ->create();
     }
 
     public function testColumnDefaultLifecycle(): void
     {
-        $oldTable = new Table('col_def_lifecycle', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->setAutoincrement(true)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('column1')
-                ->setTypeName(Types::STRING)
-                ->setLength(1)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('column2')
-                ->setTypeName(Types::STRING)
-                ->setLength(1)
-                ->setDefaultValue('')
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('column3')
-                ->setTypeName(Types::STRING)
-                ->setLength(8)
-                ->setDefaultValue('default1')
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('column4')
-                ->setTypeName(Types::INTEGER)
-                ->setDefaultValue(0)
-                ->create(),
-        ]);
-        $oldTable->setPrimaryKey(['id']);
+        $oldTable = Table::editor()
+            ->setUnquotedName('col_def_lifecycle')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('column1')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(1)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('column2')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(1)
+                    ->setDefaultValue('')
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('column3')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(8)
+                    ->setDefaultValue('default1')
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('column4')
+                    ->setTypeName(Types::INTEGER)
+                    ->setDefaultValue(0)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($oldTable);
 
@@ -1003,25 +1170,26 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testListTableWithBinary(): void
     {
-        $tableName = 'test_binary_table';
-
-        $table = new Table($tableName, [
-            Column::editor()
-                ->setUnquotedName('column_binary')
-                ->setTypeName(Types::BINARY)
-                ->setLength(16)
-                ->setFixed(true)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('column_varbinary')
-                ->setTypeName(Types::BINARY)
-                ->setLength(32)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('test_binary_table')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('column_binary')
+                    ->setTypeName(Types::BINARY)
+                    ->setLength(16)
+                    ->setFixed(true)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('column_varbinary')
+                    ->setTypeName(Types::BINARY)
+                    ->setLength(32)
+                    ->create(),
+            )
+            ->create();
 
         $this->schemaManager->createTable($table);
 
-        $table = $this->schemaManager->introspectTable($tableName);
+        $table = $this->schemaManager->introspectTable('test_binary_table');
         $this->assertBinaryColumnIsValid($table, 'column_binary', 16);
         $this->assertVarBinaryColumnIsValid($table, 'column_varbinary', 32);
     }
@@ -1063,36 +1231,57 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $primaryTableName = 'primary_table';
         $foreignTableName = 'foreign_table';
 
-        $table = new Table($foreignTableName, [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->setAutoincrement(true)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName($foreignTableName)
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 
-        $table = new Table($primaryTableName, [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->setAutoincrement(true)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('foo')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('bar')
-                ->setTypeName(Types::STRING)
-                ->setLength(32)
-                ->create(),
-        ]);
-        $table->addForeignKeyConstraint($foreignTableName, ['foo'], ['id']);
+        $table = Table::editor()
+            ->setUnquotedName($primaryTableName)
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('bar')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('foo')
+                    ->setUnquotedReferencedTableName($foreignTableName)
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
         $table->addIndex(['bar']);
-        $table->setPrimaryKey(['id']);
 
         $this->dropAndCreateTable($table);
 
@@ -1112,27 +1301,52 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testDoesNotListIndexesImplicitlyCreatedByForeignKeys(): void
     {
-        $primaryTable = new Table('test_list_index_impl_primary', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $primaryTable->setPrimaryKey(['id']);
+        $primaryTable = Table::editor()
+            ->setUnquotedName('test_list_index_impl_primary')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
-        $foreignTable = new Table('test_list_index_impl_foreign', [
-            Column::editor()
-                ->setUnquotedName('fk1')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('fk2')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $foreignTable->addIndex(['fk1'], 'explicit_fk1_idx');
-        $foreignTable->addForeignKeyConstraint('test_list_index_impl_primary', ['fk1'], ['id']);
-        $foreignTable->addForeignKeyConstraint('test_list_index_impl_primary', ['fk2'], ['id']);
+        $foreignTable = Table::editor()
+            ->setUnquotedName('test_list_index_impl_foreign')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('fk1')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('fk2')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('explicit_fk1_idx')
+                    ->setUnquotedColumnNames('fk1')
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('fk1')
+                    ->setUnquotedReferencedTableName('test_list_index_impl_primary')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('fk2')
+                    ->setUnquotedReferencedTableName('test_list_index_impl_primary')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($primaryTable);
         $this->dropAndCreateTable($foreignTable);
@@ -1219,19 +1433,27 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testPrimaryKeyAutoIncrement(): void
     {
-        $table = new Table('test_pk_auto_increment', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->setAutoincrement(true)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('text')
-                ->setTypeName(Types::STRING)
-                ->setLength(1)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('test_pk_auto_increment')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('text')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(1)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
         $this->dropAndCreateTable($table);
 
         $this->connection->insert('test_pk_auto_increment', ['text' => '1']);
@@ -1259,37 +1481,58 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             );
         }
 
-        $table = new Table('test_partial_column_index', [
-            Column::editor()
-                ->setUnquotedName('long_column')
-                ->setTypeName(Types::STRING)
-                ->setLength(40)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('standard_column')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table->addIndex(['long_column'], 'partial_long_column_idx', [], ['lengths' => [4]]);
-        $table->addIndex(['standard_column', 'long_column'], 'standard_and_partial_idx', [], ['lengths' => [null, 2]]);
+        $table = Table::editor()
+            ->setUnquotedName('test_partial_column_index')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('long_column')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(40)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('standard_column')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('partial_long_column_idx')
+                    ->setColumns(
+                        new IndexedColumn(UnqualifiedName::unquoted('long_column'), 4),
+                    )
+                    ->create(),
+                Index::editor()
+                    ->setUnquotedName('standard_and_partial_idx')
+                    ->setColumns(
+                        new IndexedColumn(UnqualifiedName::unquoted('standard_column'), null),
+                        new IndexedColumn(UnqualifiedName::unquoted('long_column'), 2),
+                    )
+                    ->setUnquotedColumnNames('standard_column', 'long_column')
+                    ->create(),
+            )
+            ->create();
 
         $expected = $table->getIndexes();
 
         $this->dropAndCreateTable($table);
 
         $onlineTable = $this->schemaManager->introspectTable('test_partial_column_index');
-        self::assertEquals($expected, $onlineTable->getIndexes());
+        $this->assertIndexListEquals($expected, $onlineTable->getIndexes());
     }
 
     public function testCommentInTable(): void
     {
-        $table = new Table('table_with_comment', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table->setComment('\'\\ Foo with control characters \'\\');
+        $table = Table::editor()
+            ->setUnquotedName('table_with_comment')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setComment('\'\\ Foo with control characters \'\\')
+            ->create();
+
         $this->dropAndCreateTable($table);
 
         $table = $this->schemaManager->introspectTable('table_with_comment');
@@ -1388,38 +1631,63 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             self::markTestSkipped('The current platform does not auto-quote introspected identifiers.');
         }
 
-        $artists = new Table('"Artists"', [
-            Column::editor()
-                ->setQuotedName('Id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setQuotedName('Name')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $artists->addIndex(['"Name"'], '"Idx_Name"');
-        $artists->setPrimaryKey(['"Id"']);
+        $artists = Table::editor()
+            ->setQuotedName('Artists')
+            ->setColumns(
+                Column::editor()
+                    ->setQuotedName('Id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setQuotedName('Name')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setQuotedColumnNames('Id')
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setQuotedName('Idx_Name')
+                    ->setQuotedColumnNames('Name')
+                    ->create(),
+            )
+            ->create();
 
-        $tracks = new Table('"Tracks"', [
-            Column::editor()
-                ->setQuotedName('Id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setQuotedName('Artist_Id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $tracks->addIndex(['"Artist_Id"'], '"Idx_Artist_Id"');
-        $tracks->addForeignKeyConstraint(
-            '"Artists"',
-            ['"Artist_Id"'],
-            ['"Id"'],
-            [],
-            '"Artists_Fk"',
-        );
-        $tracks->setPrimaryKey(['"Id"']);
+        $tracks = Table::editor()
+            ->setQuotedName('Tracks')
+            ->setColumns(
+                Column::editor()
+                    ->setQuotedName('Id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setQuotedName('Artist_Id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setQuotedName('Idx_Artist_Id')
+                    ->setQuotedColumnNames('Artist_Id')
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setQuotedColumnNames('Id')
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setQuotedName('Artists_Fk')
+                    ->setQuotedReferencingColumnNames('Artist_Id')
+                    ->setQuotedReferencedTableName('Artists')
+                    ->setQuotedReferencedColumnNames('Id')
+                    ->create(),
+            )
+            ->create();
 
         $this->dropTableIfExists('"Tracks"');
         $this->dropTableIfExists('"Artists"');
@@ -1482,23 +1750,62 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
         $this->dropTableIfExists('child');
         $this->dropTableIfExists('parent');
 
-        $schema = new Schema();
+        $parent = Table::editor()
+            ->setUnquotedName('parent')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
-        $parent = $schema->createTable('parent');
-        $parent->addColumn('id', Types::INTEGER);
-        $parent->setPrimaryKey(['id']);
+        $child = Table::editor()
+            ->setUnquotedName('child')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('parent_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('idx_1')
+                    ->setUnquotedColumnNames('parent_id')
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('parent_id')
+                    ->setUnquotedReferencedTableName('parent')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
-        $child = $schema->createTable('child');
-        $child->addColumn('id', Types::INTEGER);
-        $child->addColumn('parent_id', Types::INTEGER);
-        $child->addIndex(['parent_id'], 'idx_1');
-        $child->addForeignKeyConstraint('parent', ['parent_id'], ['id']);
+        $schema = new Schema([$parent, $child]);
 
         $schemaManager = $this->connection->createSchemaManager();
         $schemaManager->createSchemaObjects($schema);
 
-        $child->dropIndex('idx_1');
-        $child->addIndex(['parent_id'], 'idx_2');
+        $child = $child->edit()
+            ->dropIndexByUnquotedName('idx_1')
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('idx_2')
+                    ->setUnquotedColumnNames('parent_id')
+                    ->create(),
+            )
+            ->create();
 
         $diff = $schemaManager->createComparator(
             (new ComparatorConfig())->withDetectRenamedIndexes(false),
@@ -1530,16 +1837,19 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
             );
         }
 
-        $prototype = new Table('test_switch_pk_order', [
-            Column::editor()
-                ->setUnquotedName('foo_id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('bar_id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $prototype = Table::editor()
+            ->setUnquotedName('test_switch_pk_order')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('foo_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('bar_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $table = clone $prototype;
         $table->setPrimaryKey(['foo_id', 'bar_id']);
@@ -1565,21 +1875,26 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
     public function testDropColumnWithDefault(): void
     {
-        $table = new Table('drop_column_with_default', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('todrop')
-                ->setTypeName(Types::INTEGER)
-                ->setDefaultValue(10)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('drop_column_with_default')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('todrop')
+                    ->setTypeName(Types::INTEGER)
+                    ->setDefaultValue(10)
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 
-        $table->dropColumn('todrop');
+        $table = $table->edit()
+            ->dropColumnByUnquotedName('todrop')
+            ->create();
 
         $diff = $this->schemaManager->createComparator()
             ->compareTables(
@@ -1624,25 +1939,41 @@ abstract class SchemaManagerFunctionalTestCase extends FunctionalTestCase
 
         $this->connection->executeStatement('CREATE SCHEMA nested');
 
-        $nestedRelatedTable = new Table('nested.schemarelated', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->setAutoincrement(true)
-                ->create(),
-        ]);
-        $nestedRelatedTable->setPrimaryKey(['id']);
+        $primaryKeyConstraint = PrimaryKeyConstraint::editor()
+            ->setUnquotedColumnNames('id')
+            ->create();
 
-        $nestedSchemaTable = new Table('nested.schematable', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->setAutoincrement(true)
-                ->create(),
-        ]);
-        $nestedSchemaTable->setPrimaryKey(['id']);
-        $nestedSchemaTable->addForeignKeyConstraint($nestedRelatedTable->getName(), ['id'], ['id']);
-        $nestedSchemaTable->setComment('This is a comment');
+        $nestedRelatedTable = Table::editor()
+            ->setUnquotedName('schemarelated', 'nested')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint($primaryKeyConstraint)
+            ->create();
+
+        $nestedSchemaTable = Table::editor()
+            ->setUnquotedName('schematable', 'nested')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint($primaryKeyConstraint)
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('id')
+                    ->setUnquotedReferencedTableName('schemarelated', 'nested')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->setComment('This is a comment')
+            ->create();
 
         $this->schemaManager->createTable($nestedRelatedTable);
         $this->schemaManager->createTable($nestedSchemaTable);

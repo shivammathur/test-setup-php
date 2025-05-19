@@ -14,6 +14,7 @@ use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Types\Types;
@@ -42,21 +43,33 @@ final class ForeignKeyConstraintViolationsTest extends FunctionalTestCase
 
         $schemaManager = $this->connection->createSchemaManager();
 
-        $table = new Table('test_t1', [
-            Column::editor()
-                ->setUnquotedName('ref_id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('test_t1')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('ref_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
+
         $schemaManager->createTable($table);
 
-        $table2 = new Table('test_t2', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table2->setPrimaryKey(['id']);
+        $table2 = Table::editor()
+            ->setUnquotedName('test_t2')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
         $schemaManager->createTable($table2);
 
         if ($platform instanceof OraclePlatform) {

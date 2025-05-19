@@ -8,6 +8,7 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnEditor;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 
@@ -22,13 +23,16 @@ class SQLServerSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testColumnCollation(): void
     {
-        $table = new Table('test_collation', [
-            Column::editor()
-                ->setUnquotedName('test')
-                ->setTypeName(Types::STRING)
-                ->setLength(32)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('test_collation')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('test')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
         $columns = $this->schemaManager->listTableColumns('test_collation');
@@ -50,47 +54,50 @@ class SQLServerSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testDefaultConstraints(): void
     {
-        $oldTable = new Table('sqlsrv_default_constraints', [
-            Column::editor()
-                ->setUnquotedName('no_default')
-                ->setTypeName(Types::STRING)
-                ->setLength(32)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('df_integer')
-                ->setTypeName(Types::INTEGER)
-                ->setDefaultValue(666)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('df_string_1')
-                ->setTypeName(Types::STRING)
-                ->setLength(32)
-                ->setDefaultValue('foobar')
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('df_string_2')
-                ->setTypeName(Types::STRING)
-                ->setLength(32)
-                ->setDefaultValue('Doctrine rocks!!!')
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('df_string_3')
-                ->setTypeName(Types::STRING)
-                ->setLength(32)
-                ->setDefaultValue('another default value')
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('df_string_4')
-                ->setTypeName(Types::STRING)
-                ->setLength(32)
-                ->setDefaultValue('column to rename')
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('df_boolean')
-                ->setTypeName(Types::BOOLEAN)
-                ->setDefaultValue(true)
-                ->create(),
-        ]);
+        $oldTable = Table::editor()
+            ->setUnquotedName('sqlsrv_default_constraints')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('no_default')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('df_integer')
+                    ->setTypeName(Types::INTEGER)
+                    ->setDefaultValue(666)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('df_string_1')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->setDefaultValue('foobar')
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('df_string_2')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->setDefaultValue('Doctrine rocks!!!')
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('df_string_3')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->setDefaultValue('another default value')
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('df_string_4')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->setDefaultValue('column to rename')
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('df_boolean')
+                    ->setTypeName(Types::BOOLEAN)
+                    ->setDefaultValue(true)
+                    ->create(),
+            )
+            ->create();
 
         $this->schemaManager->createTable($oldTable);
         $columns = $this->schemaManager->listTableColumns('sqlsrv_default_constraints');
@@ -112,14 +119,17 @@ class SQLServerSchemaManagerTest extends SchemaManagerFunctionalTestCase
             ->modifyColumnByUnquotedName('df_boolean', static function (ColumnEditor $editor): void {
                 $editor->setDefaultValue(false);
             })
+            ->dropColumnByUnquotedName('df_string_1')
+            ->dropColumnByUnquotedName('df_string_4')
+            ->addColumn(
+                Column::editor()
+                    ->setUnquotedName('df_string_4_renamed')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->setDefaultValue('column to rename')
+                    ->create(),
+            )
             ->create();
-
-        $newTable->dropColumn('df_string_1');
-        $newTable->dropColumn('df_string_4');
-        $newTable->addColumn('df_string_4_renamed', Types::STRING, [
-            'length' => 32,
-            'default' => 'column to rename',
-        ]);
 
         $diff = $this->schemaManager->createComparator()
             ->compareTables(
@@ -147,10 +157,25 @@ class SQLServerSchemaManagerTest extends SchemaManagerFunctionalTestCase
         // declared in the table. In that case, key_ordinal != index_column_id.
         // key_ordinal holds the index ordering. index_column_id is just a unique identifier
         // for index columns within the given index.
-        $table = new Table('sqlsrv_pk_ordering');
-        $table->addColumn('colA', Types::INTEGER, ['notnull' => true]);
-        $table->addColumn('colB', Types::INTEGER, ['notnull' => true]);
-        $table->setPrimaryKey(['colB', 'colA']);
+        $table = Table::editor()
+            ->setUnquotedName('sqlsrv_pk_ordering')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('colA')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('colB')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('colB', 'colA')
+                    ->create(),
+            )
+            ->create();
+
         $this->schemaManager->createTable($table);
 
         $indexes = $this->schemaManager->listTableIndexes('sqlsrv_pk_ordering');

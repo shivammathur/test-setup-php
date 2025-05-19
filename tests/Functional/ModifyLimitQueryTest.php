@@ -8,6 +8,7 @@ use Doctrine\DBAL\Platforms\DB2Platform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Types\Types;
@@ -21,26 +22,40 @@ class ModifyLimitQueryTest extends FunctionalTestCase
 {
     protected function setUp(): void
     {
-        $table = new Table('modify_limit_table', [
-            Column::editor()
-                ->setUnquotedName('test_int')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['test_int']);
+        $table = Table::editor()
+            ->setUnquotedName('modify_limit_table')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('test_int')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('test_int')
+                    ->create(),
+            )
+            ->create();
 
-        $table2 = new Table('modify_limit_table2', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->setAutoincrement(true)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('test_int')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table2->setPrimaryKey(['id']);
+        $table2 = Table::editor()
+            ->setUnquotedName('modify_limit_table2')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('test_int')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
         $this->dropAndCreateTable($table2);

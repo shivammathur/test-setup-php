@@ -18,14 +18,17 @@ class AlterDecimalColumnTest extends FunctionalTestCase
     #[DataProvider('scaleAndPrecisionProvider')]
     public function testAlterPrecisionAndScale(int $newPrecision, int $newScale, string $typeName): void
     {
-        $table = new Table('decimal_table', [
-            Column::editor()
-                ->setUnquotedName('val')
-                ->setTypeName($typeName)
-                ->setPrecision(16)
-                ->setScale(6)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('decimal_table')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('val')
+                    ->setTypeName($typeName)
+                    ->setPrecision(16)
+                    ->setScale(6)
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 

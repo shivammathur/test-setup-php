@@ -7,6 +7,7 @@ namespace Doctrine\DBAL\Tests\Functional;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Types\Types;
@@ -33,13 +34,20 @@ class TemporaryTableTest extends FunctionalTestCase
                 . $platform->getColumnDeclarationListSQL([$column->toArray()]) . ')';
         $this->connection->executeStatement($createTempTableSQL);
 
-        $table = new Table('nontemporary', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('nontemporary')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 
@@ -72,13 +80,20 @@ class TemporaryTableTest extends FunctionalTestCase
         $createTempTableSQL = $platform->getCreateTemporaryTableSnippetSQL() . ' ' . $tempTable . ' ('
                 . $platform->getColumnDeclarationListSQL([$column->toArray()]) . ')';
 
-        $table = new Table('nontemporary', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('nontemporary')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 

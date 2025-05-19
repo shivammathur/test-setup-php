@@ -10,6 +10,8 @@ use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnEditor;
 use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\Index\IndexType;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\TestUtil;
 use Doctrine\DBAL\Types\BinaryType;
@@ -39,27 +41,33 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testAlterTableColumnNotNull(): void
     {
-        $tableName = 'list_table_column_notnull';
-        $table     = new Table($tableName, [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('foo')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('bar')
-                ->setTypeName(Types::STRING)
-                ->setLength(32)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('list_table_column_notnull')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('bar')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 
-        $columns = $this->schemaManager->listTableColumns($tableName);
+        $columns = $this->schemaManager->listTableColumns('list_table_column_notnull');
 
         self::assertTrue($columns['id']->getNotnull());
         self::assertTrue($columns['foo']->getNotnull());
@@ -79,7 +87,7 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
         $this->schemaManager->alterTable($diff);
 
-        $columns = $this->schemaManager->listTableColumns($tableName);
+        $columns = $this->schemaManager->listTableColumns('list_table_column_notnull');
 
         self::assertTrue($columns['id']->getNotnull());
         self::assertFalse($columns['foo']->getNotnull());
@@ -91,13 +99,16 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
         $table = $this->createListTableColumns();
         $this->dropAndCreateTable($table);
 
-        $otherTable = new Table($table->getName(), [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::STRING)
-                ->setLength(32)
-                ->create(),
-        ]);
+        $otherTable = Table::editor()
+            ->setName($table->getObjectName())
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->create(),
+            )
+            ->create();
 
         $connection    = TestUtil::getPrivilegedConnection();
         $schemaManager = $connection->createSchemaManager();
@@ -116,18 +127,26 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testListTableIndexesPrimaryKeyConstraintNameDiffersFromIndexName(): void
     {
-        $table = new Table(
-            'list_table_indexes_pk_id_test',
-            [],
-            [],
-            [],
-            [],
-            [],
-            $this->schemaManager->createSchemaConfig()->toTableConfiguration(),
-        );
+        $table = Table::editor()
+            ->setUnquotedName('list_table_indexes_pk_id_test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('id_unique_index')
+                    ->setType(IndexType::UNIQUE)
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->setConfiguration(
+                $this->schemaManager->createSchemaConfig()->toTableConfiguration(),
+            )
+            ->create();
 
-        $table->addColumn('id', Types::INTEGER, ['notnull' => true]);
-        $table->addUniqueIndex(['id'], 'id_unique_index');
         $this->dropAndCreateTable($table);
 
         $this->schemaManager->createIndex(
@@ -145,20 +164,23 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testListTableDateTypeColumns(): void
     {
-        $table = new Table('tbl_date', [
-            Column::editor()
-                ->setUnquotedName('col_date')
-                ->setTypeName(Types::DATE_MUTABLE)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('col_datetime')
-                ->setTypeName(Types::DATETIME_MUTABLE)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('col_datetimetz')
-                ->setTypeName(Types::DATETIMETZ_MUTABLE)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('tbl_date')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('col_date')
+                    ->setTypeName(Types::DATE_MUTABLE)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('col_datetime')
+                    ->setTypeName(Types::DATETIME_MUTABLE)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('col_datetimetz')
+                    ->setTypeName(Types::DATETIMETZ_MUTABLE)
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 
@@ -178,17 +200,20 @@ class OracleSchemaManagerTest extends SchemaManagerFunctionalTestCase
 
     public function testQuotedTableNameRemainsQuotedInSchema(): void
     {
-        $table = new Table('"tester"', [
-            Column::editor()
-                ->setQuotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setQuotedName('name')
-                ->setTypeName(Types::STRING)
-                ->setLength(32)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setQuotedName('tester')
+            ->setColumns(
+                Column::editor()
+                    ->setQuotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setQuotedName('name')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 

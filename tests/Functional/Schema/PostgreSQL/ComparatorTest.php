@@ -76,12 +76,15 @@ final class ComparatorTest extends FunctionalTestCase
 
     public function testPlatformOptionsChangedColumnComparison(): void
     {
-        $table = new Table('update_json_to_jsonb_table', [
-            Column::editor()
-                ->setUnquotedName('test')
-                ->setTypeName(Types::JSON)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('update_json_to_jsonb_table')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('test')
+                    ->setTypeName(Types::JSON)
+                    ->create(),
+            )
+            ->create();
 
         $onlineTable = clone $table;
         $table->getColumn('test')
@@ -112,6 +115,7 @@ final class ComparatorTest extends FunctionalTestCase
             ->setUnquotedName('comparator_test')
             ->setColumns($editor->create())
             ->create();
+
         $this->dropAndCreateTable($table);
 
         $table = $table->edit()

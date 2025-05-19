@@ -12,6 +12,7 @@ use Doctrine\DBAL\Driver\Exception\NoIdentityValue;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Tests\TestUtil;
@@ -22,24 +23,31 @@ class WriteTest extends FunctionalTestCase
 {
     protected function setUp(): void
     {
-        $table = new Table('write_table', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->setAutoincrement(true)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('test_int')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('test_string')
-                ->setTypeName(Types::STRING)
-                ->setLength(32)
-                ->setNotNull(false)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('write_table')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('test_int')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('test_string')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 
@@ -286,14 +294,21 @@ class WriteTest extends FunctionalTestCase
             );
         }
 
-        $table = new Table('test_empty_identity', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->setAutoincrement(true)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('test_empty_identity')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         try {
             $this->connection->createSchemaManager()->dropTable($table->getQuotedName($platform));

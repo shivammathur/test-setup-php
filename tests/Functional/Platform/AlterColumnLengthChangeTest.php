@@ -14,13 +14,16 @@ class AlterColumnLengthChangeTest extends FunctionalTestCase
 {
     public function testColumnLengthIsChanged(): void
     {
-        $table = new Table('test_alter_length', [
-            Column::editor()
-                ->setUnquotedName('c1')
-                ->setTypeName(Types::STRING)
-                ->setLength(50)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('test_alter_length')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('c1')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(50)
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 

@@ -11,6 +11,7 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Platforms\TrimMode;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Statement;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
@@ -28,23 +29,30 @@ class DataAccessTest extends FunctionalTestCase
 {
     protected function setUp(): void
     {
-        $table = new Table('fetch_table', [
-            Column::editor()
-                ->setUnquotedName('test_int')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('test_string')
-                ->setTypeName(Types::STRING)
-                ->setLength(32)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('test_datetime')
-                ->setTypeName(Types::DATETIME_MUTABLE)
-                ->setNotNull(false)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['test_int']);
+        $table = Table::editor()
+            ->setUnquotedName('fetch_table')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('test_int')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('test_string')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('test_datetime')
+                    ->setTypeName(Types::DATETIME_MUTABLE)
+                    ->setNotNull(false)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('test_int')
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 
@@ -652,17 +660,24 @@ class DataAccessTest extends FunctionalTestCase
             self::markTestSkipped('test is for sqlite only');
         }
 
-        $table = new Table('fetch_table_date_math', [
-            Column::editor()
-                ->setUnquotedName('test_date')
-                ->setTypeName(Types::DATE_MUTABLE)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('test_days')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['test_date']);
+        $table = Table::editor()
+            ->setUnquotedName('fetch_table_date_math')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('test_date')
+                    ->setTypeName(Types::DATE_MUTABLE)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('test_days')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('test_date')
+                    ->create(),
+            )
+            ->create();
 
         $sm = $this->connection->createSchemaManager();
         $sm->createTable($table);

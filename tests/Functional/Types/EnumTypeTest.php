@@ -7,7 +7,7 @@ namespace Doctrine\DBAL\Tests\Functional\Types;
 use Doctrine\DBAL\Exception\InvalidColumnType\ColumnValuesRequired;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Schema\Column;
-use Doctrine\DBAL\Schema\Schema;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Types\EnumType;
@@ -47,18 +47,30 @@ final class EnumTypeTest extends FunctionalTestCase
 
     public function testDeployEnum(): void
     {
-        $schemaManager = $this->connection->createSchemaManager();
-        $schema        = new Schema(schemaConfig: $schemaManager->createSchemaConfig());
-        $table         = $schema->createTable('my_enum_table');
-        $table->addColumn('id', Types::BIGINT, ['notnull' => true]);
-        $table->addColumn('suit', Types::ENUM, [
-            'values' => ['hearts', 'diamonds', 'clubs', 'spades'],
-            'notnull' => true,
-            'default' => 'hearts',
-        ]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('my_enum_table')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::BIGINT)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('suit')
+                    ->setTypeName(Types::ENUM)
+                    ->setValues(['hearts', 'diamonds', 'clubs', 'spades'])
+                    ->setDefaultValue('hearts')
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
-        $schemaManager->createSchemaObjects($schema);
+        $this->dropAndCreateTable($table);
+
+        $schemaManager = $this->connection->createSchemaManager();
 
         $introspectedTable = $schemaManager->introspectTable('my_enum_table');
 
@@ -81,12 +93,15 @@ final class EnumTypeTest extends FunctionalTestCase
     {
         $schemaManager = $this->connection->createSchemaManager();
 
-        $table = new Table('my_enum_table', [
-            Column::editor()
-                ->setUnquotedName('suit')
-                ->setTypeName(Types::ENUM)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('my_enum_table')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('suit')
+                    ->setTypeName(Types::ENUM)
+                    ->create(),
+            )
+            ->create();
 
         $this->expectException(ColumnValuesRequired::class);
 

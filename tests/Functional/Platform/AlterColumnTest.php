@@ -15,16 +15,19 @@ class AlterColumnTest extends FunctionalTestCase
 {
     public function testColumnPositionRetainedAfterAltering(): void
     {
-        $table = new Table('test_alter', [
-            Column::editor()
-                ->setUnquotedName('c1')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('c2')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('test_alter')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('c1')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('c2')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 
@@ -56,17 +59,20 @@ class AlterColumnTest extends FunctionalTestCase
             self::markTestSkipped('This test covers PostgreSQL-specific schema comparison scenarios.');
         }
 
-        $table = new Table('test_alter', [
-            Column::editor()
-                ->setUnquotedName('c1')
-                ->setTypeName(Types::STRING)
-                ->setCollation('en_US.utf8')
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('c2')
-                ->setTypeName(Types::STRING)
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('test_alter')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('c1')
+                    ->setTypeName(Types::STRING)
+                    ->setCollation('en_US.utf8')
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('c2')
+                    ->setTypeName(Types::STRING)
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 
@@ -91,13 +97,16 @@ class AlterColumnTest extends FunctionalTestCase
             self::markTestSkipped('This test requires ICU collations to be available.');
         }
 
-        $table = new Table('test_alter', [
-            Column::editor()
-                ->setUnquotedName('c1')
-                ->setTypeName(Types::STRING)
-                ->setCollation('en-US-x-icu')
-                ->create(),
-        ]);
+        $table = Table::editor()
+            ->setUnquotedName('test_alter')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('c1')
+                    ->setTypeName(Types::STRING)
+                    ->setCollation('en-US-x-icu')
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 
