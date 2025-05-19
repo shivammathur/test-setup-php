@@ -226,6 +226,20 @@ final class ForeignKeyConstraintEditor
             throw InvalidForeignKeyConstraintDefinition::referencedColumnNamesNotSet($this->name);
         }
 
+        $options = [];
+
+        if ($this->matchType !== MatchType::SIMPLE) {
+            $options['match'] = $this->matchType->value;
+        }
+
+        if ($this->onUpdateAction !== ReferentialAction::NO_ACTION) {
+            $options['onUpdate'] = $this->onUpdateAction->value;
+        }
+
+        if ($this->onDeleteAction !== ReferentialAction::NO_ACTION) {
+            $options['onDelete'] = $this->onDeleteAction->value;
+        }
+
         return new ForeignKeyConstraint(
             array_map(
                 static fn (UnqualifiedName $columnName) => $columnName->toString(),
@@ -237,11 +251,7 @@ final class ForeignKeyConstraintEditor
                 $this->referencedColumnNames,
             ),
             $this->name?->toString() ?? '',
-            array_merge([
-                'match' => $this->matchType->value,
-                'onUpdate' => $this->onUpdateAction->value,
-                'onDelete' => $this->onDeleteAction->value,
-            ], match ($this->deferrability) {
+            array_merge($options, match ($this->deferrability) {
                 Deferrability::NOT_DEFERRABLE => [],
                 Deferrability::DEFERRABLE => ['deferrable' => true],
                 Deferrability::DEFERRED => ['deferrable' => true, 'deferred' => true],
