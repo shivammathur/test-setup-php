@@ -10,4 +10,6 @@ jobs:
     steps:
       - name: "Install PHP"
         uses: "shivammathur/setup-php@develop"
+        with:
+          php-version: 5.x
       - run: php -v  
