@@ -136,13 +136,21 @@ final class IndexEditor
             throw InvalidIndexDefinition::columnsNotSet($this->name);
         }
 
-        $columnNames = $lengths = $flags = [];
-        foreach ($this->columns as $column) {
+        $columnNames = $lengths = $options = $flags = [];
+        foreach ($this->columns as $i => $column) {
             $columnNames[] = $column->getColumnName()->toString();
-            $lengths[]     = $column->getLength();
+
+            $length = $column->getLength();
+            if ($length === null) {
+                continue;
+            }
+
+            $lengths[$i] = $column->getLength();
         }
 
-        $options = ['lengths' => $lengths];
+        if (count($lengths) !== 0) {
+            $options['lengths'] = $lengths;
+        }
 
         if ($this->type === IndexType::FULLTEXT) {
             $flags[] = 'fulltext';
