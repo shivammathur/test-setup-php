@@ -3,13 +3,17 @@ on: [push]
 jobs:
   runner:
     runs-on: ${{ matrix.os }}
+    container: ubuntu:24.04
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
     steps:
-      - name: "Install PHP"
-        uses: "shivammathur/setup-php@develop"
+      - name: Setup PHP
+        uses: shivammathur/setup-php@verbose
         with:
-          php-version: 5.x
+          php-version: 8.2
+          coverage: none
+        env:
+          runner: self-hosted
       - run: php -v  
