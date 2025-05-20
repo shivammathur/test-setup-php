@@ -471,7 +471,7 @@ class SQLitePlatformTest extends AbstractPlatformTestCase
             'REFERENCES foo ("create", bar, "foo-bar") NOT DEFERRABLE INITIALLY IMMEDIATE, ' .
             'CONSTRAINT FK_WITH_INTENDED_QUOTATION FOREIGN KEY ("create", foo, "bar") ' .
             'REFERENCES "foo-bar" ("create", bar, "foo-bar") NOT DEFERRABLE INITIALLY IMMEDIATE)',
-            'CREATE INDEX IDX_22660D028FD6E0FB8C736521D79164E3 ON "quoted" ("create", foo, "bar")',
+            'CREATE INDEX IDX_22660D028FD6E0FB8C7365216D704F76 ON "quoted" ("create", foo, "bar")',
         ];
     }
 

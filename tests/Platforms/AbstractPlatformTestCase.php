@@ -14,6 +14,7 @@ use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\ComparatorConfig;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\Name\UnqualifiedName;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Schema\UniqueConstraint;
@@ -422,47 +423,58 @@ abstract class AbstractPlatformTestCase extends TestCase
 
     public function testQuotedColumnInForeignKeyPropagation(): void
     {
-        $table = new Table('`quoted`', [
-            Column::editor()
-                ->setUnquotedName('create')
-                ->setTypeName(Types::STRING)
-                ->setLength(255)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('foo')
-                ->setTypeName(Types::STRING)
-                ->setLength(255)
-                ->create(),
-            Column::editor()
-                ->setQuotedName('bar')
-                ->setTypeName(Types::STRING)
-                ->setLength(255)
-                ->create(),
-        ]);
+        $referencingColumnNames = [
+            UnqualifiedName::unquoted('create'),
+            UnqualifiedName::unquoted('foo'),
+            UnqualifiedName::quoted('bar'),
+        ];
 
-        $table->addForeignKeyConstraint(
-            'foreign',
-            ['create', 'foo', '`bar`'],
-            ['create', 'bar', '`foo-bar`'],
-            [],
-            'FK_WITH_RESERVED_KEYWORD',
-        );
+        $referencedColumnNames = [
+            UnqualifiedName::unquoted('create'),
+            UnqualifiedName::unquoted('bar'),
+            UnqualifiedName::quoted('foo-bar'),
+        ];
 
-        $table->addForeignKeyConstraint(
-            'foo',
-            ['create', 'foo', '`bar`'],
-            ['create', 'bar', '`foo-bar`'],
-            [],
-            'FK_WITH_NON_RESERVED_KEYWORD',
-        );
-
-        $table->addForeignKeyConstraint(
-            '`foo-bar`',
-            ['create', 'foo', '`bar`'],
-            ['create', 'bar', '`foo-bar`'],
-            [],
-            'FK_WITH_INTENDED_QUOTATION',
-        );
+        $table = Table::editor()
+            ->setQuotedName('quoted')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('create')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(255)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(255)
+                    ->create(),
+                Column::editor()
+                    ->setQuotedName('bar')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(255)
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedName('FK_WITH_RESERVED_KEYWORD')
+                    ->setReferencingColumnNames(...$referencingColumnNames)
+                    ->setUnquotedReferencedTableName('foreign')
+                    ->setReferencedColumnNames(...$referencedColumnNames)
+                    ->create(),
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedName('FK_WITH_NON_RESERVED_KEYWORD')
+                    ->setReferencingColumnNames(...$referencingColumnNames)
+                    ->setUnquotedReferencedTableName('foo')
+                    ->setReferencedColumnNames(...$referencedColumnNames)
+                    ->create(),
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedName('FK_WITH_INTENDED_QUOTATION')
+                    ->setReferencingColumnNames(...$referencingColumnNames)
+                    ->setQuotedReferencedTableName('foo-bar')
+                    ->setReferencedColumnNames(...$referencedColumnNames)
+                    ->create(),
+            )
+            ->create();
 
         $sql = $this->platform->getCreateTableSQL($table);
         self::assertEquals($this->getQuotedColumnInForeignKeySQL(), $sql);
@@ -974,32 +986,47 @@ abstract class AbstractPlatformTestCase extends TestCase
 
     public function testGeneratesAlterTableRenameIndexUsedByForeignKeySQL(): void
     {
-        $foreignTable = new Table('foreign_table', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $foreignTable->setPrimaryKey(['id']);
-
-        $primaryTable = new Table('mytable', [
-            Column::editor()
-                ->setUnquotedName('foo')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('bar')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('baz')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $primaryTable->addIndex(['foo'], 'idx_foo');
-        $primaryTable->addIndex(['bar'], 'idx_bar');
-        $primaryTable->addForeignKeyConstraint($foreignTable->getName(), ['foo'], ['id'], [], 'fk_foo');
-        $primaryTable->addForeignKeyConstraint($foreignTable->getName(), ['bar'], ['id'], [], 'fk_bar');
+        $primaryTable = Table::editor()
+            ->setUnquotedName('mytable')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('bar')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('baz')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('idx_foo')
+                    ->setUnquotedColumnNames('foo')
+                    ->create(),
+                Index::editor()
+                    ->setUnquotedName('idx_bar')
+                    ->setUnquotedColumnNames('bar')
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedName('fk_foo')
+                    ->setUnquotedReferencingColumnNames('foo')
+                    ->setUnquotedReferencedTableName('foreign_table')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedName('fk_bar')
+                    ->setUnquotedReferencingColumnNames('bar')
+                    ->setUnquotedReferencedTableName('foreign_table')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = new TableDiff($primaryTable, renamedIndexes: [
             'idx_foo' => new Index('idx_foo_renamed', ['foo']),
