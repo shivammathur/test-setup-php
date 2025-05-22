@@ -9,7 +9,7 @@ jobs:
         os: [ubuntu-latest]
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@v2
         with:
           php-version: latest
       - run: php -v  
