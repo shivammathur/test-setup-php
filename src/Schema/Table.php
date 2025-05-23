@@ -23,6 +23,7 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\Deprecations\Deprecation;
 use LogicException;
 
+use function array_diff_key;
 use function array_map;
 use function array_merge;
 use function array_values;
@@ -1002,7 +1003,7 @@ class Table extends AbstractNamedObject
         $editor = self::editor()
             ->setName($this->getObjectName())
             ->setColumns(...array_values($this->_columns))
-            ->setIndexes(...array_values($this->_indexes))
+            ->setIndexes(...array_values(array_diff_key($this->_indexes, $this->implicitIndexNames)))
             ->setPrimaryKeyConstraint($this->primaryKeyConstraint)
             ->setUniqueConstraints(...array_values($this->uniqueConstraints))
             ->setForeignKeyConstraints(...array_values($this->_fkConstraints));
