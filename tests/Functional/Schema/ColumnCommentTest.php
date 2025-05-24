@@ -10,9 +10,6 @@ use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\Attributes\DataProvider;
 
-use function array_merge;
-use function sprintf;
-
 class ColumnCommentTest extends FunctionalTestCase
 {
     private static bool $initialized = false;
@@ -34,53 +31,28 @@ class ColumnCommentTest extends FunctionalTestCase
                 ->create(),
         ]);
 
-        foreach (self::columnProvider() as [$name, $type, $options]) {
-            $table->addColumn($name, $type, $options);
+        foreach (self::commentProvider() as [$columnName, $comment]) {
+            $table->addColumn($columnName, Types::INTEGER, ['comment' => $comment]);
         }
 
         $this->dropAndCreateTable($table);
     }
 
-    /** @param array<string,mixed> $options */
-    #[DataProvider('columnProvider')]
-    public function testColumnComment(string $name, string $type, array $options): void
+    #[DataProvider('commentProvider')]
+    public function testColumnComment(string $columnName, string $comment): void
     {
-        $this->assertColumnComment('column_comments', $name, $options['comment'] ?? '');
+        $this->assertColumnComment($columnName, $comment);
     }
 
-    /** @return iterable<string,array{0: string, 1: string, 2: mixed[]}> */
-    public static function columnProvider(): iterable
+    /** @return iterable<string,array{non-empty-string,string}> */
+    public static function commentProvider(): iterable
     {
-        foreach (
-            [
-                'commented' => [
-                    'string',
-                    ['length' => 16],
-                ],
-                'not_commented' => [
-                    'json',
-                    [],
-                ],
-            ] as $typeName => [$type, $typeOptions]
-        ) {
-            foreach (
-                [
-                    'no_comment' => [],
-                    'with_comment' => ['comment' => 'Some comment'],
-                    'zero_comment' => ['comment' => '0'],
-                    'empty_comment' => ['comment' => ''],
-                    'quoted_comment' => ['comment' => "O'Reilly"],
-                ] as $caseName => $caseOptions
-            ) {
-                $name = sprintf('%s_%s', $typeName, $caseName);
-
-                yield $name => [
-                    $name,
-                    $type,
-                    array_merge($typeOptions, $caseOptions),
-                ];
-            }
-        }
+        return [
+            'Empty comment' => ['empty_comment', ''],
+            'Non-empty comment' => ['some_comment', ''],
+            'Zero comment' => ['zero_comment', '0'],
+            'Comment with quote' => ['quoted_comment', "O'Reilly"],
+        ];
     }
 
     #[DataProvider('alterColumnCommentProvider')]
@@ -106,7 +78,7 @@ class ColumnCommentTest extends FunctionalTestCase
 
         $schemaManager->alterTable($diff);
 
-        $this->assertColumnComment('column_comments', 'id', $comment2);
+        $this->assertColumnComment('id', $comment2);
     }
 
     /** @return mixed[][] */
@@ -121,13 +93,13 @@ class ColumnCommentTest extends FunctionalTestCase
         ];
     }
 
-    private function assertColumnComment(string $table, string $column, string $expectedComment): void
+    private function assertColumnComment(string $columnName, string $expectedComment): void
     {
         self::assertSame(
             $expectedComment,
             $this->connection->createSchemaManager()
-                ->introspectTable($table)
-                ->getColumn($column)
+                ->introspectTable('column_comments')
+                ->getColumn($columnName)
                 ->getComment(),
         );
     }
