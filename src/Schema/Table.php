@@ -999,13 +999,23 @@ class Table extends AbstractNamedObject
      */
     public function edit(): TableEditor
     {
-        return self::editor()
+        $editor = self::editor()
             ->setName($this->getObjectName())
             ->setColumns(...array_values($this->_columns))
             ->setIndexes(...array_values($this->_indexes))
+            ->setPrimaryKeyConstraint($this->primaryKeyConstraint)
             ->setUniqueConstraints(...array_values($this->uniqueConstraints))
-            ->setForeignKeyConstraints(...array_values($this->_fkConstraints))
-            ->setOptions($this->_options)
+            ->setForeignKeyConstraints(...array_values($this->_fkConstraints));
+
+        $options = $this->_options;
+
+        if (isset($options['comment'])) {
+            $editor->setComment($options['comment']);
+            unset($options['comment']);
+        }
+
+        return $editor
+            ->setOptions($options)
             ->setConfiguration(
                 new TableConfiguration($this->maxIdentifierLength),
             );
