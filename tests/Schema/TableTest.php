@@ -13,6 +13,7 @@ use Doctrine\DBAL\Schema\Exception\InvalidState;
 use Doctrine\DBAL\Schema\Exception\PrimaryKeyAlreadyExists;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\Index\IndexType;
 use Doctrine\DBAL\Schema\Name\Identifier;
 use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\SchemaException;
@@ -716,7 +717,15 @@ class TableTest extends TestCase
 
         self::assertCount(1, $localTable->getIndexes());
 
-        $localTable->addUniqueIndex(['id'], 'explicit_idx');
+        $localTable = $localTable->edit()
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('explicit_idx')
+                    ->setType(IndexType::UNIQUE)
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         self::assertCount(1, $localTable->getIndexes());
         self::assertTrue($localTable->hasIndex('explicit_idx'));
