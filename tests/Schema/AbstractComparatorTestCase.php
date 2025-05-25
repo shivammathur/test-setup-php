@@ -10,8 +10,11 @@ use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\ComparatorConfig;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint\ReferentialAction;
 use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\Index\IndexType;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\SchemaConfig;
 use Doctrine\DBAL\Schema\SchemaDiff;
@@ -44,20 +47,26 @@ abstract class AbstractComparatorTestCase extends TestCase
     public function testCompareSame1(): void
     {
         $schema1 = new Schema([
-            new Table('bugdb', [
-                Column::editor()
-                    ->setUnquotedName('integercolumn1')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-            ]),
+            Table::editor()
+                ->setUnquotedName('bugdb')
+                ->setColumns(
+                    Column::editor()
+                        ->setUnquotedName('integercolumn1')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
+                )
+                ->create(),
         ]);
         $schema2 = new Schema([
-            new Table('bugdb', [
-                Column::editor()
-                    ->setUnquotedName('integercolumn1')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-            ]),
+            Table::editor()
+                ->setUnquotedName('bugdb')
+                ->setColumns(
+                    Column::editor()
+                        ->setUnquotedName('integercolumn1')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
+                )
+                ->create(),
         ]);
 
         self::assertEquals(
@@ -69,28 +78,34 @@ abstract class AbstractComparatorTestCase extends TestCase
     public function testCompareSame2(): void
     {
         $schema1 = new Schema([
-            new Table('bugdb', [
-                Column::editor()
-                    ->setUnquotedName('integercolumn1')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-                Column::editor()
-                    ->setUnquotedName('integercolumn2')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-            ]),
+            Table::editor()
+                ->setUnquotedName('bugdb')
+                ->setColumns(
+                    Column::editor()
+                        ->setUnquotedName('integercolumn1')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
+                    Column::editor()
+                        ->setUnquotedName('integercolumn2')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
+                )
+                ->create(),
         ]);
         $schema2 = new Schema([
-            new Table('bugdb', [
-                Column::editor()
-                    ->setUnquotedName('integercolumn2')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-                Column::editor()
-                    ->setUnquotedName('integercolumn1')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-            ]),
+            Table::editor()
+                ->setUnquotedName('bugdb')
+                ->setColumns(
+                    Column::editor()
+                        ->setUnquotedName('integercolumn2')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
+                    Column::editor()
+                        ->setUnquotedName('integercolumn1')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
+                )
+                ->create(),
         ]);
 
         self::assertEquals(
@@ -103,12 +118,16 @@ abstract class AbstractComparatorTestCase extends TestCase
     {
         $schemaConfig = new SchemaConfig();
 
-        $table = new Table('bugdb', [
-            Column::editor()
-                ->setUnquotedName('integercolumn1')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ], [], [], [], [], $schemaConfig->toTableConfiguration());
+        $table = Table::editor()
+            ->setUnquotedName('bugdb')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('integercolumn1')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setConfiguration($schemaConfig->toTableConfiguration())
+            ->create();
 
         $schema1 = new Schema([$table], [], $schemaConfig);
         $schema2 = new Schema([], [], $schemaConfig);
@@ -123,12 +142,16 @@ abstract class AbstractComparatorTestCase extends TestCase
     {
         $schemaConfig = new SchemaConfig();
 
-        $table = new Table('bugdb', [
-            Column::editor()
-                ->setUnquotedName('integercolumn1')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ], [], [], [], [], $schemaConfig->toTableConfiguration());
+        $table = Table::editor()
+            ->setUnquotedName('bugdb')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('integercolumn1')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setConfiguration($schemaConfig->toTableConfiguration())
+            ->create();
 
         $schema1 = new Schema([], [], $schemaConfig);
         $schema2 = new Schema([$table], [], $schemaConfig);
@@ -218,23 +241,29 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testCompareChangeColumnsMultipleNewColumnsRename(): void
     {
-        $tableA = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('datecolumn1')
-                ->setTypeName(Types::DATETIME_MUTABLE)
-                ->create(),
-        ]);
+        $tableA = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('datecolumn1')
+                    ->setTypeName(Types::DATETIME_MUTABLE)
+                    ->create(),
+            )
+            ->create();
 
-        $tableB = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('new_datecolumn1')
-                ->setTypeName(Types::DATETIME_MUTABLE)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('new_datecolumn2')
-                ->setTypeName(Types::DATETIME_MUTABLE)
-                ->create(),
-        ]);
+        $tableB = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('new_datecolumn1')
+                    ->setTypeName(Types::DATETIME_MUTABLE)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('new_datecolumn2')
+                    ->setTypeName(Types::DATETIME_MUTABLE)
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = $this->comparator->compareTables($tableA, $tableB);
 
@@ -283,27 +312,42 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testTableAddForeignKey(): void
     {
-        $tableForeign = new Table('bar', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $tableForeign = Table::editor()
+            ->setUnquotedName('bar')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
-        $table1 = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('fk')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $table1 = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('fk')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
-        $table2 = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('fk')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table2->addForeignKeyConstraint($tableForeign->getName(), ['fk'], ['id']);
+        $table2 = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('fk')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('fk')
+                    ->setUnquotedReferencedTableName('bar')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = $this->comparator->compareTables($table1, $table2);
 
@@ -312,27 +356,42 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testTableRemoveForeignKey(): void
     {
-        $tableForeign = new Table('bar', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $tableForeign = Table::editor()
+            ->setUnquotedName('bar')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
-        $table1 = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('fk')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $table1 = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('fk')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
-        $table2 = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('fk')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table2->addForeignKeyConstraint($tableForeign->getName(), ['fk'], ['id']);
+        $table2 = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('fk')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('fk')
+                    ->setUnquotedReferencedTableName('bar')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = $this->comparator->compareTables($table2, $table1);
 
@@ -341,28 +400,40 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testTableUpdateForeignKey(): void
     {
-        $tableForeign = new Table('bar', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $table1 = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('fk')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('fk')
+                    ->setUnquotedReferencedTableName('bar')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
-        $table1 = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('fk')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table1->addForeignKeyConstraint($tableForeign->getName(), ['fk'], ['id']);
-
-        $table2 = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('fk')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table2->addForeignKeyConstraint($tableForeign->getName(), ['fk'], ['id'], ['onUpdate' => 'CASCADE']);
+        $table2 = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('fk')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('fk')
+                    ->setUnquotedReferencedTableName('bar')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->setOnUpdateAction(ReferentialAction::CASCADE)
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = $this->comparator->compareTables($table1, $table2);
 
@@ -372,35 +443,39 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testMovedForeignKeyForeignTable(): void
     {
-        $tableForeign = new Table('bar', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $table1 = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('fk')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('fk')
+                    ->setUnquotedReferencedTableName('bar')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
-        $tableForeign2 = new Table('bar2', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-
-        $table1 = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('fk')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table1->addForeignKeyConstraint($tableForeign->getName(), ['fk'], ['id']);
-
-        $table2 = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('fk')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table2->addForeignKeyConstraint($tableForeign2->getName(), ['fk'], ['id']);
+        $table2 = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('fk')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('fk')
+                    ->setUnquotedReferencedTableName('bar2')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = $this->comparator->compareTables($table1, $table2);
 
@@ -410,17 +485,19 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testTablesCaseInsensitive(): void
     {
-        $schemaA = new Schema();
-        $schemaA->createTable('foo');
-        $schemaA->createTable('bAr');
-        $schemaA->createTable('BAZ');
-        $schemaA->createTable('new');
+        $schemaA = new Schema([
+            $this->createTable('foo'),
+            $this->createTable('bAr'),
+            $this->createTable('BAZ'),
+            $this->createTable('new'),
+        ]);
 
-        $schemaB = new Schema();
-        $schemaB->createTable('FOO');
-        $schemaB->createTable('bar');
-        $schemaB->createTable('Baz');
-        $schemaB->createTable('old');
+        $schemaB = new Schema([
+            $this->createTable('FOO'),
+            $this->createTable('bar'),
+            $this->createTable('Baz'),
+            $this->createTable('old'),
+        ]);
 
         $diff = $this->comparator->compareSchemas($schemaA, $schemaB);
 
@@ -452,19 +529,25 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testCompareColumnCompareCaseInsensitive(): void
     {
-        $tableA = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $tableA = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
-        $tableB = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('ID')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $tableB = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('ID')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = $this->comparator->compareTables($tableA, $tableB);
 
@@ -515,21 +598,41 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testCompareForeignKeyBasedOnPropertiesNotName(): void
     {
-        $tableA = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $tableA->addForeignKeyConstraint('bar', ['id'], ['id'], [], 'foo_constraint');
+        $tableA = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedName('foo_constraint')
+                    ->setUnquotedReferencingColumnNames('id')
+                    ->setUnquotedReferencedTableName('bar')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
-        $tableB = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('ID')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $tableB->addForeignKeyConstraint('bar', ['id'], ['id'], [], 'bar_constraint');
+        $tableB = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('ID')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedName('bar_constraint')
+                    ->setUnquotedReferencingColumnNames('id')
+                    ->setUnquotedReferencedTableName('bar')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         self::assertEquals(
             new TableDiff($tableA),
@@ -539,19 +642,25 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testDetectRenameColumn(): void
     {
-        $tableA = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('foo')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $tableA = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
-        $tableB = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('bar')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $tableB = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('bar')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = $this->comparator->compareTables($tableA, $tableB);
 
@@ -565,19 +674,25 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testDetectRenameColumnDisabled(): void
     {
-        $tableA = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('foo')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $tableA = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
-        $tableB = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('bar')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $tableB = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('bar')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $this->comparator = $this->createComparator((new ComparatorConfig())->withDetectRenamedColumns(false));
         $tableDiff        = $this->comparator->compareTables($tableA, $tableB);
@@ -594,23 +709,29 @@ abstract class AbstractComparatorTestCase extends TestCase
      */
     public function testDetectRenameColumnAmbiguous(): void
     {
-        $tableA = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('foo')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('bar')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $tableA = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('bar')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
-        $tableB = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('baz')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $tableB = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('baz')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = $this->comparator->compareTables($tableA, $tableB);
 
@@ -621,18 +742,33 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testDetectRenameIndex(): void
     {
-        $table1 = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('foo')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $prototype = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
-        $table2 = clone $table1;
+        $table1 = $prototype->edit()
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('idx_foo')
+                    ->setUnquotedColumnNames('foo')
+                    ->create(),
+            )
+            ->create();
 
-        $table1->addIndex(['foo'], 'idx_foo');
-
-        $table2->addIndex(['foo'], 'idx_bar');
+        $table2 = $prototype->edit()
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('idx_bar')
+                    ->setUnquotedColumnNames('foo')
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = $this->comparator->compareTables($table1, $table2);
 
@@ -646,18 +782,33 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testDetectRenameIndexDisabled(): void
     {
-        $table1 = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('foo')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $prototype = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
-        $table2 = clone $table1;
+        $table1 = $prototype->edit()
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('idx_foo')
+                    ->setUnquotedColumnNames('foo')
+                    ->create(),
+            )
+            ->create();
 
-        $table1->addIndex(['foo'], 'idx_foo');
-
-        $table2->addIndex(['foo'], 'idx_bar');
+        $table2 = $prototype->edit()
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('idx_bar')
+                    ->setUnquotedColumnNames('foo')
+                    ->create(),
+            )
+            ->create();
 
         $this->comparator = $this->createComparator((new ComparatorConfig())->withDetectRenamedIndexes(false));
         $tableDiff        = $this->comparator->compareTables($table1, $table2);
@@ -674,19 +825,39 @@ abstract class AbstractComparatorTestCase extends TestCase
      */
     public function testDetectRenameIndexAmbiguous(): void
     {
-        $table1 = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('foo')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $prototype = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('foo')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
-        $table2 = clone $table1;
+        $table1 = $prototype->edit()
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('idx_foo')
+                    ->setUnquotedColumnNames('foo')
+                    ->create(),
+            )
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('idx_bar')
+                    ->setUnquotedColumnNames('foo')
+                    ->create(),
+            )
+            ->create();
 
-        $table1->addIndex(['foo'], 'idx_foo');
-        $table1->addIndex(['foo'], 'idx_bar');
-
-        $table2->addIndex(['foo'], 'idx_baz');
+        $table2 = $prototype->edit()
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('idx_baz')
+                    ->setUnquotedColumnNames('foo')
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = $this->comparator->compareTables($table1, $table2);
 
@@ -697,20 +868,26 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testDetectChangeIdentifierType(): void
     {
-        $tableA = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
+        $tableA = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
-        $tableB = new Table('foo', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->setAutoincrement(true)
-                ->create(),
-        ]);
+        $tableB = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = $this->comparator->compareTables($tableA, $tableB);
 
@@ -745,13 +922,32 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     private function compareTablesWithModifiedIndex(bool $reportModifiedIndexes): TableDiff
     {
-        $tableA = new Table('foo');
-        $tableA->addColumn('id', Types::INTEGER);
-        $tableA->addIndex(['id'], 'idx_id');
+        $tableA = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('idx_id')
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
-        $tableB = new Table('foo');
-        $tableB->addColumn('id', Types::INTEGER);
-        $tableB->addUniqueIndex(['id'], 'idx_id');
+        $tableB = $tableA->edit()
+            ->dropIndexByUnquotedName('idx_id')
+            ->addIndex(
+                Index::editor()
+                    ->setUnquotedName('idx_id')
+                    ->setType(IndexType::UNIQUE)
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         return $this->createComparator(
             (new ComparatorConfig())->withReportModifiedIndexes($reportModifiedIndexes),
@@ -760,45 +956,59 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testDiff(): void
     {
-        $table = new Table('twitter_users', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->setAutoincrement(true)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('twitterId')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('displayName')
-                ->setTypeName(Types::STRING)
-                ->setLength(32)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('twitter_users')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('twitterId')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('displayName')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
-        $newtable = new Table('twitter_users', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->setAutoincrement(true)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('twitter_id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('display_name')
-                ->setTypeName(Types::STRING)
-                ->setLength(32)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('logged_in_at')
-                ->setTypeName(Types::DATETIME_MUTABLE)
-                ->create(),
-        ]);
-        $newtable->setPrimaryKey(['id']);
+        $newtable = Table::editor()
+            ->setUnquotedName('twitter_users')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('twitter_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('display_name')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('logged_in_at')
+                    ->setTypeName(Types::DATETIME_MUTABLE)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = $this->comparator->compareTables($table, $newtable);
 
@@ -825,11 +1035,13 @@ abstract class AbstractComparatorTestCase extends TestCase
         $config = new SchemaConfig();
         $config->setName('foo');
 
-        $oldSchema = new Schema([], [], $config);
-        $oldSchema->createTable('bar');
+        $oldSchema = new Schema([
+            $this->createTable('bar'),
+        ], [], $config);
 
-        $newSchema = new Schema([], [], $config);
-        $newSchema->createTable('foo.bar');
+        $newSchema = new Schema([
+            $this->createTable('foo.bar'),
+        ], [], $config);
 
         self::assertEquals(
             new SchemaDiff([], [], [], [], [], [], [], []),
@@ -842,14 +1054,16 @@ abstract class AbstractComparatorTestCase extends TestCase
         $config = new SchemaConfig();
         $config->setName('schemaName');
 
-        $oldSchema = new Schema([], [], $config);
-        $oldSchema->createTable('taz');
-        $oldSchema->createTable('war.tab');
+        $oldSchema = new Schema([
+            $this->createTable('taz'),
+            $this->createTable('war.tab'),
+        ], [], $config);
 
-        $newSchema = new Schema([], [], $config);
-        $newSchema->createTable('bar.tab');
-        $newSchema->createTable('baz.tab');
-        $newSchema->createTable('war.tab');
+        $newSchema = new Schema([
+            $this->createTable('bar.tab'),
+            $this->createTable('baz.tab'),
+            $this->createTable('war.tab'),
+        ], [], $config);
 
         $diff = $this->comparator->compareSchemas($oldSchema, $newSchema);
 
@@ -878,11 +1092,9 @@ abstract class AbstractComparatorTestCase extends TestCase
     {
         $config = new SchemaConfig();
         $config->setName('foo');
-        $oldSchema = new Schema([], [], $config);
-        $oldSchema->createTable('bar');
+        $oldSchema = new Schema([$this->createTable('bar')], [], $config);
 
-        $newSchema = new Schema();
-        $newSchema->createTable('bar');
+        $newSchema = new Schema([$this->createTable('bar')]);
 
         self::assertEquals(
             new SchemaDiff([], [], [], [], [], [], [], []),
@@ -892,16 +1104,26 @@ abstract class AbstractComparatorTestCase extends TestCase
 
     public function testAutoIncrementSequences(): void
     {
-        $oldSchema = new Schema();
-        $table     = $oldSchema->createTable('foo');
-        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
+        $oldSchema = new Schema([$table]);
         $oldSchema->createSequence('foo_id_seq');
 
-        $newSchema = new Schema();
-        $table     = $newSchema->createTable('foo');
-        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table->setPrimaryKey(['id']);
+        $newSchema = new Schema([$table]);
 
         $diff = $this->comparator->compareSchemas($oldSchema, $newSchema);
 
@@ -913,15 +1135,25 @@ abstract class AbstractComparatorTestCase extends TestCase
      */
     public function testAutoIncrementNoSequences(): void
     {
-        $oldSchema = new Schema();
-        $table     = $oldSchema->createTable('foo');
-        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement(true)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
-        $newSchema = new Schema();
-        $table     = $newSchema->createTable('foo');
-        $table->addColumn('id', Types::INTEGER, ['autoincrement' => true]);
-        $table->setPrimaryKey(['id']);
+        $oldSchema = new Schema([$table]);
+
+        $newSchema = new Schema([$table]);
         $newSchema->createSequence('foo_id_seq');
 
         $diff = $this->comparator->compareSchemas($oldSchema, $newSchema);
@@ -983,44 +1215,67 @@ abstract class AbstractComparatorTestCase extends TestCase
     public function testForeignKeyRemovalWithRenamedLocalColumn(): void
     {
         $oldSchema = new Schema([
-            new Table('table1', [
-                Column::editor()
-                    ->setUnquotedName('id')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-            ]),
-            new Table('table2', [
-                Column::editor()
-                    ->setUnquotedName('id')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-                Column::editor()
-                    ->setUnquotedName('id_table1')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-            ], [], [], [
-                new ForeignKeyConstraint(['id_table1'], 'table1', ['id'], 'fk_table2_table1'),
-            ]),
+            Table::editor()
+                ->setUnquotedName('table1')
+                ->setColumns(
+                    Column::editor()
+                        ->setUnquotedName('id')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
+                )
+                ->create(),
+            Table::editor()
+                ->setUnquotedName('table2')
+                ->setColumns(
+                    Column::editor()
+                        ->setUnquotedName('id')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
+                    Column::editor()
+                        ->setUnquotedName('id_table1')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
+                )
+                ->setForeignKeyConstraints(
+                    ForeignKeyConstraint::editor()
+                        ->setUnquotedReferencingColumnNames('id_table1')
+                        ->setUnquotedReferencedTableName('table1')
+                        ->setUnquotedReferencedColumnNames('fk_table2_table1')
+                        ->create(),
+                )
+                ->create(),
         ]);
         $newSchema = new Schema([
-            new Table('table2', [
-                Column::editor()
-                    ->setUnquotedName('id')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-                Column::editor()
-                    ->setUnquotedName('id_table3')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-            ], [], [], [
-                new ForeignKeyConstraint(['id_table3'], 'table3', ['id'], 'fk_table2_table3'),
-            ]),
-            new Table('table3', [
-                Column::editor()
-                    ->setUnquotedName('id')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-            ]),
+            Table::editor()
+                ->setUnquotedName('table2')
+                ->setColumns(
+                    Column::editor()
+                        ->setUnquotedName('id')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
+                    Column::editor()
+                        ->setUnquotedName('id_table3')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
+                )
+                ->setForeignKeyConstraints(
+                    ForeignKeyConstraint::editor()
+                        ->setUnquotedName('fk_table2_table3')
+                        ->setUnquotedReferencingColumnNames('id_table3')
+                        ->setUnquotedReferencedTableName('table3')
+                        ->setUnquotedReferencedColumnNames('id')
+                        ->create(),
+                )
+                ->create(),
+            Table::editor()
+                ->setUnquotedName('table3')
+                ->setColumns(
+                    Column::editor()
+                        ->setUnquotedName('id')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
+                )
+                ->create(),
         ]);
 
         $schemaDiff = $this->comparator->compareSchemas($oldSchema, $newSchema);
@@ -1036,23 +1291,29 @@ abstract class AbstractComparatorTestCase extends TestCase
     public function testWillNotProduceSchemaDiffOnTableWithAddedCustomSchemaDefinition(): void
     {
         $oldSchema = new Schema([
-            new Table('a_table', [
-                Column::editor()
-                    ->setUnquotedName('is_default')
-                    ->setTypeName(Types::STRING)
-                    ->setLength(32)
-                    ->create(),
-            ]),
+            Table::editor()
+                ->setUnquotedName('a_table')
+                ->setColumns(
+                    Column::editor()
+                        ->setUnquotedName('is_default')
+                        ->setTypeName(Types::STRING)
+                        ->setLength(32)
+                        ->create(),
+                )
+                ->create(),
         ]);
         $newSchema = new Schema([
-            new Table('a_table', [
-                Column::editor()
-                    ->setUnquotedName('is_default')
-                    ->setTypeName(Types::STRING)
-                    ->setLength(32)
-                    ->setColumnDefinition('ENUM(\'default\')')
-                    ->create(),
-            ]),
+            Table::editor()
+                ->setUnquotedName('a_table')
+                ->setColumns(
+                    Column::editor()
+                        ->setUnquotedName('is_default')
+                        ->setTypeName(Types::STRING)
+                        ->setLength(32)
+                        ->setColumnDefinition('ENUM(\'default\')')
+                        ->create(),
+                )
+                ->create(),
         ]);
 
         self::assertEmpty(
@@ -1076,5 +1337,19 @@ abstract class AbstractComparatorTestCase extends TestCase
         }
 
         return $names;
+    }
+
+    /** @param non-empty-string $name */
+    private function createTable(string $name): Table
+    {
+        return Table::editor()
+            ->setUnquotedName($name)
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
     }
 }

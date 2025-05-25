@@ -8,7 +8,13 @@ use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint;
+use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\Index\IndexType;
+use Doctrine\DBAL\Schema\Name\Identifier;
+use Doctrine\DBAL\Schema\Name\OptionallyQualifiedName;
 use Doctrine\DBAL\Schema\Name\UnqualifiedName;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Types\Types;
@@ -31,7 +37,7 @@ final class SchemaManagerTest extends FunctionalTestCase
     }
 
     #[DataProvider('dataEmptyDiffRegardlessOfForeignTableQuotes')]
-    public function testEmptyDiffRegardlessOfForeignTableQuotes(string $foreignTableName): void
+    public function testEmptyDiffRegardlessOfForeignTableQuotes(OptionallyQualifiedName $foreignTableName): void
     {
         if (! $this->connection->getDatabasePlatform()->supportsSchemas()) {
             self::markTestSkipped('Platform does not support schemas.');
@@ -39,27 +45,50 @@ final class SchemaManagerTest extends FunctionalTestCase
 
         $this->dropAndCreateSchema(UnqualifiedName::unquoted('other_schema'));
 
-        $tableForeign = new Table($foreignTableName, [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $tableForeign->setPrimaryKey(['id']);
+        $tableForeign = Table::editor()
+            ->setName($foreignTableName)
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
         $this->dropAndCreateTable($tableForeign);
 
-        $tableTo = new Table('other_schema.other_table', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('user_id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $tableTo->setPrimaryKey(['id']);
-        $tableTo->addForeignKeyConstraint($foreignTableName, ['user_id'], ['id']);
+        $tableTo = Table::editor()
+            ->setUnquotedName('other_table', 'other_schema')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('user_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('user_id')
+                    ->setReferencedTableName($foreignTableName)
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->setUnquotedName('fk_user_id')
+                    ->create(),
+            )
+            ->create();
+
         $this->dropAndCreateTable($tableTo);
 
         $schemaFrom = $this->schemaManager->introspectSchema();
@@ -69,18 +98,23 @@ final class SchemaManagerTest extends FunctionalTestCase
         self::assertTrue($diff->isEmpty());
     }
 
-    /** @return iterable<string,array{string}> */
+    /** @return iterable<string,array{OptionallyQualifiedName}> */
     public static function dataEmptyDiffRegardlessOfForeignTableQuotes(): iterable
     {
         return [
-            'unquoted' => ['other_schema.user'],
-            'partially quoted' => ['other_schema."user"'],
-            'fully quoted' => ['"other_schema"."user"'],
+            'unquoted' => [OptionallyQualifiedName::unquoted('user', 'other_schema')],
+            'partially quoted' => [
+                new OptionallyQualifiedName(
+                    Identifier::quoted('user'),
+                    Identifier::unquoted('other_schema'),
+                ),
+            ],
+            'fully quoted' => [OptionallyQualifiedName::quoted('user', 'other_schema')],
         ];
     }
 
     #[DataProvider('dataDropIndexInAnotherSchema')]
-    public function testDropIndexInAnotherSchema(string $tableName): void
+    public function testDropIndexInAnotherSchema(OptionallyQualifiedName $tableName): void
     {
         if (! $this->connection->getDatabasePlatform()->supportsSchemas()) {
             self::markTestSkipped('Platform does not support schemas.');
@@ -89,39 +123,55 @@ final class SchemaManagerTest extends FunctionalTestCase
         $this->dropAndCreateSchema(UnqualifiedName::unquoted('other_schema'));
         $this->dropAndCreateSchema(UnqualifiedName::quoted('case'));
 
-        $tableFrom = new Table($tableName, [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('name')
-                ->setTypeName(Types::STRING)
-                ->setLength(32)
-                ->create(),
-        ]);
-        $tableFrom->addUniqueIndex(['name'], 'some_table_name_unique_index');
+        $tableFrom = Table::editor()
+            ->setName($tableName)
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('name')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(32)
+                    ->create(),
+            )
+            ->setIndexes(
+                Index::editor()
+                    ->setUnquotedName('some_table_name_unique_index')
+                    ->setUnquotedColumnNames('name')
+                    ->setType(IndexType::UNIQUE)
+                    ->create(),
+            )
+            ->create();
+
         $this->dropAndCreateTable($tableFrom);
 
-        $tableTo = clone $tableFrom;
-        $tableTo->dropIndex('some_table_name_unique_index');
+        $tableTo = $tableFrom->edit()
+            ->dropIndexByUnquotedName('some_table_name_unique_index')
+            ->create();
 
         $diff = $this->schemaManager->createComparator()->compareTables($tableFrom, $tableTo);
         self::assertFalse($diff->isEmpty());
 
         $this->schemaManager->alterTable($diff);
-        $tableFinal = $this->schemaManager->introspectTable($tableName);
+        $tableFinal = $this->schemaManager->introspectTable($tableName->toString());
         self::assertEmpty($tableFinal->getIndexes());
     }
 
-    /** @return iterable<string,array{string}> */
+    /** @return iterable<string,array{OptionallyQualifiedName}> */
     public static function dataDropIndexInAnotherSchema(): iterable
     {
         return [
-            'default schema' => ['some_table'],
-            'unquoted schema' => ['other_schema.some_table'],
-            'quoted schema' => ['"other_schema".some_table'],
-            'reserved schema' => ['case.some_table'],
+            'default schema' => [OptionallyQualifiedName::unquoted('some_table')],
+            'unquoted schema' => [OptionallyQualifiedName::unquoted('some_table', 'other_schema')],
+            'quoted schema' => [
+                new OptionallyQualifiedName(
+                    Identifier::unquoted('some_table'),
+                    Identifier::quoted('other_schema'),
+                ),
+            ],
+            'reserved schema' => [OptionallyQualifiedName::unquoted('some_table', 'case')],
         ];
     }
 
@@ -139,14 +189,22 @@ final class SchemaManagerTest extends FunctionalTestCase
             self::markTestIncomplete('See https://github.com/doctrine/dbal/issues/6844');
         }
 
-        $table = new Table('test_autoincrement', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->setAutoincrement($autoincrement)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('test_autoincrement')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement($autoincrement)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
         $this->dropAndCreateTable($table);
 
         $table = $this->schemaManager->introspectTable('test_autoincrement');
@@ -170,18 +228,26 @@ final class SchemaManagerTest extends FunctionalTestCase
             );
         }
 
-        $table = new Table('test_autoincrement', [
-            Column::editor()
-                ->setUnquotedName('id1')
-                ->setTypeName(Types::INTEGER)
-                ->setAutoincrement($autoincrement)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('id2')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['id1', 'id2']);
+        $table = Table::editor()
+            ->setUnquotedName('test_autoincrement')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id1')
+                    ->setTypeName(Types::INTEGER)
+                    ->setAutoincrement($autoincrement)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('id2')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id1', 'id2')
+                    ->create(),
+            )
+            ->create();
+
         $this->dropAndCreateTable($table);
 
         $table = $this->schemaManager->introspectTable('test_autoincrement');
@@ -227,8 +293,15 @@ final class SchemaManagerTest extends FunctionalTestCase
     /** @throws Exception */
     public function testIntrospectTableWithInvalidName(): void
     {
-        $table = new Table('"example"');
-        $table->addColumn('id', 'integer');
+        $table = Table::editor()
+            ->setQuotedName('example')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 

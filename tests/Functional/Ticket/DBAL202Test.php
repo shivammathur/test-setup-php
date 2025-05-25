@@ -6,6 +6,7 @@ namespace Doctrine\DBAL\Tests\Functional\Ticket;
 
 use Doctrine\DBAL\Platforms\OraclePlatform;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Types\Types;
@@ -21,13 +22,20 @@ class DBAL202Test extends FunctionalTestCase
         if ($this->connection->createSchemaManager()->tableExists('DBAL202')) {
             $this->connection->executeStatement('DELETE FROM DBAL202');
         } else {
-            $table = new Table('DBAL202', [
-                Column::editor()
-                    ->setUnquotedName('id')
-                    ->setTypeName(Types::INTEGER)
-                    ->create(),
-            ]);
-            $table->setPrimaryKey(['id']);
+            $table = Table::editor()
+                ->setUnquotedName('DBAL202')
+                ->setColumns(
+                    Column::editor()
+                        ->setUnquotedName('id')
+                        ->setTypeName(Types::INTEGER)
+                        ->create(),
+                )
+                ->setPrimaryKeyConstraint(
+                    PrimaryKeyConstraint::editor()
+                        ->setUnquotedColumnNames('id')
+                        ->create(),
+                )
+                ->create();
 
             $this->connection->createSchemaManager()->createTable($table);
         }

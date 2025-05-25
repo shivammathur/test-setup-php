@@ -7,6 +7,7 @@ namespace Doctrine\DBAL\Tests\Functional;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Tests\FunctionalTestCase;
 use Doctrine\DBAL\Tests\TestUtil;
@@ -29,19 +30,26 @@ class BinaryDataAccessTest extends FunctionalTestCase
             self::markTestSkipped("PDO_OCI doesn't support binding binary values");
         }
 
-        $table = new Table('binary_fetch_table', [
-            Column::editor()
-                ->setUnquotedName('test_int')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('test_binary')
-                ->setTypeName(Types::BINARY)
-                ->setNotNull(false)
-                ->setLength(4)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['test_int']);
+        $table = Table::editor()
+            ->setUnquotedName('binary_fetch_table')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('test_int')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('test_binary')
+                    ->setTypeName(Types::BINARY)
+                    ->setNotNull(false)
+                    ->setLength(4)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('test_int')
+                    ->create(),
+            )
+            ->create();
 
         $this->dropAndCreateTable($table);
 

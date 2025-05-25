@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Doctrine\DBAL\Tests\Schema;
 
+use Doctrine\DBAL\Schema\Column;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\SchemaConfig;
 use Doctrine\DBAL\Schema\SchemaException;
@@ -23,7 +25,15 @@ class SchemaTest extends TestCase
     public function testAddTable(): void
     {
         $tableName = 'public.foo';
-        $table     = new Table($tableName);
+        $table     = Table::editor()
+            ->setUnquotedName($tableName)
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $schema = new Schema([$table]);
 
@@ -36,7 +46,7 @@ class SchemaTest extends TestCase
 
     public function testTableMatchingCaseInsensitive(): void
     {
-        $table = new Table('Foo');
+        $table = $this->createTable('Foo');
 
         $schema = new Schema([$table]);
         self::assertTrue($schema->hasTable('foo'));
@@ -59,18 +69,25 @@ class SchemaTest extends TestCase
     {
         $this->expectException(SchemaException::class);
 
-        $tableName = 'foo';
-        $table     = new Table($tableName);
-        $tables    = [$table, $table];
+        $table  = $this->createTable('foo');
+        $tables = [$table, $table];
 
         new Schema($tables);
     }
 
     public function testRenameTable(): void
     {
-        $tableName = 'foo';
-        $table     = new Table($tableName);
-        $schema    = new Schema([$table]);
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
+
+        $schema = new Schema([$table]);
 
         self::assertTrue($schema->hasTable('foo'));
         $schema->renameTable('foo', 'bar');
@@ -81,9 +98,8 @@ class SchemaTest extends TestCase
 
     public function testDropTable(): void
     {
-        $tableName = 'foo';
-        $table     = new Table($tableName);
-        $schema    = new Schema([$table]);
+        $table  = $this->createTable('foo');
+        $schema = new Schema([$table]);
 
         self::assertTrue($schema->hasTable('foo'));
 
@@ -192,16 +208,39 @@ class SchemaTest extends TestCase
 
     public function testDeepClone(): void
     {
-        $schema   = new Schema();
+        $tableA = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
+
+        $tableB = Table::editor()
+            ->setUnquotedName('bar')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('foo_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('foo_id')
+                    ->setUnquotedReferencedTableName('foo')
+                    ->setUnquotedReferencedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
+        $schema   = new Schema([$tableA, $tableB]);
         $sequence = $schema->createSequence('baz');
-
-        $tableA = $schema->createTable('foo');
-        $tableA->addColumn('id', Types::INTEGER);
-
-        $tableB = $schema->createTable('bar');
-        $tableB->addColumn('id', Types::INTEGER);
-        $tableB->addColumn('foo_id', Types::INTEGER);
-        $tableB->addForeignKeyConstraint($tableA->getName(), ['foo_id'], ['id']);
 
         $schemaNew = clone $schema;
 
@@ -216,10 +255,17 @@ class SchemaTest extends TestCase
 
     public function testHasTableForQuotedAsset(): void
     {
-        $schema = new Schema();
+        $tableA = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
-        $tableA = $schema->createTable('foo');
-        $tableA->addColumn('id', Types::INTEGER);
+        $schema = new Schema([$tableA]);
 
         self::assertTrue($schema->hasTable('`foo`'));
     }
@@ -348,7 +394,7 @@ class SchemaTest extends TestCase
             'https://github.com/doctrine/dbal/pull/6677#user-content-qualified-names',
         );
 
-        new Schema([new Table('t'), new Table('public.t')]);
+        new Schema([$this->createTable('t'), $this->createTable('t', 'public')]);
     }
 
     public function testAddObjectWithUnqualifiedNameAfterQualifiedName(): void
@@ -357,12 +403,12 @@ class SchemaTest extends TestCase
             'https://github.com/doctrine/dbal/pull/6677#user-content-unqualified-names',
         );
 
-        new Schema([new Table('public.t'), new Table('t')]);
+        new Schema([$this->createTable('t', 'public'), $this->createTable('t')]);
     }
 
     public function testReferenceByQualifiedNameAmongUnqualifiedNames(): void
     {
-        $schema = new Schema([new Table('t')]);
+        $schema = new Schema([$this->createTable('t')]);
 
         $this->expectDeprecationWithIdentifier(
             'https://github.com/doctrine/dbal/pull/6677#user-content-qualified-names',
@@ -373,7 +419,7 @@ class SchemaTest extends TestCase
 
     public function testReferenceByUnqualifiedNameAmongQualifiedNames(): void
     {
-        $schema = new Schema([new Table('public.t')]);
+        $schema = new Schema([$this->createTable('t', 'public')]);
 
         $this->expectDeprecationWithIdentifier(
             'https://github.com/doctrine/dbal/pull/6677#user-content-unqualified-names',
@@ -391,7 +437,10 @@ class SchemaTest extends TestCase
             'https://github.com/doctrine/dbal/pull/6677#user-content-qualified-names',
         );
 
-        new Schema([new Table('t'), new Table('public.s')], [], $schemaConfig);
+        new Schema([
+            $this->createTable('t'),
+            $this->createTable('s', 'public'),
+        ], [], $schemaConfig);
     }
 
     public function testAddObjectWithUnqualifiedNameAfterQualifiedNameWithDefaultNamespace(): void
@@ -403,7 +452,10 @@ class SchemaTest extends TestCase
             'https://github.com/doctrine/dbal/pull/6677#user-content-unqualified-names',
         );
 
-        new Schema([new Table('public.t'), new Table('s')], [], $schemaConfig);
+        new Schema([
+            $this->createTable('t', 'public'),
+            $this->createTable('s'),
+        ], [], $schemaConfig);
     }
 
     public function testReferencingByUnqualifiedNameAmongQualifiedNamesWithDefaultNamespace(): void
@@ -411,12 +463,31 @@ class SchemaTest extends TestCase
         $schemaConfig = new SchemaConfig();
         $schemaConfig->setName('public');
 
-        $schema = new Schema([new Table('public.t')], [], $schemaConfig);
+        $schema = new Schema([
+            $this->createTable('t', 'public'),
+        ], [], $schemaConfig);
 
         self::assertTrue($schema->hasTable('t'));
         self::assertTrue($schema->hasTable('public.t'));
 
         self::assertFalse($schema->hasTable('s'));
         self::assertFalse($schema->hasTable('public.s'));
+    }
+
+    /**
+     * @param non-empty-string  $unqualifiedName
+     * @param ?non-empty-string $qualifier
+     */
+    private function createTable(string $unqualifiedName, ?string $qualifier = null): Table
+    {
+        return Table::editor()
+            ->setUnquotedName($unqualifiedName, $qualifier)
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
     }
 }

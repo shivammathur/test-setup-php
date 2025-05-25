@@ -9,7 +9,9 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\DB2Platform;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\ColumnDiff;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\Types;
@@ -115,18 +117,26 @@ class DB2PlatformTest extends AbstractPlatformTestCase
 
     public function testGeneratesCreateTableSQLWithCommonIndexes(): void
     {
-        $table = new Table('test', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('name')
-                ->setTypeName(Types::STRING)
-                ->setLength(50)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('name')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(50)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
+
         $table->addIndex(['name']);
         $table->addIndex(['id', 'name'], 'composite_idx');
 
@@ -142,35 +152,47 @@ class DB2PlatformTest extends AbstractPlatformTestCase
 
     public function testGeneratesCreateTableSQLWithForeignKeyConstraints(): void
     {
-        $table = new Table('test', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('fk_1')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('fk_2')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['id']);
-        $table->addForeignKeyConstraint('foreign_table', ['fk_1', 'fk_2'], ['pk_1', 'pk_2']);
-        $table->addForeignKeyConstraint(
-            'foreign_table2',
-            ['fk_1', 'fk_2'],
-            ['pk_1', 'pk_2'],
-            [],
-            'named_fk',
-        );
+        $table = Table::editor()
+            ->setUnquotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('fk_1')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('fk_2')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('fk_1', 'fk_2')
+                    ->setUnquotedReferencedTableName('foreign_table')
+                    ->setUnquotedReferencedColumnNames('pk_1', 'pk_2')
+                    ->create(),
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedName('named_fk')
+                    ->setUnquotedReferencingColumnNames('fk_1', 'fk_2')
+                    ->setUnquotedReferencedTableName('foreign_table2')
+                    ->setUnquotedReferencedColumnNames('pk_1', 'pk_2')
+                    ->create(),
+            )
+            ->create();
 
         self::assertEquals(
             [
                 'CREATE TABLE test (id INTEGER NOT NULL, fk_1 INTEGER NOT NULL, fk_2 INTEGER NOT NULL'
                     . ', PRIMARY KEY (id))',
-                'ALTER TABLE test ADD CONSTRAINT FK_D87F7E0C177612A38E7F4319 FOREIGN KEY (fk_1, fk_2)'
+                'ALTER TABLE test ADD FOREIGN KEY (fk_1, fk_2)'
                     . ' REFERENCES foreign_table (pk_1, pk_2)',
                 'ALTER TABLE test ADD CONSTRAINT named_fk FOREIGN KEY (fk_1, fk_2)'
                     . ' REFERENCES foreign_table2 (pk_1, pk_2)',
@@ -182,23 +204,30 @@ class DB2PlatformTest extends AbstractPlatformTestCase
 
     public function testGeneratesCreateTableSQLWithCheckConstraints(): void
     {
-        $table = new Table('test', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('check_max')
-                ->setTypeName(Types::INTEGER)
-                ->setMaximumValue(10)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('check_min')
-                ->setTypeName(Types::INTEGER)
-                ->setMinimumValue(10)
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('check_max')
+                    ->setTypeName(Types::INTEGER)
+                    ->setMaximumValue(10)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('check_min')
+                    ->setTypeName(Types::INTEGER)
+                    ->setMinimumValue(10)
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         self::assertEquals(
             [
@@ -477,7 +506,17 @@ class DB2PlatformTest extends AbstractPlatformTestCase
         ?string $expectedSQLClause,
         bool $shouldReorg = true,
     ): void {
-        $tableDiff = new TableDiff(new Table('foo'), changedColumns: [
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
+
+        $tableDiff = new TableDiff($table, changedColumns: [
             $oldColumn->getName() => new ColumnDiff($oldColumn, $newColumn),
         ]);
 

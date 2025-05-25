@@ -663,14 +663,21 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
     public function testCreateTableWithSchemaColumnComments(): void
     {
-        $table = new Table('testschema.test', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->setComment('This is a comment')
-                ->create(),
-        ]);
-        $table->setPrimaryKey(['id']);
+        $table = Table::editor()
+            ->setUnquotedName('test', 'testschema')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->setComment('This is a comment')
+                    ->create(),
+            )
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $expectedSql = [
             'CREATE TABLE testschema.test (id INT NOT NULL, PRIMARY KEY (id))',
@@ -683,7 +690,15 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
     public function testAlterTableWithSchemaColumnComments(): void
     {
-        $table = new Table('testschema.mytable');
+        $table = Table::editor()
+            ->setUnquotedName('mytable', 'testschema')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = new TableDiff($table, addedColumns: [Column::editor()
                 ->setUnquotedName('quota')
@@ -703,7 +718,15 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
     public function testAlterTableWithSchemaDropColumnComments(): void
     {
-        $table = new Table('testschema.mytable');
+        $table = Table::editor()
+            ->setUnquotedName('mytable', 'testschema')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = new TableDiff($table, changedColumns: [
             'quota' => new ColumnDiff(
@@ -729,7 +752,15 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
     public function testAlterTableWithSchemaUpdateColumnComments(): void
     {
-        $table = new Table('testschema.mytable');
+        $table = Table::editor()
+            ->setUnquotedName('mytable', 'testschema')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = new TableDiff($table, changedColumns: [
             'quota' => new ColumnDiff(
@@ -1077,10 +1108,22 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
     public function testGetCreateTableSQLWithColumnCollation(): void
     {
-        $table = new Table('foo');
-        $table->addColumn('no_collation', Types::STRING, ['length' => 255]);
-        $table->addColumn('column_collation', Types::STRING, ['length' => 255])
-            ->setPlatformOption('collation', 'Latin1_General_CS_AS_KS_WS');
+        $table = Table::editor()
+            ->setUnquotedName('foo')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('no_collation')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(255)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('column_collation')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(255)
+                    ->setCollation('Latin1_General_CS_AS_KS_WS')
+                    ->create(),
+            )
+            ->create();
 
         self::assertSame(
             ['CREATE TABLE foo (no_collation NVARCHAR(255) NOT NULL, '
@@ -1118,7 +1161,15 @@ class SQLServerPlatformTest extends AbstractPlatformTestCase
 
     public function testAlterTableWithSchemaSameColumnComments(): void
     {
-        $table = new Table('testschema.mytable');
+        $table = Table::editor()
+            ->setUnquotedName('mytable', 'testschema')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->create();
 
         $tableDiff = new TableDiff($table, changedColumns: [
             'quota' => new ColumnDiff(

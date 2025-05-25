@@ -13,6 +13,8 @@ use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Schema\Column;
 use Doctrine\DBAL\Schema\Comparator;
 use Doctrine\DBAL\Schema\ComparatorConfig;
+use Doctrine\DBAL\Schema\ForeignKeyConstraint;
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use PHPUnit\Framework\TestCase;
@@ -28,44 +30,55 @@ class MySQLSchemaTest extends TestCase
 
     public function testGenerateForeignKeySQL(): void
     {
-        $tableOld = new Table('test', [
-            Column::editor()
-                ->setUnquotedName('foo_id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-        ]);
-        $tableOld->addForeignKeyConstraint('test_foreign', ['foo_id'], ['foo_id']);
+        $tableOld = Table::editor()
+            ->setUnquotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('foo_id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+            )
+            ->setForeignKeyConstraints(
+                ForeignKeyConstraint::editor()
+                    ->setUnquotedReferencingColumnNames('foo_id')
+                    ->setUnquotedReferencedTableName('test_foreign')
+                    ->setUnquotedReferencedColumnNames('foo_id')
+                    ->create(),
+            )
+            ->create();
 
         $sqls = [];
         foreach ($tableOld->getForeignKeys() as $fk) {
             $sqls[] = $this->platform->getCreateForeignKeySQL($fk, $tableOld->getQuotedName($this->platform));
         }
 
-        self::assertEquals(
-            [
-                'ALTER TABLE test ADD CONSTRAINT FK_D87F7E0C8E48560F FOREIGN KEY (foo_id)'
-                    . ' REFERENCES test_foreign (foo_id)',
-            ],
-            $sqls,
-        );
+        self::assertEquals(['ALTER TABLE test ADD FOREIGN KEY (foo_id) REFERENCES test_foreign (foo_id)'], $sqls);
     }
 
     public function testClobNoAlterTable(): void
     {
-        $tableOld = new Table('test', [
-            Column::editor()
-                ->setUnquotedName('id')
-                ->setTypeName(Types::INTEGER)
-                ->create(),
-            Column::editor()
-                ->setUnquotedName('description')
-                ->setTypeName(Types::STRING)
-                ->setLength(65536)
-                ->create(),
-        ]);
-        $tableNew = clone $tableOld;
+        $tableOld = Table::editor()
+            ->setUnquotedName('test')
+            ->setColumns(
+                Column::editor()
+                    ->setUnquotedName('id')
+                    ->setTypeName(Types::INTEGER)
+                    ->create(),
+                Column::editor()
+                    ->setUnquotedName('description')
+                    ->setTypeName(Types::STRING)
+                    ->setLength(65536)
+                    ->create(),
+            )
+            ->create();
 
-        $tableNew->setPrimaryKey(['id']);
+        $tableNew = $tableOld->edit()
+            ->setPrimaryKeyConstraint(
+                PrimaryKeyConstraint::editor()
+                    ->setUnquotedColumnNames('id')
+                    ->create(),
+            )
+            ->create();
 
         $diff = $this->createComparator()
             ->compareTables($tableOld, $tableNew);
