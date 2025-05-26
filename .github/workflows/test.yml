@@ -6,10 +6,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [windows-latest]
+        php: [7.2, 7.3, 7.4, '8.0', 8.1, 8.2, 8.3, 8.4]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: latest
-      - run: php -v  
+          extensions: imagick-3.8.0
+          php-version: ${{ matrix.php }}
+      - run: |
+          php -v
+          php -r "echo phpversion('imagick');"
+          php -m
