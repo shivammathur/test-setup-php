@@ -10,7 +10,7 @@ jobs:
         os: [ubuntu-22.04]
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@more-verbose
+        uses: shivammathur/setup-php@v2
         with:
           php-version: 8.3
           extensions: redis
