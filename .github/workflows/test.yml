@@ -7,6 +7,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-22.04-arm]
+        os: [ubuntu-22.04-arm]
     steps:
-      - run: arch
+      - name: Pre-test steps
+        uses: Homebrew/actions/pre-build@master
+        with:
+          bottles-directory: ${{ matrix.workdir || github.workspace }}/bottles
+          cleanup: false
+      - uses: mxschmitt/action-tmate@v3.22
