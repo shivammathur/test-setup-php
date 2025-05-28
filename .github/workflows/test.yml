@@ -10,15 +10,18 @@ env:
 jobs:
   runner:
     runs-on: ${{ matrix.os }}
-    container: homebrew/ubuntu22.04:latest
+    container: ubuntu:22.04
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04-arm]
+        os: [ubuntu-22.04]
     steps:
-      - name: Pre-test steps
-        uses: Homebrew/actions/pre-build@master
+      - name: Setup PHP
+        uses: shivammathur/setup-php@more-verbose
         with:
-          bottles-directory: ${{ matrix.workdir || github.workspace }}/bottles
-          cleanup: false
-      - uses: mxschmitt/action-tmate@v3.22
+          php-version: 8.3
+          extensions: redis
+          tools: composer:v2
+        env:
+          update: true
+          runner: self-hosted
