@@ -12,7 +12,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: 8.3
-          extensions: redis
+          php-version: 8.1
+          extensions: redis, gnupg
         env:
           runner: self-hosted
