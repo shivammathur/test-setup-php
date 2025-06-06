@@ -604,6 +604,8 @@ WHERE table_catalog = ?
   AND table_name != 'geometry_columns'
   AND table_name != 'spatial_ref_sys'
   AND table_type = 'BASE TABLE'
+ORDER BY
+  quote_ident(table_name)
 SQL;
 
         return $this->_conn->executeQuery($sql, [$databaseName]);
@@ -694,7 +696,7 @@ SQL;
             'c.relnamespace = n.oid',
         ], $this->buildQueryConditions($tableName));
 
-        $sql .= ' WHERE ' . implode(' AND ', $conditions) . ')';
+        $sql .= ' WHERE ' . implode(' AND ', $conditions) . ') ORDER BY quote_ident(ic.relname)';
 
         return $this->_conn->executeQuery($sql);
     }
@@ -721,7 +723,7 @@ SQL;
 
         $conditions = array_merge(['n.oid = c.relnamespace'], $this->buildQueryConditions($tableName));
 
-        $sql .= ' WHERE ' . implode(' AND ', $conditions) . ") AND r.contype = 'f'";
+        $sql .= ' WHERE ' . implode(' AND ', $conditions) . ") AND r.contype = 'f' ORDER BY quote_ident(r.conname)";
 
         return $this->_conn->executeQuery($sql);
     }
