@@ -12,6 +12,7 @@ use Doctrine\DBAL\Schema\ColumnDiff;
 use Doctrine\DBAL\Schema\ForeignKeyConstraint;
 use Doctrine\DBAL\Schema\Index;
 use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
+use Doctrine\DBAL\Schema\SQLiteSchemaManager;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Schema\TableDiff;
 use Doctrine\DBAL\Types\BlobType;
@@ -20,8 +21,10 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\Deprecations\PHPUnit\VerifyDeprecations;
 
 use function array_keys;
+use function array_map;
 use function array_shift;
 use function array_values;
+use function assert;
 
 class SQLiteSchemaManagerTest extends SchemaManagerFunctionalTestCase
 {
@@ -492,6 +495,81 @@ SQL;
                 'CREATE INDEX IDX_D6E3F8A6FB96D8BC ON track (trackartist)',
             ],
             $createTableTrackSql,
+        );
+    }
+
+    public function testListTableNoSchemaEmulation(): void
+    {
+        $databasePlatform = $this->connection->getDatabasePlatform();
+        assert($databasePlatform instanceof SQLitePlatform);
+
+        $this->dropTableIfExists('`list_table_no_schema_emulation.test`');
+
+        $this->connection->executeStatement(<<<'DDL'
+            CREATE TABLE `list_table_no_schema_emulation.test` (
+                id INTEGER,
+                parent_id INTEGER,
+                PRIMARY KEY (id),
+                FOREIGN KEY (parent_id) REFERENCES `list_table_no_schema_emulation.test` (id)
+            );
+            DDL);
+
+        $this->connection->executeStatement(<<<'DDL'
+            CREATE INDEX i ON `list_table_no_schema_emulation.test` (parent_id);
+            DDL);
+
+        $customSQLiteSchemaManager = new class ($this->connection, $databasePlatform) extends SQLiteSchemaManager {
+            /** @return list<array<string, mixed>> */
+            public function selectTableColumnsWithSchema(): array
+            {
+                return $this->selectTableColumns('main', 'list_table_no_schema_emulation.test')
+                    ->fetchAllAssociative();
+            }
+
+            /** @return list<array<string, mixed>> */
+            public function selectIndexColumnsWithSchema(): array
+            {
+                return $this->selectIndexColumns('main', 'list_table_no_schema_emulation.test')
+                    ->fetchAllAssociative();
+            }
+
+            /** @return list<array<string, mixed>> */
+            public function selectForeignKeyColumnsWithSchema(): array
+            {
+                return $this->selectForeignKeyColumns('main', 'list_table_no_schema_emulation.test')
+                    ->fetchAllAssociative();
+            }
+        };
+
+        self::assertSame(
+            [
+                ['list_table_no_schema_emulation.test', 'id'],
+                ['list_table_no_schema_emulation.test', 'parent_id'],
+            ],
+            array_map(
+                static fn (array $row) => [$row['table_name'], $row['name']],
+                $customSQLiteSchemaManager->selectTableColumnsWithSchema(),
+            ),
+        );
+
+        self::assertSame(
+            [
+                ['list_table_no_schema_emulation.test', 'i'],
+            ],
+            array_map(
+                static fn (array $row) => [$row['table_name'], $row['name']],
+                $customSQLiteSchemaManager->selectIndexColumnsWithSchema(),
+            ),
+        );
+
+        self::assertSame(
+            [
+                ['list_table_no_schema_emulation.test', 'parent_id', 'id'],
+            ],
+            array_map(
+                static fn (array $row) => [$row['table_name'], $row['from'], $row['to']],
+                $customSQLiteSchemaManager->selectForeignKeyColumnsWithSchema(),
+            ),
         );
     }
 

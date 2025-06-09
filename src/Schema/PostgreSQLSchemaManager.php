@@ -343,6 +343,8 @@ WHERE table_catalog = ?
   AND table_name != 'geometry_columns'
   AND table_name != 'spatial_ref_sys'
   AND table_type = 'BASE TABLE'
+ORDER BY
+  quote_ident(table_name)
 SQL;
 
         return $this->connection->executeQuery($sql, [$databaseName]);
@@ -471,6 +473,7 @@ SQL;
                             ON n.oid = c.relnamespace
                         WHERE %s)
                   AND r.contype = 'f'
+                  ORDER BY 1, 2
         SQL,
             implode(' AND ', $this->buildQueryConditions($tableName, $params)),
         );
