@@ -15,7 +15,7 @@ jobs:
           - "ubuntu:jammy"
           - "debian:bullseye"
           - "debian:bookworm"
-          - "shivammathur/node:focal"
+          - "shivammathur/node:noble"
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
     steps:
       # Test that it works if php is installed but dev package is not.

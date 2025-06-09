@@ -23,7 +23,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: behat, blackfire, churn, composer-require-checker, composer-normalize, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpspec, phpmd, cs2pr, codeception, phpunit, phpunit-bridge, phpunit-polyfills, psalm, phing, phinx, phive, deployer, protoc, pecl, phpdoc, phpize, php-config, rector, symfony, vapor-cli
+          tools: behat, blackfire, churn, composer-require-checker, composer-normalize, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpspec, phpmd, cs2pr, codeception, phpunit, phpunit-bridge, phpunit-polyfills, pie, psalm, phing, phinx, phive, deployer, protoc, pecl, phpdoc, phpize, php-config, rector, symfony, vapor-cli
       - name: Run simple-phpunit install
         run: simple-phpunit install
       - name: Test action side effects
@@ -51,6 +51,7 @@ jobs:
           codeception -V
           cs2pr version
           phpunit --version
+          pie -V
           psalm -v
           phing -v
           phinx -V

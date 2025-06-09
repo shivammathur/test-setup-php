@@ -56,3 +56,4 @@
 - Test 2.30.5 release.
 - Test 2.31.2 release.
 - Test 2.32.0 release.
+- Test 2.34.0 release.
