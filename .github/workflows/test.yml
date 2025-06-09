@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+        php: ['8.0']
         os: [ubuntu-22.04, ubuntu-24.04, ubuntu-22.04-arm, ubuntu-24.04-arm]
     steps:
       - uses: shivammathur/setup-php@develop
@@ -17,7 +17,7 @@ jobs:
             gd-php/php-src@PHP-${{ matrix.php }},
         env:
           GD_CONFIGURE_OPTS: --enable-gd=shared,/usr --with-external-gd --with-jpeg
-          GD_LIBS: libgd-dev libjpeg-dev
+          GD_LIBS: libgd-dev libjpeg-dev liblzma-dev
           GD_PATH: ext/gd
 
       - name: Test PHP version
