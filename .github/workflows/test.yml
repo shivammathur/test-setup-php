@@ -24,7 +24,7 @@ jobs:
         run: |
           apt-get remove -y php${{ matrix.php-versions }}-dev
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@more-verbose
         with:
           php-version: ${{ matrix.php-versions }}
           ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
