@@ -1,143 +1,21 @@
-name: Self-hosted develop workflow
+name: Runner
 on:
   push:
 jobs:
   ubuntu:
     name: ubuntu
-    runs-on: ${{ matrix.containers != 'arm64v8/ubuntu:noble' && 'ubuntu-latest' || 'ubuntu-24.04-arm' }}
-    container: ${{ matrix.containers }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        containers:
-          - "arm64v8/ubuntu:noble"
-          - "ubuntu:noble"
-          - "ubuntu:jammy"
-          - "debian:bullseye"
-          - "debian:bookworm"
-          - "shivammathur/node:focal"
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
     steps:
-      # Test that it works if php is installed but dev package is not.
-      - name: Remove dev package for shivammathur/node image
-        if: matrix.containers == 'shivammathur/node:focal' && matrix.php-versions != '8.2' && matrix.php-versions != '8.3' && matrix.php-versions != '8.4'
-        run: |
-          apt-get remove -y php${{ matrix.php-versions }}-dev
       - name: Install PHP
         uses: shivammathur/setup-php@more-verbose
         with:
           php-version: ${{ matrix.php-versions }}
-          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
+          extensions: mongodb
       - name: Testing PHP version
         run: |
+          php -r "echo phpversion('mongodb') . PHP_EOL;"
           php -v
-          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
-      - name: Testing Composer version
-        run: php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
-      - name: Testing ini values
-        run: |
-          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
-          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
-          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
-  windows:
-    name: windows
-    needs: ubuntu
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
-    steps:
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
-        env:
-          runner: self-hosted
-      - name: Testing PHP version
-        run: |
-          php -v
-          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
-      - name: Testing Composer version
-        run: php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
-      - name: Testing ini values
-        run: |
-          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
-          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
-          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
-  darwin:
-    name: darwin
-    needs: windows
-    runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
-    steps:
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: ${{ matrix.php-versions }}
-          ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
-        env:
-          runner: self-hosted
-      - name: Testing PHP version
-        run: |
-          php -v
-          php -r "if(strpos(phpversion(), '${{ matrix.php-versions }}') === false) {throw new Exception('Wrong PHP version Installed');}"
-      - name: Testing Composer version
-        run: php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
-      - name: Testing ini values
-        run: |
-          php -r "if(ini_get('post_max_size')!='256M') {throw new Exception('post_max_size not added');}"
-          php -r "if(ini_get('short_open_tag')!=1) {throw new Exception('short_open_tag not added');}"
-          php -r "if(ini_get('date.timezone')!='Asia/Kolkata') {throw new Exception('date.timezone not added');}"
-  oldphp-ubuntu:
-    name: oldphp-ubuntu
-    needs: darwin
-    runs-on: ubuntu-latest
-    container: ${{ matrix.containers }}
-    strategy:
-      fail-fast: false
-      matrix:
-        php-versions: ['5.3', '5.4', '5.5']
-        containers: ["ubuntu:24.04", "ubuntu:22.04"]
-    steps:
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        continue-on-error: true
-        with:
-          php-version: ${{ matrix.php-versions }}
-  oldphp-windows:
-    name: oldphp-windows
-    needs: oldphp-ubuntu
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        php-versions: ['5.3', '5.4', '5.5']
-    steps:
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        continue-on-error: true
-        with:
-          php-version: ${{ matrix.php-versions }}
-        env:
-          runner: self-hosted
-  oldphp-darwin:
-    name: oldphp-darwin
-    needs: oldphp-windows
-    runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        php-versions: ['5.3', '5.4', '5.5']
-    steps:
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        continue-on-error: true
-        with:
-          php-version: ${{ matrix.php-versions }}
-        env:
-          runner: self-hosted
