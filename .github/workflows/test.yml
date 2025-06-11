@@ -4,7 +4,7 @@ on:
 jobs:
   ubuntu:
     name: ubuntu
-    runs-on: ubuntu-latest
+    runs-on: test-dcr
     strategy:
       fail-fast: false
     steps:
