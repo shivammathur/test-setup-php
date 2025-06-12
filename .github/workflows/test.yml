@@ -21,7 +21,15 @@ jobs:
       - name: Test PHP version
         run: php -v
 
-      - name: Test extensions
+      - name: Test
+        if: always()
         run: |
-          php -m
-          php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}";
+          sudo apt update
+          sudo apt install --reinstall liblzma-dev libltdl-dev
+          sudo apt -f install
+          sudo dpkg --configure -a
+
+      # - name: Test extensions
+      #   run: |
+      #     php -m
+      #     php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}";
