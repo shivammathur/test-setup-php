@@ -5,30 +5,10 @@ jobs:
   run:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        php: ['8.0']
+        php: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
     steps:
-      - uses: shivammathur/setup-php@more-verbose
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: >-
-            gd-php/php-src@PHP-${{ matrix.php }},
-        env:
-          GD_CONFIGURE_OPTS: --enable-gd=shared,/usr --with-external-gd
-          GD_LIBS: pkg-config libgd-dev liblzma-dev libltdl-dev
-          GD_PATH: ext/gd
-
-      - name: Test PHP version
-        run: php -v
-
-      - name: Test
-        if: always()
-        run: |
-          sudo apt update
-          sudo apt install --reinstall liblzma-dev libltdl-dev
-          sudo apt -f install
-          sudo dpkg --configure -a
-
       - uses: shivammathur/setup-php@more-verbose
         with:
           php-version: ${{ matrix.php }}
