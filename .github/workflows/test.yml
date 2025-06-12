@@ -15,7 +15,7 @@ jobs:
             gd-php/php-src@PHP-${{ matrix.php }},
         env:
           GD_CONFIGURE_OPTS: --enable-gd=shared,/usr --with-external-gd
-          GD_LIBS: pkgconfig libgd-dev liblzma-dev libltdl-dev
+          GD_LIBS: pkg-config libgd-dev liblzma-dev libltdl-dev
           GD_PATH: ext/gd
 
       - name: Test PHP version
