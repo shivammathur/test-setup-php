@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: shivammathur/setup-php@v2
         with:
-          php: ${{ matrix.php }}
+          php-version: ${{ matrix.php }}
 
       - name: Test PHP version
         run: |
