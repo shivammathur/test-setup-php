@@ -14,7 +14,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
         env:
-          runner: ubicloud
+          runner: self-hosted
 
       - name: Test PHP version
         run: |
