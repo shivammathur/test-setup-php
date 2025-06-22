@@ -3,8 +3,8 @@ on:
   push:
 jobs:
   run:
-    runs-on: ubuntu-arc
-    container: ubuntu:24.04
+    runs-on: ubuntu-arc-arm
+    container: arm64v8/ubuntu:24.04
     strategy:
       fail-fast: false
       matrix:
