@@ -3,21 +3,19 @@ on:
   push:
 jobs:
   run:
-    runs-on: ubuntu-arc-arm
-    container: arm64v8/ubuntu:24.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+        php: ['8.2']
         coverage: ['xdebug', 'pcov']
     steps:
       - uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          coverage: ${{ matrix.coverage }}
-        env:
-          runner: self-hosted
+          extensions: mongodb-1.21.1
 
       - name: Test PHP version
         run: |
+          php -r "echo phpversion('mongodb') . PHP_EOL;"
           php -v
