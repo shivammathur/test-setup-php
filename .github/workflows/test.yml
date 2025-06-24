@@ -12,11 +12,11 @@ jobs:
           
           echo "Add taps (--force-auto-update)"
           HOMEBREW_DEVELOPER=1 brew untap shivammathur/php
-          brew tap shivammathur/php --force-auto-update
+          brew tap shivammathur/php
           HOMEBREW_DEVELOPER=1 brew untap shivammathur/extensions
-          brew tap shivammathur/extensions --force-auto-update
+          brew tap shivammathur/extensions
           HOMEBREW_DEVELOPER=1 brew untap blackfireio/homebrew-blackfire
-          brew tap blackfireio/homebrew-blackfire --force-auto-update
+          brew tap blackfireio/homebrew-blackfire
           
           echo "Remove all available PHP configs"
           rm -Rf /usr/local/etc/php/*
