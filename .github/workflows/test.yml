@@ -3,19 +3,58 @@ on:
   push:
 jobs:
   run:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        php: ['8.2']
-        coverage: ['xdebug', 'pcov']
+    runs-on: macos-latest
     steps:
-      - uses: shivammathur/setup-php@verbose
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: mongodb-1.21.1
-
-      - name: Test PHP version
+      - name: Test
         run: |
-          php -r "echo phpversion('mongodb') . PHP_EOL;"
-          php -v
+          PHP_VERSIONS="5.6 7.0 7.1 7.2 7.3 7.4 8.0 8.1 8.2 8.3 8.4" # last one is used as default PHP version
+          EXTENSIONS="apcu amqp imagick imap mongodb pcov redis blackfire" # use mongodb for version >= 2
+          
+          echo "Add taps (--force-auto-update)"
+          HOMEBREW_DEVELOPER=1 brew untap shivammathur/php
+          brew tap shivammathur/php --force-auto-update
+          HOMEBREW_DEVELOPER=1 brew untap shivammathur/extensions
+          brew tap shivammathur/extensions --force-auto-update
+          HOMEBREW_DEVELOPER=1 brew untap blackfireio/homebrew-blackfire
+          brew tap blackfireio/homebrew-blackfire --force-auto-update
+          
+          echo "Remove all available PHP configs"
+          rm -Rf /usr/local/etc/php/*
+          rm -Rf /opt/homebrew/etc/php/*
+          
+          echo "Uninstall imap-uw"
+          brew uninstall --ignore-dependencies imap-uw
+          
+          for version in $PHP_VERSIONS
+          do
+              echo "Install PHP $version with: $EXTENSIONS"
+          
+              brew reinstall shivammathur/php/php@$version
+              brew link --overwrite --force php@$version
+          
+              for extension in $EXTENSIONS
+              do
+                  if [ "$extension" = "pcov" ] && { [ "$version" = "5.6" ] || [ "$version" = "7.0" ]; }; then break; fi
+          
+                  echo "Extension: $extension"
+          
+                  if [ "$extension" = "blackfire" ]; then
+                      version_nodot=$(echo "$version" | tr -d '.')  # Remove the dot from the version
+                      brew reinstall blackfire-php$version_nodot
+                  else
+                      if [ "$extension" = "redis" ]; then
+                          brew remove redis@$version || true
+                          brew remove igbinary@$version || true
+                          brew remove msgpack@$version || true
+                      fi
+          
+                      brew reinstall shivammathur/extensions/$extension@$version
+                  fi
+              done
+          
+              php -v
+              for extension in $EXTENSIONS
+              do
+                  php -m | grep $extension
+              done
+          done
