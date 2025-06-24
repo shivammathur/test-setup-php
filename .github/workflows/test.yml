@@ -12,11 +12,11 @@ jobs:
           EXTENSIONS="apcu amqp imagick imap mongodb pcov redis blackfire" # use mongodb for version >= 2
           
           echo "Add taps"
-          HOMEBREW_DEVELOPER=1 brew untap shivammathur/php
+          HOMEBREW_DEVELOPER=1 brew untap shivammathur/php || true
           brew tap shivammathur/php
-          HOMEBREW_DEVELOPER=1 brew untap shivammathur/extensions
+          HOMEBREW_DEVELOPER=1 brew untap shivammathur/extensions || true
           brew tap shivammathur/extensions
-          HOMEBREW_DEVELOPER=1 brew untap blackfireio/homebrew-blackfire
+          HOMEBREW_DEVELOPER=1 brew untap blackfireio/homebrew-blackfire || true
           brew tap blackfireio/homebrew-blackfire
           
           echo "Remove all available PHP configs"
