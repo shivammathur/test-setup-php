@@ -24,7 +24,7 @@ jobs:
           rm -Rf /opt/homebrew/etc/php/*
           
           echo "Uninstall imap-uw"
-          brew uninstall --ignore-dependencies imap-uw
+          brew uninstall --ignore-dependencies imap-uw || true
           
           for version in $PHP_VERSIONS
           do
