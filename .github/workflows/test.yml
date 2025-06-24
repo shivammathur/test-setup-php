@@ -11,7 +11,7 @@ jobs:
           PHP_VERSIONS="5.6 7.0 7.1 7.2 7.3 7.4 8.0 8.1 8.2 8.3 8.4" # last one is used as default PHP version
           EXTENSIONS="apcu amqp imagick imap mongodb pcov redis blackfire" # use mongodb for version >= 2
           
-          echo "Add taps
+          echo "Add taps"
           HOMEBREW_DEVELOPER=1 brew untap shivammathur/php
           brew tap shivammathur/php
           HOMEBREW_DEVELOPER=1 brew untap shivammathur/extensions
