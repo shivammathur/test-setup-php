@@ -9,6 +9,7 @@ jobs:
         uses: shivammathur/setup-php@more-verbose
         with:
           extensions: redis-5.3.7, rdkafka-4.1.2
+          php-version: 7.1
       - run: |
           php -r "echo phpversion('redis') . PHP_EOL;"
           php -r "echo phpversion('rdkafka') . PHP_EOL;"
