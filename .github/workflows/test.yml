@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Test
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@more-verbose
         with:
           extensions: redis-5.3.7, rdkafka-4.1.2
       - run: |
