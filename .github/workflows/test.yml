@@ -3,59 +3,14 @@ on:
   push:
 jobs:
   run:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Test
-        run: |
-          brew update
-          PHP_VERSIONS="5.6 7.0 7.1 7.2 7.3 7.4 8.0 8.1 8.2 8.3 8.4" # last one is used as default PHP version
-          EXTENSIONS="apcu amqp imagick imap mongodb pcov redis blackfire" # use mongodb for version >= 2
-          
-          echo "Add taps"
-          HOMEBREW_DEVELOPER=1 brew untap shivammathur/php || true
-          brew tap shivammathur/php
-          HOMEBREW_DEVELOPER=1 brew untap shivammathur/extensions || true
-          brew tap shivammathur/extensions
-          HOMEBREW_DEVELOPER=1 brew untap blackfireio/homebrew-blackfire || true
-          brew tap blackfireio/homebrew-blackfire
-          
-          echo "Remove all available PHP configs"
-          rm -Rf /usr/local/etc/php/*
-          rm -Rf /opt/homebrew/etc/php/*
-          
-          echo "Uninstall imap-uw"
-          brew uninstall --ignore-dependencies imap-uw || true
-          
-          for version in $PHP_VERSIONS
-          do
-              echo "Install PHP $version with: $EXTENSIONS"
-          
-              brew reinstall shivammathur/php/php@$version
-              brew link --overwrite --force php@$version
-          
-              for extension in $EXTENSIONS
-              do
-                  if [ "$extension" = "pcov" ] && { [ "$version" = "5.6" ] || [ "$version" = "7.0" ]; }; then break; fi
-          
-                  echo "Extension: $extension"
-          
-                  if [ "$extension" = "blackfire" ]; then
-                      version_nodot=$(echo "$version" | tr -d '.')  # Remove the dot from the version
-                      brew reinstall blackfire-php$version_nodot
-                  else
-                      if [ "$extension" = "redis" ]; then
-                          brew remove redis@$version || true
-                          brew remove igbinary@$version || true
-                          brew remove msgpack@$version || true
-                      fi
-          
-                      brew reinstall shivammathur/extensions/$extension@$version
-                  fi
-              done
-          
-              php -v
-              for extension in $EXTENSIONS
-              do
-                  php -m | grep $extension
-              done
-          done
+        uses: shivammathur/setup-php@verbose
+        with:
+          extensions: redis-5.3.7, rdkafka-4.1.2
+      - run: |
+          php -r "echo phpversion('redis') . PHP_EOL;"
+          php -r "echo phpversion('rdkafka') . PHP_EOL;"
+          php -v
+          php -m
