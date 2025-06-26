@@ -6,4 +6,4 @@ jobs:
     runs-on: macos-13
     steps:
       - run: |
-          echo $HOMEBREW_NO_SANDBOX
+          cat /etc/brew.env
