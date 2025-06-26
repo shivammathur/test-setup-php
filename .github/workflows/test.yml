@@ -6,4 +6,4 @@ jobs:
     runs-on: macos-13
     steps:
       - run: |
-          brew ruby -e 'require "sandbox"; puts Sandbox.available? ? "Sandbox: enabled" : "Sandbox: disabled"'
+          echo $HOMEBREW_NO_SANDBOX
