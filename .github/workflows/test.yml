@@ -3,7 +3,6 @@ on:
   push:
 jobs:
   run:
-    runs-on: macos-13
+    runs-on: windows-2022
     steps:
-      - run: |
-          cat /etc/brew.env
+      - uses: mxschmitt/action-tmate@v3
