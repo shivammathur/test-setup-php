@@ -13,7 +13,7 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: mongodb-1
+          extensions: mongodb-1.21.0
         env:
           fail-fast: true
       - run: php -r "echo phpversion('mongodb') . PHP_EOL;" && php -v && php -m    
