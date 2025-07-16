@@ -6,14 +6,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php: ['8.0', '8.1', '8.2', '8.3', '8.4']
+        php: ['8.4']
     steps:
       - name: Setup PHP
         id: setup-php
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: mongodb-1.21.1
-        env:
-          fail-fast: true
-      - run: php -r "echo phpversion('mongodb') . PHP_EOL;" && php -v && php -m    
+          extensions: xdebug-2.9.8
+      - run: php -r "echo phpversion('xdebug') . PHP_EOL;" && php -v && php -m    
