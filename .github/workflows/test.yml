@@ -10,7 +10,7 @@ jobs:
     steps:
       - name: Setup PHP
         id: setup-php
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
           extensions: xdebug-2.9.8
