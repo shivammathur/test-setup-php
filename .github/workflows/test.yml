@@ -13,6 +13,6 @@ jobs:
         uses: shivammathur/setup-php@copilot/fix-dd2d33a9-156f-4338-aab6-3134252b8b72
         with:
           php-version: ${{ matrix.php }}
-          tools: mago
+          tools: mago:0.24.5
       - name: Check mago
         run: mago -V
