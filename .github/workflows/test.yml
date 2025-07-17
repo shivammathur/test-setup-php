@@ -13,7 +13,4 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-          extensions: xdebug-2.9.8
-        env:
-          fail-fast: true
-      - run: php -r "echo phpversion('xdebug') . PHP_EOL;" && php -v && php -m    
+      - uses: mxschmitt/action-tmate@v3.22  
