@@ -8,9 +8,14 @@ jobs:
       matrix:
         php: ['8.4']
     steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: laravel/laravel
       - name: Setup PHP
         id: setup-php
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@copilot/fix-74435ef3-8c22-4393-8d87-090d0d41f7fa
         with:
           php-version: ${{ matrix.php }}
-      - uses: mxschmitt/action-tmate@v3.22  
+          tools: name-collision-detector
+      - name: Check for name collisions
+        run: detect-collisions app
