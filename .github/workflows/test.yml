@@ -10,7 +10,6 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - name: Setup PHP
-        id: setup-php
         uses: shivammathur/setup-php@copilot/fix-dd2d33a9-156f-4338-aab6-3134252b8b72
         with:
           php-version: ${{ matrix.php }}
@@ -18,7 +17,6 @@ jobs:
       - name: Check mago
         run: mago -V
       - name: Setup PHP
-        id: setup-php
         uses: shivammathur/setup-php@copilot/fix-dd2d33a9-156f-4338-aab6-3134252b8b72
         with:
           php-version: ${{ matrix.php }}
