@@ -11,7 +11,7 @@ jobs:
         os: [ubuntu-latest]
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
           extensions: gearman
