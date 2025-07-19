@@ -4,22 +4,16 @@ on:
 jobs:
   run:
     runs-on: ${{ matrix.os }}
+    container: ubuntu:latest
     strategy:
       matrix:
         php: ['8.4']
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest]
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@copilot/fix-dd2d33a9-156f-4338-aab6-3134252b8b72
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          tools: mago
-      - name: Check mago
-        run: mago -V
-      - name: Setup PHP
-        uses: shivammathur/setup-php@copilot/fix-dd2d33a9-156f-4338-aab6-3134252b8b72
-        with:
-          php-version: ${{ matrix.php }}
-          tools: mago:0.24.5
-      - name: Check mago
-        run: mago -V
+          extension: mongodb
+      - name: Check
+        run: php -v && php -m
