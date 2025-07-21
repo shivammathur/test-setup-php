@@ -280,7 +280,7 @@ class MySQLSchemaManager extends AbstractSchemaManager
                 }
 
                 $list[$row['constraint_name']] = [
-                    'name' => $row['constraint_name'],
+                    'name' => $this->getQuotedIdentifierName($row['constraint_name']),
                     'local' => [],
                     'foreign' => [],
                     'foreignTable' => $row['referenced_table_name'],
@@ -523,5 +523,15 @@ SQL,
         }
 
         return $this->defaultTableOptions;
+    }
+
+    /** Returns the quoted representation of the given identifier name. */
+    private function getQuotedIdentifierName(?string $identifier): ?string
+    {
+        if ($identifier === null) {
+            return null;
+        }
+
+        return $this->platform->quoteSingleIdentifier($identifier);
     }
 }
