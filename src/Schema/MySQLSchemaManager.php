@@ -130,12 +130,12 @@ class MySQLSchemaManager extends AbstractSchemaManager
         switch ($dbType) {
             case 'char':
             case 'varchar':
-                $length = $tableColumn['character_maximum_length'];
+                $length = (int) $tableColumn['character_maximum_length'];
                 break;
 
             case 'binary':
             case 'varbinary':
-                $length = $tableColumn['character_octet_length'];
+                $length = (int) $tableColumn['character_octet_length'];
                 break;
 
             case 'tinytext':
@@ -167,10 +167,10 @@ class MySQLSchemaManager extends AbstractSchemaManager
             case 'real':
             case 'numeric':
             case 'decimal':
-                $precision = $tableColumn['numeric_precision'];
+                $precision = (int) $tableColumn['numeric_precision'];
 
                 if (isset($tableColumn['numeric_scale'])) {
-                    $scale = $tableColumn['numeric_scale'];
+                    $scale = (int) $tableColumn['numeric_scale'];
                 }
 
                 break;
