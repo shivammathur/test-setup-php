@@ -9,7 +9,7 @@ jobs:
         operating-system: [ubuntu-latest]
         php-versions: ['8.4']
     env:
-      extensions: gearman, redis
+      extensions: gearman, gnupg
       key: cache-v1
     steps:    
     - name: Setup cache environment
