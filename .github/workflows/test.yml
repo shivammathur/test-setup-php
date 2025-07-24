@@ -3,16 +3,32 @@ on:
   push:
 jobs:
   run:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        php: ['8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
-        os: [ubuntu-latest]
-    steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: xdebug
-      - name: Check
-        run: php -v && php -m
+        operating-system: [ubuntu-latest]
+        php-versions: ['8.4']
+    env:
+      extensions: gearman, redis
+      key: cache-v1
+    steps:    
+    - name: Setup cache environment
+      id: extcache
+      uses: shivammathur/cache-extensions-2@master
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.extensions }}
+        key: ${{ env.key }}
+
+    - name: Cache extensions
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.extcache.outputs.dir }}
+        key: ${{ steps.extcache.outputs.key }}
+        restore-keys: ${{ steps.extcache.outputs.key }}
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-versions }}
+        extensions: ${{ env.extensions }}
