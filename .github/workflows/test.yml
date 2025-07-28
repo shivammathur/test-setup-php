@@ -13,10 +13,23 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: 8.5
-    - run: |
-        php -v
-        composer config --global --auth --list
-    - run: echo $COMPOSER_AUTH
+        tools: composer:v1
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.5
+        tools: composer:v2
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.5
+        tools: composer:v1
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.5
+        tools: composer:v2
+    - run: cat $HOME/.composer/auth.json
       if: ${{ matrix.operating-system != 'windows-latest' }}
-    - run: echo $env:COMPOSER_AUTH
-      if: ${{ matrix.operating-system == 'windows-latest' }}
+    - run: cat $env:APPDATA\Composer\auth.json
+      if: ${{ matrix.operating-system == 'windows-latest' }}      
