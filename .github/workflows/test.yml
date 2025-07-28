@@ -13,4 +13,23 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: 8.5
-    - run: php -v && php -m    
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+      env:
+        COMPOSER_AUTH: 'test_overwrite'
+        PACKAGIST_TOKEN: 'apple123'
+        COMPOSER_AUTH_JSON: |
+          {
+            "http-basic": {
+              "example.org": {
+                "username": "example_user",
+                "password": "example_pass"
+              }
+            }
+          }
+    - run: |
+        php -v
+        composer config --global --auth --list
+    - run: echo $COMPOSER_AUTH
+      if: ${{ matrix.operating-system != 'windows-latest' }}
+    - run: echo $env:COMPOSER_AUTH
+      if: ${{ matrix.operating-system == 'windows-latest' }}
