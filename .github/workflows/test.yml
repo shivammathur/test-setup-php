@@ -3,6 +3,8 @@ on:
   push:
 jobs:
   run:
+    env:
+      COMPOSER_AUTH: 'test_overwrite'
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
@@ -15,7 +17,6 @@ jobs:
         php-version: 8.5
         github-token: ${{ secrets.GITHUB_TOKEN }}
       env:
-        COMPOSER_AUTH: 'test_overwrite'
         PACKAGIST_TOKEN: 'apple123'
         COMPOSER_AUTH_JSON: |
           {
