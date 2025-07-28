@@ -6,12 +6,13 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [macos-latest]
+        ext: [mbstring, xdebug, pcov, intl, gd, geos, redis, xml, soap, imagick, ast, psr, phalcon4, msgpack, gearman]
     steps:
 
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
         php-version: 8.5
-        extensions: phalcon4
+        extensions: ${{ matrix.ext }}
     - run: php -v && php -m    
