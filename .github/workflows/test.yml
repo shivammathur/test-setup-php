@@ -1,35 +1,106 @@
-name: Runner
+name: Composer v2 workflow
 on:
   push:
 jobs:
-  run:
+  latest:
+    name: latest
     runs-on: ${{ matrix.operating-system }}
     strategy:
+      fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-24.04, ubuntu-22.04, windows-latest, macos-latest]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
     steps:
-
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: 8.5
-        tools: composer:v1
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: 8.5
-        tools: composer:v2
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: 8.5
-        tools: composer:v1
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: 8.5
-        tools: composer:v2
-    - run: cat $HOME/.composer/auth.json
-      if: ${{ matrix.operating-system != 'windows-latest' }}
-    - run: cat $env:APPDATA\Composer\auth.json
-      if: ${{ matrix.operating-system == 'windows-latest' }}      
+      - name: Setup PHP ${{ matrix.php-versions }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+      - name: Testing Composer version default
+        run: |
+          php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - name: Setup PHP ${{ matrix.php-versions }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:v1
+      - name: Testing Composer version v1
+        run: |
+          php -r "if(preg_match('/.*Composer.* 1.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - name: Setup PHP ${{ matrix.php-versions }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:v2
+      - name: Testing Composer version v2
+        run: |
+          php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - name: Setup PHP ${{ matrix.php-versions }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:1
+      - name: Testing Composer version 1
+        run: |
+          php -r "if(preg_match('/.*Composer.* 1.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - name: Setup PHP ${{ matrix.php-versions }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:2
+      - name: Testing Composer version 2
+        run: |
+          php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - name: Setup PHP ${{ matrix.php-versions }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:snapshot
+      - name: Testing Composer version snapshot
+        run: |
+          php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - name: Setup PHP ${{ matrix.php-versions }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:preview
+      - name: Testing Composer version preview
+        run: |
+          php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - name: Setup PHP ${{ matrix.php-versions }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:stable
+      - name: Testing Composer version stable
+        run: |
+          php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - name: Setup PHP ${{ matrix.php-versions }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:2.0.1
+      - name: Testing Composer version semver
+        run: |
+          php -r "if(preg_match('/.*Composer.* 2.0.1.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - name: Setup PHP ${{ matrix.php-versions }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          tools: composer:1.7.0-RC
+      - name: Testing Composer version semver unstable
+        run: |
+          php -r "if(preg_match('/.*Composer.* 1.7.0-RC.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
+          composer -V
+      - run: cat $HOME/.composer/auth.json
+        if: ${{ matrix.operating-system != 'windows-latest' }}
+      - run: cat $env:APPDATA\Composer\auth.json
+        if: ${{ matrix.operating-system == 'windows-latest' }}      
