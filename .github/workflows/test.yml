@@ -13,3 +13,5 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: 8.5
+    - uses: mxschmitt/action-tmate@v3.22
+      if: always()
