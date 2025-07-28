@@ -6,11 +6,12 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [windows-latest]
+        operating-system: [ubuntu-latest]
     steps:
 
     - name: Setup PHP
       uses: shivammathur/setup-php@develop
       with:
         php-version: 8.5
+        extension: phalcon4
     - run: php -v && php -m    
