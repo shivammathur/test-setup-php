@@ -11,7 +11,7 @@ jobs:
     steps:
 
     - name: Setup PHP
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@develop
       with:
         php-version: 8.5
         extensions: ${{ matrix.ext }}
