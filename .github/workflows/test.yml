@@ -13,5 +13,5 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: 8.5
-        extension: phalcon4
+        extensions: phalcon4
     - run: php -v && php -m    
