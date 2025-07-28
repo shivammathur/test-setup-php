@@ -3,8 +3,6 @@ on:
   push:
 jobs:
   run:
-    env:
-      COMPOSER_AUTH: '{"http-basic": { "example.org": { "username": "test_user", "password": "test_pass" } } }'
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
