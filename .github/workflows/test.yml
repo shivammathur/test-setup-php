@@ -16,5 +16,6 @@ jobs:
           php-version: 8.3
           extensions: mbstring, intl, dom, fileinfo
           coverage: xdebug
-          github-token: ${{ secrets.PAT_TOKEN }}
+        env:  
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - run: cat $HOME/.composer/auth.json 
