@@ -13,6 +13,7 @@ jobs:
       matrix:
         operating-system: [ubuntu-latest]
     steps:
+      - run: node -e "console.log(process.env)"
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
