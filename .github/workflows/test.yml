@@ -1,4 +1,4 @@
-name: Composer v2 workflow
+name: Runner
 on:
   push:
 jobs:
@@ -14,8 +14,6 @@ jobs:
         uses: shivammathur/setup-php@2.35.1
         with:
           php-version: 8.3
-          coverage: xdebug
         env:  
           INPUT_EXTENSIONS: mbstring, intl, dom, fileinfo
-          INPUT_GITHUB-TOKEN: 134242433
-      - run: cat $HOME/.composer/auth.json 
+          INPUT_COVERAGE: pcov
