@@ -17,5 +17,5 @@ jobs:
           extensions: mbstring, intl, dom, fileinfo
           coverage: xdebug
         env:  
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_github-token: apple123
       - run: cat $HOME/.composer/auth.json 
