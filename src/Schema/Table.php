@@ -182,7 +182,9 @@ class Table extends AbstractNamedObject
                 Deprecation::trigger(
                     'doctrine/dbal',
                     'https://github.com/doctrine/dbal/pull/6787',
-                    'Using nullable columns in a primary key index is deprecated.',
+                    'Using nullable columns (%s.%s) in a primary key index is deprecated.',
+                    $this->getName(),
+                    $columnName,
                 );
             }
 
