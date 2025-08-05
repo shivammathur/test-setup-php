@@ -10,47 +10,20 @@ jobs:
       matrix:
         operating-system: [windows-latest]
     steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: php/php-src
+          ref: master
+          path: php
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: 8.4
       - name: Test
-        shell: php {0}
-        run: |
-          <?php
-          putenv("OPENSSL_CONF");
-          ob_start();
-          phpinfo();
-          $info = ob_get_contents();
-          ob_end_clean();
-          
-          preg_match(",Openssl default config [^ ]* (.*),", $info, $m);
-          var_dump($m);
-          if (isset($m[1])) {
-              var_dump(str_replace('\/', '\\', strtolower($m[1])));
-          } else {
-              echo $info;
-          }
-          ?>
+        run: php php/run-tests.php php/ext/openssl/tests/check_default_conf_path.phpt
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: 8.5
       - name: Test
-        shell: php {0}
-        run: |
-          <?php
-          putenv("OPENSSL_CONF");
-          ob_start();
-          phpinfo();
-          $info = ob_get_contents();
-          ob_end_clean();
-          
-          preg_match(",Openssl default config [^ ]* (.*),", $info, $m);
-          var_dump($m);
-          if (isset($m[1])) {
-              var_dump(str_replace('\/', '\\', strtolower($m[1])));
-          } else {
-              echo $info;
-          }
-          ?>
+        run: php php/run-tests.php php/ext/openssl/tests/check_default_conf_path.phpt
