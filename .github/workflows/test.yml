@@ -27,7 +27,7 @@ jobs:
           ob_end_clean();
           
           preg_match(",Openssl default config [^ ]* (.*),", $info, $m);
-          
+          var_dump($m);
           if (isset($m[1])) {
               var_dump(str_replace('\/', '\\', strtolower($m[1])));
           } else {
@@ -51,7 +51,7 @@ jobs:
           ob_end_clean();
           
           preg_match(",Openssl default config [^ ]* (.*),", $info, $m);
-          
+          var_dump($m);
           if (isset($m[1])) {
               var_dump(str_replace('\/', '\\', strtolower($m[1])));
           } else {
