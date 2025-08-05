@@ -16,11 +16,9 @@ jobs:
           php-version: 8.4
       - name: Test
         shell: php {0}
-        env:
-          OPENSSL_CONF: ''
         run: |
           <?php
-          
+          putenv("OPENSSL_CONF=");
           ob_start();
           phpinfo();
           $info = ob_get_contents();
@@ -40,11 +38,9 @@ jobs:
           php-version: 8.5
       - name: Test
         shell: php {0}
-        env:
-          OPENSSL_CONF: ''
         run: |
           <?php
-          
+          putenv("OPENSSL_CONF=");
           ob_start();
           phpinfo();
           $info = ob_get_contents();
