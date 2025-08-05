@@ -18,7 +18,7 @@ jobs:
         shell: php {0}
         run: |
           <?php
-          putenv("OPENSSL_CONF=");
+          putenv("OPENSSL_CONF");
           ob_start();
           phpinfo();
           $info = ob_get_contents();
@@ -40,7 +40,7 @@ jobs:
         shell: php {0}
         run: |
           <?php
-          putenv("OPENSSL_CONF=");
+          putenv("OPENSSL_CONF");
           ob_start();
           phpinfo();
           $info = ob_get_contents();
