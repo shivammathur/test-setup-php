@@ -3,20 +3,21 @@ on:
   push:
 jobs:
   latest:
-    env:
-      INPUT_EXTENSIONS: mbstring, intl, dom, fileinfo
-      INPUT_COVERAGE: pcov
     name: latest
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [windows-latest]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: 8.3
-        env:
-          GITHUB_TOKEN: apple123
-      - run: cat $HOME/.composer/auth.json 
+          php-version: 8.4
+      - run: php -i | grep "Openssl default config"
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 8.5
+      - run: php -i | grep "Openssl default config"
+      - uses: mxschmitt/action-tmate@v3
