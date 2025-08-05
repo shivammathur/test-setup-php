@@ -15,7 +15,7 @@ jobs:
           repository: php/php-src
           ref: master
           path: php
-      - run: sed -i 's/preg_match/var_dump($m);preg_match/' php/ext/openssl/tests/check_default_conf_path.phpt && cat php/ext/openssl/tests/check_default_conf_path.phpt
+      - run: sed -i 's/$m);/$m);var_dump($m);/' php/ext/openssl/tests/check_default_conf_path.phpt && cat php/ext/openssl/tests/check_default_conf_path.phpt
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
