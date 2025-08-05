@@ -15,9 +15,13 @@ jobs:
         with:
           php-version: 8.4
       - run: php -i | grep "Openssl default config"
+        env:
+          OPENSSL_CONF: ''
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: 8.5
       - run: php -i | grep "Openssl default config"
+        env:
+          OPENSSL_CONF: ''
       - uses: mxschmitt/action-tmate@v3
