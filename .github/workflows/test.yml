@@ -15,15 +15,16 @@ jobs:
           repository: php/php-src
           ref: master
           path: php
+      - run: sed -i 's/preg_match/var_dump($m);preg_match/' php/ext/openssl/tests/check_default_conf_path.phpt && cat php/ext/openssl/tests/check_default_conf_path.phpt
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: 8.4
       - name: Test
-        run: php php/run-tests.php php/ext/openssl/tests/check_default_conf_path.phpt
+        run: php php/run-tests.php "-g" "FAIL,BORK,WARN,LEAK" "-r" php/ext/openssl/tests/check_default_conf_path.phpt
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: 8.5
       - name: Test
-        run: php php/run-tests.php php/ext/openssl/tests/check_default_conf_path.phpt
+        run: php php/run-tests.php "-g" "FAIL,BORK,WARN,LEAK" "-r" php/ext/openssl/tests/check_default_conf_path.phpt
