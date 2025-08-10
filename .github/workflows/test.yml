@@ -8,23 +8,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          repository: php/php-src
-          ref: master
-          path: php
-      - run: sed -i 's/$m);/$m);var_dump($m);/' php/ext/openssl/tests/check_default_conf_path.phpt && cat php/ext/openssl/tests/check_default_conf_path.phpt
+        operating-system: [ubuntu-latest]
+    steps:      
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: 8.4
-      - name: Test
-        run: php php/run-tests.php "-g" "FAIL,BORK,WARN,LEAK" "-r" php/ext/openssl/tests/check_default_conf_path.phpt
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add problem matcher
+        shell: bash
+        run: |
+          curl -o actionlint-matcher.json https://raw.githubusercontent.com/rhysd/actionlint/main/.github/actionlint-matcher.json
+          echo "::add-matcher::actionlint-matcher.json"
+
+      - name: Check workflow files
+        uses: docker://rhysd/actionlint:latest
         with:
-          php-version: 8.5
-      - name: Test
-        run: php php/run-tests.php "-g" "FAIL,BORK,WARN,LEAK" "-r" php/ext/openssl/tests/check_default_conf_path.phpt
+          args: -color
