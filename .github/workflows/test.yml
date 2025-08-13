@@ -2,16 +2,54 @@ name: Runner
 on:
   push:
 jobs:
-  latest:
-    name: latest
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-22.04, ubuntu-24.04, ubuntu-latest, ubuntu-22.04-arm, ubuntu-24.04-arm]
-    steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.2
-      - run: php -v && php -m    
+  linux:
+        runs-on: ubuntu-latest
+        name: "Linux"
+        strategy:
+            fail-fast: false
+            matrix:
+                php: [8.4, 8.5]
+                use-opcache: [true, false]
+                experimental: [false]
+        steps:
+            -   uses: actions/checkout@v4
+                with:
+                  repository: xdebug/xdebug
+
+            -   name: Setup PHP
+                uses: shivammathur/setup-php@v2
+                with:
+                    php-version: "${{ matrix.php }}"
+                    coverage: none
+                    ini-values: "session.save_path=/tmp"
+                    tools: pecl
+                    extensions: xmlreader
+
+            -   name: Compile
+                run: ./.build.scripts/compile.sh
+
+            -   name: Find PHP
+                run: |
+                    TEST_PHP_EXECUTABLE=`make findphp`
+                    echo "Found PHP in: $TEST_PHP_EXECUTABLE"
+                    echo "TEST_PHP_EXECUTABLE=$TEST_PHP_EXECUTABLE" >> $GITHUB_ENV
+
+            -   uses: mxschmitt/action-tmate@v3.22        
+
+            -   name: Define PHP arguments
+                run: |
+                    TEST_PHP_ARGS="-n -d foo=yes -d session.save_path=/tmp"
+                    [[ "${{ matrix.use-opcache }}" != "true" ]] || TEST_PHP_ARGS="$TEST_PHP_ARGS -d zend_extension=opcache.so -d opcache.enable=1 -d opcache.enable_cli=1"
+                    TEST_PHP_ARGS="$TEST_PHP_ARGS -d zend_extension=$PWD/modules/xdebug.so"
+                    echo "Test PHP arguments: $TEST_PHP_ARGS"
+                    echo "TEST_PHP_ARGS=$TEST_PHP_ARGS" >> $GITHUB_ENV
+
+            -   name: Run tests
+                continue-on-error: ${{ matrix.experimental }}
+                run: |
+                    $TEST_PHP_EXECUTABLE $TEST_PHP_ARGS -v
+                    $TEST_PHP_EXECUTABLE -n run-xdebug-tests.php -j8 -q -x --show-diff
+
+            -   name: Show errors
+                if: ${{ failure() }}
+                run: ./.build.scripts/show-errors.sh
