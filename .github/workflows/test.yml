@@ -14,7 +14,7 @@ jobs:
         steps:
             -   uses: actions/checkout@v4
                 with:
-                  repository: xdebug/xdebug
+                  repository: derickr/xdebug
                   ref: php85-sapi-header
 
             -   name: Setup PHP
