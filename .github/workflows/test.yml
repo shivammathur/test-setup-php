@@ -35,8 +35,6 @@ jobs:
                     echo "Found PHP in: $TEST_PHP_EXECUTABLE"
                     echo "TEST_PHP_EXECUTABLE=$TEST_PHP_EXECUTABLE" >> $GITHUB_ENV
 
-            -   uses: mxschmitt/action-tmate@v3.22        
-
             -   name: Define PHP arguments
                 run: |
                     TEST_PHP_ARGS="-n -d foo=yes -d session.save_path=/tmp"
