@@ -45,7 +45,7 @@ class Index extends AbstractNamedObject
     /** @deprecated Use {@see getType()} and compare with {@see IndexType::UNIQUE} instead. */
     protected bool $_isUnique = false;
 
-    /** @deprecated Use {@see PrimaryKeyConstraint()} instead. */
+    /** @deprecated Use {@see PrimaryKeyConstraint} instead. */
     protected bool $_isPrimary = false;
 
     /**
@@ -311,7 +311,7 @@ class Index extends AbstractNamedObject
         return $this->_isUnique;
     }
 
-    /** @deprecated Use {@see PrimaryKeyConstraint()} instead. */
+    /** @deprecated Use {@see PrimaryKeyConstraint} instead. */
     public function isPrimary(): bool
     {
         Deprecation::triggerIfCalledFromOutside(
