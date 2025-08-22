@@ -10,6 +10,9 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
+              with:
+                repository: derickr/xdebug
+                ref: php85-sapi-header
             - name: Get The Extension Matrix
               id: extension-matrix
               uses: php/php-windows-builder/extension-matrix@v1
@@ -24,14 +27,11 @@ jobs:
         strategy:
             matrix: ${{fromJson(needs.get-extension-matrix.outputs.matrix)}}
         steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-              with:
-                repository: derickr/xdebug
-                ref: php85-sapi-header
             - name: Build The Extension
               uses: php/php-windows-builder/extension@master
               with:
+                extension-url: https://github.com/derickr/xdebug
+                extension-ref: php85-sapi-header
                 php-version: ${{ matrix.php-version }}
                 arch: ${{ matrix.arch }}
                 ts: ${{ matrix.ts }}
