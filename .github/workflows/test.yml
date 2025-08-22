@@ -27,7 +27,7 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
               with:
-                repository: derick/xdebug
+                repository: derickr/xdebug
                 ref: php85-sapi-header
             - name: Build The Extension
               uses: php/php-windows-builder/extension@master
