@@ -3,9 +3,16 @@ on:
   push:
 jobs:  
     runner:
-      runs-on: macos-14
+      runs-on: ubuntu-latest
       steps:
-        - uses: shivammathur/setup-php@develop
+        - uses: actions/checkout@v5
+          with:
+            repository: DanielEScherzer/polyfill
+            ref: filter-throw-on-failure
+        - uses: shivammathur/setup-php@verbose
           with:
             php-version: 8.5
+          env:
+            debug: true
         - run: php -v && php -m
+        - run: composer --prefer-source --no-progress --ansi install
