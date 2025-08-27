@@ -82,28 +82,28 @@ jobs:
           "vsinstall=$vsInstall" | Out-File -Append $env:GITHUB_OUTPUT
           "vcvars=$vcvars"       | Out-File -Append $env:GITHUB_OUTPUT
       
-            - name: Build libjudy (MSVC)
-              run: |
-                setlocal EnableExtensions EnableDelayedExpansion
-                set VER=1.0.5
-      
-                rem Map matrix arch to vcvarsall arg
-                set VCVARS_ARCH=${{ matrix.arch }}
-                if /I "%VCVARS_ARCH%"=="x64" set VCVARS_ARCH=amd64
-                if /I "%VCVARS_ARCH%"=="x86" set VCVARS_ARCH=x86
-      
-                call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH%
-                if errorlevel 1 exit /b 1
-      
-                cd /d "build\Judy-%VER%\src"
-                call build.bat
-                if errorlevel 1 exit /b 1
-      
-                if not exist Judy.lib (
-                  echo FATAL: Judy.lib not produced. >&2
-                  dir /b
-                  exit /b 1
-                )
+      - name: Build libjudy (MSVC)
+        run: |
+          setlocal EnableExtensions EnableDelayedExpansion
+          set VER=1.0.5
+
+          rem Map matrix arch to vcvarsall arg
+          set VCVARS_ARCH=${{ matrix.arch }}
+          if /I "%VCVARS_ARCH%"=="x64" set VCVARS_ARCH=amd64
+          if /I "%VCVARS_ARCH%"=="x86" set VCVARS_ARCH=x86
+
+          call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH%
+          if errorlevel 1 exit /b 1
+
+          cd /d "build\Judy-%VER%\src"
+          call build.bat
+          if errorlevel 1 exit /b 1
+
+          if not exist Judy.lib (
+            echo FATAL: Judy.lib not produced. >&2
+            dir /b
+            exit /b 1
+          )
 
       - name: Install headers and libraries
         run: |
