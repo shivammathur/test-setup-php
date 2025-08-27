@@ -1,17 +1,7 @@
 name: Build libjudy
 
 on:
-  workflow_dispatch:
-    inputs:
-      php:
-        description: PHP version (drives VS/toolset via compute_virtuals.ps1)
-        required: true
-        default: '8.3'
-        
-      stability:
-        description: stability label (for artifact naming)
-        required: false
-        default: 'staging'
+  push:
 
 defaults:
   run:
@@ -24,6 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         arch: [x64, x86]
+        php: [8.3, 8.4]
 
     steps:
       - name: Checkout repository
@@ -52,14 +43,14 @@ jobs:
 
       - name: Download Judy source tarball
         run: |
-          set VER=${{ github.event.inputs.version }}
+          set VER=1.0.5
           set URL=https://downloads.sourceforge.net/project/judy/judy/Judy-%VER%/Judy-%VER%.tar.gz
           echo Downloading %URL%
           curl -L --fail --retry 5 --retry-delay 5 "%URL%" -o "downloads\Judy-%VER%.tar.gz"
 
       - name: Extract source
         run: |
-          set VER=${{ github.event.inputs.version }}
+          set VER=1.0.5
           tar -xzf "downloads\Judy-%VER%.tar.gz" -C build
           if not exist "build\Judy-%VER%\src\build.bat" (
             echo FATAL: build\Judy-%VER%\src\build.bat not found. >&2
@@ -85,7 +76,7 @@ jobs:
       - name: Build libjudy (MSVC)
         run: |
           setlocal EnableExtensions EnableDelayedExpansion
-          set VER=${{ github.event.inputs.version }}
+          set VER=1.0.5
 
           rem Map to vcvars arch from matrix arch
           set VCVARS_ARCH=${{ matrix.arch }}
@@ -108,7 +99,7 @@ jobs:
 
       - name: Install headers and libraries
         run: |
-          set VER=${{ github.event.inputs.version }}
+          set VER=1.0.5
           set PREFIX=%CD%\install
 
           if not exist "%PREFIX%\include" mkdir "%PREFIX%\include"
@@ -123,5 +114,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: libjudy-1.0.5-${{ steps.virtuals.outputs.vs }}-${{ matrix.arch }}-${{ github.event.inputs.php }}-${{ github.event.inputs.stability }}
+          name: libjudy-1.0.5-${{steps.virtuals.outputs.vs}}-${{matrix.arch}}
           path: install
