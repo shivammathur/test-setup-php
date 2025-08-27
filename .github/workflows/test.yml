@@ -157,7 +157,7 @@ jobs:
           if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin"
 
           copy /Y "build\Judy-%VER%\src\Judy.h" "%PREFIX%\include\Judy.h" >nul
-          copy /Y "build\Judy-%VER%\src\Judy.lib" "%PREFIX%\lib\Judy.lib" >nul
+          copy /Y "build\Judy-%VER%\src\Judy.lib" "%PREFIX%\lib\libJudy.lib" >nul
           if exist "build\Judy-%VER%\src\Judy.dll" copy /Y "build\Judy-%VER%\src\Judy.dll" "%PREFIX%\bin\Judy.dll" >nul
           if exist "build\Judy-%VER%\COPYING" copy /Y "build\Judy-%VER%\COPYING" "%PREFIX%\COPYING" >nul
 
