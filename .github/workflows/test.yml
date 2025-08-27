@@ -23,7 +23,8 @@ jobs:
       - name: Compute virtual inputs
         id: virtuals
         run: |
-          Invoke-WebRequest -Uri https://raw.githubusercontent.com/winlibs/winlib-builder/refs/heads/master/scripts/compute-virtuals.ps1 -OutFile compute_virtuals.ps1
+          set URL=https://raw.githubusercontent.com/winlibs/winlib-builder/refs/heads/master/scripts/compute-virtuals.ps1
+          curl -L --fail --retry 5 --retry-delay 5 "%URL%" -o compute_virtuals.ps1
           powershell -File compute_virtuals.ps1 -version 1.0.5 -arch ${{ matrix.arch }}
 
       - name: Show computed virtuals
