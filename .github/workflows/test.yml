@@ -61,57 +61,49 @@ jobs:
 
       - name: Locate the correct vcvarsall.bat (VS16/VS17)
         id: vc
+        shell: pwsh
         run: |
-          setlocal EnableExtensions
-          set VS_TAG=${{ steps.virtuals.outputs.vs }}
-          set "VS_RANGE="
-          if /I "%VS_TAG%"=="vs16" set "VS_RANGE=[16.0,17.0)"
-          if /I "%VS_TAG%"=="vs17" set "VS_RANGE=[17.0,18.0)"
-          if "%VS_RANGE%"=="" (
-            echo FATAL: Unknown VS tag "%VS_TAG%". >&2
-            exit /b 1
-          )
-
-          for /f "usebackq tokens=*" %%I in (`
-            "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -version %VS_RANGE% -property installationPath
-          `) do set "VSINSTALL=%%I"
-
-          if not defined VSINSTALL (
-            echo FATAL: Could not find Visual Studio in range %VS_RANGE%. >&2
-            exit /b 1
-          )
-
-          set "VCVARS=%VSINSTALL%\VC\Auxiliary\Build\vcvarsall.bat"
-          if not exist "%VCVARS%" (
-            echo FATAL: vcvarsall.bat not found at "%VCVARS%". >&2
-            exit /b 1
-          )
-
-          echo vsinstall=%VSINSTALL%>> %GITHUB_OUTPUT%
-          echo vcvars=%VCVARS%>> %GITHUB_OUTPUT%
-
-      - name: Build libjudy (MSVC)
-        run: |
-          setlocal EnableExtensions EnableDelayedExpansion
-          set VER=${{ github.event.inputs.version }}
-
-          rem Map matrix arch to vcvarsall arg
-          set VCVARS_ARCH=${{ matrix.arch }}
-          if /I "%VCVARS_ARCH%"=="x64" set VCVARS_ARCH=amd64
-          if /I "%VCVARS_ARCH%"=="x86" set VCVARS_ARCH=x86
-
-          call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH%
-          if errorlevel 1 exit /b 1
-
-          cd /d "build\Judy-%VER%\src"
-          call build.bat
-          if errorlevel 1 exit /b 1
-
-          if not exist Judy.lib (
-            echo FATAL: Judy.lib not produced. >&2
-            dir /b
-            exit /b 1
-          )
+          $vsTag = '${{ steps.virtuals.outputs.vs }}'
+          switch ($vsTag) {
+            'vs16' { $range = '[16.0,17.0)' }  # VS 2019
+            'vs17' { $range = '[17.0,18.0)' }  # VS 2022
+            default { throw "Unknown VS tag: $vsTag" }
+          }
+      
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (!(Test-Path $vswhere)) { throw "vswhere not found at $vswhere" }
+      
+          $vsInstall = & $vswhere -latest -products * -version $range -property installationPath
+          if ([string]::IsNullOrWhiteSpace($vsInstall)) { throw "Could not find Visual Studio in range $range" }
+      
+          $vcvars = Join-Path $vsInstall 'VC\Auxiliary\Build\vcvarsall.bat'
+          if (!(Test-Path $vcvars)) { throw "vcvarsall.bat not found at $vcvars" }
+      
+          "vsinstall=$vsInstall" | Out-File -Append $env:GITHUB_OUTPUT
+          "vcvars=$vcvars"       | Out-File -Append $env:GITHUB_OUTPUT
+      
+            - name: Build libjudy (MSVC)
+              run: |
+                setlocal EnableExtensions EnableDelayedExpansion
+                set VER=1.0.5
+      
+                rem Map matrix arch to vcvarsall arg
+                set VCVARS_ARCH=${{ matrix.arch }}
+                if /I "%VCVARS_ARCH%"=="x64" set VCVARS_ARCH=amd64
+                if /I "%VCVARS_ARCH%"=="x86" set VCVARS_ARCH=x86
+      
+                call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH%
+                if errorlevel 1 exit /b 1
+      
+                cd /d "build\Judy-%VER%\src"
+                call build.bat
+                if errorlevel 1 exit /b 1
+      
+                if not exist Judy.lib (
+                  echo FATAL: Judy.lib not produced. >&2
+                  dir /b
+                  exit /b 1
+                )
 
       - name: Install headers and libraries
         run: |
