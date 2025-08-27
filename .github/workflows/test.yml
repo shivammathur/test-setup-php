@@ -27,8 +27,8 @@ jobs:
     - name: Build the extension
       uses: php/php-windows-builder/extension@master
       with:
-        extension-url: https://github.com/orieg/php-judy
-        extension-ref: main
+        extension-url: https://pecl.php.net/package/Judy
+        extension-ref: 2.1.0
         php-version: ${{ matrix.php-version }}
         arch: ${{ matrix.arch }}
         ts: ${{ matrix.ts }}
