@@ -80,21 +80,34 @@ jobs:
         run: |
           setlocal EnableExtensions EnableDelayedExpansion
           set "VER=${{ github.event.inputs.version }}"
-          set "MSTS=${{ steps.virtuals.outputs.msts }}"         rem v141/v142/v143
+          set "MSTS=${{ steps.virtuals.outputs.msts }}"
           set "ARCH=${{ matrix.arch }}"
       
-          rem ---- map arch for vcvarsall ----
           set "VCVARS_ARCH=%ARCH%"
           if /I "%VCVARS_ARCH%"=="x64" set "VCVARS_ARCH=amd64"
           if /I "%VCVARS_ARCH%"=="x86" set "VCVARS_ARCH=x86"
+
+          set "VSINSTALL=${{ steps.vc.outputs.vsinstall }}"
+          set "MSVCROOT=%VSINSTALL%\VC\Tools\MSVC"
       
-          rem ---- map msts -> vcvars_ver ----
+          set "WANT_VER="
+          if /I "%MSTS%"=="v141" set "WANT_VER=14.1"
+          if /I "%MSTS%"=="v142" set "WANT_VER=14.2"
+          if /I "%MSTS%"=="v143" set "WANT_VER=14.3"
+      
+          rem Probe availability
+          set "HAVE143="
+          for /d %%D in ("%MSVCROOT%\14.3*") do set "HAVE143=1"
+          set "HAVE142="
+          for /d %%D in ("%MSVCROOT%\14.2*") do set "HAVE142=1"
+      
           set "VCVARS_VER="
-          if /I "%MSTS%"=="v141" set "VCVARS_VER=14.1"
-          if /I "%MSTS%"=="v142" set "VCVARS_VER=14.2"
-          if /I "%MSTS%"=="v143" set "VCVARS_VER=14.3"
-      
-          rem ---- activate VS2022 env (use default SDK) ----
+          if "%WANT_VER%"=="14.3" (
+            if defined HAVE143 ( set "VCVARS_VER=14.3" ) else if defined HAVE142 ( set "VCVARS_VER=14.2" & echo NOTE: v143 not found; falling back to v142 ) else ( echo NOTE: v143/v142 not found; using default toolset )
+          ) else if "%WANT_VER%"=="14.2" (
+            if defined HAVE142 ( set "VCVARS_VER=14.2" ) else if defined HAVE143 ( set "VCVARS_VER=14.3" & echo NOTE: v142 not found; using v143 ) else ( echo NOTE: v142/v143 missing; using default toolset )
+          )
+
           if defined VCVARS_VER (
             call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH% -vcvars_ver=%VCVARS_VER%
           ) else (
@@ -102,25 +115,12 @@ jobs:
           )
           if errorlevel 1 exit /b 1
       
-          rem ---- locate source dir ----
-          set "SRC=build\Judy-%VER%"
-          if not exist "%SRC%\src\build.bat" (
-            for /d %%D in (build\Judy-*) do (
-              if exist "%%D\src\build.bat" set "SRC=%%D"
-            )
-          )
-          if not exist "%SRC%\src\build.bat" (
-            echo FATAL: Could not find Judy source. >&2
-            dir /b build
-            exit /b 1
-          )
-      
           cd /d "%SRC%\src"
           call build.bat
           if errorlevel 1 exit /b 1
       
           if not exist Judy.lib (
-            echo FATAL: Judy.lib not produced. >&2
+            echo FATAL: Judy.lib not produced. Contents of src: >&2
             dir /b
             exit /b 1
           )
