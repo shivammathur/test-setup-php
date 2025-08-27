@@ -25,7 +25,7 @@ jobs:
         Get-ChildItem -Recurse | Select-Object Name, FullName
 
     - name: Build the extension
-      uses: php/php-windows-builder/extension@v1
+      uses: php/php-windows-builder/extension@master
       with:
         extension-url: https://github.com/orieg/php-judy
         extension-ref: main
