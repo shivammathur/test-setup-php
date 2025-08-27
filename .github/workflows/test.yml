@@ -79,6 +79,7 @@ jobs:
         shell: cmd
         run: |
           setlocal EnableExtensions EnableDelayedExpansion
+      
           rem ---- inputs ----
           set "VER=${{ github.event.inputs.version }}"
           set "MSTS=${{ steps.virtuals.outputs.msts }}"   rem v141/v142/v143
@@ -98,20 +99,42 @@ jobs:
           if /I "%MSTS%"=="v142" set "WANT_VER=14.2"
           if /I "%MSTS%"=="v143" set "WANT_VER=14.3"
       
-          rem Probe availability
+          rem Probe availability (presence of any 14.3* / 14.2* folder)
           set "HAVE143="
           for /d %%D in ("%MSVCROOT%\14.3*") do set "HAVE143=1"
           set "HAVE142="
           for /d %%D in ("%MSVCROOT%\14.2*") do set "HAVE142=1"
       
           set "VCVARS_VER="
+      
           if "%WANT_VER%"=="14.3" (
-            if defined HAVE143 ( set "VCVARS_VER=14.3" ) else if defined HAVE142 ( set "VCVARS_VER=14.2" & echo NOTE: v143 not found; falling back to v142 ) else ( echo NOTE: v143/v142 not found; using default toolset )
-          ) else if "%WANT_VER%"=="14.2" (
-            if defined HAVE142 ( set "VCVARS_VER=14.2" ) else if defined HAVE143 ( set "VCVARS_VER=14.3" & echo NOTE: v142 not found; using v143 ) else ( echo NOTE: v142/v143 missing; using default toolset )
-          ) else if "%WANT_VER%"=="14.1" (
-            rem VS2022 rarely has 14.1; let default handle or adjust here if you install it.
-            echo NOTE: v141 requested; using default VS toolset unless installed separately.
+            if defined HAVE143 (
+              set "VCVARS_VER=14.3"
+            ) else (
+              if defined HAVE142 (
+                echo NOTE: v143 not found; falling back to v142
+                set "VCVARS_VER=14.2"
+              ) else (
+                echo NOTE: v143/v142 not found; using default toolset
+              )
+            )
+          ) else (
+            if "%WANT_VER%"=="14.2" (
+              if defined HAVE142 (
+                set "VCVARS_VER=14.2"
+              ) else (
+                if defined HAVE143 (
+                  echo NOTE: v142 not found; using v143
+                  set "VCVARS_VER=14.3"
+                ) else (
+                  echo NOTE: v142/v143 missing; using default toolset
+                )
+              )
+            ) else (
+              if "%WANT_VER%"=="14.1" (
+                echo NOTE: v141 requested; using default VS toolset unless installed separately.
+              )
+            )
           )
       
           rem ---- activate VS2022 env (no SDK pin) ----
