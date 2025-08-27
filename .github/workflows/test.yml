@@ -59,30 +59,24 @@ jobs:
             exit /b 1
           )
 
-      - name: Locate the correct vcvarsall.bat (VS16/VS17)
+      - name: Locate the correct vcvarsall.bat (always VS2022)
         id: vc
         shell: pwsh
         run: |
-          $vsTag = '${{ steps.virtuals.outputs.vs }}'
-          switch ($vsTag) {
-            'vs16' { $range = '[16.0,17.0)' }  # VS 2019
-            'vs17' { $range = '[17.0,18.0)' }  # VS 2022
-            default { throw "Unknown VS tag: $vsTag" }
-          }
-      
           $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
           if (!(Test-Path $vswhere)) { throw "vswhere not found at $vswhere" }
-      
-          $vsInstall = & $vswhere -latest -products * -version $range -property installationPath
-          if ([string]::IsNullOrWhiteSpace($vsInstall)) { throw "Could not find Visual Studio in range $range" }
-      
+
+          $vsInstall = & $vswhere -latest -products * -version '[17.0,18.0)' -property installationPath
+          if ([string]::IsNullOrWhiteSpace($vsInstall)) { throw "VS 2022 not found on this runner" }
+
           $vcvars = Join-Path $vsInstall 'VC\Auxiliary\Build\vcvarsall.bat'
           if (!(Test-Path $vcvars)) { throw "vcvarsall.bat not found at $vcvars" }
-      
+
           "vsinstall=$vsInstall" | Out-File -Append $env:GITHUB_OUTPUT
           "vcvars=$vcvars"       | Out-File -Append $env:GITHUB_OUTPUT
-      
+
       - name: Build libjudy (MSVC)
+        shell: cmd
         run: |
           setlocal EnableExtensions EnableDelayedExpansion
           set VER=1.0.5
@@ -92,7 +86,30 @@ jobs:
           if /I "%VCVARS_ARCH%"=="x64" set VCVARS_ARCH=amd64
           if /I "%VCVARS_ARCH%"=="x86" set VCVARS_ARCH=x86
 
-          call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH%
+          rem Map msts (v141/v142/v143) to -vcvars_ver 14.1/14.2/14.3
+          set MSTS=${{ steps.virtuals.outputs.msts }}
+          set "VCVARS_VER="
+          if /I "%MSTS%"=="v141" set VCVARS_VER=14.1
+          if /I "%MSTS%"=="v142" set VCVARS_VER=14.2
+          if /I "%MSTS%"=="v143" set VCVARS_VER=14.3
+
+          rem Optional: pin the Windows SDK
+          set WINSDK=${{ steps.virtuals.outputs.winsdk }}
+
+          if defined VCVARS_VER (
+            if defined WINSDK (
+              call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH% -vcvars_ver=%VCVARS_VER% -winsdk=%WINSDK%
+            ) else (
+              call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH% -vcvars_ver=%VCVARS_VER%
+            )
+          ) else (
+            rem Fall back to default toolset if mapping missing
+            if defined WINSDK (
+              call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH% -winsdk=%WINSDK%
+            ) else (
+              call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH%
+            )
+          )
           if errorlevel 1 exit /b 1
 
           cd /d "build\Judy-%VER%\src"
@@ -117,7 +134,7 @@ jobs:
           copy /Y "build\Judy-%VER%\src\Judy.h" "%PREFIX%\include\Judy.h" >nul
           copy /Y "build\Judy-%VER%\src\Judy.lib" "%PREFIX%\lib\Judy.lib" >nul
           if exist "build\Judy-%VER%\src\Judy.dll" copy /Y "build\Judy-%VER%\src\Judy.dll" "%PREFIX%\bin\Judy.dll" >nul
-          if exist "build\Judy-%VER%\COPYING" copy /Y "build\Judy-%VER%\COPYING" "%PREFIX%\LICENSE" >nul
+          if exist "build\Judy-%VER%\COPYING" copy /Y "build\Judy-%VER%\COPYING" "%PREFIX%\COPYING" >nul
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
