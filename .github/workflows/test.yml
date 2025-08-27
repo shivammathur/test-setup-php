@@ -76,46 +76,44 @@ jobs:
           "vcvars=$vcvars"       | Out-File -Append $env:GITHUB_OUTPUT
 
       - name: Build libjudy (MSVC)
-        shell: cmd
         run: |
           setlocal EnableExtensions EnableDelayedExpansion
-          set VER=1.0.5
-
+          set VER=${{ github.event.inputs.version }}
+      
           rem Map matrix arch to vcvarsall arg
           set VCVARS_ARCH=${{ matrix.arch }}
           if /I "%VCVARS_ARCH%"=="x64" set VCVARS_ARCH=amd64
           if /I "%VCVARS_ARCH%"=="x86" set VCVARS_ARCH=x86
-
-          rem Map msts (v141/v142/v143) to -vcvars_ver 14.1/14.2/14.3
+      
+          rem Map msts (v141/v142/v143) -> -vcvars_ver (14.1/14.2/14.3)
           set MSTS=${{ steps.virtuals.outputs.msts }}
           set "VCVARS_VER="
           if /I "%MSTS%"=="v141" set VCVARS_VER=14.1
           if /I "%MSTS%"=="v142" set VCVARS_VER=14.2
           if /I "%MSTS%"=="v143" set VCVARS_VER=14.3
-
-          rem Optional: pin the Windows SDK
+      
+          rem Optional SDK pin (positional, not -winsdk=)
           set WINSDK=${{ steps.virtuals.outputs.winsdk }}
-
+      
           if defined VCVARS_VER (
             if defined WINSDK (
-              call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH% -vcvars_ver=%VCVARS_VER% -winsdk=%WINSDK%
+              call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH% %WINSDK% -vcvars_ver=%VCVARS_VER%
             ) else (
               call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH% -vcvars_ver=%VCVARS_VER%
             )
           ) else (
-            rem Fall back to default toolset if mapping missing
             if defined WINSDK (
-              call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH% -winsdk=%WINSDK%
+              call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH% %WINSDK%
             ) else (
               call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH%
             )
           )
           if errorlevel 1 exit /b 1
-
+      
           cd /d "build\Judy-%VER%\src"
           call build.bat
           if errorlevel 1 exit /b 1
-
+      
           if not exist Judy.lib (
             echo FATAL: Judy.lib not produced. >&2
             dir /b
