@@ -76,41 +76,46 @@ jobs:
           "vcvars=$vcvars"       | Out-File -Append $env:GITHUB_OUTPUT
 
       - name: Build libjudy (MSVC)
+        shell: cmd
         run: |
           setlocal EnableExtensions EnableDelayedExpansion
-          set VER=${{ github.event.inputs.version }}
+          set "VER=${{ github.event.inputs.version }}"
+          set "MSTS=${{ steps.virtuals.outputs.msts }}"         rem v141/v142/v143
+          set "ARCH=${{ matrix.arch }}"
       
-          rem Map matrix arch to vcvarsall arg
-          set VCVARS_ARCH=${{ matrix.arch }}
-          if /I "%VCVARS_ARCH%"=="x64" set VCVARS_ARCH=amd64
-          if /I "%VCVARS_ARCH%"=="x86" set VCVARS_ARCH=x86
+          rem ---- map arch for vcvarsall ----
+          set "VCVARS_ARCH=%ARCH%"
+          if /I "%VCVARS_ARCH%"=="x64" set "VCVARS_ARCH=amd64"
+          if /I "%VCVARS_ARCH%"=="x86" set "VCVARS_ARCH=x86"
       
-          rem Map msts (v141/v142/v143) -> -vcvars_ver (14.1/14.2/14.3)
-          set MSTS=${{ steps.virtuals.outputs.msts }}
+          rem ---- map msts -> vcvars_ver ----
           set "VCVARS_VER="
-          if /I "%MSTS%"=="v141" set VCVARS_VER=14.1
-          if /I "%MSTS%"=="v142" set VCVARS_VER=14.2
-          if /I "%MSTS%"=="v143" set VCVARS_VER=14.3
+          if /I "%MSTS%"=="v141" set "VCVARS_VER=14.1"
+          if /I "%MSTS%"=="v142" set "VCVARS_VER=14.2"
+          if /I "%MSTS%"=="v143" set "VCVARS_VER=14.3"
       
-          rem Optional SDK pin (positional, not -winsdk=)
-          set WINSDK=${{ steps.virtuals.outputs.winsdk }}
-      
+          rem ---- activate VS2022 env (use default SDK) ----
           if defined VCVARS_VER (
-            if defined WINSDK (
-              call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH% %WINSDK% -vcvars_ver=%VCVARS_VER%
-            ) else (
-              call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH% -vcvars_ver=%VCVARS_VER%
-            )
+            call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH% -vcvars_ver=%VCVARS_VER%
           ) else (
-            if defined WINSDK (
-              call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH% %WINSDK%
-            ) else (
-              call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH%
-            )
+            call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH%
           )
           if errorlevel 1 exit /b 1
       
-          cd /d "build\Judy-%VER%\src"
+          rem ---- locate source dir ----
+          set "SRC=build\Judy-%VER%"
+          if not exist "%SRC%\src\build.bat" (
+            for /d %%D in (build\Judy-*) do (
+              if exist "%%D\src\build.bat" set "SRC=%%D"
+            )
+          )
+          if not exist "%SRC%\src\build.bat" (
+            echo FATAL: Could not find Judy source. >&2
+            dir /b build
+            exit /b 1
+          )
+      
+          cd /d "%SRC%\src"
           call build.bat
           if errorlevel 1 exit /b 1
       
