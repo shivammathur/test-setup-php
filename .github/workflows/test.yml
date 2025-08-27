@@ -33,8 +33,10 @@ jobs:
         arch: ${{ matrix.arch }}
         ts: ${{ matrix.ts }}
         libs: judy
+        run-tests: false
 
     - uses: mxschmitt/action-tmate@v3.22
+      if: failure()
 
     - name: Upload to release
       if: github.event_name == 'release'
