@@ -1,19 +1,105 @@
-name: Runner
+name: 'Intl workflow'
 on:
   push:
-jobs:  
-    runner:
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v5
-          with:
-            repository: DanielEScherzer/polyfill
-            ref: filter-throw-on-failure
-        - uses: shivammathur/setup-php@develop
-          with:
-            php-version: 8.5
-            extensions: apcu, intl-73.2, mbstring, odbc, uuid
-          env:
-            debug: true
-        - run: php -v && php -m
-        - run: composer --prefer-source --no-progress --ansi install
+jobs:
+  intl:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04-arm, ubuntu-24.04, ubuntu-22.04]
+        icu: [77.1, 76.1, 75.1, 74.2, 74.1, 74.2, 73.2, 73.1, 72.1, 71.1, 70.1, 69.1, 68.2, 68.1, 67.1, 66.1, 65.1]
+        ts: [ts, nts]
+    steps:
+      - name: Setup PHP 5.6
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 5.6
+          extensions: intl-${{ matrix.icu }}
+        env:
+          phpts: ${{ matrix.ts }}
+      - name: Setup PHP 7.0
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 7.0
+          extensions: intl-${{ matrix.icu }}
+        env:
+          phpts: ${{ matrix.ts }}
+      - name: Setup PHP 7.1
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 7.1
+          extensions: intl-${{ matrix.icu }}
+        env:
+          phpts: ${{ matrix.ts }}
+      - name: Setup PHP 7.2
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 7.2
+          extensions: intl-${{ matrix.icu }}
+        env:
+          phpts: ${{ matrix.ts }}
+      - name: Setup PHP 7.3
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 7.3
+          extensions: intl-${{ matrix.icu }}
+        env:
+          phpts: ${{ matrix.ts }}
+      - name: Setup PHP 7.4
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 7.4
+          extensions: intl-${{ matrix.icu }}
+        env:
+          phpts: ${{ matrix.ts }}
+      - name: Setup PHP 8.0
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 8.0
+          extensions: intl-${{ matrix.icu }}
+        env:
+          phpts: ${{ matrix.ts }}
+      - name: Setup PHP 8.1
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 8.1
+          extensions: intl-${{ matrix.icu }}
+        env:
+          phpts: ${{ matrix.ts }}
+      - name: Setup PHP 8.2
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 8.2
+          extensions: intl-${{ matrix.icu }}
+        env:
+          phpts: ${{ matrix.ts }}
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 8.3
+          extensions: intl-${{ matrix.icu }}
+        env:
+          phpts: ${{ matrix.ts }}
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 8.4
+          extensions: intl-${{ matrix.icu }}
+        env:
+          phpts: ${{ matrix.ts }}
+      - name: Setup PHP 8.5
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: 8.5
+          extensions: intl-${{ matrix.icu }}
+        env:
+          phpts: ${{ matrix.ts }}
+      - name: Testing ICU version
+        run: |
+          for v in 5.6 7.0 7.1 7.2 7.3 7.4 8.0 8.1 8.2 8.3 8.4 8.5; do
+            icu_version=$(php$v -i | grep "ICU version =>" | sed -e "s|.*=> s*||")
+            echo php$v: $icu_version
+            [ "$icu_version" != "${{ matrix.icu }}" ] && 	echo "::warning::failed to setup ${{ matrix.icu }} on php $v"
+            php$v -v
+          done
