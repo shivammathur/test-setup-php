@@ -33,7 +33,6 @@ jobs:
         arch: ${{ matrix.arch }}
         ts: ${{ matrix.ts }}
         libs: judy
-        args: --with-judy=..\deps
 
     - name: Upload to release
       if: github.event_name == 'release'
