@@ -1,105 +1,127 @@
-name: 'Intl workflow'
+name: Build libjudy
+
 on:
-  push:
+  workflow_dispatch:
+    inputs:
+      php:
+        description: PHP version (drives VS/toolset via compute_virtuals.ps1)
+        required: true
+        default: '8.3'
+        
+      stability:
+        description: stability label (for artifact naming)
+        required: false
+        default: 'staging'
+
+defaults:
+  run:
+    shell: cmd
+
 jobs:
-  intl:
-    runs-on: ${{ matrix.os }}
+  build:
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04-arm, ubuntu-24.04, ubuntu-22.04]
-        icu: [77.1, 76.1, 75.1, 74.2, 74.1, 74.2, 73.2, 73.1, 72.1, 71.1, 70.1, 69.1, 68.2, 68.1, 67.1, 66.1, 65.1]
-        ts: [ts, nts]
+        arch: [x64, x86]
+
     steps:
-      - name: Setup PHP 5.6
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 5.6
-          extensions: intl-${{ matrix.icu }}
-        env:
-          phpts: ${{ matrix.ts }}
-      - name: Setup PHP 7.0
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 7.0
-          extensions: intl-${{ matrix.icu }}
-        env:
-          phpts: ${{ matrix.ts }}
-      - name: Setup PHP 7.1
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 7.1
-          extensions: intl-${{ matrix.icu }}
-        env:
-          phpts: ${{ matrix.ts }}
-      - name: Setup PHP 7.2
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 7.2
-          extensions: intl-${{ matrix.icu }}
-        env:
-          phpts: ${{ matrix.ts }}
-      - name: Setup PHP 7.3
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 7.3
-          extensions: intl-${{ matrix.icu }}
-        env:
-          phpts: ${{ matrix.ts }}
-      - name: Setup PHP 7.4
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 7.4
-          extensions: intl-${{ matrix.icu }}
-        env:
-          phpts: ${{ matrix.ts }}
-      - name: Setup PHP 8.0
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.0
-          extensions: intl-${{ matrix.icu }}
-        env:
-          phpts: ${{ matrix.ts }}
-      - name: Setup PHP 8.1
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.1
-          extensions: intl-${{ matrix.icu }}
-        env:
-          phpts: ${{ matrix.ts }}
-      - name: Setup PHP 8.2
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.2
-          extensions: intl-${{ matrix.icu }}
-        env:
-          phpts: ${{ matrix.ts }}
-      - name: Setup PHP 8.3
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.3
-          extensions: intl-${{ matrix.icu }}
-        env:
-          phpts: ${{ matrix.ts }}
-      - name: Setup PHP 8.4
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.4
-          extensions: intl-${{ matrix.icu }}
-        env:
-          phpts: ${{ matrix.ts }}
-      - name: Setup PHP 8.5
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.5
-          extensions: intl-${{ matrix.icu }}
-        env:
-          phpts: ${{ matrix.ts }}
-      - name: Testing ICU version
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compute virtual inputs
+        id: virtuals
         run: |
-          for v in 5.6 7.0 7.1 7.2 7.3 7.4 8.0 8.1 8.2 8.3 8.4 8.5; do
-            icu_version=$(php$v -i | grep "ICU version =>" | sed -e "s|.*=> s*||")
-            echo php$v: $icu_version
-            [ "$icu_version" != "${{ matrix.icu }}" ] && 	echo "::warning::failed to setup ${{ matrix.icu }} on php $v" && exit 1
-            php$v -v
-          done
+          Invoke-WebRequest -Uri https://raw.githubusercontent.com/winlibs/winlib-builder/refs/heads/master/scripts/compute-virtuals.ps1 -OutFile compute_virtuals.ps1
+          powershell -File compute_virtuals.ps1 -version 1.0.5 -arch ${{ matrix.arch }}
+
+      - name: Show computed virtuals
+        run: |
+          echo vs=${{ steps.virtuals.outputs.vs }}
+          echo vsyear=${{ steps.virtuals.outputs.vsyear }}
+          echo msts=${{ steps.virtuals.outputs.msts }}
+          echo msarch=${{ steps.virtuals.outputs.msarch }}
+          echo winsdk=${{ steps.virtuals.outputs.winsdk }}
+          echo toolset=${{ steps.virtuals.outputs.toolset }}
+
+      - name: Prepare directories
+        run: |
+          if not exist downloads mkdir downloads
+          if not exist build mkdir build
+          if not exist install mkdir install
+
+      - name: Download Judy source tarball
+        run: |
+          set VER=${{ github.event.inputs.version }}
+          set URL=https://downloads.sourceforge.net/project/judy/judy/Judy-%VER%/Judy-%VER%.tar.gz
+          echo Downloading %URL%
+          curl -L --fail --retry 5 --retry-delay 5 "%URL%" -o "downloads\Judy-%VER%.tar.gz"
+
+      - name: Extract source
+        run: |
+          set VER=${{ github.event.inputs.version }}
+          tar -xzf "downloads\Judy-%VER%.tar.gz" -C build
+          if not exist "build\Judy-%VER%\src\build.bat" (
+            echo FATAL: build\Judy-%VER%\src\build.bat not found. >&2
+            dir /b build\Judy-%VER%\src
+            exit /b 1
+          )
+
+      - name: Compute vcvarsall path
+        id: vc
+        run: |
+          set "TOOLSET=${{ steps.virtuals.outputs.toolset }}"
+          if not exist "%TOOLSET%" (
+            echo FATAL: toolset path not found: %TOOLSET% >&2
+            exit /b 1
+          )
+          for %%I in ("%TOOLSET%..\\..\\Auxiliary\\Build\\vcvarsall.bat") do set "VCVARS=%%~fI"
+          if not exist "%VCVARS%" (
+            echo FATAL: vcvarsall.bat not found near toolset: %VCVARS% >&2
+            exit /b 1
+          )
+          echo vcvars=%VCVARS%>> %GITHUB_OUTPUT%
+
+      - name: Build libjudy (MSVC)
+        run: |
+          setlocal EnableExtensions EnableDelayedExpansion
+          set VER=${{ github.event.inputs.version }}
+
+          rem Map to vcvars arch from matrix arch
+          set VCVARS_ARCH=${{ matrix.arch }}
+          if /I "%VCVARS_ARCH%"=="x64" set VCVARS_ARCH=amd64
+          if /I "%VCVARS_ARCH%"=="x86" set VCVARS_ARCH=x86
+
+          call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH%
+          if errorlevel 1 exit /b 1
+
+          cd /d "build\Judy-%VER%\src"
+          call build.bat
+          if errorlevel 1 exit /b 1
+
+          rem Basic sanity
+          if not exist Judy.lib (
+            echo FATAL: Judy.lib not produced. >&2
+            dir /b
+            exit /b 1
+          )
+
+      - name: Install headers and libraries
+        run: |
+          set VER=${{ github.event.inputs.version }}
+          set PREFIX=%CD%\install
+
+          if not exist "%PREFIX%\include" mkdir "%PREFIX%\include"
+          if not exist "%PREFIX%\lib" mkdir "%PREFIX%\lib"
+          if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin"
+
+          copy /Y "build\Judy-%VER%\src\Judy.h" "%PREFIX%\include\Judy.h" >nul
+          copy /Y "build\Judy-%VER%\src\Judy.lib" "%PREFIX%\lib\Judy.lib" >nul
+          if exist "build\Judy-%VER%\src\Judy.dll" copy /Y "build\Judy-%VER%\src\Judy.dll" "%PREFIX%\bin\Judy.dll" >nul
+          if exist "build\Judy-%VER%\COPYING" copy /Y "build\Judy-%VER%\COPYING" "%PREFIX%\LICENSE" >nul
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libjudy-1.0.5-${{ steps.virtuals.outputs.vs }}-${{ matrix.arch }}-${{ github.event.inputs.php }}-${{ github.event.inputs.stability }}
+          path: install
