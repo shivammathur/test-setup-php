@@ -59,27 +59,43 @@ jobs:
             exit /b 1
           )
 
-      - name: Compute vcvarsall path
+      - name: Locate the correct vcvarsall.bat (VS16/VS17)
         id: vc
         run: |
-          set "TOOLSET=${{ steps.virtuals.outputs.toolset }}"
-          if not exist "%TOOLSET%" (
-            echo FATAL: toolset path not found: %TOOLSET% >&2
+          setlocal EnableExtensions
+          set VS_TAG=${{ steps.virtuals.outputs.vs }}
+          set "VS_RANGE="
+          if /I "%VS_TAG%"=="vs16" set "VS_RANGE=[16.0,17.0)"
+          if /I "%VS_TAG%"=="vs17" set "VS_RANGE=[17.0,18.0)"
+          if "%VS_RANGE%"=="" (
+            echo FATAL: Unknown VS tag "%VS_TAG%". >&2
             exit /b 1
           )
-          for %%I in ("%TOOLSET%..\\..\\Auxiliary\\Build\\vcvarsall.bat") do set "VCVARS=%%~fI"
+
+          for /f "usebackq tokens=*" %%I in (`
+            "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -version %VS_RANGE% -property installationPath
+          `) do set "VSINSTALL=%%I"
+
+          if not defined VSINSTALL (
+            echo FATAL: Could not find Visual Studio in range %VS_RANGE%. >&2
+            exit /b 1
+          )
+
+          set "VCVARS=%VSINSTALL%\VC\Auxiliary\Build\vcvarsall.bat"
           if not exist "%VCVARS%" (
-            echo FATAL: vcvarsall.bat not found near toolset: %VCVARS% >&2
+            echo FATAL: vcvarsall.bat not found at "%VCVARS%". >&2
             exit /b 1
           )
+
+          echo vsinstall=%VSINSTALL%>> %GITHUB_OUTPUT%
           echo vcvars=%VCVARS%>> %GITHUB_OUTPUT%
 
       - name: Build libjudy (MSVC)
         run: |
           setlocal EnableExtensions EnableDelayedExpansion
-          set VER=1.0.5
+          set VER=${{ github.event.inputs.version }}
 
-          rem Map to vcvars arch from matrix arch
+          rem Map matrix arch to vcvarsall arg
           set VCVARS_ARCH=${{ matrix.arch }}
           if /I "%VCVARS_ARCH%"=="x64" set VCVARS_ARCH=amd64
           if /I "%VCVARS_ARCH%"=="x86" set VCVARS_ARCH=x86
@@ -91,7 +107,6 @@ jobs:
           call build.bat
           if errorlevel 1 exit /b 1
 
-          rem Basic sanity
           if not exist Judy.lib (
             echo FATAL: Judy.lib not produced. >&2
             dir /b
