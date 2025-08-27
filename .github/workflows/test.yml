@@ -78,7 +78,7 @@ jobs:
       - name: Build libjudy (MSVC)
         shell: cmd
         run: |
-          setlocal EnableExtensions EnableDelayedExpansion
+          setlocal EnableExtensions
       
           rem ---- inputs ----
           set "VER=${{ github.event.inputs.version }}"
@@ -90,7 +90,7 @@ jobs:
           if /I "%VCVARS_ARCH%"=="x64" set "VCVARS_ARCH=amd64"
           if /I "%VCVARS_ARCH%"=="x86" set "VCVARS_ARCH=x86"
       
-          rem ---- decide vcvars_ver by probing installed toolsets under VS2022 ----
+          rem ---- pick vcvars_ver by probing VS2022 toolsets ----
           set "VSINSTALL=${{ steps.vc.outputs.vsinstall }}"
           set "MSVCROOT=%VSINSTALL%\VC\Tools\MSVC"
       
@@ -99,45 +99,20 @@ jobs:
           if /I "%MSTS%"=="v142" set "WANT_VER=14.2"
           if /I "%MSTS%"=="v143" set "WANT_VER=14.3"
       
-          rem Probe availability (presence of any 14.3* / 14.2* folder)
-          set "HAVE143="
-          for /d %%D in ("%MSVCROOT%\14.3*") do set "HAVE143=1"
-          set "HAVE142="
-          for /d %%D in ("%MSVCROOT%\14.2*") do set "HAVE142=1"
-      
           set "VCVARS_VER="
-      
           if "%WANT_VER%"=="14.3" (
-            if defined HAVE143 (
-              set "VCVARS_VER=14.3"
-            ) else (
-              if defined HAVE142 (
-                echo NOTE: v143 not found; falling back to v142
-                set "VCVARS_VER=14.2"
-              ) else (
-                echo NOTE: v143/v142 not found; using default toolset
-              )
+            for /d %%D in ("%MSVCROOT%\14.3*") do set "VCVARS_VER=14.3"
+            if not defined VCVARS_VER (
+              for /d %%D in ("%MSVCROOT%\14.2*") do set "VCVARS_VER=14.2" & echo NOTE: v143 not found; falling back to v142
             )
-          ) else (
-            if "%WANT_VER%"=="14.2" (
-              if defined HAVE142 (
-                set "VCVARS_VER=14.2"
-              ) else (
-                if defined HAVE143 (
-                  echo NOTE: v142 not found; using v143
-                  set "VCVARS_VER=14.3"
-                ) else (
-                  echo NOTE: v142/v143 missing; using default toolset
-                )
-              )
-            ) else (
-              if "%WANT_VER%"=="14.1" (
-                echo NOTE: v141 requested; using default VS toolset unless installed separately.
-              )
+          ) else if "%WANT_VER%"=="14.2" (
+            for /d %%D in ("%MSVCROOT%\14.2*") do set "VCVARS_VER=14.2"
+            if not defined VCVARS_VER (
+              for /d %%D in ("%MSVCROOT%\14.3*") do set "VCVARS_VER=14.3" & echo NOTE: v142 not found; using v143
             )
           )
       
-          rem ---- activate VS2022 env (no SDK pin) ----
+          rem ---- activate VS2022 env (default SDK) ----
           if defined VCVARS_VER (
             call "${{ steps.vc.outputs.vcvars }}" %VCVARS_ARCH% -vcvars_ver=%VCVARS_VER%
           ) else (
@@ -145,19 +120,23 @@ jobs:
           )
           if errorlevel 1 exit /b 1
       
-          rem ---- locate source dir ----
+          rem ---- locate source dir (no nested parens; no delayed expansion) ----
           set "SRC=build\Judy-%VER%"
-          if not exist "%SRC%\src\build.bat" (
-            for /d %%D in (build\Judy-*) do (
-              if exist "%%D\src\build.bat" set "SRC=%%D"
+          if not exist "%SRC%\src\build.bat" goto :find_src
+      
+          goto :have_src
+          :find_src
+          for /f "delims=" %%S in ('dir /b /ad "build\Judy-*" 2^>nul') do (
+            if exist "build\%%S\src\build.bat" (
+              set "SRC=build\%%S"
+              goto :have_src
             )
           )
-          if not exist "%SRC%\src\build.bat" (
-            echo FATAL: Could not find Judy source (expected build\Judy-%VER%\src\build.bat). >&2
-            dir /b build
-            exit /b 1
-          )
+          echo FATAL: Could not find Judy source (expected build\Judy-%VER%\src\build.bat). >&2
+          dir /b build
+          exit /b 1
       
+          :have_src
           cd /d "%SRC%\src"
           call build.bat
           if errorlevel 1 exit /b 1
