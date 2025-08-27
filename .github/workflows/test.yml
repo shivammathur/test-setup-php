@@ -25,7 +25,7 @@ jobs:
         run: |
           set URL=https://raw.githubusercontent.com/winlibs/winlib-builder/refs/heads/master/scripts/compute-virtuals.ps1
           curl -L --fail --retry 5 --retry-delay 5 "%URL%" -o compute_virtuals.ps1
-          powershell -File compute_virtuals.ps1 -version 1.0.5 -arch ${{ matrix.arch }}
+          powershell -File compute_virtuals.ps1 -version ${{ matrix.php }} -arch ${{ matrix.arch }}
 
       - name: Show computed virtuals
         run: |
