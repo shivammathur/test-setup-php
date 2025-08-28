@@ -16,7 +16,7 @@ jobs:
       with:
         php-version: 8.5
     - run: |
-        php-config=$(which php-config)
+        php_config=$(which php-config)
         php --ini
         grep "ini_path=" "$php_config"
         php --ini | grep '(php.ini)' | sed -e "s|.*: s*||"
