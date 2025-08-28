@@ -4,43 +4,20 @@ on:
   push:
 jobs:
   build-windows:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        php-version: ['8.1', '8.2', '8.3']
-        arch: ['x64']
-        ts: ['nts']
+        php-version: ['8.4', '8.5']
+        os: [ubuntu-latest, macos-latest]
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - name: php
+      uses: shivammathur/setup-php@v2
       with:
-        repository: orieg/php-judy
-        ref: main
-
-    - name: Debug directory structure
-      run: |
-        echo "Current directory: $PWD"
-        echo "Directory contents:"
-        Get-ChildItem -Recurse | Select-Object Name, FullName
-
-    - name: Build the extension
-      uses: shivammathur/php-windows-builder/extension@master
-      with:
-        extension-url: https://github.com/orieg/php-judy
-        extension-ref: main
-        php-version: ${{ matrix.php-version }}
-        arch: ${{ matrix.arch }}
-        ts: ${{ matrix.ts }}
-        libs: judy
-        run-tests: false
-
-    - uses: mxschmitt/action-tmate@v3.22
-      if: failure()
-
-    - name: Upload to release
-      if: github.event_name == 'release'
-      uses: php/php-windows-builder/release@v1
-      with:
-        release: ${{ github.event.release.tag_name }}
-        token: ${{ secrets.GITHUB_TOKEN }}
+        php-version: 8.5
+    - run: |
+        php-config=$(which php-config)
+        php --ini
+        grep "ini_path=" "$php_config"
+        php --ini | grep '(php.ini)' | sed -e "s|.*: s*||"
+        cut -d '"' -f 2 < <(grep "ini_path=" "$php_config" || php --ini | grep '(php.ini)' | sed -e "s|.*: s*||")
