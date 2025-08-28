@@ -22,4 +22,4 @@ jobs:
         php --ini | grep '(php.ini)' | sed -e "s|.*: s*||"
         cut -d '"' -f 2 < <(grep "ini_path=" "$php_config" || php --ini | grep '(php.ini)' | sed -e "s|.*: s*||")
         str=$(php --ini | grep '(php.ini)' | sed -e "s|.*: s*||")
-        echo "::warning::${{ matrix.os }} - ${{ matrix.php-version }} - $str"
+        echo "::info::${{ matrix.os }} - ${{ matrix.php-version }} - $str" || true
