@@ -13,4 +13,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: none, curl, tokenizer, mbstring, iconv, dom, xml, xmlwriter, mysqli, ssh2
+          ini-values: zend.assertions=1, error_reporting=-1, log_errors_max_len=0, display_errors=on
+          tools: none, composer
         
