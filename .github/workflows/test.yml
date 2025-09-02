@@ -1,104 +1,12 @@
-name: Build libjudy
+name: Runner
 
 on:
   push:
 
-defaults:
-  run:
-    shell: cmd
-
 jobs:
   build:
-    runs-on: windows-2022
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x64, x86]
-        php: [8.3, 8.4]
-
+    runs-on: macos-15
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Compute virtual inputs
-        id: virtuals
+      - name: Test
         run: |
-          set URL=https://raw.githubusercontent.com/winlibs/winlib-builder/refs/heads/master/scripts/compute-virtuals.ps1
-          curl -L --fail --retry 5 --retry-delay 5 "%URL%" -o compute_virtuals.ps1
-          powershell -File compute_virtuals.ps1 -version ${{ matrix.php }} -arch ${{ matrix.arch }}
-      - name: Show computed virtuals
-        run: |
-          echo vs=${{ steps.virtuals.outputs.vs }}
-          echo vsyear=${{ steps.virtuals.outputs.vsyear }}
-          echo msts=${{ steps.virtuals.outputs.msts }}
-          echo msarch=${{ steps.virtuals.outputs.msarch }}
-          echo winsdk=${{ steps.virtuals.outputs.winsdk }}
-          echo toolset=${{ steps.virtuals.outputs.toolset }}
-      - name: Prepare directories
-        run: |
-          if not exist downloads mkdir downloads
-          if not exist build mkdir build
-          if not exist install mkdir install
-      - name: Download Judy source tarball
-        run: |
-          set VER=1.0.5
-          set URL=https://downloads.sourceforge.net/project/judy/judy/Judy-%VER%/Judy-%VER%.tar.gz
-          echo Downloading %URL%
-          curl -L --fail --retry 5 --retry-delay 5 "%URL%" -o "downloads\Judy-%VER%.tar.gz"
-      - name: Extract source
-        run: |
-          set VER=1.0.5
-          tar -xzf "downloads\Judy-%VER%.tar.gz" -C build
-          if not exist "build\Judy-%VER%\src\build.bat" (
-            echo FATAL: build\Judy-%VER%\src\build.bat not found. >&2
-            dir /b build\Judy-%VER%\src
-            exit /b 1
-          )
-      - name: Enable Developer Command Prompt
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: ${{ matrix.arch }}
-          toolset: ${{ steps.virtuals.outputs.toolset }}
-
-      - name: Build libjudy
-        run: |
-          set VER=${{ github.event.inputs.version }}
-
-          set "SRC=build\Judy-%VER%"
-          if not exist "%SRC%\src\build.bat" (
-            for /d %%D in (build\Judy-*) do (
-              if exist "%%D\src\build.bat" set "SRC=%%D"
-            )
-          )
-          if not exist "%SRC%\src\build.bat" (
-            echo FATAL: Could not find Judy source. >&2
-            dir /b build
-            exit /b 1
-          )
-
-          cd /d "%SRC%\src"
-          call build.bat
-          if errorlevel 1 exit /b 1
-
-          if not exist Judy.lib (
-            echo FATAL: Judy.lib not produced. Contents of src: >&2
-            dir /b
-            exit /b 1
-          )
-
-      - name: Install headers and libraries
-        run: |
-          set VER=1.0.5
-          set PREFIX=%CD%\install
-          if not exist "%PREFIX%\include" mkdir "%PREFIX%\include"
-          if not exist "%PREFIX%\lib" mkdir "%PREFIX%\lib"
-          if not exist "%PREFIX%\bin" mkdir "%PREFIX%\bin"
-          copy /Y "build\Judy-%VER%\src\Judy.h" "%PREFIX%\include\Judy.h" >nul
-          copy /Y "build\Judy-%VER%\src\Judy.lib" "%PREFIX%\lib\libJudy.lib" >nul
-          if exist "build\Judy-%VER%\src\Judy.dll" copy /Y "build\Judy-%VER%\src\Judy.dll" "%PREFIX%\bin\Judy.dll" >nul
-          if exist "build\Judy-%VER%\COPYING" copy /Y "build\Judy-%VER%\COPYING" "%PREFIX%\COPYING" >nul
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: libjudy-1.0.5-${{steps.virtuals.outputs.vs}}-${{matrix.arch}}
-          path: install
+          cat /Library/Developer/CommandLineTools/SDKs/MacOS*.sdk/usr/include/libxml/xmlversion.h
