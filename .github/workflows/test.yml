@@ -35,7 +35,7 @@ jobs:
         uses: microsoft/setup-msbuild@v2
       - name: Compute virtual inputs
         id: virtuals
-        run: powershell winlib-builder/scripts/compute-virtuals -version ${{github.event.inputs.php}} -arch ${{matrix.arch}}
+        run: powershell winlib-builder/scripts/compute-virtuals -version ${{env.php}} -arch ${{matrix.arch}}
       - name: Fetch dependencies
         run: cd Windows && clone-repositories-im7.cmd
       - uses: mxschmitt/action-tmate@v3.22   
