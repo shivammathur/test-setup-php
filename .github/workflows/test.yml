@@ -12,9 +12,11 @@ jobs:
       - uses: shivammathur/setup-php@v2    
         with:
           php-version: 8.4
-          extensions: :pdo_sqlsrv, :sqlsrv, ibm_db2
+          extensions: none, ibm_db2
           coverage: pcov
           ini-values: zend.assertions=1
         env:
           IBM_DB2_CONFIGURE_OPTS: --with-IBM_DB2=/tmp/clidriver
+          fail-fast: false
       - uses: mxschmitt/action-tmate@v3.22
+        if: failure()
