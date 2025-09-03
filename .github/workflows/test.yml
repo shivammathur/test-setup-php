@@ -18,6 +18,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           path: winlib-builder
+          repository: winlibs/winlib-builder
       - name: Checkout ImageMagick/Windows
         uses: actions/checkout@v5
         with:
