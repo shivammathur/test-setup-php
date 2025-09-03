@@ -37,7 +37,7 @@ jobs:
         id: virtuals
         run: powershell winlib-builder/scripts/compute-virtuals -version ${{env.php}} -arch ${{matrix.arch}}
       - name: Fetch dependencies
-        run: cd imagemagick-windows && CloneRepositories.IM7.cmd
+        run: cd imagemagick-windows && clone-repositories-im7.cmd
       - name: Patch imagemagick
         run: |
           cd imagemagick-windows\configure && git apply --ignore-whitespace ..\..\winlib-builder\patches\imagemagick.patch
