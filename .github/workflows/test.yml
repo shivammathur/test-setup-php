@@ -22,5 +22,10 @@ jobs:
           IBM_DB2_CONFIGURE_OPTS: --with-IBM_DB2=/tmp/clidriver
           fail-fast: true
           debug: true
+      - run: |
+          LD_DEBUG=bindings,libs \
+          php -n -d extension=ibm_db2.so -d extension=pdo_sqlsrv.so -r 'echo "hi\n";' 2>&1 | grep -E 'symbol.*'
+        if: failure()
+
       - uses: mxschmitt/action-tmate@v3.22
         if: failure()
