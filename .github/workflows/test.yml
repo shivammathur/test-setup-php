@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        php: [8.0, 8.1, 8.2, 8.3, 8.4, 8.5]
+        php: [8.4, 8.5]
     steps:
       - run: |
           sudo mkdir -p /usr/local/opt
@@ -16,12 +16,13 @@ jobs:
       - uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: lua,ibm_db2
+          extensions: ibm_db2
           coverage: pcov
           ini-values: zend.assertions=1
         env:
           IBM_DB2_CONFIGURE_OPTS: --with-IBM_DB2=/usr/local/opt/clidriver
           fail-fast: true
+          use_package_cache: false
       - run: |
           LD_DEBUG=bindings,libs \
           php -n -d extension=ibm_db2.so -d extension=pdo_sqlsrv.so -r 'echo "hi\n";' 2>&1 \
