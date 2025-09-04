@@ -23,10 +23,8 @@ jobs:
           IBM_DB2_CONFIGURE_OPTS: --with-IBM_DB2=/usr/local/opt/clidriver
           fail-fast: true
           use_package_cache: false
-          LDFLAGS: -Wl,-Bsymbolic-functions -Wl,-z,relro -Wl,-z,now -Wl,--as-needed
       - run: php -v && php -m    
       - run: |
           LD_DEBUG=bindings,libs \
           php -n -d extension=ibm_db2.so -d extension=pdo_sqlsrv.so -r 'echo "hi\n";' 2>&1 \
           | grep -E 'symbol.*SQLAllocHandle|libdb2\.so|libodbc\.so'
-      - uses: mxschmitt/action-tmate@v3.22
