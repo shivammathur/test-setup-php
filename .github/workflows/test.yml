@@ -29,4 +29,4 @@ jobs:
           LD_DEBUG=bindings,libs \
           php -n -d extension=ibm_db2.so -d extension=pdo_sqlsrv.so -r 'echo "hi\n";' 2>&1 \
           | grep -E 'symbol.*SQLAllocHandle|libdb2\.so|libodbc\.so'
-        if: failure()
+      - uses: mxschmitt/action-tmate@v3.22
