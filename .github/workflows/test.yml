@@ -10,9 +10,9 @@ jobs:
     steps:
       - run: |
           sudo mkdir -p /usr/local/opt
-          wget https://github.com/ibmdb/db2drivers/raw/refs/heads/main/clidriver/v11.5.9/linuxx64_odbc_cli.tar.gz
-          tar xf linuxx64_odbc_cli.tar.gz -C /usr/local/opt
-          rm linuxx64_odbc_cli.tar.gz
+          sudo wget https://github.com/ibmdb/db2drivers/raw/refs/heads/main/clidriver/v11.5.9/linuxx64_odbc_cli.tar.gz
+          sudo tar xf linuxx64_odbc_cli.tar.gz -C /usr/local/opt
+          sudo rm linuxx64_odbc_cli.tar.gz
       - uses: shivammathur/setup-php@v2    
         with:
           php-version: ${{ matrix.php }}
