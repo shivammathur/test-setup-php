@@ -13,10 +13,10 @@ jobs:
           sudo wget https://github.com/ibmdb/db2drivers/raw/refs/heads/main/clidriver/v11.5.9/linuxx64_odbc_cli.tar.gz
           sudo tar xf linuxx64_odbc_cli.tar.gz -C /usr/local/opt
           sudo rm linuxx64_odbc_cli.tar.gz
-      - uses: shivammathur/setup-php@v2    
+      - uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: ibm_db2
+          extensions: lua,ibm_db2
           coverage: pcov
           ini-values: zend.assertions=1
         env:
