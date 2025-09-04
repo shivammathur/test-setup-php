@@ -22,7 +22,6 @@ jobs:
         env:
           IBM_DB2_CONFIGURE_OPTS: --with-IBM_DB2=/usr/local/opt/clidriver
           fail-fast: true
-          use_package_cache: false
       - run: php -v && php -m    
       - run: |
           LD_DEBUG=bindings,libs \
