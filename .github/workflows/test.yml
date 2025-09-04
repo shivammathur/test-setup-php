@@ -11,7 +11,7 @@ jobs:
           rm linuxx64_odbc_cli.tar.gz
       - uses: shivammathur/setup-php@v2    
         with:
-          php-version: 8.3
+          php-version: 8.4
           extensions: ibm_db2
           coverage: pcov
           ini-values: zend.assertions=1
