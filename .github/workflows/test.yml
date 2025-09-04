@@ -24,6 +24,6 @@ jobs:
           debug: true
       - run: |
           LD_DEBUG=bindings,libs \
-          php -n -d extension=ibm_db2.so -d extension=pdo_sqlsrv.so -r 'echo "hi\n";' 2>&1 | \
-          grep -q 'pdo_sqlsrv\.so .* libdb2\.so.*: normal symbol `SQL'
+          php -n -d extension=ibm_db2.so -d extension=pdo_sqlsrv.so -r 'echo "hi\n";' 2>&1 \
+          | grep -E 'symbol.*SQLAllocHandle|libdb2\.so|libodbc\.so'
         if: failure()
