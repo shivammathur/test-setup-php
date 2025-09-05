@@ -4,12 +4,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: ubuntu:latest
     strategy:
       matrix:
-        php: [8.3, 8.4, 8.5]
+        php: [8.3, 8.4]
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
             php-version: ${{ matrix.php }}
             extensions: amqp-1.11.0, redis-6.0.2, timezonedb-2025.1
