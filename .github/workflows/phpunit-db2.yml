@@ -6,6 +6,7 @@ on:
 jobs:
   phpunit-db2:
     runs-on: ubuntu-24.04
+    container: shivammathur/node:latest
 
     services:
       db2:
@@ -44,7 +45,6 @@ jobs:
           ini-values: zend.assertions=1
         env:
           fail-fast: true
-          debug: true
           IBM_DB2_CONFIGURE_OPTS: '--with-IBM_DB2=/tmp/clidriver'
 
       - name: Install dependencies with Composer
@@ -57,9 +57,6 @@ jobs:
 
       - name: Run PHPUnit
         run: vendor/bin/phpunit -c ci/github/phpunit/ibm_db2.xml --coverage-clover=coverage.xml
-
-      - uses: mxschmitt/action-tmate@v3
-        if: failure()  
 
       - name: Upload coverage file
         uses: actions/upload-artifact@v4
