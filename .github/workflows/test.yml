@@ -14,4 +14,6 @@ jobs:
             php-version: ${{ matrix.php }}
             extensions: amqp-1.11.0, redis-6.0.2, timezonedb-2025.1
             coverage: pcov
+        env:
+          AMQP_LIBS: librabbitmq-dev
       - run: php -v && php -m    
