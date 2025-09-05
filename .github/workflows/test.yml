@@ -3,27 +3,15 @@ on:
   push:
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        php: [8.4, 8.5]
+        php: [8.3, 8.4, 8.5]
     steps:
-      - run: |
-          sudo mkdir -p /usr/local/opt
-          sudo wget https://github.com/ibmdb/db2drivers/raw/refs/heads/main/clidriver/v11.5.9/linuxx64_odbc_cli.tar.gz
-          sudo tar xf linuxx64_odbc_cli.tar.gz -C /usr/local/opt
-          sudo rm linuxx64_odbc_cli.tar.gz
-      - uses: shivammathur/setup-php@verbose
+      - name: Setup PHP
+        uses: shivammathur/setup-php@verbose
         with:
-          php-version: ${{ matrix.php }}
-          extensions: ibm_db2
-          coverage: pcov
-          ini-values: zend.assertions=1
-        env:
-          IBM_DB2_CONFIGURE_OPTS: --with-IBM_DB2=/usr/local/opt/clidriver
-          fail-fast: true
+            php-version: ${{ matrix.php }}
+            extensions: amqp-1.11.0, redis-6.0.2, timezonedb-2025.1
+            coverage: pcov
       - run: php -v && php -m    
-      - run: |
-          LD_DEBUG=bindings,libs \
-          php -n -d extension=pdo_sqlsrv.so -d extension=ibm_db2.so -r 'echo "hi\n";' 2>&1 \
-          | grep -E 'symbol.*SQLAllocHandle|libdb2\.so|libodbc\.so'
