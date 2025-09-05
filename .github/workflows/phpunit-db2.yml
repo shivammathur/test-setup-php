@@ -38,12 +38,13 @@ jobs:
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.5
+          php-version: 8.4
           extensions: ibm_db2
           coverage: pcov
           ini-values: zend.assertions=1
         env:
           fail-fast: true
+          use_package_cache: false
           IBM_DB2_CONFIGURE_OPTS: '--with-IBM_DB2=/tmp/clidriver'
 
       - name: Install dependencies with Composer
