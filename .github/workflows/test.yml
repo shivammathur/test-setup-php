@@ -9,7 +9,7 @@ jobs:
         php: [8.3, 8.4, 8.5]
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@v2
         with:
             php-version: ${{ matrix.php }}
             extensions: amqp-1.11.0, redis-6.0.2, timezonedb-2025.1
