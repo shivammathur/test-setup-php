@@ -44,7 +44,6 @@ jobs:
           ini-values: zend.assertions=1
         env:
           fail-fast: true
-          use_package_cache: false
           IBM_DB2_CONFIGURE_OPTS: '--with-IBM_DB2=/tmp/clidriver'
 
       - name: Install dependencies with Composer
