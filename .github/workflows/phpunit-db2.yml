@@ -32,7 +32,7 @@ jobs:
       - name: Install IBM DB2 CLI driver
         working-directory: /tmp
         run: |
-          sudo apt-get install wget -y
+          sudo apt-get update && sudo apt-get install wget -y
           wget https://github.com/ibmdb/db2drivers/raw/refs/heads/main/clidriver/v11.5.9/linuxx64_odbc_cli.tar.gz
           tar xf linuxx64_odbc_cli.tar.gz
           rm linuxx64_odbc_cli.tar.gz
