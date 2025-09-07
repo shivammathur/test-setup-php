@@ -4,12 +4,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: ubuntu:latest
     strategy:
       matrix:
-        php: [8.5]
+        php: [8.3, 8.4, 8.5]
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@more-verbose
+        uses: shivammathur/setup-php@verbose
         with:
             php-version: ${{ matrix.php }}
+            extensions: gd
       - run: php -v && php -m    
