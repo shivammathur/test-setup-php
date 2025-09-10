@@ -3,16 +3,7 @@ on:
   push:
 jobs:
   build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        php: [8.1, 8.2, 8.3, 8.4]
+    runs-on: macos-15
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
-        with:
-            php-version: ${{ matrix.php }}
-            extensions: encoding-pmmp/ext-encoding@0.5.0
-        env:
-          fail-fast: true
-      - run: php -v && php -m    
+      - run: brew tap shivammathur/php
+      - uses: mxschmitt/action-tmate@v3.22
