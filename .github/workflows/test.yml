@@ -17,8 +17,7 @@ jobs:
         run: |
           <?php
           $ch = curl_init("http://www.example.com/");
-          $fp = fopen("example_homepage.txt", "w");
-          
+          $fp = fopen("example_homepage.txt", "w");          
           echo '---- ' . CURLOPT_VERBOSE . "  ------\n";
           
           curl_setopt($ch, CURLOPT_FILE, $fp);
