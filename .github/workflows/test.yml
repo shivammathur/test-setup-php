@@ -3,7 +3,30 @@ on:
   push:
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        php: [8.0, 8.1, 8.2, 8.3, 8.4, 8.5]
     steps:
-      - run: brew tap shivammathur/php
-      - uses: mxschmitt/action-tmate@v3.22
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+      - name: Test
+        shell: php {0}
+        run: |
+          <?php
+          $ch = curl_init("http://www.example.com/");
+          $fp = fopen("example_homepage.txt", "w");
+          
+          echo '---- ' . CURLOPT_VERBOSE . "  ------\n";
+          
+          curl_setopt($ch, CURLOPT_FILE, $fp);
+          curl_setopt($ch, CURLOPT_HEADER, 0);
+          
+          curl_exec($ch);
+          if(curl_error($ch)) {
+              fwrite($fp, curl_error($ch));
+          }
+          curl_close($ch);
+          fclose($fp);
