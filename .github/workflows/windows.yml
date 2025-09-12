@@ -49,6 +49,8 @@ jobs:
           arch: ${{ matrix.arch }}
           ts: ${{ matrix.ts }}
           args: --enable-xz
+          libs: lzma
+
 
   release:
     runs-on: ubuntu-latest
