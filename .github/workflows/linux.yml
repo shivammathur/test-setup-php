@@ -8,14 +8,14 @@ name: "Linux"
 
 jobs:
 
-  linux:
+  build:
     name: "Build and Tests (Linux)"
 
     strategy:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest"]
-        php: ["8.3", "8.2", "8.1", "8.0", "7.4", "7.3", "7.2", "7.1", "7.0"]
+        php: ["8.4", "8.3", "8.2", "8.1", "8.0", "7.4", "7.3", "7.2", "7.1", "7.0"]
 
     runs-on: ${{ matrix.os }}
 
@@ -24,7 +24,7 @@ jobs:
         run: sudo apt-get install -y liblzma-dev
 
       - name: "Checkout"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: "Install PHP ${{ matrix.php }}"
         uses: shivammathur/setup-php@v2
@@ -40,4 +40,3 @@ jobs:
 
       - name: "Run tests"
         run: make test
-

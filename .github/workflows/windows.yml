@@ -1,0 +1,61 @@
+# https://help.github.com/en/categories/automating-your-workflow-with-github-actions
+# https://github.com/php/php-windows-builder
+# https://github.com/Imagick/imagick/blob/45adfb7b1e322eaa6174e88f7d5e27ef20e0596e/.github/workflows/windows.yml
+
+on:
+  pull_request:
+  push:
+  release:
+    types: [created]
+
+name: "Windows"
+
+jobs:
+
+  get-extension-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.extension-matrix.outputs.matrix }}
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v5
+
+      - name: "Get the extension matrix"
+        id: extension-matrix
+        uses: php/php-windows-builder/extension-matrix@v1
+        with:
+         php-version-list: "7.4, 8.0, 8.1, 8.2, 8.3, 8.4"
+         arch-list: "x64"
+
+
+  build:
+    name: "Build and Tests (Windows)"
+    needs: get-extension-matrix
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix: ${{fromJson(needs.get-extension-matrix.outputs.matrix)}}
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v5
+
+      - name: "Build the extension"
+        uses: php/php-windows-builder/extension@v1
+        with:
+          php-version: ${{ matrix.php-version }}
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ github.event_name == 'release' }}
+
+    steps:
+      - name: "Upload artifact to the release"
+        uses: php/php-windows-builder/release@v1
+        with:
+          release: ${{ github.event.release.tag_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
