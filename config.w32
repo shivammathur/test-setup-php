@@ -4,7 +4,7 @@ ARG_ENABLE('xz', 'xz support', 'no');
 
 if (PHP_XZ != 'no') {
 	// liblzma is included with the ext-zip dependencies in php8
-	if(CHECK_LIB('liblzma_a.lib', 'xz', PHP_PHP_BUILD + '\\lib') &&
+	if(CHECK_LIB('liblzma_a.lib;liblzma.lib', 'xz', PHP_PHP_BUILD + '\\lib') &&
 	   CHECK_HEADER_ADD_INCLUDE('lzma.h', 'CFLAGS_XZ', PHP_PHP_BUILD + '\\include')
 	){
 		AC_DEFINE('HAVE_XZ', 1, 'xz support enabled');
