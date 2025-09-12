@@ -5,18 +5,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-22.04-arm, macos-13, macos-latest]
+        os: [macos-13, macos-15]
     steps:
-    - name: "Install PHP"
-      uses: "shivammathur/setup-php@develop"
-      with:
-        php-version: "8.4"
-        coverage: none
-
-    - name: Show PHP Information
-      run: |
-        set -ex
-        which php
-        php -v
-        php -i
-    - run: php -d opcache.enable_cli=1 -r "echo 'foo';"
+    - run: |
+        brew tap shivammathur/php
+        cd $(brew --repo shivammathur/php)
+        git fetch origin gcc-php-zts && git checkout gcc-php-zts
+        brew install -svd php-zts
