@@ -11,4 +11,4 @@ jobs:
         brew tap shivammathur/php
         cd $(brew --repo shivammathur/php)
         git fetch origin gcc-php-zts && git checkout gcc-php-zts
-        brew install -svd php-zts
+        brew install -sv php-zts
