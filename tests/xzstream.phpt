@@ -23,7 +23,7 @@ $opts = [
 	]
 ];
 $ctx = stream_context_create($opts);
-copy(PHP_BINARY, "compress.lzma://$tmp1");
+copy(PHP_BINARY, "compress.lzma://$tmp1", $ctx);
 $len1 = filesize($tmp1);
 var_dump($len1 > 0);
 var_dump($len1 <= $len0);
