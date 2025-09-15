@@ -1,15 +1,28 @@
-on: push
-
+name: Runner workflow
+on:
+  push
+permissions:
+  contents: read
 jobs:
-  runner:
-    runs-on: ${{ matrix.os }}
+  run:
+    name: Run
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, macos-15]
+        operating-system: [macos-26]
+        php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+    env:
+      extensions: xml, opcache, xdebug, pcov, gd
     steps:
-    - run: |
-        brew tap shivammathur/php
-        cd $(brew --repo shivammathur/php)
-        git fetch origin gcc-php-zts && git checkout gcc-php-zts
-        brew install -sv php-zts
+
+      - name: Setup PHP with extensions and custom config
+        run: shivammathur/setup-php@verbose
+        env:
+          php-version: ${{ matrix.php-versions }}
+          ini-values: post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata
+
+      - name: Testing PHP version
+        run: |
+          php -v
+          php -r "if(strpos(phpversion(), '${{ matrix.php-versions || env.default-php-version }}') === false) {throw new Exception('Wrong PHP version Installed');}"
