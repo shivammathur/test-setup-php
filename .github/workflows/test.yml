@@ -19,7 +19,7 @@ jobs:
         env:
           php-version: ${{ matrix.php-versions }}
 
-      - name: Setup PHP
+      - name: Setup Redis
         run: |
           brew update
           brew install shivammathur/extensions/redis@8.4
