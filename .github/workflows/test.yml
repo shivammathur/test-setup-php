@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [macos-latest]
-        php-versions: ['8.4']
+        php-versions: ['8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
     steps:
 
       - name: Setup PHP
@@ -21,7 +21,5 @@ jobs:
 
       - name: Setup Redis
         run: |
-          brew update
-          brew install shivammathur/extensions/redis@8.4
-          brew install redis
+          php -r "(new \\MessageFormatter('de_DE','{0,number,#,###.##} MB'))->format([12.5]);"
           
