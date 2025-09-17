@@ -1,40 +1,15 @@
-name: PHP Cache
+name: Runner
 on:
     push:
 jobs:
-    php-cache:
+    runner:
         runs-on: ubuntu-latest
-        container: ubuntu:latest
-        strategy:
-          matrix:
-            php:
-              - "8.3"
-            include:
-              - composer-options: "--no-scripts"
-        env:
-          extensions: imagick, gd, redis, intl, imap, amqp
-          key: cache-extensions-v1
         steps:
-            - name: "Install zstd"
-              run: apt-get update && apt-get install -y zstd
-            - name: Setup cache environment
-              id: extcache
-              uses: shivammathur/cache-extensions@develop
-              with:
-                php-version: ${{ matrix.php }}
-                extensions: ${{ env.extensions }}
-                key: ${{ env.key }}
-            - name: Cache extensions
-              uses: actions/cache@v4
-              with:
-                path: ${{ steps.extcache.outputs.dir }}
-                key: ${{ steps.extcache.outputs.key }}
-                restore-keys: ${{ steps.extcache.outputs.key }}
-            - name: "prepare php version"
-              uses: "shivammathur/setup-php@verbose"
-              with:
-                php-version: ${{ matrix.php }}
-                extensions: ${{ env.extensions }}
-                coverage: xdebug
-            - name: "test"
-              run: php -v && php -m
+              - name: Set up PHP
+                uses: shivammathur/setup-php@v2
+                with:
+                  php-version: '8.1'
+                  tools: phpunit:10.5.x
+                  extensions: uopz
+                env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
