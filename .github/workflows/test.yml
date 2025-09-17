@@ -1,25 +1,40 @@
-name: Runner workflow
+name: PHP Cache
 on:
-  push
-permissions:
-  contents: read
+    push:
 jobs:
-  run:
-    name: Run
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [macos-latest]
-        php-versions: ['8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
-    steps:
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
+    php-cache:
+        runs-on: ubuntu-latest
+        container: ubuntu:latest
+        strategy:
+          matrix:
+            php:
+              - "8.3"
+            include:
+              - composer-options: "--no-scripts"
         env:
-          php-version: ${{ matrix.php-versions }}
-
-      - name: Setup Redis
-        run: |
-          php -r "(new \\MessageFormatter('de_DE','{0,number,#,###.##} MB'))->format([12.5]);"
-          
+          extensions: imagick, gd, redis, intl, imap, amqp
+          key: cache-extensions-v1
+        steps:
+            - name: "Install zstd"
+              run: apt-get update && apt-get install -y zstd
+            - name: Setup cache environment
+              id: extcache
+              uses: shivammathur/cache-extensions@develop
+              with:
+                php-version: ${{ matrix.php }}
+                extensions: ${{ env.extensions }}
+                key: ${{ env.key }}
+            - name: Cache extensions
+              uses: actions/cache@v4
+              with:
+                path: ${{ steps.extcache.outputs.dir }}
+                key: ${{ steps.extcache.outputs.key }}
+                restore-keys: ${{ steps.extcache.outputs.key }}
+            - name: "prepare php version"
+              uses: "shivammathur/setup-php@verbose"
+              with:
+                php-version: ${{ matrix.php }}
+                extensions: ${{ env.extensions }}
+                coverage: xdebug
+            - name: "test"
+              run: php -v && php -m
