@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
-        with:
+        #with:
           #php-version: ${{ matrix.php-versions }}
           #extensions: geos
       - name: Testing PHP version
