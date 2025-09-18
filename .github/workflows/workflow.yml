@@ -48,6 +48,6 @@ jobs:
         run: |
           php -r "if(! extension_loaded('Zend OPcache')) {throw new Exception('Zend OPcache not found');}"
           php -r "if(ini_get('opcache.enable')!=1) {throw new Exception('opcache.jit not set');}"
-          php -r "if(ini_get('opcache.jit_buffer_size')!='256M' || ini_get('opcache.jit_buffer_size')!='128M') {throw new Exception('opcache.jit_buffer_size not set');}"
+          php -r "if(ini_get('opcache.jit_buffer_size')!='256M' && ini_get('opcache.jit_buffer_size')!='128M') {throw new Exception('opcache.jit_buffer_size not set');}"
           php -r "if(ini_get('opcache.jit')!=1235) {throw new Exception('opcache.jit not set');}"
 
