@@ -7,7 +7,7 @@ jobs:
       fail-fast: false
       matrix:
         php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
-        operating-systems: [ubuntu-24.04, windows-latest, macos-latest, macos-13]
+        operating-systems: [ubuntu-24.04, windows-latest, macos-latest]
         # Blackfire is not supported on these versions for arm64
         exclude:
           - operating-systems: macos-latest

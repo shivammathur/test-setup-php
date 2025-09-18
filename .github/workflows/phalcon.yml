@@ -79,7 +79,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, windows-latest, macos-13]
+        operating-system: [ubuntu-24.04, windows-latest, macos-latest]
         php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
         phpts: [nts, ts]
     steps:
