@@ -18,7 +18,7 @@ jobs:
         php-versions: ['8.2']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
@@ -92,7 +92,7 @@ jobs:
         php-versions: ['8.0']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
@@ -154,7 +154,7 @@ jobs:
         php-versions: ['8.0']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
@@ -215,7 +215,7 @@ jobs:
         php-versions: ['5.5']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
@@ -266,12 +266,12 @@ jobs:
         php-versions: ['8.0']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: composer:v1, php-cs-fixer:100.100.100, phpcs:^3.5.8, phpcbf:>=3.5.8, phpcpd:<=6.0.3, phpstan:^0.12.68, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, symfony/flex
+          tools: composer:v1, php-cs-fixer:100.100.100, phpcs:^3.5.8, phpcbf:>=3.5.8, phpcpd:<=6.0.3, phpstan:^0.12.68, invalid:1.2.3, invalid, prestissimo:100.100.100
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
@@ -282,7 +282,3 @@ jobs:
           phpcbf --version
           phpcpd --version
           phpstan -V
-      - name: Test flex
-        run: composer global show symfony/flex
-      - name: Test prestissimo
-        run: composer global show hirak/prestissimo
