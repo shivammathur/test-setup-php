@@ -1,14 +1,21 @@
-name: Runner
+name: 'Extension develop workflow'
 on:
-    push:
+  push:
 jobs:
-    runner:
-        runs-on: ubuntu-latest
-        steps:
-          - name: Set up PHP
-            uses: shivammathur/setup-php@develop
-            with:
-              php-version: '8.1'                  
-              tools: composer-normalize:2
-            env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  enable:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-24.04-arm, ubuntu-22.04-arm]
+        php-versions: ['5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+    steps:
+      - name: Install PHP
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: geos
+      - name: Testing PHP version
+        run: |
+          php -v && php -m
+          php -r "if(! extension_loaded('geos')) {throw new Exception('geos not found');}"
