@@ -35,13 +35,9 @@ jobs:
       - run: powershell -Command "(Get-Content php-dev\phpize.bat) -replace 'ERRORLEVEL 0','%ERRORLEVEL% NEQ 0' | Set-Content php-dev\phpize.bat"
       - name: phpize
         run: phpize
-        shell: cmd
       - name: configure
-        run: configure --enable-igbinary --enable-debug-pack --with-prefix=${{steps.setup-php.outputs.prefix}}
-        shell: cmd
+        run: configure --enable-mongodb --with-mongodb-sasl=yes --with-mongodb-client-side-encryption=yes --enable-debug-pack --with-prefix=${{ steps.setup-php.outputs.prefix }}
       - name: make
         run: nmake
-        shell: cmd
       - name: test
         run: nmake test TESTS="--show-diff tests"
-        shell: cmd
