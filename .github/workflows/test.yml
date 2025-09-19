@@ -32,6 +32,7 @@ jobs:
         with:
           arch: ${{matrix.arch}}
           toolset: ${{steps.setup-php.outputs.toolset}}
+      - run: powershell -Command "(Get-Content php-dev\phpize.bat) -replace 'IF ERRORLEVEL 0 exit /b 3','IF %%ERRORLEVEL%% NEQ 0 exit /b 3' | Set-Content php-dev\phpize.bat"
       - name: phpize
         run: phpize
         shell: cmd
