@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout igbinary
         uses: actions/checkout@v2
+        with:
+          repository: igbinary/igbinary
       - name: Setup PHP
         id: setup-php
         uses: php/setup-php-sdk@main
