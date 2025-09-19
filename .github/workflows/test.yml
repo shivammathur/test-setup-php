@@ -32,15 +32,15 @@ jobs:
         with:
           arch: ${{matrix.arch}}
           toolset: ${{steps.setup-php.outputs.toolset}}
-      - run: reg add "HKLM\Software\Policies\Microsoft\Internet Explorer\Main" /v JScriptReplacement /d 0 /f
       - name: phpize
         run: phpize
+        shell: cmd
       - name: configure
         run: configure --enable-igbinary --enable-debug-pack --with-prefix=${{steps.setup-php.outputs.prefix}}
+        shell: cmd
       - name: make
         run: nmake
+        shell: cmd
       - name: test
         run: nmake test TESTS="--show-diff tests"
-        
-      - if: failure()
-        uses: mxschmitt/action-tmate@v3.22  
+        shell: cmd
