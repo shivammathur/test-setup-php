@@ -2,18 +2,39 @@ name: 'Extension develop workflow'
 on:
   push:
 jobs:
-  enable:
-    runs-on: ${{ matrix.operating-system }}
+  windows:
+    defaults:
+      run:
+        shell: cmd
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ['8.0']
+          version:
+          - { os: windows-2022, php: "8.4" }
+          - { os: windows-2022, php: "8.5" }
+          arch: [x64]
+          ts: [nts, ts]
+    runs-on: ${{matrix.version.os}}
     steps:
-      - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+      - name: Checkout igbinary
+        uses: actions/checkout@v2
+      - name: Setup PHP
+        id: setup-php
+        uses: php/setup-php-sdk@master
         with:
-          php-version: ${{ matrix.php-versions }}
-          tools: composer:1, symfony/flex
-      - name: Test flex
-        run: composer global show symfony/flex
+          version: ${{matrix.version.php}}
+          arch: ${{matrix.arch}}
+          ts: ${{matrix.ts}}
+      - name: Enable Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{matrix.arch}}
+          toolset: ${{steps.setup-php.outputs.toolset}}
+      - name: phpize
+        run: phpize
+      - name: configure
+        run: configure --enable-igbinary --enable-debug-pack --with-prefix=${{steps.setup-php.outputs.prefix}}
+      - name: make
+        run: nmake
+      - name: test
+        run: nmake test TESTS="--show-diff tests"
