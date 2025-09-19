@@ -19,10 +19,10 @@ jobs:
       - name: Checkout igbinary
         uses: actions/checkout@v2
         with:
-          repository: igbinary/igbinary
+          repository: mongodb/mongo-php-driver
       - name: Setup PHP
         id: setup-php
-        uses: php/setup-php-sdk@main
+        uses: php/setup-php-sdk@v0.11
         with:
           version: ${{matrix.version.php}}
           arch: ${{matrix.arch}}
