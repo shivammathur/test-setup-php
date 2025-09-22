@@ -10,3 +10,5 @@ jobs:
     runs-on: ${{matrix.os}}
     steps:
       - uses: shivammathur/setup-php@verbose
+        with:
+          php-version: 8.3
