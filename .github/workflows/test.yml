@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15-intel]
+        os: [ubuntu-latest]
     runs-on: ${{matrix.os}}
     steps:
       - uses: shivammathur/setup-php@verbose
