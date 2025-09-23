@@ -8,9 +8,11 @@ jobs:
       matrix:
         os: [windows-latest]
         php: [8.5, 8.6]
+        coverage: [none, xdebug, pcov]
     runs-on: ${{matrix.os}}
     steps:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
+          coverage: ${{ matrix.coverage }}
       - run: php -v
