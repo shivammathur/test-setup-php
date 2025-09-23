@@ -6,12 +6,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [windows-latest]
     runs-on: ${{matrix.os}}
     steps:
       - uses: shivammathur/setup-php@verbose
         with:
-          php-version: '8.2'
-          extensions: mbstring, intl, pcntl, pdo, sqlite, mysql, bcmath, gd, fileinfo
-          coverage: none
-          tools: composer:v2
+          php-version: '8.5'
+      - run: php -v
