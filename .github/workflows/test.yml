@@ -8,12 +8,12 @@ jobs:
       matrix:
         #os: [ubuntu-latest, windows-latest, macos-latest]
         os: [macos-latest]
-        php: [8.5]
+        php: [8.6]
         #php: [8.5, 8.6]
         coverage: [none, xdebug, pcov]
     runs-on: ${{matrix.os}}
     steps:
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
           coverage: ${{ matrix.coverage }}
