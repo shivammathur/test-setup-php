@@ -6,15 +6,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        #os: [ubuntu-latest, windows-latest, macos-latest]
-        os: [macos-latest]
-        php: [8.6]
-        #php: [8.5, 8.6]
-        coverage: [none, xdebug, pcov]
+        os: [windows-2025]
     runs-on: ${{matrix.os}}
     steps:
-      - uses: shivammathur/setup-php@verbose
-        with:
-          php-version: ${{ matrix.php }}
-          coverage: ${{ matrix.coverage }}
-      - run: php -v
+      - uses: mxschmitt/action-tmate@v3.22
+      
