@@ -9,5 +9,10 @@ jobs:
         os: [windows-2025]
     runs-on: ${{matrix.os}}
     steps:
-      - uses: mxschmitt/action-tmate@v3.22
+      - name: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+        env:
+          PHPTS: ts
+      - run: ls C:\tools\php\
       
