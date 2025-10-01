@@ -210,7 +210,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, ubuntu-22.04, windows-latest, macos-13]
+        operating-system: [ubuntu-24.04, ubuntu-22.04, windows-latest, macos-15]
         php-versions: ['5.5']
     steps:
       - name: Checkout
