@@ -17,6 +17,8 @@ jobs:
             php-versions: 5.4
           - operating-system: macos-latest
             php-versions: 5.5
+          - operating-system: windows-latest
+            php-versions: 8.5
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
       - name: Install PHP

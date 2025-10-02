@@ -43,8 +43,8 @@ jobs:
         if: matrix.ini == 'production'
         run: php -r "if(ini_get('error_reporting')!='22527') {throw new Exception('wrong ini file');}"
       - name: Testing ini values for development
-        if: matrix.ini == 'development' && matrix.php-versions != '8.4'
+        if: matrix.ini == 'development' && matrix.php-versions != '8.4' && matrix.php-versions != '8.5'
         run: php -r "if(ini_get('error_reporting')!='32767') {throw new Exception('wrong ini file');}"
       - name: Testing ini values for development
-        if: matrix.ini == 'development' && matrix.php-versions == '8.4'
+        if: matrix.ini == 'development' && (matrix.php-versions == '8.4' || matrix.php-versions == '8.5')
         run: php -r "if(ini_get('error_reporting')!='30719') {throw new Exception('wrong ini file');}"
