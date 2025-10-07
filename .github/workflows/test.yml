@@ -16,6 +16,5 @@ jobs:
         env:
           debug: true
           phpts: ts
-      - run: nm -m $(which php) | grep -E '(___?tsrm_ls_cache)'   
       - uses: mxschmitt/action-tmate@v3.22
       
