@@ -6,14 +6,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2025]
+        os: [macos-15-intel]
     runs-on: ${{matrix.os}}
     steps:
-      - name: Setup PHP
+      - name: Test
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.4
+          php-version: 8.6
         env:
-          PHPTS: ts
-      - run: ls C:\tools\php\
+          debug: true
+          phpts: ts
+      - run: nm -m $(which php) | grep -E '(___?tsrm_ls_cache)'    
       
