@@ -6,7 +6,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15-intel]
+        os: [macos-13, macos-15-intel]
     runs-on: ${{matrix.os}}
     steps:
       - name: Test
@@ -16,5 +16,6 @@ jobs:
         env:
           debug: true
           phpts: ts
-      - run: nm -m $(which php) | grep -E '(___?tsrm_ls_cache)'    
+      - run: nm -m $(which php) | grep -E '(___?tsrm_ls_cache)'   
+      - uses: mxschmitt/action-tmate@v3.22
       
