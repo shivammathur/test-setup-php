@@ -6,15 +6,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, macos-15-intel]
+        os: [macos-latest]
+        php: [7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6]
     runs-on: ${{matrix.os}}
     steps:
       - name: Test
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.6
-        env:
-          debug: true
-          phpts: ts
-      - uses: mxschmitt/action-tmate@v3.22
+          php-version: ${{ matrix.php }}
+      - name: Test
+        shell: php {0}
+        run: |
+          <?php
+          $image = imagecreatetruecolor(500,200); imagejpeg($image);
       
