@@ -7,13 +7,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest]
-        php: [8.6]
+        php: [8.5, 8.6]
     runs-on: ${{matrix.os}}
     steps:
       - name: Test
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-      - name: Tmate
-        uses: mxschmitt/action-tmate@v3.22
+      - name: Test
+        uses: php -r "if(preg_match('/Composer.*version/', @exec('composer -V')) !== 1) {throw new Exception('Composer not found');}"
       
