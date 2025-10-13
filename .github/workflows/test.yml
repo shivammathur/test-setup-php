@@ -24,7 +24,7 @@ jobs:
       - name: Testing Composer version
         run: |
           composer -V
-          php -r "file_put_contents('aa', @exec('composer -V'));"
+          php -r "file_put_contents('aa', exec('composer -V'));"
           cat aa
-          php -r "if(preg_match('/Composer.*version/', @exec('composer -V')) !== 1) {throw new Exception('Composer not found');}"
+          php -r "if(preg_match('/Composer.*version/', exec('composer -V')) !== 1) {throw new Exception('Composer not found');}"
       
