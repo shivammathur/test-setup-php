@@ -6,21 +6,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2022]
-        php: [8.5, 8.6]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
     runs-on: ${{matrix.os}}
     steps:
       - name: Setup PHP with extensions and custom config
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         env:
-          php-version: ${{ matrix.php }}
-          extensions: xml, opcache, xdebug, pcov, gd
-          ini-values: post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata
+          tools: symfony
 
       - name: Testing PHP version
         run: |
           php -v
-
-      - name: Testing Composer version
-        uses: mxschmitt/action-tmate@v3.22
+          symfony -V
       
