@@ -12,7 +12,7 @@ jobs:
       - name: Setup PHP with extensions and custom config
         uses: shivammathur/setup-php@develop
         env:
-          tools: symfony:v5
+          tools: symfony:5.14
 
       - name: Testing PHP version
         run: |
