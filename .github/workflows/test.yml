@@ -1,21 +1,32 @@
-name: Test
+name: Relay Windows Workflow
 on:
   push:
 jobs:
-  runner:
+  run:
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
-    runs-on: ${{matrix.os}}
+        operating-system: [ubuntu-latest, macos-latest]
+        php: [7.4, 8.0, 8.1, 8.2, 8.3, 8.4]
     steps:
-      - name: Setup PHP with extensions and custom config
+      - name: Setup PHP
         uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: relay
         env:
-          tools: symfony:5.14
+          RELAY_KEY: 1234
+          RELAY_ENVIRONMENT: development
+          RELAY_EVICTION_POLICY: lru
+          RELAY_MAX_MEMORY: 256M
 
-      - name: Testing PHP version
+      - name: Check PHP
         run: |
           php -v
-          symfony -V
-      
+          php -m     
+
+      - name: Check Relay config
+        run: |
+          php -r "if(! extension_loaded('relay')) {throw new Exception('relay not found');}"
+          php --ri relay
