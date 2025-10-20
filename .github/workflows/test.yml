@@ -1,32 +1,24 @@
-name: Relay Windows Workflow
+name: Runner
 on:
   push:
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
+    container: ubuntu:${{ matrix.ubuntu }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, macos-latest]
-        php: [7.4]
+        operating-system: [ubuntu-24.04]
+        ubuntu: [22.04, 24.04]
+        php: [8.2]
     steps:
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: relay-nightly
-        env:
-          RELAY_KEY: 1234
-          RELAY_ENVIRONMENT: development
-          RELAY_EVICTION_POLICY: lru
-          RELAY_MAX_MEMORY: 256M
+          extensions: intl, mbstring, mongodb
 
       - name: Check PHP
         run: |
           php -v
-          php -m     
-
-      - name: Check Relay config
-        run: |
-          php -r "if(! extension_loaded('relay')) {throw new Exception('relay not found');}"
-          php --ri relay
+          php -m
