@@ -4,7 +4,6 @@ on:
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
-    container: ubuntu:${{ matrix.ubuntu }}
     strategy:
       fail-fast: false
       matrix:
