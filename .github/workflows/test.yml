@@ -16,6 +16,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: intl, mbstring, mongodb
+        env:  
           use_package_php: false
 
       - name: Check PHP
