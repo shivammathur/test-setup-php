@@ -8,15 +8,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04]
-        ubuntu: [22.04, 24.04]
-        php: [8.2]
+        operating-system: [ubuntu-24.04, ubuntu-22.04]
+        php: [8.3]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
           extensions: intl, mbstring, mongodb
+          use_package_php: false
 
       - name: Check PHP
         run: |
