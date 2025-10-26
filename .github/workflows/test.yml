@@ -13,11 +13,5 @@ jobs:
         run: |
           set -x
           error="Release $REF already exists, and it is immutable.\nFor using immutable releases please refer to $link"
-          [[ "${GITHUB_ACTIONS:-}" == "true" ]] && echo "::error::${error//$'\n'/%0A}" || echo "$error"
-      - continue-on-error: true
-        env:
-          GITHUB_ACTIONS: 'false'
-        run: |
-          set -x
-          error="Release $REF already exists, and it is immutable.\nFor using immutable releases please refer to $link"
-          [[ "${GITHUB_ACTIONS:-}" == "true" ]] && echo "::error::${error//$'\n'/%0A}" || echo "$error"
+          [[ "${GITHUB_ACTIONS:-}" == "true" ]] && error="::error::${error//$'\n'/%0A}"
+          echo "$error"
