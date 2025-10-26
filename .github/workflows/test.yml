@@ -7,18 +7,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, ubuntu-22.04]
-        php: [8.4, 8.5, 8.6]
+        operating-system: [macos-latest]
+        php: [8.2, 8.3, 8.4, 8.5, 8.6]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: intl, mbstring, mongodb
 
       - name: Check PHP
         run: |
           php -v
           php -m
-          ls /etc/apt/sources.list.d/
-          cat /etc/apt/sources.list.d/*ondrej*
