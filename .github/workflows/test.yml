@@ -11,7 +11,11 @@ jobs:
     steps:
       - continue-on-error: true
         run: |
-          set -x
-          error="Release $REF already exists, and it is immutable.\nFor using immutable releases please refer to $link"
-          [[ "${GITHUB_ACTIONS:-}" == "true" ]] && error="::error::${error//$'\n'/%0A}"
-          echo "$error"
+          link="https://github.com/php/php-windows-builder#example-workflow-for-immutable-releases"
+          fd=/dev/stdout
+          if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+            error="::error::"
+            fd="$GITHUB_STEP_SUMMARY"
+          fi  
+          echo "${error}Release $REF already exists, and it is immutable." >> $fd
+          echo "${error}For using immutable releases please refer to $link" >> $fd
