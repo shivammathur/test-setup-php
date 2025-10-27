@@ -17,4 +17,5 @@ jobs:
           php -v
           php -m
           curl -o pear.phar -sL https://php.pear.phar/install-pear-nozlib.phar
+          php pear.phar
           brew reinstall -svd php@8.6
