@@ -10,6 +10,7 @@ jobs:
         operating-system: [macos-14, macos-15, macos-15-intel, macos-26]
     steps:
       - run: |
+          php -r "echo sys_get_temp_dir();" || true
           echo $TMPDIR
           ls -la $TMPDIR/..
           aa=$(getconf DARWIN_USER_TEMP_DIR)
