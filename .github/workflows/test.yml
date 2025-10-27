@@ -9,8 +9,8 @@ jobs:
       matrix:
         operating-system: [ubuntu-latest]
     steps:
-      - uses: shivammathur/setup-php@verbose
+      - uses: shivammathur/setup-php@develop
         with:
           php-version: 8.4
-          extensions: LZF
+          extensions: lzf
       - run: php -v && php -m    
