@@ -9,6 +9,7 @@ jobs:
       matrix:
         operating-system: [macos-14, macos-15, macos-15-intel, macos-26]
     steps:
-      - run: echo $TMPDIR
-      - run: echo $TMPDIR
+      - run: |
+          echo $TMPDIR
+          ls -la $TMPDIR/..
           
