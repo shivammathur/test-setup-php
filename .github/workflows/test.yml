@@ -12,4 +12,7 @@ jobs:
       - run: |
           echo $TMPDIR
           ls -la $TMPDIR/..
+          aa=$(getconf DARWIN_USER_TEMP_DIR)
+          echo $aa
+          ls -la $aa/..
           
