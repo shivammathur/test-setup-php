@@ -16,6 +16,6 @@ jobs:
           brew link --force --overwrite php@8.6
           php -v
           php -m
-          curl -o /tmp/pear.phar -L https://php.pear.phar/install-pear-nozlib.phar
+          curl -o /tmp/pear.phar -L https://pear.php.net/install-pear-nozlib.phar
           php /tmp/pear.phar
           brew reinstall -svd php@8.6
