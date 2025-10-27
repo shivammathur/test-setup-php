@@ -7,15 +7,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
-        php: [8.2, 8.3, 8.4, 8.5, 8.6]
+        operating-system: [macos-14, macos-15, macos-15-intel, macos-26]
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
-        with:
-          php-version: ${{ matrix.php }}
-
       - name: Check PHP
         run: |
+          brew tap shivammathur/php
+          brew reinstall -svd php@8.6
+          brew link --force --overwrite php@8.6
           php -v
           php -m
