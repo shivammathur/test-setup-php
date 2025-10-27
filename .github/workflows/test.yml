@@ -7,15 +7,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [macos-latest]
+        php: [8.2, 8.3, 8.4, 8.5, 8.6]
     steps:
-      - continue-on-error: true
+      - name: Setup PHP
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: ${{ matrix.php }}
+
+      - name: Check PHP
         run: |
-          link="https://github.com/php/php-windows-builder#example-workflow-for-immutable-releases"
-          fd=/dev/stdout
-          if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-            error="::error::"
-            fd="$GITHUB_STEP_SUMMARY"
-          fi  
-          echo "${error}Release $REF already exists, and it is immutable." >> $fd
-          echo "${error}For using immutable releases please refer to $link" >> $fd
+          php -v
+          php -m
