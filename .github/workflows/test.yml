@@ -9,11 +9,13 @@ jobs:
       matrix:
         operating-system: [macos-14, macos-15, macos-15-intel, macos-26]
     steps:
-      - run: |
-          php -r "echo sys_get_temp_dir();" || true
-          echo $TMPDIR
-          ls -la $TMPDIR/..
-          aa=$(getconf DARWIN_USER_TEMP_DIR)
-          echo $aa
-          ls -la $aa/..
-          
+      - name: Check PHP
+        env:
+          TMPDIR: /tmp
+        run: |
+          brew tap shivammathur/php
+          sed -i '' -E '/^([[:space:]]*)ENV\["lt_cv_path_SED"\] = "sed"[[:space:]]*$/s//&\\1ENV["TMPDIR"] = "\/tmp"/' $(brew --repo shivammathur/php)/Formula/php@8.6.rb
+          brew reinstall -svd php@8.6
+          brew link --force --overwrite php@8.6
+          php -v
+          php -m
