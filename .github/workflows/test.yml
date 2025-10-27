@@ -12,5 +12,5 @@ jobs:
       - uses: shivammathur/setup-php@verbose
         with:
           php-version: 8.4
-          extensions: lzf
+          extensions: LZF
       - run: php -v && php -m    
