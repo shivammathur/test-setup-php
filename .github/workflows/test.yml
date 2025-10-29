@@ -7,10 +7,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
+        operating-system: [macos-latest]
+        php: [8.1, 8.2, 8.3, 8.4, 8.5]
     steps:
-      - uses: shivammathur/setup-php@develop
+      - uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.4
-          extensions: lzf
+          php-version: ${{ matrix.php }}
       - run: php -v && php -m    
