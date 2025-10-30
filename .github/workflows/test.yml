@@ -4,13 +4,13 @@ on:
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
-    container: shivammathur/node:${{ matrix.ct }}
+    container: shivammathur/node:php-${{ matrix.php }}-${{ matrix.ct }}
     strategy:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php: [8.1, 8.2, 8.3, 8.4, 8.5]
-        ct: [2204, 2404]
+        php: [8.1, 8.2, 8.3, 8.4]
+        ct: [22.04]
     steps:
       - uses: shivammathur/setup-php@v2
         with:
