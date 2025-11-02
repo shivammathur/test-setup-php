@@ -17,6 +17,6 @@ jobs:
         php-version: ${{ matrix.php }}
         extensions: gnupg
       env:
-        GNUPG_LIBS: libgpgme11-dev
+        GNUPG_LIBS: libgpgme-dev
     - run: |
         php -v && php -m
