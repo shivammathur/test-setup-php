@@ -7,16 +7,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php: [8.1, 8.2, 8.3, 8.4, 8.6]
+        operating-system: [macos-latest]
+        php: [8.1, 8.2, 8.3, 8.4, 8.5]
     steps:
     - name: "Install PHP"
       uses: shivammathur/setup-php@v2
       with:
-        coverage: "none"
         php-version: ${{ matrix.php }}
-        extensions: gnupg
-      env:
-        GNUPG_LIBS: libgpgme-dev
     - run: |
         php -v && php -m
