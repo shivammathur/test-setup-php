@@ -20,5 +20,5 @@ jobs:
         php -v && php -m
         dism.exe /online /enable-feature /featurename:NetFX3 /all
         $installer = Join-Path $env:TEMP 'hMailServer.exe'
-        Get-File -Url "https://github.com/shivammathur/php-windows-builder/releases/download/pecl/hMailServer-5.6.8.exe" -OutFile $installer
+        Invoke-WeRequest -Uri "https://github.com/shivammathur/php-windows-builder/releases/download/pecl/hMailServer-5.6.8.exe" -OutFile $installer
         & $installer '/verysilent'
