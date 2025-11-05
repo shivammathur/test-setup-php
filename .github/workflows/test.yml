@@ -28,3 +28,6 @@ jobs:
         cat "hmailserver.log"
         curl -LO https://raw.githubusercontent.com/php/php-src/a6da3e65007f67c8829e7cf97a27fc1294897e04/.github/setup_hmailserver.php
         php setup_hmailserver.php
+        netstat -ano | findstr ":25 "
+        netstat -ano | findstr ":143 "
+        Get-Service hMailServer
