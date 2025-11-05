@@ -22,7 +22,10 @@ jobs:
         $installer = Join-Path $env:TEMP 'hMailServer.exe'
         Invoke-WebRequest -Uri "https://github.com/shivammathur/php-windows-builder/releases/download/pecl/hMailServer-5.7.0.exe" -OutFile $installer
         & $installer /VERYSILENT /LOG="hmailserver.log"
-        Start-Sleep -Seconds 10
+        Start-Process $installer -ArgumentList @(
+          '/VERYSILENT',
+          '/LOG=hmailserver.log'
+        ) -Wait
         cat "hmailserver.log"
         curl -LO https://raw.githubusercontent.com/php/php-src/a6da3e65007f67c8829e7cf97a27fc1294897e04/.github/setup_hmailserver.php
         php setup_hmailserver.php
