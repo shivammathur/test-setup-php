@@ -7,12 +7,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
-        php: [8.1, 8.2, 8.3, 8.4, 8.5]
+        operating-system: [windows-latest]
+        #php: [8.1, 8.2, 8.3, 8.4, 8.5]
+        php: 8.4
     steps:
     - name: "Install PHP"
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php }}
+        extensions: com_dotnet
     - run: |
         php -v && php -m
+        dism.exe /online /enable-feature /featurename:NetFX3 /all
+        $installer = Join-Path $env:TEMP 'hMailServer.exe'
+        Get-File -Url "https://github.com/shivammathur/php-windows-builder/releases/download/pecl/hMailServer-5.6.8.exe" -OutFile $installer
+        & $installer '/verysilent'
