@@ -26,6 +26,7 @@ jobs:
       - name: Install PHP
         id: setup-php
         uses: shivammathur/setup-php@v2
+        timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
           ini-file: ${{ matrix.ini }}

@@ -16,6 +16,7 @@ jobs:
     steps:
       - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@v2
+        timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
       - name: Testing Composer version default
@@ -24,6 +25,7 @@ jobs:
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@v2
+        timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
           tools: composer:v1
@@ -33,6 +35,7 @@ jobs:
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@v2
+        timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
           tools: composer:v2
@@ -42,6 +45,7 @@ jobs:
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@v2
+        timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
           tools: composer:1
@@ -51,6 +55,7 @@ jobs:
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@v2
+        timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
           tools: composer:2
@@ -60,6 +65,7 @@ jobs:
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@v2
+        timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
           tools: composer:snapshot
@@ -69,6 +75,7 @@ jobs:
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@v2
+        timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
           tools: composer:preview
@@ -78,6 +85,7 @@ jobs:
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@v2
+        timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
           tools: composer:stable
@@ -87,6 +95,7 @@ jobs:
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@v2
+        timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
           tools: composer:2.0.1
@@ -96,6 +105,7 @@ jobs:
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
         uses: shivammathur/setup-php@v2
+        timeout-minutes: 30
         with:
           php-version: '7.4'
           tools: composer:1.7.0-RC

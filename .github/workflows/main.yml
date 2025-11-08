@@ -26,6 +26,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Install PHP
         uses: shivammathur/setup-php@v2
+        timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
           ini-values: "post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata"
