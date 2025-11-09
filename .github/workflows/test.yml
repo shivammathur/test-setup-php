@@ -8,9 +8,11 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [macos-15-intel]
-        php: [7.3]
+        php: [8.4]
     steps:
     - name: "Install PHP"
-      uses: shivammathur/setup-php@verbose
+      uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php }}
+        extensions: redis
+    - run: php -v && php -m    
