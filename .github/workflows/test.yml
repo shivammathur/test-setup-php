@@ -21,5 +21,6 @@ jobs:
         debug: true
     - run: |
         php -v
+        php -m
         apt-cache policy php8.4-cli
         apt-cache policy php8.4-cli-dbgsym
