@@ -4,15 +4,22 @@ on:
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
+    container: ubuntu:${{ matrix.container }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-15-intel]
+        operating-system: [ubuntu-latest]
         php: [8.4]
+        container: [22.04, 24.04]
     steps:
     - name: "Install PHP"
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php }}
         extensions: redis
-    - run: php -v && php -m    
+      env:
+        debug: true
+    - run: |
+        php -v
+        apt-cache policy php8.4-cli
+        apt-cache policy php8.4-cli-dbgsym
