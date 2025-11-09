@@ -16,7 +16,7 @@ jobs:
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php }}
-        extensions: redis
+        extensions: lua
       env:
         debug: true
     - run: |
