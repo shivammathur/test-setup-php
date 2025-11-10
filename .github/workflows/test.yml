@@ -9,14 +9,14 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php: [8.4]
+        php: [7.4]
         container: [22.04, 24.04]
     steps:
     - name: "Install PHP"
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php }}
-        extensions: lua
+        extensions: redis
       env:
         debug: true
     - run: |
