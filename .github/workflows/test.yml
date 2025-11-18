@@ -3,15 +3,6 @@ on:
   push:
 jobs:
   run:
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php: [8.5]
-    steps:
-    - name: "Install PHP"
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php }}
-    - run: php -v
+    runs-on: ubuntu-24.04-riscv
+    steps:      
+    - run: php -v && php -m
