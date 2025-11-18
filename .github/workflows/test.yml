@@ -4,5 +4,8 @@ on:
 jobs:
   run:
     runs-on: ubuntu-24.04-riscv
-    steps:      
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        repository: shivammathur/setup-php
     - run: php -v && php -m
