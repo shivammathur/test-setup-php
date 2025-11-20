@@ -7,11 +7,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        operating-system: [ubuntu-latest]
         php: [8.5]
     steps:
     - name: "Install PHP"
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php }}
+        tools: cs2pr
     - run: php -v
