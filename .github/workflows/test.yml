@@ -7,12 +7,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-15-arm64]
-        php: [8.5]
+        operating-system: [ubuntu-22.04, ubuntu-24.04]
+        php: [8.3]
     steps:
     - name: "Install PHP"
       uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php }}
-        tools: cs2pr
-    - run: php -v
+        extensions: zephir_parser
+    - run: php -v && php -m
