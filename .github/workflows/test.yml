@@ -7,12 +7,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-22.04, ubuntu-24.04]
-        php: [8.3]
+        operating-system: [macos-15-intel, macos-26]
     steps:
-    - name: "Install PHP"
-      uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php }}
-        extensions: zephir_parser
-    - run: php -v && php -m
+    - run: |
+        extension=redis
+        brew tap shivammathur/php          
+        brew tap shivammathur/extensions
+        if [ "$extension" = "redis" ]; then
+            formula="phpredis"
+            brew remove phpredis@$version || true
+            brew remove igbinary@$version || true
+            brew remove msgpack@$version || true
+        fi
+        brew reinstall shivammathur/extensions/$formula@$version
+        
