@@ -12,6 +12,7 @@ jobs:
     - run: |
         extension=redis
         version=8.3
+        brew update
         brew tap shivammathur/php          
         brew tap shivammathur/extensions
         brew install shivammathur/php/php@$version
