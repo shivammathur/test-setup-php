@@ -7,20 +7,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-15-intel, macos-26]
+        operating-system: [ubuntu-latest]
     steps:
-    - run: |
-        extension=redis
-        version=8.3
-        brew update
-        brew tap shivammathur/php          
-        brew tap shivammathur/extensions
-        brew install shivammathur/php/php@$version
-        if [ "$extension" = "redis" ]; then
-            formula="phpredis"
-            brew remove phpredis@$version || true
-            brew remove igbinary@$version || true
-            brew remove msgpack@$version || true
-        fi
-        brew reinstall shivammathur/extensions/$formula@$version
+    - uses: shivammathur/setup-php@develop
+      with:
+        php-version: 8.5
+        extensions: amqp, pdo_oci, geos, sqlsrv, pdo_sqlsrv
         
