@@ -12,7 +12,12 @@ jobs:
     - uses: shivammathur/setup-php@develop
       with:
         php-version: 8.5
-        extensions: ibm_db2, pdo_ibm
-    - run: php -v && php -m    
+        extensions: pdo_oci, oci8, ibm_db2, pdo_ibm
+    - run: |
+        php -v && php -m    
+        php -r "if(! extension_loaded('pdo_oci')) {throw new Exception('pdo_oci not found');}"
+        php -r "if(! extension_loaded('oci8')) {throw new Exception('oci8 not found');}"
+        php -r "if(! extension_loaded('pdo_ibm')) {throw new Exception('pdo_ibm not found');}"
+        php -r "if(! extension_loaded('ibm_db2')) {throw new Exception('idb_db2 not found');}"        
     
         
