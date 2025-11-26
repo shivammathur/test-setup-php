@@ -3,22 +3,12 @@ on:
   push:
 jobs:
   run:
-    runs-on: ${{ matrix.os }}
-    container: shivammathur/node:php-${{ matrix.php-versions }}-24.04-${{ matrix.arch }}
-    strategy:
-      matrix:
-        arch: ["amd64", "arm64v8"]
-        php-versions: [8.4, 8.5]
-        include:
-            - arch: "amd64"
-              os: "ubuntu-24.04"
-            - arch: "arm64v8" 
-              os: "ubuntu-24.04-arm"
+    runs-on: ubuntu-latest
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-versions }}
+          php-version: 8.6
       - run: |
           php -v
         
