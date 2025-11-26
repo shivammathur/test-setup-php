@@ -3,12 +3,17 @@ on:
   push:
 jobs:
   run:
-    runs-on: ubuntu-latest
-    steps:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        php: [8.5, 8.6]
+    steps:      
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.6
+          php-version: ${{ matrix.php }}
+          coverage: xdebug
       - run: |
           php -v
+          php -m
         
