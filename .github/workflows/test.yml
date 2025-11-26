@@ -6,12 +6,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:      
       - name: Setup PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
-          extensions: bcmath, :php-psr, calendar, Core, ctype, curl, date, dom, exif, FFI, fileinfo, filter, ftp, gd, gettext, hash, iconv, intl, json, libxml, mbstring, mysqli, mysqlnd, openssl, pcntl, pcre, PDO, pdo_mysql, Phar, posix, readline, Reflection, session, shmop, SimpleXML, soap, sockets, sodium, SPL, standard, sysvmsg, sysvsem, sysvshm, tokenizer, xml, xmlreader, xmlwriter, xsl, zip, zlib, grpc, rdkafka
+          php-version: 7.4
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, mysql, gd, amqp, zip, rdkafka
           coverage: none
-          tools: composer:2.2.0
+          ini-values: short_open_tag=On
+          tools: pecl
       - run: |
           php -v
           php -m
