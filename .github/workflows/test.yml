@@ -4,15 +4,16 @@ on:
 jobs:
   run:
     runs-on: ubuntu-24.04
-    container: shivammathur/node:php-${{ matrix.php-version }}-24.04-${{ matrix.arch }}
+    container: shivammathur/node:php-${{ matrix.php-versions }}-24.04-${{ matrix.arch }}
     strategy:
       matrix:
         arch: ["amd64", "arm64v8"]
+        php-versions: [8.4, 8.5]
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.5'
+          php-version: ${{ matrix.php-versions }}
       - run: |
           php -v
         
