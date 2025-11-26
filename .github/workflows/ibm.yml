@@ -1,0 +1,27 @@
+name: 'IBM workflow'
+on:
+  push:
+jobs:
+  run:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-24.04, ubuntu-22.04, windows-latest, macos-latest]
+        php-versions: ['7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: pdo_ibm, ibm_db2
+
+      - name: Testing PHP version
+        run: php -v
+
+      - name: Testing Extensions
+        run: |
+          php -m
+          php -r "if(! extension_loaded('pdo_ibm')) {throw new Exception('pdo_ibm not found');}"
+          php -r "if(! extension_loaded('ibm_db2')) {throw new Exception('ibm_db2 not found');}"

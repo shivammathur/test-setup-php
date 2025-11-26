@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
-        continue-on-error: ${{ matrix.php-versions == '8.4' || matrix.php-versions == '8.5' }}
+        #continue-on-error: ${{ matrix.php-versions == '8.6'}}
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: pdo, pdo_mysql, pdo_pgsql, pdo_sqlite, pdo_sqlsrv, pdo_firebird, couchbase, mysql, pgsql, sqlite3, sqlsrv
@@ -24,7 +24,7 @@ jobs:
         run: php --ini
 
       - name: Check PHP extensions
-        continue-on-error: ${{ matrix.php-versions == '8.4' || matrix.php-versions == '8.5' }}
+        #continue-on-error: ${{ matrix.php-versions == '8.6 }}
         run: |
           php -m
           php -r "if(! extension_loaded('pdo')) {throw new Exception('pdo not found');}";

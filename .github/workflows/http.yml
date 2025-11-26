@@ -3,12 +3,12 @@ on:
   push:
 jobs:
   run:
-    runs-on: ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-22.04, windows-latest, macos-latest]
-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+        os: [ubuntu-22.04, windows-latest, macos-latest]
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
         exclude:
           - os: macos-latest
             php: 5.3
@@ -16,19 +16,19 @@ jobs:
             php: 5.4
           - os: macos-latest
             php: 5.5
-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+    name: PHP ${{ matrix.php }} Test on ${{ matrix.os }}
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-versions }}
+          php-version: ${{ matrix.php }}
           extensions: http
 
       - name: Testing PHP version
         run: php -v
 
       - name: Testing Extensions
-        if: matrix.operating-system == 'windows-latest'
+        if: matrix.os == 'windows-latest'
         run: |
           php -m
           php -r "if(phpversion()>=7.1 && ! extension_loaded('http')) {throw new Exception('http not found');}"
@@ -36,7 +36,7 @@ jobs:
           php -r "if(phpversion()>=7.1 && phpversion()<=7.4 && ! extension_loaded('propro')) {throw new Exception('propro not found');}"
 
       - name: Testing Extensions
-        if: matrix.operating-system != 'windows-latest'
+        if: matrix.os != 'windows-latest'
         run: |
           php -m
           php -r "if(! extension_loaded('http')) {throw new Exception('http not found');}"
