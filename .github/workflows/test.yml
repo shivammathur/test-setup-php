@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:      
       - name: Setup PHP
-        uses: shivammathur/setup-php@more-verbose
+        uses: shivammathur/setup-php@develop
         with:
           php-version: '8.3'
           extensions: bcmath, :php-psr, calendar, Core, ctype, curl, date, dom, exif, FFI, fileinfo, filter, ftp, gd, gettext, hash, iconv, intl, json, libxml, mbstring, mysqli, mysqlnd, openssl, pcntl, pcre, PDO, pdo_mysql, Phar, posix, readline, Reflection, session, shmop, SimpleXML, soap, sockets, sodium, SPL, standard, sysvmsg, sysvsem, sysvshm, tokenizer, xml, xmlreader, xmlwriter, xsl, zip, zlib, grpc, rdkafka
