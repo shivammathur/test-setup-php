@@ -3,16 +3,16 @@ on:
   push:
 jobs:
   run:
-    runs-on: ${{ matrix.operating-system }}
+    runs-on: ubuntu-24.04
+    container: shivammathur/node:php-${{ matrix.php-version }}-24.04-${{ matrix.arch }}
     strategy:
-      fail-fast: false
       matrix:
-        operating-system: [macos-latest, macos-15-intel]
-        php: [5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.5, 8.6]
+        arch: ["amd64", "arm64v8"]
     steps:
-    - uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php }}
-    - run: |
-        php -v
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+      - run: |
+          php -v
         
