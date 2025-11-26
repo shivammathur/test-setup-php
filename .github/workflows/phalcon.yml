@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, windows-latest, macos-13]
+        operating-system: [ubuntu-24.04, windows-latest, macos-15-intel]
         php-versions: ['7.0', '7.1', '7.2', '7.3']
     steps:
       - name: Setup cache environment
