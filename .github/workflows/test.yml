@@ -13,7 +13,7 @@ jobs:
         php-extension: ['bcmath', 'gmp']
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@verbose
+        uses: shivammathur/setup-php@more-verbose
         with:
           php-version: ${{ matrix.php-version }}
           extensions: "mbstring, intl, ${{ matrix.php-extension }}"
