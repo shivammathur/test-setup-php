@@ -17,5 +17,6 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           extensions: "mbstring, intl, ${{ matrix.php-extension }}"
-      - run: php -v && php -m 
-      - uses: mxschmitt/action-tmate@v3.23
+      - run: |
+          php -r "if(! extension_loaded('${{ matrix.php-extension }}')) {throw new Exception('${{ matrix.php-extension }} not found');}"
+          php -v && php -m
