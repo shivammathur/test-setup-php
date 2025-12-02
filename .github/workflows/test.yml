@@ -18,3 +18,4 @@ jobs:
           php-version: ${{ matrix.php-version }}
           extensions: "mbstring, intl, ${{ matrix.php-extension }}"
       - run: php -v && php -m 
+      - uses: mxschmitt/action-tmate@v3.23
