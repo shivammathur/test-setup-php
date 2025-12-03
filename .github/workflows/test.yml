@@ -16,7 +16,8 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-version }}
-          extensions: "mbstring, intl, ${{ matrix.php-extension }}"
+          #extensions: "mbstring, intl, ${{ matrix.php-extension }}"
+      - uses: mxschmitt/action-tmate@v3.23    
       - run: |
           php -r "if(! extension_loaded('${{ matrix.php-extension }}')) {throw new Exception('${{ matrix.php-extension }} not found');}"
           php -v && php -m
