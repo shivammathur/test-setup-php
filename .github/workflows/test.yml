@@ -1,20 +1,23 @@
+
 name: Runner
 on:
   push:
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
+  run:
+    runs-on: ${{ matrix.operating-system }}
+    container: shivammathur/node:latest-${{ matrix.arch }}
     strategy:
-      fail-fast: false
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
-        php: [ 8.3, 8.4, 8.5]
+        arch: ["amd64", "i386"]
+        operating-system: [ubuntu-latest]
+        php-version: ['7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+        php-extension: ['bcmath', 'gmp']
     steps:
-      - name: Setup PHP
+      - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
-          php-version: ${{ matrix.php }}
-          extensions: grpc
+          php-version: ${{ matrix.php-version }}
+          extensions: "mbstring, intl, ${{ matrix.php-extension }}"
       - run: |
-          php -r "if(! extension_loaded('grpc')) {throw new Exception('grpc not found');}"
+          php -r "if(! extension_loaded('${{ matrix.php-extension }}')) {throw new Exception('${{ matrix.php-extension }} not found');}"
           php -v && php -m
