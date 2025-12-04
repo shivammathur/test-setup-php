@@ -7,5 +7,8 @@ jobs:
     runs-on: macos-15
     steps:
       - run: brew config
-      - run: sudo xcode-select -s /Applications/Xcode_26.1.1.app
-      - run: brew config
+      #- run: sudo xcode-select -s /Applications/Xcode_26.1.1.app
+      #- run: brew config
+      - run: |
+          brew tap shivammathur/php
+          brew install -svd php@8.6
