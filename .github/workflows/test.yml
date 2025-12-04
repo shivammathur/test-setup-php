@@ -8,7 +8,7 @@ jobs:
     steps:
       - run: brew config
       - run: sudo xcode-select -s /Applications/Xcode_26.1.1.app
-      - uses: mxschmitt/action-tmate@v3.23
+      - run: softwareupdate --install "$(softwareupdate --list 2>/dev/null | grep -Eo '(Command Line Tools.*)' | head -1)"
       - run: brew config
       - run: |
           brew tap shivammathur/php
