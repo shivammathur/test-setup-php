@@ -8,6 +8,7 @@ jobs:
     steps:
       - run: brew config
       - run: sudo xcode-select -s /Applications/Xcode_26.1.1.app
+      - run: sudo softwareupdate --install "$(softwareupdate --list | awk -F'*' '/Command Line Tools/ {gsub(/^ *| *$/,"",$2); print $2; exit}')"
       - run: brew config
       - run: |
           brew tap shivammathur/php
