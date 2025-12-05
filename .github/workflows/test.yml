@@ -8,6 +8,10 @@ jobs:
     steps:
       - run: brew config
       - run: sudo xcode-select -s /Applications/Xcode_26.1.1.app
-      - run: |
+      - run: brew update
+      - name: Test
+        env:
+          HOMEBREW_DOWNLOAD_CONCURRENCY: 10
+        run: |
           brew tap shivammathur/php
           brew install --only-dependencies php@8.6
