@@ -6,4 +6,4 @@ jobs:
   run:
     runs-on: macos-15
     steps:
-      - run: timeout 5 sleep 10
+      - run: gtimeout 5 sleep 10
