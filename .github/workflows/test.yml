@@ -12,7 +12,7 @@ jobs:
         os: [ubuntu-22.04, ubuntu-24.04]
         runs: [1,1,1,1,1,1,1,1,1,1]
     steps:
-      - uses: shivammathur/setup-php@more-verbose
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           coverage: xdebug
