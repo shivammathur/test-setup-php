@@ -1,34 +1,45 @@
-
 name: Runner
-on:
-  push:
+
+on: [push]
+
 jobs:
-  run:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest]
+  test:
+    runs-on: macos-26
     steps:
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.2
-      - run: php -v && php -m
-      - run: php --ri curl
-      - name: Test
-        shell: php {0}
+      - name: Install MacPorts (pkg)
+        shell: bash
         run: |
-          <?php
-          $ch = curl_init();
-          curl_setopt($ch, CURLOPT_URL, "https://downloads.php.net/~windows/php-sdk/deps/series/packages-8.5-vs17-x64-staging.txt");
-          curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-          $response = curl_exec($ch);
-          
-          if (curl_errno($ch)) {
-              echo 'Curl error: ' . curl_error($ch);
-          } else {
-              echo $response;
-          }
-          curl_close($ch);
-          ?>
-          
+          url="https://distfiles.macports.org/MacPorts/MacPorts-2.11.5-26-Tahoe.pkg"
+          curl -fsSL $url -o /tmp/MacPorts.pkg
+
+          sudo installer -pkg /tmp/MacPorts.pkg -target /
+
+          # Ensure MacPorts is on PATH for subsequent steps
+          echo "/opt/local/bin"  >> "$GITHUB_PATH"
+          echo "/opt/local/sbin" >> "$GITHUB_PATH"
+
+          port version
+          sudo port -N selfupdate
+
+      - name: Test
+        run: |
+          sudo port -N install php84
+          sudo port -N install php83
+
+          echo "port select help:"
+          port help select || true
+
+          echo "Available php select entries:"
+          port select --list php
+
+          echo "Explicit form"
+          sudo port select --set php php84
+
+          which php
+          php -v | head -n 1
+
+          echo "Shorthand form"
+          sudo port select php php83
+
+          which php
+          php -v | head -n 1
