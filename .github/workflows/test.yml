@@ -12,14 +12,10 @@ jobs:
           url="https://distfiles.macports.org/MacPorts/MacPorts-2.11.5-26-Tahoe.pkg"
           curl -fsSL $url -o /tmp/MacPorts.pkg
 
-          sudo installer -pkg /tmp/MacPorts.pkg -target /
+          sudo installer -verbose -pkg /tmp/MacPorts.pkg -target /
 
-          # Ensure MacPorts is on PATH for subsequent steps
           echo "/opt/local/bin"  >> "$GITHUB_PATH"
           echo "/opt/local/sbin" >> "$GITHUB_PATH"
-
-          port version
-          sudo port -N selfupdate
 
       - name: Test
         run: |
