@@ -1,41 +1,41 @@
-name: Runner
-
+name: 'Runner'
 on: [push]
-
 jobs:
-  test:
-    runs-on: macos-26
+  run:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [macos-15-intel, ubuntu-latest]
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6']
+        debug: ['true', 'false']
+        phpts: ['ts', 'nts']
+    name: Test
     steps:
-      - name: Install MacPorts (pkg)
-        shell: bash
-        run: |
-          url="https://distfiles.macports.org/MacPorts/MacPorts-2.11.5-26-Tahoe.pkg"
-          curl -fsSL $url -o /tmp/MacPorts.pkg
-
-          sudo installer -verbose -pkg /tmp/MacPorts.pkg -target /
-
-          echo "/opt/local/bin"  >> "$GITHUB_PATH"
-          echo "/opt/local/sbin" >> "$GITHUB_PATH"
-
-      - name: Test
-        run: |
-          sudo port -N install php84
-          sudo port -N install php83
-
-          echo "port select help:"
-          port help select || true
-
-          echo "Available php select entries:"
-          port select --list php
-
-          echo "Explicit form"
-          sudo port select --set php php84
-
-          which php
-          php -v | head -n 1
-
-          echo "Shorthand form"
-          sudo port select php php83
-
-          which php
-          php -v | head -n 1
+    - name: Set up Homebrew
+      uses: Homebrew/actions/setup-homebrew@main
+    - name: Remove PHP
+      run: brew uninstall --ignore-dependencies php || true
+    - run: |
+        brew tap shivammathur/php
+        (
+          cd $(brew --repo shivammathur/php)
+          git fetch origin refactor
+          git checkout refactor
+        )
+    - name: Test PHP service
+      run: |
+        debug=
+        phpts=
+        [[ "${{ matrix.debug }}" = "true" ]] && debug='-debug'
+        [[ "${{ matrix.phpts }}" = "ts" ]] && phpts='-zts'
+        formula="php@${{ matrix.php }}$debug$phpts"
+        brew install -svd shivammathur/php/$formula
+        brew unlink $formula || true
+        brew link --force --overwrite $formula
+        $(brew --prefix)/bin/php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"
+        $(brew --prefix)/bin/php -v && $(brew --prefix)/bin/php -m
+        brew services start "$formula"
+        brew services list
+        [ "$formula" = "php@8.5$debug$phpts" ] && formula="php$debug$phpts"
+        cat ~/Library/LaunchAgents/homebrew.mxcl."$formula".plist
