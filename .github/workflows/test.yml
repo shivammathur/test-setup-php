@@ -13,4 +13,4 @@ jobs:
     - name: Set up Homebrew
       uses: Homebrew/actions/setup-homebrew@main
     - name: Test
-      run: brew reinstall --only-dependencies php
+      run: brew install --only-dependencies php
