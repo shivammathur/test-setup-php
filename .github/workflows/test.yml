@@ -6,36 +6,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
-        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6']
-        debug: ['true', 'false']
-        phpts: ['ts', 'nts']
+        operating-system: [ubuntu-latest, macos-latest]
+        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1]
     name: Test
     steps:
     - name: Set up Homebrew
       uses: Homebrew/actions/setup-homebrew@main
-    - name: Remove PHP
-      run: brew uninstall --ignore-dependencies php || true
-    - run: |
-        brew tap shivammathur/php
-        (
-          cd $(brew --repo shivammathur/php)
-          git fetch origin refactor
-          git checkout refactor
-        )
-    - name: Test PHP service
-      run: |
-        debug=
-        phpts=
-        [[ "${{ matrix.debug }}" = "true" ]] && debug='-debug'
-        [[ "${{ matrix.phpts }}" = "ts" ]] && phpts='-zts'
-        formula="php@${{ matrix.php }}$debug$phpts"
-        brew install -svd shivammathur/php/$formula
-        brew unlink $formula || true
-        brew link --force --overwrite $formula
-        $(brew --prefix)/bin/php -r "if(strpos(phpversion(), '${{ matrix.php }}') === false) {throw new Exception('Wrong PHP version Installed');}"
-        $(brew --prefix)/bin/php -v && $(brew --prefix)/bin/php -m
-        brew services start "$formula"
-        brew services list
-        [ "$formula" = "php@8.5$debug$phpts" ] && formula="php$debug$phpts"
-        cat ~/Library/LaunchAgents/homebrew.mxcl."$formula".plist || true
+    - name: Test
+      run: brew reinstall --only-dependencies php
