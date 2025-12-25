@@ -9,6 +9,4 @@ jobs:
       with:
         repository: xdebug/xdebug
     - run: |
-        mkdir C:\build
-        $currentDirectory = (Get-Location).Path
-        Copy-Item -Path "$currentDirectory\*" -Destination C:\build -Recurse -Force
+        Write-Host $Env:BUILD_DIRECTORY
