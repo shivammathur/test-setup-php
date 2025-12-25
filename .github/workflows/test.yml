@@ -2,16 +2,13 @@ name: 'Runner Test'
 on: [push]
 jobs:
   run:
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-latest]
-        php: [5.3, 5.4, 5.5]
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    runs-on: windows-latest
     name: Test
     steps:
-    - uses: shivammathur/setup-php@v2
+    - uses: actions/checkout@v6
       with:
-        php-version: ${{ matrix.php }}
-    - run: php -v && php -m    
+        repository: xdebug/xdebug
+    - run: |
+        mkdir C:\build
+        $currentDirectory = (Get-Location).Path
+        Copy-Item -Path "$currentDirectory\*" -Destination C:\build -Recurse -Force
