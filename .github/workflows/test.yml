@@ -2,7 +2,7 @@ name: 'Runner Test'
 on: [push]
 jobs:
   run:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     name: Test
     steps:
     - uses: mxschmitt/action-tmate@v3.23
