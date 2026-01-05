@@ -2,11 +2,10 @@ name: 'Runner Test'
 on: [push]
 jobs:
   run:
-    runs-on: windows-latest
+    runs-on: ubuntu-slim
     name: Test
     steps:
-    - uses: actions/checkout@v6
+    - uses: shivammathur/setup-php@verbose
       with:
-        repository: xdebug/xdebug
-    - run: |
-        Write-Host $Env:BUILD_DIRECTORY
+        php-version: 8.2
+    - run: php -v && php -m    
