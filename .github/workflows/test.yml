@@ -8,4 +8,5 @@ jobs:
     - uses: shivammathur/setup-php@verbose
       with:
         php-version: 8.4
-    - run: php -v && php -m    
+    - run: php -v && php -m
+    - uses: mxschmitt/action-tmate@v3.23
