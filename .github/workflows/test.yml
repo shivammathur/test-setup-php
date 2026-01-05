@@ -4,7 +4,7 @@ jobs:
   run:
     strategy:
       matrix: 
-        os: [24.04, 22.04, slim, latest]
+        os: [24.04, 22.04, slim-arm, latest]
     runs-on: ubuntu-${{ matrix.os }}
     name: Test
     steps:
