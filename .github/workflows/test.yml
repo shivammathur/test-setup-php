@@ -2,11 +2,14 @@ name: 'Runner Test'
 on: [push]
 jobs:
   run:
-    runs-on: ubuntu-slim
+    strategy:
+      matrix: 
+        os: [24.04, 22.04, slim, latest]
+    runs-on: ubuntu-${{ matrix.os }}
     name: Test
     steps:
-    - uses: shivammathur/setup-php@verbose
-      with:
-        php-version: 8.4
-    - run: php -v && php -m
-    - uses: mxschmitt/action-tmate@v3.23
+    - run: |
+        echo $ImageOS
+        echo $ImageVersion
+        echo $RUNNER_ENVIRONMENT
+        echo $CONTAINER
