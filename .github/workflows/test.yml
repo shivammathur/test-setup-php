@@ -2,14 +2,7 @@ name: 'Runner Test'
 on: [push]
 jobs:
   run:
-    strategy:
-      matrix: 
-        os: [24.04, 22.04, slim-arm, latest]
-    runs-on: ubuntu-${{ matrix.os }}
+    runs-on: ubuntu-slim
     name: Test
     steps:
-    - run: |
-        echo $ImageOS
-        echo $ImageVersion
-        echo $RUNNER_ENVIRONMENT
-        echo $CONTAINER
+    - uses: mxschmitt/action-tmate@v3.23
