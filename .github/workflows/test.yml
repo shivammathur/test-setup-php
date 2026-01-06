@@ -13,6 +13,10 @@ jobs:
       with:
         php-version: ${{ matrix.php }}
         extensions: amqp
-    - run: php -v && php -m && php -r "echo phpversion('amqp')";    
+    - run: |
+        php -v
+        php -m
+        php -r "echo phpversion('amqp');"
+        php --ri amqp
         
         
