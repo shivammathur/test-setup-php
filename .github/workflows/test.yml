@@ -5,26 +5,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
+        os: [ubuntu-latest]
         php: [8.0, 8.1, 8.2, 8.3, 8.4, 8.5]
-        amqp: [2.1.2, 2.2.0]
     runs-on: ${{ matrix.os }}
     name: Test
     steps:
-    - run: Remove-Item -Path "C:\tools\php" -Recurse
     - uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php }}
-        extensions: amqp-${{ matrix.amqp }}
     - run: |
-        $env:PATH = "C:\tools\php"
-        php -v
-        php -r "echo phpversion('amqp');"
-        php --ri amqp
-        try {
-            deplister C:\tools\php\rabbitmq.4.dll
-        }
-        catch {
-            Write-Warning "An error occurred: $_"
-        }
+        ls -la /var/lib/php/
+        
         
