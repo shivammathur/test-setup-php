@@ -5,7 +5,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest]
-        php: [7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5]
+        php: [8.0, 8.1, 8.2, 8.3, 8.4, 8.5]
         amqp: [2.1.2, 2.2.0]
     runs-on: ${{ matrix.os }}
     name: Test
@@ -19,6 +19,6 @@ jobs:
         php -v
         php -r "echo phpversion('amqp');"
         php --ri amqp
-        deplister C:\tools\php\ext\php_amqp.dll
+        deplister C:\tools\php\rabbitmq.4.dll
         
         
