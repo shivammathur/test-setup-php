@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: Test
     steps:
-    - run: rm -rf C:\tools\php\*
+    - run: Remove-Item -Path "C:\tools\php" -Recurse
     - uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php }}
