@@ -9,6 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: Test
     steps:
+    - run: rm -rf C:\tools\php\*
     - uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php }}
