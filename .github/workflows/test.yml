@@ -21,7 +21,10 @@ jobs:
         php -v
         php -r "echo phpversion('amqp');"
         php --ri amqp
-        $ErrorActionPreference = "SilentlyContinue"
-        deplister C:\tools\php\rabbitmq.4.dll
-        
+        try {
+            deplister C:\tools\php\rabbitmq.4.dll
+        }
+        catch {
+            Write-Warning "An error occurred: $_"
+        }
         
