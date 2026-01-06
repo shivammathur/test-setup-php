@@ -6,6 +6,7 @@ jobs:
       matrix:
         os: [windows-latest]
         php: [7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5]
+        amqp: [2.1.2, 2.2.0]
     runs-on: ${{ matrix.os }}
     name: Test
     steps:
@@ -13,11 +14,11 @@ jobs:
     - uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php }}
-        extensions: amqp
+        extensions: amqp-${{ matrix.amqp }}
     - run: |
         php -v
-        php -m
         php -r "echo phpversion('amqp');"
         php --ri amqp
+        deplister C:\tools\php\ext\php_amqp.dll
         
         
