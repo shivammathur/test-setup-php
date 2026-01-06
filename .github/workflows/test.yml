@@ -21,6 +21,6 @@ jobs:
         php -v
         php -r "echo phpversion('amqp');"
         php --ri amqp
-        deplister C:\tools\php\rabbitmq.4.dll || true
+        try { deplister C:\tools\php\rabbitmq.4.dll } catch {}
         
         
