@@ -1,112 +1,56 @@
-name: 'Runner Test'
-on: [push]
+name: phpx-tests
+on: [ push, pull_request ]
 
 jobs:
-  run:
+  php:
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
-    runs-on: ${{ matrix.os }}
-    name: Test
+        php: [ 8.1, 8.2, 8.3, 8.4, 8.5 ]
     steps:
-      - name: Install Oracle XE + list tables + check TEST (no multiline sql)
-        shell: pwsh
-        env:
-          PDO_OCI_TEST_USER: system
-          PDO_OCI_TEST_PASS: oracle
-          PDO_OCI_TEST_DSN: oci:dbname=localhost:1521/XEPDB1.localdomain;charset=AL32UTF8
+      - uses: actions/checkout@v1
+        with:
+          repository: swoole/phpx
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "${{ matrix.php }}"
+          extensions: embed, curl, redis, json
+      - name: Install dependencies
+        run: sudo apt update -y && sudo apt install -y googletest libgtest-dev libsodium-dev libkrb5-dev libargon2-dev redis-server
+      - name: Show machine information
         run: |
-          if (-not (Get-Command Get-File -ErrorAction SilentlyContinue)) { function Get-File { param([string]$Url,[string]$OutFile) Invoke-WebRequest -Uri $Url -OutFile $OutFile -UseBasicParsing } }
-          if (-not (Get-Command Add-Path -ErrorAction SilentlyContinue)) { function Add-Path { param([string]$PathItem) if ($env:PATH -notlike "*$PathItem*") { $env:PATH = "$PathItem;$env:PATH" } } }
-
-          Function Add-OciDB {
-            [OutputType()] param()
-            begin {
-              $installDir = 'C:\oracle\product\21c'
-              $setupDir = 'C:\tools\oracle-setup'
-              $workingDir = 'C:\tools\oracle'
-
-              $dbPassword = 'oracle'
-              $dbPort = '1521'
-              $dbEmExpressPort = '5550'
-              $dbCharset = 'AL32UTF8'
-              $dbDomain = 'localdomain'
-
-              $dbZipFile = 'OracleXE213_Win64.zip'
-              $dbUrl = 'https://download.oracle.com/otn-pub/otn_software/db-express/OracleXE213_Win64.zip'
-            }
-            process {
-              Add-Type -Assembly "System.IO.Compression.Filesystem"
-              @($workingDir, $setupDir, "$setupDir\temp", $installDir) | ForEach-Object { New-Item -ItemType Directory -Path $_ -Force | Out-Null }
-
-              Get-File -Url $dbUrl -OutFile $dbZipFile
-
-              $rspContent = @(
-                "INSTALLDIR=$installDir\"
-                "PASSWORD=$dbPassword"
-                "LISTENER_PORT=$dbPort"
-                "EMEXPRESS_PORT=$dbEmExpressPort"
-                "CHAR_SET=$dbCharset"
-                "DB_DOMAIN=$dbDomain"
-              )
-
-              $argumentList = @(
-                '/s'
-                "/v`"RSP_FILE=$setupDir\OracleServerInstall.rsp`""
-                "/v`"/L*v $setupDir\OracleServerSetup.log`""
-                '/v"/qn"'
-              )
-
-              if (Get-Command 7z -ErrorAction SilentlyContinue) { 7z x $dbZipFile "-o$setupDir" -y | Out-Null } else { [System.IO.Compression.ZipFile]::ExtractToDirectory($dbZipFile, $setupDir) }
-              $rspContent | Set-Content -Path $setupDir\OracleServerInstall.rsp
-
-              $oldEnv = @{ TMPDIR=$env:TMPDIR; TMP=$env:TMP; TEMP=$env:TEMP }
-              try {
-                $env:TMPDIR = "$setupDir\temp"; $env:TMP = "$setupDir\temp"; $env:TEMP = "$setupDir\temp"
-                Start-Process -FilePath $setupDir\setup.exe -ArgumentList $argumentList -WorkingDirectory $workingDir -NoNewWindow -Wait
-              } finally {
-                $env:TMPDIR = $oldEnv.TMPDIR; $env:TMP = $oldEnv.TMP; $env:TEMP = $oldEnv.TEMP
-              }
-
-              $env:ORACLE_HOME = "$installDir\dbhomeXE"
-              Add-Path -PathItem "$env:ORACLE_HOME\bin"
-            }
-          }
-
-          Add-OciDB
-
-          # ---- sanity checks ----
-          if (-not (Get-Command sqlplus.exe -ErrorAction SilentlyContinue)) { throw "sqlplus.exe not found in PATH (ORACLE_HOME=$env:ORACLE_HOME)" }
-
-          if ($env:PDO_OCI_TEST_DSN -notmatch 'dbname=([^;]+)') { throw "Could not parse PDO_OCI_TEST_DSN: $env:PDO_OCI_TEST_DSN" }
-          $db = $Matches[1]
-          $connect = ($db -like '//*') ? $db : "//$db"
-          $conn = "$($env:PDO_OCI_TEST_USER)/$($env:PDO_OCI_TEST_PASS)@$connect"
-
-          for ($i = 1; $i -le 60; $i++) {
-            $out = ("whenever sqlerror exit 1`nset heading off feedback off pagesize 0 verify off echo off`nselect 'OK' from dual;`nexit") | & sqlplus.exe -L -s $conn 2>&1
-            if ($LASTEXITCODE -eq 0 -and ($out -match '\bOK\b')) { break }
-            Start-Sleep -Seconds 5
-            if ($i -eq 60) { throw "Oracle didn't become ready. Last output:`n$out" }
-          }
-
-          ("set pagesize 50000 linesize 200 trimspool on`n" +
-           "prompt`n" +
-           "prompt === CURRENT USER ===`n" +
-           "col ""USER"" format a30`n" +
-           "select user as ""USER"" from dual;`n" +
-           "prompt`n" +
-           "prompt === USER_TABLES (tables in current schema) ===`n" +
-           "col table_name format a50`n" +
-           "select table_name from user_tables order by table_name;`n" +
-           "prompt`n" +
-           "prompt === TEST table check (unquoted Oracle identifiers are UPPERCASE) ===`n" +
-           "col TEST_EXISTS format a10`n" +
-           "select case when exists (select 1 from user_tables where table_name = 'TEST') then 'YES' else 'NO' end as TEST_EXISTS from dual;`n" +
-           "prompt`n" +
-           "prompt === TEST across ALL_TABLES (any visible schema) ===`n" +
-           "col owner format a20`n" +
-           "col table_name format a50`n" +
-           "select owner, table_name from all_tables where table_name = 'TEST' order by owner;`n" +
-           "exit") | & sqlplus.exe -L -s $conn
+          date
+          env
+          uname -a
+          php -v
+          php --ini
+      - name: Build
+        run: |
+          cmake . -D CODE_COVERAGE=ON || exit 1
+          make VERBOSE=1 -j$(nproc)
+      - name: Run google tests
+        run: |
+          # sudo sh -c 'echo 0 > /proc/sys/kernel/randomize_va_space'
+          ./bin/phpx-tests
+      - name: Run phpunit tests
+        if: 0
+        run: |
+          composer install
+          sudo cp lib/libext.so $(php-config --extension-dir)/phpx_test.so
+          sudo sh -c 'echo "extension=phpx_test.so" > $(php-config --ini-dir)/phpx_test.ini'
+          composer test
+      - name: Run coverage
+        shell: bash
+        run: |
+          sudo apt-get install lcov
+          sudo lcov --directory . --capture --branch-coverage --rc geninfo_unexecuted_blocks=1 --ignore-errors mismatch --output-file coverage.info
+          sudo lcov --remove coverage.info '/usr/*' --output-file coverage.info
+          sudo lcov --list coverage.info
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.info
+          fail_ci_if_error: true
