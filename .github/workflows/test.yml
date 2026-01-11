@@ -1,5 +1,5 @@
-name: phpx-tests
-on: [ push, pull_request ]
+name: Runner
+on: [ push]
 
 jobs:
   php:
@@ -9,49 +9,9 @@ jobs:
       matrix:
         php: [ 8.1, 8.2, 8.3, 8.4, 8.5 ]
     steps:
-      - uses: actions/checkout@v6
-        with:
-          repository: swoole/phpx
-          ref: master
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: "${{ matrix.php }}"
-          extensions: embed, curl, redis, json
-      - name: Install dependencies
-        run: sudo apt update -y && sudo apt install -y googletest libgtest-dev libsodium-dev libkrb5-dev libargon2-dev redis-server
-      - name: Show machine information
-        run: |
-          date
-          env
-          uname -a
-          php -v
-          php --ini
-      - name: Build
-        run: |
-          cmake . -D CODE_COVERAGE=ON || exit 1
-          make VERBOSE=1 -j$(nproc)
-      - name: Run google tests
-        run: |
-          # sudo sh -c 'echo 0 > /proc/sys/kernel/randomize_va_space'
-          ./bin/phpx-tests
-      - name: Run phpunit tests
-        if: 0
-        run: |
-          composer install
-          sudo cp lib/libext.so $(php-config --extension-dir)/phpx_test.so
-          sudo sh -c 'echo "extension=phpx_test.so" > $(php-config --ini-dir)/phpx_test.ini'
-          composer test
-      - name: Run coverage
-        shell: bash
-        run: |
-          sudo apt-get install lcov
-          sudo lcov --directory . --capture --branch-coverage --rc geninfo_unexecuted_blocks=1 --ignore-errors mismatch --output-file coverage.info
-          sudo lcov --remove coverage.info '/usr/*' --output-file coverage.info
-          sudo lcov --list coverage.info
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.info
-          fail_ci_if_error: true
+          extensions: intl-78.2
+      - run: php -v && php --ri intl    
