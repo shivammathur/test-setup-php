@@ -5,7 +5,7 @@ jobs:
   php:
     runs-on: macos-latest
     steps:
-      - run: |         
+      - run: |
           DOMAIN="pear.php.net"
           REQ_PATH="/install-pear-nozlib.phar"
           UPSTREAM_URL="https://pear.php.net/install-pear-nozlib.phar"
@@ -13,10 +13,15 @@ jobs:
           BASE="/usr/local/pear-mirror"
           CACHE_DIR="$BASE/cache"
           CERT_DIR="$BASE/certs"
+          DATA_DIR="$BASE/caddy-data"
           CADDYFILE="$BASE/Caddyfile"
           SYNC_SCRIPT="$BASE/sync.zsh"
+          PID_FILE="$BASE/caddy.pid"
           
           CACHED_FILE="$CACHE_DIR/install-pear-nozlib.phar"
+          
+          HOSTS_BEGIN="# pear-mirror begin"
+          HOSTS_END="# pear-mirror end"
           
           PLIST_CADDY="/Library/LaunchDaemons/com.pear-mirror.caddy.plist"
           PLIST_SYNC="/Library/LaunchDaemons/com.pear-mirror.sync.plist"
@@ -28,7 +33,7 @@ jobs:
           
           ensure_brew() {
             if ! command -v brew >/dev/null 2>&1; then
-              err "Homebrew not found. Install Homebrew, then re-run."
+              err "Homebrew not found."
               exit 1
             fi
           }
@@ -50,25 +55,37 @@ jobs:
             /usr/bin/printf "%s\n" "$content" | /usr/bin/sudo /usr/bin/tee "$path" >/dev/null
           }
           
-          append_hosts_if_missing() {
-            local entry="$1"
-            if ! /usr/bin/grep -qF -- "$entry" /etc/hosts; then
-              log "Adding /etc/hosts entry: $entry"
-              /usr/bin/sudo /bin/sh -c "/usr/bin/printf '\n%s\n' '$entry' >> /etc/hosts"
-            else
-              log "/etc/hosts already contains: $entry"
+          hosts_install_block() {
+            # Add a clearly delimited block so we can temporarily remove it during sync
+            if /usr/bin/grep -qF -- "$HOSTS_BEGIN" /etc/hosts; then
+              log "/etc/hosts block already present."
+              return
             fi
+          
+            log "Adding /etc/hosts block for $DOMAIN -> localhost"
+            /usr/bin/sudo /bin/sh -c "
+              /usr/bin/printf '\n%s\n127.0.0.1 %s\n::1 %s\n%s\n' \
+                '$HOSTS_BEGIN' '$DOMAIN' '$DOMAIN' '$HOSTS_END' >> /etc/hosts
+            "
           }
           
-          bootstrap_daemon() {
-            local plist="$1"
-            /usr/bin/sudo /bin/launchctl bootout system "$plist" >/dev/null 2>&1 || true
-            /usr/bin/sudo /bin/launchctl bootstrap system "$plist"
+          hosts_remove_block() {
+            if ! /usr/bin/grep -qF -- "$HOSTS_BEGIN" /etc/hosts; then
+              return
+            fi
+            log "Temporarily removing /etc/hosts pear-mirror block"
+            # Delete inclusive range between markers
+            /usr/bin/sudo /usr/bin/sed -i '' "/^$(printf '%s' "$HOSTS_BEGIN" | /usr/bin/sed 's/[.[\*^$(){}+?|\\/]/\\&/g')\$/,/^$(printf '%s' "$HOSTS_END" | /usr/bin/sed 's/[.[\*^$(){}+?|\\/]/\\&/g')\$/d" /etc/hosts
+          }
+          
+          make_dirs_and_perms() {
+            log "Preparing directories under $BASE"
+            /usr/bin/sudo /bin/mkdir -p "$CACHE_DIR" "$CERT_DIR" "$DATA_DIR"
+            /usr/bin/sudo /usr/sbin/chown -R "$USER":staff "$BASE"
           }
           
           make_sync_script() {
             log "Creating sync script at $SYNC_SCRIPT"
-          
             local content
             content="#!/usr/bin/env zsh
           set -euo pipefail
@@ -76,58 +93,56 @@ jobs:
           DOMAIN=\"$DOMAIN\"
           URL=\"$UPSTREAM_URL\"
           
+          BASE=\"$BASE\"
           CACHE_DIR=\"$CACHE_DIR\"
           DST=\"$CACHED_FILE\"
           TMP=\"\${DST}.tmp\"
           
-          mkdir -p \"\$CACHE_DIR\"
+          HOSTS_BEGIN=\"$HOSTS_BEGIN\"
+          HOSTS_END=\"$HOSTS_END\"
           
-          resolve_upstream_ip() {
-            # Resolve via public DNS so /etc/hosts doesn't interfere
-            if command -v dig >/dev/null 2>&1; then
-              dig @1.1.1.1 +short \"\$DOMAIN\" A | /usr/bin/grep -E '^[0-9.]+' | /usr/bin/head -n1
-              return
-            fi
-            if command -v nslookup >/dev/null 2>&1; then
-              nslookup \"\$DOMAIN\" 1.1.1.1 2>/dev/null | /usr/bin/awk '/^Address: /{print \$2}' | /usr/bin/grep -E '^[0-9.]+$' | /usr/bin/tail -n1
-              return
-            fi
-            return 1
-          }
-          
-          ip=\$(resolve_upstream_ip || true)
-          if [[ -z \"\$ip\" ]]; then
-            /usr/bin/printf '%s\n' 'Failed to resolve upstream IP (need dig or nslookup).' >&2
-            exit 1
+          # Remove hosts override so we hit the real upstream
+          if /usr/bin/grep -qF -- \"\$HOSTS_BEGIN\" /etc/hosts; then
+            /usr/bin/sed -i '' \"/^\\\$(printf '%s' \\\"\$HOSTS_BEGIN\\\" | /usr/bin/sed 's/[.[\\\\*^\\\$(){}+?|\\\\\\\\/]/\\\\\\\\&/g')\\\$/,/^\\\$(printf '%s' \\\"\$HOSTS_END\\\" | /usr/bin/sed 's/[.[\\\\*^\\\$(){}+?|\\\\\\\\/]/\\\\\\\\&/g')\\\$/d\" /etc/hosts
+            removed=1
+          else
+            removed=0
           fi
           
-          # Download from real upstream (bypass hosts) to a temp file
+          cleanup() {
+            # Restore hosts override
+            if [[ \"\$removed\" == \"1\" ]]; then
+              /usr/bin/printf '\\n%s\\n127.0.0.1 %s\\n::1 %s\\n%s\\n' \"\$HOSTS_BEGIN\" \"\$DOMAIN\" \"\$DOMAIN\" \"\$HOSTS_END\" >> /etc/hosts
+            fi
+          }
+          trap cleanup EXIT
+          
+          /bin/mkdir -p \"\$CACHE_DIR\"
+          
+          # Download to temp
           /usr/bin/curl -fsSL \\
             --retry 12 --retry-delay 2 --retry-all-errors \\
-            --connect-timeout 10 --max-time 1200 \\
-            --resolve \"\${DOMAIN}:443:\${ip}\" \\
+            --connect-timeout 20 --max-time 1200 \\
             -o \"\$TMP\" \"\$URL\"
           
-          # Validate with file(1) + a strong PHAR-stub check.
+          # Validate: reject HTML-ish, require PHAR stub marker
           info=\$(/usr/bin/file -b \"\$TMP\" || true)
           
-          # Reject obvious bad downloads (HTML/error pages)
-          if /bin/echo \"\$info\" | /usr/bin/grep -Eiq 'html|xml|json'; then
+          if /bin/echo \"\$info\" | /usr/bin/grep -Eiq 'html|xml|json|text'; then
             /bin/rm -f \"\$TMP\"
-            /usr/bin/printf '%s\n' \"Invalid download (looks like markup): \$info\" >&2
+            /usr/bin/printf '%s\\n' \"Invalid download (looks like text/markup): \$info\" >&2
             exit 1
           fi
           
-          # PHARs typically contain __HALT_COMPILER(); in the stub. Check binary-safe.
           if ! /usr/bin/grep -a -m 1 -q '__HALT_COMPILER' \"\$TMP\"; then
             /bin/rm -f \"\$TMP\"
-            /usr/bin/printf '%s\n' \"Invalid download (missing PHAR stub marker). file: \$info\" >&2
+            /usr/bin/printf '%s\\n' \"Invalid download (missing PHAR stub marker). file: \$info\" >&2
             exit 1
           fi
           
-          # Passed validation -> replace atomically
+          # Replace atomically
           /bin/mv -f \"\$TMP\" \"\$DST\"
-           /usr/bin/chmod 644 \"\$DST\" || true
+           /bin/chmod 644 \"\$DST\" || true
           exit 0
           "
             sudo_write_file "$SYNC_SCRIPT" "$content"
@@ -155,12 +170,61 @@ jobs:
             /usr/bin/sudo /bin/chmod 644 "$CADDYFILE"
           }
           
-          install_launchd() {
+          mkcert_setup() {
+            local mkcert_path
+            mkcert_path="$(command -v mkcert)"
+            [[ -n "$mkcert_path" ]] || { err "mkcert not found"; exit 1; }
+          
+            log "Installing mkcert local CA (may prompt)..."
+            "$mkcert_path" -install
+          
+            log "Generating local TLS cert for $DOMAIN"
+            "$mkcert_path" -cert-file "$CERT_DIR/pear.pem" -key-file "$CERT_DIR/pear-key.pem" "$DOMAIN"
+          }
+          
+          caddy_start_ci() {
             local caddy_path
             caddy_path="$(command -v caddy)"
             [[ -n "$caddy_path" ]] || { err "caddy not found"; exit 1; }
           
-            log "Installing launchd daemon for Caddy (starts on reboot)"
+            # Stop any previous instance
+            if [[ -f "$PID_FILE" ]]; then
+              local oldpid
+              oldpid="$(/bin/cat "$PID_FILE" 2>/dev/null || true)"
+              if [[ -n "${oldpid:-}" ]] && /bin/kill -0 "$oldpid" >/dev/null 2>&1; then
+                log "Stopping previous Caddy pid $oldpid"
+                /usr/bin/sudo /bin/kill "$oldpid" >/dev/null 2>&1 || true
+              fi
+              /usr/bin/sudo /bin/rm -f "$PID_FILE" || true
+            fi
+          
+            log "Starting Caddy (CI mode) on :443"
+            /usr/bin/sudo /usr/bin/env HOME="$DATA_DIR" XDG_DATA_HOME="$DATA_DIR" \
+              "$caddy_path" run --config "$CADDYFILE" --adapter caddyfile \
+              >>/tmp/pear-mirror-caddy.log 2>>/tmp/pear-mirror-caddy.err.log &
+          
+            /usr/bin/sudo /bin/sh -c "echo \$! > '$PID_FILE'"
+          
+            # Wait for it to listen
+            for i in {1..30}; do
+              if /usr/bin/sudo /usr/sbin/lsof -nP -iTCP:443 -sTCP:LISTEN >/dev/null 2>&1; then
+                log "Caddy is listening on 443"
+                return 0
+              fi
+              /bin/sleep 0.2
+            done
+          
+            err "Caddy did not start. Tail logs:"
+            /usr/bin/tail -n 100 /tmp/pear-mirror-caddy.err.log || true
+            exit 1
+          }
+          
+          install_launchd_local() {
+            local caddy_path
+            caddy_path="$(command -v caddy)"
+            [[ -n "$caddy_path" ]] || { err "caddy not found"; exit 1; }
+          
+            log "Installing launchd daemon for Caddy (local mode)"
             sudo_write_file "$PLIST_CADDY" "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
           <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
           <plist version=\"1.0\">
@@ -175,6 +239,11 @@ jobs:
               <string>--adapter</string>
               <string>caddyfile</string>
             </array>
+            <key>EnvironmentVariables</key>
+            <dict>
+              <key>HOME</key><string>$DATA_DIR</string>
+              <key>XDG_DATA_HOME</key><string>$DATA_DIR</string>
+            </dict>
             <key>RunAtLoad</key><true/>
             <key>KeepAlive</key><true/>
             <key>StandardOutPath</key><string>/var/log/pear-mirror-caddy.log</string>
@@ -182,7 +251,6 @@ jobs:
           </dict>
           </plist>"
             /usr/bin/sudo /bin/chmod 644 "$PLIST_CADDY"
-            bootstrap_daemon "$PLIST_CADDY"
           
             log "Installing launchd daemon for weekly sync (Sunday 03:00 + on boot)"
             sudo_write_file "$PLIST_SYNC" "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
@@ -206,87 +274,77 @@ jobs:
           </dict>
           </plist>"
             /usr/bin/sudo /bin/chmod 644 "$PLIST_SYNC"
-            bootstrap_daemon "$PLIST_SYNC"
+          
+            # Load (best-effort)
+            /usr/bin/sudo /bin/launchctl bootout system "$PLIST_CADDY" >/dev/null 2>&1 || true
+            /usr/bin/sudo /bin/launchctl bootout system "$PLIST_SYNC"  >/dev/null 2>&1 || true
+            /usr/bin/sudo /bin/launchctl bootstrap system "$PLIST_CADDY"
+            /usr/bin/sudo /bin/launchctl bootstrap system "$PLIST_SYNC"
           }
           
-          setup() {
+          sync_now() {
+            log "Syncing from $UPSTREAM_URL (will FAIL if upstream fails)"
+            /usr/bin/sudo "$SYNC_SCRIPT"
+          }
+          
+          test_now() {
+            /usr/bin/curl -Iv "$UPSTREAM_URL" || true
+            /usr/bin/curl -fsSL -o /tmp/test.phar "$UPSTREAM_URL"
+            /usr/bin/file /tmp/test.phar
+            /bin/ls -lh /tmp/test.phar
+          }
+          
+          setup_common() {
             need /usr/bin/sudo
             need /usr/bin/curl
             need /usr/bin/file
             need /usr/bin/grep
             need /usr/bin/tee
-            need /bin/launchctl
+            need /usr/bin/sed
+            need /usr/sbin/lsof
           
             ensure_brew
             ensure_pkg "mkcert"
             ensure_pkg "caddy"
           
-            local mkcert_path
-            mkcert_path="$(command -v mkcert)"
-            [[ -n "$mkcert_path" ]] || { err "mkcert not found"; exit 1; }
-          
-            log "Installing mkcert local CA into macOS trust store (may prompt)..."
-            "$mkcert_path" -install
-          
-            log "Preparing directories under $BASE"
-            /usr/bin/sudo /bin/mkdir -p "$CACHE_DIR" "$CERT_DIR"
-            /usr/bin/sudo /usr/sbin/chown -R "$USER":staff "$BASE"
-          
-            log "Generating local TLS cert for $DOMAIN"
-            "$mkcert_path" -cert-file "$CERT_DIR/pear.pem" -key-file "$CERT_DIR/pear-key.pem" "$DOMAIN"
+            make_dirs_and_perms
+            mkcert_setup
           
             make_sync_script
-          
-            log "Initial sync from $UPSTREAM_URL (will FAIL if upstream fails)"
-            /usr/bin/sudo "$SYNC_SCRIPT"   # exits non-zero on failure, and won't overwrite existing cache
+            # First sync BEFORE we install hosts override (so it must come from real upstream)
+            sync_now
           
             make_caddyfile
-          
-            append_hosts_if_missing "127.0.0.1 $DOMAIN"
-            append_hosts_if_missing "::1 $DOMAIN"
-          
-            install_launchd
-          
-            log "Setup complete."
-            log "Test:"
-            log "  /usr/bin/curl -fsSL -o /tmp/test.phar https://$DOMAIN$REQ_PATH && /usr/bin/file /tmp/test.phar"
-            log "Logs:"
-            log "  /var/log/pear-mirror-caddy.log"
-            log "  /var/log/pear-mirror-sync.log"
+            hosts_install_block
           }
           
-          sync_now() { /usr/bin/sudo "$SYNC_SCRIPT"; }
+          mode_ci() {
+            setup_common
+            caddy_start_ci
           
-          test_now() {
-            /usr/bin/curl -fsSL -o /tmp/test.phar "https://$DOMAIN$REQ_PATH"
+            log "CI mode ready. Verify:"
+            /usr/bin/curl -fsSL -o /tmp/test.phar "$UPSTREAM_URL"
             /usr/bin/file /tmp/test.phar
-            /bin/ls -lh /tmp/test.phar
           }
           
-          status() {
-            /bin/launchctl print system/com.pear-mirror.caddy >/dev/null 2>&1 && log "Caddy: loaded" || log "Caddy: not loaded"
-            /bin/launchctl print system/com.pear-mirror.sync  >/dev/null 2>&1 && log "Sync : loaded" || log "Sync : not loaded"
-            if [[ -f "$CACHED_FILE" ]]; then
-              log "Cache: present ($CACHED_FILE)"
-              /bin/ls -lh "$CACHED_FILE" || true
-              /usr/bin/file "$CACHED_FILE" || true
-            else
-              log "Cache: missing ($CACHED_FILE)"
-            fi
+          mode_local() {
+            setup_common
+            install_launchd_local
+          
+            log "Local mode installed. If Caddy doesn't come up, check:"
+            log "  sudo tail -n 200 /var/log/pear-mirror-caddy.err.log"
           }
           
-          case "${1:-setup}" in
-            setup) setup ;;
+          case "${1:-ci}" in
+            ci)    mode_ci ;;
+            local) mode_local ;;
             sync)  sync_now ;;
             test)  test_now ;;
-            status) status ;;
             *)
-              err "Usage: $0 [setup|sync|test|status]"
+              err "Usage: $0 [ci|local|sync|test]"
               exit 2
               ;;
           esac
-
-
       - run: |
           curl -Iv https://pear.php.net/install-pear-nozlib.phar
           curl -o /tmp/pear.phar -sL https://pear.php.net/install-pear-nozlib.phar
