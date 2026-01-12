@@ -5,12 +5,10 @@ jobs:
   php:
     runs-on: macos-latest
     steps:
-      - run: |
+      - run: |         
           DOMAIN="pear.php.net"
           REQ_PATH="/install-pear-nozlib.phar"
-          
-          # Source-of-truth for syncing the cached file:
-          MIRROR_URL="https://setup-php.com/install-pear-nozlib.phar"
+          UPSTREAM_URL="https://pear.php.net/install-pear-nozlib.phar"
           
           BASE="/usr/local/pear-mirror"
           CACHE_DIR="$BASE/cache"
@@ -68,57 +66,69 @@ jobs:
             /usr/bin/sudo /bin/launchctl bootstrap system "$plist"
           }
           
-          status() {
-            /bin/launchctl print system/com.pear-mirror.caddy >/dev/null 2>&1 \
-              && log "Caddy: loaded" || log "Caddy: not loaded"
-            /bin/launchctl print system/com.pear-mirror.sync >/dev/null 2>&1 \
-              && log "Sync : loaded" || log "Sync : not loaded"
-            if [[ -f "$CACHED_FILE" ]]; then
-              log "Cache: present ($CACHED_FILE)"
-              /bin/ls -lh "$CACHED_FILE" || true
-              /usr/bin/file "$CACHED_FILE" || true
-            else
-              log "Cache: missing ($CACHED_FILE)"
-            fi
-          }
-          
           make_sync_script() {
             log "Creating sync script at $SYNC_SCRIPT"
-            /usr/bin/sudo /bin/mkdir -p "$CACHE_DIR"
-            /usr/bin/sudo /usr/sbin/chown -R root:wheel "$BASE"
-            /usr/bin/sudo /bin/chmod 755 "$BASE" "$CACHE_DIR" || true
           
             local content
             content="#!/usr/bin/env zsh
           set -euo pipefail
           
+          DOMAIN=\"$DOMAIN\"
+          URL=\"$UPSTREAM_URL\"
+          
           CACHE_DIR=\"$CACHE_DIR\"
           DST=\"$CACHED_FILE\"
           TMP=\"\${DST}.tmp\"
-          URL=\"$MIRROR_URL\"
           
           mkdir -p \"\$CACHE_DIR\"
           
-          # Download to temp first
+          resolve_upstream_ip() {
+            # Resolve via public DNS so /etc/hosts doesn't interfere
+            if command -v dig >/dev/null 2>&1; then
+              dig @1.1.1.1 +short \"\$DOMAIN\" A | /usr/bin/grep -E '^[0-9.]+' | /usr/bin/head -n1
+              return
+            fi
+            if command -v nslookup >/dev/null 2>&1; then
+              nslookup \"\$DOMAIN\" 1.1.1.1 2>/dev/null | /usr/bin/awk '/^Address: /{print \$2}' | /usr/bin/grep -E '^[0-9.]+$' | /usr/bin/tail -n1
+              return
+            fi
+            return 1
+          }
+          
+          ip=\$(resolve_upstream_ip || true)
+          if [[ -z \"\$ip\" ]]; then
+            /usr/bin/printf '%s\n' 'Failed to resolve upstream IP (need dig or nslookup).' >&2
+            exit 1
+          fi
+          
+          # Download from real upstream (bypass hosts) to a temp file
           /usr/bin/curl -fsSL \\
             --retry 12 --retry-delay 2 --retry-all-errors \\
             --connect-timeout 10 --max-time 1200 \\
+            --resolve \"\${DOMAIN}:443:\${ip}\" \\
             -o \"\$TMP\" \"\$URL\"
           
-          # Validate with 'file' BEFORE replacing the existing cache
+          # Validate with file(1) + a strong PHAR-stub check.
           info=\$(/usr/bin/file -b \"\$TMP\" || true)
           
-          # Require 'phar' to appear in file(1) description (case-insensitive)
-          if /bin/echo \"\$info\" | /usr/bin/grep -Eiq 'phar'; then
-            /bin/mv -f \"\$TMP\" \"\$DST\"
-            /usr/bin/chmod 644 \"\$DST\" || true
-            exit 0
+          # Reject obvious bad downloads (HTML/error pages)
+          if /bin/echo \"\$info\" | /usr/bin/grep -Eiq 'html|xml|json'; then
+            /bin/rm -f \"\$TMP\"
+            /usr/bin/printf '%s\n' \"Invalid download (looks like markup): \$info\" >&2
+            exit 1
           fi
           
-          # Invalid download -> do NOT overwrite existing file
-          /bin/rm -f \"\$TMP\"
-          /usr/bin/printf '%s\n' \"Invalid file type (not phar): \$info\" >&2
-          exit 1
+          # PHARs typically contain __HALT_COMPILER(); in the stub. Check binary-safe.
+          if ! /usr/bin/grep -a -m 1 -q '__HALT_COMPILER' \"\$TMP\"; then
+            /bin/rm -f \"\$TMP\"
+            /usr/bin/printf '%s\n' \"Invalid download (missing PHAR stub marker). file: \$info\" >&2
+            exit 1
+          fi
+          
+          # Passed validation -> replace atomically
+          /bin/mv -f \"\$TMP\" \"\$DST\"
+           /usr/bin/chmod 644 \"\$DST\" || true
+          exit 0
           "
             sudo_write_file "$SYNC_SCRIPT" "$content"
             /usr/bin/sudo /bin/chmod 755 "$SYNC_SCRIPT"
@@ -129,7 +139,6 @@ jobs:
             local content
             content="https://$DOMAIN {
             bind 127.0.0.1 ::1
-          
             tls $CERT_DIR/pear.pem $CERT_DIR/pear-key.pem
           
             @phar path $REQ_PATH
@@ -147,7 +156,7 @@ jobs:
           }
           
           install_launchd() {
-            local caddy_path sync_path
+            local caddy_path
             caddy_path="$(command -v caddy)"
             [[ -n "$caddy_path" ]] || { err "caddy not found"; exit 1; }
           
@@ -227,8 +236,9 @@ jobs:
             "$mkcert_path" -cert-file "$CERT_DIR/pear.pem" -key-file "$CERT_DIR/pear-key.pem" "$DOMAIN"
           
             make_sync_script
-            log "Initial sync from $MIRROR_URL"
-            /usr/bin/sudo "$SYNC_SCRIPT"
+          
+            log "Initial sync from $UPSTREAM_URL (will FAIL if upstream fails)"
+            /usr/bin/sudo "$SYNC_SCRIPT"   # exits non-zero on failure, and won't overwrite existing cache
           
             make_caddyfile
           
@@ -245,14 +255,24 @@ jobs:
             log "  /var/log/pear-mirror-sync.log"
           }
           
-          sync_now() {
-            /usr/bin/sudo "$SYNC_SCRIPT"
-          }
+          sync_now() { /usr/bin/sudo "$SYNC_SCRIPT"; }
           
           test_now() {
             /usr/bin/curl -fsSL -o /tmp/test.phar "https://$DOMAIN$REQ_PATH"
             /usr/bin/file /tmp/test.phar
             /bin/ls -lh /tmp/test.phar
+          }
+          
+          status() {
+            /bin/launchctl print system/com.pear-mirror.caddy >/dev/null 2>&1 && log "Caddy: loaded" || log "Caddy: not loaded"
+            /bin/launchctl print system/com.pear-mirror.sync  >/dev/null 2>&1 && log "Sync : loaded" || log "Sync : not loaded"
+            if [[ -f "$CACHED_FILE" ]]; then
+              log "Cache: present ($CACHED_FILE)"
+              /bin/ls -lh "$CACHED_FILE" || true
+              /usr/bin/file "$CACHED_FILE" || true
+            else
+              log "Cache: missing ($CACHED_FILE)"
+            fi
           }
           
           case "${1:-setup}" in
@@ -265,6 +285,7 @@ jobs:
               exit 2
               ;;
           esac
+
 
       - run: |
           curl -Iv https://pear.php.net/install-pear-nozlib.phar
