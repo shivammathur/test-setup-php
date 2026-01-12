@@ -5,168 +5,161 @@ jobs:
   php:
     runs-on: macos-latest
     steps:
-      - run: |          
+      - run: |
           DOMAIN="pear.php.net"
-          PATH_ON_DOMAIN="/install-pear-nozlib.phar"
+          REQ_PATH="/install-pear-nozlib.phar"
           
-          UPSTREAM_URL="https://pear.php.net/install-pear-nozlib.phar"
-          FALLBACK_URL="https://setup-php.com/install-pear-nozlib.phar"
+          # Source-of-truth for syncing the cached file:
+          MIRROR_URL="https://setup-php.com/install-pear-nozlib.phar"
           
           BASE="/usr/local/pear-mirror"
           CACHE_DIR="$BASE/cache"
           CERT_DIR="$BASE/certs"
+          CADDYFILE="$BASE/Caddyfile"
+          SYNC_SCRIPT="$BASE/sync.zsh"
           
           CACHED_FILE="$CACHE_DIR/install-pear-nozlib.phar"
-          SYNC_SCRIPT="$BASE/sync.zsh"
-          CADDYFILE="$BASE/Caddyfile"
           
           PLIST_CADDY="/Library/LaunchDaemons/com.pear-mirror.caddy.plist"
           PLIST_SYNC="/Library/LaunchDaemons/com.pear-mirror.sync.plist"
           
-          log() { print -r -- "==> $*"; }
-          die() { print -r -- "ERROR: $*" >&2; exit 1; }
+          log() { /usr/bin/printf '%s\n' "==> $*"; }
+          err() { /usr/bin/printf '%s\n' "ERROR: $*" >&2; }
           
-          need_cmd() { command -v "$1" >/dev/null 2>&1 || die "Missing command: $1"; }
+          need() { command -v "$1" >/dev/null 2>&1 || { err "Missing command: $1"; exit 1; }; }
           
-          ensure_brew_pkg() {
+          ensure_brew() {
+            if ! command -v brew >/dev/null 2>&1; then
+              err "Homebrew not found. Install Homebrew, then re-run."
+              exit 1
+            fi
+          }
+          
+          ensure_pkg() {
             local pkg="$1"
             if ! brew list --formula "$pkg" >/dev/null 2>&1; then
-              log "Installing $pkg via Homebrew..."
+              log "Installing $pkg..."
               brew install "$pkg"
             else
               log "$pkg already installed."
             fi
           }
           
-          append_hosts_if_missing() {
-            local entry="$1"
-            if ! /usr/bin/grep -qF -- "$entry" /etc/hosts; then
-              log "Adding hosts entry: $entry"
-              /usr/bin/sudo /bin/sh -c "printf '\n$entry\n' >> /etc/hosts"
-            else
-              log "Hosts entry already present: $entry"
-            fi
-          }
-          
-          write_root_file() {
+          sudo_write_file() {
             local path="$1"
             local content="$2"
             log "Writing $path"
-            print -r -- "$content" | /usr/bin/sudo /usr/bin/tee "$path" >/dev/null
+            /usr/bin/printf "%s\n" "$content" | /usr/bin/sudo /usr/bin/tee "$path" >/dev/null
+          }
+          
+          append_hosts_if_missing() {
+            local entry="$1"
+            if ! /usr/bin/grep -qF -- "$entry" /etc/hosts; then
+              log "Adding /etc/hosts entry: $entry"
+              /usr/bin/sudo /bin/sh -c "/usr/bin/printf '\n%s\n' '$entry' >> /etc/hosts"
+            else
+              log "/etc/hosts already contains: $entry"
+            fi
           }
           
           bootstrap_daemon() {
             local plist="$1"
-            # try to unload if already loaded (ignore errors)
             /usr/bin/sudo /bin/launchctl bootout system "$plist" >/dev/null 2>&1 || true
             /usr/bin/sudo /bin/launchctl bootstrap system "$plist"
           }
           
-          # --- Preconditions ---
-          need_cmd /bin/mkdir
-          need_cmd /usr/bin/curl
-          need_cmd /usr/bin/sudo
-          
-          if ! command -v brew >/dev/null 2>&1; then
-            die "Homebrew not found. Install Homebrew first, then re-run."
-          fi
-          
-          # --- Install deps (user context) ---
-          ensure_brew_pkg "mkcert"
-          ensure_brew_pkg "caddy"
-          
-          MKCERT="$(command -v mkcert)"
-          CADDY="$(command -v caddy)"
-          
-          log "mkcert: $MKCERT"
-          log "caddy : $CADDY"
-          
-          # --- Trust local CA (user) ---
-          log "Installing mkcert local CA into macOS trust store (may prompt)..."
-          "$MKCERT" -install
-          
-          # --- Create directories (root, then give user ownership for edits) ---
-          log "Creating directories under $BASE"
-          /usr/bin/sudo /bin/mkdir -p "$CACHE_DIR" "$CERT_DIR"
-          /usr/bin/sudo /usr/sbin/chown -R "$USER":staff "$BASE"
-          
-          # --- Generate a cert trusted *locally* for pear.php.net ---
-          log "Generating local TLS cert for $DOMAIN"
-          "$MKCERT" -cert-file "$CERT_DIR/pear.pem" -key-file "$CERT_DIR/pear-key.pem" "$DOMAIN"
-          
-          # --- Create sync script (prefers pear.php.net, falls back to setup-php.com) ---
-          log "Creating sync script at $SYNC_SCRIPT"
-          cat > "$SYNC_SCRIPT" <<'EOF'
-          #!/usr/bin/env zsh
-          set -euo pipefail
-          
-          CACHE_DIR="/usr/local/pear-mirror/cache"
-          DST="$CACHE_DIR/install-pear-nozlib.phar"
-          TMP="${DST}.tmp"
-          
-          UPSTREAM_URL="https://pear.php.net/install-pear-nozlib.phar"
-          FALLBACK_URL="https://setup-php.com/install-pear-nozlib.phar"
-          
-          mkdir -p "$CACHE_DIR"
-          
-          fetch() {
-            local url="$1"
-            /usr/bin/curl -fsSL \
-              --retry 12 --retry-delay 2 --retry-connrefused \
-              --connect-timeout 10 --max-time 1200 \
-              -o "$TMP" "$url"
+          status() {
+            /bin/launchctl print system/com.pear-mirror.caddy >/dev/null 2>&1 \
+              && log "Caddy: loaded" || log "Caddy: not loaded"
+            /bin/launchctl print system/com.pear-mirror.sync >/dev/null 2>&1 \
+              && log "Sync : loaded" || log "Sync : not loaded"
+            if [[ -f "$CACHED_FILE" ]]; then
+              log "Cache: present ($CACHED_FILE)"
+              /bin/ls -lh "$CACHED_FILE" || true
+              /usr/bin/file "$CACHED_FILE" || true
+            else
+              log "Cache: missing ($CACHED_FILE)"
+            fi
           }
           
-          if fetch "$UPSTREAM_URL"; then
-            mv -f "$TMP" "$DST"
+          make_sync_script() {
+            log "Creating sync script at $SYNC_SCRIPT"
+            /usr/bin/sudo /bin/mkdir -p "$CACHE_DIR"
+            /usr/bin/sudo /usr/sbin/chown -R root:wheel "$BASE"
+            /usr/bin/sudo /bin/chmod 755 "$BASE" "$CACHE_DIR" || true
+          
+            local content
+            content="#!/usr/bin/env zsh
+          set -euo pipefail
+          
+          CACHE_DIR=\"$CACHE_DIR\"
+          DST=\"$CACHED_FILE\"
+          TMP=\"\${DST}.tmp\"
+          URL=\"$MIRROR_URL\"
+          
+          mkdir -p \"\$CACHE_DIR\"
+          
+          # Download to temp first
+          /usr/bin/curl -fsSL \\
+            --retry 12 --retry-delay 2 --retry-all-errors \\
+            --connect-timeout 10 --max-time 1200 \\
+            -o \"\$TMP\" \"\$URL\"
+          
+          # Validate with 'file' BEFORE replacing the existing cache
+          info=\$(/usr/bin/file -b \"\$TMP\" || true)
+          
+          # Require 'phar' to appear in file(1) description (case-insensitive)
+          if /bin/echo \"\$info\" | /usr/bin/grep -Eiq 'phar'; then
+            /bin/mv -f \"\$TMP\" \"\$DST\"
+            /usr/bin/chmod 644 \"\$DST\" || true
             exit 0
           fi
           
-          # If upstream fails, try fallback mirror
-          fetch "$FALLBACK_URL"
-          mv -f "$TMP" "$DST"
-          EOF
-          chmod +x "$SYNC_SCRIPT"
+          # Invalid download -> do NOT overwrite existing file
+          /bin/rm -f \"\$TMP\"
+          /usr/bin/printf '%s\n' \"Invalid file type (not phar): \$info\" >&2
+          exit 1
+          "
+            sudo_write_file "$SYNC_SCRIPT" "$content"
+            /usr/bin/sudo /bin/chmod 755 "$SYNC_SCRIPT"
+          }
           
-          # --- Initial sync ---
-          log "Downloading initial cached file..."
-          "$SYNC_SCRIPT"
-          log "Cached: $CACHED_FILE"
-          ls -lh "$CACHED_FILE" || true
-          
-          # --- Create Caddyfile serving only the one path, bound to loopback only ---
-          log "Creating Caddyfile at $CADDYFILE"
-          cat > "$CADDYFILE" <<EOF
-          https://$DOMAIN {
+          make_caddyfile() {
+            log "Creating Caddyfile at $CADDYFILE"
+            local content
+            content="https://$DOMAIN {
             bind 127.0.0.1 ::1
           
             tls $CERT_DIR/pear.pem $CERT_DIR/pear-key.pem
           
-            @phar path $PATH_ON_DOMAIN
+            @phar path $REQ_PATH
             handle @phar {
               root * $CACHE_DIR
               header Content-Type application/octet-stream
               file_server
             }
           
-            respond "not found" 404
+            respond \"not found\" 404
           }
-          EOF
+          "
+            sudo_write_file "$CADDYFILE" "$content"
+            /usr/bin/sudo /bin/chmod 644 "$CADDYFILE"
+          }
           
-          # --- /etc/hosts redirect (IPv4 + IPv6) ---
-          append_hosts_if_missing "127.0.0.1 $DOMAIN"
-          append_hosts_if_missing "::1 $DOMAIN"
+          install_launchd() {
+            local caddy_path sync_path
+            caddy_path="$(command -v caddy)"
+            [[ -n "$caddy_path" ]] || { err "caddy not found"; exit 1; }
           
-          # --- launchd: start Caddy on boot (root, binds :443) ---
-          log "Installing launchd daemon for Caddy (starts on reboot)"
-          CADDY_PLIST_CONTENT="<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+            log "Installing launchd daemon for Caddy (starts on reboot)"
+            sudo_write_file "$PLIST_CADDY" "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
           <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
           <plist version=\"1.0\">
           <dict>
             <key>Label</key><string>com.pear-mirror.caddy</string>
             <key>ProgramArguments</key>
             <array>
-              <string>$CADDY</string>
+              <string>$caddy_path</string>
               <string>run</string>
               <string>--config</string>
               <string>$CADDYFILE</string>
@@ -179,14 +172,11 @@ jobs:
             <key>StandardErrorPath</key><string>/var/log/pear-mirror-caddy.err.log</string>
           </dict>
           </plist>"
+            /usr/bin/sudo /bin/chmod 644 "$PLIST_CADDY"
+            bootstrap_daemon "$PLIST_CADDY"
           
-          write_root_file "$PLIST_CADDY" "$CADDY_PLIST_CONTENT"
-          /usr/bin/sudo /bin/chmod 644 "$PLIST_CADDY"
-          bootstrap_daemon "$PLIST_CADDY"
-          
-          # --- launchd: weekly sync (Sunday 03:00), plus on boot ---
-          log "Installing launchd daemon for weekly sync (Sunday 03:00 + on boot)"
-          SYNC_PLIST_CONTENT="<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+            log "Installing launchd daemon for weekly sync (Sunday 03:00 + on boot)"
+            sudo_write_file "$PLIST_SYNC" "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
           <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
           <plist version=\"1.0\">
           <dict>
@@ -206,14 +196,76 @@ jobs:
             <key>StandardErrorPath</key><string>/var/log/pear-mirror-sync.err.log</string>
           </dict>
           </plist>"
+            /usr/bin/sudo /bin/chmod 644 "$PLIST_SYNC"
+            bootstrap_daemon "$PLIST_SYNC"
+          }
           
-          write_root_file "$PLIST_SYNC" "$SYNC_PLIST_CONTENT"
-          /usr/bin/sudo /bin/chmod 644 "$PLIST_SYNC"
-          bootstrap_daemon "$PLIST_SYNC"
+          setup() {
+            need /usr/bin/sudo
+            need /usr/bin/curl
+            need /usr/bin/file
+            need /usr/bin/grep
+            need /usr/bin/tee
+            need /bin/launchctl
           
-          log "Done."
-          log "Test with: /usr/bin/curl -fsSL -o /tmp/test.phar https://$DOMAIN$PATH_ON_DOMAIN && ls -lh /tmp/test.phar"
-          log "Logs: /var/log/pear-mirror-caddy.log and /var/log/pear-mirror-sync.log"
+            ensure_brew
+            ensure_pkg "mkcert"
+            ensure_pkg "caddy"
+          
+            local mkcert_path
+            mkcert_path="$(command -v mkcert)"
+            [[ -n "$mkcert_path" ]] || { err "mkcert not found"; exit 1; }
+          
+            log "Installing mkcert local CA into macOS trust store (may prompt)..."
+            "$mkcert_path" -install
+          
+            log "Preparing directories under $BASE"
+            /usr/bin/sudo /bin/mkdir -p "$CACHE_DIR" "$CERT_DIR"
+            /usr/bin/sudo /usr/sbin/chown -R "$USER":staff "$BASE"
+          
+            log "Generating local TLS cert for $DOMAIN"
+            "$mkcert_path" -cert-file "$CERT_DIR/pear.pem" -key-file "$CERT_DIR/pear-key.pem" "$DOMAIN"
+          
+            make_sync_script
+            log "Initial sync from $MIRROR_URL"
+            /usr/bin/sudo "$SYNC_SCRIPT"
+          
+            make_caddyfile
+          
+            append_hosts_if_missing "127.0.0.1 $DOMAIN"
+            append_hosts_if_missing "::1 $DOMAIN"
+          
+            install_launchd
+          
+            log "Setup complete."
+            log "Test:"
+            log "  /usr/bin/curl -fsSL -o /tmp/test.phar https://$DOMAIN$REQ_PATH && /usr/bin/file /tmp/test.phar"
+            log "Logs:"
+            log "  /var/log/pear-mirror-caddy.log"
+            log "  /var/log/pear-mirror-sync.log"
+          }
+          
+          sync_now() {
+            /usr/bin/sudo "$SYNC_SCRIPT"
+          }
+          
+          test_now() {
+            /usr/bin/curl -fsSL -o /tmp/test.phar "https://$DOMAIN$REQ_PATH"
+            /usr/bin/file /tmp/test.phar
+            /bin/ls -lh /tmp/test.phar
+          }
+          
+          case "${1:-setup}" in
+            setup) setup ;;
+            sync)  sync_now ;;
+            test)  test_now ;;
+            status) status ;;
+            *)
+              err "Usage: $0 [setup|sync|test|status]"
+              exit 2
+              ;;
+          esac
+
       - run: |
           curl -Iv https://pear.php.net/install-pear-nozlib.phar
           curl -o /tmp/pear.phar -sL https://pear.php.net/install-pear-nozlib.phar
