@@ -3,16 +3,14 @@ on: [ push]
 
 jobs:
   php:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
-      - run: |
-          Install-Module -Name BuildPhpExtension -Repository PSGallery -Force -Scope CurrentUser
-          Invoke-PhpBuildExtension -ExtensionUrl https://github.com/remicollet/php-xpass `
-                         -ExtensionRef master `
-                         -PhpVersion 8.4 `
-                         -Arch x64 `
-                         -Ts nts `
-                         -Args "--enable-xpass"
-      - if: failure()
-        uses: mxschmitt/action-tmate@v3.23                  
+      - uses: shivammathur/setup-php@v2  
+        with:
+          php-version: 8.4
+          extensions: redis
+      - run: php --ri redis    
 
