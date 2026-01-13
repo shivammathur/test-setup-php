@@ -1,8 +1,7 @@
 name: Runner
-on: [ push]
-
+on: [push]
 jobs:
-  php:
+  runner:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -12,5 +11,7 @@ jobs:
         with:
           php-version: 8.4
           extensions: redis
-      - run: php --ri redis    
+      - run: |
+          php -v
+          php --ri redis    
 
