@@ -6,13 +6,18 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest]
-        php: [7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5]
     steps:
-      - uses: shivammathur/setup-php@more-verbose
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: redis
+      - run: |
+          Install-Module -Name BuildPhpExtension -Repository PSGallery -Force -Scope CurrentUser
+          Invoke-PhpBuildExtension -ExtensionUrl https://pecl.php.net/package/redis `
+                         -ExtensionRef 6.3.0 `
+                         -PhpVersion 8.4 `
+                         -Arch x64 `
+                         -Ts nts `
+                         -Args "--enable-redis --enable-redis-session --enable-redis-igbinary"
       - run: |
           php -v
-          php --ri redis
+          php -m
+      - uses: mxschmitt/action-tmate@v3.23
+
 
