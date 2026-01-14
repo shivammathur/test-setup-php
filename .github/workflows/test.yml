@@ -12,6 +12,8 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: redis
+        env:
+          use_package_cache: false
       - run: |
           php -v
           php --ri redis    
