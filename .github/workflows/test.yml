@@ -16,5 +16,6 @@ jobs:
           use_package_cache: false
       - run: |
           php -v
-          php --ri redis    
+          php --ri redis  
+      - uses: mxschmitt/action-tmate@v3.23    
 
