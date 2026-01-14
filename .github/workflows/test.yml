@@ -5,18 +5,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-22.04-arm, ubuntu-24.04-arm]
-        php: [8.2]
-        #php: [5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6]
+        os: [ubuntu-24.04]
+        php: [5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6]
     steps:
       - uses: shivammathur/setup-php@more-verbose
         with:
           php-version: ${{ matrix.php }}
           extensions: redis
-        env:
-          use_package_cache: false
       - run: |
           php -v
-          php -m
           php --ri redis
 
