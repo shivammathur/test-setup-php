@@ -10,9 +10,6 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15, windows-2022]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup PHP with phar tools
         uses: shivammathur/setup-php@develop
         with:
@@ -70,9 +67,6 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15, windows-2022]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup PHP with composer tools
         uses: shivammathur/setup-php@develop
         with:
@@ -106,9 +100,6 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15, windows-2022]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup PHP with custom-function tools
         uses: shivammathur/setup-php@develop
         with:
@@ -148,9 +139,6 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup PHP with WP-CLI
         uses: shivammathur/setup-php@develop
         with:
@@ -171,9 +159,6 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15, windows-2022]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup PHP with latest tool versions
         uses: shivammathur/setup-php@develop
         with:
@@ -200,9 +185,6 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15, windows-2022]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup PHP with major.minor versions
         uses: shivammathur/setup-php@develop
         with:
@@ -231,9 +213,6 @@ jobs:
         os: [ubuntu-24.04, macos-15, windows-2022]
         composer: ['1', '2', 'stable', 'preview']
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup PHP with composer ${{ matrix.composer }}
         uses: shivammathur/setup-php@develop
         with:
@@ -252,9 +231,6 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15, windows-2022]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup PHP with tool aliases
         uses: shivammathur/setup-php@develop
         with:
@@ -263,12 +239,12 @@ jobs:
             phpdoc:3.5.0,
             ecs:12.3.0
 
-      - name: Test phpDocumentor (alias: phpdoc)
+      - name: Test phpDocumentor (alias - phpdoc)
         run: |
           phpdoc --version
           php -r "if(strpos(shell_exec('phpdoc --version'), '3.5.0') === false) { exit(1); }"
 
-      - name: Test Easy Coding Standard (alias: ecs)
+      - name: Test Easy Coding Standard (alias - ecs)
         run: |
           ecs --version
           php -r "if(strpos(shell_exec('ecs --version'), '12.3.0') === false) { exit(1); }"
@@ -282,9 +258,6 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15, windows-2022]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup PHP with user/repo tools
         uses: shivammathur/setup-php@develop
         with:
@@ -306,9 +279,6 @@ jobs:
         os: [ubuntu-24.04]
         php: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup PHP ${{ matrix.php }} with tools
         uses: shivammathur/setup-php@develop
         with:
@@ -330,9 +300,6 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup PHP with dev tools
         uses: shivammathur/setup-php@develop
         with:
@@ -354,9 +321,6 @@ jobs:
       matrix:
         os: [ubuntu-24.04, macos-15]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup PHP with PECL
         uses: shivammathur/setup-php@develop
         with:
