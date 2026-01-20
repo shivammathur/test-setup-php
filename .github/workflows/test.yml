@@ -11,7 +11,7 @@ jobs:
         os: [ubuntu-24.04, macos-15, windows-2022]
     steps:
       - name: Setup PHP with phar tools
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: >-
@@ -68,7 +68,7 @@ jobs:
         os: [ubuntu-24.04, macos-15, windows-2022]
     steps:
       - name: Setup PHP with composer tools
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: >-
@@ -101,7 +101,7 @@ jobs:
         os: [ubuntu-24.04, macos-15, windows-2022]
     steps:
       - name: Setup PHP with custom-function tools
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: >-
@@ -140,7 +140,7 @@ jobs:
         os: [ubuntu-24.04, macos-15]
     steps:
       - name: Setup PHP with WP-CLI
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: wp-cli:2.11.0
@@ -160,7 +160,7 @@ jobs:
         os: [ubuntu-24.04, macos-15, windows-2022]
     steps:
       - name: Setup PHP with latest tool versions
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: >-
@@ -186,7 +186,7 @@ jobs:
         os: [ubuntu-24.04, macos-15, windows-2022]
     steps:
       - name: Setup PHP with major.minor versions
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: >-
@@ -214,7 +214,7 @@ jobs:
         composer: ['1', '2', 'stable', 'preview']
     steps:
       - name: Setup PHP with composer ${{ matrix.composer }}
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: composer:${{ matrix.composer }}
@@ -232,7 +232,7 @@ jobs:
         os: [ubuntu-24.04, macos-15, windows-2022]
     steps:
       - name: Setup PHP with tool aliases
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: >-
@@ -259,7 +259,7 @@ jobs:
         os: [ubuntu-24.04, macos-15, windows-2022]
     steps:
       - name: Setup PHP with user/repo tools
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: laravel/pint:1.18.0
@@ -280,7 +280,7 @@ jobs:
         php: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
     steps:
       - name: Setup PHP ${{ matrix.php }} with tools
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           tools: composer, phpunit
@@ -301,7 +301,7 @@ jobs:
         os: [ubuntu-24.04, macos-15]
     steps:
       - name: Setup PHP with dev tools
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: php-config, phpize
@@ -322,7 +322,7 @@ jobs:
         os: [ubuntu-24.04, macos-15]
     steps:
       - name: Setup PHP with PECL
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: pecl
