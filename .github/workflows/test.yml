@@ -73,7 +73,7 @@ jobs:
           php-version: '8.3'
           tools: >-
             rector:1.2.0,
-            behat:3.14.0,
+            behat:3.28.0,
             phinx:0.16.0
 
       - name: Test Rector
@@ -84,7 +84,7 @@ jobs:
       - name: Test Behat
         run: |
           behat --version
-          php -r "if(strpos(shell_exec('behat --version'), '3.14.0') === false) { exit(1); }"
+          php -r "if(strpos(shell_exec('behat --version'), '3.28.0') === false) { exit(1); }"
 
       - name: Test Phinx
         run: |
