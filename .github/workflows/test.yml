@@ -331,3 +331,217 @@ jobs:
 
       - name: Test PECL
         run: pecl version
+
+  # Test major version resolution (e.g., phpunit:10 → 10.x.y)
+  major-version-resolution:
+    name: Major Version Resolution - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - name: Setup PHP with major version tools
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            phpunit:10,
+            phpstan:2,
+            psalm:6
+
+      - name: Test PHPUnit 10.x.y installed (latest 10.5.60)
+        run: |
+          phpunit --version
+          php -r "if(preg_match('/^PHPUnit 10\\.\\d+\\.\\d+/', shell_exec('phpunit --version')) !== 1) { exit(1); }"
+
+      - name: Test PHPStan 2.x.y installed (latest 2.1.35)
+        run: |
+          phpstan --version
+          php -r "if(preg_match('/2\\.\\d+\\.\\d+/', shell_exec('phpstan --version')) !== 1) { exit(1); }"
+
+      - name: Test Psalm 6.x.y installed (latest 6.14.3)
+        run: |
+          psalm --version
+          php -r "if(preg_match('/Psalm 6\\.\\d+/', shell_exec('psalm --version')) !== 1) { exit(1); }"
+
+  # Test major.minor version resolution (e.g., deployer:7.4 → 7.4.x)
+  major-minor-version-resolution:
+    name: Major.Minor Version Resolution - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - name: Setup PHP with major.minor version tools
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            deployer:7.5,
+            phpunit:11.5,
+            phpcs:3.13
+
+      - name: Test Deployer 7.5.x installed (latest 7.5.12)
+        run: |
+          dep --version
+          php -r "if(preg_match('/7\\.5\\.\\d+/', shell_exec('dep --version')) !== 1) { exit(1); }"
+
+      - name: Test PHPUnit 11.5.x installed (latest 11.5.48)
+        run: |
+          phpunit --version
+          php -r "if(preg_match('/PHPUnit 11\\.5\\.\\d+/', shell_exec('phpunit --version')) !== 1) { exit(1); }"
+
+      - name: Test PHPCS 3.13.x installed (latest 3.13.5)
+        run: |
+          phpcs --version
+          php -r "if(preg_match('/3\\.13\\.\\d+/', shell_exec('phpcs --version')) !== 1) { exit(1); }"
+
+  # Test Castor (custom-function)
+  castor-tool:
+    name: Castor Tool - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - name: Setup PHP with Castor
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: castor:0.18.0
+
+      - name: Test Castor
+        run: |
+          castor --version
+          php -r "if(strpos(shell_exec('castor --version'), '0.18.0') === false) { exit(1); }"
+
+  # Test Phing (custom-function)
+  phing-tool:
+    name: Phing Tool - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - name: Setup PHP with Phing
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: phing:3.0.1
+
+      - name: Test Phing
+        run: |
+          phing -v
+          php -r "if(strpos(shell_exec('phing -v'), '3.0.1') === false) { exit(1); }"
+
+  # Test PHPCPD (custom-function using phpunit handler)
+  phpcpd-tool:
+    name: PHPCPD Tool - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - name: Setup PHP with PHPCPD
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: phpcpd:6.0.3
+
+      - name: Test PHPCPD
+        run: |
+          phpcpd --version
+          php -r "if(strpos(shell_exec('phpcpd --version'), '6.0.3') === false) { exit(1); }"
+
+  # Test fetch_latest tools (php-cs-fixer has fetch_latest: true)
+  fetch-latest-tools:
+    name: Fetch Latest Tools - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - name: Setup PHP with fetch_latest tool
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: php-cs-fixer:3.64
+
+      - name: Test PHP-CS-Fixer 3.64.x installed
+        run: |
+          php-cs-fixer --version
+          php -r "if(preg_match('/3\\.64\\.\\d+/', shell_exec('php-cs-fixer --version')) !== 1) { exit(1); }"
+
+  # Test multiple tools in single input
+  multiple-tools:
+    name: Multiple Tools - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - name: Setup PHP with multiple tools
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: composer:2.7.9, phpunit:11.3.0, phpstan:1.12.0, php-cs-fixer:3.64.0, psalm:5.26.0
+
+      - name: Verify all tools installed
+        run: |
+          composer --version
+          phpunit --version
+          phpstan --version
+          php-cs-fixer --version
+          psalm --version
+          php -r "if(strpos(shell_exec('composer --version'), '2.7.9') === false) { exit(1); }"
+          php -r "if(strpos(shell_exec('phpunit --version'), '11.3.0') === false) { exit(1); }"
+          php -r "if(strpos(shell_exec('phpstan --version'), '1.12.0') === false) { exit(1); }"
+          php -r "if(strpos(shell_exec('php-cs-fixer --version'), '3.64.0') === false) { exit(1); }"
+          php -r "if(strpos(shell_exec('psalm --version'), '5.26.0') === false) { exit(1); }"
+
+  # Test Box tool (phar type)
+  box-tool:
+    name: Box Tool - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - name: Setup PHP with Box
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: box:4.6.2
+
+      - name: Test Box
+        run: |
+          box --version
+          php -r "if(strpos(shell_exec('box --version'), '4.6.2') === false) { exit(1); }"
+
+  # Test Infection tool (phar type)
+  infection-tool:
+    name: Infection Tool - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - name: Setup PHP with Infection
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: infection:0.29.6
+
+      - name: Test Infection
+        run: |
+          infection --version
+          php -r "if(strpos(shell_exec('infection --version'), '0.29.6') === false) { exit(1); }"
