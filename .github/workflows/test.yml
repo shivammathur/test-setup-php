@@ -1,16 +1,367 @@
 name: Runner
 on: [push]
 jobs:
-  runner:
+  # Test phar type tools
+  phar-tools:
+    name: Phar Tools - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        php: [8.3, 8.4, 8.5, 8.6]
+        os: [ubuntu-24.04, macos-15, windows-2022]
     steps:
-      - uses: shivammathur/setup-php@more-verbose
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP with phar tools
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            phpstan:1.12.0,
+            psalm:5.26.0,
+            php-cs-fixer:3.64.0,
+            phpcs:3.10.3,
+            phpmd:2.15.0,
+            parallel-lint:1.4.0,
+            cs2pr:1.8.2
+
+      - name: Test PHPStan
+        run: |
+          phpstan --version
+          php -r "if(strpos(shell_exec('phpstan --version'), '1.12.0') === false) { exit(1); }"
+
+      - name: Test Psalm
+        run: |
+          psalm --version
+          php -r "if(strpos(shell_exec('psalm --version'), '5.26.0') === false) { exit(1); }"
+
+      - name: Test PHP-CS-Fixer
+        run: |
+          php-cs-fixer --version
+          php -r "if(strpos(shell_exec('php-cs-fixer --version'), '3.64.0') === false) { exit(1); }"
+
+      - name: Test PHPCS
+        run: |
+          phpcs --version
+          php -r "if(strpos(shell_exec('phpcs --version'), '3.10.3') === false) { exit(1); }"
+
+      - name: Test PHPMD
+        run: |
+          phpmd --version
+          php -r "if(strpos(shell_exec('phpmd --version'), '2.15.0') === false) { exit(1); }"
+
+      - name: Test Parallel-Lint
+        run: |
+          parallel-lint --version
+          php -r "if(strpos(shell_exec('parallel-lint --version'), '1.4.0') === false) { exit(1); }"
+
+      - name: Test CS2PR
+        run: |
+          cs2pr -V
+          php -r "if(strpos(shell_exec('cs2pr -V'), '1.8.2') === false) { exit(1); }"
+
+  # Test composer type tools
+  composer-tools:
+    name: Composer Tools - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP with composer tools
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            rector:1.2.0,
+            behat:3.14.0,
+            phinx:0.16.0
+
+      - name: Test Rector
+        run: |
+          rector --version
+          php -r "if(strpos(shell_exec('rector --version'), '1.2.0') === false) { exit(1); }"
+
+      - name: Test Behat
+        run: |
+          behat --version
+          php -r "if(strpos(shell_exec('behat --version'), '3.14.0') === false) { exit(1); }"
+
+      - name: Test Phinx
+        run: |
+          phinx --version
+          php -r "if(strpos(shell_exec('phinx --version'), '0.16.0') === false) { exit(1); }"
+
+  # Test custom-function tools
+  custom-function-tools:
+    name: Custom Function Tools - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP with custom-function tools
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            composer:2.7.9,
+            phpunit:11.3.0,
+            deployer:7.4.1,
+            phive:0.15.3
+
+      - name: Test Composer version
+        run: |
+          composer --version
+          php -r "if(strpos(shell_exec('composer --version'), '2.7.9') === false) { exit(1); }"
+
+      - name: Test PHPUnit
+        run: |
+          phpunit --version
+          php -r "if(strpos(shell_exec('phpunit --version'), '11.3.0') === false) { exit(1); }"
+
+      - name: Test Deployer
+        run: |
+          dep --version
+          php -r "if(strpos(shell_exec('dep --version'), '7.4.1') === false) { exit(1); }"
+
+      - name: Test Phive
+        run: |
+          phive status
+          php -r "if(strpos(shell_exec('phive --version'), '0.15.3') === false) { exit(1); }"
+
+  # Test WP-CLI (Unix only)
+  wp-cli:
+    name: WP-CLI - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP with WP-CLI
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: wp-cli:2.11.0
+
+      - name: Test WP-CLI
+        run: |
+          wp --version
+          php -r "if(strpos(shell_exec('wp --version'), '2.11.0') === false) { exit(1); }"
+
+  # Test latest version resolution
+  latest-versions:
+    name: Latest Versions - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP with latest tool versions
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            composer,
+            phpunit,
+            phpstan,
+            php-cs-fixer
+
+      - name: Test tools installed
+        run: |
+          composer --version
+          phpunit --version
+          phpstan --version
+          php-cs-fixer --version
+
+  # Test major.minor version resolution (semver)
+  semver-resolution:
+    name: Semver Resolution - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP with major.minor versions
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            phpstan:1.12,
+            phpunit:11.3,
+            psalm:5.26
+
+      - name: Test PHPStan resolves 1.12.x
+        run: php -r "if(strpos(shell_exec('phpstan --version'), '1.12.') === false) { exit(1); }"
+
+      - name: Test PHPUnit resolves 11.3.x
+        run: php -r "if(strpos(shell_exec('phpunit --version'), '11.3.') === false) { exit(1); }"
+
+      - name: Test Psalm resolves 5.26.x
+        run: php -r "if(strpos(shell_exec('psalm --version'), '5.26.') === false) { exit(1); }"
+
+  # Test composer channels
+  composer-channels:
+    name: Composer Channels - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+        composer: ['1', '2', 'stable', 'preview']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP with composer ${{ matrix.composer }}
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: composer:${{ matrix.composer }}
+
+      - name: Test Composer channel
+        run: composer --version
+
+  # Test tool aliases
+  tool-aliases:
+    name: Tool Aliases - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP with tool aliases
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            phpdoc:3.5.0,
+            ecs:12.3.0
+
+      - name: Test phpDocumentor (alias: phpdoc)
+        run: |
+          phpdoc --version
+          php -r "if(strpos(shell_exec('phpdoc --version'), '3.5.0') === false) { exit(1); }"
+
+      - name: Test Easy Coding Standard (alias: ecs)
+        run: |
+          ecs --version
+          php -r "if(strpos(shell_exec('ecs --version'), '12.3.0') === false) { exit(1); }"
+
+  # Test user/repo format for composer tools
+  user-repo-format:
+    name: User/Repo Format - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP with user/repo tools
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: laravel/pint:1.18.0
+
+      - name: Test Pint installed via user/repo
+        run: |
+          pint --version
+          php -r "if(strpos(shell_exec('pint --version'), '1.18.0') === false) { exit(1); }"
+
+  # Test PHP version compatibility
+  php-version-compat:
+    name: PHP ${{ matrix.php }} Compat - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04]
+        php: ['7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP ${{ matrix.php }} with tools
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
-      - run: |
+          tools: composer, phpunit
+
+      - name: Test tools work with PHP ${{ matrix.php }}
+        run: |
           php -v
-          php -m
+          composer --version
+          phpunit --version
+
+  # Test dev tools (Unix only)
+  dev-tools:
+    name: Dev Tools - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP with dev tools
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: php-config, phpize
+
+      - name: Test php-config
+        run: php-config --version
+
+      - name: Test phpize
+        run: phpize --version
+
+  # Test PECL (Unix only)
+  pecl-tool:
+    name: PECL Tool - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP with PECL
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: pecl
+
+      - name: Test PECL
+        run: pecl version
