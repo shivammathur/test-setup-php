@@ -74,7 +74,7 @@ jobs:
           tools: >-
             rector:1.2.0,
             behat:3.28.0,
-            phinx:0.16.0
+            phinx:0.16.10
 
       - name: Test Rector
         run: |
@@ -89,7 +89,7 @@ jobs:
       - name: Test Phinx
         run: |
           phinx --version
-          php -r "if(strpos(shell_exec('phinx --version'), '0.16.0') === false) { exit(1); }"
+          php -r "if(strpos(shell_exec('phinx --version'), '0.16.10') === false) { exit(1); }"
 
   # Test custom-function tools
   custom-function-tools:
