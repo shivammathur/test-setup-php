@@ -123,7 +123,9 @@ jobs:
       - name: Test Deployer
         run: |
           dep --version
+          deployer --version
           php -r "if(strpos(shell_exec('dep --version'), '7.4.1') === false) { exit(1); }"
+          php -r "if(strpos(shell_exec('deployer --version'), '7.4.1') === false) { exit(1); }"
 
       - name: Test Phive
         run: |
