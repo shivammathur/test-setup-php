@@ -18,7 +18,8 @@ jobs:
           tools: rector, phpstan:2  
       - run: |
           php -v
-          which php
-          composer -V
+          which rector
+          which phpstan          
+          phpstan -V
           echo $PATH || true
           echo $env:PATH || true
