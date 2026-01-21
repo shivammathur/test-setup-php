@@ -13,9 +13,8 @@ jobs:
       - run: |
           mkdir aa
           mkdir bb
-          c=$(pwd)
-          echo $c/aa >> $GITHUB_PATH
-          echo $c/bb >> $GITHUB_PATH
+          echo aa >> $GITHUB_PATH
+          echo bb >> $GITHUB_PATH
       - run: |
           echo $PATH || true
           echo $env:PATH || true
