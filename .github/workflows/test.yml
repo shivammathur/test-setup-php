@@ -53,8 +53,12 @@ jobs:
         with:
           php-version: '8.3'
           tools: >-
+            rector:1.2.0,
             behat:3.28.0,
             phinx:0.16.10
+
+      - name: Test Rector 1.2.0
+        run: php -r '$v = shell_exec("rector --version"); echo "Installed - " . $v; echo "Expected - 1.2.0" . PHP_EOL; if(strpos($v, "1.2.0") === false) { echo "FAIL - Expected 1.2.0, got - " . $v; exit(1); }'
 
       - name: Test Behat 3.28.0
         run: php -r '$v = shell_exec("behat --version"); echo "Installed - " . $v; echo "Expected - 3.28.0" . PHP_EOL; if(strpos($v, "3.28.0") === false) { echo "FAIL - Expected 3.28.0, got - " . $v; exit(1); }'
@@ -151,7 +155,9 @@ jobs:
           tools: composer:2
 
       - name: Test Composer 2 channel
-        run: php -r '$v = shell_exec("composer --version"); echo "Installed - " . $v; echo "Expected - Composer version 2.x" . PHP_EOL; if(strpos($v, "Composer version 2") === false) { echo "FAIL - Expected Composer 2.x, got - " . $v; exit(1); }'
+        run: |
+          composer --version
+          composer --version 2>&1 | grep -q "Composer version 2" || { echo "FAIL: Expected Composer version 2.x"; exit 1; }
 
       # Test 8: Tool aliases
       - name: Setup PHP with tool aliases
