@@ -13,7 +13,25 @@ jobs:
       - run: |
           mkdir aa
           mkdir bb
-          Add-Content 'aa' -Path $env:GITHUB_PATH -Encoding utf8
-          Add-Content 'bb' -Path $env:GITHUB_PATH -Encoding utf8
+          Function Add-Path {
+            param(
+              [string]$PathItem
+            )
+            if ($env:GITHUB_PATH) {
+              $existingContent = Get-Content $env:GITHUB_PATH -Raw -ErrorAction SilentlyContinue
+              Set-Content -Path $env:GITHUB_PATH -Value "$PathItem`n$existingContent" -NoNewline -Encoding utf8
+            } else {
+              $currentPath = (Get-ItemProperty -Path 'hkcu:\Environment' -Name PATH -ErrorAction SilentlyContinue).Path
+              if ($currentPath -notlike "*$PathItem;*" -and $currentPath -notlike "*$PathItem") {
+                Set-ItemProperty -Path 'hkcu:\Environment' -Name Path -Value "$currentPath;$PathItem"
+              }
+            }
+            if(-not "$env:PATH;".contains("$PathItem;")) {
+              $env:PATH += "$PathItem;"
+            }
+          }
+          $c = (Get-Location).Path
+          Add-Path $c\aa
+          Add-Path $c\bb          
       - run: |
           echo $env:PATH || true
