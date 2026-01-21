@@ -12,6 +12,13 @@ jobs:
       - uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
+          tools: phpstan:1
+      - run: |
+          phpstan -V
+          php -v         
+      - uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
           tools: phpstan:2
       - run: |
           phpstan -V
