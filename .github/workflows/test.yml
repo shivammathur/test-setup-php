@@ -223,7 +223,9 @@ jobs:
         run: php -r "if(strpos(shell_exec('phpunit --version 2>&1'), '10.5.')===false) exit(1);"
 
       - name: Test PHPStan 2.1.x (major.minor version)
-        run: php -r "if(strpos(shell_exec('phpstan --version 2>&1'), '2.1.')===false) exit(1);"
+        run: |
+          echo $env:PATH || true
+          php -r "if(strpos(shell_exec('phpstan --version 2>&1'), '2.1.')===false) exit(1);"
 
       - name: Test Psalm 6.x (major version)
         run: php -r "if(strpos(shell_exec('psalm --version 2>&1'), 'Psalm 6.')===false) exit(1);"
