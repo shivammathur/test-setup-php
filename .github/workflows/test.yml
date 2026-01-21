@@ -10,16 +10,12 @@ jobs:
         os: [ubuntu-24.04, macos-14, windows-latest]
     steps:
       # Test 1: Phar type tools with exact versions
-      - run: which ls
-      - name: Setup PHP
-        uses: shivammathur/setup-php@develop
-        with:
-          php-version: '8.3'
-          tools: rector, phpstan:2  
       - run: |
-          php -v
-          which rector
-          which phpstan          
-          phpstan -V
+          mkdir aa
+          mkdir bb
+          c=$(pwd)
+          echo $c/aa >> $GITHUB_PATH
+          echo $c/bb >> $GITHUB_PATH
+      - run: |
           echo $PATH || true
           echo $env:PATH || true
