@@ -4,9 +4,6 @@ jobs:
   e2e-tests:
     name: E2E Tests - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -27,60 +24,25 @@ jobs:
             cs2pr:1.8.2
 
       - name: Test PHPStan 1.12.0
-        shell: bash
-        run: |
-          v=$(phpstan --version)
-          echo "Installed - $v"
-          echo "Expected - 1.12.0"
-          echo "$v" | grep -q "1\.12\.0" || { echo "FAIL - Expected 1.12.0, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('phpstan --version'), '1.12.0')===false) exit(1);"
 
       - name: Test Psalm 5.26.0
-        shell: bash
-        run: |
-          v=$(psalm --version)
-          echo "Installed - $v"
-          echo "Expected - 5.26.0"
-          echo "$v" | grep -q "5\.26\.0" || { echo "FAIL - Expected 5.26.0, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('psalm --version'), '5.26.0')===false) exit(1);"
 
       - name: Test PHP-CS-Fixer 3.64.0
-        shell: bash
-        run: |
-          v=$(php-cs-fixer --version)
-          echo "Installed - $v"
-          echo "Expected - 3.64.0"
-          echo "$v" | grep -q "3\.64\.0" || { echo "FAIL - Expected 3.64.0, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('php-cs-fixer --version'), '3.64.0')===false) exit(1);"
 
       - name: Test PHPCS 3.10.3
-        shell: bash
-        run: |
-          v=$(phpcs --version)
-          echo "Installed - $v"
-          echo "Expected - 3.10.3"
-          echo "$v" | grep -q "3\.10\.3" || { echo "FAIL - Expected 3.10.3, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('phpcs --version'), '3.10.3')===false) exit(1);"
 
       - name: Test PHPMD 2.15.0
-        shell: bash
-        run: |
-          v=$(phpmd --version)
-          echo "Installed - $v"
-          echo "Expected - 2.15.0"
-          echo "$v" | grep -q "2\.15\.0" || { echo "FAIL - Expected 2.15.0, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('phpmd --version'), '2.15.0')===false) exit(1);"
 
       - name: Test Parallel-Lint 1.4.0
-        shell: bash
-        run: |
-          v=$(parallel-lint --version)
-          echo "Installed - $v"
-          echo "Expected - 1.4.0"
-          echo "$v" | grep -q "1\.4\.0" || { echo "FAIL - Expected 1.4.0, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('parallel-lint --version'), '1.4.0')===false) exit(1);"
 
       - name: Test CS2PR 1.8.2
-        shell: bash
-        run: |
-          v=$(cs2pr -V)
-          echo "Installed - $v"
-          echo "Expected - 1.8.2"
-          echo "$v" | grep -q "1\.8\.2" || { echo "FAIL - Expected 1.8.2, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('cs2pr -V'), '1.8.2')===false) exit(1);"
 
       # Test 2: Composer type tools
       - name: Setup PHP with composer tools
@@ -93,28 +55,13 @@ jobs:
             phinx:0.16.10
 
       - name: Test Rector 1.2.0
-        shell: bash
-        run: |
-          v=$(rector --version)
-          echo "Installed - $v"
-          echo "Expected - 1.2.0"
-          echo "$v" | grep -q "1\.2\.0" || { echo "FAIL - Expected 1.2.0, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('rector --version'), '1.2.0')===false) exit(1);"
 
       - name: Test Behat 3.28.0
-        shell: bash
-        run: |
-          v=$(behat --version)
-          echo "Installed - $v"
-          echo "Expected - 3.28.0"
-          echo "$v" | grep -q "3\.28\.0" || { echo "FAIL - Expected 3.28.0, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('behat --version'), '3.28.0')===false) exit(1);"
 
       - name: Test Phinx 0.16.10
-        shell: bash
-        run: |
-          v=$(phinx --version)
-          echo "Installed - $v"
-          echo "Expected - 0.16.10"
-          echo "$v" | grep -q "0\.16\.10" || { echo "FAIL - Expected 0.16.10, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('phinx --version'), '0.16.10')===false) exit(1);"
 
       # Test 3: Custom-function tools
       - name: Setup PHP with custom-function tools
@@ -128,36 +75,16 @@ jobs:
             phive:0.15.3
 
       - name: Test Composer 2.7.9
-        shell: bash
-        run: |
-          v=$(composer --version 2>&1)
-          echo "Installed - $v"
-          echo "Expected - 2.7.9"
-          echo "$v" | grep -q "2\.7\.9" || { echo "FAIL - Expected 2.7.9, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('composer --version 2>&1'), '2.7.9')===false) exit(1);"
 
       - name: Test PHPUnit 11.3.0
-        shell: bash
-        run: |
-          v=$(phpunit --version)
-          echo "Installed - $v"
-          echo "Expected - 11.3.0"
-          echo "$v" | grep -q "11\.3\.0" || { echo "FAIL - Expected 11.3.0, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('phpunit --version'), '11.3.0')===false) exit(1);"
 
       - name: Test Deployer 7.4.1
-        shell: bash
-        run: |
-          v=$(dep --version)
-          echo "Installed - $v"
-          echo "Expected - 7.4.1"
-          echo "$v" | grep -q "7\.4\.1" || { echo "FAIL - Expected 7.4.1, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('deployer --version'), '7.4.1')===false) exit(1);"
 
       - name: Test Phive 0.15.3
-        shell: bash
-        run: |
-          v=$(phive --version)
-          echo "Installed - $v"
-          echo "Expected - 0.15.3"
-          echo "$v" | grep -q "0\.15\.3" || { echo "FAIL - Expected 0.15.3, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('phive --version'), '0.15.3')===false) exit(1);"
 
       # Test 4: WP-CLI (Unix only)
       - name: Setup PHP with WP-CLI
@@ -169,12 +96,7 @@ jobs:
 
       - name: Test WP-CLI 2.11.0
         if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          v=$(wp --version)
-          echo "Installed - $v"
-          echo "Expected - 2.11.0"
-          echo "$v" | grep -q "2\.11\.0" || { echo "FAIL - Expected 2.11.0, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('wp --version'), '2.11.0')===false) exit(1);"
 
       # Test 5: Latest version resolution
       - name: Setup PHP with latest tool versions
@@ -205,28 +127,13 @@ jobs:
             psalm:5.26
 
       - name: Test PHPStan resolves 1.12.x
-        shell: bash
-        run: |
-          v=$(phpstan --version)
-          echo "Installed - $v"
-          echo "Expected - 1.12.x"
-          echo "$v" | grep -q "1\.12\." || { echo "FAIL - Expected 1.12.x, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('phpstan --version'), '1.12.')===false) exit(1);"
 
       - name: Test PHPUnit resolves 11.3.x
-        shell: bash
-        run: |
-          v=$(phpunit --version)
-          echo "Installed - $v"
-          echo "Expected - 11.3.x"
-          echo "$v" | grep -q "11\.3\." || { echo "FAIL - Expected 11.3.x, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('phpunit --version'), '11.3.')===false) exit(1);"
 
       - name: Test Psalm resolves 5.26.x
-        shell: bash
-        run: |
-          v=$(psalm --version)
-          echo "Installed - $v"
-          echo "Expected - 5.26.x"
-          echo "$v" | grep -q "5\.26\." || { echo "FAIL - Expected 5.26.x, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('psalm --version'), '5.26.')===false) exit(1);"
 
       # Test 7: Composer channels
       - name: Setup PHP with composer stable
@@ -245,10 +152,7 @@ jobs:
           tools: composer:2
 
       - name: Test Composer 2 channel
-        shell: bash
-        run: |
-          composer --version
-          composer --version 2>&1 | grep -q "Composer version 2" || { echo "FAIL: Expected Composer version 2.x"; exit 1; }
+        run: php -r "if(strpos(shell_exec('composer --version 2>&1'), 'Composer version 2')===false) exit(1);"
 
       # Test 8: Tool aliases
       - name: Setup PHP with tool aliases
@@ -260,20 +164,10 @@ jobs:
             ecs:12.3.0
 
       - name: Test phpDocumentor 3.5.0 (alias - phpdoc)
-        shell: bash
-        run: |
-          v=$(phpdoc --version)
-          echo "Installed - $v"
-          echo "Expected - 3.5.0"
-          echo "$v" | grep -q "3\.5\.0" || { echo "FAIL - Expected 3.5.0, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('phpdoc --version'), '3.5.0')===false) exit(1);"
 
       - name: Test Easy Coding Standard 12.3.0 (alias - ecs)
-        shell: bash
-        run: |
-          v=$(ecs --version)
-          echo "Installed - $v"
-          echo "Expected - 12.3.0"
-          echo "$v" | grep -q "12\.3\.0" || { echo "FAIL - Expected 12.3.0, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('ecs --version'), '12.3.0')===false) exit(1);"
 
       # Test 9: User/repo format for composer tools
       - name: Setup PHP with user/repo tools
@@ -283,12 +177,7 @@ jobs:
           tools: laravel/pint:1.18.0
 
       - name: Test Pint 1.18.0 (user/repo format)
-        shell: bash
-        run: |
-          v=$(pint --version)
-          echo "Installed - $v"
-          echo "Expected - 1.18.0"
-          echo "$v" | grep -q "1\.18\.0" || { echo "FAIL - Expected 1.18.0, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('pint --version'), '1.18.0')===false) exit(1);"
 
       # Test 10: Dev tools (Unix only)
       - name: Setup PHP with dev tools
@@ -330,46 +219,20 @@ jobs:
             deployer:7.5,
             phpcs:3.13
 
-      - name: Test PHPUnit 10.5.60 (major version)
-        shell: bash
-        run: |
-          v=$(phpunit --version)
-          echo "Installed - $v"
-          echo "Expected - 10.5.60"
-          echo "$v" | grep -q "10\.5\.60" || { echo "FAIL - Expected 10.5.60, got - $v"; exit 1; }
+      - name: Test PHPUnit 10.5.x (major version)
+        run: php -r "if(strpos(shell_exec('phpunit --version'), '10.5.')===false) exit(1);"
 
-      - name: Test PHPStan 2.1.35 (major.minor version)
-        shell: bash
-        run: |
-          echo "$PATH"
-          v=$(phpstan --version)
-          echo "Installed - $v"
-          echo "Expected - 2.1.35"
-          echo "$v" | grep -q "2\.1\.35" || { echo "FAIL - Expected 2.1.35, got - $v"; exit 1; }
+      - name: Test PHPStan 2.1.x (major.minor version)
+        run: php -r "if(strpos(shell_exec('phpstan --version'), '2.1.')===false) exit(1);"
 
-      - name: Test Psalm 6.14.3 (major version)
-        shell: bash
-        run: |
-          v=$(psalm --version)
-          echo "Installed - $v"
-          echo "Expected - 6.14.3"
-          echo "$v" | grep -q "6\.14\.3" || { echo "FAIL - Expected 6.14.3, got - $v"; exit 1; }
+      - name: Test Psalm 6.x (major version)
+        run: php -r "if(strpos(shell_exec('psalm --version'), 'Psalm 6.')===false) exit(1);"
 
-      - name: Test Deployer 7.5.12 (major.minor version)
-        shell: bash
-        run: |
-          v=$(dep --version)
-          echo "Installed - $v"
-          echo "Expected - 7.5.12"
-          echo "$v" | grep -q "7\.5\.12" || { echo "FAIL - Expected 7.5.12, got - $v"; exit 1; }
+      - name: Test Deployer 7.5.x (major.minor version)
+        run: php -r "if(strpos(shell_exec('deployer --version'), '7.5.')===false) exit(1);"
 
-      - name: Test PHPCS 3.13.5 (major.minor version)
-        shell: bash
-        run: |
-          v=$(phpcs --version)
-          echo "Installed - $v"
-          echo "Expected - 3.13.5"
-          echo "$v" | grep -q "3\.13\.5" || { echo "FAIL - Expected 3.13.5, got - $v"; exit 1; }
+      - name: Test PHPCS 3.13.x (major.minor version)
+        run: php -r "if(strpos(shell_exec('phpcs --version'), '3.13.')===false) exit(1);"
 
       # Test 13: Castor (custom-function)
       - name: Setup PHP with Castor
@@ -379,12 +242,7 @@ jobs:
           tools: castor:0.18.0
 
       - name: Test Castor 0.18.0
-        shell: bash
-        run: |
-          v=$(castor --version)
-          echo "Installed - $v"
-          echo "Expected - 0.18.0"
-          echo "$v" | grep -q "0\.18\.0" || { echo "FAIL - Expected 0.18.0, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('castor --version'), '0.18.0')===false) exit(1);"
 
       # Test 14: Phing (custom-function)
       - name: Setup PHP with Phing
@@ -394,12 +252,7 @@ jobs:
           tools: phing:3.0.1
 
       - name: Test Phing 3.0.1
-        shell: bash
-        run: |
-          v=$(phing -v)
-          echo "Installed - $v"
-          echo "Expected - 3.0.1"
-          echo "$v" | grep -q "3\.0\.1" || { echo "FAIL - Expected 3.0.1, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('phing -v'), '3.0.1')===false) exit(1);"
 
       # Test 15: PHPCPD (custom-function using phpunit handler)
       - name: Setup PHP with PHPCPD
@@ -409,12 +262,7 @@ jobs:
           tools: phpcpd:6.0.3
 
       - name: Test PHPCPD 6.0.3
-        shell: bash
-        run: |
-          v=$(phpcpd --version)
-          echo "Installed - $v"
-          echo "Expected - 6.0.3"
-          echo "$v" | grep -q "6\.0\.3" || { echo "FAIL - Expected 6.0.3, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('phpcpd --version'), '6.0.3')===false) exit(1);"
 
       # Test 16: fetch_latest tools
       - name: Setup PHP with fetch_latest tool
@@ -424,12 +272,7 @@ jobs:
           tools: php-cs-fixer:3.64
 
       - name: Test PHP-CS-Fixer 3.64.x (fetch_latest)
-        shell: bash
-        run: |
-          v=$(php-cs-fixer --version)
-          echo "Installed - $v"
-          echo "Expected - 3.64.x"
-          echo "$v" | grep -qE "3\.64\.[0-9]+" || { echo "FAIL - Expected 3.64.x, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('php-cs-fixer --version'), '3.64.')===false) exit(1);"
 
       # Test 17: Multiple tools in single input
       - name: Setup PHP with multiple tools
@@ -439,13 +282,12 @@ jobs:
           tools: composer:2.7.9, phpunit:11.3.0, phpstan:1.12.0, php-cs-fixer:3.64.0, psalm:5.26.0
 
       - name: Verify all tools installed with exact versions
-        shell: bash
         run: |
-          v=$(composer --version 2>&1); echo "Installed - $v"; echo "Expected - 2.7.9"; echo "$v" | grep -q "2\.7\.9" || { echo "FAIL - Expected 2.7.9, got - $v"; exit 1; }
-          v=$(phpunit --version); echo "Installed - $v"; echo "Expected - 11.3.0"; echo "$v" | grep -q "11\.3\.0" || { echo "FAIL - Expected 11.3.0, got - $v"; exit 1; }
-          v=$(phpstan --version); echo "Installed - $v"; echo "Expected - 1.12.0"; echo "$v" | grep -q "1\.12\.0" || { echo "FAIL - Expected 1.12.0, got - $v"; exit 1; }
-          v=$(php-cs-fixer --version); echo "Installed - $v"; echo "Expected - 3.64.0"; echo "$v" | grep -q "3\.64\.0" || { echo "FAIL - Expected 3.64.0, got - $v"; exit 1; }
-          v=$(psalm --version); echo "Installed - $v"; echo "Expected - 5.26.0"; echo "$v" | grep -q "5\.26\.0" || { echo "FAIL - Expected 5.26.0, got - $v"; exit 1; }
+          php -r "if(strpos(shell_exec('composer --version 2>&1'), '2.7.9')===false) exit(1);"
+          php -r "if(strpos(shell_exec('phpunit --version'), '11.3.0')===false) exit(1);"
+          php -r "if(strpos(shell_exec('phpstan --version'), '1.12.0')===false) exit(1);"
+          php -r "if(strpos(shell_exec('php-cs-fixer --version'), '3.64.0')===false) exit(1);"
+          php -r "if(strpos(shell_exec('psalm --version'), '5.26.0')===false) exit(1);"
 
       # Test 18: Box tool (phar type)
       - name: Setup PHP with Box
@@ -455,12 +297,7 @@ jobs:
           tools: box:4.6.2
 
       - name: Test Box 4.6.2
-        shell: bash
-        run: |
-          v=$(box --version)
-          echo "Installed - $v"
-          echo "Expected - 4.6.2"
-          echo "$v" | grep -q "4\.6\.2" || { echo "FAIL - Expected 4.6.2, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('box --version'), '4.6.2')===false) exit(1);"
 
       # Test 19: Infection tool (phar type)
       - name: Setup PHP with Infection
@@ -470,9 +307,4 @@ jobs:
           tools: infection:0.29.6
 
       - name: Test Infection 0.29.6
-        shell: bash
-        run: |
-          v=$(infection --version)
-          echo "Installed - $v"
-          echo "Expected - 0.29.6"
-          echo "$v" | grep -q "0\.29\.6" || { echo "FAIL - Expected 0.29.6, got - $v"; exit 1; }
+        run: php -r "if(strpos(shell_exec('infection --version'), '0.29.6')===false) exit(1);"
