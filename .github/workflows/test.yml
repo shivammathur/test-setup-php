@@ -222,20 +222,20 @@ jobs:
             deployer:7.5,
             phpcs:3.13
 
-      - name: Test PHPUnit 10.x.y (major version)
-        run: php -r '$v = shell_exec("phpunit --version"); echo "Installed - " . $v; echo "Expected - PHPUnit 10.x.y" . PHP_EOL; if(preg_match("/^PHPUnit 10\.\d+\.\d+/", $v) !== 1) { echo "FAIL - Expected PHPUnit 10.x.y, got - " . $v; exit(1); }'
+      - name: Test PHPUnit 10.5.60 (major version)
+        run: php -r '$v = shell_exec("phpunit --version"); echo "Installed - " . $v; echo "Expected - 10.5.60" . PHP_EOL; if(strpos($v, "10.5.60") === false) { echo "FAIL - Expected 10.5.60, got - " . $v; exit(1); }'
 
-      - name: Test PHPStan 2.x.y (major version)
-        run: php -r '$v = shell_exec("phpstan --version"); echo "Installed - " . $v; echo "Expected - PHPStan 2.x.y" . PHP_EOL; if(preg_match("/2\.\d+\.\d+/", $v) !== 1) { echo "FAIL - Expected PHPStan 2.x.y, got - " . $v; exit(1); }'
+      - name: Test PHPStan 2.1.35 (major version)
+        run: php -r '$v = shell_exec("phpstan --version"); echo "Installed - " . $v; echo "Expected - 2.1.35" . PHP_EOL; if(strpos($v, "2.1.35") === false) { echo "FAIL - Expected 2.1.35, got - " . $v; exit(1); }'
 
-      - name: Test Psalm 6.x.y (major version)
-        run: php -r '$v = shell_exec("psalm --version"); echo "Installed - " . $v; echo "Expected - Psalm 6.x.y" . PHP_EOL; if(preg_match("/Psalm 6\.\d+/", $v) !== 1) { echo "FAIL - Expected Psalm 6.x.y, got - " . $v; exit(1); }'
+      - name: Test Psalm 6.14.3 (major version)
+        run: php -r '$v = shell_exec("psalm --version"); echo "Installed - " . $v; echo "Expected - 6.14.3" . PHP_EOL; if(strpos($v, "6.14.3") === false) { echo "FAIL - Expected 6.14.3, got - " . $v; exit(1); }'
 
-      - name: Test Deployer 7.5.x (major.minor version)
-        run: php -r '$v = shell_exec("dep --version"); echo "Installed - " . $v; echo "Expected - Deployer 7.5.x" . PHP_EOL; if(preg_match("/7\.5\.\d+/", $v) !== 1) { echo "FAIL - Expected Deployer 7.5.x, got - " . $v; exit(1); }'
+      - name: Test Deployer 7.5.12 (major.minor version)
+        run: php -r '$v = shell_exec("dep --version"); echo "Installed - " . $v; echo "Expected - 7.5.12" . PHP_EOL; if(strpos($v, "7.5.12") === false) { echo "FAIL - Expected 7.5.12, got - " . $v; exit(1); }'
 
-      - name: Test PHPCS 3.13.x (major.minor version)
-        run: php -r '$v = shell_exec("phpcs --version"); echo "Installed - " . $v; echo "Expected - PHPCS 3.13.x" . PHP_EOL; if(preg_match("/3\.13\.\d+/", $v) !== 1) { echo "FAIL - Expected PHPCS 3.13.x, got - " . $v; exit(1); }'
+      - name: Test PHPCS 3.13.5 (major.minor version)
+        run: php -r '$v = shell_exec("phpcs --version"); echo "Installed - " . $v; echo "Expected - 3.13.5" . PHP_EOL; if(strpos($v, "3.13.5") === false) { echo "FAIL - Expected 3.13.5, got - " . $v; exit(1); }'
 
       # Test 13: Castor (custom-function)
       - name: Setup PHP with Castor
