@@ -228,7 +228,10 @@ jobs:
         run: php -r '$v = shell_exec("phpunit --version"); echo "Installed - " . $v; echo "Expected - 10.5.60" . PHP_EOL; if(strpos($v, "10.5.60") === false) { echo "FAIL - Expected 10.5.60, got - " . $v; exit(1); }'
 
       - name: Test PHPStan 2.1.35 (major.minor version)
-        run: php -r '$v = shell_exec("phpstan --version"); echo "Installed - " . $v; echo "Expected - 2.1.35" . PHP_EOL; if(strpos($v, "2.1.35") === false) { echo "FAIL - Expected 2.1.35, got - " . $v; exit(1); }'
+        run: |
+          echo $PATH || true
+          echo $env:PATH || true
+          php -r '$v = shell_exec("phpstan --version"); echo "Installed - " . $v; echo "Expected - 2.1.35" . PHP_EOL; if(strpos($v, "2.1.35") === false) { echo "FAIL - Expected 2.1.35, got - " . $v; exit(1); }'
 
       - name: Test Psalm 6.14.3 (major version)
         run: php -r '$v = shell_exec("psalm --version"); echo "Installed - " . $v; echo "Expected - 6.14.3" . PHP_EOL; if(strpos($v, "6.14.3") === false) { echo "FAIL - Expected 6.14.3, got - " . $v; exit(1); }'
