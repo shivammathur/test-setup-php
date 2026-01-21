@@ -1,25 +1,309 @@
-
 name: Runner
 on: [push]
 jobs:
-  runner:
+  e2e-tests:
+    name: E2E Tests - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        php: [8.3]
+        os: [ubuntu-24.04, macos-14, windows-latest]
     steps:
-      - uses: shivammathur/setup-php@develop
+      # Test 1: Phar type tools with exact versions
+      - name: Setup PHP with phar tools
+        uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php }}
-          tools: phpstan:1
-      - run: |
-          phpstan -V
-          php -v         
-      - uses: shivammathur/setup-php@develop
+          php-version: '8.3'
+          tools: >-
+            phpstan:1.12.0,
+            psalm:5.26.0,
+            php-cs-fixer:3.64.0,
+            phpcs:3.10.3,
+            phpmd:2.15.0,
+            parallel-lint:1.4.0,
+            cs2pr:1.8.2
+
+      - name: Test PHPStan 1.12.0
+        run: php -r '$v = shell_exec("phpstan --version"); echo "Installed - " . $v; echo "Expected - 1.12.0" . PHP_EOL; if(strpos($v, "1.12.0") === false) { echo "FAIL - Expected 1.12.0, got - " . $v; exit(1); }'
+
+      - name: Test Psalm 5.26.0
+        run: php -r '$v = shell_exec("psalm --version"); echo "Installed - " . $v; echo "Expected - 5.26.0" . PHP_EOL; if(strpos($v, "5.26.0") === false) { echo "FAIL - Expected 5.26.0, got - " . $v; exit(1); }'
+
+      - name: Test PHP-CS-Fixer 3.64.0
+        run: php -r '$v = shell_exec("php-cs-fixer --version"); echo "Installed - " . $v; echo "Expected - 3.64.0" . PHP_EOL; if(strpos($v, "3.64.0") === false) { echo "FAIL - Expected 3.64.0, got - " . $v; exit(1); }'
+
+      - name: Test PHPCS 3.10.3
+        run: php -r '$v = shell_exec("phpcs --version"); echo "Installed - " . $v; echo "Expected - 3.10.3" . PHP_EOL; if(strpos($v, "3.10.3") === false) { echo "FAIL - Expected 3.10.3, got - " . $v; exit(1); }'
+
+      - name: Test PHPMD 2.15.0
+        run: php -r '$v = shell_exec("phpmd --version"); echo "Installed - " . $v; echo "Expected - 2.15.0" . PHP_EOL; if(strpos($v, "2.15.0") === false) { echo "FAIL - Expected 2.15.0, got - " . $v; exit(1); }'
+
+      - name: Test Parallel-Lint 1.4.0
+        run: php -r '$v = shell_exec("parallel-lint --version"); echo "Installed - " . $v; echo "Expected - 1.4.0" . PHP_EOL; if(strpos($v, "1.4.0") === false) { echo "FAIL - Expected 1.4.0, got - " . $v; exit(1); }'
+
+      - name: Test CS2PR 1.8.2
+        run: php -r '$v = shell_exec("cs2pr -V"); echo "Installed - " . $v; echo "Expected - 1.8.2" . PHP_EOL; if(strpos($v, "1.8.2") === false) { echo "FAIL - Expected 1.8.2, got - " . $v; exit(1); }'
+
+      # Test 2: Composer type tools
+      - name: Setup PHP with composer tools
+        uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php }}
-          tools: phpstan:2
-      - run: |
-          phpstan -V
-          php -v          
+          php-version: '8.3'
+          tools: >-
+            behat:3.28.0,
+            phinx:0.16.10
+
+      - name: Test Behat 3.28.0
+        run: php -r '$v = shell_exec("behat --version"); echo "Installed - " . $v; echo "Expected - 3.28.0" . PHP_EOL; if(strpos($v, "3.28.0") === false) { echo "FAIL - Expected 3.28.0, got - " . $v; exit(1); }'
+
+      - name: Test Phinx 0.16.10
+        run: php -r '$v = shell_exec("phinx --version"); echo "Installed - " . $v; echo "Expected - 0.16.10" . PHP_EOL; if(strpos($v, "0.16.10") === false) { echo "FAIL - Expected 0.16.10, got - " . $v; exit(1); }'
+
+      # Test 3: Custom-function tools
+      - name: Setup PHP with custom-function tools
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            composer:2.7.9,
+            phpunit:11.3.0,
+            deployer:7.4.1,
+            phive:0.15.3
+
+      - name: Test Composer 2.7.9
+        run: php -r '$v = shell_exec("composer --version"); echo "Installed - " . $v; echo "Expected - 2.7.9" . PHP_EOL; if(strpos($v, "2.7.9") === false) { echo "FAIL - Expected 2.7.9, got - " . $v; exit(1); }'
+
+      - name: Test PHPUnit 11.3.0
+        run: php -r '$v = shell_exec("phpunit --version"); echo "Installed - " . $v; echo "Expected - 11.3.0" . PHP_EOL; if(strpos($v, "11.3.0") === false) { echo "FAIL - Expected 11.3.0, got - " . $v; exit(1); }'
+
+      - name: Test Deployer 7.4.1
+        run: php -r '$v = shell_exec("dep --version"); echo "Installed - " . $v; echo "Expected - 7.4.1" . PHP_EOL; if(strpos($v, "7.4.1") === false) { echo "FAIL - Expected 7.4.1, got - " . $v; exit(1); }'
+
+      - name: Test Phive 0.15.3
+        run: php -r '$v = shell_exec("phive --version"); echo "Installed - " . $v; echo "Expected - 0.15.3" . PHP_EOL; if(strpos($v, "0.15.3") === false) { echo "FAIL - Expected 0.15.3, got - " . $v; exit(1); }'
+
+      # Test 4: WP-CLI (Unix only)
+      - name: Setup PHP with WP-CLI
+        if: runner.os != 'Windows'
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: wp-cli:2.11.0
+
+      - name: Test WP-CLI 2.11.0
+        if: runner.os != 'Windows'
+        run: php -r '$v = shell_exec("wp --version"); echo "Installed - " . $v; echo "Expected - 2.11.0" . PHP_EOL; if(strpos($v, "2.11.0") === false) { echo "FAIL - Expected 2.11.0, got - " . $v; exit(1); }'
+
+      # Test 5: Latest version resolution
+      - name: Setup PHP with latest tool versions
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            composer,
+            phpunit,
+            phpstan,
+            php-cs-fixer
+
+      - name: Test tools installed (latest)
+        run: |
+          composer --version
+          phpunit --version
+          phpstan --version
+          php-cs-fixer --version
+
+      # Test 6: Semver resolution (major.minor)
+      - name: Setup PHP with major.minor versions
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            phpstan:1.12,
+            phpunit:11.3,
+            psalm:5.26
+
+      - name: Test PHPStan resolves 1.12.x
+        run: php -r '$v = shell_exec("phpstan --version"); echo "Installed - " . $v; echo "Expected - 1.12.x" . PHP_EOL; if(strpos($v, "1.12.") === false) { echo "FAIL - Expected 1.12.x, got - " . $v; exit(1); }'
+
+      - name: Test PHPUnit resolves 11.3.x
+        run: php -r '$v = shell_exec("phpunit --version"); echo "Installed - " . $v; echo "Expected - 11.3.x" . PHP_EOL; if(strpos($v, "11.3.") === false) { echo "FAIL - Expected 11.3.x, got - " . $v; exit(1); }'
+
+      - name: Test Psalm resolves 5.26.x
+        run: php -r '$v = shell_exec("psalm --version"); echo "Installed - " . $v; echo "Expected - 5.26.x" . PHP_EOL; if(strpos($v, "5.26.") === false) { echo "FAIL - Expected 5.26.x, got - " . $v; exit(1); }'
+
+      # Test 7: Composer channels
+      - name: Setup PHP with composer stable
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: composer:stable
+
+      - name: Test Composer stable channel
+        run: composer --version
+
+      - name: Setup PHP with composer 2
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: composer:2
+
+      - name: Test Composer 2 channel
+        run: php -r '$v = shell_exec("composer --version"); echo "Installed - " . $v; echo "Expected - Composer version 2.x" . PHP_EOL; if(strpos($v, "Composer version 2") === false) { echo "FAIL - Expected Composer 2.x, got - " . $v; exit(1); }'
+
+      # Test 8: Tool aliases
+      - name: Setup PHP with tool aliases
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            phpdoc:3.5.0,
+            ecs:12.3.0
+
+      - name: Test phpDocumentor 3.5.0 (alias - phpdoc)
+        run: php -r '$v = shell_exec("phpdoc --version"); echo "Installed - " . $v; echo "Expected - 3.5.0" . PHP_EOL; if(strpos($v, "3.5.0") === false) { echo "FAIL - Expected 3.5.0, got - " . $v; exit(1); }'
+
+      - name: Test Easy Coding Standard 12.3.0 (alias - ecs)
+        run: php -r '$v = shell_exec("ecs --version"); echo "Installed - " . $v; echo "Expected - 12.3.0" . PHP_EOL; if(strpos($v, "12.3.0") === false) { echo "FAIL - Expected 12.3.0, got - " . $v; exit(1); }'
+
+      # Test 9: User/repo format for composer tools
+      - name: Setup PHP with user/repo tools
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: laravel/pint:1.18.0
+
+      - name: Test Pint 1.18.0 (user/repo format)
+        run: php -r '$v = shell_exec("pint --version"); echo "Installed - " . $v; echo "Expected - 1.18.0" . PHP_EOL; if(strpos($v, "1.18.0") === false) { echo "FAIL - Expected 1.18.0, got - " . $v; exit(1); }'
+
+      # Test 10: Dev tools (Unix only)
+      - name: Setup PHP with dev tools
+        if: runner.os != 'Windows'
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: php-config, phpize
+
+      - name: Test php-config
+        if: runner.os != 'Windows'
+        run: php-config --version
+
+      - name: Test phpize
+        if: runner.os != 'Windows'
+        run: phpize --version
+
+      # Test 11: PECL (Unix only)
+      - name: Setup PHP with PECL
+        if: runner.os != 'Windows'
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: pecl
+
+      - name: Test PECL
+        if: runner.os != 'Windows'
+        run: pecl version
+
+      # Test 12: Partial version resolution (major and major.minor)
+      - name: Setup PHP with partial version tools
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            phpunit:10,
+            phpstan:2.1,
+            psalm:6,
+            deployer:7.5,
+            phpcs:3.13
+
+      - name: Test PHPUnit 10.5.60 (major version)
+        run: php -r '$v = shell_exec("phpunit --version"); echo "Installed - " . $v; echo "Expected - 10.5.60" . PHP_EOL; if(strpos($v, "10.5.60") === false) { echo "FAIL - Expected 10.5.60, got - " . $v; exit(1); }'
+
+      - name: Test PHPStan 2.1.35 (major.minor version)
+        run: php -r '$v = shell_exec("phpstan --version"); echo "Installed - " . $v; echo "Expected - 2.1.35" . PHP_EOL; if(strpos($v, "2.1.35") === false) { echo "FAIL - Expected 2.1.35, got - " . $v; exit(1); }'
+
+      - name: Test Psalm 6.14.3 (major version)
+        run: php -r '$v = shell_exec("psalm --version"); echo "Installed - " . $v; echo "Expected - 6.14.3" . PHP_EOL; if(strpos($v, "6.14.3") === false) { echo "FAIL - Expected 6.14.3, got - " . $v; exit(1); }'
+
+      - name: Test Deployer 7.5.12 (major.minor version)
+        run: php -r '$v = shell_exec("dep --version"); echo "Installed - " . $v; echo "Expected - 7.5.12" . PHP_EOL; if(strpos($v, "7.5.12") === false) { echo "FAIL - Expected 7.5.12, got - " . $v; exit(1); }'
+
+      - name: Test PHPCS 3.13.5 (major.minor version)
+        run: php -r '$v = shell_exec("phpcs --version"); echo "Installed - " . $v; echo "Expected - 3.13.5" . PHP_EOL; if(strpos($v, "3.13.5") === false) { echo "FAIL - Expected 3.13.5, got - " . $v; exit(1); }'
+
+      # Test 13: Castor (custom-function)
+      - name: Setup PHP with Castor
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: castor:0.18.0
+
+      - name: Test Castor 0.18.0
+        run: php -r '$v = shell_exec("castor --version"); echo "Installed - " . $v; echo "Expected - 0.18.0" . PHP_EOL; if(strpos($v, "0.18.0") === false) { echo "FAIL - Expected 0.18.0, got - " . $v; exit(1); }'
+
+      # Test 14: Phing (custom-function)
+      - name: Setup PHP with Phing
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: phing:3.0.1
+
+      - name: Test Phing 3.0.1
+        run: php -r '$v = shell_exec("phing -v"); echo "Installed - " . $v; echo "Expected - 3.0.1" . PHP_EOL; if(strpos($v, "3.0.1") === false) { echo "FAIL - Expected 3.0.1, got - " . $v; exit(1); }'
+
+      # Test 15: PHPCPD (custom-function using phpunit handler)
+      - name: Setup PHP with PHPCPD
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: phpcpd:6.0.3
+
+      - name: Test PHPCPD 6.0.3
+        run: php -r '$v = shell_exec("phpcpd --version"); echo "Installed - " . $v; echo "Expected - 6.0.3" . PHP_EOL; if(strpos($v, "6.0.3") === false) { echo "FAIL - Expected 6.0.3, got - " . $v; exit(1); }'
+
+      # Test 16: fetch_latest tools
+      - name: Setup PHP with fetch_latest tool
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: php-cs-fixer:3.64
+
+      - name: Test PHP-CS-Fixer 3.64.x (fetch_latest)
+        run: php -r '$v = shell_exec("php-cs-fixer --version"); echo "Installed - " . $v; echo "Expected - 3.64.x" . PHP_EOL; if(preg_match("/3\.64\.\d+/", $v) !== 1) { echo "FAIL - Expected 3.64.x, got - " . $v; exit(1); }'
+
+      # Test 17: Multiple tools in single input
+      - name: Setup PHP with multiple tools
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: composer:2.7.9, phpunit:11.3.0, phpstan:1.12.0, php-cs-fixer:3.64.0, psalm:5.26.0
+
+      - name: Verify all tools installed with exact versions
+        run: |
+          php -r '$v = shell_exec("composer --version"); echo "Installed - " . $v; echo "Expected - 2.7.9" . PHP_EOL; if(strpos($v, "2.7.9") === false) { echo "FAIL - Expected 2.7.9, got - " . $v; exit(1); }'
+          php -r '$v = shell_exec("phpunit --version"); echo "Installed - " . $v; echo "Expected - 11.3.0" . PHP_EOL; if(strpos($v, "11.3.0") === false) { echo "FAIL - Expected 11.3.0, got - " . $v; exit(1); }'
+          php -r '$v = shell_exec("phpstan --version"); echo "Installed - " . $v; echo "Expected - 1.12.0" . PHP_EOL; if(strpos($v, "1.12.0") === false) { echo "FAIL - Expected 1.12.0, got - " . $v; exit(1); }'
+          php -r '$v = shell_exec("php-cs-fixer --version"); echo "Installed - " . $v; echo "Expected - 3.64.0" . PHP_EOL; if(strpos($v, "3.64.0") === false) { echo "FAIL - Expected 3.64.0, got - " . $v; exit(1); }'
+          php -r '$v = shell_exec("psalm --version"); echo "Installed - " . $v; echo "Expected - 5.26.0" . PHP_EOL; if(strpos($v, "5.26.0") === false) { echo "FAIL - Expected 5.26.0, got - " . $v; exit(1); }'
+
+      # Test 18: Box tool (phar type)
+      - name: Setup PHP with Box
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: box:4.6.2
+
+      - name: Test Box 4.6.2
+        run: php -r '$v = shell_exec("box --version"); echo "Installed - " . $v; echo "Expected - 4.6.2" . PHP_EOL; if(strpos($v, "4.6.2") === false) { echo "FAIL - Expected 4.6.2, got - " . $v; exit(1); }'
+
+      # Test 19: Infection tool (phar type)
+      - name: Setup PHP with Infection
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: infection:0.29.6
+
+      - name: Test Infection 0.29.6
+        run: php -r '$v = shell_exec("infection --version"); echo "Installed - " . $v; echo "Expected - 0.29.6" . PHP_EOL; if(strpos($v, "0.29.6") === false) { echo "FAIL - Expected 0.29.6, got - " . $v; exit(1); }'
