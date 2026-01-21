@@ -21,8 +21,11 @@ jobs:
               return
             }
             if ($env:GITHUB_PATH) {
-              Add-Content $PathItem -Path $env:GITHUB_PATH -Encoding utf8
+              $existingContent = Get-Content $env:GITHUB_PATH -Raw -ErrorAction SilentlyContinue
+              Set-Content -Path $env:GITHUB_PATH -Value "$PathItem`n$existingContent" -NoNewline -Encoding utf8
               $env:PATH += "$PathItem;"
+              echo $env:PATH || true
+              echo "----------------------"
             }            
           }
 
