@@ -21,7 +21,7 @@ jobs:
             if("$env:PATH;".contains("$PathItem;")) {
               return
             }
-            Add-Content -Path $env:GITHUB_ENV -Value "PATH=$PATH;$PathItem" 
+            Add-Content -Path $env:GITHUB_ENV -Value "PATH=$env:PATH;$PathItem" 
           }
           $c = (Get-Location).Path
           Add-Path $c\aa
