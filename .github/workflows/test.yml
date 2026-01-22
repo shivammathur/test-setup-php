@@ -17,5 +17,5 @@ jobs:
           phpts: ts
       - name: Test
         run: |          
-          ts=$(/usr/bin/php${{matrix.php}} -n -r echo ZEND_THREAD_SAFE ? '-zts' : '-nts';)
+          ts="$(/usr/bin/php${{matrix.php}} -n -r "echo ZEND_THREAD_SAFE ? '-zts' : '-nts';")"
           echo "::warning::$ts"
