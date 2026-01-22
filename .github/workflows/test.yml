@@ -15,5 +15,6 @@ jobs:
       - name: Tool versions
         run: |
           echo "$PATH"
+          /usr/local/bin/node --version || true
           which node
           node --version
