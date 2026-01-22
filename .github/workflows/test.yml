@@ -54,9 +54,10 @@ jobs:
             phinx:0.16.10
       - name: Test Rector 1.2.0
         run: |
-          echo $PATH
-          echo $env:PATH
-          cat $GITHUB_PATH
+          echo $PATH || true
+          echo $env:PATH || true
+          cat $GITHUB_PATH || true
+          cat $env:GITHUB_PATH || true
           php -r "if(strpos(shell_exec('rector --version 2>&1'), '1.2.0')===false) exit(1);"
 
       - name: Test Behat 3.28.0
