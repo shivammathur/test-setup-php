@@ -283,7 +283,7 @@ jobs:
       - name: Test Deployer 7.5.x (major.minor version)
         run: |
           deployer --version
-          php -r "if(strpos(shell_exec('deployer --version 2>&1'), '7.5.9')===false) exit(1);"
+          php -r "if(strpos(shell_exec('deployer --version 2>&1'), '7.5.12')===false) exit(1);"
 
       - name: Test PHPCS 3.13.x (major.minor version)
         run: |
