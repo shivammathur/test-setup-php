@@ -12,6 +12,7 @@ jobs:
         with:
           php-version: '7.4'
           tools: composer
+      - run: echo "/usr/local/bin" >> $GITHUB_PATH    
       - name: Tool versions
         run: |
           echo "$PATH"
