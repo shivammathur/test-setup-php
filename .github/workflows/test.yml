@@ -3,16 +3,17 @@ on: [push]
 jobs:
   runner:
     name: runner
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, ubuntu-22.04, ubuntu-22.04-arm, windows-latest, macos-latest]
+    runs-on: ubuntu-latest
     steps:
-      - name: Test
-        run: |          
-          echo $PATH
-      - name: Test
-        if: startsWith("${{ matrix.os }}", "windows")
-        run: |          
-          echo $env:PATH
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '12'
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          tools: composer
+          coverage: none
+      - name: Tool versions
+        run: |
+          which node
+          node --version
