@@ -9,7 +9,7 @@ jobs:
         with:
           node-version: '12'
       - run: |
-          printf '%s\n' "$PATH" | tr ':' '\n' | tail -r >> "$GITHUB_PATH"
+          printf '%s\n' "$PATH" | tr ':' '\n' | sed '1!G;h;$!d' >> "$GITHUB_PATH"
           add_path() {
             local path_to_add="$1"          
             if [[ -n "${GITHUB_PATH:-}" ]]; then
