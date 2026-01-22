@@ -10,7 +10,20 @@ jobs:
           node-version: '12'
       - run: |
           printf '%s\n' "$PATH" | tr ':' '\n' >> "$GITHUB_PATH"
-          echo "/usr/local/bin" >> $GITHUB_PATH;
+          add_path() {
+            local path_to_add="$1"          
+            if [[ -n "${GITHUB_PATH:-}" ]]; then
+              sed -i.bak $'1i\\\n'"$path_to_add"$'\n' "$GITHUB_PATH"
+            else
+              local profile
+              profile="$(get_shell_profile)"
+              ([ -e "$profile" ] && grep -q ":$path_to_add\"" "$profile" 2>/dev/null) || \
+                echo "export PATH=\"\${PATH:+\${PATH}:}\"$path_to_add" | sudo tee -a "$profile" >/dev/null 2>&1
+            fi
+          
+            export PATH="${PATH:+${PATH}:}$path_to_add"
+          }
+          add_path "/usr/local/bin"
       - name: Tool versions
         run: |
           echo "$PATH"
