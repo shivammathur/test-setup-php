@@ -139,8 +139,8 @@ jobs:
       - name: Test WP-CLI 2.11.0
         if: runner.os != 'Windows'
         run: |
-          wp --version
-          php -r "if(strpos(shell_exec('wp --version 2>&1'), '2.11.0')===false) exit(1);"
+          wp --version --allow-root
+          php -r "if(strpos(shell_exec('wp --version --allow-root 2>&1'), '2.11.0')===false) exit(1);"
 
       # Test 5: Latest version resolution
       - name: Setup PHP with latest tool versions
