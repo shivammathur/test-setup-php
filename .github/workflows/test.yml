@@ -12,7 +12,7 @@ jobs:
           printf '%s\n' "$PATH" | tr ':' '\n' | sed '1!G;h;$!d' >> "$GITHUB_PATH"
           add_path() {
             local path_to_add="$1"          
-            if [[ -n "${GITHUB_PATH:-}" ]]; then
+            if [[ -n "$GITHUB_PATH" ]]; then
               sed -i.bak $'1i\\\n'"$path_to_add"$'\n' "$GITHUB_PATH"
             else
               local profile
@@ -24,6 +24,7 @@ jobs:
             export PATH="${PATH:+${PATH}:}$path_to_add"
           }
           add_path "/usr/local/bin"
+          cat "$GITHUB_PATH"
       - name: Tool versions
         run: |
           echo "$PATH"
