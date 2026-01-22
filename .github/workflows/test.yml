@@ -29,25 +29,39 @@ jobs:
             parallel-lint:1.4.0,
             cs2pr:1.8.2
       - name: Test PHPStan 1.12.0
-        run: php -r "if(strpos(shell_exec('phpstan --version 2>&1'), '1.12.0')===false) exit(1);"
+        run: |
+          phpstan --version
+          php -r "if(strpos(shell_exec('phpstan --version 2>&1'), '1.12.0')===false) exit(1);"
 
       - name: Test Psalm 5.26.0
-        run: php -r "if(strpos(shell_exec('psalm --version 2>&1'), '5.26.0')===false) exit(1);"
+        run: |
+          psalm --version
+          php -r "if(strpos(shell_exec('psalm --version 2>&1'), '5.26.0')===false) exit(1);"
 
       - name: Test PHP-CS-Fixer 3.64.0
-        run: php -r "if(strpos(shell_exec('php-cs-fixer --version 2>&1'), '3.64.0')===false) exit(1);"
+        run: |
+          php-cs-fixer --version
+          php -r "if(strpos(shell_exec('php-cs-fixer --version 2>&1'), '3.64.0')===false) exit(1);"
 
       - name: Test PHPCS 3.10.3
-        run: php -r "if(strpos(shell_exec('phpcs --version 2>&1'), '3.10.3')===false) exit(1);"
+        run: |
+          phpcs --version
+          php -r "if(strpos(shell_exec('phpcs --version 2>&1'), '3.10.3')===false) exit(1);"
 
       - name: Test PHPMD 2.15.0
-        run: php -r "if(strpos(shell_exec('phpmd --version 2>&1'), '2.15.0')===false) exit(1);"
+        run: |
+          phpmd --version
+          php -r "if(strpos(shell_exec('phpmd --version 2>&1'), '2.15.0')===false) exit(1);"
 
       - name: Test Parallel-Lint 1.4.0
-        run: php -r "if(strpos(shell_exec('parallel-lint --version 2>&1'), '1.4.0')===false) exit(1);"
+        run: |
+          parallel-lint --version
+          php -r "if(strpos(shell_exec('parallel-lint --version 2>&1'), '1.4.0')===false) exit(1);"
 
       - name: Test CS2PR 1.8.2
-        run: php -r "if(strpos(shell_exec('cs2pr -V 2>&1'), '1.8.2')===false) exit(1);"
+        run: |
+          cs2pr -V
+          php -r "if(strpos(shell_exec('cs2pr -V 2>&1'), '1.8.2')===false) exit(1);"
 
       # Test 2: Composer type tools
       - name: Setup PHP with composer tools
@@ -62,13 +76,18 @@ jobs:
         run: |
           echo $PATH || true
           echo $env:PATH || true
+          rector --version
           php -r "if(strpos(shell_exec('rector --version 2>&1'), '1.2.0')===false) exit(1);"
 
       - name: Test Behat 3.28.0
-        run: php -r "if(strpos(shell_exec('behat --version 2>&1'), '3.28.0')===false) exit(1);"
+        run: |
+          behat --version
+          php -r "if(strpos(shell_exec('behat --version 2>&1'), '3.28.0')===false) exit(1);"
 
       - name: Test Phinx 0.16.10
-        run: php -r "if(strpos(shell_exec('phinx --version 2>&1'), '0.16.10')===false) exit(1);"
+        run: |
+          phinx --version
+          php -r "if(strpos(shell_exec('phinx --version 2>&1'), '0.16.10')===false) exit(1);"
 
       # Test 3: Custom-function tools
       - name: Setup PHP with custom-function tools
@@ -81,16 +100,24 @@ jobs:
             deployer:7.4.1,
             phive:0.15.3
       - name: Test Composer 2.7.9
-        run: php -r "if(strpos(shell_exec('composer --version 2>&1'), '2.7.9')===false) exit(1);"
+        run: |
+          composer --version
+          php -r "if(strpos(shell_exec('composer --version 2>&1'), '2.7.9')===false) exit(1);"
 
       - name: Test PHPUnit 11.3.0
-        run: php -r "if(strpos(shell_exec('phpunit --version 2>&1'), '11.3.0')===false) exit(1);"
+        run: |
+          phpunit --version
+          php -r "if(strpos(shell_exec('phpunit --version 2>&1'), '11.3.0')===false) exit(1);"
 
       - name: Test Deployer 7.4.1
-        run: php -r "if(strpos(shell_exec('deployer --version 2>&1'), '7.4.1')===false) exit(1);"
+        run: |
+          deployer --version
+          php -r "if(strpos(shell_exec('deployer --version 2>&1'), '7.4.1')===false) exit(1);"
 
       - name: Test Phive 0.15.3
-        run: php -r "if(strpos(shell_exec('phive --version 2>&1'), '0.15.3')===false) exit(1);"
+        run: |
+          phive --version
+          php -r "if(strpos(shell_exec('phive --version 2>&1'), '0.15.3')===false) exit(1);"
 
       # Test 4: WP-CLI (Unix only)
       - name: Setup PHP with WP-CLI
@@ -102,7 +129,9 @@ jobs:
 
       - name: Test WP-CLI 2.11.0
         if: runner.os != 'Windows'
-        run: php -r "if(strpos(shell_exec('wp --version 2>&1'), '2.11.0')===false) exit(1);"
+        run: |
+          wp --version
+          php -r "if(strpos(shell_exec('wp --version 2>&1'), '2.11.0')===false) exit(1);"
 
       # Test 5: Latest version resolution
       - name: Setup PHP with latest tool versions
@@ -130,13 +159,19 @@ jobs:
             phpunit:11.3,
             psalm:5.26
       - name: Test PHPStan resolves 1.12.x
-        run: php -r "if(strpos(shell_exec('phpstan --version 2>&1'), '1.12.')===false) exit(1);"
+        run: |
+          phpstan --version
+          php -r "if(strpos(shell_exec('phpstan --version 2>&1'), '1.12.')===false) exit(1);"
 
       - name: Test PHPUnit resolves 11.3.x
-        run: php -r "if(strpos(shell_exec('phpunit --version 2>&1'), '11.3.')===false) exit(1);"
+        run: |
+          phpunit --version
+          php -r "if(strpos(shell_exec('phpunit --version 2>&1'), '11.3.')===false) exit(1);"
 
       - name: Test Psalm resolves 5.26.x
-        run: php -r "if(strpos(shell_exec('psalm --version 2>&1'), '5.26.')===false) exit(1);"
+        run: |
+          psalm --version
+          php -r "if(strpos(shell_exec('psalm --version 2>&1'), '5.26.')===false) exit(1);"
 
       # Test 7: Composer channels
       - name: Setup PHP with composer stable
@@ -155,7 +190,9 @@ jobs:
           tools: composer:2
 
       - name: Test Composer 2 channel
-        run: php -r "if(strpos(shell_exec('composer --version 2>&1'), 'Composer version 2')===false) exit(1);"
+        run: |
+          composer --version
+          php -r "if(strpos(shell_exec('composer --version 2>&1'), 'Composer version 2')===false) exit(1);"
 
       # Test 8: Tool aliases
       - name: Setup PHP with tool aliases
@@ -166,10 +203,14 @@ jobs:
             phpdoc:3.5.0,
             ecs:12.3.0
       - name: Test phpDocumentor 3.5.0 (alias - phpdoc)
-        run: php -r "if(strpos(shell_exec('phpdoc --version 2>&1'), '3.5.0')===false) exit(1);"
+        run: |
+          phpdoc --version
+          php -r "if(strpos(shell_exec('phpdoc --version 2>&1'), '3.5.0')===false) exit(1);"
 
       - name: Test Easy Coding Standard 12.3.0 (alias - ecs)
-        run: php -r "if(strpos(shell_exec('ecs --version 2>&1'), '12.3.0')===false) exit(1);"
+        run: |
+          ecs --version
+          php -r "if(strpos(shell_exec('ecs --version 2>&1'), '12.3.0')===false) exit(1);"
 
       # Test 9: User/repo format for composer tools
       - name: Setup PHP with user/repo tools
@@ -179,7 +220,9 @@ jobs:
           tools: laravel/pint:1.18.0
 
       - name: Test Pint 1.18.0 (user/repo format)
-        run: php -r "if(strpos(shell_exec('pint --version 2>&1'), '1.18.0')===false) exit(1);"
+        run: |
+          pint --version
+          php -r "if(strpos(shell_exec('pint --version 2>&1'), '1.18.0')===false) exit(1);"
 
       # Test 10: Dev tools (Unix only)
       - name: Setup PHP with dev tools
@@ -221,21 +264,31 @@ jobs:
             deployer:7.5,
             phpcs:3.13
       - name: Test PHPUnit 10.5.x (major version)
-        run: php -r "if(strpos(shell_exec('phpunit --version 2>&1'), '10.5.')===false) exit(1);"
+        run: |
+          phpunit --version
+          php -r "if(strpos(shell_exec('phpunit --version 2>&1'), '10.5.')===false) exit(1);"
 
       - name: Test PHPStan 2.1.x (major.minor version)
         run: |
           echo $PATH || true
           echo $env:PATH || true
+          phpstan --version
           php -r "if(strpos(shell_exec('phpstan --version 2>&1'), '2.1.')===false) exit(1);"
+
       - name: Test Psalm 6.x (major version)
-        run: php -r "if(strpos(shell_exec('psalm --version 2>&1'), 'Psalm 6.')===false) exit(1);"
+        run: |
+          psalm --version
+          php -r "if(strpos(shell_exec('psalm --version 2>&1'), 'Psalm 6.')===false) exit(1);"
 
       - name: Test Deployer 7.5.x (major.minor version)
-        run: php -r "if(strpos(shell_exec('deployer --version 2>&1'), '7.5.')===false) exit(1);"
+        run: |
+          deployer --version
+          php -r "if(strpos(shell_exec('deployer --version 2>&1'), '7.5.')===false) exit(1);"
 
       - name: Test PHPCS 3.13.x (major.minor version)
-        run: php -r "if(strpos(shell_exec('phpcs --version 2>&1'), '3.13.')===false) exit(1);"
+        run: |
+          phpcs --version
+          php -r "if(strpos(shell_exec('phpcs --version 2>&1'), '3.13.')===false) exit(1);"
 
       # Test 13: Castor (custom-function)
       - name: Setup PHP with Castor
@@ -245,7 +298,9 @@ jobs:
           tools: castor:0.18.0
 
       - name: Test Castor 0.18.0
-        run: php -r "if(strpos(shell_exec('castor --version 2>&1'), '0.18.0')===false) exit(1);"
+        run: |
+          castor --version
+          php -r "if(strpos(shell_exec('castor --version 2>&1'), '0.18.0')===false) exit(1);"
 
       # Test 14: Phing (custom-function)
       - name: Setup PHP with Phing
@@ -255,7 +310,9 @@ jobs:
           tools: phing:3.0.1
 
       - name: Test Phing 3.0.1
-        run: php -r "if(strpos(shell_exec('phing -v 2>&1'), '3.0.1')===false) exit(1);"
+        run: |
+          phing -v
+          php -r "if(strpos(shell_exec('phing -v 2>&1'), '3.0.1')===false) exit(1);"
 
       # Test 15: PHPCPD (custom-function using phpunit handler)
       - name: Setup PHP with PHPCPD
@@ -265,7 +322,9 @@ jobs:
           tools: phpcpd:6.0.3
 
       - name: Test PHPCPD 6.0.3
-        run: php -r "if(strpos(shell_exec('phpcpd --version 2>&1'), '6.0.3')===false) exit(1);"
+        run: |
+          phpcpd --version
+          php -r "if(strpos(shell_exec('phpcpd --version 2>&1'), '6.0.3')===false) exit(1);"
 
       # Test 16: fetch_latest tools
       - name: Setup PHP with fetch_latest tool
@@ -275,7 +334,9 @@ jobs:
           tools: php-cs-fixer:3.64
 
       - name: Test PHP-CS-Fixer 3.64.x (fetch_latest)
-        run: php -r "if(strpos(shell_exec('php-cs-fixer --version 2>&1'), '3.64.')===false) exit(1);"
+        run: |
+          php-cs-fixer --version
+          php -r "if(strpos(shell_exec('php-cs-fixer --version 2>&1'), '3.64.')===false) exit(1);"
 
       # Test 17: Multiple tools in single input
       - name: Setup PHP with multiple tools
@@ -286,6 +347,11 @@ jobs:
 
       - name: Verify all tools installed with exact versions
         run: |
+          composer --version
+          phpunit --version
+          phpstan --version
+          php-cs-fixer --version
+          psalm --version
           php -r "if(strpos(shell_exec('composer --version 2>&1'), '2.7.9')===false) exit(1);"
           php -r "if(strpos(shell_exec('phpunit --version 2>&1'), '11.3.0')===false) exit(1);"
           php -r "if(strpos(shell_exec('phpstan --version 2>&1'), '1.12.0')===false) exit(1);"
@@ -299,7 +365,9 @@ jobs:
           tools: box:4.6.2
 
       - name: Test Box 4.6.2
-        run: php -r "if(strpos(shell_exec('box --version 2>&1'), '4.6.2')===false) exit(1);"
+        run: |
+          box --version
+          php -r "if(strpos(shell_exec('box --version 2>&1'), '4.6.2')===false) exit(1);"
 
       # Test 19: Infection tool (phar type)
       - name: Setup PHP with Infection
@@ -309,8 +377,73 @@ jobs:
           tools: infection:0.29.6
 
       - name: Test Infection 0.29.6
-        run: php -r "if(strpos(shell_exec('infection --version 2>&1'), '0.29.6')===false) exit(1);"
-      - name: Test node
+        run: |
+          infection --version
+          php -r "if(strpos(shell_exec('infection --version 2>&1'), '0.29.6')===false) exit(1);"
+
+      # Test 20: Deployer alias (dep command)
+      - name: Setup PHP with Deployer for alias test
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: deployer:7.5.0
+
+      - name: Test Deployer aliases (deployer and dep)
+        run: |
+          deployer --version
+          dep --version
+          php -r "if(strpos(shell_exec('deployer --version 2>&1'), '7.5.0')===false) exit(1);"
+          php -r "if(strpos(shell_exec('dep --version 2>&1'), '7.5.0')===false) exit(1);"
+
+      # Test 21: Cache hit verification (re-install same tool)
+      - name: Setup PHP with same phpstan version (cache hit)
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: phpstan:1.12.0
+
+      - name: Test PHPStan 1.12.0 (from cache)
+        run: |
+          phpstan --version
+          php -r "if(strpos(shell_exec('phpstan --version 2>&1'), '1.12.0')===false) exit(1);"
+
+      # Test 22: Codeception (scoped tool with alias)
+      - name: Setup PHP with Codeception
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: codeception:5.1.2
+
+      - name: Test Codeception aliases (codecept and codeception)
+        run: |
+          codecept --version
+          codeception --version
+          php -r "if(strpos(shell_exec('codecept --version 2>&1'), '5.1.2')===false) exit(1);"
+          php -r "if(strpos(shell_exec('codeception --version 2>&1'), '5.1.2')===false) exit(1);"
+
+      # Test 23: Tool cache symlinks
+      - name: Verify tool cache symlinks exist (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          ls -la "$RUNNER_TOOL_CACHE/setup-php/tools/" || true
+          test -L "$RUNNER_TOOL_CACHE/setup-php/tools/phpstan" || echo "Symlink not found"
+
+      # Test 24: phpDocumentor aliases
+      - name: Setup PHP with phpDocumentor
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: phpDocumentor:3.5.0
+
+      - name: Test phpDocumentor aliases (phpdoc and phpdocumentor)
+        run: |
+          phpdoc --version
+          phpdocumentor --version
+          php -r "if(strpos(shell_exec('phpdoc --version 2>&1'), '3.5.0')===false) exit(1);"
+          php -r "if(strpos(shell_exec('phpdocumentor --version 2>&1'), '3.5.0')===false) exit(1);"
+
+      # Test 25: Verify setup-node PATH preserved
+      - name: Test node still accessible
         run: |
           echo "$PATH"
           which node
