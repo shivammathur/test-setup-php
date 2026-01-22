@@ -12,8 +12,8 @@ jobs:
         with:
           php-version: '7.4'
           tools: composer
-          coverage: none
       - name: Tool versions
         run: |
+          echo "$PATH"
           which node
           node --version
