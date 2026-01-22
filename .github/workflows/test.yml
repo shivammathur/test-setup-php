@@ -15,7 +15,7 @@ jobs:
           echo $env:PATH || true
       - uses: actions/setup-node@v6
         with:
-          node-version: '12'
+          node-version: '18'
       - name: Setup PHP with phar tools
         uses: shivammathur/setup-php@develop
         with:
