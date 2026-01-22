@@ -10,6 +10,9 @@ jobs:
         os: [ubuntu-24.04, macos-14, windows-latest]
     steps:
       # Test 1: Phar type tools with exact versions
+      - run: |
+          echo $PATH || true
+          echo $env:PATH || true
       - name: Setup PHP with phar tools
         uses: shivammathur/setup-php@develop
         with:
