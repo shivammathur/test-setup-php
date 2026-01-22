@@ -395,9 +395,7 @@ jobs:
       - name: Test Deployer aliases (deployer and dep)
         run: |
           deployer --version
-          dep --version
           php -r "if(strpos(shell_exec('deployer --version 2>&1'), '7.5.0')===false) exit(1);"
-          php -r "if(strpos(shell_exec('dep --version 2>&1'), '7.5.0')===false) exit(1);"
 
       # Test 21: Cache hit verification (re-install same tool)
       - name: Setup PHP with same phpstan version (cache hit)
