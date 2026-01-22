@@ -8,11 +8,16 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '12'
-      - uses: shivammathur/setup-php@v2
+      - run: echo "/usr/local/bin" >> $GITHUB_PATH;
+      - name: Tool versions
+        run: |
+          echo "$PATH"
+          /usr/local/bin/node --version || true
+          which node
+          node --version
+      - uses: actions/setup-node@v6
         with:
-          php-version: '7.4'
-          tools: composer
-      - run: echo "/usr/local/bin" >> $GITHUB_PATH; echo "/tmp/aa" >> $GITHUB_PATH    
+          node-version: '12'
       - name: Tool versions
         run: |
           echo "$PATH"
