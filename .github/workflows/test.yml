@@ -21,4 +21,6 @@ jobs:
           ts="$(/usr/bin/php${{matrix.php}} -n -r "echo ZEND_THREAD_SAFE ? 'ts' : 'nts';")"          
           echo "::warning::$ts"
           echo "---$ts---"
-          [ "$ts" != "${{matrix.ts}}" ] && exit 1
+          if [ "$ts" != "${{matrix.ts}}" ]; then
+            exit 1
+          fi
