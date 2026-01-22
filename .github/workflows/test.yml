@@ -16,7 +16,6 @@ jobs:
           php-version: ${{ matrix.php }}
         env:  
           phpts: ${{ matrix.ts }}
-          update: true
       - name: Test
         run: |          
           ts="$(/usr/bin/php${{matrix.php}} -n -r "echo ZEND_THREAD_SAFE ? 'ts' : 'nts';")"          
