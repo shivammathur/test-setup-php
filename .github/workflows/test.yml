@@ -161,17 +161,17 @@ jobs:
       - name: Test PHPStan resolves 1.12.x
         run: |
           phpstan --version
-          php -r "if(strpos(shell_exec('phpstan --version 2>&1'), '1.12.')===false) exit(1);"
+          php -r "if(strpos(shell_exec('phpstan --version 2>&1'), '1.12.32')===false) exit(1);"
 
       - name: Test PHPUnit resolves 11.3.x
         run: |
           phpunit --version
-          php -r "if(strpos(shell_exec('phpunit --version 2>&1'), '11.3.')===false) exit(1);"
+          php -r "if(strpos(shell_exec('phpunit --version 2>&1'), '11.3.6')===false) exit(1);"
 
       - name: Test Psalm resolves 5.26.x
         run: |
           psalm --version
-          php -r "if(strpos(shell_exec('psalm --version 2>&1'), '5.26.')===false) exit(1);"
+          php -r "if(strpos(shell_exec('psalm --version 2>&1'), '5.26.1')===false) exit(1);"
 
       # Test 7: Composer channels
       - name: Setup PHP with composer stable
@@ -266,29 +266,29 @@ jobs:
       - name: Test PHPUnit 10.5.x (major version)
         run: |
           phpunit --version
-          php -r "if(strpos(shell_exec('phpunit --version 2>&1'), '10.5.')===false) exit(1);"
+          php -r "if(strpos(shell_exec('phpunit --version 2>&1'), '10.5.60')===false) exit(1);"
 
       - name: Test PHPStan 2.1.x (major.minor version)
         run: |
           echo $PATH || true
           echo $env:PATH || true
           phpstan --version
-          php -r "if(strpos(shell_exec('phpstan --version 2>&1'), '2.1.')===false) exit(1);"
+          php -r "if(strpos(shell_exec('phpstan --version 2>&1'), '2.1.36')===false) exit(1);"
 
       - name: Test Psalm 6.x (major version)
         run: |
           psalm --version
-          php -r "if(strpos(shell_exec('psalm --version 2>&1'), 'Psalm 6.')===false) exit(1);"
+          php -r "if(strpos(shell_exec('psalm --version 2>&1'), '6.14.3')===false) exit(1);"
 
       - name: Test Deployer 7.5.x (major.minor version)
         run: |
           deployer --version
-          php -r "if(strpos(shell_exec('deployer --version 2>&1'), '7.5.')===false) exit(1);"
+          php -r "if(strpos(shell_exec('deployer --version 2>&1'), '7.5.9')===false) exit(1);"
 
       - name: Test PHPCS 3.13.x (major.minor version)
         run: |
           phpcs --version
-          php -r "if(strpos(shell_exec('phpcs --version 2>&1'), '3.13.')===false) exit(1);"
+          php -r "if(strpos(shell_exec('phpcs --version 2>&1'), '3.13.5')===false) exit(1);"
 
       # Test 13: Castor (custom-function)
       - name: Setup PHP with Castor
@@ -336,7 +336,7 @@ jobs:
       - name: Test PHP-CS-Fixer 3.64.x (fetch_latest)
         run: |
           php-cs-fixer --version
-          php -r "if(strpos(shell_exec('php-cs-fixer --version 2>&1'), '3.64.')===false) exit(1);"
+          php -r "if(strpos(shell_exec('php-cs-fixer --version 2>&1'), '3.64.0')===false) exit(1);"
 
       # Test 17: Multiple tools in single input
       - name: Setup PHP with multiple tools
@@ -446,5 +446,5 @@ jobs:
       - name: Test node still accessible
         run: |
           echo "$PATH"
-          which node
+          which node || where node
           node --version
