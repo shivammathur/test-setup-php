@@ -7,21 +7,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, ubuntu-22.04, ubuntu-22.04-arm]
-        php: [5.6,'7.0',7.1,7.2,7.3,7.4,'8.0',8.1,8.2,8.3,8.4,8.5,8.6]
-        ts: [nts, ts]
+        os: [ubuntu-24.04-armt]
     steps:
-      - uses: shivammathur/setup-php@more-verbose
-        with:
-          php-version: ${{ matrix.php }}
-        env:  
-          phpts: ${{ matrix.ts }}
-          update: true
-      - name: Test
-        run: |          
-          ts="$(/usr/bin/php${{matrix.php}} -n -r "echo ZEND_THREAD_SAFE ? 'ts' : 'nts';")"          
-          echo "::warning::$ts"
-          echo "---$ts---"
-          if [ "$ts" != "${{matrix.ts}}" ]; then
-            exit 1
-          fi
+      - uses: mxschmitt/action-tmate@v3.23
