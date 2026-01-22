@@ -56,8 +56,6 @@ jobs:
         run: |
           echo $PATH || true
           echo $env:PATH || true
-          cat $GITHUB_PATH || true
-          cat $env:GITHUB_PATH || true
           php -r "if(strpos(shell_exec('rector --version 2>&1'), '1.2.0')===false) exit(1);"
 
       - name: Test Behat 3.28.0
