@@ -8,15 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-24.04
-            image: ubuntu:24.04
-          - os: ubuntu-24.04-arm
-            image: arm64v8/ubuntu:24.04
-          - os: ubuntu-24.04
-            image: ubuntu:22.04
-          - os: ubuntu-24.04-arm
-            image: arm64v8/ubuntu:22.04
+        os: [ubuntu-24.04, ubuntu-22.04, ubuntu-22.04, ubuntu-22.04-arm, macos-14, macos-15-intel, windows-latest]
     steps:
       # Test 1: Phar type tools with exact versions
       - run: |
