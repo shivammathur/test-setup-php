@@ -8,16 +8,9 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '12'
-      - run: echo "/usr/local/bin" >> $GITHUB_PATH;
-      - name: Tool versions
-        run: |
-          echo "$PATH"
-          /usr/local/bin/node --version || true
-          which node
-          node --version
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '12'
+      - run: |
+          printf '%s\n' "$PATH" | tr ':' '\n' >> "$GITHUB_PATH"
+          echo "/usr/local/bin" >> $GITHUB_PATH;
       - name: Tool versions
         run: |
           echo "$PATH"
