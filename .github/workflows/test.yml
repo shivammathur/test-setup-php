@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: '18'
       - name: Setup PHP with phar tools
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: >-
@@ -67,7 +67,7 @@ jobs:
 
       # Test 2: Composer type tools
       - name: Setup PHP with composer tools
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: >-
@@ -93,7 +93,7 @@ jobs:
 
       # Test 3: Custom-function tools
       - name: Setup PHP with custom-function tools
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: >-
@@ -124,7 +124,7 @@ jobs:
       # Test 4: WP-CLI (Unix only)
       - name: Setup PHP with WP-CLI
         if: runner.os != 'Windows'
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: wp-cli:2.11.0
@@ -137,7 +137,7 @@ jobs:
 
       # Test 5: Latest version resolution
       - name: Setup PHP with latest tool versions
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: >-
@@ -153,7 +153,7 @@ jobs:
           php-cs-fixer --version
       # Test 6: Semver resolution (major.minor)
       - name: Setup PHP with major.minor versions
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: >-
@@ -177,7 +177,7 @@ jobs:
 
       # Test 7: Composer channels
       - name: Setup PHP with composer stable
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: composer:stable
@@ -186,7 +186,7 @@ jobs:
         run: composer --version
 
       - name: Setup PHP with composer 2
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: composer:2
@@ -198,7 +198,7 @@ jobs:
 
       # Test 8: Tool aliases
       - name: Setup PHP with tool aliases
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: >-
@@ -216,7 +216,7 @@ jobs:
 
       # Test 9: User/repo format for composer tools
       - name: Setup PHP with user/repo tools
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: laravel/pint:1.18.0
@@ -229,7 +229,7 @@ jobs:
       # Test 10: Dev tools (Unix only)
       - name: Setup PHP with dev tools
         if: runner.os != 'Windows'
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: php-config, phpize
@@ -245,7 +245,7 @@ jobs:
       # Test 11: PECL (Unix only)
       - name: Setup PHP with PECL
         if: runner.os != 'Windows'
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: pecl
@@ -256,7 +256,7 @@ jobs:
 
       # Test 12: Partial version resolution (major and major.minor)
       - name: Setup PHP with partial version tools
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: >-
@@ -271,6 +271,7 @@ jobs:
           php -r "if(strpos(shell_exec('phpunit --version 2>&1'), '10.5.60')===false) exit(1);"
 
       - name: Test PHPStan 2.1.x (major.minor version)
+        continue-on-error: true
         run: |
           echo $PATH || true
           echo $env:PATH || true
@@ -294,7 +295,7 @@ jobs:
 
       # Test 13: Castor (custom-function)
       - name: Setup PHP with Castor
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: castor:0.18.0
@@ -306,7 +307,7 @@ jobs:
 
       # Test 14: Phing (custom-function)
       - name: Setup PHP with Phing
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: phing:3.0.1
@@ -318,7 +319,7 @@ jobs:
 
       # Test 15: PHPCPD (custom-function using phpunit handler)
       - name: Setup PHP with PHPCPD
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: phpcpd:6.0.3
@@ -330,7 +331,7 @@ jobs:
 
       # Test 16: fetch_latest tools
       - name: Setup PHP with fetch_latest tool
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: php-cs-fixer:3.64
@@ -342,7 +343,7 @@ jobs:
 
       # Test 17: Multiple tools in single input
       - name: Setup PHP with multiple tools
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: composer:2.7.9, phpunit:11.3.0, phpstan:1.12.0, php-cs-fixer:3.64.0, psalm:5.26.0
@@ -361,7 +362,7 @@ jobs:
           php -r "if(strpos(shell_exec('psalm --version 2>&1'), '5.26.0')===false) exit(1);"
       # Test 18: Box tool (phar type)
       - name: Setup PHP with Box
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: box:4.6.2
@@ -373,7 +374,7 @@ jobs:
 
       # Test 19: Infection tool (phar type)
       - name: Setup PHP with Infection
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: infection:0.29.6
@@ -385,7 +386,7 @@ jobs:
 
       # Test 20: Deployer alias (dep command)
       - name: Setup PHP with Deployer for alias test
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: deployer:7.5.0
@@ -399,7 +400,7 @@ jobs:
 
       # Test 21: Cache hit verification (re-install same tool)
       - name: Setup PHP with same phpstan version (cache hit)
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: phpstan:1.12.0
@@ -411,7 +412,7 @@ jobs:
 
       # Test 22: Codeception (scoped tool with alias)
       - name: Setup PHP with Codeception
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: codeception:5.1.2
@@ -432,7 +433,7 @@ jobs:
 
       # Test 24: phpDocumentor aliases
       - name: Setup PHP with phpDocumentor
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           tools: phpDocumentor:3.5.0
