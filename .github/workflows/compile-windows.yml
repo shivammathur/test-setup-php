@@ -34,24 +34,24 @@ jobs:
       - name: Checkout Phalcon
         uses: actions/checkout@v4
 
-      - name: Extract Phalcon Version
-        shell: powershell
-        run: |
-          chcp 65001
-          $r = Select-String -Path build/phalcon/php_phalcon.h -Pattern 'PHP_PHALCON_VERSION\s+"(.*)"'
-          $s = $r.Matches[0].Groups[1]
-          echo "$s"
-          $PhalconVersion = 'PHALCON_VERSION=' + $s
-          echo $PhalconVersion >> $env:GITHUB_ENV
-
-      - name: Setup PHP
-        id: setup-php
-        uses: php/setup-php-sdk@v0.11
-        with:
-          version: ${{matrix.php}}
-          arch: ${{matrix.arch}}
-          ts: ${{matrix.ts}}
-          deps: zlib
+#      - name: Extract Phalcon Version
+#        shell: powershell
+#        run: |
+#          chcp 65001
+#          $r = Select-String -Path build/phalcon/php_phalcon.h -Pattern 'PHP_PHALCON_VERSION\s+"(.*)"'
+#          $s = $r.Matches[0].Groups[1]
+#          echo "$s"
+#          $PhalconVersion = 'PHALCON_VERSION=' + $s
+#          echo $PhalconVersion >> $env:GITHUB_ENV
+#
+#      - name: Setup PHP
+#        id: setup-php
+#        uses: php/setup-php-sdk@v0.11
+#        with:
+#          version: ${{matrix.php}}
+#          arch: ${{matrix.arch}}
+#          ts: ${{matrix.ts}}
+#          deps: zlib
 
       - name: Generate build folder
         run: |
