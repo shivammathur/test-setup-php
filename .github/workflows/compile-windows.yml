@@ -61,7 +61,7 @@ jobs:
       - name: Build the extension
         uses: php/php-windows-builder/extension@v1
         with:
-          php-version: ${{ matrix.php-version }}
+          php-version: ${{ matrix.php }}
           arch: ${{ matrix.arch }}
           ts: ${{ matrix.ts }}
 
