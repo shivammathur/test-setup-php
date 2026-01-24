@@ -57,7 +57,8 @@ jobs:
         run: |
           cd build/
           php gen-build.php
-          cp -v phalcon/*.* ../
+          cd ../
+          cp -v build/phalcon/*.* .
 
       - name: Build the extension
         uses: php/php-windows-builder/extension@v1
