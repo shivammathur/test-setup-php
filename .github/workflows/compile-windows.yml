@@ -58,66 +58,17 @@ jobs:
           cd build/
           php gen-build.php
 
-      - name: Enable Developer Command Prompt
-        uses: ilammy/msvc-dev-cmd@v1
+      - name: Build the extension
+        uses: php/php-windows-builder/extension@v1
         with:
-          arch: ${{matrix.arch}}
-          toolset: ${{steps.setup-php.outputs.toolset}}
+          php-version: ${{ matrix.php-version }}
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
 
-      - name: Phpize
-        run: |
-          cd build/phalcon/
-          phpize
-
-      - name: Configure
-        run: |
-          cd build/phalcon/
-          ./configure --enable-phalcon --with-prefix=${{steps.setup-php.outputs.prefix}}
-
-      - name: Make
-        run: |
-          cd build/phalcon/
-          nmake
-
-      - name: Define Phalcon Module Env
-        shell: powershell
-        run: |
-          chcp 65001
-
-          $dir = (Get-Location).Path + '\build\phalcon\'
-          if ('x64' -eq '${{matrix.arch}}') { $dir = $dir + 'x64\' }
-          $dir = $dir + 'Release'
-          if ('ts' -eq '${{matrix.ts}}') { $dir = $dir + '_TS' }
-          $phalconDllOpt = 'TEST_PHP_ARGS=-n -d zend_extension=' + $dir + '\php_phalcon.dll'
-          echo $phalconDllOpt >> $env:GITHUB_ENV
-
-          $artifactName = 'php_phalcon-${{ env.PHALCON_VERSION }}-php${{matrix.php}}'
-
-          if ('nts' -ne '${{matrix.ts}}') { $artifactName = $artifactName + '-ts' }
-          if ('nts' -eq '${{matrix.ts}}') { $artifactName = $artifactName + '-nts' }
-
-          $artifactName = $artifactName + '-windows'
-
-          if ('8.0' -eq '${{matrix.php}}') { $artifactName = $artifactName + '-vs16' }
-          if ('8.1' -eq '${{matrix.php}}') { $artifactName = $artifactName + '-vs16' }
-          if ('8.2' -eq '${{matrix.php}}') { $artifactName = $artifactName + '-vs16' }
-          if ('8.3' -eq '${{matrix.php}}') { $artifactName = $artifactName + '-vs16' }
-
-          if ('x64' -eq '${{matrix.arch}}') { $artifactName = $artifactName + '-x64' }
-
-          $phalconArtifactName = "ARTIFACT_NAME=" + $artifactName
-          echo $phalconArtifactName >> $env:GITHUB_ENV
-
-          $from = $dir + '\php_phalcon.dll'
-          $to = '.\php_phalcon.dll'
-          Copy-Item $from -Destination $to
-          $phalconArtifact = "ARTIFACT=" + '.\php_phalcon.dll'
-          echo $phalconArtifact >> $env:GITHUB_ENV
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{env.ARTIFACT_NAME}}
-          path: |
-            ${{env.ARTIFACT}}
-            LICENSE.txt
+#      - name: Upload artifacts
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: ${{env.ARTIFACT_NAME}}
+#          path: |
+#            ${{env.ARTIFACT}}
+#            LICENSE.txt
