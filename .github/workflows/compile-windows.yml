@@ -58,6 +58,7 @@ jobs:
           cd build/
           php gen-build.php
           cd ../
+          pwd
           cp -v build/phalcon/*.* .
 
       - name: Build the extension
