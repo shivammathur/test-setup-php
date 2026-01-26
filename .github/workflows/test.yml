@@ -8,6 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, ubuntu-22.04, ubuntu-22.04, ubuntu-22.04-arm, macos-14, macos-15-intel, windows-latest]
+        php: [8.3, 8.4, 8.5]
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
