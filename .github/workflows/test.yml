@@ -16,12 +16,12 @@ jobs:
           php-version: ${{ matrix.php }}
           tools:
       - name: Test
-        if: ${{ !startsWith(${{ matrix.os }}, 'windows') }}
+        if: !startsWith(${{ matrix.os }}, 'windows')
         run: |
           a=$(php -v | head) || true
           echo "::warning::$a"
       - name: Test
-        if: ${{ startsWith(${{ matrix.os }}, 'windows') }}
+        if: startsWith(${{ matrix.os }}, 'windows')
         run: |
           $a = (php -v - Split '\n')[0]
           echo "::warning::$a"
