@@ -14,7 +14,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          tools:
+        env:
+          update: true
       - name: Test
         if: ${{ !startsWith(matrix.os, 'windows') }}
         run: |
