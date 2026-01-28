@@ -8,6 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest]
+        runs: [1,1,1,1,1,1,1,1,1,1]
     steps:
       - run: |
           cat >"/tmp/brew.curlrc" <<'EOF'
@@ -15,10 +16,11 @@ jobs:
           --max-time 5
           --speed-time 2
           --speed-limit 1000000000
+          -vvv
           EOF
       - name: Test
         env:
           HOMEBREW_CURLRC: /tmp/brew.curlrc
         run: |
           brew config
-          brew install --only-dependencies --verbose php
+          brew install --only-dependencies --debug --verbose php
