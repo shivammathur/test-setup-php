@@ -15,7 +15,6 @@ jobs:
           --connect-timeout 1
           --max-time 5
           --speed-time 2
-          --speed-limit 1000000000
           -vvv
           EOF
       - name: Test
