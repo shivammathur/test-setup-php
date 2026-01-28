@@ -9,12 +9,17 @@ jobs:
       matrix:
         os: [macos-latest]
         dc: [1, 2, 4, 6, 8, 10]
+        runs: [1,1,1,1,1,1,1,1,1]
     steps:
       - name: Test
         env:
           HOMEBREW_DOWNLOAD_CONCURRENCY: ${{ matrix.dc }}
         run: |
           brew config
+          echo '---------------------------'
           brew fetch --deps --force-bottle --verbose --debug php
+          echo '---------------------------'
           brew install --only-dependencies --verbose --debug php
+          echo '---------------------------'
           brew install --verbose --debug php
+          echo '---------------------------'
