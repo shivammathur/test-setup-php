@@ -20,4 +20,5 @@ jobs:
         env:
           HOMEBREW_CURLRC: /tmp/brew.curlrc
         run: |
-          brew install --only-dependencies php
+          brew config
+          brew install --only-dependencies --verbose php
