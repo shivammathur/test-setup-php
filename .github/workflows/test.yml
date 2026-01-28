@@ -8,18 +8,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest]
-        runs: [1,1,1,1,1,1,1,1,1,1]
+        dc: [1, 2, 4, 6, 8, 10]
     steps:
-      - run: |
-          cat >"/tmp/brew.curlrc" <<'EOF'
-          --connect-timeout 1
-          --max-time 5
-          --speed-time 2
-          -vvv
-          EOF
       - name: Test
         env:
-          HOMEBREW_CURLRC: /tmp/brew.curlrc
+          HOMEBREW_DOWNLOAD_CONCURRENCY: ${{ matrix.dc }}
         run: |
           brew config
-          brew install --only-dependencies --debug --verbose php
+          brew fetch --deps --force-bottle php
