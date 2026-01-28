@@ -15,4 +15,6 @@ jobs:
           HOMEBREW_DOWNLOAD_CONCURRENCY: ${{ matrix.dc }}
         run: |
           brew config
-          brew fetch --deps --force-bottle php
+          brew fetch --deps --force-bottle --verbose --debug php
+          brew install --only-dependencies --verbose --debug php
+          brew install --verbose --debug php
