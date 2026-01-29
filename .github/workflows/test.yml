@@ -4,7 +4,6 @@ jobs:
   e2e-tests:
     name: Run
     runs-on: ${{ matrix.os }}
-    container: ubuntu:latest
     strategy:
       fail-fast: false
       matrix:
