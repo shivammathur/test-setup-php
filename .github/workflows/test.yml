@@ -10,7 +10,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-      - uses: awalsh128/cache-apt-pkgs-action@v1
+      - uses: awalsh128/cache-apt-pkgs-action@v1.6.0
         with:
           packages: "autoconf firebird-dev freetds-dev libacl1-dev libapparmor-dev libargon2-dev libaspell-dev libc-client2007e-dev libcurl4-openssl-dev libdb-dev libedit-dev libpcre2-dev libfreetype6-dev libraqm-dev libimagequant-dev libgd-dev libgomp1 libicu-dev libjpeg-dev libkrb5-dev libldap-dev liblmdb-dev liblz4-dev libmagickwand-dev libmemcached-dev libonig-dev libenchant-2-dev libpng-dev libpq-dev libqdbm-dev librabbitmq-dev libsnmp-dev libsodium-dev libsqlite3-dev libtidy-dev libtool libwebp-dev libwrap0-dev libxpm-dev libxml2-dev libxmlrpc-epi-dev libxslt1-dev libyaml-dev libzip-dev libzmq3-dev libzstd-dev make php-common shtool snmp systemd tzdata unixodbc-dev"
       - name: Test
