@@ -9,8 +9,12 @@ jobs:
       matrix:
         os: [windows-2025-vs2026]
     steps:
-      - name: Test
-        uses: shivammathur/setup-php@verbose
-        with:
-          php-version: 8.5
-      - run: php -v && php -m 
+      - run: php -v || true
+      - run: |
+          $installerDir = Join-Path "${env:ProgramFiles(x86)}\Microsoft Visual Studio" 'Installer'
+          $vswherePath = Join-Path $installerDir 'vswhere.exe'
+          if (-not (Test-Path $vswherePath)) {
+              throw "vswhere is not available"
+          }
+          $MSVCDirectory = & $vswherePath -latest -products * -find "VC\Tools\MSVC"
+          Get-ChildItem $MSVCDirectory
