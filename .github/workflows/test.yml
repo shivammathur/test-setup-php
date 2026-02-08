@@ -7,10 +7,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest]
+        os: [macos-15]
     steps:
       - uses: shivammathur/setup-php@develop
         with:
           php-version: 8.5
-          extensions: maxminddb, interbase
+          extensions: maxminddb, interbase, pdo_firebird
       - run: php -v && php -m
