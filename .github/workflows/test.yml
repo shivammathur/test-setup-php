@@ -9,8 +9,8 @@ jobs:
       matrix:
         os: [macos-latest]
     steps:
-      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@develop
         with:
-          repository: shivammathur/homebrew-extensions
-      - run: brew tap shivammathur/extensions
-      - uses: mxschmitt/action-tmate@v3.23
+          php-version: 8.5
+          extensions: maxminddb, interbase
+      - run: php -v && php -m
