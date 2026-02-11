@@ -7,10 +7,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15]
+        os: [windows-latest]
+        php: [8.3, 8.4, 8.5]
     steps:
-      - uses: shivammathur/setup-php@develop
-        with:
-          php-version: 8.5
-          extensions: maxminddb, interbase, pdo_firebird
-      - run: php -v && php -m
+      - run: |
+          Install-Module -Name PhpManager -Repository PSGallery -Force -Scope CurrentUser
+          Install-Php -Version ${{ matrix.php }} -Architecture x86 -ThreadSafe 0 -Path C:\tools\php -TimeZone UTC -AddToPath User
+          Install-PhpExtension mongodb -Version 2.2.0
+      - run: |
+          php -v
+          php --ri mongodb
