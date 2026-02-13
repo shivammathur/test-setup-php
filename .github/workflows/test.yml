@@ -7,13 +7,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
         php: [8.3, 8.4, 8.5]
     steps:
       - run: |
-          Install-Module -Name PhpManager -Repository PSGallery -Force -Scope CurrentUser
-          Install-Php -Version ${{ matrix.php }} -Architecture x86 -ThreadSafe 0 -Path C:\tools\php -TimeZone UTC -AddToPath User -Force
-          Install-PhpExtension mongodb -Version 2.2.0
-      - run: |
-          php -v
-          php --ri mongodb
+          curl -Iv https://www.php.net
+          curl -vvv https://www.php.net
