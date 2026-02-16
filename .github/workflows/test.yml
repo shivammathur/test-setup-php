@@ -7,10 +7,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
+        os: [windows-latest, windows-2022]
         php: [8.4, 8.5]
     steps:
-      - uses: shivammathur/setup-php@develop
+      - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
       - run: php -v && php -m
