@@ -7,6 +7,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15-intel]
+        os: [macos-15]
     steps:
+      - run: php -v || true
+      - run: |
+          curl -fsSL https://zerobrew.rs/install | bash
+          zb install php
       - run: php -v || true
