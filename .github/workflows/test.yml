@@ -13,6 +13,6 @@ jobs:
       - run: |
           curl -fsSL https://zerobrew.rs/install | bash
       - run: |
-          zb install php --debug
+          zb install php -- --debug
           zb link --force --overwrite php || brew link --force --overwrite php
       - run: php -v || true
