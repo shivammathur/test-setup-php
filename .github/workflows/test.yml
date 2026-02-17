@@ -11,8 +11,8 @@ jobs:
     steps:
       - run: php -v || true
       - run: |
+          export ZEROBREW_PREFIX="$(brew --prefix)"
           curl -fsSL https://zerobrew.rs/install | bash
       - run: |
-          zb install php
-          zb link --force --overwrite php || brew link --force --overwrite php
+          zb install php          
       - run: php -v || true
