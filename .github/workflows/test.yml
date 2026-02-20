@@ -7,12 +7,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15]
+        os: [ubuntu-latest]
+    container: ubuntu:24.04
     steps:
-      - run: php -v || true
-      - run: |
-          export ZEROBREW_PREFIX="$(brew --prefix)"
-          curl -fsSL https://zerobrew.rs/install | bash
-      - run: |
-          zb install php          
+      - name: Setup PHP with composer
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: 8.2
+          tools: composer:2.8.9
+        env:
+          runner: self-hosted
       - run: php -v || true
