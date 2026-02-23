@@ -8,13 +8,26 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-    container: ubuntu:24.04
     steps:
-      - name: Setup PHP with composer
-        uses: shivammathur/setup-php@verbose
+      - name: Harden Runner
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
         with:
-          php-version: 8.2
-          tools: composer:2.8.9
-        env:
-          runner: self-hosted
+          egress-policy: audit
+
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c # v10
+        with:
+          root-reserve-mb: 512
+          swap-size-mb: 1024
+
+      - name: Checkout Code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: SetUp PHP
+        id: setup-php
+        uses: shivammathur/setup-php@more-verbose
+        with:
+          php-version: 8.5
+          tools: phpunit
+          coverage: xdebug
+          extensions: xdebug,zip
       - run: php -v || true
