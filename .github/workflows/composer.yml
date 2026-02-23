@@ -15,7 +15,7 @@ jobs:
         php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
     steps:
       - name: Setup PHP ${{ matrix.php-versions }}
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
@@ -24,7 +24,7 @@ jobs:
           php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
@@ -34,7 +34,7 @@ jobs:
           php -r "if(preg_match('/.*Composer.* 1.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
@@ -44,7 +44,7 @@ jobs:
           php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
@@ -54,7 +54,7 @@ jobs:
           php -r "if(preg_match('/.*Composer.* 1.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
@@ -64,7 +64,7 @@ jobs:
           php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
@@ -74,7 +74,7 @@ jobs:
           php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
@@ -84,7 +84,7 @@ jobs:
           php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
@@ -94,7 +94,7 @@ jobs:
           php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
@@ -104,7 +104,7 @@ jobs:
           php -r "if(preg_match('/.*Composer.* 2.0.1.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
           composer -V
       - name: Setup PHP ${{ matrix.php-versions }}
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         timeout-minutes: 30
         with:
           php-version: '7.4'

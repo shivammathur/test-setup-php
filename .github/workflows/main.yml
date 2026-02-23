@@ -25,7 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@develop
         timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
