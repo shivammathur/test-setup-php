@@ -13,7 +13,8 @@ jobs:
         id: setup-php
         uses: shivammathur/setup-php@develop
         with:
-          php-version: 5.6
+          php-version: 7.2
+          extensions: amqp, apcu, ast, brotli, couchbase, ds, event, excimer, expect, gearman, gnupg, grpc, igbinary, imagick, imap, interbase, lua, mailparse, maxminddb, mcrypt, memcache, memcached, mongodb, msgpack, oauth, pdo_firebird, pdo_sqlsrv, pecl_http, protobuf, psr, raphf, rdkafka, redis, seaslog, sqlsrv, snmp, ssh2, swoole, uploadprogress, uuid, v8js, vips, vld, xdebug, yaml, xlswriter, zmq, pcov, propro, uopz
   two:
     name: Run
     runs-on: ${{ matrix.os }}    
@@ -26,4 +27,5 @@ jobs:
         id: setup-php
         uses: shivammathur/setup-php@test-brew
         with:
-          php-version: 5.6
+          php-version: 7.2
+          extensions: amqp, apcu, ast, brotli, couchbase, ds, event, excimer, expect, gearman, gnupg, grpc, igbinary, imagick, imap, interbase, lua, mailparse, maxminddb, mcrypt, memcache, memcached, mongodb, msgpack, oauth, pdo_firebird, pdo_sqlsrv, pecl_http, protobuf, psr, raphf, rdkafka, redis, seaslog, sqlsrv, snmp, ssh2, swoole, uploadprogress, uuid, v8js, vips, vld, xdebug, yaml, xlswriter, zmq, pcov, propro, uopz
