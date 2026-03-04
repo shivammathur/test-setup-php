@@ -6,33 +6,53 @@ on:
 
 env:
   # All versions should be declared here
-  PHALCON_VERSION: 5.10.0
+  PHALCON_VERSION: '5.10.0'
+  PHP_VERSION_LIST: '8.1, 8.2, 8.3, 8.4'
+  ARCH_LIST: 'x64, x86'
+  TS_LIST: 'nts, ts'
 
 jobs:
-  windows:
-    runs-on: windows-latest
-    name: "Build Phalcon (PHP ${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.arch }})"
-    defaults:
-      run:
-        shell: cmd
-    strategy:
-      fail-fast: false
-      matrix:
-        php:
-          - '8.1'
-          - '8.2'
-          - '8.3'
-          - '8.4'
-        arch:
-          - x64
-          - x86
-        ts:
-          - nts
-          - ts
-        experimental: [false]
+  get-extension-matrix:
+    runs-on: ubuntu-latest
+    name: "Generate Extension Matrix"
     steps:
-      - name: Checkout Phalcon
-        uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Get the extension matrix
+        id: extension-matrix
+        uses: php/php-windows-builder/extension-matrix@v1
+        with:
+          extension-url: https://github.com/xdebug/xdebug
+          extension-ref: ${{ PHALCON_VERSION }}
+          php-version-list: ${{ PHP_VERSION_LIST }}
+          arch-list: ${{ ARCH_LIST }}
+          ts-list: ${{ TS_LIST }}
+
+  build:
+    needs: get-extension-matrix
+    runs-on: ${{ matrix.os }}
+    name: "Build Phalcon (PHP ${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.arch }})"
+    strategy:
+      matrix: ${{fromJson(needs.get-extension-matrix.outputs.matrix)}}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Generate build folder
+        run: |
+          cd build/
+          php gen-build.php
+          cd ../
+          pwd
+          cp -v build/phalcon/*.* .
+
+      - name: Build the extension
+        uses: php/php-windows-builder/extension@v1
+        with:
+          php-version: ${{ matrix.php-version }}
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+
 
 #      - name: Extract Phalcon Version
 #        shell: powershell
@@ -52,21 +72,6 @@ jobs:
 #          arch: ${{matrix.arch}}
 #          ts: ${{matrix.ts}}
 #          deps: zlib
-
-      - name: Generate build folder
-        run: |
-          cd build/
-          php gen-build.php
-          cd ../
-          pwd
-          cp -v build/phalcon/*.* .
-
-      - name: Build the extension
-        uses: php/php-windows-builder/extension@v1
-        with:
-          php-version: ${{ matrix.php }}
-          arch: ${{ matrix.arch }}
-          ts: ${{ matrix.ts }}
 
 #      - name: Upload artifacts
 #        uses: actions/upload-artifact@v4
