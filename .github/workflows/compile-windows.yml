@@ -15,6 +15,8 @@ jobs:
   get-extension-matrix:
     runs-on: ubuntu-latest
     name: "Generate Extension Matrix"
+    outputs:
+      matrix: ${{ steps.extension-matrix.outputs.matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -22,7 +24,7 @@ jobs:
         id: extension-matrix
         uses: php/php-windows-builder/extension-matrix@v1
         with:
-          extension-url: https://github.com/xdebug/xdebug
+          extension-url: https://github.com/phalcon/cphalcon
           extension-ref: ${{ env.PHALCON_VERSION }}
           php-version-list: ${{ env.PHP_VERSION_LIST }}
           arch-list: ${{ env.ARCH_LIST }}
@@ -33,7 +35,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: "Build Phalcon (PHP ${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.arch }})"
     strategy:
-      matrix: ${{fromJson(needs.get-extension-matrix.outputs.matrix)}}
+      matrix: ${{ fromJson(needs.get-extension-matrix.outputs.matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
