@@ -23,10 +23,10 @@ jobs:
         uses: php/php-windows-builder/extension-matrix@v1
         with:
           extension-url: https://github.com/xdebug/xdebug
-          extension-ref: ${{ PHALCON_VERSION }}
-          php-version-list: ${{ PHP_VERSION_LIST }}
-          arch-list: ${{ ARCH_LIST }}
-          ts-list: ${{ TS_LIST }}
+          extension-ref: ${{ env.PHALCON_VERSION }}
+          php-version-list: ${{ env.PHP_VERSION_LIST }}
+          arch-list: ${{ env.ARCH_LIST }}
+          ts-list: ${{ env.TS_LIST }}
 
   build:
     needs: get-extension-matrix
