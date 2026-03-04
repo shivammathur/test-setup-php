@@ -66,7 +66,7 @@ class Generator_File_PhalconC
      *
      * @param array $alreadyIncludedHeaders List of header files, which are already included in phalcon.h
      */
-    public function generate(array $alreadyIncludedHeaders = [])
+    public function generate(array $alreadyIncludedHeaders = []): void
     {
         $this->composeSkipFiles($alreadyIncludedHeaders);
 
@@ -88,7 +88,7 @@ class Generator_File_PhalconC
      *
      * @param array $alreadyIncludedHeaders
      */
-    protected function composeSkipFiles(array $alreadyIncludedHeaders = [])
+    protected function composeSkipFiles(array $alreadyIncludedHeaders = []): void
     {
         foreach (array_keys($alreadyIncludedHeaders) as $file) {
             $path = Util::normalize($this->sourceDir . '/' . $file);
@@ -100,7 +100,9 @@ class Generator_File_PhalconC
         $files = include($this->configDir . '/phalcon_c_skip_files.php');
         foreach ($files as $file) {
             $path = Util::normalize($this->sourceDir . '/' . $file);
-            $this->skipFiles[$path] = true;
+            if (true !== empty($path)) {
+                $this->skipFiles[$path] = true;
+            }
         }
 
         unset($this->skipFiles[0]);
@@ -114,7 +116,7 @@ class Generator_File_PhalconC
      *
      * @param resource $fileHandler
      */
-    protected function addLicense($fileHandler)
+    protected function addLicense($fileHandler): void
     {
         $docFile = $this->rootDir . '/LICENSE.txt';
         fwrite($fileHandler, '/**' . PHP_EOL . PHP_EOL . file_get_contents($docFile) . '*/' . PHP_EOL);
@@ -125,7 +127,7 @@ class Generator_File_PhalconC
      *
      * @param resource $fileHandler
      */
-    protected function addStandardHeader($fileHandler)
+    protected function addStandardHeader($fileHandler): void
     {
         $header = require $this->configDir . '/phalcon_c_header.php';
 
@@ -137,7 +139,7 @@ class Generator_File_PhalconC
      *
      * @param resource $fileHandler
      */
-    protected function addPriorityFiles($fileHandler)
+    protected function addPriorityFiles($fileHandler): void
     {
         $files = include($this->configDir . '/phalcon_c_priority_files.php');
         foreach ($files as $file) {
@@ -151,7 +153,7 @@ class Generator_File_PhalconC
      *
      * @param resource $fileHandler
      */
-    protected function addAllSourceFiles($fileHandler)
+    protected function addAllSourceFiles($fileHandler): void
     {
         /**
          * Sorting is important, so that the resulting contents doesn't fluctuate because of OS,
@@ -176,7 +178,7 @@ class Generator_File_PhalconC
     /**
      * Appends the source to phalcon.c, removing some directives, external symbol declarations and excessive comments
      */
-    private function appendSource($fileHandler, $path)
+    private function appendSource($fileHandler, $path): void
     {
         if (!file_exists($path)) {
             return;
@@ -226,7 +228,7 @@ class Generator_File_PhalconC
      * @param string $path
      * @return array|bool
      */
-    protected function getSortedSourceFilesToAppend(string $path)
+    protected function getSortedSourceFilesToAppend(string $path): array|bool
     {
         $flags = \FilesystemIterator::CURRENT_AS_FILEINFO | \FilesystemIterator::SKIP_DOTS;
         $iterator = new \FilesystemIterator($path, $flags);
@@ -320,7 +322,7 @@ class Generator_File_PhalconC
     /**
      * Go through the generated file and put 'static' to all declarations of Phalcon-related functions
      */
-    protected function limitVisibilityOfPhalconFuncs()
+    protected function limitVisibilityOfPhalconFuncs(): void
     {
         $resContent = '';
 
