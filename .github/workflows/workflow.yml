@@ -27,7 +27,7 @@ jobs:
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Test broken packages
-        if: startsWith('matrix.operating-system', 'ubuntu')
+        if: startsWith(matrix.operating-system, 'ubuntu')
         run: sudo apt-get check
       - name: Testing PHP version
         run: |
@@ -50,4 +50,3 @@ jobs:
           php -r "if(ini_get('opcache.enable')!=1) {throw new Exception('opcache.jit not set');}"
           php -r "if(ini_get('opcache.jit_buffer_size')!='256M' && ini_get('opcache.jit_buffer_size')!='128M') {throw new Exception('opcache.jit_buffer_size not set');}"
           php -r "if(ini_get('opcache.jit')!=1235) {throw new Exception('opcache.jit not set');}"
-

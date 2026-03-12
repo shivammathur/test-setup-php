@@ -42,7 +42,7 @@ jobs:
           php -r "if(phpversion()>=7.2 && phpversion()<=7.4 && ! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
           php -r "if(phpversion()>=7.2 && phpversion()<=7.4 && phpversion('phalcon')[0]!='4') {throw new Exception('Wrong phalcon version Installed');}"
       - name: Testing gearman
-        if: matrix.operating-system == 'ubuntu-latest'
+        if: startsWith(matrix.operating-system, 'ubuntu')
         run: |
           php -r "if(phpversion()>=5.6 && ! extension_loaded('gearman')) {throw new Exception('gearman not found');}"
   disable:
