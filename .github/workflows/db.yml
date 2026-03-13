@@ -54,6 +54,7 @@ jobs:
 
       - name: Check PHP extensions
         #continue-on-error: ${{ matrix.php-versions == '8.6' }}
+        shell: bash
         run: |
           extensions=",${{ steps.resolve.outputs.extensions }},"
           php -m
