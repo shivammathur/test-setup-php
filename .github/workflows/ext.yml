@@ -1,7 +1,7 @@
 name: Test ext workflow
 on: [push]
 env:
-  key: cache-v2-2.37.0
+  key: cache-v3-2.37.0
   extensions: ast, blackfire, gd, msgpack, redis, xml, imagick, geos
 jobs:
   run:
@@ -21,16 +21,30 @@ jobs:
             php-versions: '7.1'
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-systems }}
     steps:
+      - name: Resolve extensions
+        id: resolve
+        shell: bash
+        run: |
+          extensions=(blackfire gd redis xml imagick)
+          if [[ "${{ matrix.php-versions }}" != "5.6" && "${{ matrix.php-versions }}" != "7.0" ]]; then
+            extensions=(ast "${extensions[@]}" msgpack)
+          fi
+          if [[ "${{ matrix.operating-systems }}" != "windows-latest" ]]; then
+            extensions+=("geos")
+          fi
+          IFS=,
+          echo "extensions=${extensions[*]}" >> "$GITHUB_OUTPUT"
+
       - name: Setup cache environment
         id: extcache
-        uses: shivammathur/cache-extensions@develop
+        uses: shivammathur/cache-extensions@1.14.1
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
+          extensions: ${{ steps.resolve.outputs.extensions }}
           key: ${{ env.key }}
 
       - name: Cache extensions
-        uses: actions/cache@v4
+        uses: actions/cache@v5.0.3
         with:
           path: ${{ steps.extcache.outputs.dir }}
           key: ${{ steps.extcache.outputs.key }}
@@ -40,7 +54,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
+          extensions: ${{ steps.resolve.outputs.extensions }}
 
       - name: Check PHP version
         run: php -v
@@ -51,18 +65,20 @@ jobs:
       - name: Check PHP extensions
         #continue-on-error: ${{ matrix.php-versions == '8.6' }}
         run: |
+          extensions=",${{ steps.resolve.outputs.extensions }},"
           php -m
           php -r "if(! extension_loaded('blackfire')) {throw new Exception('blackfire not found');}";
           php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}";
-          php -r "if(! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}";
           php -r "if(! extension_loaded('redis')) {throw new Exception('redis not found');}";
           php -r "if(! extension_loaded('xml')) {throw new Exception('xml not found');}";
-          php -r "if(phpversion()>=7.0 && ! extension_loaded('ast')) {throw new Exception('ast not found');}"
+          if [[ "$extensions" == *",msgpack,"* ]]; then php -r "if(! extension_loaded('msgpack')) {throw new Exception('msgpack not found');}"; fi
+          if [[ "$extensions" == *",ast,"* ]]; then php -r "if(! extension_loaded('ast')) {throw new Exception('ast not found');}"; fi
 
       - name: Check PHP extensions
         if: matrix.operating-systems != 'windows-latest'
         #continue-on-error: ${{ matrix.php-versions == '8.6' }}
         run: |
+          extensions=",${{ steps.resolve.outputs.extensions }},"
           php -m
           php -r "if(! extension_loaded('imagick')) {throw new Exception('imagick not found');}";
-          php -r "if(! extension_loaded('geos')) {throw new Exception('geos not found');}";
+          if [[ "$extensions" == *",geos,"* ]]; then php -r "if(! extension_loaded('geos')) {throw new Exception('geos not found');}"; fi
