@@ -51,11 +51,12 @@ jobs:
           cp -v build/phalcon/*.* .
 
       - name: Build the extension
-        uses: php/php-windows-builder/extension@v1
+        uses: shivammathur/php-windows-builder/extension@master
         with:
           php-version: ${{ matrix.php-version }}
           arch: ${{ matrix.arch }}
           ts: ${{ matrix.ts }}
+          args: --enable-phalcon
 
 
 #      - name: Extract Phalcon Version
