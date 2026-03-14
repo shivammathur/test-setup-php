@@ -33,7 +33,7 @@ jobs:
   build:
     needs: get-extension-matrix
     runs-on: ${{ matrix.os }}
-    name: "Build Phalcon (PHP ${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.arch }})"
+    name: "Build Phalcon (PHP ${{ matrix.php-version }}-${{ matrix.ts }}-${{ matrix.arch }})"
     strategy:
       matrix: ${{ fromJson(needs.get-extension-matrix.outputs.matrix) }}
     steps:
