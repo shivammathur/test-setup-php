@@ -2,7 +2,7 @@ name: 'OCI workflow'
 on:
   push:
 env:
-  key: cache-v3-2.37.0
+  key: cache-v4-2.37.0
   extensions: pdo_oci, oci8
 jobs:
   run:

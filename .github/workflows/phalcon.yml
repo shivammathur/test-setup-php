@@ -4,7 +4,7 @@ jobs:
   phalcon3:
     runs-on: ${{ matrix.operating-system }}
     env:
-      key: cache-v3-2.37.0
+      key: cache-v4-2.37.0
       extensions: phalcon3
     strategy:
       fail-fast: false
@@ -46,7 +46,7 @@ jobs:
   phalcon4:
     runs-on: ${{ matrix.operating-system }}
     env:
-      key: cache-v3-2.37.0
+      key: cache-v4-2.37.0
       extensions: phalcon4
     strategy:
       fail-fast: false
@@ -90,7 +90,7 @@ jobs:
   phalcon5:
     runs-on: ${{ matrix.operating-system }}
     env:
-      key: cache-v3-2.37.0
+      key: cache-v4-2.37.0
       extensions: phalcon5
     strategy:
       fail-fast: false
