@@ -1,33 +1,34 @@
-name: Testing Phalcon with MySQL
+name: Testing Phalcon with PostgreSQL
 on: [push]
 jobs:
   phalcon:
     name: Phalcon (PHP ${{ matrix.php-versions }})
     runs-on: ubuntu-latest
     env:
-      DB_ADAPTER: mysql
+      DB_ADAPTER: pgsql
       DB_HOST: 127.0.0.1
-      DB_NAME: phalcon
-      DB_USERNAME: root
-      DB_PASSWORD: password
+      DB_NAME: postgres
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
       CODECEPTION_URL: 127.0.0.1
       CODECEPTION_PORT: 8888
+      DB_CONNECTION: pgsql
 
     # Docs: https://docs.github.com/en/actions/using-containerized-services
     services:
-      mysql:
-        image: mysql:latest
+      postgres:
+        image: postgres:latest
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: false
-          MYSQL_ROOT_PASSWORD: password
-          MYSQL_DATABASE: phalcon
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
         ports:
-          - 3306/tcp
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+          - 5432/tcp
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['8.2', '8.3', '8.4']
+        php-versions: ['8.3', '8.4', '8.5']
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -37,7 +38,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: mbstring, dom, zip, phalcon5, mysql
+          extensions: mbstring, dom, zip, phalcon5, pgsql
           coverage: xdebug
 
       - name: Get composer cache directory
@@ -63,7 +64,7 @@ jobs:
           vendor/bin/phinx migrate
           vendor/bin/phinx seed:run
         env:
-          DB_PORT: ${{ job.services.mysql.ports['3306'] }}
+          DB_PORT: ${{ job.services.postgres.ports['5432'] }}
 
       - name: Run Tests
         run: |
@@ -71,4 +72,4 @@ jobs:
           vendor/bin/codecept build
           vendor/bin/codecept run
         env:
-          DB_PORT: ${{ job.services.mysql.ports['3306'] }}
+          DB_PORT: ${{ job.services.postgres.ports['5432'] }}
