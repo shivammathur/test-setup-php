@@ -74,8 +74,8 @@ class PostRepository extends ServiceEntityRepository
 
         foreach ($searchTerms as $key => $term) {
             $queryBuilder
-                ->orWhere('p.title LIKE :t_'.$key)
-                ->setParameter('t_'.$key, '%'.$term.'%')
+                ->orWhere('LOWER(p.title) LIKE :t_'.$key)
+                ->setParameter('t_'.$key, '%'.$term->lower().'%')
             ;
         }
 
