@@ -56,6 +56,7 @@ class Application
 
         $this->di->setShared(self::APPLICATION_PROVIDER, $this);
 
+        $this->ensureRuntimeDirectories();
         $this->initializeProviders();
     }
 
@@ -106,6 +107,24 @@ class Application
             /** @var ServiceProviderInterface $provider */
             $provider = new $providerClass;
             $provider->register($this->di);
+        }
+    }
+
+    /**
+     * Ensure runtime cache directories exist and are writable.
+     */
+    protected function ensureRuntimeDirectories(): void
+    {
+        foreach (['var/cache/', 'var/cache/session/', 'var/cache/volt/', 'var/cache/metaData/', 'var/logs/'] as $directory) {
+            $path = $this->rootPath . DIRECTORY_SEPARATOR . trim($directory, '\\/') . DIRECTORY_SEPARATOR;
+
+            if (!is_dir($path)) {
+                mkdir($path, 0777, true);
+            }
+
+            if (!is_writable($path)) {
+                @chmod($path, 0777);
+            }
         }
     }
 }
