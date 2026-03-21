@@ -33,7 +33,7 @@ jobs:
         ports:
           - 6379/tcp
         options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
-      strategy:
+    strategy:
       fail-fast: false
       matrix:
         php-versions: ['8.3', '8.4', '8.5']
