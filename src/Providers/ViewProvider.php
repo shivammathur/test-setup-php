@@ -35,16 +35,22 @@ class ViewProvider implements ServiceProviderInterface
         /** @var string $viewsDir */
         $viewsDir = $config->path('application.viewsDir');
         /** @var string $cacheDir */
-        $cacheDir = $config->path('application.cacheDir');
+        $cacheDir = rtrim($config->path('application.cacheDir'), '\\/') . '/volt/';
 
         $di->setShared($this->providerName, function () use ($viewsDir, $cacheDir, $di) {
             $view = new View();
             $view->setViewsDir($viewsDir);
             $view->registerEngines([
                 '.volt' => function (View $view) use ($cacheDir, $di) {
+                    if (!is_dir($cacheDir)) {
+                        mkdir($cacheDir, 0777, true);
+                    }
+
                     $volt = new Volt($view, $di);
                     $volt->setOptions([
-                        'path'      => $cacheDir . 'volt/',
+                        'path'      => function (string $templatePath) use ($cacheDir): string {
+                            return $cacheDir . str_replace(['\\', '/'], '_', ltrim($templatePath, '\\/')) . '.php';
+                        },
                         'separator' => '_',
                     ]);
 

@@ -52,7 +52,10 @@ jobs:
         run: composer install --no-progress --prefer-dist --optimize-autoloader --no-security-blocking
 
       - name: Prepare the application
-        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+        run: |
+          php -r "file_exists('.env') || copy('.env.example', '.env');"
+          mkdir -p var/cache/acl var/cache/metaData var/cache/session var/cache/volt var/logs
+          chmod -R 777 var/cache var/logs
 
       - name: Run Migration
         run: |

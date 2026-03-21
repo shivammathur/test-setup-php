@@ -115,7 +115,7 @@ class Application
      */
     protected function ensureRuntimeDirectories(): void
     {
-        foreach (['var/cache/', 'var/cache/session/', 'var/cache/volt/', 'var/cache/metaData/', 'var/logs/'] as $directory) {
+        foreach (['var/cache/', 'var/cache/acl/', 'var/cache/session/', 'var/cache/volt/', 'var/cache/metaData/', 'var/logs/'] as $directory) {
             $path = $this->rootPath . DIRECTORY_SEPARATOR . trim($directory, '\\/') . DIRECTORY_SEPARATOR;
 
             if (!is_dir($path)) {
