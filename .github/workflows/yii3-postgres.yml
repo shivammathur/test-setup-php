@@ -10,11 +10,6 @@ jobs:
       APP_C3: true
       APP_ENV: test
       APP_DEBUG: false
-      DB_HOST: 127.0.0.1
-      DB_PORT: ${{ job.services.postgres.ports['5432'] }}
-      DB_NAME: app
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
 
     # Docs: https://docs.github.com/en/actions/using-containerized-services
     services:
@@ -62,10 +57,22 @@ jobs:
         run: composer install --no-progress --prefer-dist --optimize-autoloader
 
       - name: Run migrations
-        run: php yii migrate/up --interactive=0
+        run: php yii migrate:up --no-interaction
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: ${{ job.services.postgres.ports['5432'] }}
+          DB_NAME: app
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
 
       - name: Run codeception build
         run: vendor/bin/codecept build
 
       - name: Run tests with Codeception
         run: vendor/bin/codecept run
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: ${{ job.services.postgres.ports['5432'] }}
+          DB_NAME: app
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
