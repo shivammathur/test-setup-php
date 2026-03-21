@@ -1,0 +1,30 @@
+{
+  "baseBranchPatterns": [
+    "master"
+  ],
+  "commitMessageAction": "⬆️ Bump",
+  "commitMessageTopic": "{{depName}}",
+  "extends": [
+    "config:recommended",
+    "schedule:weekly"
+  ],
+  "packageRules": [
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin"
+      ]
+    },
+    {
+      "groupName": "roots/wordpress",
+      "schedule": [
+        "at any time"
+      ],
+      "matchPackageNames": [
+        "roots/wordpress{/,}**"
+      ]
+    }
+  ],
+  "timezone": "America/Chicago"
+}
