@@ -174,6 +174,8 @@ class m150725_192740_seed_data extends Migration
             'comment' => 'Set it to "enabled" to turn on maintenance mode'
         ]);
 
+        $this->resetPostgresSequences();
+
     }
 
     /**
@@ -225,5 +227,19 @@ class m150725_192740_seed_data extends Migration
         $this->delete('{{%user}}', [
             'id' => [1, 2, 3]
         ]);
+    }
+
+    private function resetPostgresSequences()
+    {
+        if (Yii::$app->db->driverName !== 'pgsql') {
+            return;
+        }
+
+        foreach (['user', 'article_category', 'widget_carousel'] as $table) {
+            $tableName = '{{%' . $table . '}}';
+            Yii::$app->db->createCommand(
+                "SELECT setval(pg_get_serial_sequence('$tableName', 'id'), COALESCE(MAX([[id]]), 0) + 1, false) FROM $tableName"
+            )->execute();
+        }
     }
 }
