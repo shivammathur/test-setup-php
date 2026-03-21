@@ -12,7 +12,6 @@ jobs:
       DB_PASSWORD: postgres
       CODECEPTION_URL: 127.0.0.1
       CODECEPTION_PORT: 8888
-      DB_CONNECTION: pgsql
 
     # Docs: https://docs.github.com/en/actions/using-containerized-services
     services:
@@ -28,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['8.3', '8.4', '8.5']
+        php-versions: ['8.2', '8.3', '8.4']
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -58,9 +57,29 @@ jobs:
       - name: Prepare the application
         run: php -r "file_exists('.env') || copy('.env.example', '.env');"
 
+      - name: Prepare Phinx config
+        run: |
+          cat > phinx.yml <<EOF
+          paths:
+            migrations: database/migrations
+            seeds: database/seeds
+          environments:
+            default_migration_table: phinxlog
+            default_environment: development
+            development:
+              adapter: pgsql
+              host: 127.0.0.1
+              name: postgres
+              user: postgres
+              pass: postgres
+              port: ${DB_PORT}
+          version_order: creation
+          EOF
+        env:
+          DB_PORT: ${{ job.services.postgres.ports['5432'] }}
+
       - name: Run Migration
         run: |
-          if [ ! -e phinx.yml ]; then vendor/bin/phinx init; fi
           vendor/bin/phinx migrate
           vendor/bin/phinx seed:run
         env:

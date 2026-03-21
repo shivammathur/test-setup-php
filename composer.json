@@ -1,0 +1,27 @@
+{
+  "name": "shivammathur/phalcon-mysql-example",
+  "description": "Minimal Phalcon MySQL example used for setup-php workflow testing",
+  "type": "project",
+  "require": {
+    "php": "^8.2",
+    "ext-pdo_mysql": "*",
+    "phalcon/cphalcon": "^5.10",
+    "vlucas/phpdotenv": "^5.6"
+  },
+  "require-dev": {
+    "codeception/codeception": "^5.2",
+    "codeception/module-asserts": "^3.0",
+    "codeception/module-phpbrowser": "^3.0",
+    "robmorgan/phinx": "^0.16"
+  },
+  "autoload": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
