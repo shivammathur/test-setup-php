@@ -5,11 +5,14 @@ jobs:
   symfony:
     name: Symfony (PHP ${{ matrix.php-versions }})
     runs-on: ubuntu-latest
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports[5432] }}/postgres
 
     # Docs: https://docs.github.com/en/actions/using-containerized-services
     services:
       postgres:
-        image: postgres:latest
+        image: postgres:16
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -30,8 +33,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: phpunit-bridge
-          extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pgsql
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pgsql
           coverage: xdebug
 
       # Local PostgreSQL service in GitHub hosted environments is disabled by default.
@@ -55,16 +57,11 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-progress --prefer-dist --optimize-autoloader
 
-      - name: Run Migration
+      - name: Prepare database
         run: |
           composer require --dev symfony/orm-pack
           php bin/console doctrine:schema:update --force || echo "No migrations found or schema update failed"
           php bin/console doctrine:migrations:migrate || echo "No migrations found or migration failed"
-        env:
-          DATABASE_URL: postgres://postgres:postgres@127.0.0.1:${{ job.services.postgres.ports[5432] }}/postgres?charset=UTF-8
-
-      - name: Install PHPUnit
-        run: simple-phpunit install
 
       - name: Run tests
-        run: simple-phpunit --coverage-text tests
+        run: php bin/phpunit --coverage-text
