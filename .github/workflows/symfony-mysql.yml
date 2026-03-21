@@ -32,7 +32,6 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: phpunit-bridge
           extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, mysql
           coverage: xdebug
 
@@ -65,10 +64,7 @@ jobs:
         env:
           DATABASE_URL: mysql://root:symfony@127.0.0.1:${{ job.services.mysql.ports['3306'] }}/symfony?serverVersion=8.4&charset=utf8mb4
 
-      - name: Install PHPUnit
-        run: simple-phpunit install
-
       - name: Run tests
-        run: simple-phpunit --coverage-text
+        run: php bin/phpunit --coverage-text
         env:
           DATABASE_URL: mysql://root:symfony@127.0.0.1:${{ job.services.mysql.ports['3306'] }}/symfony?serverVersion=8.4&charset=utf8mb4
