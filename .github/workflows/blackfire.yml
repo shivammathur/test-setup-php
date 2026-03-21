@@ -29,4 +29,16 @@ jobs:
           coverage: none
 
       - name: Profile
-        run: blackfire run php my-script.php
+        shell: bash
+        run: |
+          set +e
+          output=$(blackfire run php my-script.php 2>&1)
+          exit_code=$?
+          printf '%s\n' "$output"
+          if [ "$exit_code" -ne 0 ]; then
+            if printf '%s' "$output" | grep -q "upgrade your subscription"; then
+              echo "Blackfire profiling reached the repository quota limit; treating this as a known non-fatal condition."
+              exit 0
+            fi
+            exit "$exit_code"
+          fi
