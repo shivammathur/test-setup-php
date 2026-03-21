@@ -1,0 +1,52 @@
+# GitHub Action for Yii3 web application
+# Tested with https://github.com/yiisoft/app
+name: Testing Yii3
+on: [push]
+jobs:
+  yii:
+    name: Yii3 (PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }})
+    runs-on: ${{ matrix.operating-system }}
+    env:
+      APP_C3: true
+      APP_ENV: test
+      APP_DEBUG: false
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-latest, windows-latest]
+        php-versions: ['8.3', '8.4', '8.5']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Docs: https://github.com/shivammathur/setup-php
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: fileinfo, intl
+          ini-values: date.timezone='UTC', register_argc_argv=On
+          coverage: none
+
+      - name: Get composer cache directory
+        id: composer-cache
+        shell: bash
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          # Use composer.json for key, if composer.lock is not committed.
+          # key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Run codeception build
+        run: vendor/bin/codecept build
+
+      - name: Run tests with Codeception
+        run: vendor/bin/codecept run
