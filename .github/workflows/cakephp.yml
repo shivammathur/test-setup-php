@@ -8,6 +8,7 @@ jobs:
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
         php-versions: ['8.4', '8.5']
+        # The latest cakephp/app release resolves dev dependencies that require PHP 8.4+.
     runs-on: ${{ matrix.operating-system }}
     steps:
       - name: Checkout
