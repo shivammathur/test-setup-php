@@ -2,6 +2,8 @@ name: Composer v2 workflow
 on:
   workflow_dispatch:
   push:
+    branches-ignore:
+      - test-video
   schedule:
     - cron: '45 2/5 * * *'
 jobs:

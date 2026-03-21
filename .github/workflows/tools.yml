@@ -1,6 +1,8 @@
 name: Tools develop workflow
 on:
   push:
+    branches-ignore:
+      - test-video
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }}

@@ -2,6 +2,8 @@ name: INI v2 workflow
 on:
   workflow_dispatch:
   push:
+    branches-ignore:
+      - test-video
   schedule:
     - cron: '0 4 * * *'
 jobs:
