@@ -1,6 +1,6 @@
 # GitHub Action for Slim Framework
 name: Testing Slim Framework
-on: [push]
+on: [push, pull_request]
 jobs:
   build:
     strategy:
