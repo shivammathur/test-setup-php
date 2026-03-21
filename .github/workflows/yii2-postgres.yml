@@ -79,7 +79,8 @@ jobs:
         run: |
           vendor/bin/codecept build
           php tests/bin/yii app/setup --interactive=0
-          nohup php -S localhost:8080 > yii.log 2>&1 &
+          nohup php -S 127.0.0.1:8080 > yii.log 2>&1 &
+          sleep 5
           vendor/bin/codecept run
         env:
           DB_DSN: pgsql:host=127.0.0.1;port=${{ job.services.postgres.ports['5432'] }};dbname=postgres
