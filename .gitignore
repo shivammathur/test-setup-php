@@ -1,3 +1,4 @@
+.php-version
 
 ###> symfony/framework-bundle ###
 /.env.local
@@ -8,3 +9,22 @@
 /var/
 /vendor/
 ###< symfony/framework-bundle ###
+
+###> symfony/asset-mapper ###
+/public/assets/
+/assets/vendor/
+###< symfony/asset-mapper ###
+
+###> phpstan/phpstan ###
+phpstan.neon
+###< phpstan/phpstan ###
+
+###> phpunit/phpunit ###
+/.phpunit.cache/
+/phpunit.xml
+###< phpunit/phpunit ###
+
+###> friendsofphp/php-cs-fixer ###
+/.php-cs-fixer.php
+/.php-cs-fixer.cache
+###< friendsofphp/php-cs-fixer ###
