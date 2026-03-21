@@ -43,16 +43,12 @@ class ArticleQuery extends ActiveQuery
 
     private function dateExpression($part)
     {
+        $part = strtoupper($part);
+
         if (Yii::$app->db->driverName === 'pgsql') {
-            return sprintf(
-                'EXTRACT(%s FROM TO_TIMESTAMP({{%article}}.[[published_at]]))::int',
-                strtoupper($part)
-            );
+            return 'EXTRACT(' . $part . ' FROM TO_TIMESTAMP({{%article}}.[[published_at]]))::int';
         }
 
-        return sprintf(
-            '%s(FROM_UNIXTIME({{%article}}.[[published_at]]))',
-            strtoupper($part)
-        );
+        return $part . '(FROM_UNIXTIME({{%article}}.[[published_at]]))';
     }
 }

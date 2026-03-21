@@ -3,6 +3,7 @@
 namespace tests\common\_support;
 
 use Codeception\Module;
+use Yii;
 use tests\common\fixtures\ArticleAttachmentFixture;
 use tests\common\fixtures\ArticleCategoryFixture;
 use tests\common\fixtures\ArticleFixture;
@@ -48,6 +49,12 @@ class FixtureHelper extends Module
     public function _beforeSuite($settings = [])
     {
         $this->initFixtures();
+
+        if (Yii::$app->db->driverName === 'pgsql') {
+            Yii::$app->db->createCommand(
+                "SELECT setval(pg_get_serial_sequence('{{%user}}', 'id'), COALESCE(MAX([[id]]), 0) + 1, false) FROM {{%user}}"
+            )->execute();
+        }
     }
 
     /**
