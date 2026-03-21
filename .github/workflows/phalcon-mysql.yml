@@ -1,0 +1,85 @@
+# GitHub Action for Phalcon with MySQL
+## Notes
+## Make sure you have .env.example or .env file in your project
+## and you have loaded Dotenv (https://github.com/vlucas/phpdotenv)
+name: Testing Phalcon with MySQL
+on: [push]
+jobs:
+  phalcon:
+    name: Phalcon (PHP ${{ matrix.php-versions }})
+    runs-on: ubuntu-latest
+    env:
+      DB_ADAPTER: mysql
+      DB_HOST: 127.0.0.1
+      DB_NAME: vokuro
+      DB_USERNAME: root
+      DB_PASSWORD: password
+      CODECEPTION_URL: 127.0.0.1
+      CODECEPTION_PORT: 8888
+
+    # Docs: https://docs.github.com/en/actions/using-containerized-services
+    services:
+      mysql:
+        image: mysql:latest
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: false
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: vokuro
+        ports:
+          - 3306/tcp
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    strategy:
+      fail-fast: false
+      matrix:
+        php-versions: ['7.2', '7.3', '7.4']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Docs: https://github.com/shivammathur/setup-php
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          # Use phalcon4 for the latest compatible Vokuro sample release.
+          extensions: mbstring, dom, zip, phalcon4, mysql
+          coverage: xdebug
+
+      # Local MySQL service in GitHub hosted environments is disabled by default.
+      # If you are using it instead of service containers, make sure you start it.
+      # - name: Start mysql service
+      #   run: sudo systemctl start mysql.service
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          # Use composer.json for key, if composer.lock is not committed.
+          # key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Prepare the application
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+
+      - name: Run Migration
+        run: |
+          vendor/bin/phinx migrate
+          vendor/bin/phinx seed:run
+        env:
+          DB_PORT: ${{ job.services.mysql.ports['3306'] }}
+
+      - name: Run Tests
+        run: |
+          (cd public && nohup php -S $CODECEPTION_URL:$CODECEPTION_PORT > phalcon.log 2>&1 &)
+          vendor/bin/codecept build
+          vendor/bin/codecept run
+        env:
+          DB_PORT: ${{ job.services.mysql.ports['3306'] }}

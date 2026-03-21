@@ -1,37 +1,32 @@
 <?php
 
-declare(strict_types=1);
+/**
+ * This file is part of the Vökuró.
+ *
+ * (c) Phalcon Team <team@phalcon.io>
+ *
+ * For the full copyright and license information, please view
+ * the LICENSE file that was distributed with this source code.
+ */
 
-use Dotenv\Dotenv;
+use Vokuro\Application as VokuroApplication;
 
-require dirname(__DIR__) . '/vendor/autoload.php';
-
-$root = dirname(__DIR__);
-
-if (is_file($root . '/.env')) {
-    Dotenv::createImmutable($root)->safeLoad();
-}
-
-$host = getenv('DB_HOST') ?: '127.0.0.1';
-$port = getenv('DB_PORT') ?: '5432';
-$name = getenv('DB_NAME') ?: 'postgres';
-$user = getenv('DB_USERNAME') ?: 'postgres';
-$password = getenv('DB_PASSWORD') ?: 'postgres';
-
-$dsn = sprintf('pgsql:host=%s;port=%s;dbname=%s', $host, $port, $name);
+error_reporting(E_ALL);
+$rootPath = dirname(__DIR__);
 
 try {
-    $pdo = new PDO($dsn, $user, $password, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-    ]);
-    $count = (int) $pdo->query('SELECT COUNT(*) FROM entries')->fetchColumn();
-} catch (Throwable $exception) {
-    http_response_code(500);
-    header('Content-Type: text/plain');
-    echo 'Database error: ' . $exception->getMessage();
-    exit(1);
-}
+    require_once $rootPath . '/vendor/autoload.php';
 
-header('Content-Type: text/plain');
-echo 'Phalcon PostgreSQL ' . \Phalcon\Version::get() . PHP_EOL;
-echo 'rows: ' . $count . PHP_EOL;
+    /**
+     * Load .env configurations
+     */
+    Dotenv\Dotenv::create($rootPath)->load();
+
+    /**
+     * Run Vökuró!
+     */
+    echo (new VokuroApplication($rootPath))->run();
+} catch (Exception $e) {
+    echo $e->getMessage(), '<br>';
+    echo nl2br(htmlentities($e->getTraceAsString()));
+}
