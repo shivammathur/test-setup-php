@@ -7,7 +7,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       APP_ENV: test
-      DATABASE_URL: mysql://root:symfony@127.0.0.1:${{ job.services.mysql.ports['3306'] }}/symfony?serverVersion=8.4&charset=utf8mb4
 
     # Docs: https://docs.github.com/en/actions/using-containerized-services
     services:
@@ -63,9 +62,13 @@ jobs:
           php bin/console doctrine:database:create --if-not-exists --no-interaction
           php bin/console doctrine:schema:create --no-interaction
           php bin/console doctrine:fixtures:load --no-interaction
+        env:
+          DATABASE_URL: mysql://root:symfony@127.0.0.1:${{ job.services.mysql.ports['3306'] }}/symfony?serverVersion=8.4&charset=utf8mb4
 
       - name: Install PHPUnit
         run: simple-phpunit install
 
       - name: Run tests
         run: simple-phpunit --coverage-text
+        env:
+          DATABASE_URL: mysql://root:symfony@127.0.0.1:${{ job.services.mysql.ports['3306'] }}/symfony?serverVersion=8.4&charset=utf8mb4
