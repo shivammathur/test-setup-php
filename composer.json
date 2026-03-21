@@ -27,7 +27,7 @@
     "require": {
         "php": ">=7.2",
         "ext-openssl": "*",
-        "ext-phalcon": "~4.0.0",
+        "ext-phalcon": "^4.1",
         "robmorgan/phinx": "^0.11.1",
         "swiftmailer/swiftmailer": "^6.2",
         "vlucas/phpdotenv": "^3.6"
@@ -49,6 +49,12 @@
         "files": [
             "src/Helpers.php"
         ]
+    },
+    "config": {
+        "platform": {
+            "php": "7.2.0"
+        },
+        "sort-packages": true
     },
     "archive": {
         "exclude": [
