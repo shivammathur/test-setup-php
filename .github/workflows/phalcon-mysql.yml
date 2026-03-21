@@ -3,7 +3,7 @@
 ## Make sure you have .env.example or .env file in your project
 ## and you have loaded Dotenv (https://github.com/vlucas/phpdotenv)
 name: Testing Phalcon with MySQL
-on: [push]
+on: [push, pull_request]
 jobs:
   phalcon:
     name: Phalcon (PHP ${{ matrix.php-versions }})
