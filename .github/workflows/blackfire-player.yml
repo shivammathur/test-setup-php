@@ -1,6 +1,6 @@
 # GitHub Action for Blackfire Player
 name: Play a Blackfire Scenario
-on: [push]
+on: [push, pull_request]
 jobs:
   blackfire-player:
     name: Blackfire (PHP ${{ matrix.php-versions }})
