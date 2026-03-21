@@ -20,7 +20,7 @@ jobs:
     # Docs: https://docs.github.com/en/actions/using-containerized-services
     services:
       mysql:
-        image: mysql:latest
+        image: mysql:5.7
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: false
           MYSQL_ROOT_PASSWORD: password
