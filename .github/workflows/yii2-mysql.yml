@@ -15,7 +15,7 @@ jobs:
     # Docs: https://docs.github.com/en/actions/using-containerized-services
     services:
       mysql:
-        image: mysql:latest
+        image: mysql:5.7
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: false
           MYSQL_ROOT_PASSWORD: yii
@@ -70,6 +70,7 @@ jobs:
           php -r "file_exists('.env') || copy('.env.dist', '.env');"
           php console/yii app/setup
           npm install --development
+          npm install less@3.13.1 --no-save
           npm run build
         env:
           DB_DSN: mysql:host=127.0.0.1;port=${{ job.services.mysql.ports['3306'] }};dbname=yii
