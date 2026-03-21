@@ -13,9 +13,6 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -24,7 +21,4 @@ jobs:
       - name: Show installed runtimes
         run: |
           php -v
-          composer --version
-
-      - name: Keep the run visible for the recording
-        run: sleep 20
+          sleep 2
