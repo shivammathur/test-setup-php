@@ -8,7 +8,7 @@ use Application\Module;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Application\Module;
+ * @covers \Application\Module
  */
 class ModuleTest extends TestCase
 {
