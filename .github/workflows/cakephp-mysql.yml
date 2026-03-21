@@ -1,12 +1,12 @@
 # GitHub Action for CakePHP with MySQL and Redis
 # Tested with https://github.com/cakephp/app
 name: Testing CakePHP with MySQL
-on: [push]
+on: [push, pull_request]
 jobs:
   tests:
     strategy:
       matrix:
-        php-versions: ['8.4', '8.5']
+        php-versions: ['8.3', '8.4', '8.5']
     runs-on: ubuntu-latest
 
     # Docs: https://docs.github.com/en/actions/using-containerized-services
