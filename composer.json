@@ -42,6 +42,11 @@
     "suggest": {
         "ext-apc": "Needed to support caching ACL"
     },
+    "config": {
+        "audit": {
+            "block-insecure": false
+        }
+    },
     "autoload": {
         "psr-4": {
             "Vokuro\\": "src/"
