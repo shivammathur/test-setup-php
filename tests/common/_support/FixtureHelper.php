@@ -51,8 +51,17 @@ class FixtureHelper extends Module
         $this->initFixtures();
 
         if (Yii::$app->db->driverName === 'pgsql') {
+            $this->resetPostgresSequences();
+        }
+    }
+
+    private function resetPostgresSequences()
+    {
+        foreach (['article', 'article_category', 'article_attachment', 'user'] as $table) {
+            $tableName = '{{%' . $table . '}}';
+
             Yii::$app->db->createCommand(
-                "SELECT setval(pg_get_serial_sequence('{{%user}}', 'id'), COALESCE(MAX([[id]]), 0) + 1, false) FROM {{%user}}"
+                "SELECT setval(pg_get_serial_sequence('$tableName', 'id'), COALESCE(MAX([[id]]), 0) + 1, false) FROM $tableName"
             )->execute();
         }
     }
