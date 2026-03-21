@@ -1,0 +1,47 @@
+# GitHub Action for Blackfire Player
+name: Play a Blackfire Scenario
+on: [push]
+jobs:
+  blackfire-player:
+    name: Blackfire (PHP ${{ matrix.php-versions }})
+    defaults:
+      run:
+        shell: bash
+    # Add your Blackfire credentials securely using GitHub Secrets
+    env:
+      BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }}
+      BLACKFIRE_SERVER_TOKEN: ${{ secrets.BLACKFIRE_SERVER_TOKEN }}
+      BLACKFIRE_CLIENT_ID: ${{ secrets.BLACKFIRE_CLIENT_ID }}
+      BLACKFIRE_CLIENT_TOKEN: ${{ secrets.BLACKFIRE_CLIENT_TOKEN }}
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-latest, macos-latest]
+        php-versions: ['8.3', '8.4', '8.5']
+        # Blackfire Player supports PHP 8.5 and is available on Ubuntu and macOS.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Docs: https://github.com/shivammathur/setup-php
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: blackfire
+          # Setup Blackfire CLI and player
+          tools: blackfire, blackfire-player
+          coverage: none
+
+      - name: Start local endpoint
+        run: |
+          php -S 127.0.0.1:8080 > "$RUNNER_TEMP/blackfire-player.log" 2>&1 &
+          sleep 5
+
+      - name: Validate scenario
+        run: blackfire-player validate scenario.bkf
+
+      # Refer to https://docs.blackfire.io/builds-cookbooks/player
+      - name: Play the scenario
+        run: blackfire-player run scenario.bkf --endpoint=http://127.0.0.1:8080

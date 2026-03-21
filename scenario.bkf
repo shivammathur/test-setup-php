@@ -1,0 +1,8 @@
+#!blackfire-player
+
+scenario
+    name 'Root page'
+
+    visit url('/')
+        name 'Visit root'
+        expect status_code() == 200
