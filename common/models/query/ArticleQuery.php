@@ -10,7 +10,9 @@ namespace common\models\query;
 
 use common\models\Article;
 use common\models\ArticleCategory;
+use yii\db\Expression;
 use yii\db\ActiveQuery;
+use Yii;
 
 class ArticleQuery extends ActiveQuery
 {
@@ -28,14 +30,29 @@ class ArticleQuery extends ActiveQuery
     {
         $this->innerJoin('{{%article_category}}', '{{%article_category}}.[[id]] = {{%article}}.[[category_id]]');
         $this->select([
-            'YEAR(FROM_UNIXTIME({{%article}}.[[published_at]])) AS [[year]]',
-            'MONTH(FROM_UNIXTIME({{%article}}.[[published_at]])) AS [[month]]',
-            'COUNT(*) AS [[count]]'
+            'year' => new Expression($this->dateExpression('year')),
+            'month' => new Expression($this->dateExpression('month')),
+            'count' => new Expression('COUNT(*)'),
         ]);
         $this->published();
         $this->andWhere(['{{%article_category}}.[[status]]' => ArticleCategory::STATUS_ACTIVE]);
-        $this->groupBy('[[year]], [[month]]');
-        $this->orderBy('[[year]] DESC, [[month]] DESC');
+        $this->groupBy(['year', 'month']);
+        $this->orderBy(['year' => SORT_DESC, 'month' => SORT_DESC]);
         return $this;
+    }
+
+    private function dateExpression($part)
+    {
+        if (Yii::$app->db->driverName === 'pgsql') {
+            return sprintf(
+                'EXTRACT(%s FROM TO_TIMESTAMP({{%article}}.[[published_at]]))::int',
+                strtoupper($part)
+            );
+        }
+
+        return sprintf(
+            '%s(FROM_UNIXTIME({{%article}}.[[published_at]]))',
+            strtoupper($part)
+        );
     }
 }

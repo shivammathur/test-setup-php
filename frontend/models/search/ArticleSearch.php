@@ -7,6 +7,7 @@ use yii\data\ActiveDataProvider;
 use common\models\Article;
 use common\models\ArticleCategory;
 use yii\db\Expression;
+use Yii;
 
 /**
  * ArticleSearch represents the model behind the search form about `common\models\Article`.
@@ -60,11 +61,26 @@ class ArticleSearch extends Article
             'slug' => $this->slug,
             'category_id' => $this->category_id,
         ]);
-        $query->andFilterWhere(['YEAR(from_unixtime({{%article}}.[[published_at]]))' => $this->year]);
-        $query->andFilterWhere(['MONTH(from_unixtime({{%article}}.[[published_at]]))' => $this->month]);
+        $query->andFilterWhere(['=', new Expression($this->dateExpression('year')), $this->year]);
+        $query->andFilterWhere(['=', new Expression($this->dateExpression('month')), $this->month]);
 
         $query->andFilterWhere(['like', 'title', $this->title]);
 
         return $dataProvider;
+    }
+
+    private function dateExpression($part)
+    {
+        if (Yii::$app->db->driverName === 'pgsql') {
+            return sprintf(
+                'EXTRACT(%s FROM TO_TIMESTAMP({{%article}}.[[published_at]]))::int',
+                strtoupper($part)
+            );
+        }
+
+        return sprintf(
+            '%s(FROM_UNIXTIME({{%article}}.[[published_at]]))',
+            strtoupper($part)
+        );
     }
 }
