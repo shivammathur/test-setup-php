@@ -1,19 +1,32 @@
 <?php
-
-/** @var yii\web\View $this */
-
-$this->title = 'My Yii Application';
+/**
+ * @var yii\web\View $this
+ */
+$this->title = Yii::$app->name;
 ?>
 <div class="site-index">
-    <div class="p-5 mb-4 bg-transparent rounded-3">
-        <div class="container-fluid py-5 text-center">
-            <h1 class="display-4">Congratulations!</h1>
-            <p class="fs-5 fw-light">You have successfully created your Yii-powered application.</p>
-            <p><a class="btn btn-lg btn-success" href="https://www.yiiframework.com">Get started with Yii</a></p>
-        </div>
-    </div>
+    <div class="container">
+        <?php echo \common\widgets\DbCarousel::widget([
+            'key' => 'index',
+            'assetManager' => Yii::$app->getAssetManager(),
+            'options' => [
+                'class' => 'slide', // enables slide effect
+            ],
+        ]) ?>
 
-    <div class="body-content">
+        <div class="jumbotron">
+            <h1>Congratulations!</h1>
+
+            <p class="lead">You have successfully created your Yii-powered application.</p>
+
+            <?php echo \common\widgets\DbMenu::widget([
+                'key'=>'frontend-index',
+                'options'=>[
+                    'tag'=>'p'
+                ]
+            ]) ?>
+
+        </div>
 
         <div class="row">
             <div class="col-lg-4">
@@ -24,7 +37,7 @@ $this->title = 'My Yii Application';
                     ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
                     fugiat nulla pariatur.</p>
 
-                <p><a class="btn btn-outline-secondary" href="https://www.yiiframework.com/doc/">Yii Documentation &raquo;</a></p>
+                <p><a class="btn btn-default" href="http://www.yiiframework.com/doc/">Yii Documentation &raquo;</a></p>
             </div>
             <div class="col-lg-4">
                 <h2>Heading</h2>
@@ -34,7 +47,7 @@ $this->title = 'My Yii Application';
                     ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
                     fugiat nulla pariatur.</p>
 
-                <p><a class="btn btn-outline-secondary" href="https://www.yiiframework.com/forum/">Yii Forum &raquo;</a></p>
+                <p><a class="btn btn-default" href="http://www.yiiframework.com/forum/">Yii Forum &raquo;</a></p>
             </div>
             <div class="col-lg-4">
                 <h2>Heading</h2>
@@ -44,7 +57,7 @@ $this->title = 'My Yii Application';
                     ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
                     fugiat nulla pariatur.</p>
 
-                <p><a class="btn btn-outline-secondary" href="https://www.yiiframework.com/extensions/">Yii Extensions &raquo;</a></p>
+                <p><a class="btn btn-default" href="http://www.yiiframework.com/extensions/">Yii Extensions &raquo;</a></p>
             </div>
         </div>
 

@@ -1,38 +1,51 @@
-version: '3.2'
+version: "3.7"
 
 services:
-
-  frontend:
-    build: frontend
-    ports:
-      - 20080:80
+  app:
+    build: docker/php
     volumes:
-      # Re-use local composer cache via host-volume
-      - ~/.composer-docker/cache:/root/.composer/cache:delegated
-      # Mount source-code for development
       - ./:/app
+    depends_on:
+      - db
+      - mailcatcher
+    env_file:
+      - .env
 
-  backend:
-    build: backend
-    ports:
-      - 21080:80
+  webpacker:
+    image: node:14-alpine
+    working_dir: /app
     volumes:
-      # Re-use local composer cache via host-volume
-      - ~/.composer-docker/cache:/root/.composer/cache:delegated
-      # Mount source-code for development
       - ./:/app
+    command: /bin/true
 
-  mysql:
-    image: mysql:5.7
+  nginx:
+    image: nginx:1.19-alpine
+    ports:
+      - 80:80
+    volumes:
+      - ./:/app
+      - ./docker/nginx/vhost.conf:/etc/nginx/conf.d/vhost.conf
+    depends_on:
+      - app
+
+  mailcatcher:
+    image: schickling/mailcatcher:latest
+    ports:
+      - 1080:1080
+
+  db:
+    image: mysql:8.0
+    volumes:
+      - /var/lib/mysql
+      - ./docker/mysql/config.cnf:/etc/mysql/conf.d/config.cnf
+    ports:
+      - 3306:3306
     environment:
-      - MYSQL_ROOT_PASSWORD=verysecret
-      - MYSQL_DATABASE=yii2advanced
-      - MYSQL_USER=yii2advanced
-      - MYSQL_PASSWORD=secret
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: yii2-starter-kit
+      MYSQL_USER: ysk_dbu
+      MYSQL_PASSWORD: ysk_pass
 
-  #pgsql:
-  #  image: postgres:9.5
-  #  environment:
-  #    - POSTGRES_DB=yii2advanced
-  #    - POSTGRES_USER=yii2advanced
-  #    - POSTGRES_PASSWORD=secret
+networks:
+  default:
+    name: yii2-starter-kit_default
