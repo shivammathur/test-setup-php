@@ -1,0 +1,71 @@
+# GitHub Action for Yii3 web application with PostgreSQL
+# Tested with https://github.com/yiisoft/app
+name: Testing Yii3 with PostgreSQL
+on: [push]
+jobs:
+  yii:
+    name: Yii3 (PHP ${{ matrix.php-versions }})
+    runs-on: ubuntu-latest
+    env:
+      APP_C3: true
+      APP_ENV: test
+      APP_DEBUG: false
+      DB_HOST: 127.0.0.1
+      DB_PORT: ${{ job.services.postgres.ports['5432'] }}
+      DB_NAME: app
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+
+    # Docs: https://docs.github.com/en/actions/using-containerized-services
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app
+        ports:
+          - 5432/tcp
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
+    strategy:
+      fail-fast: false
+      matrix:
+        php-versions: ['8.4', '8.5']
+        # The latest yiisoft/app release resolves Symfony 8.0 packages that require PHP 8.4+.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Docs: https://github.com/shivammathur/setup-php
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: fileinfo, intl, pdo_pgsql
+          ini-values: date.timezone='UTC', register_argc_argv=On
+          coverage: none
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          # Use composer.json for key, if composer.lock is not committed.
+          # key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Run migrations
+        run: php yii migrate/up --interactive=0
+
+      - name: Run codeception build
+        run: vendor/bin/codecept build
+
+      - name: Run tests with Codeception
+        run: vendor/bin/codecept run
