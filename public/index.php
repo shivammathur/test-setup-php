@@ -13,12 +13,12 @@ if (is_file($root . '/.env')) {
 }
 
 $host = getenv('DB_HOST') ?: '127.0.0.1';
-$port = getenv('DB_PORT') ?: '3306';
-$name = getenv('DB_NAME') ?: 'phalcon';
-$user = getenv('DB_USERNAME') ?: 'root';
-$password = getenv('DB_PASSWORD') ?: 'password';
+$port = getenv('DB_PORT') ?: '5432';
+$name = getenv('DB_NAME') ?: 'postgres';
+$user = getenv('DB_USERNAME') ?: 'postgres';
+$password = getenv('DB_PASSWORD') ?: 'postgres';
 
-$dsn = sprintf('mysql:host=%s;port=%s;dbname=%s', $host, $port, $name);
+$dsn = sprintf('pgsql:host=%s;port=%s;dbname=%s', $host, $port, $name);
 
 try {
     $pdo = new PDO($dsn, $user, $password, [
@@ -33,5 +33,5 @@ try {
 }
 
 header('Content-Type: text/plain');
-echo 'Phalcon MySQL ' . \Phalcon\Version::get() . PHP_EOL;
+echo 'Phalcon PostgreSQL ' . \Phalcon\Version::get() . PHP_EOL;
 echo 'rows: ' . $count . PHP_EOL;
