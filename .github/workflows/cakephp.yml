@@ -1,13 +1,13 @@
 # GitHub Action for CakePHP
 # Tested with https://github.com/cakephp/app
 name: Testing CakePHP
-on: [push]
+on: [push, pull_request]
 jobs:
   tests:
     strategy:
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        php-versions: ['8.4', '8.5']
+        php-versions: ['8.3', '8.4', '8.5']
     runs-on: ${{ matrix.operating-system }}
     steps:
       - name: Checkout
