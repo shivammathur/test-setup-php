@@ -1,13 +1,13 @@
 # GitHub Action for CakePHP with PostgreSQL and Redis
 # Tested with https://github.com/cakephp/app
 name: Testing CakePHP with PostgreSQL
-on: [push]
+on: [push, pull_request]
 jobs:
   tests:
     strategy:
       fail-fast: false
       matrix:
-        php-versions: ['8.4', '8.5']
+        php-versions: ['8.3', '8.4', '8.5']
     runs-on: ubuntu-latest
 
     # Docs: https://docs.github.com/en/actions/using-containerized-services
@@ -38,7 +38,7 @@ jobs:
           php-version: ${{ matrix.php-versions }}
           # You can also use ext-apcu or ext-memcached instead of ext-redis
           # Install memcached if using ext-memcached
-          extensions: mbstring, intl, redis, pdo_pgsql
+          extensions: mbstring, intl, redis, apcu, pdo_pgsql
           coverage: pcov
 
       # Local PostgreSQL service in GitHub hosted environments is disabled by default.
@@ -84,7 +84,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          extensions: mbstring, intl
+          extensions: mbstring, intl, apcu
 
       - name: Get composer cache directory
         id: composer-cache
@@ -117,7 +117,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
-          extensions: mbstring, intl
+          extensions: mbstring, intl, apcu
           tools: phpstan
 
       - name: Get composer cache directory
