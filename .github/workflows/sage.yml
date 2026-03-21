@@ -1,6 +1,6 @@
 # GitHub Action for roots/sage
 name: Testing Sage
-on: [push]
+on: [push, pull_request]
 jobs:
   sage:
     name: Sage (PHP ${{ matrix.php-versions }} & Node ${{ matrix.node-versions }})
