@@ -1,5 +1,9 @@
+# GitHub Action for Phalcon with PostgreSQL
+## Notes
+## Make sure you have .env.example or .env file in your project
+## and you have loaded Dotenv (https://github.com/vlucas/phpdotenv)
 name: Testing Phalcon with PostgreSQL
-on: [push]
+on: [push, pull_request]
 jobs:
   phalcon:
     name: Phalcon (PHP ${{ matrix.php-versions }})
@@ -30,6 +34,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      # Docs: https://github.com/shivammathur/setup-php
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
