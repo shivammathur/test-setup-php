@@ -33,6 +33,10 @@ class SessionProvider implements ServiceProviderInterface
     {
         /** @var string $savePath */
         $savePath = $di->getShared('config')->path('application.sessionSavePath');
+        if (!is_dir($savePath)) {
+            mkdir($savePath, 0777, true);
+        }
+
         $handler  = new SessionAdapter([
             'savePath' => $savePath,
         ]);
