@@ -17,6 +17,9 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
+          extensions: intl, mbstring, mysqli, pdo_mysql, pdo_pgsql, redis, xdebug
+          tools: composer:v2, phpunit, php-cs-fixer, phpcs, phpstan
+          coverage: xdebug
 
       - name: Test PHP
         run: |
