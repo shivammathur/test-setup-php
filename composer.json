@@ -1,0 +1,12 @@
+{
+  "name": "example/sample-plugin",
+  "description": "Sample WordPress plugin used to validate the setup-php workflow example.",
+  "type": "wordpress-plugin",
+  "require-dev": {
+    "phpunit/phpunit": "^9.6",
+    "yoast/phpunit-polyfills": "^4.0"
+  },
+  "scripts": {
+    "test": "phpunit"
+  }
+}
