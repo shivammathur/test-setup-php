@@ -1,0 +1,32 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the Update Status module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function update_install(): void {
+  $queue = \Drupal::queue('update_fetch_tasks', TRUE);
+  $queue->createQueue();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function update_uninstall(): void {
+  \Drupal::state()->delete('update.last_check');
+  \Drupal::state()->delete('update.last_email_notification');
+
+  $queue = \Drupal::queue('update_fetch_tasks');
+  $queue->deleteQueue();
+}
+
+/**
+ * Implements hook_update_last_removed().
+ */
+function update_update_last_removed(): int {
+  return 8001;
+}

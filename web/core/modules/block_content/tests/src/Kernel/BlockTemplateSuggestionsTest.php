@@ -1,0 +1,90 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\block_content\Kernel;
+
+use Drupal\block\Entity\Block;
+use Drupal\block_content\Entity\BlockContent;
+use Drupal\block_content\Entity\BlockContentType;
+use Drupal\block_content\Hook\BlockContentHooks;
+use Drupal\KernelTests\KernelTestBase;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+
+/**
+ * Tests the block_content_theme_suggestions_block() function.
+ */
+#[Group('block_content')]
+#[RunTestsInSeparateProcesses]
+class BlockTemplateSuggestionsTest extends KernelTestBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = [
+    'user',
+    'block',
+    'block_content',
+  ];
+
+  /**
+   * The BlockContent entity used for testing.
+   *
+   * @var \Drupal\block_content\Entity\BlockContent
+   */
+  protected $blockContent;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+
+    $this->installEntitySchema('block_content');
+
+    // Create a block content type.
+    $block_content_type = BlockContentType::create([
+      'id' => 'test_block',
+      'label' => 'A test block type',
+      'description' => "Provides a test block type.",
+    ]);
+    $block_content_type->save();
+
+    $this->blockContent = BlockContent::create([
+      'info' => 'The Test Block',
+      'type' => 'test_block',
+    ]);
+    $this->blockContent->save();
+  }
+
+  /**
+   * Tests template suggestions from block_content_theme_suggestions_block().
+   */
+  public function testBlockThemeHookSuggestions(): void {
+    // Create a block using a block_content plugin.
+    $block = Block::create([
+      'plugin' => 'block_content:' . $this->blockContent->uuid(),
+      'region' => 'footer',
+      'id' => 'machine_name',
+    ]);
+
+    $variables['elements']['#id'] = $block->id();
+    $variables['elements']['content']['#block_content'] = $this->blockContent;
+    $variables['elements']['content']['#view_mode'] = 'full';
+    $suggestions = [];
+    $suggestions[] = 'block__block_content__' . $block->uuid();
+    $blockTemplateSuggestionsAlter = new BlockContentHooks();
+    $blockTemplateSuggestionsAlter->themeSuggestionsBlockAlter($suggestions, $variables);
+
+    $this->assertSame([
+      'block__block_content__' . $block->uuid(),
+      'block__block_content__view__full',
+      'block__block_content__type__test_block',
+      'block__block_content__view_type__test_block__full',
+      'block__block_content__id__machine_name',
+      'block__block_content__id_view__machine_name__full',
+    ], $suggestions);
+  }
+
+}

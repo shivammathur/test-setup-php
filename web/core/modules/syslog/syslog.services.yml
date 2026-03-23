@@ -1,0 +1,11 @@
+parameters:
+  syslog.skip_procedural_hook_scan: true
+
+services:
+  _defaults:
+    autoconfigure: true
+  logger.syslog:
+    class: Drupal\syslog\Logger\SysLog
+    arguments: ['@config.factory', '@logger.log_message_parser']
+    tags:
+      - { name: logger }

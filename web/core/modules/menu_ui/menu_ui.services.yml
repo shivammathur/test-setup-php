@@ -1,0 +1,9 @@
+parameters:
+  menu_ui.skip_procedural_hook_scan: true
+
+services:
+  _defaults:
+    autoconfigure: true
+  menu_ui.menu_tree_manipulators:
+    class: Drupal\menu_ui\Menu\MenuUiMenuTreeManipulators
+  Drupal\menu_ui\Menu\MenuUiMenuTreeManipulators: '@menu_ui.menu_tree_manipulators'

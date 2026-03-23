@@ -1,0 +1,564 @@
+<?php
+
+/**
+ * @file
+ */
+
+use Drupal\Component\Utility\Environment;
+use Drupal\Core\Batch\BatchBuilder;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Database\StatementInterface;
+use Drupal\Core\Link;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\node\Entity\Node;
+use Drupal\node\Entity\NodeType;
+use Drupal\node\Hook\NodeThemeHooks;
+use Drupal\node\NodeInterface;
+use Drupal\node\NodeTypeInterface;
+
+/**
+ * Gathers a listing of links to nodes.
+ *
+ * @param \Drupal\Core\Database\StatementInterface $result
+ *   A database result object from a query to fetch node entities. If your
+ *   query joins the {comment_entity_statistics} table so that the comment_count
+ *   field is available, a title attribute will be added to show the number of
+ *   comments.
+ * @param string|null $title
+ *   (optional) A heading for the resulting list. NULL results in no heading.
+ *   Defaults to NULL.
+ *
+ * @return array|false
+ *   A renderable array containing a list of linked node titles fetched from
+ *   $result, or FALSE if there are no rows in $result.
+ *
+ * @deprecated in drupal:11.3.0 and is removed from drupal:12.0.0. There is no replacement.
+ * @see https://www.drupal.org/node/3531959
+ */
+function node_title_list(StatementInterface $result, $title = NULL) {
+  @trigger_error(__FUNCTION__ . '() is deprecated in drupal:11.3.0 and is removed from drupal:12.0.0. There is no replacement. See https://www.drupal.org/node/3531959', E_USER_DEPRECATED);
+  $items = [];
+  $num_rows = FALSE;
+  $nids = [];
+  foreach ($result as $row) {
+    // Do not use $node->label() or $node->toUrl() here, because we only have
+    // database rows, not actual nodes.
+    $nids[] = $row->nid;
+    $options = !empty($row->comment_count) ? ['attributes' => ['title' => \Drupal::translation()->formatPlural($row->comment_count, '1 comment', '@count comments')]] : [];
+    $items[] = Link::fromTextAndUrl($row->title, Url::fromRoute('entity.node.canonical', ['node' => $row->nid], $options))->toString();
+    $num_rows = TRUE;
+  }
+
+  return $num_rows ? ['#theme' => 'item_list__node', '#items' => $items, '#title' => $title, '#cache' => ['tags' => Cache::mergeTags(['node_list'], Cache::buildTags('node', $nids))]] : FALSE;
+}
+
+/**
+ * Determines the type of marker to be displayed for a given node.
+ *
+ * @param int $nid
+ *   Node ID whose history supplies the "last viewed" timestamp.
+ * @param int $timestamp
+ *   Time which is compared against node's "last viewed" timestamp.
+ *
+ * @return int
+ *   One of the MARK constants.
+ *
+ * @deprecated in drupal:11.2.0 and is removed from drupal:12.0.0. There is no replacement.
+ * @see https://www.drupal.org/node/3514189
+ */
+function node_mark($nid, $timestamp) {
+  @trigger_error(__FUNCTION__ . '() is deprecated in drupal:11.2.0 and is removed from drupal:12.0.0. There is no replacement. See https://www.drupal.org/node/3514189', E_USER_DEPRECATED);
+  if (\Drupal::currentUser()->isAnonymous() || !\Drupal::moduleHandler()->moduleExists('history')) {
+    return MARK_READ;
+  }
+  $read_timestamp = history_read($nid);
+  if ($read_timestamp === 0 && $timestamp > HISTORY_READ_LIMIT) {
+    return MARK_NEW;
+  }
+  elseif ($timestamp > $read_timestamp && $timestamp > HISTORY_READ_LIMIT) {
+    return MARK_UPDATED;
+  }
+  return MARK_READ;
+}
+
+/**
+ * Returns a list of available node type names.
+ *
+ * This list can include types that are queued for addition or deletion.
+ *
+ * @return string[]
+ *   An array of node type labels, keyed by the node type name.
+ *
+ * @deprecated in drupal:11.3.0 and is removed from drupal:13.0.0. Use \Drupal::service('entity_type.bundle.info')->getBundleLabels('node') instead.
+ * @see https://www.drupal.org/node/3534849
+ */
+function node_type_get_names() {
+  @trigger_error(__FUNCTION__ . '() is deprecated in drupal:11.3.0 and is removed from drupal:13.0.0. Use \Drupal::service(\'entity_type.bundle.info\')->getBundleLabels(\'node\') instead. See https://www.drupal.org/node/3534849', E_USER_DEPRECATED);
+  return \Drupal::service('entity_type.bundle.info')->getBundleLabels('node');
+}
+
+/**
+ * Returns the node type label for the passed node.
+ *
+ * @param \Drupal\node\NodeInterface $node
+ *   A node entity to return the node type's label for.
+ *
+ * @return string|false
+ *   The node type label or FALSE if the node type is not found.
+ *
+ * @deprecated in drupal:11.3.0 and is removed from drupal:13.0.0. Use $node->getBundleEntity()->label() instead.
+ * @see https://www.drupal.org/node/3533301
+ */
+function node_get_type_label(NodeInterface $node) {
+  @trigger_error(__FUNCTION__ . '() is deprecated in drupal:11.3.0 and is removed from drupal:13.0.0. Use $node->getBundleEntity()->label(). See https://www.drupal.org/node/3533301', E_USER_DEPRECATED);
+  $type = NodeType::load($node->bundle());
+  return $type ? $type->label() : FALSE;
+}
+
+/**
+ * Description callback: Returns the node type description.
+ *
+ * @param \Drupal\node\NodeTypeInterface $node_type
+ *   The node type object.
+ *
+ * @return string
+ *   The node type description.
+ *
+ * @deprecated in drupal:11.3.0 and is removed from drupal:12.0.0. Use $node_type->getDescription() instead.
+ * @see https://www.drupal.org/node/3531945
+ */
+function node_type_get_description(NodeTypeInterface $node_type) {
+  @trigger_error(__FUNCTION__ . '() is deprecated in drupal:11.3.0 and is removed from drupal:12.0.0. Use $node_type->getDescription() instead. See https://www.drupal.org/node/3531945', E_USER_DEPRECATED);
+  return $node_type->getDescription();
+}
+
+/**
+ * Adds the default body field to a node type.
+ *
+ * @param \Drupal\node\NodeTypeInterface $type
+ *   A node type object.
+ * @param string $label
+ *   (optional) The label for the body instance.
+ *
+ * @return \Drupal\field\Entity\FieldConfig
+ *   A Body field object.
+ *
+ * @deprecated in drupal:11.3.0 and is removed from drupal:12.0.0. There is no replacement.
+ * @see https://www.drupal.org/node/3516778
+ */
+function node_add_body_field(NodeTypeInterface $type, $label = 'Body') {
+  @trigger_error(__FUNCTION__ . '() is deprecated in drupal:11.3.0 and is removed from drupal:12.0.0. There is no replacement. See https://www.drupal.org/node/3516778', E_USER_DEPRECATED);
+  // Add or remove the body field, as needed.
+  $field_storage = FieldStorageConfig::loadByName('node', 'body');
+  $field = FieldConfig::loadByName('node', $type->id(), 'body');
+  if (empty($field)) {
+    $field = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'bundle' => $type->id(),
+      'label' => $label,
+      'settings' => [
+        'display_summary' => TRUE,
+        'allowed_formats' => [],
+      ],
+    ]);
+    $field->save();
+
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+
+    // Assign widget settings for the default form mode.
+    $display_repository->getFormDisplay('node', $type->id())
+      ->setComponent('body', [
+        'type' => 'text_textarea_with_summary',
+      ])
+      ->save();
+
+    // Assign display settings for the 'default' and 'teaser' view modes.
+    $display_repository->getViewDisplay('node', $type->id())
+      ->setComponent('body', [
+        'label' => 'hidden',
+        'type' => 'text_default',
+      ])
+      ->save();
+
+    // The teaser view mode is created by the Standard profile and therefore
+    // might not exist.
+    $view_modes = \Drupal::service('entity_display.repository')->getViewModes('node');
+    if (isset($view_modes['teaser'])) {
+      $display_repository->getViewDisplay('node', $type->id(), 'teaser')
+        ->setComponent('body', [
+          'label' => 'hidden',
+          'type' => 'text_summary_or_trimmed',
+        ])
+        ->save();
+    }
+  }
+
+  return $field;
+}
+
+/**
+ * Checks whether the current page is the full page view of the passed-in node.
+ *
+ * @param \Drupal\node\NodeInterface $node
+ *   A node entity.
+ *
+ * @return bool
+ *   TRUE if this is a full page view, otherwise FALSE.
+ *
+ * @deprecated in drupal:11.3.0 and is removed from drupal:13.0.0. There is no
+ *    replacement, check the view mode instead during rendering.
+ *
+ * @see https://www.drupal.org/node/3458593
+ */
+function node_is_page(NodeInterface $node) {
+  @trigger_error(__FUNCTION__ . '() is deprecated in drupal:11.3.0 and is removed from drupal:13.0.0. There is no replacement, check the view mode instead during rendering. See https://www.drupal.org/node/3531945', E_USER_DEPRECATED);
+  $route_match = \Drupal::routeMatch();
+  if ($route_match->getRouteName() == 'entity.node.canonical') {
+    $page_node = $route_match->getParameter('node');
+  }
+  return (!empty($page_node) ? $page_node->id() == $node->id() : FALSE);
+}
+
+/**
+ * Prepares variables for list of available node type templates.
+ *
+ * Default template: node-add-list.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - content: An array of content types.
+ *
+ * @deprecated in drupal:11.3.0 and is removed from drupal:12.0.0. Use \Drupal::service(NodeThemeHooks::class)->preprocessNodeAddList($variables) instead.
+ * @see https://www.drupal.org/node/3533060
+ */
+function template_preprocess_node_add_list(&$variables): void {
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:11.3.0 and is removed from drupal:12.0.0. Use \Drupal::service(NodeThemeHooks::class)->preprocessNodeAddList($variables); instead. See https://www.drupal.org/node/3533060', E_USER_DEPRECATED);
+  \Drupal::service(NodeThemeHooks::class)->preprocessNodeAddList($variables);
+}
+
+/**
+ * Prepares variables for node templates.
+ *
+ * Default template: node.html.twig.
+ *
+ * Most themes use their own copy of node.html.twig. The default is located
+ * inside "/core/modules/node/templates/node.html.twig". Look in there for the
+ * full list of variables.
+ *
+ * By default this function performs special preprocessing of some base fields
+ * so they are available as variables in the template. For example 'title'
+ * appears as 'label'. This preprocessing is skipped if:
+ * - a module makes the field's display configurable via the field UI by means
+ *   of BaseFieldDefinition::setDisplayConfigurable()
+ * - AND the additional entity type property
+ *   'enable_base_field_custom_preprocess_skipping' has been set using
+ *   hook_entity_type_build().
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - elements: An array of elements to display in view mode.
+ *   - node: The node object.
+ *   - view_mode: View mode; e.g., 'full', 'teaser', etc.
+ *
+ * @deprecated in drupal:11.3.0 and is removed from drupal:12.0.0. Use \Drupal::service(NodeThemeHooks::class)->preprocessNode($variables) instead.
+ * @see https://www.drupal.org/node/3533060
+ * @see hook_entity_type_build()
+ * @see \Drupal\Core\Field\BaseFieldDefinition::setDisplayConfigurable()
+ */
+function template_preprocess_node(&$variables): void {
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:11.3.0 and is removed from drupal:12.0.0. Use \Drupal::service(NodeThemeHooks::class)->preprocessNode($variables); instead. See https://www.drupal.org/node/3533060', E_USER_DEPRECATED);
+  \Drupal::service(NodeThemeHooks::class)->preprocessNode($variables);
+}
+
+/**
+ * @addtogroup node_access
+ * @{
+ */
+
+/**
+ * Fetches an array of permission IDs granted to the given user ID.
+ *
+ * The implementation here provides only the universal "all" grant. A node
+ * access module should implement hook_node_grants() to provide a grant list for
+ * the user.
+ *
+ * After the default grants have been loaded, we allow modules to alter the
+ * grants array by reference. This hook allows for complex business logic to be
+ * applied when integrating multiple node access modules.
+ *
+ * @param string $operation
+ *   The operation that the user is trying to perform.
+ * @param \Drupal\Core\Session\AccountInterface $account
+ *   The account object for the user performing the operation.
+ *
+ * @return array
+ *   An associative array in which the keys are realms, and the values are
+ *   arrays of grants for those realms.
+ */
+function node_access_grants($operation, AccountInterface $account) {
+  // Fetch node access grants from other modules.
+  $grants = \Drupal::moduleHandler()->invokeAll('node_grants', [$account, $operation]);
+  // Allow modules to alter the assigned grants.
+  \Drupal::moduleHandler()->alter('node_grants', $grants, $account, $operation);
+
+  return array_merge(['all' => [0]], $grants);
+}
+
+/**
+ * Determines whether the user has a global viewing grant for all nodes.
+ *
+ * Checks to see whether any module grants global 'view' access to a user
+ * account; global 'view' access is encoded in the {node_access} table as a
+ * grant with nid=0. If no node access modules are enabled, node.module defines
+ * such a global 'view' access grant.
+ *
+ * This function is called when a node listing query is tagged with
+ * 'node_access'; when this function returns TRUE, no node access joins are
+ * added to the query.
+ *
+ * @param \Drupal\Core\Session\AccountProxyInterface|null $account
+ *   (optional) The user object for the user whose access is being checked. If
+ *   omitted, the current user is used. Defaults to NULL.
+ *
+ * @return bool
+ *   TRUE if 'view' access to all nodes is granted, FALSE otherwise.
+ *
+ * @deprecated in drupal:11.3.0 and is removed from drupal:12.0.0. Use
+ *   \Drupal::entityTypeManager()->getAccessControlHandler('node')->checkAllGrants()
+ *   instead.
+ *
+ * @see https://www.drupal.org/node/3038909
+ * @see hook_node_grants()
+ * @see node_query_node_access_alter()
+ */
+function node_access_view_all_nodes($account = NULL) {
+  @trigger_error('node_access_view_all_nodes() is deprecated in drupal:11.3.0 and is removed from drupal:12.0.0. Use  \Drupal::entityTypeManager()->getAccessControlHandler(\'node\')->checkAllGrants(). See https://www.drupal.org/node/3038909', E_USER_DEPRECATED);
+  // If no modules implement the node access system, access is always TRUE.
+  if (!\Drupal::moduleHandler()->hasImplementations('node_grants')) {
+    return TRUE;
+  }
+  return \Drupal::entityTypeManager()->getAccessControlHandler('node')->checkAllGrants($account ?? \Drupal::currentUser());
+}
+
+/**
+ * Toggles or reads the value of a flag for rebuilding the node access grants.
+ *
+ * When the flag is set, a message is displayed to users with 'access
+ * administration pages' permission, pointing to the 'rebuild' confirm form.
+ * This can be used as an alternative to direct node_access_rebuild calls,
+ * allowing administrators to decide when they want to perform the actual
+ * (possibly time consuming) rebuild.
+ *
+ * When unsure if the current user is an administrator, node_access_rebuild()
+ * should be used instead.
+ *
+ * @param bool|null $rebuild
+ *   (optional) The boolean value to be written. Defaults to NULL, which returns
+ *   the current value.
+ *
+ * @return bool|null
+ *   The current value of the flag if no value was provided for $rebuild. If a
+ *   value was provided for $rebuild, nothing (NULL) is returned.
+ *
+ * @see node_access_rebuild()
+ */
+function node_access_needs_rebuild($rebuild = NULL) {
+  if (!isset($rebuild)) {
+    return \Drupal::state()->get('node.node_access_needs_rebuild', FALSE);
+  }
+  elseif ($rebuild) {
+    \Drupal::state()->set('node.node_access_needs_rebuild', TRUE);
+  }
+  else {
+    \Drupal::state()->delete('node.node_access_needs_rebuild');
+  }
+}
+
+/**
+ * Rebuilds the node access database.
+ *
+ * This rebuild is occasionally needed by modules that make system-wide changes
+ * to access levels. When the rebuild is required by an admin-triggered action
+ * (e.g module settings form), calling node_access_needs_rebuild(TRUE) instead
+ * of node_access_rebuild() lets the user perform changes and actually rebuild
+ * only once done.
+ *
+ * Note : As of Drupal 6, node access modules are not required to (and actually
+ * should not) call node_access_rebuild() in hook_install/uninstall anymore.
+ *
+ * @param bool $batch_mode
+ *   (optional) Set to TRUE to process in 'batch' mode, spawning processing over
+ *   several HTTP requests (thus avoiding the risk of PHP timeout if the site
+ *   has a large number of nodes). hook_update_N() and any form submit handler
+ *   are safe contexts to use the 'batch mode'. Less decidable cases (such as
+ *   calls from hook_user(), hook_taxonomy(), etc.) might consider using the
+ *   non-batch mode. Defaults to FALSE. Calling this method multiple times in
+ *   the same request with $batch_mode set to TRUE will only result in one batch
+ *   set being added.
+ *
+ * @see node_access_needs_rebuild()
+ */
+function node_access_rebuild($batch_mode = FALSE): void {
+  $node_storage = \Drupal::entityTypeManager()->getStorage('node');
+  /** @var \Drupal\node\NodeAccessControlHandlerInterface $access_control_handler */
+  $access_control_handler = \Drupal::entityTypeManager()->getAccessControlHandler('node');
+
+  // If node_access_rebuild() fails to complete, and node_access_needs_rebuild
+  // is not set to TRUE, the node_access table is left in an incomplete state.
+  // Force node_access_needs_rebuild to TRUE once existing grants are deleted,
+  // to signal that the node access table still needs to be rebuilt if this
+  // function does not finish.
+  node_access_needs_rebuild(TRUE);
+  $access_control_handler->deleteGrants();
+
+  // Only recalculate if the site is using a node_access module.
+  if (\Drupal::moduleHandler()->hasImplementations('node_grants')) {
+    if ($batch_mode) {
+      if (!BatchBuilder::isSetIdRegistered(__FUNCTION__)) {
+        $batch_builder = (new BatchBuilder())
+          ->setTitle(t('Rebuilding content access permissions'))
+          ->addOperation('_node_access_rebuild_batch_operation', [])
+          ->setFinishCallback('_node_access_rebuild_batch_finished')
+          ->registerSetId(__FUNCTION__);
+        batch_set($batch_builder->toArray());
+      }
+    }
+    else {
+      // Try to allocate enough time to rebuild node grants.
+      Environment::setTimeLimit(240);
+
+      // Rebuild newest nodes first so that recent content becomes available
+      // quickly.
+      $entity_query = \Drupal::entityQuery('node');
+      $entity_query->sort('nid', 'DESC');
+      // Disable access checking since all nodes must be processed even if the
+      // user does not have access. And unless the current user has the bypass
+      // node access permission, no nodes are accessible since the grants have
+      // just been deleted.
+      $entity_query->accessCheck(FALSE);
+      $nids = $entity_query->execute();
+      foreach ($nids as $nid) {
+        $node_storage->resetCache([$nid]);
+        $node = Node::load($nid);
+        // To preserve database integrity, only write grants if the node
+        // loads successfully.
+        if (!empty($node)) {
+          $grants = $access_control_handler->acquireGrants($node);
+          \Drupal::service('node.grant_storage')->write($node, $grants);
+        }
+      }
+    }
+  }
+  else {
+    // Not using any node_access modules. Add the default grant.
+    $access_control_handler->writeDefaultGrant();
+  }
+
+  if (!isset($batch_builder)) {
+    \Drupal::messenger()->addStatus(t('Content permissions have been rebuilt.'));
+    node_access_needs_rebuild(FALSE);
+  }
+}
+
+/**
+ * Implements callback_batch_operation().
+ *
+ * Performs batch operation for node_access_rebuild().
+ *
+ * This is a multistep operation: we go through all nodes by packs of 20. The
+ * batch processing engine interrupts processing and sends progress feedback
+ * after 1 second execution time.
+ *
+ * @param array $context
+ *   An array of contextual key/value information for rebuild batch process.
+ */
+function _node_access_rebuild_batch_operation(&$context): void {
+  $node_storage = \Drupal::entityTypeManager()->getStorage('node');
+  if (empty($context['sandbox'])) {
+    // Initiate multistep processing.
+    $context['sandbox']['progress'] = 0;
+    $context['sandbox']['current_node'] = 0;
+    $context['sandbox']['max'] = \Drupal::entityQuery('node')->accessCheck(FALSE)->count()->execute();
+  }
+
+  // Process the next 20 nodes.
+  $limit = 20;
+  $nids = \Drupal::entityQuery('node')
+    ->condition('nid', $context['sandbox']['current_node'], '>')
+    ->sort('nid', 'ASC')
+    // Disable access checking since all nodes must be processed even if the
+    // user does not have access. And unless the current user has the bypass
+    // node access permission, no nodes are accessible since the grants have
+    // just been deleted.
+    ->accessCheck(FALSE)
+    ->range(0, $limit)
+    ->execute();
+  $node_storage->resetCache($nids);
+  $nodes = Node::loadMultiple($nids);
+  foreach ($nids as $nid) {
+    // To preserve database integrity, only write grants if the node
+    // loads successfully.
+    if (!empty($nodes[$nid])) {
+      $node = $nodes[$nid];
+      /** @var \Drupal\node\NodeAccessControlHandlerInterface $access_control_handler */
+      $access_control_handler = \Drupal::entityTypeManager()->getAccessControlHandler('node');
+      $grants = $access_control_handler->acquireGrants($node);
+      \Drupal::service('node.grant_storage')->write($node, $grants);
+    }
+    $context['sandbox']['progress']++;
+    $context['sandbox']['current_node'] = $nid;
+  }
+
+  // Multistep processing : report progress.
+  if ($context['sandbox']['progress'] != $context['sandbox']['max']) {
+    $context['finished'] = $context['sandbox']['progress'] / $context['sandbox']['max'];
+  }
+}
+
+/**
+ * Implements callback_batch_finished().
+ *
+ * Performs post-processing for node_access_rebuild().
+ *
+ * @param bool $success
+ *   A boolean indicating whether the re-build process has completed.
+ * @param array $results
+ *   An array of results information.
+ * @param array $operations
+ *   An array of function calls (not used in this function).
+ */
+function _node_access_rebuild_batch_finished($success, $results, $operations): void {
+  if ($success) {
+    \Drupal::messenger()->addStatus(t('The content access permissions have been rebuilt.'));
+    node_access_needs_rebuild(FALSE);
+  }
+  else {
+    \Drupal::messenger()->addError(t('The content access permissions have not been properly rebuilt.'));
+  }
+}
+
+/**
+ * @} End of "addtogroup node_access".
+ */
+
+/**
+ * Marks a node to be re-indexed by the node_search plugin.
+ *
+ * @param int $nid
+ *   The node ID.
+ *
+ * @deprecated in drupal:11.3.0 and is removed from drupal:12.0.0. Use \Drupal::service('search.index')->markForReindex('node_search', $nid) instead.
+ * @see https://www.drupal.org/node/3533632
+ */
+function node_reindex_node_search($nid): void {
+  @trigger_error(__FUNCTION__ . '() is deprecated in drupal:11.3.0 and is removed from drupal:12.0.0. Use \Drupal::service(\'search.index\')->markForReindex(\'node_search\', $nid); instead. See https://www.drupal.org/node/3533632', E_USER_DEPRECATED);
+
+  if (\Drupal::moduleHandler()->moduleExists('search')) {
+    // Reindex node context indexed by the node module search plugin.
+    \Drupal::service('search.index')->markForReindex('node_search', $nid);
+  }
+}

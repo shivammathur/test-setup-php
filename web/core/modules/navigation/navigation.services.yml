@@ -1,0 +1,53 @@
+parameters:
+  navigation.skip_procedural_hook_scan: true
+
+services:
+  _defaults:
+    autoconfigure: true
+  navigation.renderer:
+    class: Drupal\navigation\NavigationRenderer
+    arguments:
+      [
+        '@config.factory',
+        '@module_handler',
+        '@current_route_match',
+        '@plugin.manager.menu.local_task',
+        '@image.factory',
+        '@file_url_generator',
+        '@plugin.manager.layout_builder.section_storage',
+        '@request_stack',
+        '@extension.list.module',
+        '@current_user',
+        '@navigation.entity_route_helper',
+      ]
+  Drupal\navigation\NavigationRenderer: '@navigation.renderer'
+
+  navigation.menu_tree:
+    class: Drupal\navigation\Menu\NavigationMenuLinkTree
+    arguments:
+      [
+        '@menu.tree_storage',
+        '@plugin.manager.menu.link',
+        '@router.route_provider',
+        '@menu.active_trail',
+        '@callable_resolver',
+        '@module_handler',
+      ]
+
+  navigation.entity_route_helper:
+    class: Drupal\navigation\EntityRouteHelper
+    arguments:
+      [
+        '@current_route_match',
+        '@entity_type.manager',
+        '@cache.discovery',
+      ]
+  Drupal\navigation\EntityRouteHelper: '@navigation.entity_route_helper'
+
+  plugin.manager.top_bar_item:
+    class: Drupal\navigation\TopBarItemManager
+    parent: default_plugin_manager
+  Drupal\navigation\TopBarItemManagerInterface: '@plugin.manager.top_bar_item'
+
+  Drupal\navigation\Menu\NavigationMenuLinkTreeManipulators:
+    autowire: true

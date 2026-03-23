@@ -1,0 +1,44 @@
+{# Extra classes variable added to be sure that modifiers will
+appear after main classes #}
+{%
+  set classes = [
+    'toolbar-button',
+    icon.icon_id ? 'toolbar-button--icon--' ~ icon.icon_id : '',
+  ]
+%}
+
+{% if modifiers is iterable %}
+  {% set classes = classes|merge(modifiers|map(modifier => "toolbar-button--#{modifier}")) %}
+{% endif %}
+
+{% if extra_classes is iterable %}
+  {% set classes = classes|merge(extra_classes) %}
+{% endif %}
+
+{% if text and text|length > 1 %}
+  {# We take the first two letters of the button text to use as a fallback when
+  the toolbar button does not have a pre-assigned icon. #}
+  {% set icon_text = text|slice(0, 2)|join('') %}
+  {% set attributes = attributes.setAttribute('data-index-text', text|first|lower).setAttribute('data-icon-text', icon_text) %}
+{% endif %}
+
+<{{ html_tag|default('button') }} {{ attributes.addClass(classes) }}>
+
+  {% if icon.icon_id %}
+    {{ icon(icon.pack_id|default('navigation'), icon.icon_id, icon.settings|default({ class: 'toolbar-button__icon', size: 20 })) }}
+  {% endif %}
+
+  {% if action %}
+    <span data-toolbar-action class="visually-hidden">{{ action }}</span>
+  {% endif %}
+  {% block content %}
+    {% if text %}
+      <span class="toolbar-button__label" data-toolbar-text>{{~ text ~}}</span>
+    {% endif %}
+  {% endblock %}
+
+  {% if modifiers is iterable and ('expand--side' in modifiers or 'expand--down' in modifiers) %}
+    {{ icon('navigation', 'chevron', { class: 'toolbar-button__chevron', size: 16 }) }}
+  {% endif %}
+
+</{{ html_tag|default('button') }}>

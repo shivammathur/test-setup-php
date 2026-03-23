@@ -1,0 +1,24 @@
+update.settings:
+  path: '/admin/reports/updates/settings'
+  defaults:
+    _form: '\Drupal\update\UpdateSettingsForm'
+    _title: 'Update Status settings'
+  requirements:
+    _permission: 'administer site configuration'
+
+update.status:
+  path: '/admin/reports/updates'
+  defaults:
+    _controller: '\Drupal\update\Controller\UpdateController::updateStatus'
+    _title: 'Available updates'
+  requirements:
+    _permission: 'administer site configuration'
+
+update.manual_status:
+  path: '/admin/reports/updates/check'
+  defaults:
+    _title: 'Manual update check'
+    _controller: '\Drupal\update\Controller\UpdateController::updateStatusManually'
+  requirements:
+    _permission: 'administer site configuration'
+    _csrf_token: 'TRUE'

@@ -1,0 +1,47 @@
+core.extension:
+  type: config_object
+  label: 'Extension settings'
+  constraints:
+    FullyValidatable: ~
+  mapping:
+    module:
+      type: sequence
+      label: 'Enabled modules'
+      constraints:
+        ValidSequenceKeys:
+          constraints:
+            NotBlank: []
+            ExtensionName: []
+            ExtensionAvailable:
+              type: module
+      sequence:
+        type: weight
+        label: 'Weight'
+    theme:
+      type: sequence
+      label: 'Installed themes'
+      constraints:
+        ValidSequenceKeys:
+          constraints:
+            NotBlank: []
+            ExtensionName: []
+            ExtensionAvailable:
+              type: theme
+      sequence:
+        type: weight
+        label: 'Weight'
+    profile:
+      type: string
+      # Before Drupal is installed the profile is NULL. This allows all install
+      # profiles to be discovered by the installer.
+      nullable: true
+      # After Drupal is installed, if the install profile is uninstalled the key
+      # will be removed.
+      requiredKey: false
+      label: 'Install profile'
+      constraints:
+        NotBlank:
+          allowNull: true
+        ExtensionName: []
+        ExtensionAvailable:
+          type: profile

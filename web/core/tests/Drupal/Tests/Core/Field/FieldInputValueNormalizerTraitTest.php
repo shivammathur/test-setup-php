@@ -1,0 +1,113 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\Core\Field;
+
+use Drupal\Core\Field\FieldInputValueNormalizerTrait;
+use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+
+/**
+ * Tests Drupal\Core\Field\FieldInputValueNormalizerTrait.
+ */
+#[CoversClass(FieldInputValueNormalizerTrait::class)]
+#[Group('Field')]
+class FieldInputValueNormalizerTraitTest extends UnitTestCase {
+
+  use FieldInputValueNormalizerTrait;
+
+  /**
+   * Tests key value by delta.
+   *
+   * @legacy-covers ::normalizeValue
+   */
+  #[DataProvider('keyValueByDeltaTestCases')]
+  public function testKeyValueByDelta($input_value, $expected_value, $main_property_name = 'value'): void {
+    $this->assertEquals($expected_value, $this->normalizeValue($input_value, $main_property_name));
+  }
+
+  /**
+   * Provides test cases for ::testKeyValueByDelta.
+   */
+  public static function keyValueByDeltaTestCases(): array {
+    return [
+      'Integer' => [
+        1,
+        [['value' => 1]],
+      ],
+      'Falsey integer' => [
+        0,
+        [['value' => 0]],
+      ],
+      'String' => [
+        'foo',
+        [['value' => 'foo']],
+      ],
+      'Empty string' => [
+        '',
+        [['value' => '']],
+      ],
+      'Null' => [
+        NULL,
+        [],
+      ],
+      'Empty field value' => [
+        [],
+        [],
+      ],
+      'Single delta' => [
+        ['value' => 'foo'],
+        [['value' => 'foo']],
+      ],
+      'Keyed delta' => [
+        [['value' => 'foo']],
+        [['value' => 'foo']],
+      ],
+      'Multiple keyed deltas' => [
+        [['value' => 'foo'], ['value' => 'bar']],
+        [['value' => 'foo'], ['value' => 'bar']],
+      ],
+      'No main property with keyed delta' => [
+        [['foo' => 'bar']],
+        [['foo' => 'bar']],
+        NULL,
+      ],
+      'No main property with single delta' => [
+        ['foo' => 'bar'],
+        [['foo' => 'bar']],
+        NULL,
+      ],
+      'No main property with empty array' => [
+        [],
+        [],
+        NULL,
+      ],
+    ];
+  }
+
+  /**
+   * Tests scalar with no main property.
+   *
+   * @legacy-covers ::normalizeValue
+   */
+  public function testScalarWithNoMainProperty(): void {
+    $this->expectException(\InvalidArgumentException::class);
+    $this->expectExceptionMessage('A main property is required when normalizing scalar field values.');
+    $value = 'foo';
+    $this->normalizeValue($value, NULL);
+  }
+
+  /**
+   * Tests key value by delta undefined variables.
+   *
+   * @legacy-covers ::normalizeValue
+   */
+  public function testKeyValueByDeltaUndefinedVariables(): void {
+    $this->assertEquals([], $this->normalizeValue($undefined_variable, 'value'));
+    $this->assertEquals([], $this->normalizeValue($undefined_variable['undefined_key'], 'value'));
+  }
+
+}

@@ -1,0 +1,49 @@
+$schema: https://git.drupalcode.org/project/drupal/-/raw/HEAD/core/assets/schemas/v1/metadata.schema.json
+name: Call to Action
+description: Call to action link.
+props:
+  type: object
+  required:
+    - text
+  properties:
+    text:
+      type: string
+      title: Title
+      description: The title for the cta
+      examples:
+        - Press
+        - Submit now
+    href:
+      type: string
+      title: URL
+      format: uri
+      examples:
+        - https://drupal.org
+    target:
+      type: string
+      title: Target
+      description: The target for opening the link.
+      enum:
+        - ''
+        - '_blank'
+      meta:enum:
+        '': 'Open in same window'
+        _blank: 'Open in a new window'
+      x-translation-context: CTA link target
+      default: ''
+      examples:
+        - ''
+        - '_blank'
+    attributes:
+      type: Drupal\Core\Template\Attribute
+      name: Attributes
+variants:
+  primary:
+    title: Primary
+    description: My primary variant
+  secondary:
+    title: Secondary
+    description: My secondary variant
+  tertiary:
+    title: Tertiary
+    description: My tertiary variant

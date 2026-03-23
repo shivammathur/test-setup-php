@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.node.teaser
+    - node.type.options_install_test
+  module:
+    - text
+    - user
+third_party_settings: {  }
+id: node.options_install_test.teaser
+targetEntityType: node
+bundle: options_install_test
+mode: teaser
+content:
+  links:
+    weight: 100
+    region: content
+hidden:
+  langcode: true

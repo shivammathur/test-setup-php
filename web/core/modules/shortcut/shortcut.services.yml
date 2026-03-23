@@ -1,0 +1,10 @@
+parameters:
+  shortcut.skip_procedural_hook_scan: true
+
+services:
+  _defaults:
+    autoconfigure: true
+  shortcut.lazy_builders:
+    class: Drupal\shortcut\ShortcutLazyBuilders
+    arguments: ['@renderer', '@entity_type.manager', '@current_user']
+  Drupal\shortcut\ShortcutLazyBuilders: '@shortcut.lazy_builders'

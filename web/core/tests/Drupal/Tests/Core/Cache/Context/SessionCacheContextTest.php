@@ -1,0 +1,103 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\Core\Cache\Context;
+
+use Drupal\Core\Cache\Context\SessionCacheContext;
+use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
+
+/**
+ * Tests Drupal\Core\Cache\Context\SessionCacheContext.
+ */
+#[CoversClass(SessionCacheContext::class)]
+#[Group('Cache')]
+class SessionCacheContextTest extends UnitTestCase {
+
+  /**
+   * The request.
+   *
+   * @var \Symfony\Component\HttpFoundation\Request
+   */
+  protected $request;
+
+  /**
+   * The request stack.
+   *
+   * @var \Symfony\Component\HttpFoundation\RequestStack
+   */
+  protected $requestStack;
+
+  /**
+   * The session object.
+   *
+   * @var \Symfony\Component\HttpFoundation\Session\SessionInterface|\PHPUnit\Framework\MockObject\MockObject
+   */
+  protected $session;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+
+    $this->request = new Request();
+
+    $this->requestStack = new RequestStack();
+    $this->requestStack->push($this->request);
+
+    $this->session = $this->getMockBuilder('\Symfony\Component\HttpFoundation\Session\SessionInterface')
+      ->getMock();
+  }
+
+  /**
+   * Tests same context for same session.
+   *
+   * @legacy-covers ::getContext
+   */
+  public function testSameContextForSameSession(): void {
+    $this->request->setSession($this->session);
+    $cache_context = new SessionCacheContext($this->requestStack);
+
+    // cspell:disable-next-line
+    $session_id = 'aSebeZ52bbM6SvADurQP89SFnEpxY6j8';
+    $this->session->expects($this->exactly(2))
+      ->method('getId')
+      ->willReturn($session_id);
+
+    $context1 = $cache_context->getContext();
+    $context2 = $cache_context->getContext();
+    $this->assertSame($context1, $context2);
+    $this->assertStringNotContainsString($session_id, $context1, 'Session ID not contained in cache context');
+  }
+
+  /**
+   * Tests different context for different session.
+   *
+   * @legacy-covers ::getContext
+   */
+  public function testDifferentContextForDifferentSession(): void {
+    $this->request->setSession($this->session);
+    $cache_context = new SessionCacheContext($this->requestStack);
+
+    // cspell:disable-next-line
+    $session1_id = 'pjH_8aSoofyCDQiuVYXJcbfyr-CPtkUY';
+    // cspell:disable-next-line
+    $session2_id = 'aSebeZ52bbM6SvADurQP89SFnEpxY6j8';
+    $this->session->expects($this->exactly(2))
+      ->method('getId')
+      ->willReturnOnConsecutiveCalls($session1_id, $session2_id);
+
+    $context1 = $cache_context->getContext();
+    $context2 = $cache_context->getContext();
+    $this->assertNotEquals($context1, $context2);
+
+    $this->assertStringNotContainsString($session1_id, $context1, 'Session ID not contained in cache context');
+    $this->assertStringNotContainsString($session2_id, $context2, 'Session ID not contained in cache context');
+  }
+
+}

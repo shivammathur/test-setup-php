@@ -1,0 +1,263 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\Core\Controller;
+
+use Drupal\Core\Controller\ControllerResolver;
+use Drupal\Core\DependencyInjection\ClassResolver;
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Routing\RouteObjectInterface;
+use Drupal\Core\Utility\CallableResolver;
+use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use Psr\Http\Message\ServerRequestInterface;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
+
+/**
+ * Tests Drupal\Core\Controller\ControllerResolver.
+ */
+#[CoversClass(ControllerResolver::class)]
+#[Group('Controller')]
+class ControllerResolverTest extends UnitTestCase {
+
+  /**
+   * The tested controller resolver.
+   *
+   * @var \Drupal\Core\Controller\ControllerResolver
+   */
+  public $controllerResolver;
+
+  /**
+   * The container.
+   *
+   * @var \Symfony\Component\DependencyInjection\ContainerBuilder
+   */
+  protected $container;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+
+    $this->container = new ContainerBuilder();
+    $class_resolver = new ClassResolver($this->container);
+    $callable_resolver = new CallableResolver($class_resolver);
+    $this->controllerResolver = new ControllerResolver($callable_resolver);
+  }
+
+  /**
+   * Tests createController().
+   */
+  #[DataProvider('providerTestCreateController')]
+  public function testCreateController($controller, $class, $output): void {
+    $this->container->set('some_service', new MockController());
+    $result = $this->controllerResolver->getControllerFromDefinition($controller);
+    $this->assertCallableController($result, $class, $output);
+  }
+
+  /**
+   * Provides test data for testCreateController().
+   */
+  public static function providerTestCreateController(): array {
+    return [
+      // Tests class::method.
+      [
+        'Drupal\Tests\Core\Controller\MockController::getResult',
+        'Drupal\Tests\Core\Controller\MockController',
+        'This is a regular controller.',
+      ],
+      // Tests service:method.
+      [
+        'some_service:getResult',
+        'Drupal\Tests\Core\Controller\MockController',
+        'This is a regular controller.',
+      ],
+      // Tests a class with injection.
+      [
+        'Drupal\Tests\Core\Controller\MockContainerInjection::getResult',
+        'Drupal\Tests\Core\Controller\MockContainerInjection',
+        'This used injection.',
+      ],
+    ];
+  }
+
+  /**
+   * Tests createController() with a non-existent class.
+   */
+  public function testCreateControllerNonExistentClass(): void {
+    $this->expectException(\InvalidArgumentException::class);
+    $this->controllerResolver->getControllerFromDefinition('Class::method');
+  }
+
+  /**
+   * Tests createController() with an invalid name.
+   */
+  public function testCreateControllerInvalidName(): void {
+    $this->expectException(\LogicException::class);
+    $this->controllerResolver->getControllerFromDefinition('ClassWithoutMethod');
+  }
+
+  /**
+   * Tests getController().
+   */
+  #[DataProvider('providerTestGetController')]
+  public function testGetController($attributes, $class, $output = NULL): void {
+    $request = new Request([], [], $attributes);
+    $result = $this->controllerResolver->getController($request);
+    if ($class) {
+      $this->assertCallableController($result, $class, $output);
+    }
+    else {
+      $this->assertFalse($result);
+    }
+  }
+
+  /**
+   * Provides test data for testGetController().
+   */
+  public static function providerTestGetController(): array {
+    return [
+      // Tests passing a controller via the request.
+      [
+        [RouteObjectInterface::CONTROLLER_NAME => MockContainerInjection::class . '::getResult'],
+        MockContainerInjection::class,
+        'This used injection.',
+      ],
+      // Tests a request with no controller specified.
+      [[], FALSE],
+    ];
+  }
+
+  /**
+   * Tests getControllerFromDefinition().
+   */
+  #[DataProvider('providerTestGetControllerFromDefinition')]
+  public function testGetControllerFromDefinition($definition, $output): void {
+    $this->container->set('invoke_service', new MockInvokeController());
+    $controller = $this->controllerResolver->getControllerFromDefinition($definition);
+    $this->assertCallableController($controller, NULL, $output);
+  }
+
+  /**
+   * Provides test data for testGetControllerFromDefinition().
+   */
+  public static function providerTestGetControllerFromDefinition(): array {
+    return [
+      // Tests a method on an object.
+      [[new MockController(), 'getResult'], 'This is a regular controller.'],
+      // Tests a function.
+      ['phpversion', phpversion()],
+      // Tests an object using __invoke().
+      [new MockInvokeController(), 'This used __invoke().'],
+      // Tests a class using __invoke().
+      ['Drupal\Tests\Core\Controller\MockInvokeController', 'This used __invoke().'],
+      // Tests a service from the container using __invoke().
+      ['invoke_service', 'This used __invoke().'],
+    ];
+  }
+
+  /**
+   * Tests getControllerFromDefinition() without a callable.
+   */
+  public function testGetControllerFromDefinitionNotCallable(): void {
+    $this->expectException(\InvalidArgumentException::class);
+    $this->controllerResolver->getControllerFromDefinition('Drupal\Tests\Core\Controller\MockController::bananas');
+  }
+
+  /**
+   * Asserts that the controller is callable and produces the correct output.
+   *
+   * @param callable $controller
+   *   A callable controller.
+   * @param string|null $class
+   *   Either the name of the class the controller represents, or NULL if it is
+   *   not an object.
+   * @param string|null $output
+   *   The output expected for this controller.
+   *
+   * @internal
+   */
+  protected function assertCallableController(callable $controller, ?string $class, ?string $output): void {
+    if ($class) {
+      $this->assertIsObject($controller[0]);
+      $this->assertInstanceOf($class, $controller[0]);
+    }
+    $this->assertIsCallable($controller);
+    $this->assertSame($output, call_user_func($controller));
+  }
+
+}
+
+/**
+ * Mock for the controller.
+ */
+class MockController {
+
+  public function getResult(): string {
+    return 'This is a regular controller.';
+  }
+
+  public function getControllerWithRequestAndRouteMatch(RouteMatchInterface $route_match, Request $request): string {
+    return 'this is another example controller';
+  }
+
+}
+
+/**
+ * Mock for the PSR-7 controller.
+ */
+class MockControllerPsr7 {
+
+  public function getResult(): array {
+    return ['#markup' => 'This is a regular controller'];
+  }
+
+  public function getControllerWithRequestAndRouteMatch(RouteMatchInterface $route_match, ServerRequestInterface $request): array {
+    return ['#markup' => 'this is another example controller'];
+  }
+
+}
+
+/**
+ * Mock for the injected service.
+ */
+class MockContainerInjection implements ContainerInjectionInterface {
+
+  /**
+   * The test value saved during construction.
+   *
+   * @var string
+   */
+  protected $result;
+
+  public function __construct($result) {
+    $this->result = $result;
+  }
+
+  public static function create(ContainerInterface $container): static {
+    return new static('This used injection.');
+  }
+
+  public function getResult() {
+    return $this->result;
+  }
+
+}
+
+/**
+ * Test class used for testing the Controller resolver class.
+ */
+class MockInvokeController {
+
+  public function __invoke(): string {
+    return 'This used __invoke().';
+  }
+
+}

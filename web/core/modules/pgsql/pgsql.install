@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the pgsql module.
+ */
+
+/**
+ * Implements hook_update_last_removed().
+ */
+function pgsql_update_last_removed(): int {
+  return 10101;
+}

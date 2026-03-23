@@ -1,0 +1,333 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\FunctionalTests\DefaultContent;
+
+use ColinODell\PsrTestLogger\TestLogger;
+use Drupal\block_content\BlockContentInterface;
+use Drupal\Component\Serialization\Yaml;
+use Drupal\Core\DefaultContent\Existing;
+use Drupal\Core\DefaultContent\Finder;
+use Drupal\Core\DefaultContent\Importer;
+use Drupal\Core\DefaultContent\InvalidEntityException;
+use Drupal\Core\DefaultContent\PreImportEvent;
+use Drupal\Core\Entity\EntityRepositoryInterface;
+use Drupal\Core\File\FileExists;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
+use Drupal\file\FileInterface;
+use Drupal\FunctionalTests\Core\Recipe\RecipeTestTrait;
+use Drupal\layout_builder\Section;
+use Drupal\media\MediaInterface;
+use Drupal\menu_link_content\MenuLinkContentInterface;
+use Drupal\node\NodeInterface;
+use Drupal\taxonomy\TermInterface;
+use Drupal\Tests\BrowserTestBase;
+use Drupal\user\UserInterface;
+use Drupal\workspaces\Entity\Workspace;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Psr\Log\LogLevel;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+
+/**
+ * Tests Content Import.
+ */
+#[Group('DefaultContent')]
+#[Group('Recipe')]
+#[Group('#slow')]
+#[CoversClass(Importer::class)]
+#[RunTestsInSeparateProcesses]
+class ContentImportTest extends BrowserTestBase {
+
+  use RecipeTestTrait;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = [
+    'block_content',
+    'content_translation',
+    'entity_test',
+    'layout_builder',
+    'media',
+    'menu_link_content',
+    'node',
+    'path',
+    'path_alias',
+    'system',
+    'taxonomy',
+    'user',
+    'workspaces',
+  ];
+
+  /**
+   * The directory with the source data.
+   */
+  private readonly string $contentDir;
+
+  /**
+   * The admin account.
+   */
+  private UserInterface $adminAccount;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+    $this->adminAccount = $this->setUpCurrentUser(admin: TRUE);
+
+    // Apply the recipe that sets up the fields and configuration for our
+    // default content.
+    $fixtures_dir = $this->getDrupalRoot() . '/core/tests/fixtures';
+    $this->applyRecipe($fixtures_dir . '/recipes/default_content_base');
+
+    $this->contentDir = $fixtures_dir . '/default_content';
+    \Drupal::service('file_system')->copy($this->contentDir . '/file/druplicon_copy.png', $this->publicFilesDirectory . '/druplicon_copy.png', FileExists::Error);
+  }
+
+  /**
+   * Tests importing content directly, via the API.
+   */
+  public function testDirectContentImport(): void {
+    $logger = new TestLogger();
+
+    /** @var \Drupal\Core\DefaultContent\Importer $importer */
+    $importer = $this->container->get(Importer::class);
+    $importer->setLogger($logger);
+    $importer->importContent(new Finder($this->contentDir));
+
+    $this->assertContentWasImported($this->adminAccount);
+    // We should see a warning about importing a file entity associated with a
+    // file that doesn't exist.
+    $predicate = function (array $record): bool {
+      return (
+        $record['message'] === 'File entity %name was imported, but the associated file (@path) was not found.' &&
+        $record['context']['%name'] === 'dce9cdc3-d9fc-4d37-849d-105e913bb5ad.png' &&
+        $record['context']['@path'] === $this->contentDir . '/file/dce9cdc3-d9fc-4d37-849d-105e913bb5ad.png'
+      );
+    };
+    $this->assertTrue($logger->hasRecordThatPasses($predicate, LogLevel::WARNING));
+
+    // Visit a page that is published in a non-live workspace; we should not be
+    // able to see it, because we don't have permission.
+    $node_in_workspace = $this->container->get(EntityRepositoryInterface::class)
+      ->loadEntityByUuid('node', '48475954-e878-439c-9d3d-226724a44269');
+    $this->assertInstanceOf(NodeInterface::class, $node_in_workspace);
+    $node_url = $node_in_workspace->toUrl();
+    $this->drupalGet($node_url);
+    $assert_session = $this->assertSession();
+    $assert_session->statusCodeEquals(403);
+    // If we log in with administrative privileges (i.e., we can look at any
+    // workspace), we should be able to see it.
+    $this->drupalLogin($this->adminAccount);
+    $this->drupalGet($node_url);
+    $assert_session->statusCodeEquals(200);
+    $assert_session->pageTextContains($node_in_workspace->label());
+  }
+
+  /**
+   * Tests importing content directly, via the API, with a different user.
+   */
+  public function testDirectContentImportWithDifferentUser(): void {
+    // During import, Content Moderation will assume that new moderated entities
+    // are in the default workflow state, and the user will need permission to
+    // change its state. This isn't really relevant to this test, since in
+    // practice, importing requires administrative privileges anyway.
+    $user = $this->createUser([
+      'use editorial transition publish',
+      'use editorial transition create_new_draft',
+    ]);
+    $importer = $this->container->get(Importer::class);
+    $importer->importContent(new Finder($this->contentDir), account: $user);
+    $this->assertContentWasImported($user);
+  }
+
+  /**
+   * Tests that the importer validates entities before saving them.
+   */
+  public function testEntityValidationIsTriggered(): void {
+    $dir = uniqid('public://');
+    mkdir($dir);
+
+    /** @var string $data */
+    $data = file_get_contents($this->contentDir . '/node/2d3581c3-92c7-4600-8991-a0d4b3741198.yml');
+    $data = Yaml::decode($data);
+    /** @var array{default: array{sticky: array<int, array{value: mixed}>}} $data */
+    $data['default']['sticky'][0]['value'] = 'not a boolean!';
+    file_put_contents($dir . '/invalid.yml', Yaml::encode($data));
+
+    $this->expectException(InvalidEntityException::class);
+    $this->expectExceptionMessage("$dir/invalid.yml: sticky.0.value=This value should be of the correct primitive type.");
+    $this->container->get(Importer::class)->importContent(new Finder($dir));
+  }
+
+  /**
+   * Asserts that the default content was imported as expected.
+   *
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   The account that should own the imported content.
+   */
+  private function assertContentWasImported(AccountInterface $account): void {
+    /** @var \Drupal\Core\Entity\EntityRepositoryInterface $entity_repository */
+    $entity_repository = $this->container->get(EntityRepositoryInterface::class);
+
+    $node = $entity_repository->loadEntityByUuid('node', 'e1714f23-70c0-4493-8e92-af1901771921');
+    $this->assertInstanceOf(NodeInterface::class, $node);
+    $this->assertSame('Crikey it works!', $node->body->value);
+    $this->assertSame('article', $node->bundle());
+    $this->assertSame('Test Article', $node->label());
+    $this->assertTrue($node->isPublished());
+    $this->assertSame('published', $node->moderation_state->value);
+    $tag = $node->field_tags->entity;
+    $this->assertInstanceOf(TermInterface::class, $tag);
+    $this->assertSame('Default Content', $tag->label());
+    $this->assertSame('tags', $tag->bundle());
+    $this->assertSame('550f86ad-aa11-4047-953f-636d42889f85', $tag->uuid());
+    // The tag carries a field with serialized data, so ensure it came through
+    // properly.
+    $this->assertSame('a:2:{i:0;s:2:"Hi";i:1;s:6:"there!";}', $tag->field_serialized_stuff->value);
+    $this->assertSame('94503467-be7f-406c-9795-fc25baa22203', $node->getOwner()->uuid());
+    // The node's URL should use the path alias shipped with the recipe.
+    $node_url = $node->toUrl()->toString();
+    $this->assertSame(Url::fromUserInput('/test-article')->toString(), $node_url);
+
+    $media = $entity_repository->loadEntityByUuid('media', '344b943c-b231-4d73-9669-0b0a2be12aa5');
+    $this->assertInstanceOf(MediaInterface::class, $media);
+    $this->assertSame('image', $media->bundle());
+    $this->assertSame('druplicon.png', $media->label());
+    $file = $media->field_media_image->entity;
+    $this->assertInstanceOf(FileInterface::class, $file);
+    $this->assertSame('druplicon.png', $file->getFilename());
+    $this->assertSame('d8404562-efcc-40e3-869e-40132d53fe0b', $file->uuid());
+
+    // Another file entity referencing an existing file but already in use by
+    // another entity, should be imported.
+    $same_file_different_entity = $entity_repository->loadEntityByUuid('file', '23a7f61f-1db3-407d-a6dd-eb4731995c9f');
+    $this->assertInstanceOf(FileInterface::class, $same_file_different_entity);
+    $this->assertSame('druplicon-duplicate.png', $same_file_different_entity->getFilename());
+    $this->assertStringEndsWith('/druplicon_0.png', (string) $same_file_different_entity->getFileUri());
+
+    // Another file entity that references a file with the same name as, but
+    // different contents than, an existing file, should be imported and the
+    // file should be renamed.
+    $different_file = $entity_repository->loadEntityByUuid('file', 'a6b79928-838f-44bd-a8f0-44c2fff9e4cc');
+    $this->assertInstanceOf(FileInterface::class, $different_file);
+    $this->assertSame('druplicon-different.png', $different_file->getFilename());
+    $this->assertStringEndsWith('/druplicon_1.png', (string) $different_file->getFileUri());
+
+    // Another file entity referencing an existing file but one that is not in
+    // use by another entity, should be imported but use the existing file.
+    $different_file = $entity_repository->loadEntityByUuid('file', '7fb09f9f-ba5f-4db4-82ed-aa5ccf7d425d');
+    $this->assertInstanceOf(FileInterface::class, $different_file);
+    $this->assertSame('druplicon_copy.png', $different_file->getFilename());
+    $this->assertStringEndsWith('/druplicon_copy.png', (string) $different_file->getFileUri());
+
+    // Our node should have a menu link, and it should use the path alias we
+    // included with the recipe.
+    $menu_link = $entity_repository->loadEntityByUuid('menu_link_content', '3434bd5a-d2cd-4f26-bf79-a7f6b951a21b');
+    $this->assertInstanceOf(MenuLinkContentInterface::class, $menu_link);
+    $this->assertSame($menu_link->getUrlObject()->toString(), $node_url);
+    $this->assertSame('main', $menu_link->getMenuName());
+
+    $block_content = $entity_repository->loadEntityByUuid('block_content', 'd9b72b2f-a5ea-4a3f-b10c-28deb7b3b7bf');
+    $this->assertInstanceOf(BlockContentInterface::class, $block_content);
+    $this->assertSame('basic', $block_content->bundle());
+    $this->assertSame('Useful Info', $block_content->label());
+    $this->assertSame("I'd love to put some useful info here.", $block_content->body->value);
+
+    // A node with a non-existent owner should be reassigned to the current
+    // user or the user provided to the importer.
+    $node = $entity_repository->loadEntityByUuid('node', '7f1dd75a-0be2-4d3b-be5d-9d1a868b9267');
+    $this->assertInstanceOf(NodeInterface::class, $node);
+    $this->assertSame($account->id(), $node->getOwner()->id());
+
+    // Ensure a node with a translation is imported properly.
+    $node = $entity_repository->loadEntityByUuid('node', '2d3581c3-92c7-4600-8991-a0d4b3741198');
+    $this->assertInstanceOf(NodeInterface::class, $node);
+    $this->assertFalse($node->isPublished());
+    $this->assertSame('draft', $node->moderation_state->value);
+    $translation = $node->getTranslation('fr');
+    $this->assertSame('Perdu en traduction', $translation->label());
+    $this->assertSame("Içi c'est la version français.", $translation->body->value);
+
+    // Layout data should be imported.
+    $node = $entity_repository->loadEntityByUuid('node', '32650de8-9edd-48dc-80b8-8bda180ebbac');
+    $this->assertInstanceOf(NodeInterface::class, $node);
+    $section = $node->layout_builder__layout[0]->section;
+    $this->assertInstanceOf(Section::class, $section);
+    $components = $section->getComponents();
+    $this->assertCount(3, $components);
+    // None of the components should be using the `broken` fallback plugin.
+    foreach ($components as $component) {
+      $this->assertNotSame('broken', $component->getPlugin()->getPluginId());
+    }
+
+    // Workspaces should have been imported with their parent references intact.
+    $workspaces = Workspace::loadMultiple();
+    $this->assertArrayHasKey('test_workspace', $workspaces);
+    $this->assertSame('test_workspace', $workspaces['inner_test']?->parent->entity->id());
+
+    // A taxonomy term's parent reference should be intact.
+    $term = $entity_repository->loadEntityByUuid('taxonomy_term', '9dfe4733-1347-4566-9340-27a9b22a1f64');
+    $this->assertInstanceOf(TermInterface::class, $term);
+    $this->assertSame('Default Content', $term->parent->entity?->label());
+
+    // When importing files that have URIs like `public://foo.png`, the `public`
+    // part should not have been treated as a directory name.
+    $this->assertDirectoryDoesNotExist($this->getDrupalRoot() . '/public:');
+  }
+
+  /**
+   * Tests that the pre-import event allows skipping certain entities.
+   */
+  public function testPreImportEvent(): void {
+    $invalid_uuid_detected = FALSE;
+
+    $listener = function (PreImportEvent $event) use (&$invalid_uuid_detected): void {
+      $event->skip('3434bd5a-d2cd-4f26-bf79-a7f6b951a21b', 'Decided not to!');
+      try {
+        $event->skip('not-a-thing');
+      }
+      catch (\InvalidArgumentException) {
+        $invalid_uuid_detected = TRUE;
+      }
+    };
+    \Drupal::service(EventDispatcherInterface::class)
+      ->addListener(PreImportEvent::class, $listener);
+
+    $finder = new Finder($this->contentDir);
+    $this->assertSame('menu_link_content', $finder->data['3434bd5a-d2cd-4f26-bf79-a7f6b951a21b']['_meta']['entity_type']);
+
+    /** @var \Drupal\Core\DefaultContent\Importer $importer */
+    $importer = \Drupal::service(Importer::class);
+    $logger = new TestLogger();
+    $importer->setLogger($logger);
+    $importer->importContent($finder, Existing::Error);
+
+    // The entity we skipped should not be here, and the reason why should have
+    // been logged.
+    $menu_link = \Drupal::service(EntityRepositoryInterface::class)
+      ->loadEntityByUuid('menu_link_content', '3434bd5a-d2cd-4f26-bf79-a7f6b951a21b');
+    $this->assertNull($menu_link);
+    $this->assertTrue($logger->hasInfo([
+      'message' => 'Skipped importing @entity_type @uuid because: %reason',
+      'context' => [
+        '@entity_type' => 'menu_link_content',
+        '@uuid' => '3434bd5a-d2cd-4f26-bf79-a7f6b951a21b',
+        '%reason' => 'Decided not to!',
+      ],
+    ]));
+    // We should have caught an exception for trying to skip an invalid UUID.
+    $this->assertTrue($invalid_uuid_detected);
+  }
+
+}

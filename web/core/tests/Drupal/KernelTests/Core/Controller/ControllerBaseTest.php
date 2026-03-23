@@ -1,0 +1,74 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\KernelTests\Core\Controller;
+
+use Drupal\Core\Controller\ControllerBase;
+use Drupal\dblog\Logger\DbLog;
+use Drupal\KernelTests\KernelTestBase;
+use Drupal\system_test\Controller\BrokenSystemTestController;
+use Drupal\system_test\Controller\OptionalServiceSystemTestController;
+use Drupal\system_test\Controller\SystemTestController;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\DependencyInjection\Exception\AutowiringFailedException;
+
+/**
+ * Tests \Drupal\Core\Controller\ControllerBase.
+ */
+#[CoversClass(ControllerBase::class)]
+#[Group('Controller')]
+#[RunTestsInSeparateProcesses]
+class ControllerBaseTest extends KernelTestBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = ['system_test', 'system'];
+
+  /**
+   * Tests create.
+   */
+  public function testCreate(): void {
+    /** @var \Drupal\system_test\Controller\SystemTestController $controller */
+    $controller = $this->container->get('class_resolver')->getInstanceFromDefinition(SystemTestController::class);
+
+    $property = new \ReflectionProperty(SystemTestController::class, 'lock');
+    $this->assertSame($this->container->get('lock'), $property->getValue($controller));
+
+    $property = new \ReflectionProperty(SystemTestController::class, 'persistentLock');
+    $this->assertSame($this->container->get('lock.persistent'), $property->getValue($controller));
+
+    $property = new \ReflectionProperty(SystemTestController::class, 'currentUser');
+    $this->assertSame($this->container->get('current_user'), $property->getValue($controller));
+
+    // Test nullables types.
+    $this->assertSame($this->container->get('page_cache_kill_switch'), $controller->killSwitch);
+    $this->assertSame($this->container->get('page_cache_kill_switch'), $controller->killSwitch2);
+  }
+
+  /**
+   * Tests create exception.
+   */
+  public function testCreateException(): void {
+    $this->expectException(AutowiringFailedException::class);
+    $this->expectExceptionMessage('Cannot autowire service "Drupal\Core\Lock\LockBackendInterface": argument "$lock" of method "Drupal\system_test\Controller\BrokenSystemTestController::__construct()", you should configure its value explicitly.');
+    $this->container->get('class_resolver')->getInstanceFromDefinition(BrokenSystemTestController::class);
+  }
+
+  /**
+   * Tests create optional.
+   */
+  public function testCreateOptional(): void {
+    $service = $this->container->get('class_resolver')->getInstanceFromDefinition(OptionalServiceSystemTestController::class);
+    $this->assertInstanceOf(OptionalServiceSystemTestController::class, $service);
+    $this->assertNull($service->dbLog);
+    $this->container->get('module_installer')->install(['dblog']);
+    $service = $this->container->get('class_resolver')->getInstanceFromDefinition(OptionalServiceSystemTestController::class);
+    $this->assertInstanceOf(OptionalServiceSystemTestController::class, $service);
+    $this->assertInstanceOf(DbLog::class, $service->dbLog);
+  }
+
+}

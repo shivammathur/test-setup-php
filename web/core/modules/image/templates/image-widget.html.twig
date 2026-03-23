@@ -1,0 +1,19 @@
+{#
+/**
+ * @file
+ * Default theme implementation for an image field widget.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the containing element.
+ * - data: Render elements of the image widget.
+ *
+ * @see \Drupal\image\Hook\ImageThemeHooks::preprocessImageWidget()
+ *
+ * @ingroup themeable
+ */
+#}
+<div{{ attributes }}>
+  {{ data.preview }}
+  {# Render widget data without the image preview that was output already. #}
+  {{ data|without('preview') }}
+</div>

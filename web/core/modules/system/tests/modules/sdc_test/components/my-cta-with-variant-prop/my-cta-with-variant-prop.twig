@@ -1,0 +1,10 @@
+{% if target is not empty %}
+  {% set attributes = attributes.setAttribute('target', target) %}
+{% endif %}
+{% if variant is not empty %}
+  {% set attributes = attributes.addClass('my-cta-' ~ variant) %}
+{% endif %}
+
+<a {{ attributes }} href="{{ href }}">
+  {{ text }}
+</a>

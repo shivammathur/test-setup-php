@@ -1,0 +1,53 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\migrate\Kernel;
+
+use Drupal\migrate\Plugin\MigrationInterface;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+
+/**
+ * Tests migration status tracking.
+ */
+#[Group('migrate')]
+#[RunTestsInSeparateProcesses]
+class MigrateStatusTest extends MigrateTestBase {
+
+  /**
+   * Tests different connection types.
+   */
+  public function testStatus(): void {
+    // Create a minimally valid migration.
+    $definition = [
+      'id' => 'migrate_status_test',
+      'migration_tags' => ['Testing'],
+      'source' => ['plugin' => 'empty'],
+      'destination' => [
+        'plugin' => 'config',
+        'config_name' => 'migrate_test.settings',
+      ],
+      'process' => ['foo' => 'bar'],
+    ];
+    $migration = \Drupal::service('plugin.manager.migration')->createStubMigration($definition);
+
+    // Default status is idle.
+    $status = $migration->getStatus();
+    $this->assertSame(MigrationInterface::STATUS_IDLE, $status);
+
+    // Test setting and retrieving all known status values.
+    $status_list = [
+      MigrationInterface::STATUS_IDLE,
+      MigrationInterface::STATUS_IMPORTING,
+      MigrationInterface::STATUS_ROLLING_BACK,
+      MigrationInterface::STATUS_STOPPING,
+      MigrationInterface::STATUS_DISABLED,
+    ];
+    foreach ($status_list as $status) {
+      $migration->setStatus($status);
+      $this->assertSame($status, $migration->getStatus());
+    }
+  }
+
+}

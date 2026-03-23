@@ -1,0 +1,33 @@
+<?php
+
+/**
+ * @file
+ * Module install file.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function jsonapi_install(): void {
+  $module_handler = \Drupal::moduleHandler();
+  $potential_conflicts = [
+    'content_translation',
+    'config_translation',
+    'language',
+  ];
+  $should_warn = array_reduce($potential_conflicts, function ($should_warn, $module_name) use ($module_handler) {
+    return $should_warn ?: $module_handler->moduleExists($module_name);
+  }, FALSE);
+  if ($should_warn) {
+    \Drupal::messenger()->addWarning(t('Some multilingual features currently do not work well with JSON:API. See the <a href=":jsonapi-docs">JSON:API multilingual support documentation</a> for more information on the current status of multilingual support.', [
+      ':jsonapi-docs' => 'https://www.drupal.org/docs/8/modules/jsonapi/translations',
+    ]));
+  }
+}
+
+/**
+ * Implements hook_update_last_removed().
+ */
+function jsonapi_update_last_removed(): int {
+  return 9401;
+}

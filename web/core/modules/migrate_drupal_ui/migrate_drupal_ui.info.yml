@@ -1,0 +1,12 @@
+name: 'Migrate Drupal UI'
+type: module
+description: 'Provides a user interface for migrating from older Drupal versions.'
+package: Migration
+version: VERSION
+configure: migrate_drupal_ui.upgrade
+dependencies:
+  - drupal:migrate
+  - drupal:migrate_drupal
+  - drupal:dblog
+lifecycle: deprecated
+lifecycle_link: https://www.drupal.org/node/3223395#s-migrate-drupal-ui

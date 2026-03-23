@@ -1,0 +1,89 @@
+_meta:
+  version: '1.0'
+  entity_type: node
+  uuid: 2d3581c3-92c7-4600-8991-a0d4b3741198
+  bundle: article
+  default_langcode: en
+  depends:
+    94503467-be7f-406c-9795-fc25baa22203: user
+default:
+  revision_uid:
+    -
+      target_id: 1
+  status:
+    -
+      value: false
+  uid:
+    -
+      entity: 94503467-be7f-406c-9795-fc25baa22203
+  title:
+    -
+      value: 'Lost in translation'
+  promote:
+    -
+      value: true
+  sticky:
+    -
+      value: false
+  revision_translation_affected:
+    -
+      value: true
+  path:
+    -
+      alias: null
+      langcode: en
+  content_translation_source:
+    -
+      value: und
+  content_translation_outdated:
+    -
+      value: false
+  body:
+    -
+      value: "Here's the English version."
+      format: plain_text
+      summary: ''
+  moderation_state:
+    -
+      value: draft
+translations:
+  fr:
+    status:
+      -
+        value: false
+    uid:
+      -
+        target_id: 1
+    title:
+      -
+        value: 'Perdu en traduction'
+    promote:
+      -
+        value: true
+    sticky:
+      -
+        value: false
+    revision_uid:
+      -
+        target_id: 1
+    revision_translation_affected:
+      -
+        value: true
+    path:
+      -
+        alias: null
+        langcode: fr
+    content_translation_source:
+      -
+        value: en
+    content_translation_outdated:
+      -
+        value: false
+    body:
+      -
+        value: "Içi c'est la version français."
+        format: plain_text
+        summary: ''
+    moderation_state:
+      -
+        value: draft

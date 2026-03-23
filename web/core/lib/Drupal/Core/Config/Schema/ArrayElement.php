@@ -1,0 +1,215 @@
+<?php
+
+namespace Drupal\Core\Config\Schema;
+
+use Drupal\Core\TypedData\ComplexDataInterface;
+
+/**
+ * Defines a generic configuration element that contains multiple properties.
+ *
+ * @implements \IteratorAggregate<string, \Drupal\Core\TypedData\TypedDataInterface>
+ */
+abstract class ArrayElement extends Element implements \IteratorAggregate, TypedConfigInterface, ComplexDataInterface {
+
+  /**
+   * Parsed elements.
+   *
+   * @var array<string, \Drupal\Core\TypedData\TypedDataInterface>
+   */
+  protected $elements;
+
+  /**
+   * Determines if there is a translatable value.
+   *
+   * @return bool
+   *   Returns true if a translatable element is found.
+   */
+  public function hasTranslatableElements(): bool {
+    foreach ($this as $element) {
+      // Early return if found.
+      if ($element->getDataDefinition()['translatable'] === TRUE) {
+        return TRUE;
+      }
+      if ($element instanceof ArrayElement && $element->hasTranslatableElements()) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  /**
+   * Gets valid configuration data keys.
+   *
+   * @return array
+   *   Array of valid configuration data keys.
+   */
+  protected function getAllKeys() {
+    return is_array($this->value) ? array_keys($this->value) : [];
+  }
+
+  /**
+   * Builds an array of contained elements.
+   *
+   * @return \Drupal\Core\TypedData\TypedDataInterface[]
+   *   An array of elements contained in this element.
+   */
+  protected function parse() {
+    $elements = [];
+    foreach ($this->getAllKeys() as $key) {
+      $value = $this->value[$key] ?? NULL;
+      $definition = $this->getElementDefinition($key);
+      $elements[$key] = $this->createElement($definition, $value, $key);
+    }
+    return $elements;
+  }
+
+  /**
+   * Gets data definition object for contained element.
+   *
+   * @param int|string $key
+   *   Property name or index of the element.
+   *
+   * @return \Drupal\Core\TypedData\DataDefinitionInterface
+   *   The data definition object for the property.
+   */
+  abstract protected function getElementDefinition($key);
+
+  /**
+   * {@inheritdoc}
+   */
+  public function get($name) {
+    $parts = explode('.', $name);
+    $root_key = array_shift($parts);
+    $elements = $this->getElements();
+    if (isset($elements[$root_key])) {
+      $element = $elements[$root_key];
+      // If $property_name contained a dot recurse into the keys.
+      while ($element && ($key = array_shift($parts)) !== NULL) {
+        if ($element instanceof TypedConfigInterface) {
+          $element = $element->get($key);
+        }
+        else {
+          $element = NULL;
+        }
+      }
+    }
+    if (isset($element)) {
+      return $element;
+    }
+    else {
+      throw new \InvalidArgumentException("The configuration property $name doesn't exist.");
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getElements() {
+    if (!isset($this->elements)) {
+      $this->elements = $this->parse();
+    }
+    return $this->elements;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isEmpty() {
+    return empty($this->value);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function toArray() {
+    return $this->value ?? [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onChange($name) {
+    // Notify the parent of changes.
+    if (isset($this->parent)) {
+      $this->parent->onChange($this->name);
+    }
+  }
+
+  /**
+   * Retrieves the iterator for the object.
+   *
+   * @return \ArrayIterator<string, \Drupal\Core\TypedData\TypedDataInterface>
+   *   The iterator.
+   */
+  public function getIterator(): \ArrayIterator {
+    return new \ArrayIterator($this->getElements());
+  }
+
+  /**
+   * Creates a contained typed configuration object.
+   *
+   * @param \Drupal\Core\TypedData\DataDefinitionInterface $definition
+   *   The data definition object.
+   * @param mixed $value
+   *   (optional) The data value. If set, it has to match one of the supported
+   *   data type format as documented for the data type classes.
+   * @param string $key
+   *   The key of the contained element.
+   *
+   * @return \Drupal\Core\TypedData\TypedDataInterface
+   *   A typed data object created from the given parameters.
+   */
+  protected function createElement($definition, $value, $key) {
+    return $this->getTypedDataManager()->create($definition, $value, $key, $this);
+  }
+
+  /**
+   * Creates a new data definition object from an array and configuration.
+   *
+   * @param array $definition
+   *   The base type definition array, for which a data definition should be
+   *   created.
+   * @param mixed $value
+   *   The value of the configuration element.
+   * @param string $key
+   *   The key of the contained element.
+   *
+   * @return \Drupal\Core\TypedData\DataDefinitionInterface
+   *   A data definition object for the given parameters.
+   */
+  protected function buildDataDefinition($definition, $value, $key) {
+    return $this->getTypedDataManager()->buildDataDefinition($definition, $value, $key, $this);
+  }
+
+  /**
+   * Determines if this element allows NULL as a value.
+   *
+   * @return bool
+   *   TRUE if NULL is a valid value, FALSE otherwise.
+   */
+  public function isNullable() {
+    return isset($this->definition['nullable']) && $this->definition['nullable'] == TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function set($property_name, $value, $notify = TRUE) {
+    $this->value[$property_name] = $value;
+    // Config schema elements do not make use of notifications. Thus, we skip
+    // notifying parents.
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getProperties($include_computed = FALSE) {
+    $properties = [];
+    foreach (array_keys($this->value) as $name) {
+      $properties[$name] = $this->get($name);
+    }
+    return $properties;
+  }
+
+}

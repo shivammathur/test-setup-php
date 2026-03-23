@@ -1,0 +1,181 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\serialization\Unit\Normalizer;
+
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\Core\TypedData\Plugin\DataType\IntegerData;
+use Drupal\Core\TypedData\Plugin\DataType\Timestamp;
+use Drupal\Core\TypedData\Type\DateTimeInterface;
+use Drupal\serialization\Normalizer\TimestampNormalizer;
+use Drupal\Tests\serialization\Traits\JsonSchemaTestTrait;
+use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\Serializer\Exception\UnexpectedValueException;
+
+/**
+ * Unit test coverage for the "Timestamp" @DataType.
+ *
+ * @see \Drupal\Core\TypedData\Plugin\DataType\Timestamp
+ */
+#[CoversClass(TimestampNormalizer::class)]
+#[Group('serialization')]
+class TimestampNormalizerTest extends UnitTestCase {
+
+  use JsonSchemaTestTrait;
+
+  /**
+   * The tested data type's normalizer.
+   *
+   * @var \Drupal\serialization\Normalizer\TimestampNormalizer
+   */
+  protected $normalizer;
+
+  /**
+   * The tested data type.
+   *
+   * @var \Drupal\Core\Field\Plugin\Field\FieldType\TimestampItem
+   */
+  protected $data;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp(): void {
+    parent::setUp();
+
+    $this->normalizer = new TimestampNormalizer($this->prophesize(ConfigFactoryInterface::class)->reveal());
+    $this->data = $this->prophesize(Timestamp::class);
+  }
+
+  /**
+   * Tests supports normalization.
+   */
+  public function testSupportsNormalization(): void {
+    $this->assertTrue($this->normalizer->supportsNormalization($this->data->reveal()));
+
+    $integer = $this->prophesize(IntegerData::class);
+    $this->assertFalse($this->normalizer->supportsNormalization($integer->reveal()));
+
+    $datetime = $this->prophesize(DateTimeInterface::class);
+    $this->assertFalse($this->normalizer->supportsNormalization($datetime->reveal()));
+  }
+
+  /**
+   * Tests supports denormalization.
+   */
+  public function testSupportsDenormalization(): void {
+    $this->assertTrue($this->normalizer->supportsDenormalization($this->data->reveal(), Timestamp::class));
+  }
+
+  /**
+   * Tests normalize.
+   */
+  public function testNormalize(): void {
+    $random_rfc_3339_string = $this->randomMachineName();
+
+    $drupal_date_time = $this->prophesize(TimestampNormalizerTestDrupalDateTime::class);
+    $drupal_date_time->setTimezone(new \DateTimeZone('UTC'))
+      ->willReturn($drupal_date_time->reveal());
+    $drupal_date_time->format(\DateTime::RFC3339)
+      ->willReturn($random_rfc_3339_string);
+
+    $this->data->getDateTime()
+      ->willReturn($drupal_date_time->reveal());
+
+    $normalized = $this->normalizer->normalize($this->data->reveal());
+    $this->assertSame($random_rfc_3339_string, $normalized);
+  }
+
+  /**
+   * Tests the denormalize function with good data.
+   */
+  #[DataProvider('providerTestDenormalizeValidFormats')]
+  public function testDenormalizeValidFormats($normalized, $expected): void {
+    $denormalized = $this->normalizer->denormalize($normalized, Timestamp::class, NULL, []);
+    $this->assertSame($expected, $denormalized);
+  }
+
+  /**
+   * Data provider for testDenormalizeValidFormats.
+   *
+   * @return array
+   *   An array of test data.
+   */
+  public static function providerTestDenormalizeValidFormats() {
+    $expected_stamp = 1478422920;
+
+    $data = [];
+
+    $data['U'] = [$expected_stamp, $expected_stamp];
+    $data['RFC3339'] = ['2016-11-06T09:02:00+00:00', $expected_stamp];
+    $data['RFC3339 +0100'] = ['2016-11-06T09:02:00+01:00', $expected_stamp - 1 * 3600];
+    $data['RFC3339 -0600'] = ['2016-11-06T09:02:00-06:00', $expected_stamp + 6 * 3600];
+
+    $data['ISO8601'] = ['2016-11-06T09:02:00+0000', $expected_stamp];
+    $data['ISO8601 +0100'] = ['2016-11-06T09:02:00+0100', $expected_stamp - 1 * 3600];
+    $data['ISO8601 -0600'] = ['2016-11-06T09:02:00-0600', $expected_stamp + 6 * 3600];
+
+    return $data;
+  }
+
+  /**
+   * Tests the denormalize function with bad data.
+   */
+  public function testDenormalizeException(): void {
+    $this->expectException(UnexpectedValueException::class);
+    $this->expectExceptionMessage('The specified date "2016/11/06 09:02am GMT" is not in an accepted format: "U" (UNIX timestamp), "Y-m-d\TH:i:sO" (ISO 8601), "Y-m-d\TH:i:sP" (RFC 3339).');
+
+    $normalized = '2016/11/06 09:02am GMT';
+
+    $this->normalizer->denormalize($normalized, Timestamp::class, NULL, []);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function jsonSchemaDataProvider(): array {
+    $case = function (UnitTestCase $test) {
+      assert(in_array(JsonSchemaTestTrait::class, class_uses($test)));
+      $drupal_date_time = $test->doProphesize(TimestampNormalizerTestDrupalDateTime::class);
+      $drupal_date_time->setTimezone(new \DateTimeZone('UTC'))
+        ->willReturn($drupal_date_time->reveal());
+      $drupal_date_time->format(\DateTime::RFC3339)
+        ->willReturn('1983-07-12T09:05:00-05:00');
+
+      $data = $test->doProphesize(Timestamp::class);
+      $data->getDateTime()
+        ->willReturn($drupal_date_time->reveal());
+      return $data->reveal();
+    };
+    return [
+      'RFC 3339' => [fn (UnitTestCase $test) => $case($test)],
+    ];
+  }
+
+}
+
+/**
+ * Provides a test class for testing DrupalDateTime.
+ *
+ * Note: Prophecy does not support magic methods. By subclassing and specifying
+ * an explicit method, Prophecy works.
+ *
+ * @see https://github.com/phpspec/prophecy/issues/338
+ * @see https://github.com/phpspec/prophecy/issues/34
+ * @see https://github.com/phpspec/prophecy/issues/80
+ */
+class TimestampNormalizerTestDrupalDateTime extends DrupalDateTime {
+
+  /**
+   * Sets the timezone.
+   */
+  public function setTimezone(\DateTimeZone $timezone) {
+    parent::setTimezone($timezone);
+  }
+
+}

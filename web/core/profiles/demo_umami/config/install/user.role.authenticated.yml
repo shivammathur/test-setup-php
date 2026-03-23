@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - filter.format.basic_html
+  module:
+    - filter
+    - media
+    - search
+    - shortcut
+    - system
+id: authenticated
+label: 'Authenticated user'
+weight: 1
+is_admin: false
+permissions:
+  - 'access content'
+  - 'access shortcuts'
+  - 'search content'
+  - 'use text format basic_html'
+  - 'view media'

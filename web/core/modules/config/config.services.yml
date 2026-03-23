@@ -1,0 +1,8 @@
+parameters:
+  config.skip_procedural_hook_scan: true
+
+services:
+  _defaults:
+    autoconfigure: true
+  config.config_subscriber:
+    class: Drupal\config\ConfigSubscriber
