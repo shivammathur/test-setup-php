@@ -16,9 +16,60 @@ Set-StrictMode -Version 3.0
 $ErrorActionPreference = 'Stop'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+function Expand-ZipArchiveSafe {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Path,
+        [Parameter(Mandatory = $true)]
+        [string] $Destination
+    )
+
+    New-Item -Path $Destination -ItemType Directory -Force | Out-Null
+    try {
+        Expand-Archive -Path $Path -DestinationPath $Destination -Force
+    } catch {
+        7z x $Path "-o$Destination" -y | Out-Null
+    }
+}
+
+function Get-PhpBuildArchive {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $ArtifactsPath,
+        [Parameter(Mandatory = $true)]
+        [string] $Arch,
+        [Parameter(Mandatory = $true)]
+        [string] $Ts
+    )
+
+    $zipPattern = "php-*-$Arch.zip"
+    $zipRegex = "^php-(.+?)(-nts)?-Win32-v[sc]\d+-${Arch}\.zip$"
+    $matches = @(
+        Get-ChildItem -Path $ArtifactsPath -Filter $zipPattern -File |
+            Where-Object {
+                $zipMatch = [regex]::Match($_.Name, $zipRegex, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+                $_.Name -notmatch '^php-(devel-pack|debug-pack|test-pack)-' -and
+                $_.Name -notmatch '-src\.zip$' -and
+                $zipMatch.Success -and
+                (($Ts -eq 'nts') -eq $zipMatch.Groups[2].Success)
+            } |
+            Sort-Object Name
+    )
+
+    if (-not $matches) {
+        throw "No PHP build archive matched arch=$Arch ts=$Ts in $ArtifactsPath."
+    }
+
+    if ($matches.Count -ne 1) {
+        throw "Expected exactly one PHP build archive for arch=$Arch ts=$Ts, found $($matches.Count): $($matches.Name -join ', ')"
+    }
+
+    return $matches[0]
+}
+
 $builderModule = Join-Path $BuilderRoot 'php\BuildPhp'
 $artifactsPath = (Resolve-Path $ArtifactsDirectory).Path
-$sanityScriptPath = (Resolve-Path $SanityScript).Path
+$suiteScriptPath = (Resolve-Path $SanityScript).Path
 $outputPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputDirectory)
 
 New-Item -Path $outputPath -ItemType Directory -Force | Out-Null
@@ -42,53 +93,59 @@ foreach ($variant in $variants) {
     $label = '{0}-{1}-{2}' -f $PhpVersion, $variant.Arch, $variant.Ts
     $workDirectory = Join-Path $env:RUNNER_TEMP ('windows-gd-e2e-' + [System.Guid]::NewGuid().ToString())
     $resultsDirectory = Join-Path $outputPath $label
-    $tmpDirectory = Join-Path $workDirectory 'tmp'
     $depsDirectory = Join-Path $env:RUNNER_TEMP ('deps-{0}-{1}' -f $PhpVersion, $variant.Arch)
+    $extractDirectory = Join-Path $workDirectory 'phpbin'
 
-    New-Item -Path $workDirectory, $resultsDirectory, $tmpDirectory -ItemType Directory -Force | Out-Null
+    New-Item -Path $workDirectory, $resultsDirectory -ItemType Directory -Force | Out-Null
 
-    Write-Host "::group::Preparing $label"
     Push-Location $workDirectory
     try {
         try {
+            Write-Host "::group::Preparing $label"
             $env:DEPS_DIR = $depsDirectory
             $env:DEPS_CACHE_HIT = ''
 
-            Add-TestRequirements -PhpVersion $PhpVersion `
-                                 -Arch $variant.Arch `
-                                 -Ts $variant.Ts `
-                                 -VsVersion $vsData.vs `
-                                 -TestsDirectory 'tests' `
-                                 -ArtifactsDirectory $artifactsPath | Out-Null
+            Add-PhpDeps -PhpVersion $PhpVersion `
+                        -VsVersion $vsData.vs `
+                        -Arch $variant.Arch `
+                        -Destination $depsDirectory
 
-            Set-PhpIniForTests -BuildDirectory $workDirectory -Opcache 'nocache'
+            $archive = Get-PhpBuildArchive -ArtifactsPath $artifactsPath -Arch $variant.Arch -Ts $variant.Ts
+            Expand-ZipArchiveSafe -Path $archive.FullName -Destination $extractDirectory
 
-            $iniPath = Join-Path $workDirectory 'phpbin\php.ini'
-            Add-Content -Path $iniPath -Encoding ascii -Value @(
+            $phpExe = Join-Path $extractDirectory 'php.exe'
+            if (-not (Test-Path $phpExe)) {
+                throw "php.exe not found after extracting $($archive.Name)."
+            }
+
+            $extDirectory = Join-Path $extractDirectory 'ext'
+            if (-not (Test-Path $extDirectory)) {
+                throw "Extension directory not found in $($archive.Name)."
+            }
+
+            $iniPath = Join-Path $extractDirectory 'php.ini'
+            Set-Content -Path $iniPath -Encoding ascii -Value @(
+                ('extension_dir="{0}"' -f $extDirectory),
+                'extension=php_curl.dll',
                 'extension=php_exif.dll',
                 'extension=php_gd.dll',
+                'extension=php_intl.dll',
+                'extension=php_mbstring.dll',
+                'extension=php_openssl.dll',
+                'extension=php_pdo_sqlite.dll',
+                'extension=php_sqlite3.dll',
+                'display_errors=1',
+                'error_reporting=E_ALL',
+                'memory_limit=-1',
                 'date.timezone=UTC'
             )
 
-            $phpExe = Join-Path $workDirectory 'phpbin\php.exe'
-            $phpDbg = Join-Path $workDirectory 'phpbin\phpdbg.exe'
             $versionLog = Join-Path $resultsDirectory 'php-version.txt'
             $modulesLog = Join-Path $resultsDirectory 'php-modules.txt'
-            $sanityLog = Join-Path $resultsDirectory 'gd-sanity.log'
-            $phptLog = Join-Path $resultsDirectory 'gd-phpt.log'
-            $junitPath = Join-Path $resultsDirectory 'gd-phpt.junit.xml'
+            $suiteLog = Join-Path $resultsDirectory 'gd-custom-suite.log'
+            $reportPath = Join-Path $resultsDirectory 'gd-custom-report.json'
 
-            $env:Path = "$($workDirectory)\phpbin;$depsDirectory\bin;$env:SystemRoot\System32;$env:Path"
-            $env:TEST_PHP_EXECUTABLE = $phpExe
-            if (Test-Path $phpDbg) {
-                $env:TEST_PHPDBG_EXECUTABLE = $phpDbg
-            } else {
-                Remove-Item Env:TEST_PHPDBG_EXECUTABLE -ErrorAction Ignore
-            }
-            $env:TEST_PHP_JUNIT = $junitPath
-            $env:SKIP_IO_CAPTURE_TESTS = '1'
-            $env:NO_INTERACTION = '1'
-            $env:REPORT_EXIT_STATUS = '1'
+            $env:Path = "$extractDirectory;$depsDirectory\bin;$env:SystemRoot\System32;$env:Path"
 
             & $phpExe -c $iniPath -v 2>&1 | Tee-Object -FilePath $versionLog | Out-Host
             if ($LASTEXITCODE -ne 0) {
@@ -100,39 +157,13 @@ foreach ($variant in $variants) {
                 throw "php -m failed for $label."
             }
 
-            & $phpExe -c $iniPath $sanityScriptPath 2>&1 | Tee-Object -FilePath $sanityLog | Out-Host
-            if ($LASTEXITCODE -ne 0) {
-                throw "The GD sanity script failed for $label."
-            }
-        } finally {
             Write-Host "::endgroup::"
-        }
-
-        Write-Host "::group::Running ext/gd PHPT suite for $label"
-        Push-Location (Join-Path $workDirectory 'tests')
-        try {
-            $runTestsArgs = @(
-                '-d', 'open_basedir=',
-                '-d', 'output_buffering=0',
-                'run-tests.php',
-                '--no-progress',
-                '-g', 'FAIL,BORK,WARN,LEAK',
-                '-q',
-                '--offline',
-                '--show-diff',
-                '--show-slow', '1000',
-                '--set-timeout', '300',
-                '--temp-source', $tmpDirectory,
-                '--temp-target', $tmpDirectory,
-                'ext/gd/tests'
-            )
-
-            & $phpExe @runTestsArgs 2>&1 | Tee-Object -FilePath $phptLog | Out-Host
+            Write-Host "::group::Running custom GD suite for $label"
+            & $phpExe -c $iniPath $suiteScriptPath $label $reportPath 2>&1 | Tee-Object -FilePath $suiteLog | Out-Host
             if ($LASTEXITCODE -ne 0) {
-                throw "The ext/gd PHPT suite failed for $label."
+                throw "The custom GD suite failed for $label."
             }
         } finally {
-            Pop-Location
             Write-Host "::endgroup::"
         }
     } catch {
