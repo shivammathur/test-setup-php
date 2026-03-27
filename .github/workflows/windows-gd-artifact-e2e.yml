@@ -1,0 +1,69 @@
+name: Windows GD Artifact E2E
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  run:
+    name: PHP ${{ matrix.php-version }} GD artifact E2E
+    runs-on: windows-2022
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php-version: '8.2.30'
+            run-id: '23651081487'
+            libs-build-runs: '23627832479,23630077005,23628684042,23629442397,23635663385,23642907053'
+          - php-version: '8.3.30'
+            run-id: '23651081550'
+            libs-build-runs: '23627832479,23630077005,23628684042,23629442397,23635663385,23642907053'
+          - php-version: '8.4.19'
+            run-id: '23651081470'
+            libs-build-runs: '23627837599,23628377621,23628689914,23629446853,23635669760,23642944641'
+          - php-version: '8.5.4'
+            run-id: '23651081467'
+            libs-build-runs: '23627837599,23628377621,23628689914,23629446853,23635669760,23642944641'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Checkout php-windows-builder helpers
+        uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: b4cd484cc167b94c7009fb3ee18459075956fd4b
+          path: php-windows-builder
+
+      - name: Download PHP build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: artifacts
+          path: artifacts
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run GD artifact e2e tests
+        shell: pwsh
+        env:
+          LIBS_BUILD_RUNS: ${{ matrix.libs-build-runs }}
+        run: |
+          .\.github\scripts\Invoke-WindowsGdArtifactE2E.ps1 `
+            -BuilderRoot (Join-Path $PWD 'php-windows-builder') `
+            -ArtifactsDirectory (Join-Path $PWD 'artifacts') `
+            -PhpVersion '${{ matrix.php-version }}' `
+            -OutputDirectory (Join-Path $PWD 'test-results') `
+            -SanityScript (Join-Path $PWD '.github\scripts\windows-gd-sanity.php')
+
+      - name: Upload GD e2e results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gd-e2e-results-${{ matrix.php-version }}
+          path: test-results
+          if-no-files-found: error
