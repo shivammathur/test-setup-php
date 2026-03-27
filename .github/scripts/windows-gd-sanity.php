@@ -117,6 +117,29 @@ function count_non_transparent_pixels($image): int
     return $count;
 }
 
+function clone_image($image, int $width, int $height)
+{
+    $copy = assert_not_false(imagecreatetruecolor($width, $height), 'Failed to create an image clone.');
+    assert_true(imagealphablending($copy, false), 'Failed to disable alpha blending on the clone.');
+    assert_true(imagesavealpha($copy, true), 'Failed to preserve alpha on the clone.');
+    assert_true(imagecopy($copy, $image, 0, 0, 0, 0, $width, $height), 'Failed to clone the GD image.');
+    return $copy;
+}
+
+function count_changed_pixels($before, $after, int $width, int $height): int
+{
+    $count = 0;
+    for ($y = 0; $y < $height; $y++) {
+        for ($x = 0; $x < $width; $x++) {
+            if (imagecolorat($before, $x, $y) !== imagecolorat($after, $x, $y)) {
+                $count++;
+            }
+        }
+    }
+
+    return $count;
+}
+
 function assert_image_roundtrip(
     string $path,
     int $expectedType,
@@ -298,7 +321,7 @@ assert_true(imagefilledrectangle($image, 0, 0, $width - 1, $height - 1, $transpa
 assert_true(imagefilledrectangle($image, 8, 8, 119, 87, $navy), 'Failed to draw the base rectangle.');
 assert_true(imagefilledellipse($image, 64, 48, 46, 28, $green), 'Failed to draw the accent ellipse.');
 $polygon = array(88, 18, 114, 34, 100, 60, 80, 44);
-assert_true(imagefilledpolygon($image, $polygon, 4, $orange), 'Failed to draw the polygon.');
+assert_true(imagefilledpolygon($image, $polygon, $orange), 'Failed to draw the polygon.');
 assert_true(imageline($image, 12, 78, 116, 78, $white), 'Failed to draw the base line.');
 assert_true(imagefilter($image, IMG_FILTER_SMOOTH, 2), 'imagefilter() failed.');
 $convolution = array(
@@ -308,12 +331,13 @@ $convolution = array(
 );
 assert_true(imageconvolution($image, $convolution, 1.0, 0.0), 'imageconvolution() failed.');
 
-$beforeTextPixels = count_non_transparent_pixels($image);
+$beforeTextImage = clone_image($image, $width, $height);
 $bbox = assert_not_false(imagettfbbox(14.0, 0.0, $fontPath, 'GD Custom'), 'imagettfbbox() failed.');
 $textResult = imagettftext($image, 14.0, 0.0, 16, 34, $white, $fontPath, 'GD Custom');
 assert_true($textResult !== false, 'imagettftext() failed.');
-$afterTextPixels = count_non_transparent_pixels($image);
-assert_true($afterTextPixels > $beforeTextPixels + 40, 'imagettftext() did not visibly render text.');
+$changedPixels = count_changed_pixels($beforeTextImage, $image, $width, $height);
+assert_true($changedPixels > 60, 'imagettftext() did not visibly render text.');
+imagedestroy($beforeTextImage);
 
 $scaled = assert_not_false(imagescale($image, 64, 48, IMG_BILINEAR_FIXED), 'imagescale() failed.');
 $cropped = assert_not_false(imagecrop($image, array('x' => 12, 'y' => 12, 'width' => 72, 'height' => 52)), 'imagecrop() failed.');
@@ -322,7 +346,7 @@ assert_true(imageflip($scaled, IMG_FLIP_HORIZONTAL), 'imageflip() failed.');
 
 record_check('gd-transformations', array(
     'bbox' => $bbox,
-    'rendered_pixels' => $afterTextPixels - $beforeTextPixels,
+    'rendered_pixels' => $changedPixels,
     'scaled' => array(imagesx($scaled), imagesy($scaled)),
     'cropped' => array(imagesx($cropped), imagesy($cropped)),
     'rotated' => array(imagesx($rotated), imagesy($rotated)),
