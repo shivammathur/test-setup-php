@@ -36,6 +36,8 @@ $variants = @(
     @{ Arch = 'x86'; Ts = 'ts' }
 )
 
+$failures = [System.Collections.Generic.List[string]]::new()
+
 foreach ($variant in $variants) {
     $label = '{0}-{1}-{2}' -f $PhpVersion, $variant.Arch, $variant.Ts
     $workDirectory = Join-Path $env:RUNNER_TEMP ('windows-gd-e2e-' + [System.Guid]::NewGuid().ToString())
@@ -48,66 +50,64 @@ foreach ($variant in $variants) {
     Write-Host "::group::Preparing $label"
     Push-Location $workDirectory
     try {
-        $env:DEPS_DIR = $depsDirectory
-        $env:DEPS_CACHE_HIT = ''
+        try {
+            $env:DEPS_DIR = $depsDirectory
+            $env:DEPS_CACHE_HIT = ''
 
-        Add-TestRequirements -PhpVersion $PhpVersion `
-                             -Arch $variant.Arch `
-                             -Ts $variant.Ts `
-                             -VsVersion $vsData.vs `
-                             -TestsDirectory 'tests' `
-                             -ArtifactsDirectory $artifactsPath | Out-Null
+            Add-TestRequirements -PhpVersion $PhpVersion `
+                                 -Arch $variant.Arch `
+                                 -Ts $variant.Ts `
+                                 -VsVersion $vsData.vs `
+                                 -TestsDirectory 'tests' `
+                                 -ArtifactsDirectory $artifactsPath | Out-Null
 
-        Set-PhpIniForTests -BuildDirectory $workDirectory -Opcache 'nocache'
+            Set-PhpIniForTests -BuildDirectory $workDirectory -Opcache 'nocache'
 
-        $iniPath = Join-Path $workDirectory 'phpbin\php.ini'
-        Add-Content -Path $iniPath -Encoding ascii -Value @(
-            'extension=php_exif.dll',
-            'extension=php_xml.dll',
-            'extension=php_dom.dll',
-            'extension=php_simplexml.dll',
-            'extension=php_xmlreader.dll',
-            'extension=php_xmlwriter.dll',
-            'extension=php_gd.dll',
-            'date.timezone=UTC'
-        )
+            $iniPath = Join-Path $workDirectory 'phpbin\php.ini'
+            Add-Content -Path $iniPath -Encoding ascii -Value @(
+                'extension=php_exif.dll',
+                'extension=php_gd.dll',
+                'date.timezone=UTC'
+            )
 
-        $phpExe = Join-Path $workDirectory 'phpbin\php.exe'
-        $phpDbg = Join-Path $workDirectory 'phpbin\phpdbg.exe'
-        $versionLog = Join-Path $resultsDirectory 'php-version.txt'
-        $modulesLog = Join-Path $resultsDirectory 'php-modules.txt'
-        $sanityLog = Join-Path $resultsDirectory 'gd-sanity.log'
-        $phptLog = Join-Path $resultsDirectory 'gd-phpt.log'
-        $junitPath = Join-Path $resultsDirectory 'gd-phpt.junit.xml'
+            $phpExe = Join-Path $workDirectory 'phpbin\php.exe'
+            $phpDbg = Join-Path $workDirectory 'phpbin\phpdbg.exe'
+            $versionLog = Join-Path $resultsDirectory 'php-version.txt'
+            $modulesLog = Join-Path $resultsDirectory 'php-modules.txt'
+            $sanityLog = Join-Path $resultsDirectory 'gd-sanity.log'
+            $phptLog = Join-Path $resultsDirectory 'gd-phpt.log'
+            $junitPath = Join-Path $resultsDirectory 'gd-phpt.junit.xml'
 
-        $env:Path = "$($workDirectory)\phpbin;$depsDirectory\bin;$env:SystemRoot\System32;$env:Path"
-        $env:TEST_PHP_EXECUTABLE = $phpExe
-        if (Test-Path $phpDbg) {
-            $env:TEST_PHPDBG_EXECUTABLE = $phpDbg
-        } else {
-            Remove-Item Env:TEST_PHPDBG_EXECUTABLE -ErrorAction Ignore
+            $env:Path = "$($workDirectory)\phpbin;$depsDirectory\bin;$env:SystemRoot\System32;$env:Path"
+            $env:TEST_PHP_EXECUTABLE = $phpExe
+            if (Test-Path $phpDbg) {
+                $env:TEST_PHPDBG_EXECUTABLE = $phpDbg
+            } else {
+                Remove-Item Env:TEST_PHPDBG_EXECUTABLE -ErrorAction Ignore
+            }
+            $env:TEST_PHP_JUNIT = $junitPath
+            $env:SKIP_IO_CAPTURE_TESTS = '1'
+            $env:NO_INTERACTION = '1'
+            $env:REPORT_EXIT_STATUS = '1'
+
+            & $phpExe -c $iniPath -v 2>&1 | Tee-Object -FilePath $versionLog | Out-Host
+            if ($LASTEXITCODE -ne 0) {
+                throw "php -v failed for $label."
+            }
+
+            & $phpExe -c $iniPath -m 2>&1 | Tee-Object -FilePath $modulesLog | Out-Host
+            if ($LASTEXITCODE -ne 0) {
+                throw "php -m failed for $label."
+            }
+
+            & $phpExe -c $iniPath $sanityScriptPath 2>&1 | Tee-Object -FilePath $sanityLog | Out-Host
+            if ($LASTEXITCODE -ne 0) {
+                throw "The GD sanity script failed for $label."
+            }
+        } finally {
+            Write-Host "::endgroup::"
         }
-        $env:TEST_PHP_JUNIT = $junitPath
-        $env:SKIP_IO_CAPTURE_TESTS = '1'
-        $env:NO_INTERACTION = '1'
-        $env:REPORT_EXIT_STATUS = '1'
 
-        & $phpExe -c $iniPath -v 2>&1 | Tee-Object -FilePath $versionLog | Out-Host
-        if ($LASTEXITCODE -ne 0) {
-            throw "php -v failed for $label."
-        }
-
-        & $phpExe -c $iniPath -m 2>&1 | Tee-Object -FilePath $modulesLog | Out-Host
-        if ($LASTEXITCODE -ne 0) {
-            throw "php -m failed for $label."
-        }
-
-        & $phpExe -c $iniPath $sanityScriptPath 2>&1 | Tee-Object -FilePath $sanityLog | Out-Host
-        if ($LASTEXITCODE -ne 0) {
-            throw "The GD sanity script failed for $label."
-        }
-
-        Write-Host "::endgroup::"
         Write-Host "::group::Running ext/gd PHPT suite for $label"
         Push-Location (Join-Path $workDirectory 'tests')
         try {
@@ -135,7 +135,15 @@ foreach ($variant in $variants) {
             Pop-Location
             Write-Host "::endgroup::"
         }
+    } catch {
+        $message = $_.Exception.Message
+        $failures.Add(('{0}: {1}' -f $label, $message))
+        Write-Error $message
     } finally {
         Pop-Location
     }
+}
+
+if ($failures.Count -gt 0) {
+    throw ("GD artifact e2e failures:`n - " + ($failures -join "`n - "))
 }
