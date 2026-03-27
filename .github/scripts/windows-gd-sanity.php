@@ -99,24 +99,6 @@ function assert_color_close(array $actual, array $expected, int $tolerance, stri
     }
 }
 
-function count_non_transparent_pixels($image): int
-{
-    $count = 0;
-    $width = imagesx($image);
-    $height = imagesy($image);
-
-    for ($y = 0; $y < $height; $y++) {
-        for ($x = 0; $x < $width; $x++) {
-            $rgba = image_rgba_at($image, $x, $y);
-            if ($rgba['alpha'] < 127) {
-                $count++;
-            }
-        }
-    }
-
-    return $count;
-}
-
 function clone_image($image, int $width, int $height)
 {
     $copy = assert_not_false(imagecreatetruecolor($width, $height), 'Failed to create an image clone.');
@@ -146,7 +128,7 @@ function assert_image_roundtrip(
     string $decoder,
     int $width,
     int $height,
-    ?array $sample = null,
+    array $samples = array(),
     int $tolerance = 0
 ): void {
     assert_true(file_exists($path), "Image file was not created: $path");
@@ -161,12 +143,59 @@ function assert_image_roundtrip(
     assert_same($width, imagesx($image), "Decoded image width mismatch for $path.");
     assert_same($height, imagesy($image), "Decoded image height mismatch for $path.");
 
-    if ($sample !== null) {
+    foreach ($samples as $sample) {
         $actual = image_rgba_at($image, $sample['x'], $sample['y']);
         assert_color_close($actual, $sample['rgba'], $tolerance, "Unexpected pixel values for $path.");
     }
 
     imagedestroy($image);
+}
+
+function create_roundtrip_fixture(): array
+{
+    $width = 80;
+    $height = 80;
+    $image = assert_not_false(imagecreatetruecolor($width, $height), 'Failed to create the roundtrip fixture.');
+    assert_true(imagealphablending($image, false), 'Failed to disable alpha blending on the roundtrip fixture.');
+    assert_true(imagesavealpha($image, true), 'Failed to preserve alpha on the roundtrip fixture.');
+
+    $transparent = assert_not_false(imagecolorallocatealpha($image, 0, 0, 0, 127), 'Failed to allocate the transparent swatch.');
+    $navy = assert_not_false(imagecolorallocate($image, 18, 42, 88), 'Failed to allocate the navy swatch.');
+    $green = assert_not_false(imagecolorallocate($image, 30, 190, 120), 'Failed to allocate the green swatch.');
+    $orange = assert_not_false(imagecolorallocate($image, 210, 120, 50), 'Failed to allocate the orange swatch.');
+
+    assert_true(imagefilledrectangle($image, 0, 0, $width - 1, $height - 1, $transparent), 'Failed to clear the roundtrip fixture.');
+    assert_true(imagefilledrectangle($image, 40, 0, $width - 1, 39, $navy), 'Failed to draw the navy swatch.');
+    assert_true(imagefilledrectangle($image, 0, 40, 39, $height - 1, $green), 'Failed to draw the green swatch.');
+    assert_true(imagefilledrectangle($image, 40, 40, $width - 1, $height - 1, $orange), 'Failed to draw the orange swatch.');
+
+    return array(
+        'image' => $image,
+        'width' => $width,
+        'height' => $height,
+        'samples' => array(
+            'transparent' => array(
+                'x' => 10,
+                'y' => 10,
+                'rgba' => array('red' => 0, 'green' => 0, 'blue' => 0),
+            ),
+            'navy' => array(
+                'x' => 60,
+                'y' => 20,
+                'rgba' => array('red' => 18, 'green' => 42, 'blue' => 88),
+            ),
+            'green' => array(
+                'x' => 20,
+                'y' => 60,
+                'rgba' => array('red' => 30, 'green' => 190, 'blue' => 120),
+            ),
+            'orange' => array(
+                'x' => 60,
+                'y' => 60,
+                'rgba' => array('red' => 210, 'green' => 120, 'blue' => 50),
+            ),
+        ),
+    );
 }
 
 function flatten_image($image, int $width, int $height)
@@ -364,37 +393,49 @@ $xpmPath = $baseDirectory . DIRECTORY_SEPARATOR . 'test.xpm';
 $xpmPngPath = $baseDirectory . DIRECTORY_SEPARATOR . 'xpm.png';
 $xpmJpegPath = $baseDirectory . DIRECTORY_SEPARATOR . 'xpm.jpg';
 
-assert_true(imageinterlace($image, true), 'imageinterlace() failed.');
-assert_true(imageresolution($image, 144, 144), 'imageresolution() failed.');
-assert_true(imagepng($image, $pngPath, 6), 'imagepng() failed.');
+$roundtripFixture = create_roundtrip_fixture();
+$roundtripImage = $roundtripFixture['image'];
+$roundtripWidth = $roundtripFixture['width'];
+$roundtripHeight = $roundtripFixture['height'];
+$roundtripSamples = $roundtripFixture['samples'];
+
+assert_true(imageinterlace($roundtripImage, true), 'imageinterlace() failed.');
+assert_true(imageresolution($roundtripImage, 144, 144), 'imageresolution() failed.');
+$configuredResolution = imageresolution($roundtripImage);
+assert_true(is_array($configuredResolution), 'imageresolution() did not return the configured resolution.');
+$configuredResolution = array_values($configuredResolution);
+assert_same(144, (int) $configuredResolution[0], 'The configured horizontal resolution is incorrect.');
+assert_same(144, (int) $configuredResolution[1], 'The configured vertical resolution is incorrect.');
+assert_true(imagepng($roundtripImage, $pngPath, 6), 'imagepng() failed.');
 assert_image_roundtrip(
     $pngPath,
     IMAGETYPE_PNG,
     'imagecreatefrompng',
-    $width,
-    $height,
+    $roundtripWidth,
+    $roundtripHeight,
     array(
-        'x' => 20,
-        'y' => 20,
-        'rgba' => array('red' => 18, 'green' => 42, 'blue' => 88),
+        $roundtripSamples['navy'],
+        $roundtripSamples['green'],
+        $roundtripSamples['orange'],
     ),
     0
 );
 
 $pngString = assert_not_false(file_get_contents($pngPath), 'file_get_contents() failed for the PNG file.');
 $pngFromString = assert_not_false(imagecreatefromstring($pngString), 'imagecreatefromstring() failed for the PNG payload.');
-assert_same($width, imagesx($pngFromString), 'PNG created from string has the wrong width.');
-assert_same($height, imagesy($pngFromString), 'PNG created from string has the wrong height.');
-$transparentCorner = image_rgba_at($pngFromString, 1, 1);
+assert_same($roundtripWidth, imagesx($pngFromString), 'PNG created from string has the wrong width.');
+assert_same($roundtripHeight, imagesy($pngFromString), 'PNG created from string has the wrong height.');
+$transparentCorner = image_rgba_at($pngFromString, $roundtripSamples['transparent']['x'], $roundtripSamples['transparent']['y']);
 assert_true($transparentCorner['alpha'] >= 120, 'PNG transparency was not preserved.');
 
 record_check('png', array(
     'path' => basename($pngPath),
     'size' => filesize($pngPath),
     'transparent_alpha' => $transparentCorner['alpha'],
+    'resolution' => $configuredResolution,
 ));
 
-$flattened = flatten_image($image, $width, $height);
+$flattened = flatten_image($roundtripImage, $roundtripWidth, $roundtripHeight);
 assert_true(imagejpeg($flattened, $jpegHighPath, 92), 'imagejpeg() with high quality failed.');
 assert_true(imagejpeg($flattened, $jpegLowPath, 45), 'imagejpeg() with low quality failed.');
 assert_true(filesize($jpegHighPath) >= filesize($jpegLowPath), 'JPEG quality settings did not affect output size as expected.');
@@ -402,14 +443,13 @@ assert_image_roundtrip(
     $jpegHighPath,
     IMAGETYPE_JPEG,
     'imagecreatefromjpeg',
-    $width,
-    $height,
+    $roundtripWidth,
+    $roundtripHeight,
     array(
-        'x' => 64,
-        'y' => 48,
-        'rgba' => array('red' => 30, 'green' => 190, 'blue' => 120),
+        $roundtripSamples['green'],
+        $roundtripSamples['orange'],
     ),
-    60
+    30
 );
 
 record_check('jpeg', array(
@@ -418,45 +458,53 @@ record_check('jpeg', array(
 ));
 
 assert_true(function_exists('imagewebp'), 'imagewebp() is not available.');
-assert_true(imagewebp($image, $webpPath, 80), 'imagewebp() failed.');
+assert_true(imagewebp($roundtripImage, $webpPath, 80), 'imagewebp() failed.');
 assert_image_roundtrip(
     $webpPath,
     IMAGETYPE_WEBP,
     'imagecreatefromwebp',
-    $width,
-    $height,
+    $roundtripWidth,
+    $roundtripHeight,
     array(
-        'x' => 64,
-        'y' => 48,
-        'rgba' => array('red' => 30, 'green' => 190, 'blue' => 120),
+        $roundtripSamples['navy'],
+        $roundtripSamples['green'],
+        $roundtripSamples['orange'],
     ),
-    70
+    50
 );
+$webpImage = assert_not_false(imagecreatefromwebp($webpPath), 'imagecreatefromwebp() failed for the transparency check.');
+$webpTransparent = image_rgba_at($webpImage, $roundtripSamples['transparent']['x'], $roundtripSamples['transparent']['y']);
+assert_true($webpTransparent['alpha'] >= 100, 'WebP transparency was not preserved.');
 
 record_check('webp', array(
     'path' => basename($webpPath),
     'size' => filesize($webpPath),
+    'transparent_alpha' => $webpTransparent['alpha'],
 ));
 
 assert_true(function_exists('imageavif'), 'imageavif() is not available.');
-assert_true(imageavif($image, $avifPath, 70, 6), 'imageavif() failed.');
+assert_true(imageavif($roundtripImage, $avifPath, 70, 6), 'imageavif() failed.');
 assert_image_roundtrip(
     $avifPath,
     IMAGETYPE_AVIF,
     'imagecreatefromavif',
-    $width,
-    $height,
+    $roundtripWidth,
+    $roundtripHeight,
     array(
-        'x' => 64,
-        'y' => 48,
-        'rgba' => array('red' => 30, 'green' => 190, 'blue' => 120),
+        $roundtripSamples['navy'],
+        $roundtripSamples['green'],
+        $roundtripSamples['orange'],
     ),
-    80
+    60
 );
+$avifImage = assert_not_false(imagecreatefromavif($avifPath), 'imagecreatefromavif() failed for the transparency check.');
+$avifTransparent = image_rgba_at($avifImage, $roundtripSamples['transparent']['x'], $roundtripSamples['transparent']['y']);
+assert_true($avifTransparent['alpha'] >= 100, 'AVIF transparency was not preserved.');
 
 record_check('avif', array(
     'path' => basename($avifPath),
     'size' => filesize($avifPath),
+    'transparent_alpha' => $avifTransparent['alpha'],
 ));
 
 $xpmData = <<<'XPM'
@@ -494,7 +542,10 @@ record_check('xpm', array(
 
 imagedestroy($xpmImage);
 imagedestroy($pngFromString);
+imagedestroy($webpImage);
+imagedestroy($avifImage);
 imagedestroy($flattened);
+imagedestroy($roundtripImage);
 imagedestroy($scaled);
 imagedestroy($cropped);
 imagedestroy($rotated);
