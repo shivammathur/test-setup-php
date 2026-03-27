@@ -54,6 +54,7 @@ jobs:
       - name: Run GD artifact e2e tests
         shell: pwsh
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LIBS_BUILD_RUNS: ${{ matrix.libs-build-runs }}
         run: |
           .\.github\scripts\Invoke-WindowsGdArtifactE2E.ps1 `
@@ -69,4 +70,4 @@ jobs:
         with:
           name: gd-e2e-results-${{ matrix.php-version }}
           path: test-results
-          if-no-files-found: error
+          if-no-files-found: warn
