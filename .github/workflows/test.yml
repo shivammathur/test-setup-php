@@ -7,23 +7,23 @@ jobs:
     name: PHP
     runs-on: ubuntu-latest
     steps:
-      - name: Setup extension cache environment
-        id: extension-cache
-        uses: shivammathur/cache-extensions@1.14.2
+      - name: Set up PHP
+        uses: shivammathur/setup-php@develop
         with:
-          php-version: "8.4"
-          extensions: "redis, zstd"
-          key: extensions-cache-v1
-
-      - name: Cache extensions
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.extension-cache.outputs.dir }}
-          key: ${{ steps.extension-cache.outputs.key }}
-          restore-keys: ${{ steps.extension-cache.outputs.key }}
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.4"
-          extensions: "redis, zstd"
+          php-version: 8.3
+          extensions: apcu, bz2, ctype, curl, dom, fileinfo, gd, iconv, intl, mbstring, \
+            pdo_pgsql, posix, session, simplexml, xmlreader, xmlwriter, zip, zlib
+          ini-values: >-
+            apc.enable_cli=1,
+            apc.shm_size=128M,
+            opcache.enable=1,
+            opcache.enable_cli=1,
+            opcache.memory_consumption=256,
+            opcache.interned_strings_buffer=32,
+            opcache.max_accelerated_files=20000,
+            opcache.validate_timestamps=0,
+            opcache.save_comments=1,
+            opcache.jit=1255,
+            opcache.jit_buffer_size=128M,
+            memory_limit=512M
+          coverage: none
