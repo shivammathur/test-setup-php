@@ -420,14 +420,16 @@ jobs:
           $baselineMeta = & $env:BASELINE_PHP -n -r "echo PHP_VERSION, '|', PHP_ZTS ? 'TS' : 'NTS';"
           $customMeta = & $env:CUSTOM_PHP -n -r "echo PHP_VERSION, '|', PHP_ZTS ? 'TS' : 'NTS', '|', ZEND_VM_KIND;"
 
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '# PHP master Windows benchmark'
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Baseline: \`$baselineMeta\`"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Custom: \`$customMeta\`"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Iterations per benchmark: \`$iterations\`"
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ''
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| Benchmark | Baseline avg (ms) | PR avg (ms) | Delta | Speedup |'
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '| --- | ---: | ---: | ---: | ---: |'
+          $summaryLines = @(
+            '# PHP master Windows benchmark',
+            '',
+            ('- Baseline: {0}' -f $baselineMeta),
+            ('- Custom: {0}' -f $customMeta),
+            ('- Iterations per benchmark: {0}' -f $iterations),
+            '',
+            '| Benchmark | Baseline avg (ms) | PR avg (ms) | Delta | Speedup |',
+            '| --- | ---: | ---: | ---: | ---: |'
+          )
 
           foreach ($baselineResult in $baselineResults) {
             $customResult = $customResults | Where-Object benchmark -EQ $baselineResult.benchmark
@@ -441,8 +443,10 @@ jobs:
             $deltaLabel = if ($delta -ge 0) { ('+{0}%' -f $delta) } else { ('{0}%' -f $delta) }
             $summaryRow = '| {0} | {1} | {2} | {3} | {4}x |' -f $baselineResult.benchmark, $baselineResult.avg_ms, $customResult.avg_ms, $deltaLabel, $speedup
 
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $summaryRow
+            $summaryLines += $summaryRow
           }
+
+          Set-Content -Path $env:GITHUB_STEP_SUMMARY -Value $summaryLines
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
