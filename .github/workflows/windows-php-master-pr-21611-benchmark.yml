@@ -8,7 +8,16 @@ on:
         required: true
       clang-artifact-run-id:
         description: Reuse clang build artifact from a previous workflow run ID
-        required: true
+        required: false
+        default: ""
+      comparison-mode:
+        description: Comparison target to benchmark against the baseline
+        required: false
+        default: clang
+      direct-builder-artifact-run-id:
+        description: Reuse direct builder artifact from a previous workflow run ID
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -178,14 +187,86 @@ jobs:
           path: ${{ runner.temp }}/php-master-pr-21611-clang
           if-no-files-found: error
 
+  build-direct-builder:
+    name: Build PHP master with published builder action
+    if: ${{ inputs['comparison-mode'] == 'direct-builder' && inputs['direct-builder-artifact-run-id'] == '' }}
+    runs-on: windows-2022
+    timeout-minutes: 150
+    steps:
+      - name: Checkout test app
+        uses: actions/checkout@v6
+
+      - name: Build PHP master with shivammathur/php-windows-builder/php@master
+        uses: shivammathur/php-windows-builder/php@master
+        with:
+          php-version: master
+          arch: x64
+          ts: ts
+          github-token: ${{ github.token }}
+
+      - name: Prepare direct builder artifact
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem artifacts -Filter 'php-*.zip' |
+            Where-Object { $_.Name -notmatch 'src|devel|debug|test' } |
+            Sort-Object Name |
+            Select-Object -First 1
+
+          if ($null -eq $zip) {
+            throw 'Could not find a runtime zip in artifacts/'
+          }
+
+          $extractDir = Join-Path $env:RUNNER_TEMP 'direct-builder-extract'
+          $dest = Join-Path $env:RUNNER_TEMP 'php-master-direct-builder'
+
+          if (Test-Path $extractDir) {
+            Remove-Item $extractDir -Recurse -Force
+          }
+
+          if (Test-Path $dest) {
+            Remove-Item $dest -Recurse -Force
+          }
+
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath $extractDir -Force
+
+          $phpExe = Get-ChildItem $extractDir -Filter php.exe -Recurse | Select-Object -First 1
+          if ($null -eq $phpExe) {
+            throw "Could not find php.exe after extracting $($zip.Name)"
+          }
+
+          New-Item -ItemType Directory -Path $dest -Force | Out-Null
+          Copy-Item -Path (Join-Path $phpExe.Directory.FullName '*') -Destination $dest -Recurse -Force
+
+      - name: Smoke test direct builder artifact
+        shell: pwsh
+        run: |
+          $php = Join-Path $env:RUNNER_TEMP 'php-master-direct-builder\php.exe'
+          $meta = & $php -n -r "echo PHP_VERSION, ' ', PHP_ZTS ? 'TS' : 'NTS', ' ', ZEND_VM_KIND;"
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Direct builder PHP smoke test failed'
+          }
+
+          Write-Host $meta
+
+      - name: Upload direct builder artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-master-direct-builder-build
+          path: ${{ runner.temp }}/php-master-direct-builder
+          if-no-files-found: error
+
   benchmark:
-    name: Benchmark master baseline vs PR 21611 clang build
-    if: ${{ inputs['baseline-artifact-run-id'] != '' && inputs['clang-artifact-run-id'] != '' }}
+    name: Benchmark master baseline vs comparison build
+    if: ${{ inputs['baseline-artifact-run-id'] != '' && ((inputs['comparison-mode'] == 'clang' && inputs['clang-artifact-run-id'] != '') || (inputs['comparison-mode'] == 'direct-builder' && (inputs['direct-builder-artifact-run-id'] != '' || needs.build-direct-builder.result == 'success'))) }}
+    needs:
+      - build-direct-builder
     runs-on: windows-2022
     timeout-minutes: 60
     env:
       BASELINE_ARTIFACT_RUN_ID: ${{ inputs['baseline-artifact-run-id'] }}
       CLANG_ARTIFACT_RUN_ID: ${{ inputs['clang-artifact-run-id'] }}
+      COMPARISON_MODE: ${{ inputs['comparison-mode'] }}
+      DIRECT_BUILDER_ARTIFACT_RUN_ID: ${{ inputs['direct-builder-artifact-run-id'] }}
       BENCHMARK_ITERATIONS: 5
       PHPBENCH_ITERATIONS: 5
       K6_DURATION: 15s
@@ -212,12 +293,30 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Download clang build from previous run
+        if: ${{ env.COMPARISON_MODE == 'clang' }}
         uses: actions/download-artifact@v4
         with:
           name: php-master-pr-21611-clang-build
-          path: C:\php-master-pr-21611-clang
+          path: C:\php-master-custom
           repository: ${{ github.repository }}
           run-id: ${{ env.CLANG_ARTIFACT_RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Download direct builder build from current run
+        if: ${{ env.COMPARISON_MODE == 'direct-builder' && env.DIRECT_BUILDER_ARTIFACT_RUN_ID == '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: php-master-direct-builder-build
+          path: C:\php-master-custom
+
+      - name: Download direct builder build from previous run
+        if: ${{ env.COMPARISON_MODE == 'direct-builder' && env.DIRECT_BUILDER_ARTIFACT_RUN_ID != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: php-master-direct-builder-build
+          path: C:\php-master-custom
+          repository: ${{ github.repository }}
+          run-id: ${{ env.DIRECT_BUILDER_ARTIFACT_RUN_ID }}
           github-token: ${{ github.token }}
 
       - name: Install application dependencies
@@ -242,7 +341,7 @@ jobs:
         shell: pwsh
         run: |
           $baselinePhp = Get-ChildItem 'C:\php-master-msvc-pgo' -Filter php.exe -Recurse | Select-Object -First 1 -ExpandProperty FullName
-          $customPhp = Get-ChildItem 'C:\php-master-pr-21611-clang' -Filter php.exe -Recurse | Select-Object -First 1 -ExpandProperty FullName
+          $customPhp = Get-ChildItem 'C:\php-master-custom' -Filter php.exe -Recurse | Select-Object -First 1 -ExpandProperty FullName
 
           foreach ($php in @($baselinePhp, $customPhp)) {
             if ([string]::IsNullOrWhiteSpace($php) -or !(Test-Path $php)) {
@@ -433,13 +532,13 @@ jobs:
 
           $customMeta = & $env:CUSTOM_PHP -n -r "echo PHP_VERSION, ' ', PHP_ZTS ? 'TS' : 'NTS', ' ', ZEND_VM_KIND;"
           if ($LASTEXITCODE -ne 0) {
-            throw 'Clang PHP smoke test failed'
+            throw 'Custom PHP smoke test failed'
           }
 
           $baselinePhpBenchCommand = Get-Command $env:BASELINE_PHPBENCH_BIN -ErrorAction Stop
           $customPhpBenchCommand = Get-Command $env:CUSTOM_PHPBENCH_BIN -ErrorAction Stop
 
-          if ($customMeta -notmatch 'ZEND_VM_KIND_TAILCALL') {
+          if ($env:COMPARISON_MODE -eq 'clang' -and $customMeta -notmatch 'ZEND_VM_KIND_TAILCALL') {
             throw "Expected ZEND_VM_KIND_TAILCALL, got: $customMeta"
           }
 
@@ -450,7 +549,7 @@ jobs:
 
           $customExtensions = & $env:CUSTOM_PHP -c $env:CUSTOM_INI -r "echo (int)extension_loaded('mbstring'), (int)extension_loaded('intl'), (int)extension_loaded('Zend OPcache');"
           if ($LASTEXITCODE -ne 0 -or $customExtensions -ne '111') {
-            throw "Clang benchmark ini did not load required extensions: $customExtensions"
+            throw "Custom benchmark ini did not load required extensions: $customExtensions"
           }
 
           $baselineSqliteExtensions = & $env:BASELINE_PHP -c $env:BASELINE_INI -r "echo (int)extension_loaded('sqlite3'), (int)extension_loaded('pdo_sqlite');"
@@ -460,7 +559,7 @@ jobs:
 
           $customSqliteExtensions = & $env:CUSTOM_PHP -c $env:CUSTOM_INI -r "echo (int)extension_loaded('sqlite3'), (int)extension_loaded('pdo_sqlite');"
           if ($LASTEXITCODE -ne 0 -or $customSqliteExtensions -notin @('11', '01')) {
-            throw "Clang benchmark ini did not load SQLite extensions: $customSqliteExtensions"
+            throw "Custom benchmark ini did not load SQLite extensions: $customSqliteExtensions"
           }
 
           Write-Host $baselineMeta
@@ -475,6 +574,15 @@ jobs:
           $iterations = [int]$env:BENCHMARK_ITERATIONS
           $phpBenchIterations = [int]$env:PHPBENCH_ITERATIONS
           $resultsDir = Join-Path $env:RUNNER_TEMP 'benchmark-results'
+          $customLabel = if ($env:COMPARISON_MODE -eq 'clang') { 'master-pr-21611-clang' } else { 'master-direct-builder' }
+          $customArtifactSource = if ($env:COMPARISON_MODE -eq 'clang') {
+            $env:CLANG_ARTIFACT_RUN_ID
+          } elseif ([string]::IsNullOrWhiteSpace($env:DIRECT_BUILDER_ARTIFACT_RUN_ID)) {
+            'current run'
+          } else {
+            $env:DIRECT_BUILDER_ARTIFACT_RUN_ID
+          }
+          $customFilePrefix = $customLabel
           New-Item -ItemType Directory -Path $resultsDir -Force | Out-Null
 
           $timeBenchmarks = @(
@@ -813,7 +921,7 @@ jobs:
           }
 
           $baselineResults = Invoke-TimeBenchmarkSuite -Label 'master-msvc-pgo' -PhpExe $env:BASELINE_PHP -IniFile $env:BASELINE_INI -OutputFile (Join-Path $resultsDir 'master-msvc-pgo-time.json')
-          $customResults = Invoke-TimeBenchmarkSuite -Label 'master-pr-21611-clang' -PhpExe $env:CUSTOM_PHP -IniFile $env:CUSTOM_INI -OutputFile (Join-Path $resultsDir 'master-pr-21611-clang-time.json')
+          $customResults = Invoke-TimeBenchmarkSuite -Label $customLabel -PhpExe $env:CUSTOM_PHP -IniFile $env:CUSTOM_INI -OutputFile (Join-Path $resultsDir ("{0}-time.json" -f $customFilePrefix))
 
           $baselineThroughputResults = @(
             (Invoke-PhpBenchMetric -Label 'master-msvc-pgo' -PhpBinary $env:BASELINE_PHPBENCH_BIN -PhpConfig $env:BASELINE_PHPBENCH_OFF_CONFIG -BenchmarkName 'phpbench-no-jit' -OutputFile (Join-Path $resultsDir 'master-msvc-pgo-phpbench-no-jit.json') -XmlFile (Join-Path $resultsDir 'master-msvc-pgo-phpbench-no-jit.xml')),
@@ -822,16 +930,15 @@ jobs:
           )
 
           $customThroughputResults = @(
-            (Invoke-PhpBenchMetric -Label 'master-pr-21611-clang' -PhpBinary $env:CUSTOM_PHPBENCH_BIN -PhpConfig $env:CUSTOM_PHPBENCH_OFF_CONFIG -BenchmarkName 'phpbench-no-jit' -OutputFile (Join-Path $resultsDir 'master-pr-21611-clang-phpbench-no-jit.json') -XmlFile (Join-Path $resultsDir 'master-pr-21611-clang-phpbench-no-jit.xml')),
-            (Invoke-PhpBenchMetric -Label 'master-pr-21611-clang' -PhpBinary $env:CUSTOM_PHPBENCH_BIN -PhpConfig $env:CUSTOM_PHPBENCH_TRACING_CONFIG -BenchmarkName 'phpbench-jit' -OutputFile (Join-Path $resultsDir 'master-pr-21611-clang-phpbench-jit.json') -XmlFile (Join-Path $resultsDir 'master-pr-21611-clang-phpbench-jit.xml')),
-            (Invoke-HttpRpsMetric -Label 'master-pr-21611-clang' -PhpExe $env:CUSTOM_PHP -IniFile $env:CUSTOM_INI -Port 8092 -OutputFile (Join-Path $resultsDir 'master-pr-21611-clang-http-rps.json'))
+            (Invoke-PhpBenchMetric -Label $customLabel -PhpBinary $env:CUSTOM_PHPBENCH_BIN -PhpConfig $env:CUSTOM_PHPBENCH_OFF_CONFIG -BenchmarkName 'phpbench-no-jit' -OutputFile (Join-Path $resultsDir ("{0}-phpbench-no-jit.json" -f $customFilePrefix)) -XmlFile (Join-Path $resultsDir ("{0}-phpbench-no-jit.xml" -f $customFilePrefix))),
+            (Invoke-PhpBenchMetric -Label $customLabel -PhpBinary $env:CUSTOM_PHPBENCH_BIN -PhpConfig $env:CUSTOM_PHPBENCH_TRACING_CONFIG -BenchmarkName 'phpbench-jit' -OutputFile (Join-Path $resultsDir ("{0}-phpbench-jit.json" -f $customFilePrefix)) -XmlFile (Join-Path $resultsDir ("{0}-phpbench-jit.xml" -f $customFilePrefix))),
+            (Invoke-HttpRpsMetric -Label $customLabel -PhpExe $env:CUSTOM_PHP -IniFile $env:CUSTOM_INI -Port 8092 -OutputFile (Join-Path $resultsDir ("{0}-http-rps.json" -f $customFilePrefix)))
           )
 
           $baselineMeta = & $env:BASELINE_PHP -n -r "echo PHP_VERSION, '|', PHP_ZTS ? 'TS' : 'NTS';"
           $customMeta = & $env:CUSTOM_PHP -n -r "echo PHP_VERSION, '|', PHP_ZTS ? 'TS' : 'NTS', '|', ZEND_VM_KIND;"
 
           $baselineSource = if ([string]::IsNullOrWhiteSpace($env:BASELINE_ARTIFACT_RUN_ID)) { 'current run' } else { $env:BASELINE_ARTIFACT_RUN_ID }
-          $clangSource = if ([string]::IsNullOrWhiteSpace($env:CLANG_ARTIFACT_RUN_ID)) { 'current run' } else { $env:CLANG_ARTIFACT_RUN_ID }
 
           $summaryLines = @(
             '# PHP master Windows benchmark',
@@ -839,7 +946,7 @@ jobs:
             ('- Baseline: {0}' -f $baselineMeta),
             ('- Custom: {0}' -f $customMeta),
             ('- Baseline artifact source: {0}' -f $baselineSource),
-            ('- Clang artifact source: {0}' -f $clangSource),
+            ('- Custom artifact source: {0}' -f $customArtifactSource),
             ('- Iterations per benchmark: {0}' -f $iterations),
             ('- PHPBench iterations: {0}' -f $phpBenchIterations),
             ('- HTTP throughput benchmark: built-in server with k6 ({0} VUs for {1})' -f $env:K6_VUS, $env:K6_DURATION),
@@ -893,6 +1000,6 @@ jobs:
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         with:
-          name: php-master-pr-21611-benchmarks
+          name: php-master-comparison-benchmarks
           path: ${{ runner.temp }}/benchmark-results
           if-no-files-found: error
