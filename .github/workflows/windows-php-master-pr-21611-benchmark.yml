@@ -33,7 +33,7 @@ jobs:
       BUILDER_REF: ${{ github.event_name == 'workflow_dispatch' && inputs['builder-ref'] || 'codex/pgo-case-revival' }}
       PHP_SDK_REPOSITORY: ${{ github.event_name == 'workflow_dispatch' && inputs['php-sdk-repository'] || 'shivammathur/php-sdk-binary-tools' }}
       PHP_SDK_REF: ${{ github.event_name == 'workflow_dispatch' && inputs['php-sdk-ref'] || 'codex/pgo-case-revival' }}
-      PGO_CASES: ${{ github.event_name == 'workflow_dispatch' && inputs['pgo-cases'] || 'pgo01org,symfony_demo' }}
+      PGO_CASES: ${{ github.event_name == 'workflow_dispatch' && inputs['pgo-cases'] || 'pgo01org,symfony_demo,cli' }}
     steps:
       - name: Checkout test app
         uses: actions/checkout@v6

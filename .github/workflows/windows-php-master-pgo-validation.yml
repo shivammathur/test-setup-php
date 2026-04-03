@@ -30,11 +30,11 @@ on:
       validation-cases:
         description: Comma-separated PGO cases to validate before any build starts
         required: false
-        default: pgo01org,symfony_demo,homebrew_cli
+        default: pgo01org,symfony_demo,cli
       pgo-cases:
         description: Comma-separated PGO cases to use for the full PGO build
         required: false
-        default: pgo01org,symfony_demo,homebrew_cli
+        default: pgo01org,symfony_demo,cli
 
 permissions:
   contents: read
