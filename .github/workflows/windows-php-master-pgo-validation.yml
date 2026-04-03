@@ -1,0 +1,116 @@
+name: Validate PHP master PGO baseline on Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      builder-repository:
+        description: GitHub repository for php-windows-builder
+        required: false
+        default: shivammathur/php-windows-builder
+      builder-ref:
+        description: Git reference for php-windows-builder
+        required: false
+        default: codex/pgo-case-revival
+      php-sdk-repository:
+        description: GitHub repository for php-sdk-binary-tools
+        required: false
+        default: shivammathur/php-sdk-binary-tools
+      php-sdk-ref:
+        description: Git reference for php-sdk-binary-tools
+        required: false
+        default: codex/pgo-case-revival
+      pgo-cases:
+        description: Comma-separated PGO cases to validate
+        required: false
+        default: pgo01org,symfony_demo
+
+permissions:
+  contents: read
+
+jobs:
+  build-msvc-pgo-validation:
+    name: Validate PHP master baseline (MSVC+PGO)
+    runs-on: windows-2022
+    timeout-minutes: 150
+    steps:
+      - name: Checkout php-windows-builder
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs['builder-repository'] }}
+          ref: ${{ inputs['builder-ref'] }}
+          path: php-windows-builder
+
+      - name: Build PHP master with php-windows-builder
+        uses: ./php-windows-builder/php
+        with:
+          php-version: master
+          arch: x64
+          ts: ts
+          php-sdk-repository: ${{ inputs['php-sdk-repository'] }}
+          php-sdk-ref: ${{ inputs['php-sdk-ref'] }}
+          pgo-cases: ${{ inputs['pgo-cases'] }}
+          github-token: ${{ github.token }}
+
+      - name: Prepare baseline artifact
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem artifacts -Filter 'php-*.zip' |
+            Where-Object { $_.Name -notmatch 'src|devel|debug|test' } |
+            Sort-Object Name |
+            Select-Object -First 1
+
+          if ($null -eq $zip) {
+            throw 'Could not find a baseline runtime zip in artifacts/'
+          }
+
+          $extractDir = Join-Path $env:RUNNER_TEMP 'baseline-extract'
+          $dest = Join-Path $env:RUNNER_TEMP 'php-master-msvc-pgo'
+
+          if (Test-Path $extractDir) {
+            Remove-Item $extractDir -Recurse -Force
+          }
+
+          if (Test-Path $dest) {
+            Remove-Item $dest -Recurse -Force
+          }
+
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath $extractDir -Force
+
+          $phpExe = Get-ChildItem $extractDir -Filter php.exe -Recurse | Select-Object -First 1
+          if ($null -eq $phpExe) {
+            throw "Could not find php.exe after extracting $($zip.Name)"
+          }
+
+          New-Item -ItemType Directory -Path $dest -Force | Out-Null
+          Copy-Item -Path (Join-Path $phpExe.Directory.FullName '*') -Destination $dest -Recurse -Force
+
+      - name: Smoke test baseline build
+        shell: pwsh
+        run: |
+          $php = Join-Path $env:RUNNER_TEMP 'php-master-msvc-pgo\php.exe'
+          $meta = & $php -n -r "echo PHP_VERSION, ' ', PHP_ZTS ? 'TS' : 'NTS';"
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Baseline PHP smoke test failed'
+          }
+
+          Write-Host $meta
+
+      - name: Write validation summary
+        shell: pwsh
+        run: |
+          $lines = @(
+            '# Windows PGO validation',
+            '',
+            ('- Builder: {0}@{1}' -f '${{ inputs[''builder-repository''] }}', '${{ inputs[''builder-ref''] }}'),
+            ('- PHP SDK: {0}@{1}' -f '${{ inputs[''php-sdk-repository''] }}', '${{ inputs[''php-sdk-ref''] }}'),
+            ('- PGO cases: {0}' -f '${{ inputs[''pgo-cases''] }}')
+          )
+
+          Set-Content -Path $env:GITHUB_STEP_SUMMARY -Value $lines
+
+      - name: Upload baseline build
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-master-msvc-pgo-build
+          path: ${{ runner.temp }}/php-master-msvc-pgo
+          if-no-files-found: error

@@ -6,9 +6,32 @@ on:
       - codex/windows-php-854-pr21611-benchmark
   workflow_dispatch:
     inputs:
-      artifact-run-id:
-        description: Reuse build artifacts from a previous workflow run ID
+      baseline-artifact-run-id:
+        description: Reuse baseline build artifact from a previous workflow run ID
         required: false
+      clang-artifact-run-id:
+        description: Reuse clang build artifact from a previous workflow run ID
+        required: false
+      builder-repository:
+        description: GitHub repository for php-windows-builder
+        required: false
+        default: shivammathur/php-windows-builder
+      builder-ref:
+        description: Git reference for php-windows-builder
+        required: false
+        default: codex/pgo-case-revival
+      php-sdk-repository:
+        description: GitHub repository for php-sdk-binary-tools
+        required: false
+        default: shivammathur/php-sdk-binary-tools
+      php-sdk-ref:
+        description: Git reference for php-sdk-binary-tools
+        required: false
+        default: codex/pgo-case-revival
+      pgo-cases:
+        description: Comma-separated PGO cases for the MSVC baseline
+        required: false
+        default: pgo01org,symfony_demo
 
 permissions:
   contents: read
@@ -16,19 +39,36 @@ permissions:
 jobs:
   build-msvc-baseline:
     name: Build PHP master baseline (MSVC+PGO)
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs['artifact-run-id'] == '' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs['baseline-artifact-run-id'] == '' }}
     runs-on: windows-2022
     timeout-minutes: 150
+    env:
+      BUILDER_REPOSITORY: ${{ github.event_name == 'workflow_dispatch' && inputs['builder-repository'] || 'shivammathur/php-windows-builder' }}
+      BUILDER_REF: ${{ github.event_name == 'workflow_dispatch' && inputs['builder-ref'] || 'codex/pgo-case-revival' }}
+      PHP_SDK_REPOSITORY: ${{ github.event_name == 'workflow_dispatch' && inputs['php-sdk-repository'] || 'shivammathur/php-sdk-binary-tools' }}
+      PHP_SDK_REF: ${{ github.event_name == 'workflow_dispatch' && inputs['php-sdk-ref'] || 'codex/pgo-case-revival' }}
+      PGO_CASES: ${{ github.event_name == 'workflow_dispatch' && inputs['pgo-cases'] || 'pgo01org,symfony_demo' }}
     steps:
       - name: Checkout test app
         uses: actions/checkout@v6
 
+      - name: Checkout php-windows-builder
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.BUILDER_REPOSITORY }}
+          ref: ${{ env.BUILDER_REF }}
+          path: php-windows-builder
+
       - name: Build PHP master with php-windows-builder
-        uses: php/php-windows-builder/php@master
+        uses: ./php-windows-builder/php
         with:
           php-version: master
           arch: x64
           ts: ts
+          php-sdk-repository: ${{ env.PHP_SDK_REPOSITORY }}
+          php-sdk-ref: ${{ env.PHP_SDK_REF }}
+          pgo-cases: ${{ env.PGO_CASES }}
+          github-token: ${{ github.token }}
 
       - name: Prepare baseline artifact
         shell: pwsh
@@ -81,7 +121,7 @@ jobs:
 
   build-clang-pr:
     name: Build PHP master + PR 21611 (clang)
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs['artifact-run-id'] == '' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs['clang-artifact-run-id'] == '' }}
     runs-on: windows-2022
     timeout-minutes: 150
     env:
@@ -163,14 +203,15 @@ jobs:
 
   benchmark:
     name: Benchmark master baseline vs PR 21611 clang build
-    if: ${{ always() && ((github.event_name == 'workflow_dispatch' && inputs['artifact-run-id'] != '') || (needs.build-msvc-baseline.result == 'success' && needs.build-clang-pr.result == 'success')) }}
+    if: ${{ always() && ((github.event_name == 'workflow_dispatch' && ((inputs['baseline-artifact-run-id'] != '' || needs.build-msvc-baseline.result == 'success') && (inputs['clang-artifact-run-id'] != '' || needs.build-clang-pr.result == 'success'))) || (github.event_name != 'workflow_dispatch' && needs.build-msvc-baseline.result == 'success' && needs.build-clang-pr.result == 'success')) }}
     runs-on: windows-2022
     needs:
       - build-msvc-baseline
       - build-clang-pr
     timeout-minutes: 60
     env:
-      ARTIFACT_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs['artifact-run-id'] || '' }}
+      BASELINE_ARTIFACT_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs['baseline-artifact-run-id'] || '' }}
+      CLANG_ARTIFACT_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs['clang-artifact-run-id'] || '' }}
       BENCHMARK_ITERATIONS: 5
     steps:
       - name: Checkout test app
@@ -185,37 +226,37 @@ jobs:
           coverage: none
 
       - name: Download baseline build
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs['artifact-run-id'] == '' }}
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs['baseline-artifact-run-id'] == '' }}
         uses: actions/download-artifact@v4
         with:
           name: php-master-msvc-pgo-build
           path: C:\php-master-msvc-pgo
 
       - name: Download clang build
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs['artifact-run-id'] == '' }}
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs['clang-artifact-run-id'] == '' }}
         uses: actions/download-artifact@v4
         with:
           name: php-master-pr-21611-clang-build
           path: C:\php-master-pr-21611-clang
 
       - name: Download baseline build from previous run
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs['artifact-run-id'] != '' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs['baseline-artifact-run-id'] != '' }}
         uses: actions/download-artifact@v4
         with:
           name: php-master-msvc-pgo-build
           path: C:\php-master-msvc-pgo
           repository: ${{ github.repository }}
-          run-id: ${{ inputs['artifact-run-id'] }}
+          run-id: ${{ inputs['baseline-artifact-run-id'] }}
           github-token: ${{ github.token }}
 
       - name: Download clang build from previous run
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs['artifact-run-id'] != '' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs['clang-artifact-run-id'] != '' }}
         uses: actions/download-artifact@v4
         with:
           name: php-master-pr-21611-clang-build
           path: C:\php-master-pr-21611-clang
           repository: ${{ github.repository }}
-          run-id: ${{ inputs['artifact-run-id'] }}
+          run-id: ${{ inputs['clang-artifact-run-id'] }}
           github-token: ${{ github.token }}
 
       - name: Install application dependencies
@@ -427,11 +468,16 @@ jobs:
           $baselineMeta = & $env:BASELINE_PHP -n -r "echo PHP_VERSION, '|', PHP_ZTS ? 'TS' : 'NTS';"
           $customMeta = & $env:CUSTOM_PHP -n -r "echo PHP_VERSION, '|', PHP_ZTS ? 'TS' : 'NTS', '|', ZEND_VM_KIND;"
 
+          $baselineSource = if ([string]::IsNullOrWhiteSpace($env:BASELINE_ARTIFACT_RUN_ID)) { 'current run' } else { $env:BASELINE_ARTIFACT_RUN_ID }
+          $clangSource = if ([string]::IsNullOrWhiteSpace($env:CLANG_ARTIFACT_RUN_ID)) { 'current run' } else { $env:CLANG_ARTIFACT_RUN_ID }
+
           $summaryLines = @(
             '# PHP master Windows benchmark',
             '',
             ('- Baseline: {0}' -f $baselineMeta),
             ('- Custom: {0}' -f $customMeta),
+            ('- Baseline artifact source: {0}' -f $baselineSource),
+            ('- Clang artifact source: {0}' -f $clangSource),
             ('- Iterations per benchmark: {0}' -f $iterations),
             '',
             '| Benchmark | Baseline avg (ms) | PR avg (ms) | Delta | Speedup |',
