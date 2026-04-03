@@ -260,13 +260,17 @@ jobs:
               $body = curl_exec($ch);
               if (false === $body) {
                   $error = curl_error($ch);
-                  curl_close($ch);
+                  if (PHP_VERSION_ID < 80500) {
+                      curl_close($ch);
+                  }
                   throw new RuntimeException("Failed to fetch {$url}: {$error}");
               }
 
               $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
               $effectiveUrl = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
-              curl_close($ch);
+              if (PHP_VERSION_ID < 80500) {
+                  curl_close($ch);
+              }
 
               echo "Fetched {$effectiveUrl} [{$status}]\n";
 
