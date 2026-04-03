@@ -250,6 +250,8 @@ jobs:
             }
           }
 
+          $hostPhp = (Get-Command php -ErrorAction Stop).Source
+
           $baselineDir = Split-Path -Parent $baselinePhp
           $customDir = Split-Path -Parent $customPhp
           $baselinePhpBenchBin = 'phpbench-baseline.exe'
@@ -361,6 +363,7 @@ jobs:
 
           "BASELINE_PHP=$baselinePhp" >> $env:GITHUB_ENV
           "CUSTOM_PHP=$customPhp" >> $env:GITHUB_ENV
+          "HOST_PHP=$hostPhp" >> $env:GITHUB_ENV
           "BASELINE_INI=$baselineIni" >> $env:GITHUB_ENV
           "CUSTOM_INI=$customIni" >> $env:GITHUB_ENV
           "BASELINE_PHPBENCH_BIN=$baselinePhpBenchBin" >> $env:GITHUB_ENV
@@ -404,6 +407,7 @@ jobs:
 
           Write-Host $baselineMeta
           Write-Host $customMeta
+          Write-Host ('Resolved host PHP: {0}' -f $env:HOST_PHP)
           Write-Host ('Resolved baseline PHPBench binary: {0}' -f $baselinePhpBenchCommand.Source)
           Write-Host ('Resolved custom PHPBench binary: {0}' -f $customPhpBenchCommand.Source)
 
@@ -525,7 +529,7 @@ jobs:
               '--php-disable-ini'
             )
 
-            $output = & php @args 2>&1
+            $output = & $env:HOST_PHP @args 2>&1
             if ($LASTEXITCODE -ne 0) {
               $outputText = ($output | Out-String).Trim()
               if (![string]::IsNullOrWhiteSpace($outputText)) {
