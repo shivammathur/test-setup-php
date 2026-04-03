@@ -438,7 +438,7 @@ jobs:
 
             $delta = [Math]::Round((($baselineResult.avg_ms - $customResult.avg_ms) / $baselineResult.avg_ms) * 100, 2)
             $speedup = [Math]::Round($baselineResult.avg_ms / $customResult.avg_ms, 2)
-            $deltaLabel = if ($delta -ge 0) { "+$delta%" } else { "$delta%" }
+            $deltaLabel = if ($delta -ge 0) { ('+{0}%' -f $delta) } else { ('{0}%' -f $delta) }
             $summaryRow = '| {0} | {1} | {2} | {3} | {4}x |' -f $baselineResult.benchmark, $baselineResult.avg_ms, $customResult.avg_ms, $deltaLabel, $speedup
 
             Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $summaryRow
