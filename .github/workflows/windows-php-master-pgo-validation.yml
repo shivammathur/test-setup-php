@@ -38,7 +38,7 @@ permissions:
 jobs:
   validate-pgo-scripts:
     name: Validate PHP SDK PGO init/up/down
-    if: ${{ inputs['validation-mode'] != 'build' }}
+    if: ${{ inputs['validation-mode'] == 'script' || inputs['validation-mode'] == 'build' }}
     runs-on: windows-2022
     timeout-minutes: 90
     env:
@@ -220,6 +220,22 @@ jobs:
               $controller = new SDK\Build\PGO\Controller($name, null, $cases ?: null);
               $controller->handle($force);
           }
+
+          foreach ($cases as $case) {
+              $jobFile = getenv('PHP_SDK_ROOT_PATH')
+                  . DIRECTORY_SEPARATOR . 'pgo'
+                  . DIRECTORY_SEPARATOR . 'work'
+                  . DIRECTORY_SEPARATOR . 'job'
+                  . DIRECTORY_SEPARATOR . $case . '.txt';
+              if (!is_file($jobFile)) {
+                  throw new RuntimeException("Expected training job file {$jobFile} was not created");
+              }
+
+              $urls = array_values(array_filter(array_map('trim', file($jobFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: array())));
+              if (empty($urls)) {
+                  throw new RuntimeException("Training job file {$jobFile} is empty");
+              }
+          }
           '@
           Set-Content -Path $script -Value $scriptContent
 
@@ -249,7 +265,9 @@ jobs:
 
   build-msvc-pgo-validation:
     name: Validate PHP master baseline (MSVC+PGO)
-    if: ${{ inputs['validation-mode'] == 'build' }}
+    if: ${{ inputs['validation-mode'] == 'build' && needs.validate-pgo-scripts.result == 'success' }}
+    needs:
+      - validate-pgo-scripts
     runs-on: windows-2022
     timeout-minutes: 150
     env:
