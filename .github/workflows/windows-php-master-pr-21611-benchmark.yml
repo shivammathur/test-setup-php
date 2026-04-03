@@ -187,6 +187,9 @@ jobs:
       BASELINE_ARTIFACT_RUN_ID: ${{ inputs['baseline-artifact-run-id'] }}
       CLANG_ARTIFACT_RUN_ID: ${{ inputs['clang-artifact-run-id'] }}
       BENCHMARK_ITERATIONS: 5
+      PHPBENCH_ITERATIONS: 5
+      K6_DURATION: 15s
+      K6_VUS: 10
     steps:
       - name: Checkout test app
         uses: actions/checkout@v6
@@ -221,7 +224,19 @@ jobs:
         shell: pwsh
         run: |
           composer install --no-progress --prefer-dist --optimize-autoloader
+          composer require --dev phpbench/phpbench:^1.6 --no-interaction --no-progress
           composer run-script post-install-cmd --no-interaction
+
+      - name: Install k6
+        shell: pwsh
+        run: |
+          if (Get-Command k6 -ErrorAction SilentlyContinue) {
+            k6 version
+            exit 0
+          }
+
+          choco install k6 -y --no-progress
+          k6 version
 
       - name: Prepare benchmark configuration
         shell: pwsh
@@ -306,16 +321,44 @@ jobs:
             Set-Content -Path $IniPath -Value $lines
           }
 
+          function New-PhpBenchWrapper {
+            param(
+              [string]$PhpExe,
+              [string]$IniPath,
+              [string]$JitMode,
+              [string]$WrapperPath
+            )
+
+            $content = @(
+              '@echo off',
+              ('"{0}" -c "{1}" -d opcache.jit={2} %*' -f $PhpExe, $IniPath, $JitMode)
+            )
+
+            Set-Content -Path $WrapperPath -Value $content -Encoding Ascii
+          }
+
           $baselineIni = Join-Path $env:RUNNER_TEMP 'baseline-bench.ini'
           $customIni = Join-Path $env:RUNNER_TEMP 'custom-bench.ini'
+          $baselinePhpBenchOff = Join-Path $env:RUNNER_TEMP 'baseline-phpbench-off.cmd'
+          $baselinePhpBenchTracing = Join-Path $env:RUNNER_TEMP 'baseline-phpbench-tracing.cmd'
+          $customPhpBenchOff = Join-Path $env:RUNNER_TEMP 'custom-phpbench-off.cmd'
+          $customPhpBenchTracing = Join-Path $env:RUNNER_TEMP 'custom-phpbench-tracing.cmd'
 
           New-BenchmarkIni -PhpDir $baselineDir -IniPath $baselineIni
           New-BenchmarkIni -PhpDir $customDir -IniPath $customIni
+          New-PhpBenchWrapper -PhpExe $baselinePhp -IniPath $baselineIni -JitMode 'off' -WrapperPath $baselinePhpBenchOff
+          New-PhpBenchWrapper -PhpExe $baselinePhp -IniPath $baselineIni -JitMode 'tracing' -WrapperPath $baselinePhpBenchTracing
+          New-PhpBenchWrapper -PhpExe $customPhp -IniPath $customIni -JitMode 'off' -WrapperPath $customPhpBenchOff
+          New-PhpBenchWrapper -PhpExe $customPhp -IniPath $customIni -JitMode 'tracing' -WrapperPath $customPhpBenchTracing
 
           "BASELINE_PHP=$baselinePhp" >> $env:GITHUB_ENV
           "CUSTOM_PHP=$customPhp" >> $env:GITHUB_ENV
           "BASELINE_INI=$baselineIni" >> $env:GITHUB_ENV
           "CUSTOM_INI=$customIni" >> $env:GITHUB_ENV
+          "BASELINE_PHPBENCH_OFF=$baselinePhpBenchOff" >> $env:GITHUB_ENV
+          "BASELINE_PHPBENCH_TRACING=$baselinePhpBenchTracing" >> $env:GITHUB_ENV
+          "CUSTOM_PHPBENCH_OFF=$customPhpBenchOff" >> $env:GITHUB_ENV
+          "CUSTOM_PHPBENCH_TRACING=$customPhpBenchTracing" >> $env:GITHUB_ENV
 
       - name: Smoke test both PHP executables
         shell: pwsh
@@ -352,10 +395,11 @@ jobs:
         run: |
           $env:PHP_INI_SCAN_DIR = ''
           $iterations = [int]$env:BENCHMARK_ITERATIONS
+          $phpBenchIterations = [int]$env:PHPBENCH_ITERATIONS
           $resultsDir = Join-Path $env:RUNNER_TEMP 'benchmark-results'
           New-Item -ItemType Directory -Path $resultsDir -Force | Out-Null
 
-          $benchmarks = @(
+          $timeBenchmarks = @(
             @{
               Name = 'vm-jit-off'
               Args = @('-d', 'opcache.jit=off', '.github/benchmarks/vm.php', '50000')
@@ -374,7 +418,7 @@ jobs:
             }
           )
 
-          function Invoke-BenchmarkSuite {
+          function Invoke-TimeBenchmarkSuite {
             param(
               [string]$Label,
               [string]$PhpExe,
@@ -384,7 +428,7 @@ jobs:
 
             $suite = @()
 
-            foreach ($benchmark in $benchmarks) {
+            foreach ($benchmark in $timeBenchmarks) {
               $times = @()
 
               for ($run = 1; $run -le $iterations; $run++) {
@@ -420,8 +464,230 @@ jobs:
             return $suite
           }
 
-          $baselineResults = Invoke-BenchmarkSuite -Label 'master-msvc-pgo' -PhpExe $env:BASELINE_PHP -IniFile $env:BASELINE_INI -OutputFile (Join-Path $resultsDir 'master-msvc-pgo.json')
-          $customResults = Invoke-BenchmarkSuite -Label 'master-pr-21611-clang' -PhpExe $env:CUSTOM_PHP -IniFile $env:CUSTOM_INI -OutputFile (Join-Path $resultsDir 'master-pr-21611-clang.json')
+          function Invoke-PhpBenchMetric {
+            param(
+              [string]$Label,
+              [string]$Wrapper,
+              [string]$BenchmarkName,
+              [string]$OutputFile,
+              [string]$XmlFile
+            )
+
+            $args = @(
+              'vendor/bin/phpbench',
+              'run',
+              '.github/benchmarks/phpbench',
+              '--progress=none',
+              '--report=default',
+              '--filter',
+              'SyntheticCliBench::benchCompositeWorkload',
+              '--dump-file',
+              $XmlFile,
+              '--iterations',
+              $phpBenchIterations,
+              '--revs',
+              '1',
+              '--warmup',
+              '1',
+              '--php-binary',
+              $Wrapper
+            )
+
+            $output = & php @args 2>&1
+            if ($LASTEXITCODE -ne 0) {
+              $outputText = ($output | Out-String).Trim()
+              if (![string]::IsNullOrWhiteSpace($outputText)) {
+                Write-Host $outputText
+              }
+              throw ('{0} failed benchmark ''{1}''' -f $Label, $BenchmarkName)
+            }
+
+            [xml]$xml = Get-Content -Path $XmlFile -Raw
+            $variant = $xml.phpbench.suite.benchmark.subject.variant
+            if ($null -eq $variant -or $null -eq $variant.stats) {
+              throw ('Missing PHPBench stats for {0}' -f $BenchmarkName)
+            }
+
+            $meanUs = [double]$variant.stats.mean
+            $opsPerSecond = [Math]::Round(1000000 / $meanUs, 2)
+
+            $result = [pscustomobject]@{
+              php = $Label
+              benchmark = $BenchmarkName
+              unit = 'ops/s'
+              value = $opsPerSecond
+              mean_us = [Math]::Round($meanUs, 2)
+              revs = [int]$variant.revs
+              iterations = $phpBenchIterations
+            }
+
+            $result | ConvertTo-Json -Depth 4 | Set-Content -Path $OutputFile
+            return $result
+          }
+
+          function Wait-ForHttp {
+            param(
+              [string]$Url,
+              [int]$Attempts = 30
+            )
+
+            for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+              try {
+                $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 5
+                if ($response.StatusCode -eq 200) {
+                  return
+                }
+              } catch {
+              }
+
+              Start-Sleep -Seconds 1
+            }
+
+            throw "Timed out waiting for $Url"
+          }
+
+          function Start-PhpHttpServer {
+            param(
+              [string]$PhpExe,
+              [string]$IniFile,
+              [string]$JitMode,
+              [int]$Port,
+              [string]$Label
+            )
+
+            $stdout = Join-Path $resultsDir ('{0}-{1}-stdout.log' -f $Label, $Port)
+            $stderr = Join-Path $resultsDir ('{0}-{1}-stderr.log' -f $Label, $Port)
+            $docroot = Join-Path $PWD.Path 'webroot'
+            $router = Join-Path $PWD.Path 'webroot\index.php'
+            $url = 'http://127.0.0.1:{0}/' -f $Port
+            $args = @(
+              '-c',
+              $IniFile,
+              '-d',
+              ('opcache.jit={0}' -f $JitMode),
+              '-S',
+              ('127.0.0.1:{0}' -f $Port),
+              '-t',
+              $docroot,
+              $router
+            )
+
+            $process = Start-Process -FilePath $PhpExe -ArgumentList $args -WorkingDirectory $PWD.Path -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
+
+            try {
+              Wait-ForHttp -Url $url
+            } catch {
+              if (!$process.HasExited) {
+                Stop-Process -Id $process.Id -Force
+              }
+
+              if (Test-Path $stdout) {
+                Get-Content $stdout | Write-Host
+              }
+
+              if (Test-Path $stderr) {
+                Get-Content $stderr | Write-Host
+              }
+
+              throw
+            }
+
+            return [pscustomobject]@{
+              Process = $process
+              Url = $url
+              StdOut = $stdout
+              StdErr = $stderr
+            }
+          }
+
+          function Stop-PhpHttpServer {
+            param(
+              [pscustomobject]$Server
+            )
+
+            if ($null -ne $Server -and $null -ne $Server.Process -and !$Server.Process.HasExited) {
+              Stop-Process -Id $Server.Process.Id -Force
+            }
+          }
+
+          function Invoke-HttpRpsMetric {
+            param(
+              [string]$Label,
+              [string]$PhpExe,
+              [string]$IniFile,
+              [int]$Port,
+              [string]$OutputFile
+            )
+
+            $server = $null
+
+            try {
+              $server = Start-PhpHttpServer -PhpExe $PhpExe -IniFile $IniFile -JitMode 'off' -Port $Port -Label $Label
+              $summaryFile = Join-Path $resultsDir ('{0}-http-rps-k6.json' -f $Label)
+
+              $env:K6_TARGET = $server.Url
+              $env:K6_NEEDLE = 'CakePHP'
+
+              $output = & k6 run --vus $env:K6_VUS --duration $env:K6_DURATION --summary-export $summaryFile .github/benchmarks/http_rps.js 2>&1
+              if ($LASTEXITCODE -ne 0) {
+                $outputText = ($output | Out-String).Trim()
+                if (![string]::IsNullOrWhiteSpace($outputText)) {
+                  Write-Host $outputText
+                }
+                throw ('{0} failed benchmark ''http-rps''' -f $Label)
+              }
+
+              $summary = Get-Content -Path $summaryFile -Raw | ConvertFrom-Json
+              $rate = [double]$summary.metrics.http_reqs.values.rate
+              $p95 = [double]$summary.metrics.http_req_duration.values.'p(95)'
+
+              $result = [pscustomobject]@{
+                php = $Label
+                benchmark = 'http-rps'
+                unit = 'req/s'
+                value = [Math]::Round($rate, 2)
+                p95_ms = [Math]::Round($p95, 2)
+                vus = [int]$env:K6_VUS
+                duration = $env:K6_DURATION
+              }
+
+              $result | ConvertTo-Json -Depth 4 | Set-Content -Path $OutputFile
+              return $result
+            } finally {
+              Stop-PhpHttpServer -Server $server
+            }
+          }
+
+          function Format-Rate {
+            param(
+              [double]$Value
+            )
+
+            if ($Value -ge 1000000) {
+              return ('{0}M' -f [Math]::Round($Value / 1000000, 2))
+            }
+
+            if ($Value -ge 1000) {
+              return ('{0}K' -f [Math]::Round($Value / 1000, 2))
+            }
+
+            return [Math]::Round($Value, 2).ToString()
+          }
+
+          $baselineResults = Invoke-TimeBenchmarkSuite -Label 'master-msvc-pgo' -PhpExe $env:BASELINE_PHP -IniFile $env:BASELINE_INI -OutputFile (Join-Path $resultsDir 'master-msvc-pgo-time.json')
+          $customResults = Invoke-TimeBenchmarkSuite -Label 'master-pr-21611-clang' -PhpExe $env:CUSTOM_PHP -IniFile $env:CUSTOM_INI -OutputFile (Join-Path $resultsDir 'master-pr-21611-clang-time.json')
+
+          $baselineThroughputResults = @(
+            (Invoke-PhpBenchMetric -Label 'master-msvc-pgo' -Wrapper $env:BASELINE_PHPBENCH_OFF -BenchmarkName 'phpbench-no-jit' -OutputFile (Join-Path $resultsDir 'master-msvc-pgo-phpbench-no-jit.json') -XmlFile (Join-Path $resultsDir 'master-msvc-pgo-phpbench-no-jit.xml')),
+            (Invoke-PhpBenchMetric -Label 'master-msvc-pgo' -Wrapper $env:BASELINE_PHPBENCH_TRACING -BenchmarkName 'phpbench-jit' -OutputFile (Join-Path $resultsDir 'master-msvc-pgo-phpbench-jit.json') -XmlFile (Join-Path $resultsDir 'master-msvc-pgo-phpbench-jit.xml')),
+            (Invoke-HttpRpsMetric -Label 'master-msvc-pgo' -PhpExe $env:BASELINE_PHP -IniFile $env:BASELINE_INI -Port 8091 -OutputFile (Join-Path $resultsDir 'master-msvc-pgo-http-rps.json'))
+          )
+
+          $customThroughputResults = @(
+            (Invoke-PhpBenchMetric -Label 'master-pr-21611-clang' -Wrapper $env:CUSTOM_PHPBENCH_OFF -BenchmarkName 'phpbench-no-jit' -OutputFile (Join-Path $resultsDir 'master-pr-21611-clang-phpbench-no-jit.json') -XmlFile (Join-Path $resultsDir 'master-pr-21611-clang-phpbench-no-jit.xml')),
+            (Invoke-PhpBenchMetric -Label 'master-pr-21611-clang' -Wrapper $env:CUSTOM_PHPBENCH_TRACING -BenchmarkName 'phpbench-jit' -OutputFile (Join-Path $resultsDir 'master-pr-21611-clang-phpbench-jit.json') -XmlFile (Join-Path $resultsDir 'master-pr-21611-clang-phpbench-jit.xml')),
+            (Invoke-HttpRpsMetric -Label 'master-pr-21611-clang' -PhpExe $env:CUSTOM_PHP -IniFile $env:CUSTOM_INI -Port 8092 -OutputFile (Join-Path $resultsDir 'master-pr-21611-clang-http-rps.json'))
+          )
 
           $baselineMeta = & $env:BASELINE_PHP -n -r "echo PHP_VERSION, '|', PHP_ZTS ? 'TS' : 'NTS';"
           $customMeta = & $env:CUSTOM_PHP -n -r "echo PHP_VERSION, '|', PHP_ZTS ? 'TS' : 'NTS', '|', ZEND_VM_KIND;"
@@ -437,6 +703,10 @@ jobs:
             ('- Baseline artifact source: {0}' -f $baselineSource),
             ('- Clang artifact source: {0}' -f $clangSource),
             ('- Iterations per benchmark: {0}' -f $iterations),
+            ('- PHPBench iterations: {0}' -f $phpBenchIterations),
+            ('- HTTP throughput benchmark: built-in server with k6 ({0} VUs for {1})' -f $env:K6_VUS, $env:K6_DURATION),
+            '',
+            '## Time-based benchmarks (lower is better)',
             '',
             '| Benchmark | Baseline avg (ms) | PR avg (ms) | Delta | Speedup |',
             '| --- | ---: | ---: | ---: | ---: |'
@@ -453,6 +723,29 @@ jobs:
             $speedup = [Math]::Round($baselineResult.avg_ms / $customResult.avg_ms, 2)
             $deltaLabel = if ($delta -ge 0) { ('+{0}%' -f $delta) } else { ('{0}%' -f $delta) }
             $summaryRow = '| {0} | {1} | {2} | {3} | {4}x |' -f $baselineResult.benchmark, $baselineResult.avg_ms, $customResult.avg_ms, $deltaLabel, $speedup
+
+            $summaryLines += $summaryRow
+          }
+
+          $summaryLines += @(
+            '',
+            '## Throughput benchmarks (higher is better)',
+            '',
+            '| Benchmark | Baseline | PR | Delta | Speedup |',
+            '| --- | ---: | ---: | ---: | ---: |'
+          )
+
+          foreach ($baselineResult in $baselineThroughputResults) {
+            $customResult = $customThroughputResults | Where-Object benchmark -EQ $baselineResult.benchmark
+
+            if ($null -eq $customResult) {
+              throw ('Missing custom throughput result for {0}' -f $baselineResult.benchmark)
+            }
+
+            $delta = [Math]::Round((($customResult.value - $baselineResult.value) / $baselineResult.value) * 100, 2)
+            $speedup = [Math]::Round($customResult.value / $baselineResult.value, 2)
+            $deltaLabel = if ($delta -ge 0) { ('+{0}%' -f $delta) } else { ('{0}%' -f $delta) }
+            $summaryRow = '| {0} | {1} {2} | {3} {4} | {5} | {6}x |' -f $baselineResult.benchmark, (Format-Rate -Value $baselineResult.value), $baselineResult.unit, (Format-Rate -Value $customResult.value), $customResult.unit, $deltaLabel, $speedup
 
             $summaryLines += $summaryRow
           }

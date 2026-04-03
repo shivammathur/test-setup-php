@@ -27,10 +27,14 @@ on:
         description: Git reference for php-sdk-binary-tools
         required: false
         default: codex/pgo-case-revival
-      pgo-cases:
-        description: Comma-separated PGO cases to validate
+      validation-cases:
+        description: Comma-separated PGO cases to validate before any build starts
         required: false
-        default: symfony_demo
+        default: homebrew_cli
+      pgo-cases:
+        description: Comma-separated PGO cases to use for the full PGO build
+        required: false
+        default: pgo01org,symfony_demo,homebrew_cli
 
 permissions:
   contents: read
@@ -45,7 +49,7 @@ jobs:
       PHP_ARTIFACT_RUN_ID: ${{ inputs['php-artifact-run-id'] }}
       SDK_REPOSITORY: ${{ inputs['php-sdk-repository'] }}
       SDK_REF: ${{ inputs['php-sdk-ref'] }}
-      PGO_CASES: ${{ inputs['pgo-cases'] }}
+      VALIDATION_CASES: ${{ inputs['validation-cases'] }}
     steps:
       - name: Checkout php-sdk-binary-tools
         uses: actions/checkout@v6
@@ -198,7 +202,7 @@ jobs:
           <?php
           require getenv('PHP_SDK_ROOT_PATH') . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'php' . DIRECTORY_SEPARATOR . 'autoload.php';
 
-          $cases = array_values(array_filter(array_map('trim', explode(',', getenv('PGO_CASES') ?: ''))));
+          $cases = array_values(array_filter(array_map('trim', explode(',', getenv('VALIDATION_CASES') ?: ''))));
           $depsDir = getenv('PGO_DEPS_DIR');
           if (!$depsDir) {
               throw new RuntimeException('PGO_DEPS_DIR is not set');
@@ -235,6 +239,22 @@ jobs:
               if (empty($urls)) {
                   throw new RuntimeException("Training job file {$jobFile} is empty");
               }
+
+              $caseConfigFile = getenv('PHP_SDK_ROOT_PATH')
+                  . DIRECTORY_SEPARATOR . 'pgo'
+                  . DIRECTORY_SEPARATOR . 'cases'
+                  . DIRECTORY_SEPARATOR . $case
+                  . DIRECTORY_SEPARATOR . 'phpsdk_pgo.json';
+              $caseConfig = is_file($caseConfigFile) ? json_decode((string)file_get_contents($caseConfigFile), true) : array();
+              $caseType = is_array($caseConfig) && isset($caseConfig['type']) ? strtolower((string)$caseConfig['type']) : 'web';
+
+              if ('cli' === $caseType) {
+                  foreach ($urls as $command) {
+                      if (!is_file($command)) {
+                          throw new RuntimeException("CLI training command target {$command} does not exist");
+                      }
+                  }
+              }
           }
           '@
           Set-Content -Path $script -Value $scriptContent
@@ -258,7 +278,8 @@ jobs:
             '',
             ('- PHP artifact run: {0}' -f $env:PHP_ARTIFACT_RUN_ID),
             ('- PHP SDK: {0}@{1}' -f $env:SDK_REPOSITORY, $env:SDK_REF),
-            ('- PGO cases: {0}' -f $env:PGO_CASES)
+            ('- Validation cases: {0}' -f $env:VALIDATION_CASES),
+            ('- Build cases: {0}' -f '${{ inputs['pgo-cases'] }}')
           )
 
           Set-Content -Path $env:GITHUB_STEP_SUMMARY -Value $lines
