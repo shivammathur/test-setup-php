@@ -279,57 +279,62 @@ jobs:
               }
           };
 
-          $initController = new SDK\Build\PGO\Controller('init', null, $cases ?: null);
-          echo "Running init\n";
-          $initController->handle(false);
-
-          $downController = new SDK\Build\PGO\Controller('down', null, $cases ?: null);
-
           try {
-              $upController = new SDK\Build\PGO\Controller('up', null, $cases ?: null);
-              echo "Running up\n";
-              $upController->handle(false);
+              $initController = new SDK\Build\PGO\Controller('init', null, $cases ?: null);
+              echo "Running init\n";
+              $initController->handle(false);
 
-              foreach ($cases as $case) {
-                  $jobFile = getenv('PHP_SDK_ROOT_PATH')
-                      . DIRECTORY_SEPARATOR . 'pgo'
-                      . DIRECTORY_SEPARATOR . 'work'
-                      . DIRECTORY_SEPARATOR . 'job'
-                      . DIRECTORY_SEPARATOR . $case . '.txt';
-                  if (!is_file($jobFile)) {
-                      throw new RuntimeException("Expected training job file {$jobFile} was not created");
-                  }
+              $downController = new SDK\Build\PGO\Controller('down', null, $cases ?: null);
 
-                  $urls = array_values(array_filter(array_map('trim', file($jobFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: array())));
-                  if (empty($urls)) {
-                      throw new RuntimeException("Training job file {$jobFile} is empty");
-                  }
+              try {
+                  $upController = new SDK\Build\PGO\Controller('up', null, $cases ?: null);
+                  echo "Running up\n";
+                  $upController->handle(false);
 
-                  $caseConfigFile = getenv('PHP_SDK_ROOT_PATH')
-                      . DIRECTORY_SEPARATOR . 'pgo'
-                      . DIRECTORY_SEPARATOR . 'cases'
-                      . DIRECTORY_SEPARATOR . $case
-                      . DIRECTORY_SEPARATOR . 'phpsdk_pgo.json';
-                  $caseConfig = is_file($caseConfigFile) ? json_decode((string)file_get_contents($caseConfigFile), true) : array();
-                  $caseType = is_array($caseConfig) && isset($caseConfig['type']) ? strtolower((string)$caseConfig['type']) : 'web';
+                  foreach ($cases as $case) {
+                      $jobFile = getenv('PHP_SDK_ROOT_PATH')
+                          . DIRECTORY_SEPARATOR . 'pgo'
+                          . DIRECTORY_SEPARATOR . 'work'
+                          . DIRECTORY_SEPARATOR . 'job'
+                          . DIRECTORY_SEPARATOR . $case . '.txt';
+                      if (!is_file($jobFile)) {
+                          throw new RuntimeException("Expected training job file {$jobFile} was not created");
+                      }
 
-                  if ('cli' === $caseType) {
-                      foreach ($urls as $command) {
-                          if (!is_file($command)) {
-                              throw new RuntimeException("CLI training command target {$command} does not exist");
+                      $urls = array_values(array_filter(array_map('trim', file($jobFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: array())));
+                      if (empty($urls)) {
+                          throw new RuntimeException("Training job file {$jobFile} is empty");
+                      }
+
+                      $caseConfigFile = getenv('PHP_SDK_ROOT_PATH')
+                          . DIRECTORY_SEPARATOR . 'pgo'
+                          . DIRECTORY_SEPARATOR . 'cases'
+                          . DIRECTORY_SEPARATOR . $case
+                          . DIRECTORY_SEPARATOR . 'phpsdk_pgo.json';
+                      $caseConfig = is_file($caseConfigFile) ? json_decode((string)file_get_contents($caseConfigFile), true) : array();
+                      $caseType = is_array($caseConfig) && isset($caseConfig['type']) ? strtolower((string)$caseConfig['type']) : 'web';
+
+                      if ('cli' === $caseType) {
+                          foreach ($urls as $command) {
+                              if (!is_file($command)) {
+                                  throw new RuntimeException("CLI training command target {$command} does not exist");
+                              }
+
+                              $runPhpScript($command);
                           }
-
-                          $runPhpScript($command);
-                      }
-                  } else {
-                      foreach ($urls as $url) {
-                          $probeUrl($url);
+                      } else {
+                          foreach ($urls as $url) {
+                              $probeUrl($url);
+                          }
                       }
                   }
+              } finally {
+                  echo "Running down\n";
+                  $downController->handle(true);
               }
-          } finally {
-              echo "Running down\n";
-              $downController->handle(true);
+          } catch (Throwable $throwable) {
+              fwrite(STDERR, (string) $throwable . PHP_EOL);
+              exit(1);
           }
           '@
           Set-Content -Path $script -Value $scriptContent
@@ -344,13 +349,17 @@ jobs:
           $validationLog = Join-Path $env:RUNNER_TEMP 'pgo-validation.log'
           $output = & "$env:PHP_ROOT\php.exe" -c $env:RUNNER_INI $script 2>&1
           $exitCode = $LASTEXITCODE
-          $output | Tee-Object -FilePath $validationLog
+          $outputText = if ($null -eq $output) { '' } else { ($output | Out-String) }
+          Set-Content -Path $validationLog -Value $outputText
+          if (![string]::IsNullOrWhiteSpace($outputText)) {
+            Write-Host $outputText.TrimEnd()
+          }
+          Write-Host "Validation exit code: $exitCode"
 
           if ($exitCode -ne 0) {
-            throw 'PGO script validation failed'
+            throw "PGO script validation failed with exit code $exitCode"
           }
 
-          $outputText = ($output | Out-String)
           $warningPatterns = @(
             'PHP Warning',
             'PHP Deprecated',
