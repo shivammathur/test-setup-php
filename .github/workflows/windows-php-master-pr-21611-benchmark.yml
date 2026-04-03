@@ -298,18 +298,27 @@ jobs:
             $mbstring = Find-ExtensionPath -SearchDir $PhpDir -FileName 'php_mbstring.dll'
             $intl = Find-ExtensionPath -SearchDir $PhpDir -FileName 'php_intl.dll'
             $openssl = Find-ExtensionPath -SearchDir $PhpDir -FileName 'php_openssl.dll'
+            $sqlite3 = Find-ExtensionPath -SearchDir $PhpDir -FileName 'php_sqlite3.dll' -Optional
+            $pdoSqlite = Find-ExtensionPath -SearchDir $PhpDir -FileName 'php_pdo_sqlite.dll'
             $opcache = Find-ExtensionPath -SearchDir $PhpDir -FileName 'php_opcache.dll' -Optional
 
             $mbstringPosix = $mbstring -replace '\\', '/'
             $intlPosix = $intl -replace '\\', '/'
             $opensslPosix = $openssl -replace '\\', '/'
+            $extensionPaths = @($opensslPosix, $mbstringPosix, $intlPosix)
+
+            if ($null -ne $sqlite3) {
+              $extensionPaths += ($sqlite3 -replace '\\', '/')
+            }
+
+            $extensionPaths += ($pdoSqlite -replace '\\', '/')
 
             $config = [ordered]@{
               'date.timezone' = 'UTC'
               'display_errors' = 1
               'error_reporting' = 32767
               'memory_limit' = '1G'
-              'extension' = @($opensslPosix, $mbstringPosix, $intlPosix)
+              'extension' = $extensionPaths
               'opcache.enable' = 1
               'opcache.enable_cli' = 1
               'opcache.jit_buffer_size' = '128M'
@@ -355,9 +364,48 @@ jobs:
 
           $baselineIni = Join-Path $env:RUNNER_TEMP 'baseline-bench.ini'
           $customIni = Join-Path $env:RUNNER_TEMP 'custom-bench.ini'
+          $benchmarkAppLocal = Join-Path (Join-Path $PWD.Path 'config') 'app_local.php'
+          $benchmarkDbPath = ((Join-Path $PWD.Path 'tmp\benchmark.sqlite') -replace '\\', '/')
+
+          New-Item -ItemType Directory -Path (Join-Path $PWD.Path 'tmp') -Force | Out-Null
 
           Write-BenchmarkIni -Config $baselineOffConfig -IniPath $baselineIni
           Write-BenchmarkIni -Config $customOffConfig -IniPath $customIni
+
+          $appLocalLines = @(
+            '<?php',
+            'declare(strict_types=1);',
+            '',
+            'use Cake\Database\Driver\Sqlite;',
+            'use function Cake\Core\env;',
+            '',
+            'return [',
+            "    'debug' => false,",
+            "    'Security' => [",
+            "        'salt' => env('SECURITY_SALT', '__BENCHMARK_SALT__'),",
+            '    ],',
+            "    'Datasources' => [",
+            "        'default' => [",
+            "            'driver' => Sqlite::class,",
+            ("            'database' => '{0}'," -f $benchmarkDbPath),
+            "            'host' => null,",
+            "            'username' => null,",
+            "            'password' => null,",
+            "            'url' => null,",
+            '        ],',
+            "        'test' => [",
+            "            'driver' => Sqlite::class,",
+            ("            'database' => '{0}'," -f $benchmarkDbPath),
+            "            'host' => null,",
+            "            'username' => null,",
+            "            'password' => null,",
+            "            'url' => null,",
+            '        ],',
+            '    ],',
+            '];'
+          )
+
+          Set-Content -Path $benchmarkAppLocal -Value $appLocalLines
           Copy-Item -Path $baselinePhp -Destination $baselinePhpBenchPath -Force
           Copy-Item -Path $customPhp -Destination $customPhpBenchPath -Force
 
@@ -403,6 +451,16 @@ jobs:
           $customExtensions = & $env:CUSTOM_PHP -c $env:CUSTOM_INI -r "echo (int)extension_loaded('mbstring'), (int)extension_loaded('intl'), (int)extension_loaded('Zend OPcache');"
           if ($LASTEXITCODE -ne 0 -or $customExtensions -ne '111') {
             throw "Clang benchmark ini did not load required extensions: $customExtensions"
+          }
+
+          $baselineSqliteExtensions = & $env:BASELINE_PHP -c $env:BASELINE_INI -r "echo (int)extension_loaded('sqlite3'), (int)extension_loaded('pdo_sqlite');"
+          if ($LASTEXITCODE -ne 0 -or $baselineSqliteExtensions -notin @('11', '01')) {
+            throw "Baseline benchmark ini did not load SQLite extensions: $baselineSqliteExtensions"
+          }
+
+          $customSqliteExtensions = & $env:CUSTOM_PHP -c $env:CUSTOM_INI -r "echo (int)extension_loaded('sqlite3'), (int)extension_loaded('pdo_sqlite');"
+          if ($LASTEXITCODE -ne 0 -or $customSqliteExtensions -notin @('11', '01')) {
+            throw "Clang benchmark ini did not load SQLite extensions: $customSqliteExtensions"
           }
 
           Write-Host $baselineMeta
@@ -629,7 +687,7 @@ jobs:
 
             try {
               $env:PHP_INI_SCAN_DIR = ''
-              $env:DEBUG = 'true'
+              $env:DEBUG = 'false'
               $env:APP_FULL_BASE_URL = ('http://127.0.0.1:{0}' -f $Port)
               $process = Start-Process -FilePath $PhpExe -ArgumentList $args -WorkingDirectory $PWD.Path -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
             } finally {
