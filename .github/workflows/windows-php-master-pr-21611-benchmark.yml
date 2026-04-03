@@ -252,11 +252,15 @@ jobs:
 
           $baselineDir = Split-Path -Parent $baselinePhp
           $customDir = Split-Path -Parent $customPhp
+          $baselinePhpBenchBin = 'phpbench-baseline.exe'
+          $customPhpBenchBin = 'phpbench-custom.exe'
+          $baselinePhpBenchPath = Join-Path $baselineDir $baselinePhpBenchBin
+          $customPhpBenchPath = Join-Path $customDir $customPhpBenchBin
 
-          function New-BenchmarkIni {
+          function Get-BenchmarkConfig {
             param(
               [string]$PhpDir,
-              [string]$IniPath
+              [string]$JitMode
             )
 
             function Find-ExtensionPath {
@@ -298,67 +302,75 @@ jobs:
             $intlPosix = $intl -replace '\\', '/'
             $opensslPosix = $openssl -replace '\\', '/'
 
-            $lines = @(
-              'date.timezone=UTC',
-              'display_errors=1',
-              'error_reporting=E_ALL',
-              'memory_limit=1G',
-              "extension=""$opensslPosix""",
-              "extension=""$mbstringPosix""",
-              "extension=""$intlPosix"""
-            )
-
-            if ($null -ne $opcache) {
-              $lines += "zend_extension=""$($opcache -replace '\\', '/')"""
+            $config = [ordered]@{
+              'date.timezone' = 'UTC'
+              'display_errors' = 1
+              'error_reporting' = 32767
+              'memory_limit' = '1G'
+              'extension' = @($opensslPosix, $mbstringPosix, $intlPosix)
+              'opcache.enable' = 1
+              'opcache.enable_cli' = 1
+              'opcache.jit_buffer_size' = '128M'
+              'opcache.jit' = $JitMode
             }
 
-            $lines += @(
-              'opcache.enable=1',
-              'opcache.enable_cli=1',
-              'opcache.jit_buffer_size=128M'
+            if ($null -ne $opcache) {
+              $config['zend_extension'] = ($opcache -replace '\\', '/')
+            }
+
+            return $config
+          }
+
+          function Write-BenchmarkIni {
+            param(
+              [hashtable]$Config,
+              [string]$IniPath
             )
+
+            $lines = @()
+
+            foreach ($entry in $Config.GetEnumerator()) {
+              $values = @($entry.Value)
+
+              foreach ($value in $values) {
+                if ($entry.Key -eq 'zend_extension') {
+                  $lines += ('zend_extension="{0}"' -f $value)
+                } elseif ($entry.Key -eq 'extension') {
+                  $lines += ('extension="{0}"' -f $value)
+                } else {
+                  $lines += ('{0}={1}' -f $entry.Key, $value)
+                }
+              }
+            }
 
             Set-Content -Path $IniPath -Value $lines
           }
 
-          function New-PhpBenchWrapper {
-            param(
-              [string]$PhpExe,
-              [string]$IniPath,
-              [string]$JitMode,
-              [string]$WrapperPath
-            )
-
-            $content = @(
-              '@echo off',
-              ('"{0}" -c "{1}" -d opcache.jit={2} %*' -f $PhpExe, $IniPath, $JitMode)
-            )
-
-            Set-Content -Path $WrapperPath -Value $content -Encoding Ascii
-          }
+          $baselineOffConfig = Get-BenchmarkConfig -PhpDir $baselineDir -JitMode 'off'
+          $baselineTracingConfig = Get-BenchmarkConfig -PhpDir $baselineDir -JitMode 'tracing'
+          $customOffConfig = Get-BenchmarkConfig -PhpDir $customDir -JitMode 'off'
+          $customTracingConfig = Get-BenchmarkConfig -PhpDir $customDir -JitMode 'tracing'
 
           $baselineIni = Join-Path $env:RUNNER_TEMP 'baseline-bench.ini'
           $customIni = Join-Path $env:RUNNER_TEMP 'custom-bench.ini'
-          $baselinePhpBenchOff = Join-Path $env:RUNNER_TEMP 'baseline-phpbench-off.cmd'
-          $baselinePhpBenchTracing = Join-Path $env:RUNNER_TEMP 'baseline-phpbench-tracing.cmd'
-          $customPhpBenchOff = Join-Path $env:RUNNER_TEMP 'custom-phpbench-off.cmd'
-          $customPhpBenchTracing = Join-Path $env:RUNNER_TEMP 'custom-phpbench-tracing.cmd'
 
-          New-BenchmarkIni -PhpDir $baselineDir -IniPath $baselineIni
-          New-BenchmarkIni -PhpDir $customDir -IniPath $customIni
-          New-PhpBenchWrapper -PhpExe $baselinePhp -IniPath $baselineIni -JitMode 'off' -WrapperPath $baselinePhpBenchOff
-          New-PhpBenchWrapper -PhpExe $baselinePhp -IniPath $baselineIni -JitMode 'tracing' -WrapperPath $baselinePhpBenchTracing
-          New-PhpBenchWrapper -PhpExe $customPhp -IniPath $customIni -JitMode 'off' -WrapperPath $customPhpBenchOff
-          New-PhpBenchWrapper -PhpExe $customPhp -IniPath $customIni -JitMode 'tracing' -WrapperPath $customPhpBenchTracing
+          Write-BenchmarkIni -Config $baselineOffConfig -IniPath $baselineIni
+          Write-BenchmarkIni -Config $customOffConfig -IniPath $customIni
+          Copy-Item -Path $baselinePhp -Destination $baselinePhpBenchPath -Force
+          Copy-Item -Path $customPhp -Destination $customPhpBenchPath -Force
 
           "BASELINE_PHP=$baselinePhp" >> $env:GITHUB_ENV
           "CUSTOM_PHP=$customPhp" >> $env:GITHUB_ENV
           "BASELINE_INI=$baselineIni" >> $env:GITHUB_ENV
           "CUSTOM_INI=$customIni" >> $env:GITHUB_ENV
-          "BASELINE_PHPBENCH_OFF=$baselinePhpBenchOff" >> $env:GITHUB_ENV
-          "BASELINE_PHPBENCH_TRACING=$baselinePhpBenchTracing" >> $env:GITHUB_ENV
-          "CUSTOM_PHPBENCH_OFF=$customPhpBenchOff" >> $env:GITHUB_ENV
-          "CUSTOM_PHPBENCH_TRACING=$customPhpBenchTracing" >> $env:GITHUB_ENV
+          "BASELINE_PHPBENCH_BIN=$baselinePhpBenchBin" >> $env:GITHUB_ENV
+          "CUSTOM_PHPBENCH_BIN=$customPhpBenchBin" >> $env:GITHUB_ENV
+          "BASELINE_PHPBENCH_OFF_CONFIG=$($baselineOffConfig | ConvertTo-Json -Compress -Depth 4)" >> $env:GITHUB_ENV
+          "BASELINE_PHPBENCH_TRACING_CONFIG=$($baselineTracingConfig | ConvertTo-Json -Compress -Depth 4)" >> $env:GITHUB_ENV
+          "CUSTOM_PHPBENCH_OFF_CONFIG=$($customOffConfig | ConvertTo-Json -Compress -Depth 4)" >> $env:GITHUB_ENV
+          "CUSTOM_PHPBENCH_TRACING_CONFIG=$($customTracingConfig | ConvertTo-Json -Compress -Depth 4)" >> $env:GITHUB_ENV
+          $baselineDir >> $env:GITHUB_PATH
+          $customDir >> $env:GITHUB_PATH
 
       - name: Smoke test both PHP executables
         shell: pwsh
@@ -372,6 +384,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw 'Clang PHP smoke test failed'
           }
+
+          $baselinePhpBenchCommand = Get-Command $env:BASELINE_PHPBENCH_BIN -ErrorAction Stop
+          $customPhpBenchCommand = Get-Command $env:CUSTOM_PHPBENCH_BIN -ErrorAction Stop
 
           if ($customMeta -notmatch 'ZEND_VM_KIND_TAILCALL') {
             throw "Expected ZEND_VM_KIND_TAILCALL, got: $customMeta"
@@ -389,6 +404,8 @@ jobs:
 
           Write-Host $baselineMeta
           Write-Host $customMeta
+          Write-Host ('Resolved baseline PHPBench binary: {0}' -f $baselinePhpBenchCommand.Source)
+          Write-Host ('Resolved custom PHPBench binary: {0}' -f $customPhpBenchCommand.Source)
 
       - name: Run benchmarks
         shell: pwsh
@@ -467,7 +484,8 @@ jobs:
           function Invoke-PhpBenchMetric {
             param(
               [string]$Label,
-              [string]$Wrapper,
+              [string]$PhpBinary,
+              [string]$PhpConfig,
               [string]$BenchmarkName,
               [string]$OutputFile,
               [string]$XmlFile
@@ -490,7 +508,10 @@ jobs:
               '--warmup',
               '1',
               '--php-binary',
-              $Wrapper
+              $PhpBinary,
+              '--php-config',
+              $PhpConfig,
+              '--php-disable-ini'
             )
 
             $output = & php @args 2>&1
@@ -678,14 +699,14 @@ jobs:
           $customResults = Invoke-TimeBenchmarkSuite -Label 'master-pr-21611-clang' -PhpExe $env:CUSTOM_PHP -IniFile $env:CUSTOM_INI -OutputFile (Join-Path $resultsDir 'master-pr-21611-clang-time.json')
 
           $baselineThroughputResults = @(
-            (Invoke-PhpBenchMetric -Label 'master-msvc-pgo' -Wrapper $env:BASELINE_PHPBENCH_OFF -BenchmarkName 'phpbench-no-jit' -OutputFile (Join-Path $resultsDir 'master-msvc-pgo-phpbench-no-jit.json') -XmlFile (Join-Path $resultsDir 'master-msvc-pgo-phpbench-no-jit.xml')),
-            (Invoke-PhpBenchMetric -Label 'master-msvc-pgo' -Wrapper $env:BASELINE_PHPBENCH_TRACING -BenchmarkName 'phpbench-jit' -OutputFile (Join-Path $resultsDir 'master-msvc-pgo-phpbench-jit.json') -XmlFile (Join-Path $resultsDir 'master-msvc-pgo-phpbench-jit.xml')),
+            (Invoke-PhpBenchMetric -Label 'master-msvc-pgo' -PhpBinary $env:BASELINE_PHPBENCH_BIN -PhpConfig $env:BASELINE_PHPBENCH_OFF_CONFIG -BenchmarkName 'phpbench-no-jit' -OutputFile (Join-Path $resultsDir 'master-msvc-pgo-phpbench-no-jit.json') -XmlFile (Join-Path $resultsDir 'master-msvc-pgo-phpbench-no-jit.xml')),
+            (Invoke-PhpBenchMetric -Label 'master-msvc-pgo' -PhpBinary $env:BASELINE_PHPBENCH_BIN -PhpConfig $env:BASELINE_PHPBENCH_TRACING_CONFIG -BenchmarkName 'phpbench-jit' -OutputFile (Join-Path $resultsDir 'master-msvc-pgo-phpbench-jit.json') -XmlFile (Join-Path $resultsDir 'master-msvc-pgo-phpbench-jit.xml')),
             (Invoke-HttpRpsMetric -Label 'master-msvc-pgo' -PhpExe $env:BASELINE_PHP -IniFile $env:BASELINE_INI -Port 8091 -OutputFile (Join-Path $resultsDir 'master-msvc-pgo-http-rps.json'))
           )
 
           $customThroughputResults = @(
-            (Invoke-PhpBenchMetric -Label 'master-pr-21611-clang' -Wrapper $env:CUSTOM_PHPBENCH_OFF -BenchmarkName 'phpbench-no-jit' -OutputFile (Join-Path $resultsDir 'master-pr-21611-clang-phpbench-no-jit.json') -XmlFile (Join-Path $resultsDir 'master-pr-21611-clang-phpbench-no-jit.xml')),
-            (Invoke-PhpBenchMetric -Label 'master-pr-21611-clang' -Wrapper $env:CUSTOM_PHPBENCH_TRACING -BenchmarkName 'phpbench-jit' -OutputFile (Join-Path $resultsDir 'master-pr-21611-clang-phpbench-jit.json') -XmlFile (Join-Path $resultsDir 'master-pr-21611-clang-phpbench-jit.xml')),
+            (Invoke-PhpBenchMetric -Label 'master-pr-21611-clang' -PhpBinary $env:CUSTOM_PHPBENCH_BIN -PhpConfig $env:CUSTOM_PHPBENCH_OFF_CONFIG -BenchmarkName 'phpbench-no-jit' -OutputFile (Join-Path $resultsDir 'master-pr-21611-clang-phpbench-no-jit.json') -XmlFile (Join-Path $resultsDir 'master-pr-21611-clang-phpbench-no-jit.xml')),
+            (Invoke-PhpBenchMetric -Label 'master-pr-21611-clang' -PhpBinary $env:CUSTOM_PHPBENCH_BIN -PhpConfig $env:CUSTOM_PHPBENCH_TRACING_CONFIG -BenchmarkName 'phpbench-jit' -OutputFile (Join-Path $resultsDir 'master-pr-21611-clang-phpbench-jit.json') -XmlFile (Join-Path $resultsDir 'master-pr-21611-clang-phpbench-jit.xml')),
             (Invoke-HttpRpsMetric -Label 'master-pr-21611-clang' -PhpExe $env:CUSTOM_PHP -IniFile $env:CUSTOM_INI -Port 8092 -OutputFile (Join-Path $resultsDir 'master-pr-21611-clang-http-rps.json'))
           )
 
