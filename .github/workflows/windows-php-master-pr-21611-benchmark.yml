@@ -393,7 +393,7 @@ jobs:
                 $watch.Stop()
 
                 if ($exitCode -ne 0) {
-                  throw "$Label failed benchmark '$($benchmark.Name)' on run $run"
+                  throw ('{0} failed benchmark ''{1}'' on run {2}' -f $Label, $benchmark.Name, $run)
                 }
 
                 $times += [Math]::Round($watch.Elapsed.TotalMilliseconds, 2)
@@ -433,7 +433,7 @@ jobs:
             $customResult = $customResults | Where-Object benchmark -EQ $baselineResult.benchmark
 
             if ($null -eq $customResult) {
-              throw "Missing custom result for $($baselineResult.benchmark)"
+              throw ('Missing custom result for {0}' -f $baselineResult.benchmark)
             }
 
             $delta = [Math]::Round((($baselineResult.avg_ms - $customResult.avg_ms) / $baselineResult.avg_ms) * 100, 2)
