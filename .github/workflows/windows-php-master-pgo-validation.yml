@@ -32,12 +32,18 @@ jobs:
     name: Validate PHP master baseline (MSVC+PGO)
     runs-on: windows-2022
     timeout-minutes: 150
+    env:
+      BUILDER_REPOSITORY: ${{ inputs['builder-repository'] }}
+      BUILDER_REF: ${{ inputs['builder-ref'] }}
+      PHP_SDK_REPOSITORY: ${{ inputs['php-sdk-repository'] }}
+      PHP_SDK_REF: ${{ inputs['php-sdk-ref'] }}
+      PGO_CASES: ${{ inputs['pgo-cases'] }}
     steps:
       - name: Checkout php-windows-builder
         uses: actions/checkout@v6
         with:
-          repository: ${{ inputs['builder-repository'] }}
-          ref: ${{ inputs['builder-ref'] }}
+          repository: ${{ env.BUILDER_REPOSITORY }}
+          ref: ${{ env.BUILDER_REF }}
           path: php-windows-builder
 
       - name: Build PHP master with php-windows-builder
@@ -46,9 +52,9 @@ jobs:
           php-version: master
           arch: x64
           ts: ts
-          php-sdk-repository: ${{ inputs['php-sdk-repository'] }}
-          php-sdk-ref: ${{ inputs['php-sdk-ref'] }}
-          pgo-cases: ${{ inputs['pgo-cases'] }}
+          php-sdk-repository: ${{ env.PHP_SDK_REPOSITORY }}
+          php-sdk-ref: ${{ env.PHP_SDK_REF }}
+          pgo-cases: ${{ env.PGO_CASES }}
           github-token: ${{ github.token }}
 
       - name: Prepare baseline artifact
@@ -101,9 +107,9 @@ jobs:
           $lines = @(
             '# Windows PGO validation',
             '',
-            ('- Builder: {0}@{1}' -f '${{ inputs[''builder-repository''] }}', '${{ inputs[''builder-ref''] }}'),
-            ('- PHP SDK: {0}@{1}' -f '${{ inputs[''php-sdk-repository''] }}', '${{ inputs[''php-sdk-ref''] }}'),
-            ('- PGO cases: {0}' -f '${{ inputs[''pgo-cases''] }}')
+            ('- Builder: {0}@{1}' -f $env:BUILDER_REPOSITORY, $env:BUILDER_REF),
+            ('- PHP SDK: {0}@{1}' -f $env:PHP_SDK_REPOSITORY, $env:PHP_SDK_REF),
+            ('- PGO cases: {0}' -f $env:PGO_CASES)
           )
 
           Set-Content -Path $env:GITHUB_STEP_SUMMARY -Value $lines
