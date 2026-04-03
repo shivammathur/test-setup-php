@@ -51,7 +51,7 @@ jobs:
           }
 
           New-Item -ItemType Directory -Path $dest -Force | Out-Null
-          Copy-Item -LiteralPath (Join-Path $releaseDir '*') -Destination $dest -Recurse -Force
+          Copy-Item -Path (Join-Path $releaseDir '*') -Destination $dest -Recurse -Force
 
           "RELEASE_PHP=$dest\php.exe" >> $env:GITHUB_ENV
           "RELEASE_DIR=$dest" >> $env:GITHUB_ENV
