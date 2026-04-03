@@ -154,6 +154,33 @@ jobs:
 
           Write-Host $meta
 
+      - name: Setup MSVC environment
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (!(Test-Path $vswhere)) {
+            throw "vswhere.exe not found at $vswhere"
+          }
+
+          $installPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if ([string]::IsNullOrWhiteSpace($installPath)) {
+            throw 'Could not determine a Visual Studio installation path'
+          }
+
+          $vsDevCmd = Join-Path $installPath 'Common7\Tools\VsDevCmd.bat'
+          if (!(Test-Path $vsDevCmd)) {
+            throw "VsDevCmd.bat not found at $vsDevCmd"
+          }
+
+          $envFile = Join-Path $env:RUNNER_TEMP 'vsdevcmd-env.txt'
+          cmd /c "`"$vsDevCmd`" -arch=amd64 -host_arch=amd64 >nul && set" > $envFile
+
+          Get-Content $envFile | ForEach-Object {
+            if ($_ -match '^(.*?)=(.*)$') {
+              "$($matches[1])=$($matches[2])" >> $env:GITHUB_ENV
+            }
+          }
+
       - name: Run PGO script validation
         shell: pwsh
         env:
