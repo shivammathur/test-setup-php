@@ -10,7 +10,7 @@ on:
       php-artifact-run-id:
         description: Previous workflow run ID with php-master-msvc-pgo-build artifact for script mode
         required: false
-        default: "23933265170"
+        default: "23937578806"
       builder-repository:
         description: GitHub repository for php-windows-builder
         required: false
@@ -41,7 +41,7 @@ permissions:
 
 jobs:
   validate-pgo-scripts:
-    name: Validate PHP SDK PGO init/up/down
+    name: Validate PHP SDK PGO scripts and workloads
     if: ${{ inputs['validation-mode'] == 'script' || inputs['validation-mode'] == 'build' }}
     runs-on: windows-2022
     timeout-minutes: 90
@@ -200,61 +200,136 @@ jobs:
           $script = Join-Path $env:RUNNER_TEMP 'validate-pgo.php'
           $scriptContent = @'
           <?php
+          error_reporting(E_ALL);
+          ini_set('display_errors', '1');
+
+          set_error_handler(static function (int $severity, string $message, string $file, int $line) : bool {
+              throw new ErrorException($message, 0, $severity, $file, $line);
+          });
+
           require getenv('PHP_SDK_ROOT_PATH') . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'php' . DIRECTORY_SEPARATOR . 'autoload.php';
 
           $cases = array_values(array_filter(array_map('trim', explode(',', getenv('VALIDATION_CASES') ?: ''))));
           $depsDir = getenv('PGO_DEPS_DIR');
+          $phpExe = getenv('VALIDATION_PHP_EXE');
+          $runnerIni = getenv('RUNNER_INI');
+
           if (!$depsDir) {
               throw new RuntimeException('PGO_DEPS_DIR is not set');
+          }
+          if (!$phpExe || !is_file($phpExe)) {
+              throw new RuntimeException('VALIDATION_PHP_EXE is not set or does not exist');
+          }
+          if (!$runnerIni || !is_file($runnerIni)) {
+              throw new RuntimeException('RUNNER_INI is not set or does not exist');
           }
           if (!is_dir($depsDir) && !mkdir($depsDir, 0777, true) && !is_dir($depsDir)) {
               throw new RuntimeException("Failed to create deps dir {$depsDir}");
           }
 
           SDK\Config::setDepsLocalPath($depsDir);
-          $commands = array(
-              array('init', false),
-              array('up', false),
-              array('down', true),
-          );
+          $warningRegex = '/(^|\R)(PHP )?(Warning|Deprecated|Notice|Fatal error|Parse error)\b/i';
 
-          foreach ($commands as $command) {
-              [$name, $force] = $command;
-              echo "Running {$name}\n";
-              $controller = new SDK\Build\PGO\Controller($name, null, $cases ?: null);
-              $controller->handle($force);
-          }
+          $runPhpScript = static function (string $scriptPath) use ($phpExe, $runnerIni, $warningRegex) : void {
+              $command = sprintf('"%s" -c "%s" "%s" 2>&1', $phpExe, $runnerIni, $scriptPath);
+              exec($command, $lines, $exitCode);
 
-          foreach ($cases as $case) {
-              $jobFile = getenv('PHP_SDK_ROOT_PATH')
-                  . DIRECTORY_SEPARATOR . 'pgo'
-                  . DIRECTORY_SEPARATOR . 'work'
-                  . DIRECTORY_SEPARATOR . 'job'
-                  . DIRECTORY_SEPARATOR . $case . '.txt';
-              if (!is_file($jobFile)) {
-                  throw new RuntimeException("Expected training job file {$jobFile} was not created");
+              $output = trim(implode(PHP_EOL, $lines));
+              echo "Executing CLI workload: {$scriptPath}\n";
+              if ('' !== $output) {
+                  echo $output, "\n";
               }
 
-              $urls = array_values(array_filter(array_map('trim', file($jobFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: array())));
-              if (empty($urls)) {
-                  throw new RuntimeException("Training job file {$jobFile} is empty");
+              if (0 !== $exitCode) {
+                  throw new RuntimeException("CLI workload {$scriptPath} exited with {$exitCode}");
               }
 
-              $caseConfigFile = getenv('PHP_SDK_ROOT_PATH')
-                  . DIRECTORY_SEPARATOR . 'pgo'
-                  . DIRECTORY_SEPARATOR . 'cases'
-                  . DIRECTORY_SEPARATOR . $case
-                  . DIRECTORY_SEPARATOR . 'phpsdk_pgo.json';
-              $caseConfig = is_file($caseConfigFile) ? json_decode((string)file_get_contents($caseConfigFile), true) : array();
-              $caseType = is_array($caseConfig) && isset($caseConfig['type']) ? strtolower((string)$caseConfig['type']) : 'web';
+              if (preg_match($warningRegex, $output)) {
+                  throw new RuntimeException("CLI workload {$scriptPath} emitted PHP warnings or errors");
+              }
+          };
 
-              if ('cli' === $caseType) {
-                  foreach ($urls as $command) {
-                      if (!is_file($command)) {
-                          throw new RuntimeException("CLI training command target {$command} does not exist");
+          $probeUrl = static function (string $url) use ($warningRegex) : void {
+              $ch = curl_init($url);
+              curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
+              curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+              curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+              curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+              curl_setopt($ch, CURLOPT_USERAGENT, 'PHP-SDK validation');
+
+              $body = curl_exec($ch);
+              if (false === $body) {
+                  $error = curl_error($ch);
+                  curl_close($ch);
+                  throw new RuntimeException("Failed to fetch {$url}: {$error}");
+              }
+
+              $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+              $effectiveUrl = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+              curl_close($ch);
+
+              echo "Fetched {$effectiveUrl} [{$status}]\n";
+
+              if ($status < 200 || $status >= 400) {
+                  throw new RuntimeException("Unexpected HTTP status {$status} for {$effectiveUrl}");
+              }
+
+              if (preg_match($warningRegex, $body)) {
+                  throw new RuntimeException("HTTP response for {$effectiveUrl} contains PHP warnings or errors");
+              }
+          };
+
+          $initController = new SDK\Build\PGO\Controller('init', null, $cases ?: null);
+          echo "Running init\n";
+          $initController->handle(false);
+
+          $downController = new SDK\Build\PGO\Controller('down', null, $cases ?: null);
+
+          try {
+              $upController = new SDK\Build\PGO\Controller('up', null, $cases ?: null);
+              echo "Running up\n";
+              $upController->handle(false);
+
+              foreach ($cases as $case) {
+                  $jobFile = getenv('PHP_SDK_ROOT_PATH')
+                      . DIRECTORY_SEPARATOR . 'pgo'
+                      . DIRECTORY_SEPARATOR . 'work'
+                      . DIRECTORY_SEPARATOR . 'job'
+                      . DIRECTORY_SEPARATOR . $case . '.txt';
+                  if (!is_file($jobFile)) {
+                      throw new RuntimeException("Expected training job file {$jobFile} was not created");
+                  }
+
+                  $urls = array_values(array_filter(array_map('trim', file($jobFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: array())));
+                  if (empty($urls)) {
+                      throw new RuntimeException("Training job file {$jobFile} is empty");
+                  }
+
+                  $caseConfigFile = getenv('PHP_SDK_ROOT_PATH')
+                      . DIRECTORY_SEPARATOR . 'pgo'
+                      . DIRECTORY_SEPARATOR . 'cases'
+                      . DIRECTORY_SEPARATOR . $case
+                      . DIRECTORY_SEPARATOR . 'phpsdk_pgo.json';
+                  $caseConfig = is_file($caseConfigFile) ? json_decode((string)file_get_contents($caseConfigFile), true) : array();
+                  $caseType = is_array($caseConfig) && isset($caseConfig['type']) ? strtolower((string)$caseConfig['type']) : 'web';
+
+                  if ('cli' === $caseType) {
+                      foreach ($urls as $command) {
+                          if (!is_file($command)) {
+                              throw new RuntimeException("CLI training command target {$command} does not exist");
+                          }
+
+                          $runPhpScript($command);
+                      }
+                  } else {
+                      foreach ($urls as $url) {
+                          $probeUrl($url);
                       }
                   }
               }
+          } finally {
+              echo "Running down\n";
+              $downController->handle(true);
           }
           '@
           Set-Content -Path $script -Value $scriptContent
@@ -262,12 +337,37 @@ jobs:
           $depsDir = Join-Path $env:RUNNER_TEMP 'php-sdk-pgo-deps'
           New-Item -ItemType Directory -Path $depsDir -Force | Out-Null
           $env:PGO_DEPS_DIR = $depsDir
+          $env:VALIDATION_PHP_EXE = Join-Path $env:PHP_ROOT 'php.exe'
           $env:PHP_SDK_VS = 'vs17'
           $env:PHP_RMTOOLS_PHP_BUILD_BRANCH = 'master'
 
-          & "$env:PHP_ROOT\php.exe" -c $env:RUNNER_INI $script
-          if ($LASTEXITCODE -ne 0) {
+          $validationLog = Join-Path $env:RUNNER_TEMP 'pgo-validation.log'
+          $output = & "$env:PHP_ROOT\php.exe" -c $env:RUNNER_INI $script 2>&1
+          $exitCode = $LASTEXITCODE
+          $output | Tee-Object -FilePath $validationLog
+
+          if ($exitCode -ne 0) {
             throw 'PGO script validation failed'
+          }
+
+          $outputText = ($output | Out-String)
+          $warningPatterns = @(
+            'PHP Warning',
+            'PHP Deprecated',
+            'PHP Notice',
+            'PHP Fatal',
+            'Parse error',
+            'WARNING:'
+          )
+
+          foreach ($pattern in $warningPatterns) {
+            if ($outputText -match [regex]::Escape($pattern)) {
+              throw "PGO script validation emitted warning output matching '$pattern'"
+            }
+          }
+
+          if ($outputText -notmatch 'Running down') {
+            throw 'PGO script validation did not reach the cleanup phase'
           }
 
       - name: Write script validation summary
