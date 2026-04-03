@@ -774,8 +774,10 @@ jobs:
               }
 
               $summary = Get-Content -Path $summaryFile -Raw | ConvertFrom-Json
-              $rate = [double]$summary.metrics.http_reqs.values.rate
-              $p95 = [double]$summary.metrics.http_req_duration.values.'p(95)'
+              $rateMetric = $summary.metrics.http_reqs
+              $durationMetric = $summary.metrics.http_req_duration
+              $rate = if ($null -ne $rateMetric.values) { [double]$rateMetric.values.rate } else { [double]$rateMetric.rate }
+              $p95 = if ($null -ne $durationMetric.values) { [double]$durationMetric.values.'p(95)' } else { [double]$durationMetric.'p(95)' }
 
               $result = [pscustomobject]@{
                 php = $Label
