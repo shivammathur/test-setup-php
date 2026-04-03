@@ -410,7 +410,6 @@ jobs:
       - name: Run benchmarks
         shell: pwsh
         run: |
-          $env:PHP_INI_SCAN_DIR = ''
           $iterations = [int]$env:BENCHMARK_ITERATIONS
           $phpBenchIterations = [int]$env:PHPBENCH_ITERATIONS
           $resultsDir = Join-Path $env:RUNNER_TEMP 'benchmark-results'
@@ -451,8 +450,20 @@ jobs:
               for ($run = 1; $run -le $iterations; $run++) {
                 $args = @('-c', $IniFile) + $benchmark.Args
                 $watch = [System.Diagnostics.Stopwatch]::StartNew()
-                $output = & $PhpExe @args 2>&1
-                $exitCode = $LASTEXITCODE
+                $previousScanDir = $env:PHP_INI_SCAN_DIR
+
+                try {
+                  $env:PHP_INI_SCAN_DIR = ''
+                  $output = & $PhpExe @args 2>&1
+                  $exitCode = $LASTEXITCODE
+                } finally {
+                  if ($null -eq $previousScanDir) {
+                    Remove-Item Env:PHP_INI_SCAN_DIR -ErrorAction SilentlyContinue
+                  } else {
+                    $env:PHP_INI_SCAN_DIR = $previousScanDir
+                  }
+                }
+
                 $watch.Stop()
 
                 if ($exitCode -ne 0) {
@@ -593,7 +604,18 @@ jobs:
               $router
             )
 
-            $process = Start-Process -FilePath $PhpExe -ArgumentList $args -WorkingDirectory $PWD.Path -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
+            $previousScanDir = $env:PHP_INI_SCAN_DIR
+
+            try {
+              $env:PHP_INI_SCAN_DIR = ''
+              $process = Start-Process -FilePath $PhpExe -ArgumentList $args -WorkingDirectory $PWD.Path -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
+            } finally {
+              if ($null -eq $previousScanDir) {
+                Remove-Item Env:PHP_INI_SCAN_DIR -ErrorAction SilentlyContinue
+              } else {
+                $env:PHP_INI_SCAN_DIR = $previousScanDir
+              }
+            }
 
             try {
               Wait-ForHttp -Url $url
