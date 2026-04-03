@@ -609,15 +609,31 @@ jobs:
             )
 
             $previousScanDir = $env:PHP_INI_SCAN_DIR
+            $previousDebug = $env:DEBUG
+            $previousFullBaseUrl = $env:APP_FULL_BASE_URL
 
             try {
               $env:PHP_INI_SCAN_DIR = ''
+              $env:DEBUG = 'true'
+              $env:APP_FULL_BASE_URL = $url
               $process = Start-Process -FilePath $PhpExe -ArgumentList $args -WorkingDirectory $PWD.Path -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
             } finally {
               if ($null -eq $previousScanDir) {
                 Remove-Item Env:PHP_INI_SCAN_DIR -ErrorAction SilentlyContinue
               } else {
                 $env:PHP_INI_SCAN_DIR = $previousScanDir
+              }
+
+              if ($null -eq $previousDebug) {
+                Remove-Item Env:DEBUG -ErrorAction SilentlyContinue
+              } else {
+                $env:DEBUG = $previousDebug
+              }
+
+              if ($null -eq $previousFullBaseUrl) {
+                Remove-Item Env:APP_FULL_BASE_URL -ErrorAction SilentlyContinue
+              } else {
+                $env:APP_FULL_BASE_URL = $previousFullBaseUrl
               }
             }
 
