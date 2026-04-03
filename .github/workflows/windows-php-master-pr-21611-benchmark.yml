@@ -5,6 +5,10 @@ on:
     branches:
       - codex/windows-php-854-pr21611-benchmark
   workflow_dispatch:
+    inputs:
+      artifact-run-id:
+        description: Reuse build artifacts from a previous workflow run ID
+        required: false
 
 permissions:
   contents: read
@@ -12,6 +16,7 @@ permissions:
 jobs:
   build-msvc-baseline:
     name: Build PHP master baseline (MSVC+PGO)
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs['artifact-run-id'] == '' }}
     runs-on: windows-2022
     timeout-minutes: 150
     steps:
@@ -76,6 +81,7 @@ jobs:
 
   build-clang-pr:
     name: Build PHP master + PR 21611 (clang)
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs['artifact-run-id'] == '' }}
     runs-on: windows-2022
     timeout-minutes: 150
     env:
@@ -157,12 +163,14 @@ jobs:
 
   benchmark:
     name: Benchmark master baseline vs PR 21611 clang build
+    if: ${{ always() && ((github.event_name == 'workflow_dispatch' && inputs['artifact-run-id'] != '') || (needs.build-msvc-baseline.result == 'success' && needs.build-clang-pr.result == 'success')) }}
     runs-on: windows-2022
     needs:
       - build-msvc-baseline
       - build-clang-pr
     timeout-minutes: 60
     env:
+      ARTIFACT_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs['artifact-run-id'] || '' }}
       BENCHMARK_ITERATIONS: 5
     steps:
       - name: Checkout test app
@@ -177,16 +185,38 @@ jobs:
           coverage: none
 
       - name: Download baseline build
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs['artifact-run-id'] == '' }}
         uses: actions/download-artifact@v4
         with:
           name: php-master-msvc-pgo-build
           path: C:\php-master-msvc-pgo
 
       - name: Download clang build
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs['artifact-run-id'] == '' }}
         uses: actions/download-artifact@v4
         with:
           name: php-master-pr-21611-clang-build
           path: C:\php-master-pr-21611-clang
+
+      - name: Download baseline build from previous run
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs['artifact-run-id'] != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: php-master-msvc-pgo-build
+          path: C:\php-master-msvc-pgo
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs['artifact-run-id'] }}
+          github-token: ${{ github.token }}
+
+      - name: Download clang build from previous run
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs['artifact-run-id'] != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: php-master-pr-21611-clang-build
+          path: C:\php-master-pr-21611-clang
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs['artifact-run-id'] }}
+          github-token: ${{ github.token }}
 
       - name: Install application dependencies
         shell: pwsh
@@ -215,29 +245,54 @@ jobs:
               [string]$IniPath
             )
 
-            $phpDirPosix = $PhpDir -replace '\\', '/'
-            $mbstring = Join-Path $PhpDir 'ext\php_mbstring.dll'
-            $intl = Join-Path $PhpDir 'ext\php_intl.dll'
-            $opcache = Join-Path $PhpDir 'ext\php_opcache.dll'
+            function Find-ExtensionPath {
+              param(
+                [string]$SearchDir,
+                [string]$FileName,
+                [switch]$Optional
+              )
 
-            foreach ($required in @($mbstring, $intl)) {
-              if (!(Test-Path $required)) {
-                throw "Missing required extension $required"
+              $candidates = @(
+                (Join-Path $SearchDir "ext\$FileName"),
+                (Join-Path $SearchDir $FileName)
+              )
+
+              foreach ($candidate in $candidates) {
+                if (Test-Path $candidate) {
+                  return $candidate
+                }
               }
+
+              $found = Get-ChildItem $SearchDir -Filter $FileName -Recurse | Select-Object -First 1 -ExpandProperty FullName
+              if (![string]::IsNullOrWhiteSpace($found)) {
+                return $found
+              }
+
+              if ($Optional) {
+                return $null
+              }
+
+              throw "Missing required extension $FileName under $SearchDir"
             }
+
+            $mbstring = Find-ExtensionPath -SearchDir $PhpDir -FileName 'php_mbstring.dll'
+            $intl = Find-ExtensionPath -SearchDir $PhpDir -FileName 'php_intl.dll'
+            $opcache = Find-ExtensionPath -SearchDir $PhpDir -FileName 'php_opcache.dll' -Optional
+
+            $mbstringPosix = $mbstring -replace '\\', '/'
+            $intlPosix = $intl -replace '\\', '/'
 
             $lines = @(
               'date.timezone=UTC',
               'display_errors=1',
               'error_reporting=E_ALL',
               'memory_limit=1G',
-              "extension_dir=""$phpDirPosix/ext""",
-              "extension=""$phpDirPosix/ext/php_mbstring.dll""",
-              "extension=""$phpDirPosix/ext/php_intl.dll"""
+              "extension=""$mbstringPosix""",
+              "extension=""$intlPosix"""
             )
 
-            if (Test-Path $opcache) {
-              $lines += "zend_extension=""$phpDirPosix/ext/php_opcache.dll"""
+            if ($null -ne $opcache) {
+              $lines += "zend_extension=""$($opcache -replace '\\', '/')"""
             }
 
             $lines += @(
