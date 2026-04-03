@@ -388,11 +388,15 @@ jobs:
               for ($run = 1; $run -le $iterations; $run++) {
                 $args = @('-c', $IniFile) + $benchmark.Args
                 $watch = [System.Diagnostics.Stopwatch]::StartNew()
-                & $PhpExe @args *> $null
+                $output = & $PhpExe @args 2>&1
                 $exitCode = $LASTEXITCODE
                 $watch.Stop()
 
                 if ($exitCode -ne 0) {
+                  $outputText = ($output | Out-String).Trim()
+                  if (![string]::IsNullOrWhiteSpace($outputText)) {
+                    Write-Host $outputText
+                  }
                   throw ('{0} failed benchmark ''{1}'' on run {2}' -f $Label, $benchmark.Name, $run)
                 }
 
