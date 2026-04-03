@@ -9,7 +9,7 @@ export const options = {
 };
 
 const target = __ENV.K6_TARGET || 'http://127.0.0.1:8091/';
-const needle = __ENV.K6_NEEDLE || 'CakePHP';
+const needle = __ENV.K6_NEEDLE || 'CakePHP benchmark';
 
 export default function () {
   const res = http.get(target);

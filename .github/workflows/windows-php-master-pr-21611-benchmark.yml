@@ -567,16 +567,31 @@ jobs:
               [int]$Attempts = 30
             )
 
+            $probeBody = Join-Path $resultsDir ('http-probe-{0}.txt' -f ([System.Guid]::NewGuid().ToString('N')))
+            $lastStatusCode = ''
+
             for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
-              try {
-                $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 5
-                if ($response.StatusCode -eq 200) {
-                  return
-                }
-              } catch {
+              if (Test-Path $probeBody) {
+                Remove-Item $probeBody -Force
               }
 
+              $statusCode = & curl.exe --silent --show-error --location --output $probeBody --write-out '%{http_code}' --max-time 5 $Url
+              $exitCode = $LASTEXITCODE
+
+              if ($exitCode -eq 0 -and $statusCode -eq '200') {
+                if (Test-Path $probeBody) {
+                  Remove-Item $probeBody -Force
+                }
+                return
+              }
+
+              $lastStatusCode = $statusCode
               Start-Sleep -Seconds 1
+            }
+
+            if (Test-Path $probeBody) {
+              Write-Host ('Last HTTP probe status for {0}: {1}' -f $Url, $lastStatusCode)
+              Get-Content $probeBody -TotalCount 80 | Write-Host
             }
 
             throw "Timed out waiting for $Url"
@@ -595,7 +610,7 @@ jobs:
             $stderr = Join-Path $resultsDir ('{0}-{1}-stderr.log' -f $Label, $Port)
             $docroot = Join-Path $PWD.Path 'webroot'
             $router = Join-Path $PWD.Path 'webroot\index.php'
-            $url = 'http://127.0.0.1:{0}/' -f $Port
+            $url = 'http://127.0.0.1:{0}/benchmark' -f $Port
             $args = @(
               '-c',
               $IniFile,
@@ -615,7 +630,7 @@ jobs:
             try {
               $env:PHP_INI_SCAN_DIR = ''
               $env:DEBUG = 'true'
-              $env:APP_FULL_BASE_URL = $url
+              $env:APP_FULL_BASE_URL = ('http://127.0.0.1:{0}' -f $Port)
               $process = Start-Process -FilePath $PhpExe -ArgumentList $args -WorkingDirectory $PWD.Path -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
             } finally {
               if ($null -eq $previousScanDir) {
@@ -689,7 +704,7 @@ jobs:
               $summaryFile = Join-Path $resultsDir ('{0}-http-rps-k6.json' -f $Label)
 
               $env:K6_TARGET = $server.Url
-              $env:K6_NEEDLE = 'CakePHP'
+              $env:K6_NEEDLE = 'CakePHP benchmark'
 
               $output = & k6 run --vus $env:K6_VUS --duration $env:K6_DURATION --summary-export $summaryFile .github/benchmarks/http_rps.js 2>&1
               if ($LASTEXITCODE -ne 0) {

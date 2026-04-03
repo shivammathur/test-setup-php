@@ -32,6 +32,16 @@ use Cake\View\Exception\MissingTemplateException;
 class PagesController extends AppController
 {
     /**
+     * Dedicated lightweight benchmark action that still boots the full app stack.
+     */
+    public function benchmark(): Response
+    {
+        return $this->response
+            ->withType('text/plain')
+            ->withStringBody('CakePHP benchmark');
+    }
+
+    /**
      * Displays a view
      *
      * @param string ...$path Path segments.
