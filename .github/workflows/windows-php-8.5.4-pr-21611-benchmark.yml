@@ -79,6 +79,14 @@ jobs:
           git apply --check --3way $patch
           git apply --3way $patch
 
+          $executeHeader = 'Zend\zend_execute.h'
+          $header = Get-Content $executeHeader -Raw
+          $updated = $header -replace 'extern zend_class_entry \*zend_ce_closure;', 'extern ZEND_API zend_class_entry *zend_ce_closure;'
+          if ($header -eq $updated) {
+            throw "Failed to apply zend_ce_closure compatibility fix"
+          }
+          Set-Content -Path $executeHeader -Value $updated
+
       - name: Build patched PHP with clang
         shell: cmd
         working-directory: php-src-pr
@@ -119,7 +127,6 @@ jobs:
           extension_dir="$($customDir -replace '\\', '/')/ext"
           extension="$($customDir -replace '\\', '/')/ext/php_mbstring.dll"
           extension="$($customDir -replace '\\', '/')/ext/php_intl.dll"
-          zend_extension="$($customDir -replace '\\', '/')/ext/php_opcache.dll"
           opcache.enable=1
           opcache.enable_cli=1
           opcache.jit_buffer_size=128M
