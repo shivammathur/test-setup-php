@@ -277,16 +277,19 @@ jobs:
 
             $mbstring = Find-ExtensionPath -SearchDir $PhpDir -FileName 'php_mbstring.dll'
             $intl = Find-ExtensionPath -SearchDir $PhpDir -FileName 'php_intl.dll'
+            $openssl = Find-ExtensionPath -SearchDir $PhpDir -FileName 'php_openssl.dll'
             $opcache = Find-ExtensionPath -SearchDir $PhpDir -FileName 'php_opcache.dll' -Optional
 
             $mbstringPosix = $mbstring -replace '\\', '/'
             $intlPosix = $intl -replace '\\', '/'
+            $opensslPosix = $openssl -replace '\\', '/'
 
             $lines = @(
               'date.timezone=UTC',
               'display_errors=1',
               'error_reporting=E_ALL',
               'memory_limit=1G',
+              "extension=""$opensslPosix""",
               "extension=""$mbstringPosix""",
               "extension=""$intlPosix"""
             )
