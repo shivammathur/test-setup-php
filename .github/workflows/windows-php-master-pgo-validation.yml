@@ -199,6 +199,15 @@ jobs:
           require getenv('PHP_SDK_ROOT_PATH') . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'php' . DIRECTORY_SEPARATOR . 'autoload.php';
 
           $cases = array_values(array_filter(array_map('trim', explode(',', getenv('PGO_CASES') ?: ''))));
+          $depsDir = getenv('PGO_DEPS_DIR');
+          if (!$depsDir) {
+              throw new RuntimeException('PGO_DEPS_DIR is not set');
+          }
+          if (!is_dir($depsDir) && !mkdir($depsDir, 0777, true) && !is_dir($depsDir)) {
+              throw new RuntimeException("Failed to create deps dir {$depsDir}");
+          }
+
+          SDK\Config::setDepsLocalPath($depsDir);
           $commands = array(
               array('init', false),
               array('up', false),
@@ -213,6 +222,12 @@ jobs:
           }
           '@
           Set-Content -Path $script -Value $scriptContent
+
+          $depsDir = Join-Path $env:RUNNER_TEMP 'php-sdk-pgo-deps'
+          New-Item -ItemType Directory -Path $depsDir -Force | Out-Null
+          $env:PGO_DEPS_DIR = $depsDir
+          $env:PHP_SDK_VS = 'vs17'
+          $env:PHP_RMTOOLS_PHP_BUILD_BRANCH = 'master'
 
           & "$env:PHP_ROOT\php.exe" -c $env:RUNNER_INI $script
           if ($LASTEXITCODE -ne 0) {
