@@ -1,6 +1,9 @@
 name: Build PHP master without PGO on Windows
 
 on:
+  push:
+    branches:
+      - codex/windows-php-854-pr21611-benchmark
   workflow_dispatch:
     inputs:
       builder-repository:
