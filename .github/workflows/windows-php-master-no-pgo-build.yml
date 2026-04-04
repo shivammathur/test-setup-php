@@ -1,0 +1,170 @@
+name: Build PHP master without PGO on Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      builder-repository:
+        description: GitHub repository for php-windows-builder
+        required: false
+        default: shivammathur/php-windows-builder
+      builder-ref:
+        description: Git reference for php-windows-builder
+        required: false
+        default: codex/pgo-case-revival
+      php-sdk-repository:
+        description: GitHub repository for the PHP SDK source archive
+        required: false
+        default: shivammathur/php-sdk-binary-tools
+      php-sdk-ref:
+        description: Git reference for the PHP SDK source archive
+        required: false
+        default: codex/pgo-case-revival
+
+permissions:
+  contents: read
+
+jobs:
+  build-no-pgo:
+    name: Build PHP master without PGO
+    runs-on: windows-2022
+    timeout-minutes: 150
+    env:
+      BUILDER_REPOSITORY: ${{ inputs['builder-repository'] }}
+      BUILDER_REF: ${{ inputs['builder-ref'] }}
+      PHP_SDK_REPOSITORY: ${{ inputs['php-sdk-repository'] }}
+      PHP_SDK_REF: ${{ inputs['php-sdk-ref'] }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout test app
+        uses: actions/checkout@v6
+
+      - name: Checkout php-windows-builder
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.BUILDER_REPOSITORY }}
+          ref: ${{ env.BUILDER_REF }}
+          path: php-windows-builder
+
+      - name: Build PHP master without PGO
+        shell: pwsh
+        run: |
+          Import-Module (Join-Path $env:GITHUB_WORKSPACE 'php-windows-builder\php\BuildPhp') -Force
+
+          $phpVersion = 'master'
+          $arch = 'x64'
+          $ts = 'ts'
+          $builderRoot = Join-Path $env:GITHUB_WORKSPACE 'php-windows-builder\php\BuildPhp'
+
+          Set-NetSecurityProtocolType
+
+          $vsConfig = Get-VsVersion -PhpVersion $phpVersion
+          if ($null -eq $vsConfig.vs) {
+            throw "PHP version $phpVersion is not supported."
+          }
+
+          $currentDirectory = (Get-Location).Path
+          $tempDirectory = [System.IO.Path]::GetTempPath()
+          $buildDirectory = Join-Path $tempDirectory ("php-" + [System.Guid]::NewGuid().ToString())
+          New-Item $buildDirectory -ItemType Directory -Force > $null 2>&1
+
+          try {
+            Set-Location $buildDirectory
+
+            Add-BuildRequirements -PhpVersion $phpVersion -Arch $arch -FetchSrc:$true
+
+            Copy-Item -Path (Join-Path $builderRoot 'config') -Destination . -Recurse
+
+            $buildPath = Join-Path $buildDirectory "config\$($vsConfig.vs)\$arch\php-$phpVersion"
+            $sourcePath = Join-Path $buildDirectory "php-$phpVersion-src"
+            Move-Item $sourcePath $buildPath
+
+            $buildParent = Split-Path -Path $buildPath -Parent
+            $artifactsDirectory = Join-Path $currentDirectory 'artifacts'
+            $configBatchSource = Join-Path $builderRoot "config\$($vsConfig.vs)\$arch\config.$ts.bat"
+
+            Set-Location $buildPath
+            New-Item (Join-Path $buildParent 'obj') -ItemType Directory -Force > $null 2>&1
+            Copy-Item -Path $configBatchSource -Destination (Join-Path $buildPath "config.$ts.bat") -Force
+
+            $configBatch = Join-Path $buildPath "config.$ts.bat"
+            $configContents = Get-Content $configBatch -Raw
+            $configContents = $configContents -replace ' "--enable-pgi"', ''
+            Set-Content -Path $configBatch -Value $configContents -NoNewline
+
+            $task = "task-$ts-no-pgo-with-deps.bat"
+            $taskContent = @'
+          set LDFLAGS="/d2:-AllowCompatibleILVersions" 2>&1
+          call phpsdk_deps.bat -s staging -u 2>&1
+          if errorlevel 1 exit 1
+          call buildconf.bat 2>&1
+          if errorlevel 1 exit 2
+          call config.ts.bat 2>&1
+          if errorlevel 1 exit 3
+          nmake && nmake snap 2>&1
+          if errorlevel 1 exit 4
+          '@
+            Set-Content -Path $task -Value $taskContent -NoNewline
+
+            Invoke-PhpSdkStarter -BuildDirectory $buildDirectory -VsConfig $vsConfig -Arch $arch -Task $task
+
+            New-Item $artifactsDirectory -ItemType Directory -Force > $null 2>&1
+            xcopy "..\obj\Release_TS\php-*.zip" "$artifactsDirectory\*"
+
+            $srcZip = Join-Path $buildDirectory "php-$phpVersion-src.zip"
+            if (Test-Path $srcZip) {
+              Move-Item $srcZip $artifactsDirectory -Force
+            }
+          } finally {
+            Set-Location $currentDirectory
+          }
+
+      - name: Prepare no-PGO artifact
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem artifacts -Filter 'php-*.zip' |
+            Where-Object { $_.Name -notmatch 'src|devel|debug|test' } |
+            Sort-Object Name |
+            Select-Object -First 1
+
+          if ($null -eq $zip) {
+            throw 'Could not find a runtime zip in artifacts/'
+          }
+
+          $extractDir = Join-Path $env:RUNNER_TEMP 'no-pgo-extract'
+          $dest = Join-Path $env:RUNNER_TEMP 'php-master-no-pgo'
+
+          if (Test-Path $extractDir) {
+            Remove-Item $extractDir -Recurse -Force
+          }
+
+          if (Test-Path $dest) {
+            Remove-Item $dest -Recurse -Force
+          }
+
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath $extractDir -Force
+
+          $phpExe = Get-ChildItem $extractDir -Filter php.exe -Recurse | Select-Object -First 1
+          if ($null -eq $phpExe) {
+            throw "Could not find php.exe after extracting $($zip.Name)"
+          }
+
+          New-Item -ItemType Directory -Path $dest -Force | Out-Null
+          Copy-Item -Path (Join-Path $phpExe.Directory.FullName '*') -Destination $dest -Recurse -Force
+
+      - name: Smoke test no-PGO build
+        shell: pwsh
+        run: |
+          $php = Join-Path $env:RUNNER_TEMP 'php-master-no-pgo\php.exe'
+          $meta = & $php -n -r "echo PHP_VERSION, ' ', PHP_ZTS ? 'TS' : 'NTS', ' ', ZEND_VM_KIND;"
+          if ($LASTEXITCODE -ne 0) {
+            throw 'No-PGO PHP smoke test failed'
+          }
+
+          Write-Host $meta
+
+      - name: Upload no-PGO build
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-master-direct-builder-build
+          path: ${{ runner.temp }}/php-master-no-pgo
+          if-no-files-found: error
