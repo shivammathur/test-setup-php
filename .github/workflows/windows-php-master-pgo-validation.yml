@@ -27,6 +27,14 @@ on:
         description: Git reference for php-sdk-binary-tools
         required: false
         default: codex/pgo-case-revival
+      php-src-repository:
+        description: GitHub repository for php-src
+        required: false
+        default: php/php-src
+      php-src-ref:
+        description: Optional Git reference for php-src
+        required: false
+        default: ""
       validation-cases:
         description: Comma-separated PGO cases to validate before any build starts
         required: false
@@ -421,6 +429,8 @@ jobs:
       BUILDER_REF: ${{ inputs['builder-ref'] }}
       PHP_SDK_REPOSITORY: ${{ inputs['php-sdk-repository'] }}
       PHP_SDK_REF: ${{ inputs['php-sdk-ref'] }}
+      PHP_SRC_REPOSITORY: ${{ inputs['php-src-repository'] }}
+      PHP_SRC_REF: ${{ inputs['php-src-ref'] }}
       PGO_CASES: ${{ inputs['pgo-cases'] }}
       PGO_DEFAULT_CASES: ${{ inputs['pgo-default-cases'] }}
       PGO_CACHE_CASES: ${{ inputs['pgo-cache-cases'] }}
@@ -443,6 +453,8 @@ jobs:
           ts: ts
           php-sdk-repository: ${{ env.PHP_SDK_REPOSITORY }}
           php-sdk-ref: ${{ env.PHP_SDK_REF }}
+          php-src-repository: ${{ env.PHP_SRC_REPOSITORY }}
+          php-src-ref: ${{ env.PHP_SRC_REF }}
           pgo-cases: ${{ env.PGO_CASES }}
           pgo-default-cases: ${{ env.PGO_DEFAULT_CASES }}
           pgo-cache-cases: ${{ env.PGO_CACHE_CASES }}
