@@ -43,6 +43,10 @@ on:
         description: Comma-separated PGO cases to use for the cache training scenario
         required: false
         default: jit,symfony_demo
+      comparison-artifact-name:
+        description: Optional extra artifact name to upload for benchmark comparison reuse
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -505,5 +509,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: php-master-msvc-pgo-build
+          path: ${{ runner.temp }}/php-master-msvc-pgo
+          if-no-files-found: error
+
+      - name: Upload comparison build alias
+        if: ${{ inputs['comparison-artifact-name'] != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs['comparison-artifact-name'] }}
           path: ${{ runner.temp }}/php-master-msvc-pgo
           if-no-files-found: error

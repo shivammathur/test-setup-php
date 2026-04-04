@@ -18,6 +18,10 @@ on:
         description: Reuse direct builder artifact from a previous workflow run ID
         required: false
         default: ""
+      comparison-label:
+        description: Optional label to use for the comparison build in reports
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -267,6 +271,7 @@ jobs:
       CLANG_ARTIFACT_RUN_ID: ${{ inputs['clang-artifact-run-id'] }}
       COMPARISON_MODE: ${{ inputs['comparison-mode'] }}
       DIRECT_BUILDER_ARTIFACT_RUN_ID: ${{ inputs['direct-builder-artifact-run-id'] }}
+      COMPARISON_LABEL: ${{ inputs['comparison-label'] }}
       BENCHMARK_ITERATIONS: 5
       PHPBENCH_ITERATIONS: 5
       K6_DURATION: 15s
@@ -574,7 +579,7 @@ jobs:
           $iterations = [int]$env:BENCHMARK_ITERATIONS
           $phpBenchIterations = [int]$env:PHPBENCH_ITERATIONS
           $resultsDir = Join-Path $env:RUNNER_TEMP 'benchmark-results'
-          $customLabel = if ($env:COMPARISON_MODE -eq 'clang') { 'master-pr-21611-clang' } else { 'master-direct-builder' }
+          $customLabel = if (![string]::IsNullOrWhiteSpace($env:COMPARISON_LABEL)) { $env:COMPARISON_LABEL } elseif ($env:COMPARISON_MODE -eq 'clang') { 'master-pr-21611-clang' } else { 'master-direct-builder' }
           $customArtifactSource = if ($env:COMPARISON_MODE -eq 'clang') {
             $env:CLANG_ARTIFACT_RUN_ID
           } elseif ([string]::IsNullOrWhiteSpace($env:DIRECT_BUILDER_ARTIFACT_RUN_ID)) {
@@ -601,6 +606,14 @@ jobs:
             @{
               Name = 'cake-bootstrap-jit-tracing'
               Args = @('-d', 'opcache.jit=tracing', '.github/benchmarks/cake_bootstrap.php', '150')
+            },
+            @{
+              Name = 'pdo-sqlite-jit-off'
+              Args = @('-d', 'opcache.jit=off', '.github/benchmarks/pdo_sqlite.php', '250')
+            },
+            @{
+              Name = 'pdo-sqlite-jit-tracing'
+              Args = @('-d', 'opcache.jit=tracing', '.github/benchmarks/pdo_sqlite.php', '250')
             }
           )
 
