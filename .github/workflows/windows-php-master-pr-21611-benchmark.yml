@@ -257,7 +257,7 @@ jobs:
 
   benchmark:
     name: Benchmark master baseline vs comparison build
-    if: ${{ inputs['baseline-artifact-run-id'] != '' && ((inputs['comparison-mode'] == 'clang' && inputs['clang-artifact-run-id'] != '') || (inputs['comparison-mode'] == 'direct-builder' && (inputs['direct-builder-artifact-run-id'] != '' || needs.build-direct-builder.result == 'success'))) }}
+    if: ${{ always() && inputs['baseline-artifact-run-id'] != '' && ((inputs['comparison-mode'] == 'clang' && inputs['clang-artifact-run-id'] != '') || (inputs['comparison-mode'] == 'direct-builder' && (inputs['direct-builder-artifact-run-id'] != '' || needs.build-direct-builder.result == 'success'))) }}
     needs:
       - build-direct-builder
     runs-on: windows-2022
