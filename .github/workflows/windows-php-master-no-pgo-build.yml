@@ -32,10 +32,10 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 150
     env:
-      BUILDER_REPOSITORY: ${{ inputs['builder-repository'] }}
-      BUILDER_REF: ${{ inputs['builder-ref'] }}
-      PHP_SDK_REPOSITORY: ${{ inputs['php-sdk-repository'] }}
-      PHP_SDK_REF: ${{ inputs['php-sdk-ref'] }}
+      BUILDER_REPOSITORY: ${{ github.event_name == 'workflow_dispatch' && inputs['builder-repository'] || 'shivammathur/php-windows-builder' }}
+      BUILDER_REF: ${{ github.event_name == 'workflow_dispatch' && inputs['builder-ref'] || 'codex/pgo-case-revival' }}
+      PHP_SDK_REPOSITORY: ${{ github.event_name == 'workflow_dispatch' && inputs['php-sdk-repository'] || 'shivammathur/php-sdk-binary-tools' }}
+      PHP_SDK_REF: ${{ github.event_name == 'workflow_dispatch' && inputs['php-sdk-ref'] || 'codex/pgo-case-revival' }}
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout test app
@@ -51,7 +51,7 @@ jobs:
       - name: Build PHP master without PGO
         shell: pwsh
         run: |
-          Import-Module (Join-Path $env:GITHUB_WORKSPACE 'php-windows-builder\php\BuildPhp') -Force
+          Import-Module (Join-Path $env:GITHUB_WORKSPACE 'php-windows-builder\php\BuildPhp\BuildPhp.psd1') -Force
 
           $phpVersion = 'master'
           $arch = 'x64'
