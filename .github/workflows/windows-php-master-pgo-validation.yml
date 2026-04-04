@@ -35,6 +35,14 @@ on:
         description: Comma-separated PGO cases to use for the full PGO build
         required: false
         default: pgo01org,symfony_demo,cli
+      pgo-default-cases:
+        description: Comma-separated PGO cases to use for the default training scenario
+        required: false
+        default: pgo01org,symfony_demo,cli
+      pgo-cache-cases:
+        description: Comma-separated PGO cases to use for the cache training scenario
+        required: false
+        default: cli
 
 permissions:
   contents: read
@@ -410,6 +418,8 @@ jobs:
       PHP_SDK_REPOSITORY: ${{ inputs['php-sdk-repository'] }}
       PHP_SDK_REF: ${{ inputs['php-sdk-ref'] }}
       PGO_CASES: ${{ inputs['pgo-cases'] }}
+      PGO_DEFAULT_CASES: ${{ inputs['pgo-default-cases'] }}
+      PGO_CACHE_CASES: ${{ inputs['pgo-cache-cases'] }}
     steps:
       - name: Checkout php-windows-builder
         uses: actions/checkout@v6
@@ -420,6 +430,9 @@ jobs:
 
       - name: Build PHP master with php-windows-builder
         uses: ./php-windows-builder/php
+        env:
+          PHP_SDK_PGO_DEFAULT_CASES: ${{ env.PGO_DEFAULT_CASES }}
+          PHP_SDK_PGO_CACHE_CASES: ${{ env.PGO_CACHE_CASES }}
         with:
           php-version: master
           arch: x64
@@ -427,6 +440,8 @@ jobs:
           php-sdk-repository: ${{ env.PHP_SDK_REPOSITORY }}
           php-sdk-ref: ${{ env.PHP_SDK_REF }}
           pgo-cases: ${{ env.PGO_CASES }}
+          pgo-default-cases: ${{ env.PGO_DEFAULT_CASES }}
+          pgo-cache-cases: ${{ env.PGO_CACHE_CASES }}
           github-token: ${{ github.token }}
 
       - name: Prepare baseline artifact
