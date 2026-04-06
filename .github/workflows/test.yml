@@ -4,20 +4,12 @@ on:
 
 jobs:
   test:
-    strategy:
-      matrix:
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-    runs-on: windows-latest
+    runs-on: macos-latest
     steps:
-      - run: |
-          Add-Type -TypeDefinition @"
-          using System;
-          using System.Runtime.InteropServices;
-          public class CpuCheck {
-              [DllImport("kernel32.dll")]
-              public static extern bool IsProcessorFeaturePresent(uint ProcessorFeature);
-          }
-          "@
-          $isSupported = [CpuCheck]::IsProcessorFeaturePresent(41)
-          Write-Host "AVX-512 Supported: $isSupported"
-          echo "::warning::AVX-512 Supported: $isSupported"
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          extensions: xdebug
+        env:
+          update: true
+      - run: php -v && php -m && composer -V
