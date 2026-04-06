@@ -13,9 +13,7 @@ jobs:
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-      - run: |
-          brew tap shivammathur/extensions
-          brew install -sv ${{ matrix.ext }}@8.5 || true
+          extensions: ${{ matrix.ext }}
       - name: Testing Extensions
         run: |
           php -v
