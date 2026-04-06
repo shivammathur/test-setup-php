@@ -15,7 +15,7 @@ jobs:
           php-version: ${{ matrix.php }}
       - run: |
           brew tap shivammathur/extensions
-          brew install ${{ matrix.ext }}@8.5 || true
+          brew install -sv ${{ matrix.ext }}@8.5 || true
       - name: Testing Extensions
         run: |
           php -v
