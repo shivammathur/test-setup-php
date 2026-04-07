@@ -1,0 +1,126 @@
+name: Windows curl Brotli/Zstd artifact validation
+
+on:
+  push:
+    branches:
+      - codex/windows-curl-brotli-zstd-artifacts
+  workflow_dispatch:
+    inputs:
+      source-repository:
+        description: GitHub repository that owns the php-windows-builder run
+        required: false
+        default: shivammathur/php-windows-builder
+      source-run-id:
+        description: GitHub Actions run ID that produced the PHP artifacts
+        required: false
+        default: "24069081235"
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  validate-curl-encodings:
+    name: Validate curl Brotli and Zstd from php-windows-builder artifacts
+    runs-on: windows-2022
+    timeout-minutes: 90
+    env:
+      SOURCE_REPOSITORY: ${{ github.event_name == 'workflow_dispatch' && inputs['source-repository'] || 'shivammathur/php-windows-builder' }}
+      SOURCE_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs['source-run-id'] || '24069081235' }}
+      SOURCE_ARTIFACT_NAME: artifacts
+      TEST_SERVER_PORT: "18080"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test server dependencies
+        run: python -m pip install --disable-pip-version-check brotli zstandard
+
+      - name: Download PHP build artifacts
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -Path source-artifacts -ItemType Directory -Force | Out-Null
+          gh run download $env:SOURCE_RUN_ID -R $env:SOURCE_REPOSITORY -n $env:SOURCE_ARTIFACT_NAME -D source-artifacts
+
+          $runtimeZips = Get-ChildItem -Path source-artifacts -Recurse -File -Filter 'php-*.zip' |
+            Where-Object { $_.Name -notmatch 'src|debug|devel|test|pdb' } |
+            Sort-Object FullName
+
+          if ($runtimeZips.Count -eq 0) {
+            throw "No runtime PHP zip files were downloaded from run $env:SOURCE_RUN_ID"
+          }
+
+          Write-Host 'Discovered runtime zips:'
+          $runtimeZips | ForEach-Object { Write-Host "- $($_.FullName)" }
+
+      - name: Start local encoding test server
+        shell: pwsh
+        run: |
+          $serverLog = Join-Path $env:RUNNER_TEMP 'curl-encoding-server.log'
+          $readyFile = Join-Path $env:RUNNER_TEMP 'curl-encoding-server.ready'
+          if (Test-Path $serverLog) {
+            Remove-Item $serverLog -Force
+          }
+          if (Test-Path $readyFile) {
+            Remove-Item $readyFile -Force
+          }
+
+          $process = Start-Process python `
+            -ArgumentList @(
+              '.github/scripts/windows-curl-encoding-server.py',
+              '--host', '127.0.0.1',
+              '--port', $env:TEST_SERVER_PORT,
+              '--ready-file', $readyFile
+            ) `
+            -RedirectStandardOutput $serverLog `
+            -RedirectStandardError $serverLog `
+            -PassThru
+
+          "SERVER_PID=$($process.Id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append
+          "SERVER_LOG=$serverLog" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append
+
+          for ($i = 0; $i -lt 30; $i++) {
+            if (Test-Path $readyFile) {
+              break
+            }
+            Start-Sleep -Seconds 1
+          }
+
+          if (-not (Test-Path $readyFile)) {
+            Get-Content $serverLog -ErrorAction SilentlyContinue
+            throw 'The local encoding test server did not become ready in time'
+          }
+
+          Invoke-WebRequest -Uri "http://127.0.0.1:$env:TEST_SERVER_PORT/healthz" | Out-Null
+
+      - name: Run custom curl encoding tests against artifact builds
+        shell: pwsh
+        run: |
+          ./.github/scripts/windows-curl-artifact-test.ps1 `
+            -ArtifactsDirectory (Join-Path $env:GITHUB_WORKSPACE 'source-artifacts') `
+            -ServerBaseUrl "http://127.0.0.1:$env:TEST_SERVER_PORT" `
+            -ClientScript (Join-Path $env:GITHUB_WORKSPACE '.github/scripts/windows-curl-encoding-client.php')
+
+      - name: Stop local encoding test server
+        if: always()
+        shell: pwsh
+        run: |
+          if ($env:SERVER_PID) {
+            Stop-Process -Id ([int]$env:SERVER_PID) -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Upload curl validation logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-curl-brotli-zstd-validation-logs
+          path: |
+            ${{ runner.temp }}/curl-encoding-server.log
+          if-no-files-found: warn
