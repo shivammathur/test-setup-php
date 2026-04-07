@@ -80,10 +80,10 @@ jobs:
             Remove-Item $destination -Recurse -Force
           }
 
-          $basicAuth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("x-access-token:$env:GH_PAT"))
-          $repoUrl = "https://github.com/$env:PHP_SRC_REPOSITORY.git"
+          $env:GIT_TERMINAL_PROMPT = '0'
+          $repoUrl = "https://x-access-token:$env:GH_PAT@github.com/$env:PHP_SRC_REPOSITORY.git"
 
-          git -c http.extraheader="AUTHORIZATION: basic $basicAuth" clone --branch $env:PHP_SRC_REF --depth 1 $repoUrl $destination
+          git clone --branch $env:PHP_SRC_REF --depth 1 $repoUrl $destination
           git -C $destination rev-parse HEAD
 
       - name: Get composer cache directory
