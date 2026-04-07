@@ -1,0 +1,318 @@
+name: Test php-src-security on Windows
+
+on:
+  push:
+    branches:
+      - codex/php-src-security-validation
+    paths:
+      - .github/workflows/windows-php-src-security-test.yml
+  workflow_dispatch:
+    inputs:
+      php-src-repository:
+        description: GitHub repository for php-src
+        required: false
+        default: shivammathur/php-src-security
+      php-src-ref:
+        description: Git reference for php-src
+        required: false
+        default: fix-GHSA-9f67-6fw4-hpfp
+      builder-repository:
+        description: GitHub repository for php-windows-builder
+        required: false
+        default: shivammathur/php-windows-builder
+      builder-ref:
+        description: Git reference for php-windows-builder
+        required: false
+        default: master
+      arch:
+        description: Build architecture
+        required: false
+        default: x64
+      ts:
+        description: Thread safety to build
+        required: false
+        default: ts
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build custom PHP and run CakePHP tests
+    runs-on: windows-2022
+    timeout-minutes: 240
+    env:
+      PHP_SRC_REPOSITORY: ${{ github.event_name == 'workflow_dispatch' && inputs['php-src-repository'] || 'shivammathur/php-src-security' }}
+      PHP_SRC_REF: ${{ github.event_name == 'workflow_dispatch' && inputs['php-src-ref'] || 'fix-GHSA-9f67-6fw4-hpfp' }}
+      BUILDER_REPOSITORY: ${{ github.event_name == 'workflow_dispatch' && inputs['builder-repository'] || 'shivammathur/php-windows-builder' }}
+      BUILDER_REF: ${{ github.event_name == 'workflow_dispatch' && inputs['builder-ref'] || 'master' }}
+      BUILD_ARCH: ${{ github.event_name == 'workflow_dispatch' && inputs['arch'] || 'x64' }}
+      BUILD_TS: ${{ github.event_name == 'workflow_dispatch' && inputs['ts'] || 'ts' }}
+    steps:
+      - name: Checkout test app
+        uses: actions/checkout@v6
+
+      - name: Setup bootstrap PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, sqlite3, pdo_sqlite, zip
+          tools: composer
+
+      - name: Checkout php-windows-builder
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.BUILDER_REPOSITORY }}
+          ref: ${{ env.BUILDER_REF }}
+          path: php-windows-builder
+
+      - name: Checkout php-src-security
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.PHP_SRC_REPOSITORY }}
+          ref: ${{ env.PHP_SRC_REF }}
+          path: php-src
+          token: ${{ secrets.PAT }}
+          fetch-depth: 1
+
+      - name: Get composer cache directory
+        id: composer-cache
+        shell: pwsh
+        run: |
+          "dir=$(composer config cache-files-dir)" >> $env:GITHUB_OUTPUT
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: windows-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: windows-composer-
+
+      - name: Install app dependencies
+        shell: pwsh
+        run: |
+          composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+          composer run-script post-install-cmd --no-interaction
+
+      - name: Build PHP from local php-src checkout without PGO
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        run: |
+          Import-Module (Join-Path $env:GITHUB_WORKSPACE 'php-windows-builder\php\BuildPhp\BuildPhp.psd1') -Force
+
+          $phpVersion = 'master'
+          $arch = $env:BUILD_ARCH
+          $ts = $env:BUILD_TS
+          $builderRoot = Join-Path $env:GITHUB_WORKSPACE 'php-windows-builder\php\BuildPhp'
+          $phpSourceRoot = Join-Path $env:GITHUB_WORKSPACE 'php-src'
+
+          if (!(Test-Path (Join-Path $phpSourceRoot 'main\php_version.h'))) {
+            throw "Could not find a php-src checkout in $phpSourceRoot"
+          }
+
+          Set-NetSecurityProtocolType
+
+          $vsConfig = Get-VsVersion -PhpVersion $phpVersion
+          if ($null -eq $vsConfig.vs) {
+            throw "PHP version $phpVersion is not supported."
+          }
+
+          $currentDirectory = (Get-Location).Path
+          $tempDirectory = [System.IO.Path]::GetTempPath()
+          $buildDirectory = Join-Path $tempDirectory ("php-" + [System.Guid]::NewGuid().ToString())
+          New-Item $buildDirectory -ItemType Directory -Force | Out-Null
+
+          try {
+            Set-Location $buildDirectory
+
+            Add-BuildRequirements -PhpVersion $phpVersion -Arch $arch -FetchSrc:$false
+
+            Copy-Item -Path (Join-Path $builderRoot 'config') -Destination . -Recurse
+
+            $buildPath = Join-Path $buildDirectory "config\$($vsConfig.vs)\$arch\php-$phpVersion"
+            Move-Item $phpSourceRoot $buildPath
+
+            $buildParent = Split-Path -Path $buildPath -Parent
+            $artifactsDirectory = Join-Path $currentDirectory 'artifacts'
+            $configBatch = Join-Path $buildPath "config.$ts.bat"
+            $configBatchSource = Join-Path $builderRoot "config\$($vsConfig.vs)\$arch\config.$ts.bat"
+
+            Set-Location $buildPath
+            New-Item (Join-Path $buildParent 'obj') -ItemType Directory -Force | Out-Null
+            Copy-Item -Path $configBatchSource -Destination $configBatch -Force
+
+            $configContents = Get-Content $configBatch -Raw
+            $configContents = $configContents -replace ' "--enable-pgi"', ''
+            Set-Content -Path $configBatch -Value $configContents -NoNewline
+
+            $task = "task-$ts-no-pgo-with-deps.bat"
+            $configStep = "config.$ts.bat"
+            $taskContent = @(
+              'set LDFLAGS="/d2:-AllowCompatibleILVersions" 2>&1',
+              'call phpsdk_deps.bat -s staging -u 2>&1',
+              'if errorlevel 1 exit 1',
+              'call buildconf.bat 2>&1',
+              'if errorlevel 1 exit 2',
+              "call $configStep 2>&1",
+              'if errorlevel 1 exit 3',
+              'nmake && nmake snap 2>&1',
+              'if errorlevel 1 exit 4'
+            ) -join [Environment]::NewLine
+            Set-Content -Path $task -Value $taskContent -NoNewline
+
+            Invoke-PhpSdkStarter -BuildDirectory $buildDirectory -VsConfig $vsConfig -Arch $arch -Task $task
+
+            New-Item $artifactsDirectory -ItemType Directory -Force | Out-Null
+            if ($ts -eq 'ts') {
+              xcopy "..\obj\Release_TS\php-*.zip" "$artifactsDirectory\*"
+            } else {
+              xcopy "..\obj\Release\php-*.zip" "$artifactsDirectory\*"
+            }
+          } finally {
+            Set-Location $currentDirectory
+          }
+
+      - name: Prepare built PHP runtime
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem artifacts -Filter 'php-*.zip' |
+            Where-Object { $_.Name -notmatch 'src|devel|debug|test' } |
+            Sort-Object Name |
+            Select-Object -First 1
+
+          if ($null -eq $zip) {
+            throw 'Could not find a built runtime zip in artifacts/'
+          }
+
+          $extractDir = Join-Path $env:RUNNER_TEMP 'php-extract'
+          $dest = Join-Path $env:RUNNER_TEMP 'php-custom'
+
+          if (Test-Path $extractDir) {
+            Remove-Item $extractDir -Recurse -Force
+          }
+
+          if (Test-Path $dest) {
+            Remove-Item $dest -Recurse -Force
+          }
+
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath $extractDir -Force
+
+          $phpExe = Get-ChildItem $extractDir -Filter php.exe -Recurse | Select-Object -First 1
+          if ($null -eq $phpExe) {
+            throw "Could not find php.exe after extracting $($zip.Name)"
+          }
+
+          New-Item -ItemType Directory -Path $dest -Force | Out-Null
+          Copy-Item -Path (Join-Path $phpExe.Directory.FullName '*') -Destination $dest -Recurse -Force
+
+          $extDir = Join-Path $dest 'ext'
+          if (Test-Path $extDir) {
+            Copy-Item -Path (Join-Path $extDir 'php_*.dll') -Destination $dest -Force
+          }
+
+          $runnerIni = Join-Path $env:RUNNER_TEMP 'php-custom.ini'
+          $extensions = @(
+            'php_mbstring.dll',
+            'php_intl.dll',
+            'php_sqlite3.dll',
+            'php_pdo_sqlite.dll'
+          )
+
+          $lines = @(
+            'date.timezone=UTC',
+            'display_errors=1',
+            'error_reporting=E_ALL',
+            'memory_limit=-1'
+          )
+
+          foreach ($extension in $extensions) {
+            $extensionPath = Join-Path $extDir $extension
+            if (!(Test-Path $extensionPath)) {
+              throw "Missing required extension $extensionPath"
+            }
+
+            $lines += ('extension="{0}"' -f ($extensionPath -replace '\\', '/'))
+          }
+
+          Set-Content -Path $runnerIni -Value $lines
+
+          "PHP_BUILD_ROOT=$dest" >> $env:GITHUB_ENV
+          "PHP_BUILD_INI=$runnerIni" >> $env:GITHUB_ENV
+
+      - name: Smoke test built PHP
+        shell: pwsh
+        run: |
+          $php = Join-Path $env:PHP_BUILD_ROOT 'php.exe'
+          $meta = & $php -c $env:PHP_BUILD_INI -r "echo PHP_VERSION, ' ', PHP_ZTS ? 'TS' : 'NTS';"
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Built PHP smoke test failed'
+          }
+
+          $extensions = & $php -c $env:PHP_BUILD_INI -r "echo (int)extension_loaded('mbstring'), (int)extension_loaded('intl'), (int)extension_loaded('sqlite3'), (int)extension_loaded('pdo_sqlite');"
+          if ($LASTEXITCODE -ne 0 -or $extensions -ne '1111') {
+            throw "Built PHP did not load required extensions: $extensions"
+          }
+
+          Write-Host $meta
+
+      - name: Configure app for SQLite tests
+        shell: pwsh
+        run: |
+          $appDb = (Join-Path $env:RUNNER_TEMP 'app.sqlite') -replace '\\', '/'
+          $testDb = (Join-Path $env:RUNNER_TEMP 'tests.sqlite') -replace '\\', '/'
+
+          Remove-Item $appDb, $testDb -Force -ErrorAction SilentlyContinue
+
+          $config = @(
+            '<?php',
+            'declare(strict_types=1);',
+            '',
+            'return [',
+            "    'debug' => true,",
+            "    'Security' => [",
+            "        'salt' => '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',",
+            '    ],',
+            "    'Datasources' => [",
+            "        'default' => [",
+            "            'className' => \Cake\Database\Connection::class,",
+            "            'driver' => \Cake\Database\Driver\Sqlite::class,",
+            "            'database' => '$appDb',",
+            "            'encoding' => 'utf8',",
+            "            'cacheMetadata' => true,",
+            "            'quoteIdentifiers' => false,",
+            "            'log' => false,",
+            '        ],',
+            "        'test' => [",
+            "            'className' => \Cake\Database\Connection::class,",
+            "            'driver' => \Cake\Database\Driver\Sqlite::class,",
+            "            'database' => '$testDb',",
+            "            'encoding' => 'utf8',",
+            "            'cacheMetadata' => true,",
+            "            'quoteIdentifiers' => false,",
+            "            'log' => false,",
+            '        ],',
+            '    ],',
+            '];'
+          ) -join [Environment]::NewLine
+
+          Set-Content -Path (Join-Path $env:GITHUB_WORKSPACE 'config\app_local.php') -Value $config -Encoding Ascii
+
+      - name: Run CakePHP tests with built PHP
+        shell: pwsh
+        run: |
+          $php = Join-Path $env:PHP_BUILD_ROOT 'php.exe'
+          & $php -c $env:PHP_BUILD_INI vendor\bin\phpunit --colors=never
+          if ($LASTEXITCODE -ne 0) {
+            throw 'PHPUnit failed'
+          }
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-src-security-windows-build
+          path: |
+            artifacts/*
+            config/app_local.php
+          if-no-files-found: ignore
