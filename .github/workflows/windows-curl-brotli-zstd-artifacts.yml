@@ -63,10 +63,14 @@ jobs:
       - name: Start local encoding test server
         shell: pwsh
         run: |
-          $serverLog = Join-Path $env:RUNNER_TEMP 'curl-encoding-server.log'
+          $serverStdoutLog = Join-Path $env:RUNNER_TEMP 'curl-encoding-server.stdout.log'
+          $serverStderrLog = Join-Path $env:RUNNER_TEMP 'curl-encoding-server.stderr.log'
           $readyFile = Join-Path $env:RUNNER_TEMP 'curl-encoding-server.ready'
-          if (Test-Path $serverLog) {
-            Remove-Item $serverLog -Force
+          if (Test-Path $serverStdoutLog) {
+            Remove-Item $serverStdoutLog -Force
+          }
+          if (Test-Path $serverStderrLog) {
+            Remove-Item $serverStderrLog -Force
           }
           if (Test-Path $readyFile) {
             Remove-Item $readyFile -Force
@@ -79,12 +83,13 @@ jobs:
               '--port', $env:TEST_SERVER_PORT,
               '--ready-file', $readyFile
             ) `
-            -RedirectStandardOutput $serverLog `
-            -RedirectStandardError $serverLog `
+            -RedirectStandardOutput $serverStdoutLog `
+            -RedirectStandardError $serverStderrLog `
             -PassThru
 
           "SERVER_PID=$($process.Id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append
-          "SERVER_LOG=$serverLog" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append
+          "SERVER_STDOUT_LOG=$serverStdoutLog" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append
+          "SERVER_STDERR_LOG=$serverStderrLog" | Out-File -FilePath $env:GITHUB_ENV -Encoding ascii -Append
 
           for ($i = 0; $i -lt 30; $i++) {
             if (Test-Path $readyFile) {
@@ -94,7 +99,8 @@ jobs:
           }
 
           if (-not (Test-Path $readyFile)) {
-            Get-Content $serverLog -ErrorAction SilentlyContinue
+            Get-Content $serverStdoutLog -ErrorAction SilentlyContinue
+            Get-Content $serverStderrLog -ErrorAction SilentlyContinue
             throw 'The local encoding test server did not become ready in time'
           }
 
@@ -122,5 +128,6 @@ jobs:
         with:
           name: windows-curl-brotli-zstd-validation-logs
           path: |
-            ${{ runner.temp }}/curl-encoding-server.log
+            ${{ runner.temp }}/curl-encoding-server.stdout.log
+            ${{ runner.temp }}/curl-encoding-server.stderr.log
           if-no-files-found: warn
