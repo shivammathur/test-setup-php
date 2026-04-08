@@ -1,0 +1,115 @@
+name: Windows OpenSSL Key Type Probe
+
+on:
+  push:
+    branches:
+      - codex/windows-openssl-conf-check
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      OPENSSL_CONF: 'C:\tools\php\extras\ssl\openssl.cnf'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PHP 8.5
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+
+      - name: Show PHP and OpenSSL config
+        shell: pwsh
+        run: |
+          Write-Host "OPENSSL_CONF=$env:OPENSSL_CONF"
+          if (-not (Test-Path $env:OPENSSL_CONF)) {
+            throw "OPENSSL_CONF path not found: $env:OPENSSL_CONF"
+          }
+
+          php -v
+          php --ri openssl
+          php -r "echo 'getenv(OPENSSL_CONF)=', getenv('OPENSSL_CONF'), PHP_EOL;"
+
+      - name: Probe key generation
+        shell: pwsh
+        run: |
+          $script = @'
+          <?php
+          $cases = [
+              [
+                  'constant' => 'OPENSSL_KEYTYPE_X25519',
+                  'builder' => static fn(int $value): array => ['private_key_type' => $value],
+              ],
+              [
+                  'constant' => 'OPENSSL_KEYTYPE_ED25519',
+                  'builder' => static fn(int $value): array => ['private_key_type' => $value],
+              ],
+              [
+                  'constant' => 'OPENSSL_KEYTYPE_DSA',
+                  'builder' => static fn(int $value): array => ['private_key_type' => $value, 'private_key_bits' => 1024],
+              ],
+              [
+                  'constant' => 'OPENSSL_KEYTYPE_X448',
+                  'builder' => static fn(int $value): array => ['private_key_type' => $value],
+              ],
+              [
+                  'constant' => 'OPENSSL_KEYTYPE_ED448',
+                  'builder' => static fn(int $value): array => ['private_key_type' => $value],
+              ],
+          ];
+
+          $failures = [];
+
+          echo 'OpenSSL version: ', OPENSSL_VERSION_TEXT, PHP_EOL;
+          echo 'OPENSSL_CONF: ', getenv('OPENSSL_CONF'), PHP_EOL, PHP_EOL;
+
+          foreach ($cases as $case) {
+              $constant = $case['constant'];
+              echo '=== ', $constant, ' ===', PHP_EOL;
+
+              if (!defined($constant)) {
+                  echo "Constant is not defined", PHP_EOL, PHP_EOL;
+                  $failures[] = $constant . ' (constant missing)';
+                  continue;
+              }
+
+              $value = constant($constant);
+              echo 'Constant value: ', $value, PHP_EOL;
+              $key = openssl_pkey_new($case['builder']($value));
+              var_dump($key);
+
+              $errors = [];
+              while ($error = openssl_error_string()) {
+                  $errors[] = $error;
+              }
+
+              if ($errors) {
+                  echo implode(PHP_EOL, $errors), PHP_EOL;
+              } else {
+                  echo "No OpenSSL errors", PHP_EOL;
+              }
+
+              $ok = $key !== false;
+              echo 'Result: ', ($ok ? 'PASS' : 'FAIL'), PHP_EOL, PHP_EOL;
+              if (!$ok) {
+                  $failures[] = $constant;
+              }
+          }
+
+          if ($failures) {
+              fwrite(STDERR, 'Failures: ' . implode(', ', $failures) . PHP_EOL);
+              exit(1);
+          }
+
+          echo "All probed key types succeeded.", PHP_EOL;
+          ?>
+          '@
+
+          Set-Content -Path probe-openssl-keytypes.php -Value $script -NoNewline
+          php probe-openssl-keytypes.php
