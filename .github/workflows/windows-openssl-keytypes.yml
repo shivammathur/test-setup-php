@@ -36,6 +36,43 @@ jobs:
           php --ri openssl
           php -r "echo 'getenv(OPENSSL_CONF)=', getenv('OPENSSL_CONF'), PHP_EOL;"
 
+      - name: Inspect random-state config
+        shell: pwsh
+        run: |
+          Write-Host "HOME=$env:HOME"
+          Write-Host "USERPROFILE=$env:USERPROFILE"
+          Write-Host "HOMEDRIVE=$env:HOMEDRIVE"
+          Write-Host "HOMEPATH=$env:HOMEPATH"
+          Write-Host "Relevant openssl.cnf lines:"
+          Select-String -Path $env:OPENSSL_CONF -Pattern '^\s*HOME\s*=|^\s*RANDFILE\s*=' | ForEach-Object {
+            $_.Line
+          }
+
+      - name: Create OpenSSL random seed file
+        shell: pwsh
+        run: |
+          $candidates = @()
+          if ($env:USERPROFILE) {
+            $candidates += (Join-Path $env:USERPROFILE '.rnd')
+          }
+          if ($env:HOME) {
+            $candidates += (Join-Path $env:HOME '.rnd')
+          }
+          if ($env:HOMEDRIVE -and $env:HOMEPATH) {
+            $candidates += "$($env:HOMEDRIVE)$($env:HOMEPATH)\.rnd"
+          }
+
+          $candidates | Select-Object -Unique | ForEach-Object {
+            $parent = Split-Path -Path $_ -Parent
+            if ($parent -and -not (Test-Path $parent)) {
+              New-Item -ItemType Directory -Path $parent -Force | Out-Null
+            }
+            if (-not (Test-Path $_)) {
+              New-Item -ItemType File -Path $_ -Force | Out-Null
+            }
+            Write-Host "Prepared $_"
+          }
+
       - name: Probe key generation
         shell: pwsh
         run: |
@@ -95,7 +132,7 @@ jobs:
                   echo "No OpenSSL errors", PHP_EOL;
               }
 
-              $ok = $key !== false;
+              $ok = $key !== false && !$errors;
               echo 'Result: ', ($ok ? 'PASS' : 'FAIL'), PHP_EOL, PHP_EOL;
               if (!$ok) {
                   $failures[] = $constant;
