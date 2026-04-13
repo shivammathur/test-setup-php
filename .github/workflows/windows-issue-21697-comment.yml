@@ -16,7 +16,7 @@ jobs:
   reproduce:
     name: PHP ${{ matrix.php-version }} / ${{ matrix.config-mode }}
     runs-on: windows-2022
-    timeout-minutes: 75
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:

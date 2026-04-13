@@ -135,6 +135,437 @@ function Invoke-PhpCommand {
   return $text
 }
 
+function Wait-ForTcpPort {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Host,
+
+    [Parameter(Mandatory = $true)]
+    [int]$Port,
+
+    [int]$Attempts = 30
+  )
+
+  for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+    $client = $null
+
+    try {
+      $client = [System.Net.Sockets.TcpClient]::new()
+      $client.Connect($Host, $Port)
+      if ($client.Connected) {
+        $client.Close()
+        return
+      }
+    } catch {
+    } finally {
+      if ($null -ne $client) {
+        $client.Dispose()
+      }
+    }
+
+    Start-Sleep -Seconds 1
+  }
+
+  throw "Timed out waiting for ${Host}:$Port"
+}
+
+function Wait-ForHttpUrl {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Url,
+
+    [int]$Attempts = 30
+  )
+
+  $bodyPath = Join-Path $script:ScenarioRoot ('http-probe-{0}.txt' -f ([System.Guid]::NewGuid().ToString('N')))
+  $lastStatusCode = ''
+  $lastOutput = ''
+
+  for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+    if (Test-Path $bodyPath) {
+      Remove-Item -Path $bodyPath -Force
+    }
+
+    $statusCode = & curl.exe --silent --show-error --location --output $bodyPath --write-out '%{http_code}' --max-time 10 $Url 2>&1
+    $exitCode = $LASTEXITCODE
+
+    if ($exitCode -eq 0 -and $statusCode -eq '200') {
+      if (Test-Path $bodyPath) {
+        Remove-Item -Path $bodyPath -Force
+      }
+      return
+    }
+
+    $lastStatusCode = ($statusCode | Out-String).Trim()
+    if (Test-Path $bodyPath) {
+      $lastOutput = Get-Content -Path $bodyPath -Raw
+    }
+    Start-Sleep -Seconds 1
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($lastOutput)) {
+    Write-Host $lastOutput
+  }
+
+  throw "Timed out waiting for $Url (last status: $lastStatusCode)"
+}
+
+function Assert-StringArrayEqual {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string[]]$Actual,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$Expected,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Label
+  )
+
+  $actualText = (($Actual | Sort-Object) -join ',')
+  $expectedText = (($Expected | Sort-Object) -join ',')
+
+  if ($actualText -ne $expectedText) {
+    throw "$Label mismatch. Expected '$expectedText', got '$actualText'"
+  }
+}
+
+function Assert-WebSmokeResult {
+  param(
+    [Parameter(Mandatory = $true)]
+    [psobject]$Result,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$ExpectedLoaded,
+
+    [Parameter(Mandatory = $true)]
+    [string]$ExpectedSerializer,
+
+    [Parameter(Mandatory = $true)]
+    [string]$ExpectedServerPattern
+  )
+
+  if ($Result.php_version -ne $PhpVersionUnderTest) {
+    throw "Expected web PHP version $PhpVersionUnderTest, got $($Result.php_version)"
+  }
+
+  if ($Result.sapi -ne 'cgi-fcgi') {
+    throw "Expected web SAPI cgi-fcgi, got $($Result.sapi)"
+  }
+
+  if (($Result.server_software | Out-String).Trim() -notmatch $ExpectedServerPattern) {
+    throw "Expected server software matching '$ExpectedServerPattern', got '$($Result.server_software)'"
+  }
+
+  Assert-StringArrayEqual -Actual @($Result.loaded_tracked_extensions) -Expected $ExpectedLoaded -Label 'Loaded web extensions'
+
+  if ($Result.session_save_handler -ne 'redis') {
+    throw "Expected session.save_handler=redis, got $($Result.session_save_handler)"
+  }
+
+  if ($Result.session_serialize_handler -ne $ExpectedSerializer) {
+    throw "Expected session.serialize_handler=$ExpectedSerializer, got $($Result.session_serialize_handler)"
+  }
+
+  if (($Result.session_save_path | Out-String).Trim() -notmatch '127\.0\.0\.1:6379') {
+    throw "Unexpected session.save_path: $($Result.session_save_path)"
+  }
+}
+
+function Invoke-CurlJson {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Name,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Url
+  )
+
+  $output = & curl.exe --silent --show-error --fail --location --max-time 20 $Url 2>&1
+  $exitCode = $LASTEXITCODE
+  $text = ($output | Out-String).TrimEnd()
+  $logPath = Join-Path $script:ScenarioRoot ("{0}.log" -f $Name)
+  Set-Content -Path $logPath -Value $text
+
+  Write-Host ("[{0}] curl.exe {1}" -f $Name, $Url)
+  if (-not [string]::IsNullOrWhiteSpace($text)) {
+    Write-Host $text
+  }
+
+  if ($exitCode -ne 0) {
+    throw "curl for '$Name' failed with exit code $exitCode"
+  }
+
+  return ($text | ConvertFrom-Json)
+}
+
+function Ensure-IisReady {
+  if (Get-Command Install-WindowsFeature -ErrorAction SilentlyContinue) {
+    $features = @('Web-Server', 'Web-Static-Content', 'Web-Default-Doc', 'Web-Http-Errors', 'Web-Http-Logging', 'Web-CGI')
+    $result = Install-WindowsFeature -Name $features -IncludeManagementTools
+    if (-not $result.Success) {
+      throw 'Failed to install or verify IIS features'
+    }
+  } else {
+    $features = @('IIS-WebServerRole', 'IIS-WebServer', 'IIS-StaticContent', 'IIS-DefaultDocument', 'IIS-HttpErrors', 'IIS-HttpLogging', 'IIS-CGI')
+    foreach ($feature in $features) {
+      Enable-WindowsOptionalFeature -Online -FeatureName $feature -All -NoRestart | Out-Null
+    }
+  }
+
+  Start-Service WAS -ErrorAction SilentlyContinue
+  Start-Service W3SVC -ErrorAction SilentlyContinue
+  Import-Module WebAdministration
+}
+
+function Invoke-IisWebSmoke {
+  param(
+    [Parameter(Mandatory = $true)]
+    [pscustomobject]$Config,
+
+    [Parameter(Mandatory = $true)]
+    [string]$WebRoot
+  )
+
+  Ensure-IisReady
+
+  $siteName = 'Issue21697CommentSite'
+  $appPool = 'Issue21697CommentPool'
+  $port = 8050
+  $appcmd = Join-Path $env:windir 'System32\inetsrv\appcmd.exe'
+  $fastCgiArgs = '-c "' + $Config.MainIni + '"'
+  $webConfigPath = Join-Path $WebRoot 'web.config'
+  $scriptProcessor = '{0}|-c "{1}"' -f $script:PhpCgi, $Config.MainIni
+
+  if (Test-Path "IIS:\Sites\$siteName") {
+    Remove-Website -Name $siteName
+  }
+
+  if (Test-Path "IIS:\AppPools\$appPool") {
+    Remove-WebAppPool -Name $appPool
+  }
+
+  Write-TextFile -Path $webConfigPath -Lines @(
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<configuration>',
+    '  <system.webServer>',
+    '    <handlers>',
+    ('      <add name="PHP-Issue21697-Handler" path="*.php" verb="GET,HEAD,POST" modules="FastCgiModule" scriptProcessor="{0}" resourceType="Either" requireAccess="Script" />' -f ($scriptProcessor -replace '"', '&quot;')),
+    '    </handlers>',
+    '  </system.webServer>',
+    '</configuration>'
+  )
+
+  New-WebAppPool -Name $appPool | Out-Null
+  Set-ItemProperty -Path ("IIS:\AppPools\{0}" -f $appPool) -Name managedRuntimeVersion -Value ''
+  Set-ItemProperty -Path ("IIS:\AppPools\{0}" -f $appPool) -Name managedPipelineMode -Value 'Integrated'
+  New-Website -Name $siteName -Port $port -PhysicalPath $WebRoot -ApplicationPool $appPool | Out-Null
+
+  & $appcmd set config /section:system.webServer/fastCgi ("/+[fullPath='{0}',arguments='{1}']" -f $script:PhpCgi, $fastCgiArgs) /commit:apphost
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Failed to configure IIS FastCGI application'
+  }
+
+  & $appcmd set config /section:system.webServer/fastCgi ("/+[fullPath='{0}',arguments='{1}'].environmentVariables.[name='PHP_INI_SCAN_DIR',value='{2}']" -f $script:PhpCgi, $fastCgiArgs, $Config.ScanDir) /commit:apphost
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Failed to configure IIS FastCGI environment variables'
+  }
+
+  Start-Website -Name $siteName
+  Wait-ForHttpUrl -Url ('http://127.0.0.1:{0}/web-smoke.php' -f $port)
+
+  $result = Invoke-CurlJson -Name 'iis-web-smoke' -Url ('http://127.0.0.1:{0}/web-smoke.php' -f $port)
+  Assert-WebSmokeResult -Result $result -ExpectedLoaded $Config.ExpectedLoaded -ExpectedSerializer $Config.SessionSerializer -ExpectedServerPattern 'IIS'
+}
+
+function Get-ApacheHttpdPath {
+  $command = Get-Command httpd.exe -ErrorAction SilentlyContinue
+  if ($null -ne $command -and (Test-Path $command.Source)) {
+    return $command.Source
+  }
+
+  $candidates = @(
+    'C:\tools\Apache24\bin\httpd.exe',
+    'C:\Apache24\bin\httpd.exe',
+    'C:\Program Files\Apache Group\Apache2\bin\httpd.exe'
+  )
+
+  foreach ($candidate in $candidates) {
+    if (Test-Path $candidate) {
+      return $candidate
+    }
+  }
+
+  $roots = @('C:\tools', 'C:\Apache24', 'C:\Program Files')
+  foreach ($root in $roots) {
+    if (Test-Path $root) {
+      $found = Get-ChildItem -Path $root -Filter httpd.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+      if (-not [string]::IsNullOrWhiteSpace($found)) {
+        return $found
+      }
+    }
+  }
+
+  return $null
+}
+
+function Install-ApacheFromApacheLounge {
+  $downloadPage = Invoke-WebRequest -Uri 'https://www.apachelounge.com/download/'
+  $matches = [regex]::Matches($downloadPage.Content, 'httpd-[^"'' ]*Win64-VS17\.zip')
+  if ($matches.Count -eq 0) {
+    throw 'Could not find an Apache Lounge Win64 VS17 archive on the download page'
+  }
+
+  $archiveName = $matches[0].Value
+  $archiveUrl = 'https://www.apachelounge.com/download/VS17/binaries/{0}' -f $archiveName
+  $archivePath = Join-Path $env:RUNNER_TEMP $archiveName
+  $extractRoot = Join-Path $env:RUNNER_TEMP 'apache-httpd'
+
+  if (Test-Path $extractRoot) {
+    Remove-Item -Path $extractRoot -Recurse -Force
+  }
+
+  Invoke-WebRequest -Uri $archiveUrl -OutFile $archivePath
+  Expand-Archive -LiteralPath $archivePath -DestinationPath $extractRoot -Force
+
+  $httpd = Get-ChildItem -Path $extractRoot -Filter httpd.exe -Recurse | Select-Object -First 1 -ExpandProperty FullName
+  if ([string]::IsNullOrWhiteSpace($httpd)) {
+    throw 'Apache Lounge archive did not contain httpd.exe'
+  }
+
+  return $httpd
+}
+
+function Ensure-ApacheInstalled {
+  $httpd = Get-ApacheHttpdPath
+  if (-not [string]::IsNullOrWhiteSpace($httpd)) {
+    return $httpd
+  }
+
+  if (Get-Command choco.exe -ErrorAction SilentlyContinue) {
+    & choco.exe install apache-httpd -y --no-progress
+    if ($LASTEXITCODE -eq 0) {
+      $httpd = Get-ApacheHttpdPath
+      if (-not [string]::IsNullOrWhiteSpace($httpd)) {
+        return $httpd
+      }
+    }
+  }
+
+  return Install-ApacheFromApacheLounge
+}
+
+function Invoke-ApacheWebSmoke {
+  param(
+    [Parameter(Mandatory = $true)]
+    [pscustomobject]$Config,
+
+    [Parameter(Mandatory = $true)]
+    [string]$WebRoot
+  )
+
+  $httpd = Ensure-ApacheInstalled
+  $apacheRoot = Split-Path -Parent (Split-Path -Parent $httpd)
+  $defaultConf = Join-Path $apacheRoot 'conf\httpd.conf'
+  $defaultConfLines = Get-Content -Path $defaultConf
+  $moduleLines = @($defaultConfLines | Where-Object { $_ -match '^\s*LoadModule ' })
+  $requiredModulePatterns = @('proxy_module', 'proxy_fcgi_module')
+
+  foreach ($modulePattern in $requiredModulePatterns) {
+    if (-not ($moduleLines | Where-Object { $_ -match ("LoadModule\s+{0}\s+" -f $modulePattern) })) {
+      $line = $defaultConfLines | Where-Object { $_ -match ("^\s*#\s*LoadModule\s+{0}\s+" -f $modulePattern) } | Select-Object -First 1
+      if ($null -eq $line) {
+        throw "Could not find Apache module line for $modulePattern"
+      }
+
+      $moduleLines += ($line -replace '^\s*#\s*', '')
+    }
+  }
+
+  $port = 8051
+  $fcgiPort = 9051
+  $apacheConf = Join-Path $script:ScenarioRoot 'apache-httpd.conf'
+  $apachePid = Join-Path $script:ScenarioRoot 'apache-httpd.pid'
+  $apacheErrorLog = Join-Path $script:ScenarioRoot 'apache-error.log'
+  $apacheAccessLog = Join-Path $script:ScenarioRoot 'apache-access.log'
+  $apacheStdout = Join-Path $script:ScenarioRoot 'apache-stdout.log'
+  $apacheStderr = Join-Path $script:ScenarioRoot 'apache-stderr.log'
+  $phpBackendStdout = Join-Path $script:ScenarioRoot 'apache-php-cgi-stdout.log'
+  $phpBackendStderr = Join-Path $script:ScenarioRoot 'apache-php-cgi-stderr.log'
+  $phpBackend = $null
+  $apacheProcess = $null
+  $previousScanDir = Get-EnvValue -Name 'PHP_INI_SCAN_DIR'
+
+  Write-TextFile -Path $apacheConf -Lines (@(
+    ('ServerRoot "{0}"' -f (Convert-ToIniPath $apacheRoot)),
+    ('DefaultRuntimeDir "{0}"' -f (Convert-ToIniPath $script:ScenarioRoot)),
+    ('Listen 127.0.0.1:{0}' -f $port),
+    ('ServerName 127.0.0.1:{0}' -f $port),
+    ('PidFile "{0}"' -f (Convert-ToIniPath $apachePid)),
+    ('ErrorLog "{0}"' -f (Convert-ToIniPath $apacheErrorLog)),
+    'LogLevel warn'
+  ) + $moduleLines + @(
+    ('TypesConfig "{0}"' -f (Convert-ToIniPath (Join-Path $apacheRoot 'conf\mime.types'))),
+    ('DocumentRoot "{0}"' -f (Convert-ToIniPath $WebRoot)),
+    '<Directory />',
+    '  AllowOverride none',
+    '  Require all denied',
+    '</Directory>',
+    ('<Directory "{0}">' -f (Convert-ToIniPath $WebRoot)),
+    '  Options Indexes FollowSymLinks',
+    '  AllowOverride None',
+    '  Require all granted',
+    '</Directory>',
+    ('CustomLog "{0}" common' -f (Convert-ToIniPath $apacheAccessLog)),
+    'DirectoryIndex web-smoke.php index.php',
+    'ProxyFCGIBackendType GENERIC',
+    '<FilesMatch \.php$>',
+    ('  SetHandler "proxy:fcgi://127.0.0.1:{0}"' -f $fcgiPort),
+    '</FilesMatch>'
+  ))
+
+  try {
+    Set-Item Env:PHP_INI_SCAN_DIR -Value $Config.ScanDir
+    $phpBackend = Start-Process -FilePath $script:PhpCgi -ArgumentList @('-b', ('127.0.0.1:{0}' -f $fcgiPort), '-c', $Config.MainIni) -WorkingDirectory $WebRoot -RedirectStandardOutput $phpBackendStdout -RedirectStandardError $phpBackendStderr -PassThru
+  } finally {
+    Restore-EnvValue -Name 'PHP_INI_SCAN_DIR' -Value $previousScanDir
+  }
+
+  try {
+    Wait-ForTcpPort -Host '127.0.0.1' -Port $fcgiPort
+
+    $configTestOutput = & $httpd -t -f $apacheConf 2>&1
+    $configTestExitCode = $LASTEXITCODE
+    Set-Content -Path (Join-Path $script:ScenarioRoot 'apache-configtest.log') -Value (($configTestOutput | Out-String).TrimEnd())
+    if ($configTestExitCode -ne 0) {
+      Write-Host ($configTestOutput | Out-String)
+      throw 'Apache configuration test failed'
+    }
+
+    $apacheProcess = Start-Process -FilePath $httpd -ArgumentList @('-X', '-f', $apacheConf) -WorkingDirectory $apacheRoot -RedirectStandardOutput $apacheStdout -RedirectStandardError $apacheStderr -PassThru
+    Wait-ForHttpUrl -Url ('http://127.0.0.1:{0}/web-smoke.php' -f $port)
+
+    $result = Invoke-CurlJson -Name 'apache-web-smoke' -Url ('http://127.0.0.1:{0}/web-smoke.php' -f $port)
+    Assert-WebSmokeResult -Result $result -ExpectedLoaded $Config.ExpectedLoaded -ExpectedSerializer $Config.SessionSerializer -ExpectedServerPattern 'Apache'
+  } catch {
+    foreach ($path in @($phpBackendStdout, $phpBackendStderr, $apacheStdout, $apacheStderr, $apacheErrorLog, $apacheAccessLog)) {
+      if (Test-Path $path) {
+        Write-Host ("--- {0}" -f $path)
+        Get-Content -Path $path -ErrorAction SilentlyContinue | Write-Host
+      }
+    }
+    throw
+  } finally {
+    if ($null -ne $apacheProcess -and -not $apacheProcess.HasExited) {
+      Stop-Process -Id $apacheProcess.Id -Force
+    }
+
+    if ($null -ne $phpBackend -and -not $phpBackend.HasExited) {
+      Stop-Process -Id $phpBackend.Id -Force
+    }
+  }
+}
+
 function New-ReproductionConfig {
   param(
     [Parameter(Mandatory = $true)]
@@ -337,6 +768,8 @@ if ($actualVersion -ne $PhpVersionUnderTest) {
 }
 
 $config = New-ReproductionConfig -Mode $ConfigMode
+$webRoot = Join-Path $script:ScenarioRoot 'webroot'
+New-Item -ItemType Directory -Path $webRoot -Force | Out-Null
 
 $smokeScript = Join-Path $script:ScenarioRoot 'extension-smoke.php'
 Write-TextFile -Path $smokeScript -Lines @(
@@ -418,6 +851,29 @@ Write-TextFile -Path $smokeScript -Lines @(
   'echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;'
 )
 
+$webSmokeScript = Join-Path $webRoot 'web-smoke.php'
+Write-TextFile -Path $webSmokeScript -Lines @(
+  '<?php',
+  'error_reporting(E_ALL);',
+  'ini_set("display_errors", "1");',
+  'header("Content-Type: application/json");',
+  '',
+  '$trackedExtensions = ["curl", "intl", "mbstring", "openssl", "redis", "igbinary", "pgsql", "pdo_pgsql", "soap"];',
+  '$result = [',
+  '    "php_version" => PHP_VERSION,',
+  '    "sapi" => PHP_SAPI,',
+  '    "server_software" => $_SERVER["SERVER_SOFTWARE"] ?? "",',
+  '    "gateway_interface" => $_SERVER["GATEWAY_INTERFACE"] ?? "",',
+  '    "request_uri" => $_SERVER["REQUEST_URI"] ?? "",',
+  '    "loaded_tracked_extensions" => array_values(array_filter($trackedExtensions, "extension_loaded")),',
+  '    "session_save_handler" => ini_get("session.save_handler"),',
+  '    "session_save_path" => ini_get("session.save_path"),',
+  '    "session_serialize_handler" => ini_get("session.serialize_handler"),',
+  '];',
+  '',
+  'echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;'
+)
+
 $envOverrides = @{
   EXPECTED_LOADED = ($config.ExpectedLoaded -join ',')
   EXPECTED_MISSING = ($config.ExpectedMissing -join ',')
@@ -431,15 +887,21 @@ Invoke-PhpCommand -Name 'php-cgi-modules' -Binary $script:PhpCgi -Arguments @('-
 Invoke-PhpCommand -Name 'php-cli-info' -Binary $script:PhpExe -Arguments @('-c', $config.MainIni, '-i') -ScanDir $config.ScanDir
 $cliSmoke = Invoke-PhpCommand -Name 'php-cli-extension-smoke' -Binary $script:PhpExe -Arguments @('-c', $config.MainIni, $smokeScript) -ScanDir $config.ScanDir -Environment $envOverrides
 $cgiSmoke = Invoke-PhpCommand -Name 'php-cgi-extension-smoke' -Binary $script:PhpCgi -Arguments @('-q', '-c', $config.MainIni, '-f', $smokeScript) -ScanDir $config.ScanDir -Environment $envOverrides
+Invoke-IisWebSmoke -Config $config -WebRoot $webRoot
+Invoke-ApacheWebSmoke -Config $config -WebRoot $webRoot
 
 $summaryLines = @(
   "### PHP $PhpVersionUnderTest / $ConfigMode",
   '',
   '- `php.exe` and `php-cgi.exe` both started successfully with the reconstructed config.',
+  '- IIS FastCGI served the PHP smoke endpoint successfully and was validated with `curl`.',
+  '- Apache served the PHP smoke endpoint successfully through `php-cgi.exe` and was validated with `curl`.',
   ('- Expected loaded extensions: `{0}`' -f $(if ($config.ExpectedLoaded.Count -eq 0) { 'none' } else { $config.ExpectedLoaded -join ', ' })),
   ('- Expected missing extensions: `{0}`' -f $(if ($config.ExpectedMissing.Count -eq 0) { 'none' } else { $config.ExpectedMissing -join ', ' })),
   ('- CLI smoke output saved to `{0}`.' -f (Join-Path $script:ScenarioRoot 'php-cli-extension-smoke.log')),
-  ('- CGI smoke output saved to `{0}`.' -f (Join-Path $script:ScenarioRoot 'php-cgi-extension-smoke.log'))
+  ('- CGI smoke output saved to `{0}`.' -f (Join-Path $script:ScenarioRoot 'php-cgi-extension-smoke.log')),
+  ('- IIS curl output saved to `{0}`.' -f (Join-Path $script:ScenarioRoot 'iis-web-smoke.log')),
+  ('- Apache curl output saved to `{0}`.' -f (Join-Path $script:ScenarioRoot 'apache-web-smoke.log'))
 )
 
 Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ($summaryLines -join [Environment]::NewLine)
