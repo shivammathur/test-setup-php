@@ -491,7 +491,7 @@ function Invoke-ApacheWebSmoke {
   $defaultConf = Join-Path $apacheRoot 'conf\httpd.conf'
   $defaultConfLines = Get-Content -Path $defaultConf
   $moduleLines = @($defaultConfLines | Where-Object { $_ -match '^\s*LoadModule ' })
-  $requiredModulePatterns = @('proxy_module', 'proxy_fcgi_module')
+  $requiredModulePatterns = @('actions_module', 'alias_module', 'cgi_module', 'env_module')
 
   foreach ($modulePattern in $requiredModulePatterns) {
     if (-not ($moduleLines | Where-Object { $_ -match ("LoadModule\s+{0}\s+" -f $modulePattern) })) {
@@ -505,18 +505,16 @@ function Invoke-ApacheWebSmoke {
   }
 
   $port = 8051
-  $fcgiPort = 9051
   $apacheConf = Join-Path $script:ScenarioRoot 'apache-httpd.conf'
   $apachePid = Join-Path $script:ScenarioRoot 'apache-httpd.pid'
   $apacheErrorLog = Join-Path $script:ScenarioRoot 'apache-error.log'
   $apacheAccessLog = Join-Path $script:ScenarioRoot 'apache-access.log'
   $apacheStdout = Join-Path $script:ScenarioRoot 'apache-stdout.log'
   $apacheStderr = Join-Path $script:ScenarioRoot 'apache-stderr.log'
-  $phpBackendStdout = Join-Path $script:ScenarioRoot 'apache-php-cgi-stdout.log'
-  $phpBackendStderr = Join-Path $script:ScenarioRoot 'apache-php-cgi-stderr.log'
-  $phpBackend = $null
   $apacheProcess = $null
-  $previousScanDir = Get-EnvValue -Name 'PHP_INI_SCAN_DIR'
+  $phpConfigDir = Convert-ToIniPath (Split-Path -Parent $Config.MainIni)
+  $phpDirPath = Convert-ToIniPath $script:PhpDir
+  $phpScanDir = Convert-ToIniPath $Config.ScanDir
 
   Write-TextFile -Path $apacheConf -Lines (@(
     ('ServerRoot "{0}"' -f (Convert-ToIniPath $apacheRoot)),
@@ -538,24 +536,23 @@ function Invoke-ApacheWebSmoke {
     '  AllowOverride None',
     '  Require all granted',
     '</Directory>',
+    ('<Directory "{0}">' -f $phpDirPath),
+    '  AllowOverride None',
+    '  Options ExecCGI',
+    '  Require all granted',
+    '</Directory>',
+    'LogFormat "%h %l %u %t \"%r\" %>s %b" common',
     ('CustomLog "{0}" common' -f (Convert-ToIniPath $apacheAccessLog)),
     'DirectoryIndex web-smoke.php index.php',
-    'ProxyFCGIBackendType GENERIC',
-    '<FilesMatch \.php$>',
-    ('  SetHandler "proxy:fcgi://127.0.0.1:{0}/"' -f $fcgiPort),
-    '</FilesMatch>'
+    ('ScriptAlias /php-cgi/ "{0}/"' -f $phpDirPath),
+    'Action php-script "/php-cgi/php-cgi.exe"',
+    'AddHandler php-script .php',
+    ('SetEnv PHPRC "{0}"' -f $phpConfigDir),
+    ('SetEnv PHP_INI_SCAN_DIR "{0}"' -f $phpScanDir),
+    'SetEnv REDIRECT_STATUS 1'
   ))
 
   try {
-    Set-Item Env:PHP_INI_SCAN_DIR -Value $Config.ScanDir
-    $phpBackend = Start-Process -FilePath $script:PhpCgi -ArgumentList @('-b', ('127.0.0.1:{0}' -f $fcgiPort), '-c', $Config.MainIni) -WorkingDirectory $WebRoot -RedirectStandardOutput $phpBackendStdout -RedirectStandardError $phpBackendStderr -PassThru
-  } finally {
-    Restore-EnvValue -Name 'PHP_INI_SCAN_DIR' -Value $previousScanDir
-  }
-
-  try {
-    Wait-ForTcpPort -HostName '127.0.0.1' -Port $fcgiPort
-
     $configTestOutput = & $httpd -t -f $apacheConf 2>&1
     $configTestExitCode = $LASTEXITCODE
     Set-Content -Path (Join-Path $script:ScenarioRoot 'apache-configtest.log') -Value (($configTestOutput | Out-String).TrimEnd())
@@ -570,7 +567,7 @@ function Invoke-ApacheWebSmoke {
     $result = Invoke-CurlJson -Name 'apache-web-smoke' -Url ('http://127.0.0.1:{0}/web-smoke.php' -f $port)
     Assert-WebSmokeResult -Result $result -ExpectedLoaded $Config.ExpectedLoaded -ExpectedSerializer $Config.SessionSerializer -ExpectedServerPattern 'Apache'
   } catch {
-    foreach ($path in @($phpBackendStdout, $phpBackendStderr, $apacheStdout, $apacheStderr, $apacheErrorLog, $apacheAccessLog)) {
+    foreach ($path in @($apacheStdout, $apacheStderr, $apacheErrorLog, $apacheAccessLog)) {
       if (Test-Path $path) {
         Write-Host ("--- {0}" -f $path)
         Get-Content -Path $path -ErrorAction SilentlyContinue | Write-Host
@@ -580,10 +577,6 @@ function Invoke-ApacheWebSmoke {
   } finally {
     if ($null -ne $apacheProcess -and -not $apacheProcess.HasExited) {
       Stop-Process -Id $apacheProcess.Id -Force
-    }
-
-    if ($null -ne $phpBackend -and -not $phpBackend.HasExited) {
-      Stop-Process -Id $phpBackend.Id -Force
     }
   }
 }
