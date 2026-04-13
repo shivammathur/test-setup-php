@@ -119,7 +119,7 @@ function Merge-Libraries {
         [string[]] $ComposerLibraries = @()
     )
 
-    $merged = @($DetectedLibraries)
+    $merged = @($DetectedLibraries | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
     foreach ($library in $ComposerLibraries) {
         $libraryName = $library
         if ($library -match '^(.+?)-\d') {
@@ -152,7 +152,7 @@ function New-Result {
         arch = $Arch
         vs_version = $vsVersion
         status = $Status
-        libraries = @($Libraries)
+        libraries = @($Libraries | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
         note = $Note
     }
 }
@@ -183,14 +183,16 @@ try {
 
         $configPath = Get-RecursiveFilePath -Directory $sourceDirectory -FileName 'config.w32'
         $composerPath = Get-RecursiveFilePath -Directory $sourceDirectory -FileName 'composer.json'
-        $composerLibraries = @(Get-ComposerRequireLibraries -PackageName $Package -ExtensionName $extension -ComposerPath $composerPath)
+        $composerLibraries = @(Get-ComposerRequireLibraries -PackageName $Package -ExtensionName $extension -ComposerPath $composerPath |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 
         if ($null -eq $configPath) {
             $result = New-Result -Status 'no-config.w32' -ExtensionName $extension
         } else {
             try {
                 $configContent = [string](Get-Content -Path $configPath -Raw)
-                $detectedLibraries = @(Get-LibrariesFromConfig -PhpVersion $PhpVersion -Extension $extension -VsVersion $vsVersion -Arch $Arch -ConfigW32Content $configContent)
+                $detectedLibraries = @(Get-LibrariesFromConfig -PhpVersion $PhpVersion -Extension $extension -VsVersion $vsVersion -Arch $Arch -ConfigW32Content $configContent |
+                    Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
                 $libraries = Merge-Libraries -DetectedLibraries $detectedLibraries -ComposerLibraries $composerLibraries
                 $result = New-Result -Status 'ok' -ExtensionName $extension -Libraries $libraries
             } catch {
