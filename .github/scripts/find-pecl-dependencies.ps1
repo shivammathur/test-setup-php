@@ -111,10 +111,12 @@ function Get-ComposerRequireLibraries {
 
 function Merge-Libraries {
     param(
-        [Parameter(Mandatory = $true)]
-        [string[]] $DetectedLibraries,
-        [Parameter(Mandatory = $true)]
-        [string[]] $ComposerLibraries
+        [Parameter(Mandatory = $false)]
+        [AllowEmptyCollection()]
+        [string[]] $DetectedLibraries = @(),
+        [Parameter(Mandatory = $false)]
+        [AllowEmptyCollection()]
+        [string[]] $ComposerLibraries = @()
     )
 
     $merged = @($DetectedLibraries)
