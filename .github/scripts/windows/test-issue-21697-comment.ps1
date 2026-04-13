@@ -315,7 +315,39 @@ function Ensure-IisReady {
 
   Start-Service WAS -ErrorAction SilentlyContinue
   Start-Service W3SVC -ErrorAction SilentlyContinue
-  Import-Module WebAdministration
+
+  $appcmd = Join-Path $env:windir 'System32\inetsrv\appcmd.exe'
+  if (-not (Test-Path $appcmd)) {
+    throw 'IIS appcmd.exe was not found after enabling IIS features'
+  }
+
+  return $appcmd
+}
+
+function Invoke-AppCmdChecked {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$AppCmd,
+
+    [Parameter(Mandatory = $true)]
+    [string[]]$Arguments,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Description
+  )
+
+  $output = & $AppCmd @Arguments 2>&1
+  $exitCode = $LASTEXITCODE
+  $text = ($output | Out-String).TrimEnd()
+
+  Write-Host ("[appcmd] {0}" -f ($Arguments -join ' '))
+  if (-not [string]::IsNullOrWhiteSpace($text)) {
+    Write-Host $text
+  }
+
+  if ($exitCode -ne 0) {
+    throw "Failed to $Description"
+  }
 }
 
 function Invoke-IisWebSmoke {
@@ -327,23 +359,17 @@ function Invoke-IisWebSmoke {
     [string]$WebRoot
   )
 
-  Ensure-IisReady
+  $appcmd = Ensure-IisReady
 
   $siteName = 'Issue21697CommentSite'
   $appPool = 'Issue21697CommentPool'
   $port = 8050
-  $appcmd = Join-Path $env:windir 'System32\inetsrv\appcmd.exe'
   $fastCgiArgs = '-c "' + $Config.MainIni + '"'
   $webConfigPath = Join-Path $WebRoot 'web.config'
   $scriptProcessor = '{0}|-c "{1}"' -f $script:PhpCgi, $Config.MainIni
 
-  if (Test-Path "IIS:\Sites\$siteName") {
-    Remove-Website -Name $siteName
-  }
-
-  if (Test-Path "IIS:\AppPools\$appPool") {
-    Remove-WebAppPool -Name $appPool
-  }
+  & $appcmd delete site "/site.name:$siteName" 2>$null | Out-Null
+  & $appcmd delete apppool "/apppool.name:$appPool" 2>$null | Out-Null
 
   Write-TextFile -Path $webConfigPath -Lines @(
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -356,22 +382,15 @@ function Invoke-IisWebSmoke {
     '</configuration>'
   )
 
-  New-WebAppPool -Name $appPool | Out-Null
-  Set-ItemProperty -Path ("IIS:\AppPools\{0}" -f $appPool) -Name managedRuntimeVersion -Value ''
-  Set-ItemProperty -Path ("IIS:\AppPools\{0}" -f $appPool) -Name managedPipelineMode -Value 'Integrated'
-  New-Website -Name $siteName -Port $port -PhysicalPath $WebRoot -ApplicationPool $appPool | Out-Null
+  Invoke-AppCmdChecked -AppCmd $appcmd -Arguments @('add', 'apppool', "/name:$appPool") -Description 'create the IIS application pool'
+  Invoke-AppCmdChecked -AppCmd $appcmd -Arguments @('set', 'apppool', "/apppool.name:$appPool", '/managedRuntimeVersion:', '/managedPipelineMode:Integrated') -Description 'configure the IIS application pool'
+  Invoke-AppCmdChecked -AppCmd $appcmd -Arguments @('add', 'site', "/name:$siteName", ("/bindings:http/*:{0}:" -f $port), "/physicalPath:$WebRoot") -Description 'create the IIS site'
+  Invoke-AppCmdChecked -AppCmd $appcmd -Arguments @('set', 'app', "$siteName/", "/applicationPool:$appPool") -Description 'assign the IIS application pool to the site root'
 
-  & $appcmd set config /section:system.webServer/fastCgi ("/+[fullPath='{0}',arguments='{1}']" -f $script:PhpCgi, $fastCgiArgs) /commit:apphost
-  if ($LASTEXITCODE -ne 0) {
-    throw 'Failed to configure IIS FastCGI application'
-  }
+  Invoke-AppCmdChecked -AppCmd $appcmd -Arguments @('set', 'config', '/section:system.webServer/fastCgi', ("/+[fullPath='{0}',arguments='{1}']" -f $script:PhpCgi, $fastCgiArgs), '/commit:apphost') -Description 'configure the IIS FastCGI application'
+  Invoke-AppCmdChecked -AppCmd $appcmd -Arguments @('set', 'config', '/section:system.webServer/fastCgi', ("/+[fullPath='{0}',arguments='{1}'].environmentVariables.[name='PHP_INI_SCAN_DIR',value='{2}']" -f $script:PhpCgi, $fastCgiArgs, $Config.ScanDir), '/commit:apphost') -Description 'configure IIS FastCGI environment variables'
+  Invoke-AppCmdChecked -AppCmd $appcmd -Arguments @('start', 'site', "/site.name:$siteName") -Description 'start the IIS site'
 
-  & $appcmd set config /section:system.webServer/fastCgi ("/+[fullPath='{0}',arguments='{1}'].environmentVariables.[name='PHP_INI_SCAN_DIR',value='{2}']" -f $script:PhpCgi, $fastCgiArgs, $Config.ScanDir) /commit:apphost
-  if ($LASTEXITCODE -ne 0) {
-    throw 'Failed to configure IIS FastCGI environment variables'
-  }
-
-  Start-Website -Name $siteName
   Wait-ForHttpUrl -Url ('http://127.0.0.1:{0}/web-smoke.php' -f $port)
 
   $result = Invoke-CurlJson -Name 'iis-web-smoke' -Url ('http://127.0.0.1:{0}/web-smoke.php' -f $port)
