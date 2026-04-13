@@ -138,7 +138,7 @@ function Invoke-PhpCommand {
 function Wait-ForTcpPort {
   param(
     [Parameter(Mandatory = $true)]
-    [string]$Host,
+    [string]$HostName,
 
     [Parameter(Mandatory = $true)]
     [int]$Port,
@@ -151,7 +151,7 @@ function Wait-ForTcpPort {
 
     try {
       $client = [System.Net.Sockets.TcpClient]::new()
-      $client.Connect($Host, $Port)
+      $client.Connect($HostName, $Port)
       if ($client.Connected) {
         $client.Close()
         return
@@ -166,7 +166,7 @@ function Wait-ForTcpPort {
     Start-Sleep -Seconds 1
   }
 
-  throw "Timed out waiting for ${Host}:$Port"
+  throw "Timed out waiting for ${HostName}:$Port"
 }
 
 function Wait-ForHttpUrl {
@@ -551,7 +551,7 @@ function Invoke-ApacheWebSmoke {
   }
 
   try {
-    Wait-ForTcpPort -Host '127.0.0.1' -Port $fcgiPort
+    Wait-ForTcpPort -HostName '127.0.0.1' -Port $fcgiPort
 
     $configTestOutput = & $httpd -t -f $apacheConf 2>&1
     $configTestExitCode = $LASTEXITCODE
