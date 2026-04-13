@@ -92,6 +92,7 @@ function Invoke-PhpCommand {
     [string[]]$Arguments,
 
     [Parameter(Mandatory = $true)]
+    [AllowEmptyString()]
     [string]$ScanDir,
 
     [hashtable]$Environment = @{}
