@@ -213,9 +213,11 @@ function Wait-ForHttpUrl {
 function Assert-StringArrayEqual {
   param(
     [Parameter(Mandatory = $true)]
+    [AllowEmptyCollection()]
     [string[]]$Actual,
 
     [Parameter(Mandatory = $true)]
+    [AllowEmptyCollection()]
     [string[]]$Expected,
 
     [Parameter(Mandatory = $true)]
@@ -236,6 +238,7 @@ function Assert-WebSmokeResult {
     [psobject]$Result,
 
     [Parameter(Mandatory = $true)]
+    [AllowEmptyCollection()]
     [string[]]$ExpectedLoaded,
 
     [Parameter(Mandatory = $true)]
@@ -539,7 +542,7 @@ function Invoke-ApacheWebSmoke {
     'DirectoryIndex web-smoke.php index.php',
     'ProxyFCGIBackendType GENERIC',
     '<FilesMatch \.php$>',
-    ('  SetHandler "proxy:fcgi://127.0.0.1:{0}"' -f $fcgiPort),
+    ('  SetHandler "proxy:fcgi://127.0.0.1:{0}/"' -f $fcgiPort),
     '</FilesMatch>'
   ))
 
