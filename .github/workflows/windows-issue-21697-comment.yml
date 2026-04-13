@@ -42,6 +42,62 @@ jobs:
           extensions: none, openssl, curl, intl, mbstring, exif, fileinfo, gd, gettext, pgsql, pdo_pgsql, soap, redis, igbinary
           coverage: none
 
+      - name: Replace fallback runtime with the requested official Windows build
+        shell: pwsh
+        env:
+          REQUESTED_PHP_VERSION: ${{ matrix.php-version }}
+        run: |
+          $requestedVersion = $env:REQUESTED_PHP_VERSION
+          $actualVersion = & php -n -r "echo PHP_VERSION;"
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to read the installed PHP version'
+          }
+
+          if ($actualVersion -eq $requestedVersion) {
+            Write-Host "setup-php already installed PHP $requestedVersion"
+            exit 0
+          }
+
+          $phpDir = Split-Path -Parent (Get-Command php).Source
+          $extDir = Join-Path $phpDir 'ext'
+          $backupDir = Join-Path $env:RUNNER_TEMP "php-pecl-backup-$requestedVersion"
+          $extractDir = Join-Path $env:RUNNER_TEMP "php-$requestedVersion-extract"
+          $zipPath = Join-Path $env:RUNNER_TEMP "php-$requestedVersion-nts-Win32-vs17-x64.zip"
+          $zipUrl = "https://downloads.php.net/~windows/releases/archives/php-$requestedVersion-nts-Win32-vs17-x64.zip"
+          $peclExtensions = @('php_redis.dll', 'php_igbinary.dll')
+
+          New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+          foreach ($extension in $peclExtensions) {
+            $source = Join-Path $extDir $extension
+            if (Test-Path $source) {
+              Copy-Item -Path $source -Destination (Join-Path $backupDir $extension) -Force
+            }
+          }
+
+          if (Test-Path $extractDir) {
+            Remove-Item -Path $extractDir -Recurse -Force
+          }
+
+          Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath
+          Expand-Archive -LiteralPath $zipPath -DestinationPath $extractDir -Force
+          Copy-Item -Path (Join-Path $extractDir '*') -Destination $phpDir -Recurse -Force
+
+          foreach ($extension in $peclExtensions) {
+            $source = Join-Path $backupDir $extension
+            if (Test-Path $source) {
+              Copy-Item -Path $source -Destination (Join-Path $extDir $extension) -Force
+            }
+          }
+
+          $resolvedVersion = & php -n -r "echo PHP_VERSION;"
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to read the PHP version after replacing the runtime'
+          }
+
+          if ($resolvedVersion -ne $requestedVersion) {
+            throw "Expected PHP $requestedVersion after the runtime replacement, got $resolvedVersion"
+          }
+
       - name: Show resolved PHP runtime
         shell: pwsh
         run: |
