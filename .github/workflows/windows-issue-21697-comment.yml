@@ -1,0 +1,80 @@
+name: Reproduce php-src issue 21697 comment on Windows
+
+on:
+  push:
+    branches:
+      - test-php-src-comment-21967
+    paths:
+      - .github/scripts/windows/test-issue-21697-comment.ps1
+      - .github/workflows/windows-issue-21697-comment.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    name: PHP ${{ matrix.php-version }} / ${{ matrix.config-mode }}
+    runs-on: windows-2022
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php-version: '8.4.20'
+            config-mode: legacy
+          - php-version: '8.4.20'
+            config-mode: updated
+          - php-version: '8.5.5'
+            config-mode: legacy
+          - php-version: '8.5.5'
+            config-mode: updated
+
+    steps:
+      - name: Checkout test app
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          ini-file: none
+          extensions: none, openssl, curl, intl, mbstring, exif, fileinfo, gd, gettext, pgsql, pdo_pgsql, soap, redis, igbinary
+          coverage: none
+
+      - name: Show resolved PHP runtime
+        shell: pwsh
+        run: |
+          $php = (Get-Command php).Source
+          $phpCgi = (Get-Command php-cgi).Source
+
+          Write-Host "php: $php"
+          Write-Host "php-cgi: $phpCgi"
+
+          & $php -v
+          if ($LASTEXITCODE -ne 0) {
+            throw 'php.exe failed to start'
+          }
+
+          & $phpCgi -v
+          if ($LASTEXITCODE -ne 0) {
+            throw 'php-cgi.exe failed to start'
+          }
+
+      - name: Reproduce comment config and run smoke checks
+        shell: pwsh
+        env:
+          CONFIG_MODE: ${{ matrix.config-mode }}
+          PHP_VERSION_UNDER_TEST: ${{ matrix.php-version }}
+        run: |
+          .\.github\scripts\windows\test-issue-21697-comment.ps1 `
+            -ConfigMode $env:CONFIG_MODE `
+            -PhpVersionUnderTest $env:PHP_VERSION_UNDER_TEST
+
+      - name: Upload reproduction artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-21697-comment-${{ matrix.php-version }}-${{ matrix.config-mode }}
+          path: ${{ runner.temp }}/issue-21697-comment
+          if-no-files-found: warn
