@@ -1,6 +1,9 @@
 name: Find PECL Dependencies
 
 on:
+  push:
+    branches:
+      - find-pecl-dependencies
   workflow_dispatch:
     inputs:
       extensions:
