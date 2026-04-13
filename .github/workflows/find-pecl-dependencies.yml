@@ -1,0 +1,282 @@
+name: Find PECL Dependencies
+
+on:
+  workflow_dispatch:
+    inputs:
+      extensions:
+        description: Comma or newline separated PECL package names. Leave blank to use the built-in list.
+        required: false
+        default: ""
+      php-version:
+        description: PHP version to use for auto-detect-libs resolution
+        required: false
+        default: "8.4"
+      arch:
+        description: Target architecture for dependency resolution
+        required: false
+        default: "x64"
+      builder-repository:
+        description: GitHub repository for php-windows-builder
+        required: false
+        default: shivammathur/php-windows-builder
+      builder-ref:
+        description: Git reference for php-windows-builder
+        required: false
+        default: master
+
+permissions:
+  contents: read
+
+jobs:
+  prepare-matrix:
+    name: Prepare Extension Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      count: ${{ steps.matrix.outputs.count }}
+    steps:
+      - name: Build matrix
+        id: matrix
+        shell: pwsh
+        env:
+          EXTENSIONS_INPUT: ${{ inputs.extensions }}
+        run: |
+          $defaultExtensions = @(
+            'amqp',
+            'apcu',
+            'apfd',
+            'ast',
+            'awscrt',
+            'base58',
+            'bitset',
+            'brotli',
+            'couchbase',
+            'crypto',
+            'csv',
+            'datadog_trace',
+            'dbase',
+            'decimal',
+            'dio',
+            'ds',
+            'ev',
+            'event',
+            'geospatial',
+            'grpc',
+            'hrtime',
+            'ibm_db2',
+            'igbinary',
+            'imagick',
+            'imap',
+            'ip2location',
+            'json_post',
+            'jsonpath',
+            'judy',
+            'lua',
+            'lzf',
+            'mailparse',
+            'maxminddb',
+            'mcrypt',
+            'md4c',
+            'memcache',
+            'memcached',
+            'mongodb',
+            'msgpack',
+            'oauth',
+            'oci8',
+            'opentelemetry',
+            'operator',
+            'parallel',
+            'parle',
+            'pcov',
+            'pcsc',
+            'pdo_ibm',
+            'pdo_oci',
+            'pdo_sqlsrv',
+            'pecl_http',
+            'phalcon',
+            'pinpoint_php',
+            'protobuf',
+            'ps',
+            'psr',
+            'raphf',
+            'rdkafka',
+            'redis',
+            'rrd',
+            'scoutapm',
+            'scrypt',
+            'simdjson',
+            'simple_kafka_client',
+            'solr',
+            'sqlsrv',
+            'ssh2',
+            'stomp',
+            'svm',
+            'sync',
+            'timezonedb',
+            'trader',
+            'translit',
+            'uploadprogress',
+            'var_representation',
+            'vld',
+            'win32service',
+            'xdebug',
+            'xdiff',
+            'xhprof',
+            'xlswriter',
+            'xmldiff',
+            'xmlrpc',
+            'yac',
+            'yaml',
+            'yar',
+            'zephir_parser',
+            'zip',
+            'zstd'
+          )
+
+          $extensions = if ([string]::IsNullOrWhiteSpace($env:EXTENSIONS_INPUT)) {
+            $defaultExtensions
+          } else {
+            $env:EXTENSIONS_INPUT -split '[,\r\n]+' |
+              ForEach-Object { $_.Trim() } |
+              Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+          }
+
+          $extensions = @($extensions | Select-Object -Unique)
+          $matrix = @{ extension = $extensions } | ConvertTo-Json -Compress
+
+          "matrix=$matrix" >> $env:GITHUB_OUTPUT
+          "count=$($extensions.Count)" >> $env:GITHUB_OUTPUT
+
+  detect-dependencies:
+    name: Detect ${{ matrix.extension }}
+    needs: prepare-matrix
+    runs-on: windows-2022
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix: ${{ fromJson(needs.prepare-matrix.outputs.matrix) }}
+    steps:
+      - name: Checkout test repo
+        uses: actions/checkout@v6
+
+      - name: Checkout php-windows-builder
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.builder-repository }}
+          ref: ${{ inputs.builder-ref }}
+          path: php-windows-builder
+
+      - name: Detect PECL library dependencies
+        shell: pwsh
+        run: |
+          $scriptPath = Join-Path $env:GITHUB_WORKSPACE '.github\scripts\find-pecl-dependencies.ps1'
+          $builderManifest = Join-Path $env:GITHUB_WORKSPACE 'php-windows-builder\extension\BuildPhpExtension\BuildPhpExtension.psd1'
+          $outputDirectory = Join-Path $env:RUNNER_TEMP 'pecl-extension-dependencies'
+          $outputPath = Join-Path $outputDirectory '${{ matrix.extension }}.json'
+
+          & $scriptPath `
+            -Package '${{ matrix.extension }}' `
+            -BuilderManifest $builderManifest `
+            -PhpVersion '${{ inputs.php-version }}' `
+            -Arch '${{ inputs.arch }}' `
+            -OutputPath $outputPath
+
+          Get-Content $outputPath -Raw | Write-Host
+
+      - name: Upload per-extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pecl-dependencies-${{ matrix.extension }}
+          path: ${{ runner.temp }}/pecl-extension-dependencies/${{ matrix.extension }}.json
+          if-no-files-found: error
+
+  aggregate:
+    name: Aggregate Dependency List
+    needs:
+      - prepare-matrix
+      - detect-dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download per-extension artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pecl-dependencies-*
+          path: pecl-dependencies
+          merge-multiple: true
+
+      - name: Build merged dependency lists
+        shell: pwsh
+        run: |
+          $artifactDirectory = Join-Path (Get-Location) 'pecl-dependencies'
+          $outputDirectory = Join-Path (Get-Location) 'pecl-dependency-list'
+          $jsonPath = Join-Path $outputDirectory 'pecl-extension-dependencies.json'
+          $textPath = Join-Path $outputDirectory 'pecl-extension-dependencies.txt'
+          $csvPath = Join-Path $outputDirectory 'pecl-extension-dependencies.csv'
+
+          New-Item -Path $outputDirectory -ItemType Directory -Force | Out-Null
+
+          $files = Get-ChildItem -Path $artifactDirectory -Filter '*.json' -File | Sort-Object Name
+          if ($files.Count -eq 0) {
+            throw 'No per-extension dependency artifacts were downloaded.'
+          }
+
+          $results = foreach ($file in $files) {
+            Get-Content $file.FullName -Raw | ConvertFrom-Json
+          }
+
+          $results = @($results | Sort-Object package)
+          $results | ConvertTo-Json -Depth 6 | Set-Content -Path $jsonPath -Encoding utf8
+
+          $textLines = foreach ($result in $results) {
+            $libraryText = switch ($result.status) {
+              'ok' {
+                if (@($result.libraries).Count -eq 0) { '[]' } else { @($result.libraries) -join ', ' }
+              }
+              default {
+                $result.status
+              }
+            }
+            '{0} -> {1}' -f $result.package, $libraryText
+          }
+          $textLines | Set-Content -Path $textPath -Encoding utf8
+
+          $csvRows = foreach ($result in $results) {
+            [PSCustomObject]@{
+              package = $result.package
+              extension = $result.extension
+              php_version = $result.php_version
+              arch = $result.arch
+              vs_version = $result.vs_version
+              status = $result.status
+              libraries = @($result.libraries) -join ';'
+              note = $result.note
+            }
+          }
+          $csvRows | Export-Csv -Path $csvPath -NoTypeInformation -Encoding utf8
+
+          $okCount = @($results | Where-Object { $_.status -eq 'ok' }).Count
+          $emptyCount = @($results | Where-Object { $_.status -eq 'ok' -and @($_.libraries).Count -eq 0 }).Count
+          $failedCount = @($results | Where-Object { $_.status -ne 'ok' }).Count
+
+          @(
+            '# PECL Dependency Summary',
+            '',
+            "- Extensions requested: ${{ needs.prepare-matrix.outputs.count }}",
+            "- Artifacts merged: $($files.Count)",
+            "- Successful resolutions: $okCount",
+            "- Successful resolutions with empty library lists: $emptyCount",
+            "- Non-ok statuses: $failedCount",
+            '',
+            '## Combined List',
+            ''
+          ) | Set-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8
+
+          $textLines | Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8
+
+      - name: Upload merged dependency list
+        uses: actions/upload-artifact@v4
+        with:
+          name: pecl-extension-dependency-list
+          path: pecl-dependency-list
+          if-no-files-found: error
