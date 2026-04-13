@@ -4,12 +4,18 @@ on:
 
 jobs:
   test:
-    runs-on: macos-latest
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        php: [8.4, 8.5]
+        ext: [oauth, pecl_http, yar, scout_apm, solr]
     steps:
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.5
-          extensions: xdebug
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.ext }}
         env:
           update: true
-      - run: php -v && php -m && composer -V
+      - run: |
+          php -v
+          php -r "if(! extension_loaded('${{ matrix.ext }}')) {throw new Exception('${{ matrix.ext }} not found');}"
