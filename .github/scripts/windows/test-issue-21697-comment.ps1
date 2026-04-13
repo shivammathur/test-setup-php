@@ -55,6 +55,7 @@ function Write-TextFile {
     [string]$Path,
 
     [Parameter(Mandatory = $true)]
+    [AllowEmptyString()]
     [string[]]$Lines
   )
 
