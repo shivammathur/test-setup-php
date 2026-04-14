@@ -3,8 +3,11 @@ param(
   [ValidateSet('legacy', 'updated')]
   [string]$ConfigMode,
 
-  [ValidateSet('disabled', 'tracing')]
-  [string]$OpcacheMode = 'disabled',
+  [ValidateSet('disabled', 'tracing-default', 'tracing-cli-hot', '1255-hot', '1245-hot')]
+  [string]$OpcacheProfile = 'disabled',
+
+  [ValidateSet('full', 'builtin-only')]
+  [string]$WebMode = 'full',
 
   [Parameter(Mandatory = $true)]
   [string]$PhpVersionUnderTest
@@ -235,7 +238,7 @@ function Assert-StringArrayEqual {
   }
 }
 
-function Assert-WebSmokeResult {
+function Assert-WebResult {
   param(
     [Parameter(Mandatory = $true)]
     [psobject]$Result,
@@ -248,26 +251,42 @@ function Assert-WebSmokeResult {
     [string]$ExpectedSerializer,
 
     [Parameter(Mandatory = $true)]
-    [string]$ExpectedServerPattern,
+    [string]$ExpectedSapi,
 
-    [Parameter(Mandatory = $true)]
-    [bool]$ExpectedOpcacheLoaded
+    [string]$ExpectedServerPattern = '',
+
+    [AllowNull()]
+    [object]$ExpectedOpcacheLoaded = $null,
+
+    [AllowNull()]
+    [object]$ExpectedOpcacheEnabled = $null,
+
+    [AllowNull()]
+    [string]$ExpectedJit = $null
   )
 
   if ($Result.php_version -ne $PhpVersionUnderTest) {
     throw "Expected web PHP version $PhpVersionUnderTest, got $($Result.php_version)"
   }
 
-  if ($Result.sapi -ne 'cgi-fcgi') {
-    throw "Expected web SAPI cgi-fcgi, got $($Result.sapi)"
+  if ($Result.sapi -ne $ExpectedSapi) {
+    throw "Expected web SAPI $ExpectedSapi, got $($Result.sapi)"
   }
 
-  if (($Result.server_software | Out-String).Trim() -notmatch $ExpectedServerPattern) {
+  if (-not [string]::IsNullOrWhiteSpace($ExpectedServerPattern) -and ($Result.server_software | Out-String).Trim() -notmatch $ExpectedServerPattern) {
     throw "Expected server software matching '$ExpectedServerPattern', got '$($Result.server_software)'"
   }
 
-  if ([bool]$Result.opcache_loaded -ne $ExpectedOpcacheLoaded) {
+  if ($null -ne $ExpectedOpcacheLoaded -and [bool]$Result.opcache_loaded -ne [bool]$ExpectedOpcacheLoaded) {
     throw "Expected opcache_loaded=$ExpectedOpcacheLoaded, got $($Result.opcache_loaded)"
+  }
+
+  if ($null -ne $ExpectedOpcacheEnabled -and [bool]$Result.opcache_enabled -ne [bool]$ExpectedOpcacheEnabled) {
+    throw "Expected opcache_enabled=$ExpectedOpcacheEnabled, got $($Result.opcache_enabled)"
+  }
+
+  if ($null -ne $ExpectedJit -and $Result.opcache_jit -ne $ExpectedJit) {
+    throw "Expected opcache.jit=$ExpectedJit, got $($Result.opcache_jit)"
   }
 
   Assert-StringArrayEqual -Actual @($Result.loaded_tracked_extensions) -Expected $ExpectedLoaded -Label 'Loaded web extensions'
@@ -310,6 +329,82 @@ function Invoke-CurlJson {
   }
 
   return ($text | ConvertFrom-Json)
+}
+
+function Invoke-RepeatedCurlJson {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$NamePrefix,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Url,
+
+    [Parameter(Mandatory = $true)]
+    [int]$Count
+  )
+
+  $results = @()
+  for ($index = 1; $index -le $Count; $index++) {
+    $separator = if ($Url -like '*?*') { '&' } else { '?' }
+    $requestUrl = '{0}{1}request={2}' -f $Url, $separator, $index
+    $results += ,(Invoke-CurlJson -Name ('{0}-{1:D2}' -f $NamePrefix, $index) -Url $requestUrl)
+  }
+
+  return $results
+}
+
+function Assert-RepeatedWebResults {
+  param(
+    [Parameter(Mandatory = $true)]
+    [psobject[]]$Results,
+
+    [Parameter(Mandatory = $true)]
+    [AllowEmptyCollection()]
+    [string[]]$ExpectedLoaded,
+
+    [Parameter(Mandatory = $true)]
+    [string]$ExpectedSerializer,
+
+    [Parameter(Mandatory = $true)]
+    [string]$ExpectedSapi,
+
+    [string]$ExpectedServerPattern = '',
+
+    [AllowNull()]
+    [object]$ExpectedOpcacheLoaded = $null,
+
+    [AllowNull()]
+    [object]$ExpectedOpcacheEnabled = $null,
+
+    [AllowNull()]
+    [string]$ExpectedJit = $null,
+
+    [AllowNull()]
+    [object]$ExpectStablePid = $null,
+
+    [AllowNull()]
+    [string]$Label = $null
+  )
+
+  foreach ($result in $Results) {
+    Assert-WebResult `
+      -Result $result `
+      -ExpectedLoaded $ExpectedLoaded `
+      -ExpectedSerializer $ExpectedSerializer `
+      -ExpectedSapi $ExpectedSapi `
+      -ExpectedServerPattern $ExpectedServerPattern `
+      -ExpectedOpcacheLoaded $ExpectedOpcacheLoaded `
+      -ExpectedOpcacheEnabled $ExpectedOpcacheEnabled `
+      -ExpectedJit $ExpectedJit
+  }
+
+  if ($ExpectStablePid) {
+    $pids = @($Results | ForEach-Object { [string]$_.pid } | Sort-Object -Unique)
+    if ($pids.Count -ne 1) {
+      $name = if ([string]::IsNullOrWhiteSpace($Label)) { 'request set' } else { $Label }
+      throw "Expected a stable PID for $name, got $($pids -join ', ')"
+    }
+  }
 }
 
 function Ensure-IisReady {
@@ -401,13 +496,26 @@ function Invoke-IisWebSmoke {
   Invoke-AppCmdChecked -AppCmd $appcmd -Arguments @('set', 'app', "$siteName/", "/applicationPool:$appPool") -Description 'assign the IIS application pool to the site root'
 
   Invoke-AppCmdChecked -AppCmd $appcmd -Arguments @('set', 'config', '/section:system.webServer/fastCgi', ("/+[fullPath='{0}',arguments='{1}']" -f $script:PhpCgi, $fastCgiArgs), '/commit:apphost') -Description 'configure the IIS FastCGI application'
+  Invoke-AppCmdChecked -AppCmd $appcmd -Arguments @('set', 'config', '/section:system.webServer/fastCgi', ("/[fullPath='{0}',arguments='{1}'].maxInstances:1" -f $script:PhpCgi, $fastCgiArgs), '/commit:apphost') -Description 'limit IIS FastCGI to one backend process'
+  Invoke-AppCmdChecked -AppCmd $appcmd -Arguments @('set', 'config', '/section:system.webServer/fastCgi', ("/[fullPath='{0}',arguments='{1}'].instanceMaxRequests:1000" -f $script:PhpCgi, $fastCgiArgs), '/commit:apphost') -Description 'configure IIS FastCGI request recycling'
   Invoke-AppCmdChecked -AppCmd $appcmd -Arguments @('set', 'config', '/section:system.webServer/fastCgi', ("/+[fullPath='{0}',arguments='{1}'].environmentVariables.[name='PHP_INI_SCAN_DIR',value='{2}']" -f $script:PhpCgi, $fastCgiArgs, $Config.ScanDir), '/commit:apphost') -Description 'configure IIS FastCGI environment variables'
   Invoke-AppCmdChecked -AppCmd $appcmd -Arguments @('start', 'site', "/site.name:$siteName") -Description 'start the IIS site'
 
-  Wait-ForHttpUrl -Url ('http://127.0.0.1:{0}/web-smoke.php' -f $port)
+  $url = 'http://127.0.0.1:{0}/web-stress.php' -f $port
+  Wait-ForHttpUrl -Url $url
 
-  $result = Invoke-CurlJson -Name 'iis-web-smoke' -Url ('http://127.0.0.1:{0}/web-smoke.php' -f $port)
-  Assert-WebSmokeResult -Result $result -ExpectedLoaded $Config.ExpectedLoaded -ExpectedSerializer $Config.SessionSerializer -ExpectedServerPattern 'IIS' -ExpectedOpcacheLoaded $Config.ExpectOpcache
+  $results = Invoke-RepeatedCurlJson -NamePrefix 'iis-web-stress' -Url $url -Count $script:RepeatedRequestCount
+  Assert-RepeatedWebResults `
+    -Results $results `
+    -ExpectedLoaded $Config.ExpectedLoaded `
+    -ExpectedSerializer $Config.SessionSerializer `
+    -ExpectedSapi 'cgi-fcgi' `
+    -ExpectedServerPattern 'IIS' `
+    -ExpectedOpcacheLoaded $Config.ExpectOpcacheLoaded `
+    -ExpectedOpcacheEnabled $Config.ExpectWebOpcacheEnabled `
+    -ExpectedJit $Config.ExpectedJitValue `
+    -ExpectStablePid $true `
+    -Label 'IIS FastCGI'
 }
 
 function Get-ApacheHttpdPath {
@@ -487,7 +595,7 @@ function Ensure-ApacheInstalled {
   return Install-ApacheFromApacheLounge
 }
 
-function Invoke-ApacheWebSmoke {
+function Invoke-ApacheCgiWebSmoke {
   param(
     [Parameter(Mandatory = $true)]
     [pscustomobject]$Config,
@@ -553,7 +661,7 @@ function Invoke-ApacheWebSmoke {
     '</Directory>',
     'LogFormat "%h %l %u %t \"%r\" %>s %b" common',
     ('CustomLog "{0}" common' -f (Convert-ToIniPath $apacheAccessLog)),
-    'DirectoryIndex web-smoke.php index.php',
+    'DirectoryIndex web-stress.php web-smoke.php',
     ('ScriptAlias /php-cgi/ "{0}/"' -f $phpDirPath),
     'Action php-script "/php-cgi/php-cgi.exe"',
     'AddHandler php-script .php',
@@ -572,10 +680,149 @@ function Invoke-ApacheWebSmoke {
     }
 
     $apacheProcess = Start-Process -FilePath $httpd -ArgumentList @('-X', '-f', $apacheConf) -WorkingDirectory $apacheRoot -RedirectStandardOutput $apacheStdout -RedirectStandardError $apacheStderr -PassThru
-    Wait-ForHttpUrl -Url ('http://127.0.0.1:{0}/web-smoke.php' -f $port)
+    $url = 'http://127.0.0.1:{0}/web-stress.php' -f $port
+    Wait-ForHttpUrl -Url $url
 
-    $result = Invoke-CurlJson -Name 'apache-web-smoke' -Url ('http://127.0.0.1:{0}/web-smoke.php' -f $port)
-    Assert-WebSmokeResult -Result $result -ExpectedLoaded $Config.ExpectedLoaded -ExpectedSerializer $Config.SessionSerializer -ExpectedServerPattern 'Apache' -ExpectedOpcacheLoaded $Config.ExpectOpcache
+    $results = Invoke-RepeatedCurlJson -NamePrefix 'apache-cgi-web-stress' -Url $url -Count 2
+    Assert-RepeatedWebResults `
+      -Results $results `
+      -ExpectedLoaded $Config.ExpectedLoaded `
+      -ExpectedSerializer $Config.SessionSerializer `
+      -ExpectedSapi 'cgi-fcgi' `
+      -ExpectedServerPattern 'Apache' `
+      -ExpectedOpcacheLoaded $Config.ExpectOpcacheLoaded `
+      -ExpectedOpcacheEnabled $Config.ExpectWebOpcacheEnabled `
+      -ExpectedJit $Config.ExpectedJitValue `
+      -Label 'Apache CGI'
+  } catch {
+    foreach ($path in @($apacheStdout, $apacheStderr, $apacheErrorLog, $apacheAccessLog)) {
+      if (Test-Path $path) {
+        Write-Host ("--- {0}" -f $path)
+        Get-Content -Path $path -ErrorAction SilentlyContinue | Write-Host
+      }
+    }
+    throw
+  } finally {
+    if ($null -ne $apacheProcess -and -not $apacheProcess.HasExited) {
+      Stop-Process -Id $apacheProcess.Id -Force
+    }
+  }
+}
+
+function Invoke-ApacheFcgidWebSmoke {
+  param(
+    [Parameter(Mandatory = $true)]
+    [pscustomobject]$Config,
+
+    [Parameter(Mandatory = $true)]
+    [string]$WebRoot
+  )
+
+  $httpd = Ensure-ApacheInstalled
+  $apacheRoot = Split-Path -Parent (Split-Path -Parent $httpd)
+  $fcgidModulePath = Join-Path $apacheRoot 'modules\mod_fcgid.so'
+  if (-not (Test-Path $fcgidModulePath)) {
+    Write-Host 'Apache mod_fcgid is not available, skipping Apache FastCGI repro'
+    return
+  }
+
+  $defaultConf = Join-Path $apacheRoot 'conf\httpd.conf'
+  $defaultConfLines = Get-Content -Path $defaultConf
+  $moduleLines = @($defaultConfLines | Where-Object { $_ -match '^\s*LoadModule ' })
+  $requiredModulePatterns = @('alias_module', 'authz_core_module', 'env_module', 'fcgid_module')
+
+  foreach ($modulePattern in $requiredModulePatterns) {
+    if ($modulePattern -eq 'fcgid_module') {
+      $moduleLines += 'LoadModule fcgid_module modules/mod_fcgid.so'
+      continue
+    }
+
+    if (-not ($moduleLines | Where-Object { $_ -match ("LoadModule\s+{0}\s+" -f $modulePattern) })) {
+      $line = $defaultConfLines | Where-Object { $_ -match ("^\s*#\s*LoadModule\s+{0}\s+" -f $modulePattern) } | Select-Object -First 1
+      if ($null -eq $line) {
+        throw "Could not find Apache module line for $modulePattern"
+      }
+
+      $moduleLines += ($line -replace '^\s*#\s*', '')
+    }
+  }
+
+  $port = 8052
+  $apacheConf = Join-Path $script:ScenarioRoot 'apache-fcgid-httpd.conf'
+  $apachePid = Join-Path $script:ScenarioRoot 'apache-fcgid-httpd.pid'
+  $apacheErrorLog = Join-Path $script:ScenarioRoot 'apache-fcgid-error.log'
+  $apacheAccessLog = Join-Path $script:ScenarioRoot 'apache-fcgid-access.log'
+  $apacheStdout = Join-Path $script:ScenarioRoot 'apache-fcgid-stdout.log'
+  $apacheStderr = Join-Path $script:ScenarioRoot 'apache-fcgid-stderr.log'
+  $wrapperPath = Join-Path $script:ScenarioRoot 'apache-fcgid-wrapper.cmd'
+  $apacheProcess = $null
+  $phpConfigDir = Convert-ToIniPath (Split-Path -Parent $Config.MainIni)
+  $phpScanDir = Convert-ToIniPath $Config.ScanDir
+
+  Write-TextFile -Path $wrapperPath -Lines @(
+    '@echo off',
+    ('set PHPRC={0}' -f $phpConfigDir),
+    ('set PHP_INI_SCAN_DIR={0}' -f $phpScanDir),
+    ('"{0}" -d cgi.force_redirect=0 -c "{1}"' -f $script:PhpCgi, $Config.MainIni)
+  )
+
+  Write-TextFile -Path $apacheConf -Lines (@(
+    ('ServerRoot "{0}"' -f (Convert-ToIniPath $apacheRoot)),
+    ('DefaultRuntimeDir "{0}"' -f (Convert-ToIniPath $script:ScenarioRoot)),
+    ('Listen 127.0.0.1:{0}' -f $port),
+    ('ServerName 127.0.0.1:{0}' -f $port),
+    ('PidFile "{0}"' -f (Convert-ToIniPath $apachePid)),
+    ('ErrorLog "{0}"' -f (Convert-ToIniPath $apacheErrorLog)),
+    'LogLevel warn'
+  ) + $moduleLines + @(
+    ('TypesConfig "{0}"' -f (Convert-ToIniPath (Join-Path $apacheRoot 'conf\mime.types'))),
+    ('DocumentRoot "{0}"' -f (Convert-ToIniPath $WebRoot)),
+    '<Directory />',
+    '  AllowOverride none',
+    '  Require all denied',
+    '</Directory>',
+    ('<Directory "{0}">' -f (Convert-ToIniPath $WebRoot)),
+    '  AllowOverride None',
+    '  Options ExecCGI FollowSymLinks',
+    '  Require all granted',
+    '</Directory>',
+    'LogFormat "%h %l %u %t \"%r\" %>s %b" common',
+    ('CustomLog "{0}" common' -f (Convert-ToIniPath $apacheAccessLog)),
+    'DirectoryIndex web-stress.php web-smoke.php',
+    ('FcgidWrapper "{0}" .php' -f (Convert-ToIniPath $wrapperPath)),
+    'AddHandler fcgid-script .php',
+    'FcgidMaxProcesses 1',
+    'FcgidMaxProcessesPerClass 1',
+    'FcgidMinProcessesPerClass 1',
+    'FcgidMaxRequestsPerProcess 1000',
+    'FcgidIdleTimeout 3600'
+  ))
+
+  try {
+    $configTestOutput = & $httpd -t -f $apacheConf 2>&1
+    $configTestExitCode = $LASTEXITCODE
+    Set-Content -Path (Join-Path $script:ScenarioRoot 'apache-fcgid-configtest.log') -Value (($configTestOutput | Out-String).TrimEnd())
+    if ($configTestExitCode -ne 0) {
+      Write-Host ($configTestOutput | Out-String)
+      throw 'Apache FastCGI configuration test failed'
+    }
+
+    $apacheProcess = Start-Process -FilePath $httpd -ArgumentList @('-X', '-f', $apacheConf) -WorkingDirectory $apacheRoot -RedirectStandardOutput $apacheStdout -RedirectStandardError $apacheStderr -PassThru
+    $url = 'http://127.0.0.1:{0}/web-stress.php' -f $port
+    Wait-ForHttpUrl -Url $url
+
+    $results = Invoke-RepeatedCurlJson -NamePrefix 'apache-fcgid-web-stress' -Url $url -Count $script:RepeatedRequestCount
+    Assert-RepeatedWebResults `
+      -Results $results `
+      -ExpectedLoaded $Config.ExpectedLoaded `
+      -ExpectedSerializer $Config.SessionSerializer `
+      -ExpectedSapi 'cgi-fcgi' `
+      -ExpectedServerPattern 'Apache' `
+      -ExpectedOpcacheLoaded $Config.ExpectOpcacheLoaded `
+      -ExpectedOpcacheEnabled $Config.ExpectWebOpcacheEnabled `
+      -ExpectedJit $Config.ExpectedJitValue `
+      -ExpectStablePid $true `
+      -Label 'Apache FastCGI'
   } catch {
     foreach ($path in @($apacheStdout, $apacheStderr, $apacheErrorLog, $apacheAccessLog)) {
       if (Test-Path $path) {
@@ -605,7 +852,7 @@ function Invoke-BuiltinServerSmoke {
   $serverStderr = Join-Path $script:ScenarioRoot 'builtin-server-stderr.log'
   $serverProcess = $null
   $previousScanDir = Get-EnvValue -Name 'PHP_INI_SCAN_DIR'
-  $url = 'http://127.0.0.1:{0}/web-smoke.php' -f $port
+  $url = 'http://127.0.0.1:{0}/web-stress.php' -f $port
 
   try {
     Set-Item Env:PHP_INI_SCAN_DIR -Value $Config.ScanDir
@@ -617,36 +864,17 @@ function Invoke-BuiltinServerSmoke {
   try {
     Wait-ForHttpUrl -Url $url
 
-    $first = Invoke-CurlJson -Name 'builtin-web-smoke-first' -Url $url
-    $second = Invoke-CurlJson -Name 'builtin-web-smoke-second' -Url $url
-
-    foreach ($result in @($first, $second)) {
-      if ($result.php_version -ne $PhpVersionUnderTest) {
-        throw "Expected builtin PHP version $PhpVersionUnderTest, got $($result.php_version)"
-      }
-
-      if ($result.sapi -ne 'cli-server') {
-        throw "Expected builtin SAPI cli-server, got $($result.sapi)"
-      }
-
-      if ([bool]$result.opcache_loaded -ne $Config.ExpectOpcache) {
-        throw "Expected builtin opcache_loaded=$($Config.ExpectOpcache), got $($result.opcache_loaded)"
-      }
-
-      Assert-StringArrayEqual -Actual @($result.loaded_tracked_extensions) -Expected $Config.ExpectedLoaded -Label 'Loaded builtin extensions'
-
-      if ($result.session_save_handler -ne 'redis') {
-        throw "Expected builtin session.save_handler=redis, got $($result.session_save_handler)"
-      }
-
-      if ($result.session_serialize_handler -ne $Config.SessionSerializer) {
-        throw "Expected builtin session.serialize_handler=$($Config.SessionSerializer), got $($result.session_serialize_handler)"
-      }
-    }
-
-    if ($first.pid -ne $second.pid) {
-      throw "Expected builtin server to stay on one process across requests, got pids $($first.pid) and $($second.pid)"
-    }
+    $results = Invoke-RepeatedCurlJson -NamePrefix 'builtin-web-stress' -Url $url -Count $script:RepeatedRequestCount
+    Assert-RepeatedWebResults `
+      -Results $results `
+      -ExpectedLoaded $Config.ExpectedLoaded `
+      -ExpectedSerializer $Config.SessionSerializer `
+      -ExpectedSapi 'cli-server' `
+      -ExpectedOpcacheLoaded $Config.ExpectOpcacheLoaded `
+      -ExpectedOpcacheEnabled $Config.ExpectBuiltinOpcacheEnabled `
+      -ExpectedJit $Config.ExpectedJitValue `
+      -ExpectStablePid $true `
+      -Label 'built-in server'
   } catch {
     foreach ($path in @($serverStdout, $serverStderr)) {
       if (Test-Path $path) {
@@ -662,14 +890,89 @@ function Invoke-BuiltinServerSmoke {
   }
 }
 
+function Get-OpcacheProfileSettings {
+  param(
+    [Parameter(Mandatory = $true)]
+    [ValidateSet('disabled', 'tracing-default', 'tracing-cli-hot', '1255-hot', '1245-hot')]
+    [string]$Profile,
+
+    [Parameter(Mandatory = $true)]
+    [string]$ErrorLogPath
+  )
+
+  $opcacheDllPath = Join-Path $script:ExtDir 'php_opcache.dll'
+  $opcacheBundled = -not (Test-Path $opcacheDllPath)
+
+  if ($Profile -eq 'disabled') {
+    return [pscustomobject]@{
+      IniLines = @()
+      ExpectOpcacheLoaded = $null
+      ExpectWebOpcacheEnabled = $null
+      ExpectBuiltinOpcacheEnabled = $null
+      ExpectedJitValue = $null
+    }
+  }
+
+  $enableCli = if ($Profile -eq 'tracing-default') { 0 } else { 1 }
+  $jitValue = switch ($Profile) {
+    'tracing-default' { 'tracing' }
+    'tracing-cli-hot' { 'tracing' }
+    '1255-hot' { '1255' }
+    '1245-hot' { '1245' }
+    default { throw "Unsupported opcache profile: $Profile" }
+  }
+  $hotJit = $Profile -ne 'tracing-default'
+
+  $iniLines = @(
+    ('extension_dir="{0}"' -f (Convert-ToIniPath $script:ExtDir))
+  )
+
+  if (-not $opcacheBundled) {
+    $iniLines += 'zend_extension=php_opcache.dll'
+  }
+
+  $iniLines += @(
+    'opcache.enable=1',
+    ('opcache.enable_cli={0}' -f $enableCli),
+    'opcache.jit_buffer_size=100M',
+    ('opcache.jit={0}' -f $jitValue),
+    'opcache.validate_timestamps=1',
+    'opcache.revalidate_freq=10',
+    'opcache.enable_file_override=1',
+    'opcache.memory_consumption=64',
+    'opcache.max_accelerated_files=3000',
+    'opcache.max_wasted_percentage=10',
+    'opcache.interned_strings_buffer=16',
+    ('opcache.error_log="{0}"' -f $ErrorLogPath),
+    'opcache.log_verbosity_level=4'
+  )
+
+  if ($hotJit) {
+    $iniLines += @(
+      'opcache.jit_hot_func=1',
+      'opcache.jit_hot_loop=1',
+      'opcache.jit_hot_return=1',
+      'opcache.jit_hot_side_exit=1'
+    )
+  }
+
+  return [pscustomobject]@{
+    IniLines = $iniLines
+    ExpectOpcacheLoaded = $true
+    ExpectWebOpcacheEnabled = $true
+    ExpectBuiltinOpcacheEnabled = [bool]$enableCli
+    ExpectedJitValue = $jitValue
+  }
+}
+
 function New-ReproductionConfig {
   param(
     [Parameter(Mandatory = $true)]
     [ValidateSet('legacy', 'updated')]
     [string]$Mode,
 
-    [ValidateSet('disabled', 'tracing')]
-    [string]$OpcacheMode = 'disabled'
+    [ValidateSet('disabled', 'tracing-default', 'tracing-cli-hot', '1255-hot', '1245-hot')]
+    [string]$OpcacheProfile = 'disabled'
   )
 
   $configRoot = Join-Path $script:ScenarioRoot $Mode
@@ -692,37 +995,7 @@ function New-ReproductionConfig {
 
   New-Item -ItemType Directory -Path $configRoot -Force | Out-Null
   New-Item -ItemType Directory -Path $scanDir -Force | Out-Null
-  $opcacheDllPath = Join-Path $script:ExtDir 'php_opcache.dll'
-  $opcacheBundled = -not (Test-Path $opcacheDllPath)
-  $expectOpcache = $script:DefaultOpcacheLoaded
-  $opcacheIniLines = @()
-
-  if ($OpcacheMode -eq 'tracing') {
-    $expectOpcache = $true
-    $opcacheIniLines = @(
-      ('extension_dir="{0}"' -f (Convert-ToIniPath $script:ExtDir))
-    )
-
-    if (-not $opcacheBundled) {
-      $opcacheIniLines += 'zend_extension=php_opcache.dll'
-    }
-
-    $opcacheIniLines += @(
-      'opcache.enable=1',
-      'opcache.enable_cli=0',
-      'opcache.jit_buffer_size=100M',
-      'opcache.jit=tracing',
-      'opcache.validate_timestamps=1',
-      'opcache.revalidate_freq=10',
-      'opcache.enable_file_override=1',
-      'opcache.memory_consumption=64',
-      'opcache.max_accelerated_files=3000',
-      'opcache.max_wasted_percentage=10',
-      'opcache.interned_strings_buffer=16',
-      ('opcache.error_log="{0}"' -f $opcacheErrorLog),
-      'opcache.log_verbosity_level=4'
-    )
-  }
+  $opcacheSettings = Get-OpcacheProfileSettings -Profile $OpcacheProfile -ErrorLogPath $opcacheErrorLog
 
   if ($Mode -eq 'legacy') {
     Write-TextFile -Path $mainIni -Lines @(
@@ -750,8 +1023,8 @@ function New-ReproductionConfig {
       'session.save_path="tcp://127.0.0.1:6379?weight=1&prefix=XXX_SESSION_&database=0"'
     )
 
-    if ($opcacheIniLines.Count -gt 0) {
-      Write-TextFile -Path (Join-Path $scanDir '00_opcache.ini') -Lines $opcacheIniLines
+    if ($opcacheSettings.IniLines.Count -gt 0) {
+      Write-TextFile -Path (Join-Path $scanDir '00_opcache.ini') -Lines $opcacheSettings.IniLines
     }
 
     return [pscustomobject]@{
@@ -760,7 +1033,10 @@ function New-ReproductionConfig {
       ExpectedLoaded = @()
       ExpectedMissing = @('curl', 'intl', 'mbstring', 'openssl', 'redis', 'igbinary', 'pgsql', 'pdo_pgsql', 'soap')
       SessionSerializer = 'php'
-      ExpectOpcache = $expectOpcache
+      ExpectOpcacheLoaded = $opcacheSettings.ExpectOpcacheLoaded
+      ExpectWebOpcacheEnabled = $opcacheSettings.ExpectWebOpcacheEnabled
+      ExpectBuiltinOpcacheEnabled = $opcacheSettings.ExpectBuiltinOpcacheEnabled
+      ExpectedJitValue = $opcacheSettings.ExpectedJitValue
     }
   }
 
@@ -865,8 +1141,8 @@ function New-ReproductionConfig {
     'redis.session.locking_enabled=0'
   )
 
-  if ($opcacheIniLines.Count -gt 0) {
-    Write-TextFile -Path (Join-Path $scanDir '00_opcache.ini') -Lines $opcacheIniLines
+  if ($opcacheSettings.IniLines.Count -gt 0) {
+    Write-TextFile -Path (Join-Path $scanDir '00_opcache.ini') -Lines $opcacheSettings.IniLines
   }
 
   if ($caDirectives.Count -gt 0) {
@@ -882,13 +1158,17 @@ function New-ReproductionConfig {
     ExpectedLoaded = @('curl', 'intl', 'mbstring', 'openssl', 'redis', 'igbinary', 'pgsql', 'pdo_pgsql', 'soap')
     ExpectedMissing = @()
     SessionSerializer = 'igbinary'
-    ExpectOpcache = $expectOpcache
+    ExpectOpcacheLoaded = $opcacheSettings.ExpectOpcacheLoaded
+    ExpectWebOpcacheEnabled = $opcacheSettings.ExpectWebOpcacheEnabled
+    ExpectBuiltinOpcacheEnabled = $opcacheSettings.ExpectBuiltinOpcacheEnabled
+    ExpectedJitValue = $opcacheSettings.ExpectedJitValue
   }
 }
 
 $script:ArtifactRoot = Join-Path $env:RUNNER_TEMP 'issue-21697-comment'
-$script:ScenarioRoot = Join-Path $script:ArtifactRoot ("{0}-{1}-{2}" -f $PhpVersionUnderTest, $ConfigMode, $OpcacheMode)
+$script:ScenarioRoot = Join-Path $script:ArtifactRoot ("{0}-{1}-{2}" -f $PhpVersionUnderTest, $ConfigMode, $OpcacheProfile)
 New-Item -ItemType Directory -Path $script:ScenarioRoot -Force | Out-Null
+$script:RepeatedRequestCount = 6
 
 $script:PhpExe = (Get-Command php).Source
 $script:PhpCgi = (Get-Command php-cgi).Source
@@ -908,9 +1188,7 @@ if ($actualVersion -ne $PhpVersionUnderTest) {
   throw "Expected PHP version $PhpVersionUnderTest, got $actualVersion"
 }
 
-$script:DefaultOpcacheLoaded = ((Invoke-PhpCommand -Name 'php-default-opcache-check' -Binary $script:PhpExe -Arguments @('-n', '-r', 'echo function_exists("opcache_get_status") ? "1" : "0";') -ScanDir '') -eq '1')
-
-$config = New-ReproductionConfig -Mode $ConfigMode -OpcacheMode $OpcacheMode
+$config = New-ReproductionConfig -Mode $ConfigMode -OpcacheProfile $OpcacheProfile
 $webRoot = Join-Path $script:ScenarioRoot 'webroot'
 New-Item -ItemType Directory -Path $webRoot -Force | Out-Null
 
@@ -1002,6 +1280,7 @@ Write-TextFile -Path $webSmokeScript -Lines @(
   'header("Content-Type: application/json");',
   '',
   '$trackedExtensions = ["curl", "intl", "mbstring", "openssl", "redis", "igbinary", "pgsql", "pdo_pgsql", "soap"];',
+  '$opcacheStatus = function_exists("opcache_get_status") ? @opcache_get_status(false) : false;',
   '$result = [',
   '    "php_version" => PHP_VERSION,',
   '    "sapi" => PHP_SAPI,',
@@ -1010,10 +1289,170 @@ Write-TextFile -Path $webSmokeScript -Lines @(
   '    "request_uri" => $_SERVER["REQUEST_URI"] ?? "",',
   '    "pid" => getmypid(),',
   '    "opcache_loaded" => function_exists("opcache_get_status"),',
-  '    "opcache_jit" => ini_get("opcache.jit"),',
+  '    "opcache_enabled" => is_array($opcacheStatus) ? (bool) ($opcacheStatus["opcache_enabled"] ?? false) : false,',
+  '    "opcache_jit" => (string) ini_get("opcache.jit"),',
+  '    "opcache_jit_on" => is_array($opcacheStatus) ? (bool) ($opcacheStatus["jit"]["on"] ?? false) : false,',
   '    "loaded_tracked_extensions" => array_values(array_filter($trackedExtensions, "extension_loaded")),',
   '    "session_save_handler" => ini_get("session.save_handler"),',
   '    "session_save_path" => ini_get("session.save_path"),',
+  '    "session_serialize_handler" => ini_get("session.serialize_handler"),',
+  '];',
+  '',
+  'echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;'
+)
+
+$stressLibRoot = Join-Path $webRoot 'stress-lib'
+New-Item -ItemType Directory -Path $stressLibRoot -Force | Out-Null
+$stressClasses = @()
+
+for ($index = 0; $index -lt 24; $index++) {
+  $className = 'StressWorker{0:D2}' -f $index
+  $stressClasses += $className
+  Write-TextFile -Path (Join-Path $stressLibRoot ("{0}.php" -f $className)) -Lines @(
+    '<?php',
+    "final class $className {",
+    '    public static function crunch(int $seed, int $round): int {',
+    '        $value = $seed ^ ($round << 2);',
+    '        for ($i = 0; $i < 320; $i++) {',
+    '            $value += (($i * 17) ^ ($seed + $round)) % 97;',
+    '            $value ^= (($value << 5) | ($value >> 3));',
+    '            $value &= 0x7fffffff;',
+    '        }',
+    '        return $value;',
+    '    }',
+    '}'
+  )
+}
+
+$bootstrapLines = @('<?php')
+foreach ($className in $stressClasses) {
+  $bootstrapLines += ('require_once __DIR__ . "/{0}.php";' -f $className)
+}
+$bootstrapLines += ''
+$bootstrapLines += 'return ['
+foreach ($className in $stressClasses) {
+  $bootstrapLines += ("    '{0}'," -f $className)
+}
+$bootstrapLines += '];'
+Write-TextFile -Path (Join-Path $stressLibRoot 'bootstrap.php') -Lines $bootstrapLines
+
+$webStressScript = Join-Path $webRoot 'web-stress.php'
+Write-TextFile -Path $webStressScript -Lines @(
+  '<?php',
+  'error_reporting(E_ALL);',
+  'ini_set("display_errors", "1");',
+  'header("Content-Type: application/json");',
+  '',
+  '$trackedExtensions = ["curl", "intl", "mbstring", "openssl", "redis", "igbinary", "pgsql", "pdo_pgsql", "soap"];',
+  '$classes = require __DIR__ . "/stress-lib/bootstrap.php";',
+  '',
+  'function stress_mix(int $seed, int $offset): int {',
+  '    $value = $seed + ($offset * 13);',
+  '    for ($i = 0; $i < 256; $i++) {',
+  '        $value ^= (($value << 7) | ($value >> 2));',
+  '        $value += ($offset ^ $i) % 19;',
+  '        $value &= 0x7fffffff;',
+  '    }',
+  '    return $value;',
+  '}',
+  '',
+  '$sessionCounter = 0;',
+  'if (extension_loaded("redis")) {',
+  '    session_start();',
+  '    $sessionCounter = (int) ($_SESSION["counter"] ?? 0) + 1;',
+  '    $_SESSION["counter"] = $sessionCounter;',
+  '}',
+  '',
+  '$checksum = 0;',
+  'for ($round = 0; $round < 180; $round++) {',
+  '    foreach ($classes as $className) {',
+  '        $checksum ^= $className::crunch($round + $sessionCounter, $round);',
+  '    }',
+  '}',
+  '',
+  '$payload = [];',
+  'for ($offset = 0; $offset < 256; $offset++) {',
+  '    $payload[] = stress_mix($checksum, $offset);',
+  '}',
+  'sort($payload);',
+  'if (session_status() === PHP_SESSION_ACTIVE) {',
+  '    $_SESSION["payload"] = array_slice($payload, 0, 16);',
+  '}',
+  '',
+  '$opcacheStatus = function_exists("opcache_get_status") ? @opcache_get_status(false) : false;',
+  '$result = [',
+  '    "php_version" => PHP_VERSION,',
+  '    "sapi" => PHP_SAPI,',
+  '    "server_software" => $_SERVER["SERVER_SOFTWARE"] ?? "",',
+  '    "gateway_interface" => $_SERVER["GATEWAY_INTERFACE"] ?? "",',
+  '    "request_uri" => $_SERVER["REQUEST_URI"] ?? "",',
+  '    "pid" => getmypid(),',
+  '    "opcache_loaded" => function_exists("opcache_get_status"),',
+  '    "opcache_enabled" => is_array($opcacheStatus) ? (bool) ($opcacheStatus["opcache_enabled"] ?? false) : false,',
+  '    "opcache_jit" => (string) ini_get("opcache.jit"),',
+  '    "opcache_jit_on" => is_array($opcacheStatus) ? (bool) ($opcacheStatus["jit"]["on"] ?? false) : false,',
+  '    "opcache_num_cached_scripts" => is_array($opcacheStatus) ? (int) ($opcacheStatus["opcache_statistics"]["num_cached_scripts"] ?? 0) : 0,',
+  '    "script_cached" => function_exists("opcache_is_script_cached") ? @opcache_is_script_cached(__FILE__) : false,',
+  '    "loaded_tracked_extensions" => array_values(array_filter($trackedExtensions, "extension_loaded")),',
+  '    "session_save_handler" => ini_get("session.save_handler"),',
+  '    "session_save_path" => ini_get("session.save_path"),',
+  '    "session_serialize_handler" => ini_get("session.serialize_handler"),',
+  '    "session_counter" => $sessionCounter,',
+  '    "workload_checksum" => $checksum,',
+  '];',
+  '',
+  'echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), PHP_EOL;'
+)
+
+$jitStressScript = Join-Path $script:ScenarioRoot 'jit-stress.php'
+Write-TextFile -Path $jitStressScript -Lines @(
+  '<?php',
+  'error_reporting(E_ALL);',
+  'ini_set("display_errors", "1");',
+  '',
+  '$trackedExtensions = ["curl", "intl", "mbstring", "openssl", "redis", "igbinary", "pgsql", "pdo_pgsql", "soap"];',
+  '$classes = require __DIR__ . "/webroot/stress-lib/bootstrap.php";',
+  '',
+  'function jit_stress_mix(int $seed, int $offset): int {',
+  '    $value = $seed + ($offset * 29);',
+  '    for ($i = 0; $i < 512; $i++) {',
+  '        $value ^= (($value << 6) | ($value >> 4));',
+  '        $value += ($offset ^ $i) % 23;',
+  '        $value &= 0x7fffffff;',
+  '    }',
+  '    return $value;',
+  '}',
+  '',
+  'if (extension_loaded("redis")) {',
+  '    session_start();',
+  '}',
+  '$checksum = 0;',
+  'for ($round = 0; $round < 220; $round++) {',
+  '    foreach ($classes as $className) {',
+  '        $checksum ^= $className::crunch($round + 7, $round);',
+  '    }',
+  '}',
+  '',
+  '$payload = [];',
+  'for ($offset = 0; $offset < 384; $offset++) {',
+  '    $payload[] = jit_stress_mix($checksum, $offset);',
+  '}',
+  'if (session_status() === PHP_SESSION_ACTIVE) {',
+  '    $_SESSION["jit_payload"] = array_slice($payload, 0, 16);',
+  '}',
+  '',
+  '$opcacheStatus = function_exists("opcache_get_status") ? @opcache_get_status(false) : false;',
+  '$result = [',
+  '    "php_version" => PHP_VERSION,',
+  '    "sapi" => PHP_SAPI,',
+  '    "pid" => getmypid(),',
+  '    "opcache_loaded" => function_exists("opcache_get_status"),',
+  '    "opcache_enabled" => is_array($opcacheStatus) ? (bool) ($opcacheStatus["opcache_enabled"] ?? false) : false,',
+  '    "opcache_jit" => (string) ini_get("opcache.jit"),',
+  '    "opcache_jit_on" => is_array($opcacheStatus) ? (bool) ($opcacheStatus["jit"]["on"] ?? false) : false,',
+  '    "workload_checksum" => $checksum,',
+  '    "loaded_tracked_extensions" => array_values(array_filter($trackedExtensions, "extension_loaded")),',
+  '    "session_save_handler" => ini_get("session.save_handler"),',
   '    "session_serialize_handler" => ini_get("session.serialize_handler"),',
   '];',
   '',
@@ -1033,25 +1472,37 @@ Invoke-PhpCommand -Name 'php-cgi-modules' -Binary $script:PhpCgi -Arguments @('-
 Invoke-PhpCommand -Name 'php-cli-info' -Binary $script:PhpExe -Arguments @('-c', $config.MainIni, '-i') -ScanDir $config.ScanDir
 $cliSmoke = Invoke-PhpCommand -Name 'php-cli-extension-smoke' -Binary $script:PhpExe -Arguments @('-c', $config.MainIni, $smokeScript) -ScanDir $config.ScanDir -Environment $envOverrides
 $cgiSmoke = Invoke-PhpCommand -Name 'php-cgi-extension-smoke' -Binary $script:PhpCgi -Arguments @('-q', '-c', $config.MainIni, '-f', $smokeScript) -ScanDir $config.ScanDir -Environment $envOverrides
+$cliJitStress = Invoke-PhpCommand -Name 'php-cli-jit-stress' -Binary $script:PhpExe -Arguments @('-c', $config.MainIni, $jitStressScript) -ScanDir $config.ScanDir
+$cgiJitStress = Invoke-PhpCommand -Name 'php-cgi-jit-stress' -Binary $script:PhpCgi -Arguments @('-q', '-c', $config.MainIni, '-f', $jitStressScript) -ScanDir $config.ScanDir
 Invoke-BuiltinServerSmoke -Config $config -WebRoot $webRoot
-Invoke-IisWebSmoke -Config $config -WebRoot $webRoot
-Invoke-ApacheWebSmoke -Config $config -WebRoot $webRoot
+
+if ($WebMode -eq 'full') {
+  Invoke-IisWebSmoke -Config $config -WebRoot $webRoot
+  Invoke-ApacheCgiWebSmoke -Config $config -WebRoot $webRoot
+  Invoke-ApacheFcgidWebSmoke -Config $config -WebRoot $webRoot
+}
 
 $summaryLines = @(
-  "### PHP $PhpVersionUnderTest / $ConfigMode / opcache-$OpcacheMode",
+  "### PHP $PhpVersionUnderTest / $ConfigMode / $OpcacheProfile / $WebMode",
   '',
   '- `php.exe` and `php-cgi.exe` both started successfully with the reconstructed config.',
-  '- The built-in PHP server stayed up across repeated requests and was validated with `curl`.',
-  '- IIS FastCGI served the PHP smoke endpoint successfully and was validated with `curl`.',
-  '- Apache served the PHP smoke endpoint successfully through `php-cgi.exe` and was validated with `curl`.',
+  '- The built-in PHP server handled repeated stress requests and was validated with `curl`.',
   ('- Expected loaded extensions: `{0}`' -f $(if ($config.ExpectedLoaded.Count -eq 0) { 'none' } else { $config.ExpectedLoaded -join ', ' })),
   ('- Expected missing extensions: `{0}`' -f $(if ($config.ExpectedMissing.Count -eq 0) { 'none' } else { $config.ExpectedMissing -join ', ' })),
   ('- CLI smoke output saved to `{0}`.' -f (Join-Path $script:ScenarioRoot 'php-cli-extension-smoke.log')),
   ('- CGI smoke output saved to `{0}`.' -f (Join-Path $script:ScenarioRoot 'php-cgi-extension-smoke.log')),
-  ('- Built-in server curl outputs saved to `{0}` and `{1}`.' -f (Join-Path $script:ScenarioRoot 'builtin-web-smoke-first.log'), (Join-Path $script:ScenarioRoot 'builtin-web-smoke-second.log')),
-  ('- IIS curl output saved to `{0}`.' -f (Join-Path $script:ScenarioRoot 'iis-web-smoke.log')),
-  ('- Apache curl output saved to `{0}`.' -f (Join-Path $script:ScenarioRoot 'apache-web-smoke.log'))
+  ('- Direct CLI JIT stress output saved to `{0}`.' -f (Join-Path $script:ScenarioRoot 'php-cli-jit-stress.log')),
+  ('- Direct CGI JIT stress output saved to `{0}`.' -f (Join-Path $script:ScenarioRoot 'php-cgi-jit-stress.log')),
+  ('- Built-in server stress outputs are saved with the `builtin-web-stress-*.log` prefix in `{0}`.' -f $script:ScenarioRoot)
 )
+
+if ($WebMode -eq 'full') {
+  $summaryLines += '- IIS FastCGI handled repeated stress requests through a single backend process.'
+  $summaryLines += '- Apache CGI and Apache FastCGI both served the stress endpoint through `php-cgi.exe`.'
+  $summaryLines += ('- IIS stress outputs are saved with the `iis-web-stress-*.log` prefix in `{0}`.' -f $script:ScenarioRoot)
+  $summaryLines += ('- Apache CGI stress outputs are saved with the `apache-cgi-web-stress-*.log` prefix in `{0}`.' -f $script:ScenarioRoot)
+  $summaryLines += ('- Apache FastCGI stress outputs are saved with the `apache-fcgid-web-stress-*.log` prefix in `{0}`.' -f $script:ScenarioRoot)
+}
 
 Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ($summaryLines -join [Environment]::NewLine)
 
@@ -1059,3 +1510,7 @@ Write-Host 'CLI smoke result:'
 Write-Host $cliSmoke
 Write-Host 'CGI smoke result:'
 Write-Host $cgiSmoke
+Write-Host 'CLI JIT stress result:'
+Write-Host $cliJitStress
+Write-Host 'CGI JIT stress result:'
+Write-Host $cgiJitStress

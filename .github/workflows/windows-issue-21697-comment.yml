@@ -14,21 +14,117 @@ permissions:
 
 jobs:
   reproduce:
-    name: PHP ${{ matrix.php-version }} / ${{ matrix.config-mode }} / opcache-${{ matrix.opcache-mode }}
+    name: PHP ${{ matrix.php-version }} / ${{ matrix.runtime-flavor }} / ${{ matrix.config-mode }} / ${{ matrix.opcache-profile }} / ${{ matrix.pecl-profile }}
     runs-on: windows-2022
     timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
-        php-version:
-          - '8.4.20'
-          - '8.5.5'
-        config-mode:
-          - legacy
-          - updated
-        opcache-mode:
-          - disabled
-          - tracing
+        include:
+          - php-version: '8.4.20'
+            runtime-flavor: nts
+            config-mode: updated
+            opcache-profile: tracing-default
+            web-mode: full
+            pecl-profile: latest
+            redis-extension: redis
+            igbinary-extension: igbinary
+          - php-version: '8.4.20'
+            runtime-flavor: nts
+            config-mode: updated
+            opcache-profile: tracing-cli-hot
+            web-mode: full
+            pecl-profile: latest
+            redis-extension: redis
+            igbinary-extension: igbinary
+          - php-version: '8.4.20'
+            runtime-flavor: nts
+            config-mode: updated
+            opcache-profile: 1255-hot
+            web-mode: full
+            pecl-profile: latest
+            redis-extension: redis
+            igbinary-extension: igbinary
+          - php-version: '8.4.20'
+            runtime-flavor: nts
+            config-mode: updated
+            opcache-profile: 1245-hot
+            web-mode: full
+            pecl-profile: latest
+            redis-extension: redis
+            igbinary-extension: igbinary
+          - php-version: '8.4.20'
+            runtime-flavor: nts
+            config-mode: updated
+            opcache-profile: 1255-hot
+            web-mode: full
+            pecl-profile: comment-pinned
+            redis-extension: redis-6.2.0
+            igbinary-extension: igbinary-3.2.16
+          - php-version: '8.4.20'
+            runtime-flavor: nts
+            config-mode: legacy
+            opcache-profile: 1255-hot
+            web-mode: full
+            pecl-profile: latest
+            redis-extension: redis
+            igbinary-extension: igbinary
+          - php-version: '8.4.20'
+            runtime-flavor: ts
+            config-mode: updated
+            opcache-profile: 1255-hot
+            web-mode: builtin-only
+            pecl-profile: latest
+            redis-extension: redis
+            igbinary-extension: igbinary
+          - php-version: '8.5.5'
+            runtime-flavor: nts
+            config-mode: updated
+            opcache-profile: tracing-default
+            web-mode: full
+            pecl-profile: latest
+            redis-extension: redis
+            igbinary-extension: igbinary
+          - php-version: '8.5.5'
+            runtime-flavor: nts
+            config-mode: updated
+            opcache-profile: tracing-cli-hot
+            web-mode: full
+            pecl-profile: latest
+            redis-extension: redis
+            igbinary-extension: igbinary
+          - php-version: '8.5.5'
+            runtime-flavor: nts
+            config-mode: updated
+            opcache-profile: 1255-hot
+            web-mode: full
+            pecl-profile: latest
+            redis-extension: redis
+            igbinary-extension: igbinary
+          - php-version: '8.5.5'
+            runtime-flavor: nts
+            config-mode: updated
+            opcache-profile: 1245-hot
+            web-mode: full
+            pecl-profile: latest
+            redis-extension: redis
+            igbinary-extension: igbinary
+          - php-version: '8.5.5'
+            runtime-flavor: nts
+            config-mode: legacy
+            opcache-profile: 1255-hot
+            web-mode: full
+            pecl-profile: latest
+            redis-extension: redis
+            igbinary-extension: igbinary
+          - php-version: '8.5.5'
+            runtime-flavor: ts
+            config-mode: updated
+            opcache-profile: 1255-hot
+            web-mode: builtin-only
+            pecl-profile: latest
+            redis-extension: redis
+            igbinary-extension: igbinary
 
     steps:
       - name: Checkout test app
@@ -39,22 +135,27 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           ini-file: none
-          extensions: none, openssl, curl, intl, mbstring, exif, fileinfo, gd, gettext, pgsql, pdo_pgsql, soap, redis, igbinary
+          extensions: none, openssl, curl, intl, mbstring, exif, fileinfo, gd, gettext, pgsql, pdo_pgsql, soap, ${{ matrix.redis-extension }}, ${{ matrix.igbinary-extension }}
           coverage: none
+        env:
+          phpts: ${{ matrix.runtime-flavor }}
 
       - name: Replace fallback runtime with the requested official Windows build
         shell: pwsh
         env:
           REQUESTED_PHP_VERSION: ${{ matrix.php-version }}
+          REQUESTED_RUNTIME_FLAVOR: ${{ matrix.runtime-flavor }}
         run: |
           $requestedVersion = $env:REQUESTED_PHP_VERSION
+          $runtimeFlavor = $env:REQUESTED_RUNTIME_FLAVOR
           $actualVersion = & php -n -r "echo PHP_VERSION;"
+          $actualFlavor = & php -n -r "echo PHP_ZTS ? 'ts' : 'nts';"
           if ($LASTEXITCODE -ne 0) {
-            throw 'Failed to read the installed PHP version'
+            throw 'Failed to read the installed PHP runtime details'
           }
 
-          if ($actualVersion -eq $requestedVersion) {
-            Write-Host "setup-php already installed PHP $requestedVersion"
+          if ($actualVersion -eq $requestedVersion -and $actualFlavor -eq $runtimeFlavor) {
+            Write-Host "setup-php already installed PHP $requestedVersion ($runtimeFlavor)"
             exit 0
           }
 
@@ -62,8 +163,10 @@ jobs:
           $extDir = Join-Path $phpDir 'ext'
           $backupDir = Join-Path $env:RUNNER_TEMP "php-pecl-backup-$requestedVersion"
           $extractDir = Join-Path $env:RUNNER_TEMP "php-$requestedVersion-extract"
-          $zipPath = Join-Path $env:RUNNER_TEMP "php-$requestedVersion-nts-Win32-vs17-x64.zip"
-          $zipUrl = "https://downloads.php.net/~windows/releases/archives/php-$requestedVersion-nts-Win32-vs17-x64.zip"
+          $runtimeSegment = if ($runtimeFlavor -eq 'ts') { '' } else { '-nts' }
+          $zipName = "php-$requestedVersion${runtimeSegment}-Win32-vs17-x64.zip"
+          $zipPath = Join-Path $env:RUNNER_TEMP $zipName
+          $zipUrl = "https://downloads.php.net/~windows/releases/archives/$zipName"
           $peclExtensions = @('php_redis.dll', 'php_igbinary.dll')
 
           New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
@@ -90,12 +193,13 @@ jobs:
           }
 
           $resolvedVersion = & php -n -r "echo PHP_VERSION;"
+          $resolvedFlavor = & php -n -r "echo PHP_ZTS ? 'ts' : 'nts';"
           if ($LASTEXITCODE -ne 0) {
-            throw 'Failed to read the PHP version after replacing the runtime'
+            throw 'Failed to read the PHP runtime details after replacing the runtime'
           }
 
-          if ($resolvedVersion -ne $requestedVersion) {
-            throw "Expected PHP $requestedVersion after the runtime replacement, got $resolvedVersion"
+          if ($resolvedVersion -ne $requestedVersion -or $resolvedFlavor -ne $runtimeFlavor) {
+            throw "Expected PHP $requestedVersion ($runtimeFlavor) after the runtime replacement, got $resolvedVersion ($resolvedFlavor)"
           }
 
       - name: Show resolved PHP runtime
@@ -106,6 +210,7 @@ jobs:
 
           Write-Host "php: $php"
           Write-Host "php-cgi: $phpCgi"
+          Write-Host ("thread-safety: {0}" -f (& $php -n -r "echo PHP_ZTS ? 'ts' : 'nts';"))
 
           & $php -v
           if ($LASTEXITCODE -ne 0) {
@@ -121,18 +226,20 @@ jobs:
         shell: pwsh
         env:
           CONFIG_MODE: ${{ matrix.config-mode }}
-          OPCACHE_MODE: ${{ matrix.opcache-mode }}
+          OPCACHE_PROFILE: ${{ matrix.opcache-profile }}
           PHP_VERSION_UNDER_TEST: ${{ matrix.php-version }}
+          WEB_MODE: ${{ matrix.web-mode }}
         run: |
           .\.github\scripts\windows\test-issue-21697-comment.ps1 `
             -ConfigMode $env:CONFIG_MODE `
-            -OpcacheMode $env:OPCACHE_MODE `
+            -OpcacheProfile $env:OPCACHE_PROFILE `
+            -WebMode $env:WEB_MODE `
             -PhpVersionUnderTest $env:PHP_VERSION_UNDER_TEST
 
       - name: Upload reproduction artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: issue-21697-comment-${{ matrix.php-version }}-${{ matrix.config-mode }}-${{ matrix.opcache-mode }}
+          name: issue-21697-comment-${{ matrix.php-version }}-${{ matrix.runtime-flavor }}-${{ matrix.config-mode }}-${{ matrix.opcache-profile }}-${{ matrix.pecl-profile }}
           path: ${{ runner.temp }}/issue-21697-comment
           if-no-files-found: warn
