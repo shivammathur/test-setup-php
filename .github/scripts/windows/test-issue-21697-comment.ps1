@@ -1077,6 +1077,10 @@ function New-ReproductionConfig {
   $caFile = $caFileCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
   $caDirectives = @()
 
+  if (Test-Path $configRoot) {
+    Remove-Item -Path $configRoot -Recurse -Force
+  }
+
   if ($null -ne $caFile) {
     $iniCaFile = Convert-ToIniPath $caFile
     $caDirectives += ('curl.cainfo="{0}"' -f $iniCaFile)
