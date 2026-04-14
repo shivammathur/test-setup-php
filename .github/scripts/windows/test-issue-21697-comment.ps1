@@ -692,9 +692,36 @@ function New-ReproductionConfig {
 
   New-Item -ItemType Directory -Path $configRoot -Force | Out-Null
   New-Item -ItemType Directory -Path $scanDir -Force | Out-Null
+  $opcacheDllPath = Join-Path $script:ExtDir 'php_opcache.dll'
+  $opcacheBundled = -not (Test-Path $opcacheDllPath)
+  $expectOpcache = $script:DefaultOpcacheLoaded
+  $opcacheIniLines = @()
 
   if ($OpcacheMode -eq 'tracing') {
-    Assert-ExtensionDll -Name 'opcache' | Out-Null
+    $expectOpcache = $true
+    $opcacheIniLines = @(
+      ('extension_dir="{0}"' -f (Convert-ToIniPath $script:ExtDir))
+    )
+
+    if (-not $opcacheBundled) {
+      $opcacheIniLines += 'zend_extension=php_opcache.dll'
+    }
+
+    $opcacheIniLines += @(
+      'opcache.enable=1',
+      'opcache.enable_cli=0',
+      'opcache.jit_buffer_size=100M',
+      'opcache.jit=tracing',
+      'opcache.validate_timestamps=1',
+      'opcache.revalidate_freq=10',
+      'opcache.enable_file_override=1',
+      'opcache.memory_consumption=64',
+      'opcache.max_accelerated_files=3000',
+      'opcache.max_wasted_percentage=10',
+      'opcache.interned_strings_buffer=16',
+      ('opcache.error_log="{0}"' -f $opcacheErrorLog),
+      'opcache.log_verbosity_level=4'
+    )
   }
 
   if ($Mode -eq 'legacy') {
@@ -723,24 +750,8 @@ function New-ReproductionConfig {
       'session.save_path="tcp://127.0.0.1:6379?weight=1&prefix=XXX_SESSION_&database=0"'
     )
 
-    if ($OpcacheMode -eq 'tracing') {
-      Write-TextFile -Path (Join-Path $scanDir '00_opcache.ini') -Lines @(
-        ('extension_dir="{0}"' -f (Convert-ToIniPath $script:ExtDir)),
-        'zend_extension=php_opcache.dll',
-        'opcache.enable=1',
-        'opcache.enable_cli=0',
-        'opcache.jit_buffer_size=100M',
-        'opcache.jit=tracing',
-        'opcache.validate_timestamps=1',
-        'opcache.revalidate_freq=10',
-        'opcache.enable_file_override=1',
-        'opcache.memory_consumption=64',
-        'opcache.max_accelerated_files=3000',
-        'opcache.max_wasted_percentage=10',
-        'opcache.interned_strings_buffer=16',
-        ('opcache.error_log="{0}"' -f $opcacheErrorLog),
-        'opcache.log_verbosity_level=4'
-      )
+    if ($opcacheIniLines.Count -gt 0) {
+      Write-TextFile -Path (Join-Path $scanDir '00_opcache.ini') -Lines $opcacheIniLines
     }
 
     return [pscustomobject]@{
@@ -749,7 +760,7 @@ function New-ReproductionConfig {
       ExpectedLoaded = @()
       ExpectedMissing = @('curl', 'intl', 'mbstring', 'openssl', 'redis', 'igbinary', 'pgsql', 'pdo_pgsql', 'soap')
       SessionSerializer = 'php'
-      ExpectOpcache = ($OpcacheMode -eq 'tracing')
+      ExpectOpcache = $expectOpcache
     }
   }
 
@@ -854,24 +865,8 @@ function New-ReproductionConfig {
     'redis.session.locking_enabled=0'
   )
 
-  if ($OpcacheMode -eq 'tracing') {
-    Write-TextFile -Path (Join-Path $scanDir '00_opcache.ini') -Lines @(
-      ('extension_dir="{0}"' -f (Convert-ToIniPath $script:ExtDir)),
-      'zend_extension=php_opcache.dll',
-      'opcache.enable=1',
-      'opcache.enable_cli=0',
-      'opcache.jit_buffer_size=100M',
-      'opcache.jit=tracing',
-      'opcache.validate_timestamps=1',
-      'opcache.revalidate_freq=10',
-      'opcache.enable_file_override=1',
-      'opcache.memory_consumption=64',
-      'opcache.max_accelerated_files=3000',
-      'opcache.max_wasted_percentage=10',
-      'opcache.interned_strings_buffer=16',
-      ('opcache.error_log="{0}"' -f $opcacheErrorLog),
-      'opcache.log_verbosity_level=4'
-    )
+  if ($opcacheIniLines.Count -gt 0) {
+    Write-TextFile -Path (Join-Path $scanDir '00_opcache.ini') -Lines $opcacheIniLines
   }
 
   if ($caDirectives.Count -gt 0) {
@@ -887,7 +882,7 @@ function New-ReproductionConfig {
     ExpectedLoaded = @('curl', 'intl', 'mbstring', 'openssl', 'redis', 'igbinary', 'pgsql', 'pdo_pgsql', 'soap')
     ExpectedMissing = @()
     SessionSerializer = 'igbinary'
-    ExpectOpcache = ($OpcacheMode -eq 'tracing')
+    ExpectOpcache = $expectOpcache
   }
 }
 
@@ -912,6 +907,8 @@ $actualVersion = Invoke-PhpCommand -Name 'php-version-check' -Binary $script:Php
 if ($actualVersion -ne $PhpVersionUnderTest) {
   throw "Expected PHP version $PhpVersionUnderTest, got $actualVersion"
 }
+
+$script:DefaultOpcacheLoaded = ((Invoke-PhpCommand -Name 'php-default-opcache-check' -Binary $script:PhpExe -Arguments @('-n', '-r', 'echo function_exists("opcache_get_status") ? "1" : "0";') -ScanDir '') -eq '1')
 
 $config = New-ReproductionConfig -Mode $ConfigMode -OpcacheMode $OpcacheMode
 $webRoot = Join-Path $script:ScenarioRoot 'webroot'
