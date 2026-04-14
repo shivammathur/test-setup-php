@@ -957,7 +957,7 @@ function Invoke-BuiltinServerRawProbe {
   $serverProcess = $null
   $serverStdout = Join-Path $script:ScenarioRoot ("{0}-stdout.log" -f $NamePrefix)
   $serverStderr = Join-Path $script:ScenarioRoot ("{0}-stderr.log" -f $NamePrefix)
-  $port = Get-FreePort
+  $port = 8061
 
   try {
     Set-Item Env:PHP_INI_SCAN_DIR -Value $Config.ScanDir
