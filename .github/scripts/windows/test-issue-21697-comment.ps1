@@ -3,7 +3,7 @@ param(
   [ValidateSet('legacy', 'updated')]
   [string]$ConfigMode,
 
-  [ValidateSet('disabled', 'tracing-default', 'tracing-cli-hot', '1255-hot', '1245-hot')]
+  [ValidateSet('disabled', 'tracing-default', 'tracing-cli-hot', '1254-hot', '1205-hot')]
   [string]$OpcacheProfile = 'disabled',
 
   [ValidateSet('full', 'builtin-only')]
@@ -345,7 +345,7 @@ function Invoke-RepeatedCurlJson {
 
   $results = @()
   for ($index = 1; $index -le $Count; $index++) {
-    $separator = if ($Url -like '*?*') { '&' } else { '?' }
+    $separator = if ($Url.Contains('?')) { '&' } else { '?' }
     $requestUrl = '{0}{1}request={2}' -f $Url, $separator, $index
     $results += ,(Invoke-CurlJson -Name ('{0}-{1:D2}' -f $NamePrefix, $index) -Url $requestUrl)
   }
@@ -893,7 +893,7 @@ function Invoke-BuiltinServerSmoke {
 function Get-OpcacheProfileSettings {
   param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('disabled', 'tracing-default', 'tracing-cli-hot', '1255-hot', '1245-hot')]
+    [ValidateSet('disabled', 'tracing-default', 'tracing-cli-hot', '1254-hot', '1205-hot')]
     [string]$Profile,
 
     [Parameter(Mandatory = $true)]
@@ -917,8 +917,8 @@ function Get-OpcacheProfileSettings {
   $jitValue = switch ($Profile) {
     'tracing-default' { 'tracing' }
     'tracing-cli-hot' { 'tracing' }
-    '1255-hot' { '1255' }
-    '1245-hot' { '1245' }
+    '1254-hot' { '1254' }
+    '1205-hot' { '1205' }
     default { throw "Unsupported opcache profile: $Profile" }
   }
   $hotJit = $Profile -ne 'tracing-default'
@@ -971,7 +971,7 @@ function New-ReproductionConfig {
     [ValidateSet('legacy', 'updated')]
     [string]$Mode,
 
-    [ValidateSet('disabled', 'tracing-default', 'tracing-cli-hot', '1255-hot', '1245-hot')]
+    [ValidateSet('disabled', 'tracing-default', 'tracing-cli-hot', '1254-hot', '1205-hot')]
     [string]$OpcacheProfile = 'disabled'
   )
 
@@ -1356,17 +1356,12 @@ Write-TextFile -Path $webStressScript -Lines @(
   '    return $value;',
   '}',
   '',
-  '$sessionCounter = 0;',
-  'if (extension_loaded("redis")) {',
-  '    session_start();',
-  '    $sessionCounter = (int) ($_SESSION["counter"] ?? 0) + 1;',
-  '    $_SESSION["counter"] = $sessionCounter;',
-  '}',
+  '$requestNumber = (int) ($_GET["request"] ?? 0);',
   '',
   '$checksum = 0;',
   'for ($round = 0; $round < 180; $round++) {',
   '    foreach ($classes as $className) {',
-  '        $checksum ^= $className::crunch($round + $sessionCounter, $round);',
+  '        $checksum ^= $className::crunch($round + $requestNumber + 1, $round);',
   '    }',
   '}',
   '',
@@ -1375,9 +1370,6 @@ Write-TextFile -Path $webStressScript -Lines @(
   '    $payload[] = stress_mix($checksum, $offset);',
   '}',
   'sort($payload);',
-  'if (session_status() === PHP_SESSION_ACTIVE) {',
-  '    $_SESSION["payload"] = array_slice($payload, 0, 16);',
-  '}',
   '',
   '$opcacheStatus = function_exists("opcache_get_status") ? @opcache_get_status(false) : false;',
   '$result = [',
@@ -1397,7 +1389,7 @@ Write-TextFile -Path $webStressScript -Lines @(
   '    "session_save_handler" => ini_get("session.save_handler"),',
   '    "session_save_path" => ini_get("session.save_path"),',
   '    "session_serialize_handler" => ini_get("session.serialize_handler"),',
-  '    "session_counter" => $sessionCounter,',
+  '    "request_number" => $requestNumber,',
   '    "workload_checksum" => $checksum,',
   '];',
   '',
@@ -1423,9 +1415,6 @@ Write-TextFile -Path $jitStressScript -Lines @(
   '    return $value;',
   '}',
   '',
-  'if (extension_loaded("redis")) {',
-  '    session_start();',
-  '}',
   '$checksum = 0;',
   'for ($round = 0; $round < 220; $round++) {',
   '    foreach ($classes as $className) {',
@@ -1436,9 +1425,6 @@ Write-TextFile -Path $jitStressScript -Lines @(
   '$payload = [];',
   'for ($offset = 0; $offset < 384; $offset++) {',
   '    $payload[] = jit_stress_mix($checksum, $offset);',
-  '}',
-  'if (session_status() === PHP_SESSION_ACTIVE) {',
-  '    $_SESSION["jit_payload"] = array_slice($payload, 0, 16);',
   '}',
   '',
   '$opcacheStatus = function_exists("opcache_get_status") ? @opcache_get_status(false) : false;',

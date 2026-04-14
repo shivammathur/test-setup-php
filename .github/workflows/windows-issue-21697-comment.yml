@@ -40,7 +40,7 @@ jobs:
           - php-version: '8.4.20'
             runtime-flavor: nts
             config-mode: updated
-            opcache-profile: 1255-hot
+            opcache-profile: 1254-hot
             web-mode: full
             pecl-profile: latest
             redis-extension: redis
@@ -48,7 +48,7 @@ jobs:
           - php-version: '8.4.20'
             runtime-flavor: nts
             config-mode: updated
-            opcache-profile: 1245-hot
+            opcache-profile: 1205-hot
             web-mode: full
             pecl-profile: latest
             redis-extension: redis
@@ -56,7 +56,7 @@ jobs:
           - php-version: '8.4.20'
             runtime-flavor: nts
             config-mode: updated
-            opcache-profile: 1255-hot
+            opcache-profile: 1254-hot
             web-mode: full
             pecl-profile: comment-pinned
             redis-extension: redis-6.2.0
@@ -64,7 +64,7 @@ jobs:
           - php-version: '8.4.20'
             runtime-flavor: nts
             config-mode: legacy
-            opcache-profile: 1255-hot
+            opcache-profile: 1254-hot
             web-mode: full
             pecl-profile: latest
             redis-extension: redis
@@ -72,7 +72,7 @@ jobs:
           - php-version: '8.4.20'
             runtime-flavor: ts
             config-mode: updated
-            opcache-profile: 1255-hot
+            opcache-profile: 1254-hot
             web-mode: builtin-only
             pecl-profile: latest
             redis-extension: redis
@@ -96,7 +96,7 @@ jobs:
           - php-version: '8.5.5'
             runtime-flavor: nts
             config-mode: updated
-            opcache-profile: 1255-hot
+            opcache-profile: 1254-hot
             web-mode: full
             pecl-profile: latest
             redis-extension: redis
@@ -104,7 +104,7 @@ jobs:
           - php-version: '8.5.5'
             runtime-flavor: nts
             config-mode: updated
-            opcache-profile: 1245-hot
+            opcache-profile: 1205-hot
             web-mode: full
             pecl-profile: latest
             redis-extension: redis
@@ -112,7 +112,7 @@ jobs:
           - php-version: '8.5.5'
             runtime-flavor: nts
             config-mode: legacy
-            opcache-profile: 1255-hot
+            opcache-profile: 1254-hot
             web-mode: full
             pecl-profile: latest
             redis-extension: redis
@@ -120,7 +120,7 @@ jobs:
           - php-version: '8.5.5'
             runtime-flavor: ts
             config-mode: updated
-            opcache-profile: 1255-hot
+            opcache-profile: 1254-hot
             web-mode: builtin-only
             pecl-profile: latest
             redis-extension: redis
