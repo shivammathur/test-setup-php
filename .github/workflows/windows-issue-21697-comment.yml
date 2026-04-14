@@ -14,21 +14,21 @@ permissions:
 
 jobs:
   reproduce:
-    name: PHP ${{ matrix.php-version }} / ${{ matrix.config-mode }}
+    name: PHP ${{ matrix.php-version }} / ${{ matrix.config-mode }} / opcache-${{ matrix.opcache-mode }}
     runs-on: windows-2022
     timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - php-version: '8.4.20'
-            config-mode: legacy
-          - php-version: '8.4.20'
-            config-mode: updated
-          - php-version: '8.5.5'
-            config-mode: legacy
-          - php-version: '8.5.5'
-            config-mode: updated
+        php-version:
+          - '8.4.20'
+          - '8.5.5'
+        config-mode:
+          - legacy
+          - updated
+        opcache-mode:
+          - disabled
+          - tracing
 
     steps:
       - name: Checkout test app
@@ -121,16 +121,18 @@ jobs:
         shell: pwsh
         env:
           CONFIG_MODE: ${{ matrix.config-mode }}
+          OPCACHE_MODE: ${{ matrix.opcache-mode }}
           PHP_VERSION_UNDER_TEST: ${{ matrix.php-version }}
         run: |
           .\.github\scripts\windows\test-issue-21697-comment.ps1 `
             -ConfigMode $env:CONFIG_MODE `
+            -OpcacheMode $env:OPCACHE_MODE `
             -PhpVersionUnderTest $env:PHP_VERSION_UNDER_TEST
 
       - name: Upload reproduction artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: issue-21697-comment-${{ matrix.php-version }}-${{ matrix.config-mode }}
+          name: issue-21697-comment-${{ matrix.php-version }}-${{ matrix.config-mode }}-${{ matrix.opcache-mode }}
           path: ${{ runner.temp }}/issue-21697-comment
           if-no-files-found: warn
