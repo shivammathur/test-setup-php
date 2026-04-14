@@ -48,6 +48,14 @@ jobs:
           - php-version: '8.4.20'
             runtime-flavor: nts
             config-mode: updated
+            opcache-profile: 1254-hot-late-load
+            web-mode: full
+            pecl-profile: latest
+            redis-extension: redis
+            igbinary-extension: igbinary
+          - php-version: '8.4.20'
+            runtime-flavor: nts
+            config-mode: updated
             opcache-profile: 1205-hot
             web-mode: full
             pecl-profile: latest

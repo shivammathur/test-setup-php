@@ -3,7 +3,7 @@ param(
   [ValidateSet('legacy', 'updated')]
   [string]$ConfigMode,
 
-  [ValidateSet('disabled', 'tracing-default', 'tracing-cli-hot', '1254-hot', '1205-hot')]
+  [ValidateSet('disabled', 'tracing-default', 'tracing-cli-hot', '1254-hot', '1254-hot-late-load', '1205-hot', '1245-comment', '1255-comment')]
   [string]$OpcacheProfile = 'disabled',
 
   [ValidateSet('full', 'builtin-only')]
@@ -331,6 +331,33 @@ function Invoke-CurlJson {
   return ($text | ConvertFrom-Json)
 }
 
+function Invoke-CurlText {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Name,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Url
+  )
+
+  $output = & curl.exe --silent --show-error --location --max-time 20 $Url 2>&1
+  $exitCode = $LASTEXITCODE
+  $text = ($output | Out-String).TrimEnd()
+  $logPath = Join-Path $script:ScenarioRoot ("{0}.log" -f $Name)
+  Set-Content -Path $logPath -Value $text
+
+  Write-Host ("[{0}] curl.exe {1}" -f $Name, $Url)
+  if (-not [string]::IsNullOrWhiteSpace($text)) {
+    Write-Host $text
+  }
+
+  if ($exitCode -ne 0) {
+    throw "curl for '$Name' failed with exit code $exitCode"
+  }
+
+  return $text
+}
+
 function Invoke-RepeatedCurlJson {
   param(
     [Parameter(Mandatory = $true)]
@@ -348,6 +375,28 @@ function Invoke-RepeatedCurlJson {
     $separator = if ($Url.Contains('?')) { '&' } else { '?' }
     $requestUrl = '{0}{1}request={2}' -f $Url, $separator, $index
     $results += ,(Invoke-CurlJson -Name ('{0}-{1:D2}' -f $NamePrefix, $index) -Url $requestUrl)
+  }
+
+  return $results
+}
+
+function Invoke-RepeatedCurlText {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$NamePrefix,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Url,
+
+    [Parameter(Mandatory = $true)]
+    [int]$Count
+  )
+
+  $results = @()
+  for ($index = 1; $index -le $Count; $index++) {
+    $separator = if ($Url.Contains('?')) { '&' } else { '?' }
+    $requestUrl = '{0}{1}request={2}' -f $Url, $separator, $index
+    $results += ,(Invoke-CurlText -Name ('{0}-{1:D2}' -f $NamePrefix, $index) -Url $requestUrl)
   }
 
   return $results
@@ -890,10 +939,44 @@ function Invoke-BuiltinServerSmoke {
   }
 }
 
+function Invoke-BuiltinServerRawProbe {
+  param(
+    [Parameter(Mandatory = $true)]
+    [psobject]$Config,
+
+    [Parameter(Mandatory = $true)]
+    [string]$WebRoot,
+
+    [Parameter(Mandatory = $true)]
+    [string]$NamePrefix,
+
+    [int]$Count = 2
+  )
+
+  $savedScanDir = Get-EnvValue -Name 'PHP_INI_SCAN_DIR'
+  $serverProcess = $null
+  $serverStdout = Join-Path $script:ScenarioRoot ("{0}-stdout.log" -f $NamePrefix)
+  $serverStderr = Join-Path $script:ScenarioRoot ("{0}-stderr.log" -f $NamePrefix)
+  $port = Get-FreePort
+
+  try {
+    Set-Item Env:PHP_INI_SCAN_DIR -Value $Config.ScanDir
+    $serverProcess = Start-Process -FilePath $script:PhpExe -ArgumentList @('-S', ('127.0.0.1:{0}' -f $port), '-t', $WebRoot, '-c', $Config.MainIni) -WorkingDirectory $WebRoot -RedirectStandardOutput $serverStdout -RedirectStandardError $serverStderr -PassThru
+    Wait-ForTcpPort -HostName '127.0.0.1' -Port $port -Attempts 20
+    Wait-ForHttpUrl -Url ('http://127.0.0.1:{0}/web-smoke.php' -f $port) -Attempts 20
+    Invoke-RepeatedCurlText -NamePrefix $NamePrefix -Url ('http://127.0.0.1:{0}/web-stress.php' -f $port) -Count $Count | Out-Null
+  } finally {
+    Restore-EnvValue -Name 'PHP_INI_SCAN_DIR' -Value $savedScanDir
+    if ($null -ne $serverProcess -and -not $serverProcess.HasExited) {
+      Stop-Process -Id $serverProcess.Id -Force
+    }
+  }
+}
+
 function Get-OpcacheProfileSettings {
   param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet('disabled', 'tracing-default', 'tracing-cli-hot', '1254-hot', '1205-hot')]
+    [ValidateSet('disabled', 'tracing-default', 'tracing-cli-hot', '1254-hot', '1254-hot-late-load', '1205-hot', '1245-comment', '1255-comment')]
     [string]$Profile,
 
     [Parameter(Mandatory = $true)]
@@ -910,18 +993,24 @@ function Get-OpcacheProfileSettings {
       ExpectWebOpcacheEnabled = $null
       ExpectBuiltinOpcacheEnabled = $null
       ExpectedJitValue = $null
+      ScanFileName = '00_opcache.ini'
     }
   }
 
-  $enableCli = if ($Profile -eq 'tracing-default') { 0 } else { 1 }
+  $enableCli = if ($Profile -in @('tracing-default', '1245-comment', '1255-comment')) { 0 } else { 1 }
   $jitValue = switch ($Profile) {
     'tracing-default' { 'tracing' }
     'tracing-cli-hot' { 'tracing' }
     '1254-hot' { '1254' }
+    '1254-hot-late-load' { '1254' }
     '1205-hot' { '1205' }
+    '1245-comment' { '1245' }
+    '1255-comment' { '1255' }
     default { throw "Unsupported opcache profile: $Profile" }
   }
-  $hotJit = $Profile -ne 'tracing-default'
+  $hotJit = $Profile -notin @('tracing-default', '1245-comment', '1255-comment')
+  $scanFileName = if ($Profile -eq '1254-hot-late-load') { '99_opcache.ini' } else { '00_opcache.ini' }
+  $expectedJitValue = if ($Profile -eq '1255-comment') { $null } else { $jitValue }
 
   $iniLines = @(
     ('extension_dir="{0}"' -f (Convert-ToIniPath $script:ExtDir))
@@ -960,8 +1049,9 @@ function Get-OpcacheProfileSettings {
     IniLines = $iniLines
     ExpectOpcacheLoaded = $true
     ExpectWebOpcacheEnabled = $true
-    ExpectBuiltinOpcacheEnabled = $(if ($Profile -eq 'tracing-default') { $null } else { [bool]$enableCli })
-    ExpectedJitValue = $jitValue
+    ExpectBuiltinOpcacheEnabled = $(if ($Profile -in @('tracing-default', '1245-comment', '1255-comment')) { $null } else { [bool]$enableCli })
+    ExpectedJitValue = $expectedJitValue
+    ScanFileName = $scanFileName
   }
 }
 
@@ -971,7 +1061,7 @@ function New-ReproductionConfig {
     [ValidateSet('legacy', 'updated')]
     [string]$Mode,
 
-    [ValidateSet('disabled', 'tracing-default', 'tracing-cli-hot', '1254-hot', '1205-hot')]
+    [ValidateSet('disabled', 'tracing-default', 'tracing-cli-hot', '1254-hot', '1254-hot-late-load', '1205-hot', '1245-comment', '1255-comment')]
     [string]$OpcacheProfile = 'disabled'
   )
 
@@ -1024,7 +1114,7 @@ function New-ReproductionConfig {
     )
 
     if ($opcacheSettings.IniLines.Count -gt 0) {
-      Write-TextFile -Path (Join-Path $scanDir '00_opcache.ini') -Lines $opcacheSettings.IniLines
+      Write-TextFile -Path (Join-Path $scanDir $opcacheSettings.ScanFileName) -Lines $opcacheSettings.IniLines
     }
 
     return [pscustomobject]@{
@@ -1142,7 +1232,7 @@ function New-ReproductionConfig {
   )
 
   if ($opcacheSettings.IniLines.Count -gt 0) {
-    Write-TextFile -Path (Join-Path $scanDir '00_opcache.ini') -Lines $opcacheSettings.IniLines
+    Write-TextFile -Path (Join-Path $scanDir $opcacheSettings.ScanFileName) -Lines $opcacheSettings.IniLines
   }
 
   if ($caDirectives.Count -gt 0) {
@@ -1162,6 +1252,22 @@ function New-ReproductionConfig {
     ExpectWebOpcacheEnabled = $opcacheSettings.ExpectWebOpcacheEnabled
     ExpectBuiltinOpcacheEnabled = $opcacheSettings.ExpectBuiltinOpcacheEnabled
     ExpectedJitValue = $opcacheSettings.ExpectedJitValue
+  }
+}
+
+function Invoke-CommentExactJitProbes {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$WebRoot
+  )
+
+  foreach ($probeProfile in @('1245-comment', '1255-comment')) {
+    $probeConfig = New-ReproductionConfig -Mode 'updated' -OpcacheProfile $probeProfile
+    Invoke-PhpCommand -Name ("php-cli-{0}-modules" -f $probeProfile) -Binary $script:PhpExe -Arguments @('-c', $probeConfig.MainIni, '-m') -ScanDir $probeConfig.ScanDir
+    Invoke-PhpCommand -Name ("php-cgi-{0}-modules" -f $probeProfile) -Binary $script:PhpCgi -Arguments @('-c', $probeConfig.MainIni, '-m') -ScanDir $probeConfig.ScanDir
+    Invoke-PhpCommand -Name ("php-cli-{0}-jit-stress" -f $probeProfile) -Binary $script:PhpExe -Arguments @('-c', $probeConfig.MainIni, $jitStressScript) -ScanDir $probeConfig.ScanDir
+    Invoke-PhpCommand -Name ("php-cgi-{0}-jit-stress" -f $probeProfile) -Binary $script:PhpCgi -Arguments @('-q', '-c', $probeConfig.MainIni, '-f', $jitStressScript) -ScanDir $probeConfig.ScanDir
+    Invoke-BuiltinServerRawProbe -Config $probeConfig -WebRoot $WebRoot -NamePrefix ("builtin-{0}" -f $probeProfile) -Count 2
   }
 }
 
@@ -1468,6 +1574,10 @@ if ($WebMode -eq 'full') {
   Invoke-ApacheFcgidWebSmoke -Config $config -WebRoot $webRoot
 }
 
+if ($PhpVersionUnderTest -eq '8.4.20' -and $ConfigMode -eq 'updated' -and $OpcacheProfile -eq '1254-hot-late-load') {
+  Invoke-CommentExactJitProbes -WebRoot $webRoot
+}
+
 $summaryLines = @(
   "### PHP $PhpVersionUnderTest / $ConfigMode / $OpcacheProfile / $WebMode",
   '',
@@ -1481,6 +1591,10 @@ $summaryLines = @(
   ('- Direct CGI JIT stress output saved to `{0}`.' -f (Join-Path $script:ScenarioRoot 'php-cgi-jit-stress.log')),
   ('- Built-in server stress outputs are saved with the `builtin-web-stress-*.log` prefix in `{0}`.' -f $script:ScenarioRoot)
 )
+
+if ($PhpVersionUnderTest -eq '8.4.20' -and $ConfigMode -eq 'updated' -and $OpcacheProfile -eq '1254-hot-late-load') {
+  $summaryLines += '- Exact comment probes for `opcache.jit=1245` and `opcache.jit=1255` were run with direct CLI/CGI stress plus repeated built-in server requests.'
+}
 
 if ($WebMode -eq 'full') {
   $summaryLines += '- IIS FastCGI handled repeated stress requests through a single backend process.'
