@@ -960,7 +960,7 @@ function Get-OpcacheProfileSettings {
     IniLines = $iniLines
     ExpectOpcacheLoaded = $true
     ExpectWebOpcacheEnabled = $true
-    ExpectBuiltinOpcacheEnabled = [bool]$enableCli
+    ExpectBuiltinOpcacheEnabled = $(if ($Profile -eq 'tracing-default') { $null } else { [bool]$enableCli })
     ExpectedJitValue = $jitValue
   }
 }
@@ -1361,7 +1361,7 @@ Write-TextFile -Path $webStressScript -Lines @(
   '$checksum = 0;',
   'for ($round = 0; $round < 180; $round++) {',
   '    foreach ($classes as $className) {',
-  '        $checksum ^= $className::crunch($round + $requestNumber + 1, $round);',
+  '        $checksum = ($checksum + $className::crunch($round + $requestNumber + 1, $round)) & 0x7fffffff;',
   '    }',
   '}',
   '',
@@ -1418,7 +1418,7 @@ Write-TextFile -Path $jitStressScript -Lines @(
   '$checksum = 0;',
   'for ($round = 0; $round < 220; $round++) {',
   '    foreach ($classes as $className) {',
-  '        $checksum ^= $className::crunch($round + 7, $round);',
+  '        $checksum = ($checksum + $className::crunch($round + 7, $round)) & 0x7fffffff;',
   '    }',
   '}',
   '',
