@@ -120,16 +120,23 @@ $availableArtifacts = @(
         Select-Object -ExpandProperty Name
 )
 
+$runtimePattern = if ($Ts -eq 'nts') {
+    "^php-.*-nts-Win32-$([regex]::Escape($vsData.vs))-$([regex]::Escape($Arch))\.zip$"
+} else {
+    "^php-.*-Win32-$([regex]::Escape($vsData.vs))-$([regex]::Escape($Arch))\.zip$"
+}
+
 $runtimeZip = Get-ChildItem -Path $artifactsPath -File |
     Where-Object {
-        $_.Name -match "^php-.*-$([regex]::Escape($tsPart))-$([regex]::Escape($vsData.vs))-$([regex]::Escape($Arch))\.zip$" -and
-        $_.Name -notmatch 'debug|devel|src'
+        $_.Name -match $runtimePattern -and
+        $_.Name -notmatch 'debug|devel|src' -and
+        ($Ts -eq 'nts' -or $_.Name -notmatch '-nts-Win32-')
     } |
     Sort-Object Name |
     Select-Object -First 1
 
 if ($null -eq $runtimeZip) {
-    throw "A runtime zip matching $tsPart/$($vsData.vs)/$Arch was not found in $artifactsPath. Available files: $($availableArtifacts -join ', ')"
+    throw "A runtime zip matching $Ts/$($vsData.vs)/$Arch was not found in $artifactsPath. Available files: $($availableArtifacts -join ', ')"
 }
 
 $testPackZip = Get-ChildItem -Path $artifactsPath -File |
@@ -262,6 +269,12 @@ try {
 
     $settings = Get-TestSettings -PhpVersion $PhpVersion
 
+    $testsBaseDirectory = Join-Path $buildDirectory 'tests'
+    $runnerPath = Join-Path $buildDirectory 'tests\run-tests.php'
+    if (-not (Test-Path $runnerPath)) {
+        throw "run-tests.php was not found at $runnerPath"
+    }
+
     $params = @(
         '-n',
         '-d', 'open_basedir=',
@@ -269,7 +282,7 @@ try {
     )
 
     if (-not [string]::IsNullOrWhiteSpace($settings.runner)) {
-        $params += $settings.runner
+        $params += $runnerPath
     }
 
     $params += @(
@@ -294,6 +307,7 @@ try {
         '-r', $testListPath
     )
 
+    Set-Location $testsBaseDirectory
     & $phpExe @params 2>&1 | Tee-Object -FilePath $logPath | Out-Host
     $exitCode = $LASTEXITCODE
 
