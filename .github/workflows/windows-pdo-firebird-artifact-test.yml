@@ -46,14 +46,11 @@ jobs:
       - name: Checkout test branch
         uses: actions/checkout@v6
 
-      - name: Checkout php-windows-builder
-        uses: actions/checkout@v6
-        with:
-          repository: shivammathur/php-windows-builder
-          ref: master
-          path: php-windows-builder
-          fetch-depth: 1
-          token: ${{ secrets.PAT != '' && secrets.PAT || github.token }}
+      - name: Clone php-windows-builder
+        shell: pwsh
+        run: |
+          git clone --depth 1 --branch master https://github.com/shivammathur/php-windows-builder.git php-windows-builder
+          git -C php-windows-builder rev-parse HEAD
 
       - name: Download builder artifact bundle
         uses: actions/download-artifact@v4
