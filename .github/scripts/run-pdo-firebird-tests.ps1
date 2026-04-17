@@ -133,6 +133,32 @@ function Apply-FbclientArtifacts {
     }
 }
 
+function Get-ExpectedClientVersionPattern {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string] $FirebirdPackageName
+    )
+
+    $match = [regex]::Match(
+        $FirebirdPackageName,
+        '^Firebird-(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)\.(?<build>\d+)-0-(?:x64|Win32)\.zip$'
+    )
+
+    if (-not $match.Success) {
+        throw "Could not derive the expected client version pattern from $FirebirdPackageName"
+    }
+
+    $majorMinorVersion = "$($match.Groups['major'].Value).$($match.Groups['minor'].Value)"
+    $patchBuildVersion = "$($match.Groups['patch'].Value).$($match.Groups['build'].Value)"
+
+    return "(?m)^Client Library Version => .*" +
+        [regex]::Escape($patchBuildVersion) +
+        ".*Firebird " +
+        [regex]::Escape($majorMinorVersion) +
+        "$"
+}
+
 $modulePath = Join-Path $BuilderRoot 'php\BuildPhp\BuildPhp.psd1'
 if (-not (Test-Path $modulePath)) {
     throw "BuildPhp module was not found at $modulePath"
@@ -264,6 +290,19 @@ try {
     Add-Path -Path "$env:SystemRoot\System32"
     Initialize-Firebird -Arch $Arch -FirebirdTag $FirebirdTag -FirebirdPackageName $FirebirdPackageName
 
+    $fbclientWherePath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.fbclient-where.txt"
+    $whereExe = Join-Path $env:SystemRoot 'System32\where.exe'
+    $resolvedFbclientPaths = & $whereExe fbclient.dll 2>&1
+    $resolvedFbclientPaths | Set-Content -Path $fbclientWherePath -Encoding ASCII
+    if ($LASTEXITCODE -ne 0) {
+        throw "where.exe could not locate fbclient.dll for PHP $PhpVersion $Arch $Ts"
+    }
+
+    $resolvedFbclientPath = ($resolvedFbclientPaths | Select-Object -First 1).ToString().Trim()
+    if ($resolvedFbclientPath -notlike 'C:\Firebird\*') {
+        throw "Expected fbclient.dll to resolve from C:\Firebird first, but got $resolvedFbclientPath"
+    }
+
     $smokeIni = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.smoke.ini"
     $phpVPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.php-v.txt"
     $phpMPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.php-m.txt"
@@ -307,9 +346,15 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "php -i smoke test failed for PHP $PhpVersion $Arch $Ts"
     }
+    $phpIText = $phpIOutput -join [Environment]::NewLine
+
+    $expectedClientVersionPattern = Get-ExpectedClientVersionPattern -FirebirdPackageName $FirebirdPackageName
+    if ($phpIText -notmatch $expectedClientVersionPattern) {
+        throw "php -i did not report the expected client library version for $FirebirdPackageName"
+    }
 
     $phpISummary = @(
-        $phpIOutput | Select-String -Pattern '^PHP Version =>', '^Thread Safety =>', '^Architecture =>', '^PDO support =>', '^PDO drivers =>', '^Firebird API version =>', '^Client API version =>', '^pdo_firebird$'
+        $phpIOutput | Select-String -Pattern '^PHP Version =>', '^Thread Safety =>', '^Architecture =>', '^PDO support =>', '^PDO drivers =>', '^Client Library Version =>', '^Firebird API version =>', '^Client API version =>', '^pdo_firebird$'
     ) | ForEach-Object { $_.ToString() }
     $phpISummary | Set-Content -Path $phpISummaryPath -Encoding ASCII
     $phpISummary | Out-Host
@@ -323,7 +368,7 @@ $pass = getenv('PDO_FIREBIRD_TEST_PASS');
 $dbh = new PDO($dsn, $user, $pass);
 echo 'driver=', $dbh->getAttribute(PDO::ATTR_DRIVER_NAME), PHP_EOL;
 echo 'user=', trim((string) $dbh->query('SELECT CURRENT_USER FROM RDB$DATABASE')->fetchColumn()), PHP_EOL;
-echo 'engine=', trim((string) $dbh->query('SELECT MON$SERVER_VERSION FROM MON$DATABASE')->fetchColumn()), PHP_EOL;
+echo 'probe=', trim((string) $dbh->query('SELECT 1 FROM RDB$DATABASE')->fetchColumn()), PHP_EOL;
 '@
     Set-Content -Path $basicSmokeScriptPath -Value $basicSmokeScript -Encoding ASCII
 
@@ -335,7 +380,14 @@ echo 'engine=', trim((string) $dbh->query('SELECT MON$SERVER_VERSION FROM MON$DA
     if (($basicSmokeOutput -join [Environment]::NewLine) -notmatch 'driver=firebird') {
         throw "Basic PDO Firebird smoke script did not report the firebird driver for PHP $PhpVersion $Arch $Ts"
     }
+    if (($basicSmokeOutput -join [Environment]::NewLine) -notmatch 'probe=1') {
+        throw "Basic PDO Firebird smoke script did not complete the expected query for PHP $PhpVersion $Arch $Ts"
+    }
     $basicSmokeOutput | Out-Host
+
+    $clientVersionLine = @(
+        $phpIOutput | Select-String -Pattern '^Client Library Version =>'
+    ) | Select-Object -First 1 | ForEach-Object { $_.ToString() }
 
     @(
         "PHP version: $PhpVersion",
@@ -350,6 +402,10 @@ echo 'engine=', trim((string) $dbh->query('SELECT MON$SERVER_VERSION FROM MON$DA
         "fbclient artifact root: $fbclientArtifactsPath",
         "fbclient artifacts:",
         $availableFbclientArtifacts,
+        "Resolved fbclient.dll paths:",
+        $resolvedFbclientPaths,
+        "Loaded client library version:",
+        $clientVersionLine,
         "Artifacts:",
         $availableArtifacts,
         "Smoke test output:",
