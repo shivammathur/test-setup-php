@@ -600,6 +600,8 @@ echo 'probe=', trim((string) $dbh->query('SELECT 1 FROM RDB$DATABASE')->fetchCol
             Write-Host "::warning::$warningMessage"
         }
     }
+
+    $global:LASTEXITCODE = 0
 } finally {
     Set-Location $originalLocation
 
