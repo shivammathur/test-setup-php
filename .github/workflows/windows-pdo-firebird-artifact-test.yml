@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/windows-pdo-firebird-artifact-test.yml
       - .github/scripts/run-pdo-firebird-tests.ps1
+      - .github/scripts/run-pdo-firebird-released-tests.ps1
   workflow_dispatch:
 
 permissions:
@@ -117,5 +118,101 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: pdo-firebird-results-${{ matrix.build.php-version }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: results/*
+          if-no-files-found: warn
+
+  test-pdo-firebird-released:
+    name: Released PHP ${{ matrix.release.php-version }} x64 ${{ matrix.ts }}
+    runs-on: windows-2022
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        release:
+          - php-version: '8.2'
+            fbclient-run-id: '24567578490'
+            fbclient-artifact-prefix: 'fbclient-3.0.13-vs16'
+            firebird-tag: 'v3.0.13'
+            firebird-package-base: 'Firebird-3.0.13.33818-0'
+          - php-version: '8.3'
+            fbclient-run-id: '24567578490'
+            fbclient-artifact-prefix: 'fbclient-3.0.13-vs16'
+            firebird-tag: 'v3.0.13'
+            firebird-package-base: 'Firebird-3.0.13.33818-0'
+          - php-version: '8.4'
+            fbclient-run-id: '24567588928'
+            fbclient-artifact-prefix: 'fbclient-4.0.7-vs17'
+            firebird-tag: 'v4.0.7'
+            firebird-package-base: 'Firebird-4.0.7.3271-0'
+          - php-version: '8.5'
+            fbclient-run-id: '24567588928'
+            fbclient-artifact-prefix: 'fbclient-4.0.7-vs17'
+            firebird-tag: 'v4.0.7'
+            firebird-package-base: 'Firebird-4.0.7.3271-0'
+        ts:
+          - nts
+          - ts
+
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v6
+
+      - name: Clone php-windows-builder
+        shell: pwsh
+        run: |
+          git clone --depth 1 --branch master https://github.com/shivammathur/php-windows-builder.git php-windows-builder
+          git -C php-windows-builder rev-parse HEAD
+
+      - name: Setup released PHP
+        id: setup-php
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.release.php-version }}
+          extensions: none, pdo, pdo_firebird
+          coverage: none
+          tools: none
+        env:
+          phpts: ${{ matrix.ts }}
+          update: true
+          fail-fast: true
+
+      - name: Download fbclient artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ format('{0}-x64', matrix.release.fbclient-artifact-prefix) }}
+          path: fbclient-artifacts
+          repository: winlibs/winlib-builder
+          run-id: ${{ matrix.release.fbclient-run-id }}
+          github-token: ${{ secrets.PAT != '' && secrets.PAT || github.token }}
+
+      - name: Show release PHP and artifact contents
+        shell: pwsh
+        run: |
+          php -v
+          php -i | Select-String -Pattern '^PHP Version =>', '^Thread Safety =>', '^Architecture =>', '^extension_dir =>'
+          Get-ChildItem -Path fbclient-artifacts -Recurse -File |
+            Sort-Object FullName |
+            Format-Table FullName, Length -AutoSize
+
+      - name: Run PDO Firebird tests against released PHP
+        shell: pwsh
+        run: |
+          $fbclientArtifactsDirectory = Join-Path $env:GITHUB_WORKSPACE 'fbclient-artifacts'
+          $builderRoot = Join-Path $env:GITHUB_WORKSPACE 'php-windows-builder'
+
+          .github\scripts\run-pdo-firebird-released-tests.ps1 `
+            -RequestedPhpVersion '${{ matrix.release.php-version }}' `
+            -ActualPhpVersion '${{ steps.setup-php.outputs.php-version }}' `
+            -Ts '${{ matrix.ts }}' `
+            -FbclientArtifactsDirectory $fbclientArtifactsDirectory `
+            -FirebirdTag '${{ matrix.release.firebird-tag }}' `
+            -FirebirdPackageName '${{ format('{0}-x64.zip', matrix.release.firebird-package-base) }}' `
+            -BuilderRoot $builderRoot
+
+      - name: Upload release test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdo-firebird-released-results-${{ matrix.release.php-version }}-${{ matrix.ts }}
           path: results/*
           if-no-files-found: warn

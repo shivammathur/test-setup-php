@@ -1,15 +1,12 @@
 [CmdletBinding()]
 param (
     [Parameter(Mandatory = $true)]
-    [string] $PhpVersion,
+    [string] $RequestedPhpVersion,
     [Parameter(Mandatory = $true)]
-    [ValidateSet('x86', 'x64')]
-    [string] $Arch,
+    [string] $ActualPhpVersion,
     [Parameter(Mandatory = $true)]
     [ValidateSet('nts', 'ts')]
     [string] $Ts,
-    [Parameter(Mandatory = $true)]
-    [string] $ArtifactsDirectory,
     [Parameter(Mandatory = $true)]
     [string] $FbclientArtifactsDirectory,
     [Parameter(Mandatory = $true)]
@@ -47,7 +44,7 @@ function Initialize-Firebird {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [ValidateSet('x86', 'x64')]
+        [ValidateSet('x64')]
         [string] $Arch,
         [Parameter(Mandatory = $true)]
         [string] $FirebirdTag,
@@ -125,43 +122,6 @@ function Initialize-Firebird {
     Add-Path $destDir
 }
 
-function Apply-FbclientArtifacts {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [string] $SourceRoot,
-        [Parameter(Mandatory = $true)]
-        [string] $DestinationRoot
-    )
-
-    $includeSource = Join-Path $SourceRoot 'include\interbase'
-    $importLib = Join-Path $SourceRoot 'lib\fbclient_ms.lib'
-    $binSource = Join-Path $SourceRoot 'bin'
-
-    if (-not (Test-Path $includeSource)) {
-        throw "fbclient artifact include directory was not found at $includeSource"
-    }
-
-    if (-not (Test-Path $importLib)) {
-        throw "fbclient artifact import library was not found at $importLib"
-    }
-
-    $destIncludeRoot = Join-Path $DestinationRoot 'include\interbase'
-    $destLibRoot = Join-Path $DestinationRoot 'lib'
-
-    New-Item -ItemType Directory -Path $destIncludeRoot -Force | Out-Null
-    New-Item -ItemType Directory -Path $destLibRoot -Force | Out-Null
-
-    Copy-Item -Path (Join-Path $includeSource '*') -Destination $destIncludeRoot -Recurse -Force
-    Copy-Item -Path $importLib -Destination (Join-Path $destLibRoot 'fbclient_ms.lib') -Force
-
-    if (Test-Path $binSource) {
-        $destBinRoot = Join-Path $DestinationRoot 'bin'
-        New-Item -ItemType Directory -Path $destBinRoot -Force | Out-Null
-        Copy-Item -Path (Join-Path $binSource '*') -Destination $destBinRoot -Recurse -Force
-    }
-}
-
 function Get-ExpectedClientVersionInfo {
     [CmdletBinding()]
     param (
@@ -184,53 +144,6 @@ function Get-ExpectedClientVersionInfo {
     }
 }
 
-function Add-PhpDepsWithoutFbclient {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [string] $PhpVersion,
-        [Parameter(Mandatory = $true)]
-        [string] $VsVersion,
-        [Parameter(Mandatory = $true)]
-        [ValidateSet('x86', 'x64')]
-        [string] $Arch,
-        [Parameter(Mandatory = $true)]
-        [string] $Destination
-    )
-
-    $baseurl = 'https://downloads.php.net/~windows/php-sdk/deps'
-
-    if (-not (Test-Path -LiteralPath $Destination)) {
-        New-Item -ItemType Directory -Force -Path $Destination | Out-Null
-    }
-
-    $packageData = Get-PhpDepsPackages -PhpVersion $PhpVersion -VsVersion $VsVersion -Arch $Arch
-    $packages = @($packageData.Packages | Where-Object { $_ -notmatch '^fbclient-' })
-    Write-Host 'Skipping php-sdk fbclient packages so fbclient comes from the downloaded artifact and matching Firebird runtime.'
-
-    foreach ($package in $packages) {
-        Write-Host "Processing package $package"
-        $temp = New-TemporaryFile | Rename-Item -NewName { $_.Name + '.zip' } -PassThru
-        $url = "$baseurl/$VsVersion/$Arch/$package"
-        Invoke-WebRequest -Uri $url -UseBasicParsing -OutFile $temp.FullName -ErrorAction Stop
-        try {
-            Expand-Archive -LiteralPath $temp.FullName -DestinationPath $Destination -Force
-        } catch {
-            Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
-            [System.IO.Compression.ZipFile]::ExtractToDirectory($temp.FullName, $Destination)
-        } finally {
-            Remove-Item -LiteralPath $temp.FullName -Force -ErrorAction SilentlyContinue
-        }
-    }
-
-    $opensslConfig = Join-Path $Destination 'openssl.cnf'
-    if (Test-Path -LiteralPath $opensslConfig) {
-        $templateDirectory = Join-Path $Destination 'template\ssl'
-        New-Item -ItemType Directory -Force -Path $templateDirectory | Out-Null
-        Move-Item -LiteralPath $opensslConfig -Destination (Join-Path $templateDirectory 'openssl.cnf') -Force
-    }
-}
-
 $modulePath = Join-Path $BuilderRoot 'php\BuildPhp\BuildPhp.psd1'
 if (-not (Test-Path $modulePath)) {
     throw "BuildPhp module was not found at $modulePath"
@@ -238,124 +151,103 @@ if (-not (Test-Path $modulePath)) {
 
 Import-Module $modulePath -Force
 
-$artifactsPath = (Resolve-Path $ArtifactsDirectory).Path
 $fbclientArtifactsPath = (Resolve-Path $FbclientArtifactsDirectory).Path
-$resultsDirectory = Join-Path $env:GITHUB_WORKSPACE 'results'
-New-Item -ItemType Directory -Path $resultsDirectory -Force | Out-Null
-
-Set-NetSecurityProtocolType
-
-$vsData = Get-VsVersion -PhpVersion $PhpVersion
-if ($null -eq $vsData.vs) {
-    throw "PHP version $PhpVersion is not supported."
-}
-
-$tsPart = if ($Ts -eq 'nts') { 'nts-Win32' } else { 'Win32' }
-$runtimeZipAlias = "php-$PhpVersion-$tsPart-$($vsData.vs)-$Arch.zip"
-$testPackAlias = "php-test-pack-$PhpVersion.zip"
-
-$availableArtifacts = @(
-    Get-ChildItem -Path $artifactsPath -File |
-        Sort-Object Name |
-        Select-Object -ExpandProperty Name
-)
-
 $availableFbclientArtifacts = @(
     Get-ChildItem -Path $fbclientArtifactsPath -Recurse -File |
         Sort-Object FullName |
         Select-Object -ExpandProperty FullName
 )
 
-$runtimePattern = if ($Ts -eq 'nts') {
-    "^php-.*-nts-Win32-$([regex]::Escape($vsData.vs))-$([regex]::Escape($Arch))\.zip$"
-} else {
-    "^php-.*-Win32-$([regex]::Escape($vsData.vs))-$([regex]::Escape($Arch))\.zip$"
+$resultsDirectory = Join-Path $env:GITHUB_WORKSPACE 'results'
+New-Item -ItemType Directory -Path $resultsDirectory -Force | Out-Null
+
+Set-NetSecurityProtocolType
+
+$phpCommand = Get-Command php -ErrorAction Stop
+$phpExe = $phpCommand.Source
+$phpRoot = Split-Path -Path $phpExe -Parent
+$phpDbg = Join-Path $phpRoot 'phpdbg.exe'
+$extensionDirectory = Join-Path $phpRoot 'ext'
+$pdoFirebirdExtension = Join-Path $extensionDirectory 'php_pdo_firebird.dll'
+$pdoCoreExtension = Join-Path $extensionDirectory 'php_pdo.dll'
+
+if (-not (Test-Path $phpExe)) {
+    throw "php.exe was not found at $phpExe"
 }
 
-$runtimeZip = Get-ChildItem -Path $artifactsPath -File |
-    Where-Object {
-        $_.Name -match $runtimePattern -and
-        $_.Name -notmatch 'debug|devel|src' -and
-        ($Ts -eq 'nts' -or $_.Name -notmatch '-nts-Win32-')
-    } |
-    Sort-Object Name |
-    Select-Object -First 1
-
-if ($null -eq $runtimeZip) {
-    throw "A runtime zip matching $Ts/$($vsData.vs)/$Arch was not found in $artifactsPath. Available files: $($availableArtifacts -join ', ')"
+if (-not (Test-Path $pdoFirebirdExtension)) {
+    throw "php_pdo_firebird.dll was not found at $pdoFirebirdExtension"
 }
 
-$testPackZip = Get-ChildItem -Path $artifactsPath -File |
-    Where-Object { $_.Name -match '^php-test-pack-.*\.zip$' } |
-    Sort-Object Name |
-    Select-Object -First 1
-
-if ($null -eq $testPackZip) {
-    throw "A php-test-pack zip was not found in $artifactsPath. Available files: $($availableArtifacts -join ', ')"
-}
-
+$arch = 'x64'
 $rootTemp = if ([string]::IsNullOrWhiteSpace($env:SystemDrive)) {
     [System.IO.Path]::GetTempPath()
 } else {
     "$($env:SystemDrive)\"
 }
 
-$buildDirectory = Join-Path $rootTemp ("php-" + [System.Guid]::NewGuid().ToString())
+$buildDirectory = Join-Path $rootTemp ("php-release-tests-" + [System.Guid]::NewGuid().ToString('N'))
 $testsTempDirectory = Join-Path $rootTemp ("tests_tmp_" + [System.Guid]::NewGuid().ToString('N'))
-$stagedArtifactsDirectory = Join-Path $rootTemp ("builder-artifacts-" + [System.Guid]::NewGuid().ToString('N'))
-$customDepsDirectory = Join-Path $rootTemp ("deps-" + [System.Guid]::NewGuid().ToString('N'))
 $testsDirectory = 'tests'
 
-$logPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.log"
-$junitPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.junit.xml"
-$metaPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.meta.txt"
-$iniSnapshotPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.ini"
+$logPath = Join-Path $resultsDirectory "pdo-firebird-release-$RequestedPhpVersion-$Ts.log"
+$junitPath = Join-Path $resultsDirectory "pdo-firebird-release-$RequestedPhpVersion-$Ts.junit.xml"
+$metaPath = Join-Path $resultsDirectory "pdo-firebird-release-$RequestedPhpVersion-$Ts.meta.txt"
+$iniSnapshotPath = Join-Path $resultsDirectory "pdo-firebird-release-$RequestedPhpVersion-$Ts.ini"
 
 New-Item -ItemType Directory -Path $buildDirectory -Force | Out-Null
 New-Item -ItemType Directory -Path $testsTempDirectory -Force | Out-Null
-New-Item -ItemType Directory -Path $stagedArtifactsDirectory -Force | Out-Null
-New-Item -ItemType Directory -Path $customDepsDirectory -Force | Out-Null
-
-Copy-Item -Path $runtimeZip.FullName -Destination (Join-Path $stagedArtifactsDirectory $runtimeZipAlias) -Force
-Copy-Item -Path $testPackZip.FullName -Destination (Join-Path $stagedArtifactsDirectory $testPackAlias) -Force
 
 $originalLocation = (Get-Location).Path
 
 try {
     Set-Location $buildDirectory
 
-    $env:DEPS_DIR = $customDepsDirectory
-    $env:DEPS_CACHE_HIT = 'true'
-    Add-PhpDepsWithoutFbclient -PhpVersion $PhpVersion -VsVersion $vsData.vs -Arch $Arch -Destination $env:DEPS_DIR
+    Get-PhpTestPack -PhpVersion $ActualPhpVersion -TestsDirectory $testsDirectory
 
-    $null = Add-TestRequirements `
-        -PhpVersion $PhpVersion `
-        -Arch $Arch `
-        -Ts $Ts `
-        -VsVersion $vsData.vs `
-        -TestsDirectory $testsDirectory `
-        -ArtifactsDirectory $stagedArtifactsDirectory
+    $testsDirectoryPath = Join-Path $buildDirectory $testsDirectory
+    Add-WindowsTestHelpers -TestsDirectoryPath $testsDirectoryPath -Arch $arch
 
-    Apply-FbclientArtifacts -SourceRoot $fbclientArtifactsPath -DestinationRoot $env:DEPS_DIR
-
-    $phpExe = Join-Path $buildDirectory 'phpbin\php.exe'
-    $phpDbg = Join-Path $buildDirectory 'phpbin\phpdbg.exe'
-    $phpIni = Join-Path $buildDirectory 'phpbin\php.ini'
-    $extensionDirectory = Join-Path $buildDirectory 'phpbin\ext'
-    $pdoFirebirdExtension = Join-Path $extensionDirectory 'php_pdo_firebird.dll'
-
-    if (-not (Test-Path $phpExe)) {
-        throw "php.exe was not extracted from $($runtimeZip.Name)"
+    $settings = Get-TestSettings -PhpVersion $RequestedPhpVersion
+    $runnerPath = Join-Path $testsDirectoryPath 'run-tests.php'
+    if (-not (Test-Path $runnerPath)) {
+        throw "run-tests.php was not found at $runnerPath"
     }
 
-    if (-not (Test-Path $pdoFirebirdExtension)) {
-        throw "php_pdo_firebird.dll was not extracted from $($runtimeZip.Name)"
+    $compatPatchName = if ($settings.PSObject.Properties.Name -contains 'compatPatch') { $settings.compatPatch } else { '' }
+    $compatPatchApplied = $true
+    if (-not [string]::IsNullOrWhiteSpace($compatPatchName)) {
+        $compatPatchPath = Join-Path $BuilderRoot "php\BuildPhp\config\run-tests\$compatPatchName"
+        if (-not (Test-Path $compatPatchPath)) {
+            throw "Compatibility run-tests patch not found at $compatPatchPath"
+        }
+
+        $compatPatchApplied = Invoke-CompatRunTestsPatch -Path $runnerPath -PatchPath $compatPatchPath
+        if ($compatPatchApplied) {
+            Write-Host "Applied compatibility run-tests patch ($compatPatchName) in $testsDirectoryPath"
+        } else {
+            $warningMessage = "Failed to patch the runner for handling worker crashes, defaulting to 2 workers."
+            Write-Warning $warningMessage
+            if ($env:GITHUB_ACTIONS -eq 'true') {
+                Write-Host "::warning $warningMessage"
+            }
+        }
     }
 
-    Set-PhpIniForTests -BuildDirectory $buildDirectory -Opcache 'nocache' -TestType 'ext'
-    Copy-Item -Path $phpIni -Destination $iniSnapshotPath -Force
+    $testIni = Join-Path $buildDirectory 'php-test.ini'
+    $testIniLines = @(
+        'date.timezone=UTC',
+        "extension_dir=$extensionDirectory"
+    )
 
-    $env:Path = "$buildDirectory\phpbin;$env:Path"
+    if (Test-Path $pdoCoreExtension) {
+        $testIniLines += 'extension=php_pdo.dll'
+    }
+
+    $testIniLines += 'extension=php_pdo_firebird.dll'
+    $testIniLines | Set-Content -Path $testIni -Encoding ASCII
+    Copy-Item -Path $testIni -Destination $iniSnapshotPath -Force
+
     $env:TEST_PHP_EXECUTABLE = $phpExe
     if (Test-Path $phpDbg) {
         $env:TEST_PHPDBG_EXECUTABLE = $phpDbg
@@ -367,7 +259,7 @@ try {
 
     Add-Path -Path "$env:SystemRoot\System32"
     Initialize-Firebird `
-        -Arch $Arch `
+        -Arch $arch `
         -FirebirdTag $FirebirdTag `
         -FirebirdPackageName $FirebirdPackageName `
         -FbclientRuntimeSourceRoot $fbclientArtifactsPath
@@ -376,7 +268,7 @@ try {
     $installedFbclientPath = 'C:\Firebird\fbclient.dll'
     $artifactFbclientHash = (Get-FileHash -Path $artifactFbclientPath -Algorithm SHA256).Hash
     $installedFbclientHash = (Get-FileHash -Path $installedFbclientPath -Algorithm SHA256).Hash
-    $fbclientHashPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.fbclient-hash.txt"
+    $fbclientHashPath = Join-Path $resultsDirectory "pdo-firebird-release-$RequestedPhpVersion-$Ts.fbclient-hash.txt"
     @(
         "artifact-fbclient=$artifactFbclientPath",
         "artifact-sha256=$artifactFbclientHash",
@@ -385,15 +277,15 @@ try {
     ) | Set-Content -Path $fbclientHashPath -Encoding ASCII
 
     if ($artifactFbclientHash -ne $installedFbclientHash) {
-        throw "The deployed fbclient.dll in C:\Firebird does not match the winlib artifact for PHP $PhpVersion $Arch $Ts"
+        throw "The deployed fbclient.dll in C:\Firebird does not match the winlib artifact for released PHP $RequestedPhpVersion $Ts"
     }
 
-    $fbclientWherePath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.fbclient-where.txt"
+    $fbclientWherePath = Join-Path $resultsDirectory "pdo-firebird-release-$RequestedPhpVersion-$Ts.fbclient-where.txt"
     $whereExe = Join-Path $env:SystemRoot 'System32\where.exe'
     $resolvedFbclientPaths = & $whereExe fbclient.dll 2>&1
     $resolvedFbclientPaths | Set-Content -Path $fbclientWherePath -Encoding ASCII
     if ($LASTEXITCODE -ne 0) {
-        throw "where.exe could not locate fbclient.dll for PHP $PhpVersion $Arch $Ts"
+        throw "where.exe could not locate fbclient.dll for released PHP $RequestedPhpVersion $Ts"
     }
     $resolvedFbclientPaths | Out-Host
 
@@ -402,48 +294,34 @@ try {
         throw "Expected fbclient.dll to resolve from C:\Firebird first, but got $resolvedFbclientPath"
     }
 
-    $smokeIni = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.smoke.ini"
-    $phpVPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.php-v.txt"
-    $phpMPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.php-m.txt"
-    $phpIPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.php-i.txt"
-    $phpISummaryPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.php-i-summary.txt"
-    $basicSmokeScriptPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.smoke.php"
-    $basicSmokeOutputPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.smoke.txt"
+    $phpVPath = Join-Path $resultsDirectory "pdo-firebird-release-$RequestedPhpVersion-$Ts.php-v.txt"
+    $phpMPath = Join-Path $resultsDirectory "pdo-firebird-release-$RequestedPhpVersion-$Ts.php-m.txt"
+    $phpIPath = Join-Path $resultsDirectory "pdo-firebird-release-$RequestedPhpVersion-$Ts.php-i.txt"
+    $phpISummaryPath = Join-Path $resultsDirectory "pdo-firebird-release-$RequestedPhpVersion-$Ts.php-i-summary.txt"
+    $basicSmokeScriptPath = Join-Path $resultsDirectory "pdo-firebird-release-$RequestedPhpVersion-$Ts.smoke.php"
+    $basicSmokeOutputPath = Join-Path $resultsDirectory "pdo-firebird-release-$RequestedPhpVersion-$Ts.smoke.txt"
 
-    $smokeIniLines = @(
-        'date.timezone=UTC',
-        "extension_dir=$extensionDirectory"
-    )
-
-    $pdoCoreExtension = Join-Path $extensionDirectory 'php_pdo.dll'
-    if (Test-Path $pdoCoreExtension) {
-        $smokeIniLines += 'extension=php_pdo.dll'
-    }
-
-    $smokeIniLines += 'extension=php_pdo_firebird.dll'
-    $smokeIniLines | Set-Content -Path $smokeIni -Encoding ASCII
-
-    $phpVOutput = & $phpExe -c $smokeIni -v 2>&1
+    $phpVOutput = & $phpExe -n -c $testIni -v 2>&1
     $phpVOutput | Set-Content -Path $phpVPath -Encoding ASCII
     if ($LASTEXITCODE -ne 0) {
-        throw "php -v smoke test failed for PHP $PhpVersion $Arch $Ts"
+        throw "php -v smoke test failed for released PHP $RequestedPhpVersion $Ts"
     }
     $phpVOutput | Out-Host
 
-    $phpMOutput = & $phpExe -c $smokeIni -m 2>&1
+    $phpMOutput = & $phpExe -n -c $testIni -m 2>&1
     $phpMOutput | Set-Content -Path $phpMPath -Encoding ASCII
     if ($LASTEXITCODE -ne 0) {
-        throw "php -m smoke test failed for PHP $PhpVersion $Arch $Ts"
+        throw "php -m smoke test failed for released PHP $RequestedPhpVersion $Ts"
     }
     if (($phpMOutput -join [Environment]::NewLine) -notmatch 'pdo_firebird') {
-        throw "php -m output did not list pdo_firebird for PHP $PhpVersion $Arch $Ts"
+        throw "php -m output did not list pdo_firebird for released PHP $RequestedPhpVersion $Ts"
     }
     $phpMOutput | Out-Host
 
-    $phpIOutput = & $phpExe -c $smokeIni -i 2>&1
+    $phpIOutput = & $phpExe -n -c $testIni -i 2>&1
     $phpIOutput | Set-Content -Path $phpIPath -Encoding ASCII
     if ($LASTEXITCODE -ne 0) {
-        throw "php -i smoke test failed for PHP $PhpVersion $Arch $Ts"
+        throw "php -i smoke test failed for released PHP $RequestedPhpVersion $Ts"
     }
     $phpIOutput | Out-Host
 
@@ -453,7 +331,7 @@ try {
     ) | Select-Object -First 1 | ForEach-Object { $_.ToString() }
 
     if ([string]::IsNullOrWhiteSpace($clientVersionLine)) {
-        throw "php -i did not report a Client Library Version line for PHP $PhpVersion $Arch $Ts"
+        throw "php -i did not report a Client Library Version line for released PHP $RequestedPhpVersion $Ts"
     }
     if ($clientVersionLine -notlike "*$($clientVersionInfo.PatchBuildVersion)*") {
         throw "php -i did not report the expected client build version for $FirebirdPackageName"
@@ -481,27 +359,26 @@ echo 'probe=', trim((string) $dbh->query('SELECT 1 FROM RDB$DATABASE')->fetchCol
 '@
     Set-Content -Path $basicSmokeScriptPath -Value $basicSmokeScript -Encoding ASCII
 
-    $basicSmokeOutput = & $phpExe -c $smokeIni $basicSmokeScriptPath 2>&1
+    $basicSmokeOutput = & $phpExe -n -c $testIni $basicSmokeScriptPath 2>&1
     $basicSmokeOutput | Set-Content -Path $basicSmokeOutputPath -Encoding ASCII
     if ($LASTEXITCODE -ne 0) {
-        throw "Basic PDO Firebird smoke script failed for PHP $PhpVersion $Arch $Ts"
+        throw "Basic PDO Firebird smoke script failed for released PHP $RequestedPhpVersion $Ts"
     }
     if (($basicSmokeOutput -join [Environment]::NewLine) -notmatch 'driver=firebird') {
-        throw "Basic PDO Firebird smoke script did not report the firebird driver for PHP $PhpVersion $Arch $Ts"
+        throw "Basic PDO Firebird smoke script did not report the firebird driver for released PHP $RequestedPhpVersion $Ts"
     }
     if (($basicSmokeOutput -join [Environment]::NewLine) -notmatch 'probe=1') {
-        throw "Basic PDO Firebird smoke script did not complete the expected query for PHP $PhpVersion $Arch $Ts"
+        throw "Basic PDO Firebird smoke script did not complete the expected query for released PHP $RequestedPhpVersion $Ts"
     }
     $basicSmokeOutput | Out-Host
 
     @(
-        "PHP version: $PhpVersion",
-        "Arch: $Arch",
+        "Requested PHP version: $RequestedPhpVersion",
+        "Actual PHP version: $ActualPhpVersion",
+        "Arch: $arch",
         "TS: $Ts",
-        "Runtime zip: $($runtimeZip.Name)",
-        "Runtime alias: $runtimeZipAlias",
-        "Test pack: $($testPackZip.Name)",
-        "Test pack alias: $testPackAlias",
+        "php.exe: $phpExe",
+        "extension_dir: $extensionDirectory",
         "Firebird tag: $FirebirdTag",
         "Firebird package: $FirebirdPackageName",
         "fbclient artifact root: $fbclientArtifactsPath",
@@ -513,14 +390,13 @@ echo 'probe=', trim((string) $dbh->query('SELECT 1 FROM RDB$DATABASE')->fetchCol
         $resolvedFbclientPaths,
         "Loaded client library version:",
         $clientVersionLine,
-        "Artifacts:",
-        $availableArtifacts,
+        "Compat patch applied: $compatPatchApplied",
         "Smoke test output:",
         $phpVOutput,
         $basicSmokeOutput
     ) | Set-Content -Path $metaPath -Encoding ASCII
 
-    $testRoot = Join-Path $buildDirectory 'tests\ext\pdo_firebird\tests'
+    $testRoot = Join-Path $testsDirectoryPath 'ext\pdo_firebird\tests'
     if (-not (Test-Path $testRoot)) {
         throw "PDO Firebird test directory was not found at $testRoot"
     }
@@ -539,14 +415,6 @@ echo 'probe=', trim((string) $dbh->query('SELECT 1 FROM RDB$DATABASE')->fetchCol
     $testListPath = Join-Path $buildDirectory 'pdo-firebird-tests-to-run.txt'
     $tests.FullName | Set-Content -Path $testListPath -Encoding ASCII
 
-    $settings = Get-TestSettings -PhpVersion $PhpVersion
-
-    $testsBaseDirectory = Join-Path $buildDirectory 'tests'
-    $runnerPath = Join-Path $buildDirectory 'tests\run-tests.php'
-    if (-not (Test-Path $runnerPath)) {
-        throw "run-tests.php was not found at $runnerPath"
-    }
-
     $params = @(
         '-n',
         '-d', 'open_basedir=',
@@ -560,7 +428,7 @@ echo 'probe=', trim((string) $dbh->query('SELECT 1 FROM RDB$DATABASE')->fetchCol
     $params += @(
         '-p', $phpExe,
         '-n',
-        '-c', $phpIni
+        '-c', $testIni
     )
 
     if (-not [string]::IsNullOrWhiteSpace($settings.progress)) {
@@ -579,7 +447,7 @@ echo 'probe=', trim((string) $dbh->query('SELECT 1 FROM RDB$DATABASE')->fetchCol
         '-r', $testListPath
     )
 
-    Set-Location $testsBaseDirectory
+    Set-Location $testsDirectoryPath
     & $phpExe @params 2>&1 | Tee-Object -FilePath $logPath | Out-Host
     $exitCode = $LASTEXITCODE
 
@@ -588,7 +456,7 @@ echo 'probe=', trim((string) $dbh->query('SELECT 1 FROM RDB$DATABASE')->fetchCol
     }
 
     if ($exitCode -ne 0) {
-        throw "PDO Firebird tests failed with exit code $exitCode for PHP $PhpVersion $Arch $Ts"
+        throw "PDO Firebird tests failed with exit code $exitCode for released PHP $RequestedPhpVersion $Ts"
     }
 } finally {
     Set-Location $originalLocation
@@ -597,11 +465,7 @@ echo 'probe=', trim((string) $dbh->query('SELECT 1 FROM RDB$DATABASE')->fetchCol
         Remove-Item -Path $testsTempDirectory -Recurse -Force -ErrorAction SilentlyContinue
     }
 
-    if (Test-Path $stagedArtifactsDirectory) {
-        Remove-Item -Path $stagedArtifactsDirectory -Recurse -Force -ErrorAction SilentlyContinue
-    }
-
-    if (Test-Path $customDepsDirectory) {
-        Remove-Item -Path $customDepsDirectory -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path $buildDirectory) {
+        Remove-Item -Path $buildDirectory -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
