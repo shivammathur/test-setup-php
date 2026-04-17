@@ -11,6 +11,12 @@ param (
     [Parameter(Mandatory = $true)]
     [string] $ArtifactsDirectory,
     [Parameter(Mandatory = $true)]
+    [string] $FbclientArtifactsDirectory,
+    [Parameter(Mandatory = $true)]
+    [string] $FirebirdTag,
+    [Parameter(Mandatory = $true)]
+    [string] $FirebirdPackageName,
+    [Parameter(Mandatory = $true)]
     [string] $BuilderRoot
 )
 
@@ -22,18 +28,16 @@ function Initialize-Firebird {
     param (
         [Parameter(Mandatory = $true)]
         [ValidateSet('x86', 'x64')]
-        [string] $Arch
+        [string] $Arch,
+        [Parameter(Mandatory = $true)]
+        [string] $FirebirdTag,
+        [Parameter(Mandatory = $true)]
+        [string] $FirebirdPackageName
     )
 
     $destDir = 'C:\Firebird'
     $serviceName = 'TestInstance'
-    $firebirdVersion = 'v4.0.4'
-    $firebirdRelease = "https://github.com/FirebirdSQL/firebird/releases/download/$firebirdVersion"
-    $downloadUrl = if ($Arch -eq 'x64') {
-        "$firebirdRelease/Firebird-4.0.4.3010-0-x64.zip"
-    } else {
-        "$firebirdRelease/Firebird-4.0.4.3010-0-Win32.zip"
-    }
+    $downloadUrl = "https://github.com/FirebirdSQL/firebird/releases/download/$FirebirdTag/$FirebirdPackageName"
 
     if (Test-Path $destDir) {
         Remove-Item -Path $destDir -Recurse -Force
@@ -92,6 +96,43 @@ function Initialize-Firebird {
     Add-Path $destDir
 }
 
+function Apply-FbclientArtifacts {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string] $SourceRoot,
+        [Parameter(Mandatory = $true)]
+        [string] $DestinationRoot
+    )
+
+    $includeSource = Join-Path $SourceRoot 'include\interbase'
+    $importLib = Join-Path $SourceRoot 'lib\fbclient_ms.lib'
+    $binSource = Join-Path $SourceRoot 'bin'
+
+    if (-not (Test-Path $includeSource)) {
+        throw "fbclient artifact include directory was not found at $includeSource"
+    }
+
+    if (-not (Test-Path $importLib)) {
+        throw "fbclient artifact import library was not found at $importLib"
+    }
+
+    $destIncludeRoot = Join-Path $DestinationRoot 'include\interbase'
+    $destLibRoot = Join-Path $DestinationRoot 'lib'
+
+    New-Item -ItemType Directory -Path $destIncludeRoot -Force | Out-Null
+    New-Item -ItemType Directory -Path $destLibRoot -Force | Out-Null
+
+    Copy-Item -Path (Join-Path $includeSource '*') -Destination $destIncludeRoot -Recurse -Force
+    Copy-Item -Path $importLib -Destination (Join-Path $destLibRoot 'fbclient_ms.lib') -Force
+
+    if (Test-Path $binSource) {
+        $destBinRoot = Join-Path $DestinationRoot 'bin'
+        New-Item -ItemType Directory -Path $destBinRoot -Force | Out-Null
+        Copy-Item -Path (Join-Path $binSource '*') -Destination $destBinRoot -Recurse -Force
+    }
+}
+
 $modulePath = Join-Path $BuilderRoot 'php\BuildPhp\BuildPhp.psd1'
 if (-not (Test-Path $modulePath)) {
     throw "BuildPhp module was not found at $modulePath"
@@ -100,6 +141,7 @@ if (-not (Test-Path $modulePath)) {
 Import-Module $modulePath -Force
 
 $artifactsPath = (Resolve-Path $ArtifactsDirectory).Path
+$fbclientArtifactsPath = (Resolve-Path $FbclientArtifactsDirectory).Path
 $resultsDirectory = Join-Path $env:GITHUB_WORKSPACE 'results'
 New-Item -ItemType Directory -Path $resultsDirectory -Force | Out-Null
 
@@ -118,6 +160,12 @@ $availableArtifacts = @(
     Get-ChildItem -Path $artifactsPath -File |
         Sort-Object Name |
         Select-Object -ExpandProperty Name
+)
+
+$availableFbclientArtifacts = @(
+    Get-ChildItem -Path $fbclientArtifactsPath -Recurse -File |
+        Sort-Object FullName |
+        Select-Object -ExpandProperty FullName
 )
 
 $runtimePattern = if ($Ts -eq 'nts') {
@@ -184,6 +232,8 @@ try {
         -TestsDirectory $testsDirectory `
         -ArtifactsDirectory $stagedArtifactsDirectory
 
+    Apply-FbclientArtifacts -SourceRoot $fbclientArtifactsPath -DestinationRoot $env:DEPS_DIR
+
     $phpExe = Join-Path $buildDirectory 'phpbin\php.exe'
     $phpDbg = Join-Path $buildDirectory 'phpbin\phpdbg.exe'
     $phpIni = Join-Path $buildDirectory 'phpbin\php.ini'
@@ -212,27 +262,80 @@ try {
     $env:REPORT_EXIT_STATUS = '1'
 
     Add-Path -Path "$env:SystemRoot\System32"
-    Initialize-Firebird -Arch $Arch
+    Initialize-Firebird -Arch $Arch -FirebirdTag $FirebirdTag -FirebirdPackageName $FirebirdPackageName
 
-    $smokeArgs = @(
-        '-n',
-        '-d', "extension_dir=$extensionDirectory"
+    $smokeIni = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.smoke.ini"
+    $phpVPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.php-v.txt"
+    $phpMPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.php-m.txt"
+    $phpIPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.php-i.txt"
+    $phpISummaryPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.php-i-summary.txt"
+    $basicSmokeScriptPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.smoke.php"
+    $basicSmokeOutputPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.smoke.txt"
+
+    $smokeIniLines = @(
+        'date.timezone=UTC',
+        "extension_dir=$extensionDirectory"
     )
 
     $pdoCoreExtension = Join-Path $extensionDirectory 'php_pdo.dll'
     if (Test-Path $pdoCoreExtension) {
-        $smokeArgs += @('-d', 'extension=php_pdo.dll')
+        $smokeIniLines += 'extension=php_pdo.dll'
     }
 
-    $smokeArgs += @(
-        '-d', 'extension=php_pdo_firebird.dll',
-        '-r', "echo PHP_VERSION, ' ', PHP_ZTS ? 'TS' : 'NTS', PHP_EOL, 'pdo_firebird=', (int)extension_loaded('pdo_firebird');"
-    )
+    $smokeIniLines += 'extension=php_pdo_firebird.dll'
+    $smokeIniLines | Set-Content -Path $smokeIni -Encoding ASCII
 
-    $smokeOutput = & $phpExe @smokeArgs
+    $phpVOutput = & $phpExe -c $smokeIni -v 2>&1
+    $phpVOutput | Set-Content -Path $phpVPath -Encoding ASCII
     if ($LASTEXITCODE -ne 0) {
-        throw "PDO Firebird smoke test failed for PHP $PhpVersion $Arch $Ts"
+        throw "php -v smoke test failed for PHP $PhpVersion $Arch $Ts"
     }
+    $phpVOutput | Out-Host
+
+    $phpMOutput = & $phpExe -c $smokeIni -m 2>&1
+    $phpMOutput | Set-Content -Path $phpMPath -Encoding ASCII
+    if ($LASTEXITCODE -ne 0) {
+        throw "php -m smoke test failed for PHP $PhpVersion $Arch $Ts"
+    }
+    if (($phpMOutput -join [Environment]::NewLine) -notmatch 'pdo_firebird') {
+        throw "php -m output did not list pdo_firebird for PHP $PhpVersion $Arch $Ts"
+    }
+    $phpMOutput | Out-Host
+
+    $phpIOutput = & $phpExe -c $smokeIni -i 2>&1
+    $phpIOutput | Set-Content -Path $phpIPath -Encoding ASCII
+    if ($LASTEXITCODE -ne 0) {
+        throw "php -i smoke test failed for PHP $PhpVersion $Arch $Ts"
+    }
+
+    $phpISummary = @(
+        $phpIOutput | Select-String -Pattern '^PHP Version =>', '^Thread Safety =>', '^Architecture =>', '^PDO support =>', '^PDO drivers =>', '^Firebird API version =>', '^Client API version =>', '^pdo_firebird$'
+    ) | ForEach-Object { $_.ToString() }
+    $phpISummary | Set-Content -Path $phpISummaryPath -Encoding ASCII
+    $phpISummary | Out-Host
+
+    $basicSmokeScript = @'
+<?php
+$dsn = getenv('PDO_FIREBIRD_TEST_DSN');
+$user = getenv('PDO_FIREBIRD_TEST_USER');
+$pass = getenv('PDO_FIREBIRD_TEST_PASS');
+
+$dbh = new PDO($dsn, $user, $pass);
+echo 'driver=', $dbh->getAttribute(PDO::ATTR_DRIVER_NAME), PHP_EOL;
+echo 'user=', trim((string) $dbh->query('SELECT CURRENT_USER FROM RDB$DATABASE')->fetchColumn()), PHP_EOL;
+echo 'engine=', trim((string) $dbh->query('SELECT MON$SERVER_VERSION FROM MON$DATABASE')->fetchColumn()), PHP_EOL;
+'@
+    Set-Content -Path $basicSmokeScriptPath -Value $basicSmokeScript -Encoding ASCII
+
+    $basicSmokeOutput = & $phpExe -c $smokeIni $basicSmokeScriptPath 2>&1
+    $basicSmokeOutput | Set-Content -Path $basicSmokeOutputPath -Encoding ASCII
+    if ($LASTEXITCODE -ne 0) {
+        throw "Basic PDO Firebird smoke script failed for PHP $PhpVersion $Arch $Ts"
+    }
+    if (($basicSmokeOutput -join [Environment]::NewLine) -notmatch 'driver=firebird') {
+        throw "Basic PDO Firebird smoke script did not report the firebird driver for PHP $PhpVersion $Arch $Ts"
+    }
+    $basicSmokeOutput | Out-Host
 
     @(
         "PHP version: $PhpVersion",
@@ -242,10 +345,16 @@ try {
         "Runtime alias: $runtimeZipAlias",
         "Test pack: $($testPackZip.Name)",
         "Test pack alias: $testPackAlias",
+        "Firebird tag: $FirebirdTag",
+        "Firebird package: $FirebirdPackageName",
+        "fbclient artifact root: $fbclientArtifactsPath",
+        "fbclient artifacts:",
+        $availableFbclientArtifacts,
         "Artifacts:",
         $availableArtifacts,
         "Smoke test output:",
-        $smokeOutput
+        $phpVOutput,
+        $basicSmokeOutput
     ) | Set-Content -Path $metaPath -Encoding ASCII
 
     $testRoot = Join-Path $buildDirectory 'tests\ext\pdo_firebird\tests'

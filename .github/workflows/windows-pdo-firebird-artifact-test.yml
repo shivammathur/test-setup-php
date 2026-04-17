@@ -24,17 +24,32 @@ jobs:
     timeout-minutes: 90
     strategy:
       fail-fast: false
-      max-parallel: 4
       matrix:
         build:
           - php-version: '8.2'
             run-id: '24567620587'
+            fbclient-run-id: '24567578490'
+            fbclient-artifact-prefix: 'fbclient-3.0.13-vs16'
+            firebird-tag: 'v3.0.13'
+            firebird-package-base: 'Firebird-3.0.13.33818-0'
           - php-version: '8.3'
             run-id: '24567637235'
+            fbclient-run-id: '24567578490'
+            fbclient-artifact-prefix: 'fbclient-3.0.13-vs16'
+            firebird-tag: 'v3.0.13'
+            firebird-package-base: 'Firebird-3.0.13.33818-0'
           - php-version: '8.4'
             run-id: '24567657672'
+            fbclient-run-id: '24567588928'
+            fbclient-artifact-prefix: 'fbclient-4.0.7-vs17'
+            firebird-tag: 'v4.0.7'
+            firebird-package-base: 'Firebird-4.0.7.3271-0'
           - php-version: '8.5'
             run-id: '24567668885'
+            fbclient-run-id: '24567588928'
+            fbclient-artifact-prefix: 'fbclient-4.0.7-vs17'
+            firebird-tag: 'v4.0.7'
+            firebird-package-base: 'Firebird-4.0.7.3271-0'
         arch:
           - x64
           - x86
@@ -61,17 +76,30 @@ jobs:
           run-id: ${{ matrix.build.run-id }}
           github-token: ${{ secrets.PAT != '' && secrets.PAT || github.token }}
 
+      - name: Download fbclient artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ format('{0}-{1}', matrix.build.fbclient-artifact-prefix, matrix.arch) }}
+          path: fbclient-artifacts
+          repository: winlibs/winlib-builder
+          run-id: ${{ matrix.build.fbclient-run-id }}
+          github-token: ${{ secrets.PAT != '' && secrets.PAT || github.token }}
+
       - name: Show artifact contents
         shell: pwsh
         run: |
           Get-ChildItem -Path builder-artifacts -File |
             Sort-Object Name |
             Format-Table Name, Length -AutoSize
+          Get-ChildItem -Path fbclient-artifacts -Recurse -File |
+            Sort-Object FullName |
+            Format-Table FullName, Length -AutoSize
 
       - name: Run PDO Firebird tests
         shell: pwsh
         run: |
           $artifactsDirectory = Join-Path $env:GITHUB_WORKSPACE 'builder-artifacts'
+          $fbclientArtifactsDirectory = Join-Path $env:GITHUB_WORKSPACE 'fbclient-artifacts'
           $builderRoot = Join-Path $env:GITHUB_WORKSPACE 'php-windows-builder'
 
           .github\scripts\run-pdo-firebird-tests.ps1 `
@@ -79,6 +107,9 @@ jobs:
             -Arch '${{ matrix.arch }}' `
             -Ts '${{ matrix.ts }}' `
             -ArtifactsDirectory $artifactsDirectory `
+            -FbclientArtifactsDirectory $fbclientArtifactsDirectory `
+            -FirebirdTag '${{ matrix.build.firebird-tag }}' `
+            -FirebirdPackageName '${{ format('{0}-{1}.zip', matrix.build.firebird-package-base, matrix.arch == 'x64' && 'x64' || 'Win32') }}' `
             -BuilderRoot $builderRoot
 
       - name: Upload test results
