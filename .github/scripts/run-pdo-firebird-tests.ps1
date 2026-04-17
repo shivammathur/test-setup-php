@@ -133,7 +133,7 @@ function Apply-FbclientArtifacts {
     }
 }
 
-function Get-ExpectedClientVersionPattern {
+function Get-ExpectedClientVersionInfo {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -146,17 +146,60 @@ function Get-ExpectedClientVersionPattern {
     )
 
     if (-not $match.Success) {
-        throw "Could not derive the expected client version pattern from $FirebirdPackageName"
+        throw "Could not derive the expected client version info from $FirebirdPackageName"
     }
 
-    $majorMinorVersion = "$($match.Groups['major'].Value).$($match.Groups['minor'].Value)"
-    $patchBuildVersion = "$($match.Groups['patch'].Value).$($match.Groups['build'].Value)"
+    return [PSCustomObject]@{
+        MajorMinorVersion = "$($match.Groups['major'].Value).$($match.Groups['minor'].Value)"
+        PatchBuildVersion = "$($match.Groups['patch'].Value).$($match.Groups['build'].Value)"
+    }
+}
 
-    return "(?m)^Client Library Version => .*" +
-        [regex]::Escape($patchBuildVersion) +
-        ".*Firebird " +
-        [regex]::Escape($majorMinorVersion) +
-        "$"
+function Add-PhpDepsWithoutFbclient {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string] $PhpVersion,
+        [Parameter(Mandatory = $true)]
+        [string] $VsVersion,
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('x86', 'x64')]
+        [string] $Arch,
+        [Parameter(Mandatory = $true)]
+        [string] $Destination
+    )
+
+    $baseurl = 'https://downloads.php.net/~windows/php-sdk/deps'
+
+    if (-not (Test-Path -LiteralPath $Destination)) {
+        New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+    }
+
+    $packageData = Get-PhpDepsPackages -PhpVersion $PhpVersion -VsVersion $VsVersion -Arch $Arch
+    $packages = @($packageData.Packages | Where-Object { $_ -notmatch '^fbclient-' })
+    Write-Host 'Skipping php-sdk fbclient packages so fbclient comes from the downloaded artifact and matching Firebird runtime.'
+
+    foreach ($package in $packages) {
+        Write-Host "Processing package $package"
+        $temp = New-TemporaryFile | Rename-Item -NewName { $_.Name + '.zip' } -PassThru
+        $url = "$baseurl/$VsVersion/$Arch/$package"
+        Invoke-WebRequest -Uri $url -UseBasicParsing -OutFile $temp.FullName -ErrorAction Stop
+        try {
+            Expand-Archive -LiteralPath $temp.FullName -DestinationPath $Destination -Force
+        } catch {
+            Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
+            [System.IO.Compression.ZipFile]::ExtractToDirectory($temp.FullName, $Destination)
+        } finally {
+            Remove-Item -LiteralPath $temp.FullName -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    $opensslConfig = Join-Path $Destination 'openssl.cnf'
+    if (Test-Path -LiteralPath $opensslConfig) {
+        $templateDirectory = Join-Path $Destination 'template\ssl'
+        New-Item -ItemType Directory -Force -Path $templateDirectory | Out-Null
+        Move-Item -LiteralPath $opensslConfig -Destination (Join-Path $templateDirectory 'openssl.cnf') -Force
+    }
 }
 
 $modulePath = Join-Path $BuilderRoot 'php\BuildPhp\BuildPhp.psd1'
@@ -231,6 +274,7 @@ $rootTemp = if ([string]::IsNullOrWhiteSpace($env:SystemDrive)) {
 $buildDirectory = Join-Path $rootTemp ("php-" + [System.Guid]::NewGuid().ToString())
 $testsTempDirectory = Join-Path $rootTemp ("tests_tmp_" + [System.Guid]::NewGuid().ToString('N'))
 $stagedArtifactsDirectory = Join-Path $rootTemp ("builder-artifacts-" + [System.Guid]::NewGuid().ToString('N'))
+$customDepsDirectory = Join-Path $rootTemp ("deps-" + [System.Guid]::NewGuid().ToString('N'))
 $testsDirectory = 'tests'
 
 $logPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$Ts.log"
@@ -241,6 +285,7 @@ $iniSnapshotPath = Join-Path $resultsDirectory "pdo-firebird-$PhpVersion-$Arch-$
 New-Item -ItemType Directory -Path $buildDirectory -Force | Out-Null
 New-Item -ItemType Directory -Path $testsTempDirectory -Force | Out-Null
 New-Item -ItemType Directory -Path $stagedArtifactsDirectory -Force | Out-Null
+New-Item -ItemType Directory -Path $customDepsDirectory -Force | Out-Null
 
 Copy-Item -Path $runtimeZip.FullName -Destination (Join-Path $stagedArtifactsDirectory $runtimeZipAlias) -Force
 Copy-Item -Path $testPackZip.FullName -Destination (Join-Path $stagedArtifactsDirectory $testPackAlias) -Force
@@ -249,6 +294,10 @@ $originalLocation = (Get-Location).Path
 
 try {
     Set-Location $buildDirectory
+
+    $env:DEPS_DIR = $customDepsDirectory
+    $env:DEPS_CACHE_HIT = 'true'
+    Add-PhpDepsWithoutFbclient -PhpVersion $PhpVersion -VsVersion $vsData.vs -Arch $Arch -Destination $env:DEPS_DIR
 
     $null = Add-TestRequirements `
         -PhpVersion $PhpVersion `
@@ -297,6 +346,7 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "where.exe could not locate fbclient.dll for PHP $PhpVersion $Arch $Ts"
     }
+    $resolvedFbclientPaths | Out-Host
 
     $resolvedFbclientPath = ($resolvedFbclientPaths | Select-Object -First 1).ToString().Trim()
     if ($resolvedFbclientPath -notlike 'C:\Firebird\*') {
@@ -346,11 +396,21 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "php -i smoke test failed for PHP $PhpVersion $Arch $Ts"
     }
-    $phpIText = $phpIOutput -join [Environment]::NewLine
+    $phpIOutput | Out-Host
 
-    $expectedClientVersionPattern = Get-ExpectedClientVersionPattern -FirebirdPackageName $FirebirdPackageName
-    if ($phpIText -notmatch $expectedClientVersionPattern) {
-        throw "php -i did not report the expected client library version for $FirebirdPackageName"
+    $clientVersionInfo = Get-ExpectedClientVersionInfo -FirebirdPackageName $FirebirdPackageName
+    $clientVersionLine = @(
+        $phpIOutput | Select-String -Pattern '^Client Library Version =>'
+    ) | Select-Object -First 1 | ForEach-Object { $_.ToString() }
+
+    if ([string]::IsNullOrWhiteSpace($clientVersionLine)) {
+        throw "php -i did not report a Client Library Version line for PHP $PhpVersion $Arch $Ts"
+    }
+    if ($clientVersionLine -notlike "*$($clientVersionInfo.PatchBuildVersion)*") {
+        throw "php -i did not report the expected client build version for $FirebirdPackageName"
+    }
+    if ($clientVersionLine -notlike "*Firebird $($clientVersionInfo.MajorMinorVersion)*") {
+        throw "php -i did not report the expected Firebird family for $FirebirdPackageName"
     }
 
     $phpISummary = @(
@@ -384,10 +444,6 @@ echo 'probe=', trim((string) $dbh->query('SELECT 1 FROM RDB$DATABASE')->fetchCol
         throw "Basic PDO Firebird smoke script did not complete the expected query for PHP $PhpVersion $Arch $Ts"
     }
     $basicSmokeOutput | Out-Host
-
-    $clientVersionLine = @(
-        $phpIOutput | Select-String -Pattern '^Client Library Version =>'
-    ) | Select-Object -First 1 | ForEach-Object { $_.ToString() }
 
     @(
         "PHP version: $PhpVersion",
@@ -492,5 +548,9 @@ echo 'probe=', trim((string) $dbh->query('SELECT 1 FROM RDB$DATABASE')->fetchCol
 
     if (Test-Path $stagedArtifactsDirectory) {
         Remove-Item -Path $stagedArtifactsDirectory -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    if (Test-Path $customDepsDirectory) {
+        Remove-Item -Path $customDepsDirectory -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
