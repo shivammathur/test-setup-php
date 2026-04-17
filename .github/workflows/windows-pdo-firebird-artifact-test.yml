@@ -9,6 +9,7 @@ on:
       - .github/scripts/install-manual-release-php.ps1
       - .github/scripts/run-pdo-firebird-tests.ps1
       - .github/scripts/run-pdo-firebird-released-tests.ps1
+      - .github/scripts/sync-pdo-firebird-autocommit-test.ps1
   workflow_dispatch:
 
 permissions:

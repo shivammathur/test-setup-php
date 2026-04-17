@@ -530,6 +530,8 @@ echo 'probe=', trim((string) $dbh->query('SELECT 1 FROM RDB$DATABASE')->fetchCol
         throw "PDO Firebird test directory was not found at $testRoot"
     }
 
+    & (Join-Path $PSScriptRoot 'sync-pdo-firebird-autocommit-test.ps1') -TestsRoot $testRoot
+
     $tests = @(
         Get-ChildItem -Path $testRoot -Filter '*.phpt' -Recurse |
             Sort-Object FullName
