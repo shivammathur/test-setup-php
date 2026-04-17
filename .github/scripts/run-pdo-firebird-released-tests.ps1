@@ -30,12 +30,8 @@ function Get-FbclientRuntimeInfo {
     $fbclientPath = Join-Path $SourceRoot 'bin\fbclient.dll'
     $gds32Path = Join-Path $SourceRoot 'bin\gds32.dll'
 
-    if (-not (Test-Path $fbclientPath)) {
-        throw "fbclient runtime was not found in the winlib artifact at $fbclientPath"
-    }
-
     return [PSCustomObject]@{
-        FbclientPath = $fbclientPath
+        FbclientPath = if (Test-Path $fbclientPath) { $fbclientPath } else { $null }
         Gds32Path = if (Test-Path $gds32Path) { $gds32Path } else { $null }
     }
 }
@@ -77,11 +73,15 @@ function Initialize-Firebird {
     Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
 
     $runtimeInfo = Get-FbclientRuntimeInfo -SourceRoot $FbclientRuntimeSourceRoot
-    Copy-Item -Path $runtimeInfo.FbclientPath -Destination (Join-Path $destDir 'fbclient.dll') -Force
-    if ($null -ne $runtimeInfo.Gds32Path) {
-        Copy-Item -Path $runtimeInfo.Gds32Path -Destination (Join-Path $destDir 'gds32.dll') -Force
+    if ($null -ne $runtimeInfo.FbclientPath) {
+        Copy-Item -Path $runtimeInfo.FbclientPath -Destination (Join-Path $destDir 'fbclient.dll') -Force
+        if ($null -ne $runtimeInfo.Gds32Path) {
+            Copy-Item -Path $runtimeInfo.Gds32Path -Destination (Join-Path $destDir 'gds32.dll') -Force
+        }
+        Write-Host "Copied fbclient runtime from winlib artifact into $destDir"
+    } else {
+        Write-Host "winlib artifact does not contain fbclient.dll; using the runtime from $FirebirdPackageName"
     }
-    Write-Host "Copied fbclient runtime from winlib artifact into $destDir"
 
     $env:PDO_FIREBIRD_TEST_DATABASE = 'C:\test.fdb'
     $env:PDO_FIREBIRD_TEST_DSN = "firebird:dbname=127.0.0.1:$($env:PDO_FIREBIRD_TEST_DATABASE)"
@@ -278,21 +278,30 @@ try {
         -FirebirdPackageName $FirebirdPackageName `
         -FbclientRuntimeSourceRoot $fbclientArtifactsPath
 
-    $artifactFbclientPath = (Get-FbclientRuntimeInfo -SourceRoot $fbclientArtifactsPath).FbclientPath
+    $artifactRuntimeInfo = Get-FbclientRuntimeInfo -SourceRoot $fbclientArtifactsPath
+    $artifactFbclientPath = $artifactRuntimeInfo.FbclientPath
     $installedFbclientPath = 'C:\Firebird\fbclient.dll'
-    $artifactFbclientHash = (Get-FileHash -Path $artifactFbclientPath -Algorithm SHA256).Hash
     $installedFbclientHash = (Get-FileHash -Path $installedFbclientPath -Algorithm SHA256).Hash
     $fbclientHashPath = Join-Path $resultsDirectory "pdo-firebird-release-$RequestedPhpVersion-$Ts.fbclient-hash.txt"
-    @(
+    $fbclientHashLines = @(
+        "artifact-runtime-available=$($null -ne $artifactFbclientPath)",
         "artifact-fbclient=$artifactFbclientPath",
-        "artifact-sha256=$artifactFbclientHash",
         "installed-fbclient=$installedFbclientPath",
         "installed-sha256=$installedFbclientHash"
-    ) | Set-Content -Path $fbclientHashPath -Encoding ASCII
+    )
 
-    if ($artifactFbclientHash -ne $installedFbclientHash) {
-        throw "The deployed fbclient.dll in C:\Firebird does not match the winlib artifact for released PHP $RequestedPhpVersion $Ts"
+    if ($null -ne $artifactFbclientPath) {
+        $artifactFbclientHash = (Get-FileHash -Path $artifactFbclientPath -Algorithm SHA256).Hash
+        $fbclientHashLines += "artifact-sha256=$artifactFbclientHash"
+
+        if ($artifactFbclientHash -ne $installedFbclientHash) {
+            throw "The deployed fbclient.dll in C:\Firebird does not match the winlib artifact for released PHP $RequestedPhpVersion $Ts"
+        }
+    } else {
+        $artifactFbclientHash = '<not present in artifact>'
     }
+
+    $fbclientHashLines | Set-Content -Path $fbclientHashPath -Encoding ASCII
 
     $fbclientWherePath = Join-Path $resultsDirectory "pdo-firebird-release-$RequestedPhpVersion-$Ts.fbclient-where.txt"
     $whereExe = Join-Path $env:SystemRoot 'System32\where.exe'
