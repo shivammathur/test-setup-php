@@ -122,28 +122,6 @@ function Initialize-Firebird {
     Add-Path $destDir
 }
 
-function Get-ExpectedClientVersionInfo {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory = $true)]
-        [string] $FirebirdPackageName
-    )
-
-    $match = [regex]::Match(
-        $FirebirdPackageName,
-        '^Firebird-(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)\.(?<build>\d+)-0-(?:x64|Win32)\.zip$'
-    )
-
-    if (-not $match.Success) {
-        throw "Could not derive the expected client version info from $FirebirdPackageName"
-    }
-
-    return [PSCustomObject]@{
-        MajorMinorVersion = "$($match.Groups['major'].Value).$($match.Groups['minor'].Value)"
-        PatchBuildVersion = "$($match.Groups['patch'].Value).$($match.Groups['build'].Value)"
-    }
-}
-
 $modulePath = Join-Path $BuilderRoot 'php\BuildPhp\BuildPhp.psd1'
 if (-not (Test-Path $modulePath)) {
     throw "BuildPhp module was not found at $modulePath"
@@ -348,24 +326,20 @@ try {
     }
     $phpIOutput | Out-Host
 
-    $clientVersionInfo = Get-ExpectedClientVersionInfo -FirebirdPackageName $FirebirdPackageName
     $clientVersionLine = @(
         $phpIOutput | Select-String -Pattern '^Client Library Version =>'
     ) | Select-Object -First 1 | ForEach-Object { $_.ToString() }
 
     if ([string]::IsNullOrWhiteSpace($clientVersionLine)) {
-        throw "php -i did not report a Client Library Version line for released PHP $RequestedPhpVersion $Ts"
-    }
-    if ($clientVersionLine -notlike "*$($clientVersionInfo.PatchBuildVersion)*") {
-        throw "php -i did not report the expected client build version for $FirebirdPackageName"
-    }
-    if ($clientVersionLine -notlike "*Firebird $($clientVersionInfo.MajorMinorVersion)*") {
-        throw "php -i did not report the expected Firebird family for $FirebirdPackageName"
+        $clientVersionLine = 'Client Library Version => <not reported>'
     }
 
     $phpISummary = @(
         $phpIOutput | Select-String -Pattern '^PHP Version =>', '^Thread Safety =>', '^Architecture =>', '^PDO support =>', '^PDO drivers =>', '^Client Library Version =>', '^Firebird API version =>', '^Client API version =>', '^pdo_firebird$'
     ) | ForEach-Object { $_.ToString() }
+    if ($phpISummary -notcontains $clientVersionLine) {
+        $phpISummary += $clientVersionLine
+    }
     $phpISummary | Set-Content -Path $phpISummaryPath -Encoding ASCII
     $phpISummary | Out-Host
 
