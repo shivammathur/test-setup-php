@@ -151,6 +151,20 @@ if (-not (Test-Path $modulePath)) {
 
 Import-Module $modulePath -Force
 
+$privateHelpers = @(
+    'Add-WindowsTestHelpers.ps1',
+    'Invoke-CompatRunTestsPatch.ps1'
+)
+
+foreach ($helper in $privateHelpers) {
+    $helperPath = Join-Path $BuilderRoot "php\BuildPhp\private\$helper"
+    if (-not (Test-Path $helperPath)) {
+        throw "Required helper script was not found at $helperPath"
+    }
+
+    . $helperPath
+}
+
 $fbclientArtifactsPath = (Resolve-Path $FbclientArtifactsDirectory).Path
 $availableFbclientArtifacts = @(
     Get-ChildItem -Path $fbclientArtifactsPath -Recurse -File |
