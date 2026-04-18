@@ -108,9 +108,10 @@ jobs:
               Expand-Archive -Path $archive -DestinationPath $download.Destination -Force
           }
 
-          $seedInclude = Join-Path $seedRoot 'include\apache2_4'
-          $seedLibRoot = Join-Path $seedRoot 'lib\apache2_4'
-          $opensslInclude = Join-Path $depsRoot 'include'
+          $seedIncludeRaw = Join-Path $seedRoot 'include\apache2_4'
+          $seedLibRootRaw = Join-Path $seedRoot 'lib\apache2_4'
+          $opensslRoot = $depsRoot.Replace('\', '/')
+          $opensslIncludeRaw = Join-Path $depsRoot 'include'
           $opensslLibRoot = Join-Path $depsRoot 'lib'
           $sslLibrary = @('libssl.lib', 'ssleay32.lib') |
               ForEach-Object { Join-Path $opensslLibRoot $_ } |
@@ -121,30 +122,32 @@ jobs:
               Where-Object { Test-Path $_ } |
               Select-Object -First 1
 
-          if (-not (Test-Path (Join-Path $seedInclude 'apr.h'))) {
-              throw "APR headers were not extracted to $seedInclude"
+          if (-not (Test-Path (Join-Path $seedIncludeRaw 'apr.h'))) {
+              throw "APR headers were not extracted to $seedIncludeRaw"
           }
-          if (-not (Test-Path (Join-Path $seedLibRoot 'libapr-1.lib'))) {
-              throw "APR import libraries were not extracted to $seedLibRoot"
+          if (-not (Test-Path (Join-Path $seedLibRootRaw 'libapr-1.lib'))) {
+              throw "APR import libraries were not extracted to $seedLibRootRaw"
           }
           if (-not $sslLibrary -or -not $cryptoLibrary) {
               throw "Unable to locate OpenSSL import libraries in $opensslLibRoot"
           }
 
-          Get-ChildItem -Path $seedInclude -File | ForEach-Object { $_.Name } |
+          Get-ChildItem -Path $seedIncludeRaw -File | ForEach-Object { $_.Name } |
               Sort-Object |
               Set-Content -Path (Join-Path $diagRoot 'seed-headers.txt')
-          Get-ChildItem -Path $seedLibRoot -File | ForEach-Object { $_.Name } |
+          Get-ChildItem -Path $seedLibRootRaw -File | ForEach-Object { $_.Name } |
               Sort-Object |
               Set-Content -Path (Join-Path $diagRoot 'seed-libs.txt')
           Get-ChildItem -Path $opensslLibRoot -File | ForEach-Object { $_.Name } |
               Sort-Object |
               Set-Content -Path (Join-Path $diagRoot 'openssl-libs.txt')
 
-          "seed_include=$seedInclude" | Add-Content -Path $env:GITHUB_OUTPUT
-          "seed_lib_root=$seedLibRoot" | Add-Content -Path $env:GITHUB_OUTPUT
-          "openssl_include=$opensslInclude" | Add-Content -Path $env:GITHUB_OUTPUT
-          "openssl_libs=$sslLibrary;$cryptoLibrary" | Add-Content -Path $env:GITHUB_OUTPUT
+          "seed_include=$($seedIncludeRaw.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
+          "seed_lib_root=$($seedLibRootRaw.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
+          "openssl_root=$opensslRoot" | Add-Content -Path $env:GITHUB_OUTPUT
+          "openssl_include=$($opensslIncludeRaw.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
+          "openssl_ssl_library=$($sslLibrary.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
+          "openssl_crypto_library=$($cryptoLibrary.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
 
       - name: Record PCRE layout
         shell: pwsh
@@ -166,9 +169,11 @@ jobs:
             -DCMAKE_SYSTEM_VERSION=${{ steps.virtuals.outputs.winsdk }} ^
             -DCMAKE_INSTALL_PREFIX=%GITHUB_WORKSPACE%\apache-install ^
             -DAPR_INCLUDE_DIR="${{ steps.deps.outputs.seed_include }}" ^
-            "-DAPR_LIBRARIES=${{ steps.deps.outputs.seed_lib_root }}\libapr-1.lib;${{ steps.deps.outputs.seed_lib_root }}\libaprutil-1.lib" ^
+            "-DAPR_LIBRARIES=${{ steps.deps.outputs.seed_lib_root }}/libapr-1.lib;${{ steps.deps.outputs.seed_lib_root }}/libaprutil-1.lib" ^
+            -DOPENSSL_ROOT_DIR="${{ steps.deps.outputs.openssl_root }}" ^
             -DOPENSSL_INCLUDE_DIR="${{ steps.deps.outputs.openssl_include }}" ^
-            "-DOPENSSL_LIBRARIES=${{ steps.deps.outputs.openssl_libs }}" ^
+            -DOPENSSL_SSL_LIBRARY="${{ steps.deps.outputs.openssl_ssl_library }}" ^
+            -DOPENSSL_CRYPTO_LIBRARY="${{ steps.deps.outputs.openssl_crypto_library }}" ^
             -DPCRE_INCLUDE_DIR=C:/vcpkg/installed/x64-windows/include ^
             -DPCRE_LIBRARIES=C:/vcpkg/installed/x64-windows/lib/pcre.lib ^
             -DINSTALL_MANUAL=OFF ^
