@@ -93,12 +93,14 @@ jobs:
           $staticTriplet = '${{ matrix.arch }}-windows-static-md'
           $sharedRoot = "C:/vcpkg/installed/$sharedTriplet"
           $staticRoot = "C:/vcpkg/installed/$staticTriplet"
+          $depsRoot = Join-Path $env:GITHUB_WORKSPACE 'deps-install'
           $iconvConfigArch = if ('${{ matrix.arch }}' -eq 'x64') { 'x64' } else { 'Win32' }
 
           $apriconvSourceRoot = Join-Path $env:GITHUB_WORKSPACE 'apr-iconv-source'
           $apriconvOutputRoot = Join-Path $env:GITHUB_WORKSPACE 'apr-iconv-install'
+          $genTestChar = Join-Path $sharedRoot 'tools\apr\gen_test_char.exe'
 
-          foreach ($path in @($apriconvSourceRoot, $apriconvOutputRoot)) {
+          foreach ($path in @($depsRoot, $apriconvSourceRoot, $apriconvOutputRoot)) {
               if (Test-Path $path) {
                   Remove-Item -Path $path -Recurse -Force
               }
@@ -107,14 +109,24 @@ jobs:
 
           foreach ($path in @(
               (Join-Path $sharedRoot 'include\apr.h'),
-              (Join-Path $sharedRoot 'include\private\apr_escape_test_char.h'),
+              (Join-Path $sharedRoot 'include\arch\win32\apr_private.h'),
               (Join-Path $sharedRoot 'lib\libapr-1.lib'),
               (Join-Path $sharedRoot 'lib\libaprutil-1.lib'),
-              (Join-Path $staticRoot 'lib')
+              (Join-Path $staticRoot 'lib'),
+              $genTestChar
           )) {
               if (-not (Test-Path $path)) {
                   throw "Required dependency path missing: $path"
               }
+          }
+
+          Copy-TreeContents -source (Join-Path $sharedRoot 'include') -destination (Join-Path $depsRoot 'include')
+          Copy-TreeContents -source (Join-Path $sharedRoot 'lib') -destination (Join-Path $depsRoot 'lib')
+          Copy-TreeContents -source (Join-Path $sharedRoot 'bin') -destination (Join-Path $depsRoot 'bin')
+
+          $generatedAprHeader = Join-Path $depsRoot 'include\apr_escape_test_char.h'
+          if (-not (Test-Path $generatedAprHeader)) {
+              & $genTestChar | Out-File -FilePath $generatedAprHeader -Encoding ascii
           }
 
           $archive = Join-Path $env:RUNNER_TEMP 'apr-iconv.zip'
@@ -143,8 +155,8 @@ jobs:
               Remove-Item -Path $aprCompatRoot -Recurse -Force
           }
           New-Item -Path $aprCompatReleaseRoot -ItemType Directory -Force | Out-Null
-          Copy-TreeContents -source (Join-Path $sharedRoot 'include') -destination (Join-Path $aprCompatRoot 'include')
-          Copy-Item -Path (Join-Path $sharedRoot 'lib\libapr-1.lib') -Destination (Join-Path $aprCompatReleaseRoot 'libapr-1.lib') -Force
+          Copy-TreeContents -source (Join-Path $depsRoot 'include') -destination (Join-Path $aprCompatRoot 'include')
+          Copy-Item -Path (Join-Path $depsRoot 'lib\libapr-1.lib') -Destination (Join-Path $aprCompatReleaseRoot 'libapr-1.lib') -Force
 
           Push-Location $apriconvRoot.FullName
           nmake /f libapriconv.mak CFG="libapriconv - $iconvConfigArch Release" RECURSE=0
@@ -168,7 +180,7 @@ jobs:
               }
           }
 
-          "shared_root=$($sharedRoot.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
+          "deps_root=$($depsRoot.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
           "static_root=$($staticRoot.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
           "apriconv_root=$($apriconvOutputRoot.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
 
@@ -179,11 +191,11 @@ jobs:
             -DCMAKE_SYSTEM_VERSION=${{ steps.virtuals.outputs.winsdk }} ^
             -DCMAKE_INSTALL_PREFIX=%GITHUB_WORKSPACE%\apache-install ^
             -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ^
-            -DAPR_INCLUDE_DIR="${{ steps.deps.outputs.shared_root }}/include" ^
-            "-DAPR_LIBRARIES=${{ steps.deps.outputs.shared_root }}/lib/libapr-1.lib;${{ steps.deps.outputs.shared_root }}/lib/libaprutil-1.lib" ^
-            -DOPENSSL_ROOT_DIR="${{ steps.deps.outputs.shared_root }}" ^
-            -DPCRE_INCLUDE_DIR="${{ steps.deps.outputs.shared_root }}/include" ^
-            -DPCRE_LIBRARIES="${{ steps.deps.outputs.shared_root }}/lib/pcre.lib" ^
+            -DAPR_INCLUDE_DIR="${{ steps.deps.outputs.deps_root }}/include" ^
+            "-DAPR_LIBRARIES=${{ steps.deps.outputs.deps_root }}/lib/libapr-1.lib;${{ steps.deps.outputs.deps_root }}/lib/libaprutil-1.lib" ^
+            -DOPENSSL_ROOT_DIR="${{ steps.deps.outputs.deps_root }}" ^
+            -DPCRE_INCLUDE_DIR="${{ steps.deps.outputs.deps_root }}/include" ^
+            -DPCRE_LIBRARIES="${{ steps.deps.outputs.deps_root }}/lib/pcre.lib" ^
             -DINSTALL_MANUAL=OFF ^
             -DINSTALL_PDB=ON
 
@@ -199,7 +211,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
 
           $installRoot = Join-Path $env:GITHUB_WORKSPACE 'apache-install'
-          $sharedRoot = '${{ steps.deps.outputs.shared_root }}'
+          $depsRoot = '${{ steps.deps.outputs.deps_root }}'
           $staticRoot = '${{ steps.deps.outputs.static_root }}'
           $apriconvRoot = '${{ steps.deps.outputs.apriconv_root }}'
           $packageRoot = Join-Path $env:GITHUB_WORKSPACE 'install'
@@ -226,9 +238,9 @@ jobs:
               }
           }
 
-          Copy-TreeContents -source (Join-Path $sharedRoot 'include') -destination (Join-Path $packageRoot 'include\apache2_4')
-          Copy-TreeContents -source (Join-Path $sharedRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
-          Copy-TreeContents -source (Join-Path $sharedRoot 'bin') -destination (Join-Path $packageRoot 'bin')
+          Copy-TreeContents -source (Join-Path $depsRoot 'include') -destination (Join-Path $packageRoot 'include\apache2_4')
+          Copy-TreeContents -source (Join-Path $depsRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
+          Copy-TreeContents -source (Join-Path $depsRoot 'bin') -destination (Join-Path $packageRoot 'bin')
           Copy-TreeContents -source (Join-Path $staticRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
           Copy-TreeContents -source (Join-Path $apriconvRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
           Copy-TreeContents -source (Join-Path $apriconvRoot 'bin') -destination (Join-Path $packageRoot 'bin')
