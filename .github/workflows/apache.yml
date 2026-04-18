@@ -251,6 +251,30 @@ jobs:
           Copy-TreeContents -source (Join-Path $installRoot 'bin') -destination (Join-Path $packageRoot 'bin')
           Copy-TreeContents -source (Join-Path $installRoot 'modules') -destination (Join-Path $packageRoot 'modules')
 
+          $packageLibRoot = Join-Path $packageRoot 'lib\apache2_4'
+          foreach ($buildTree in @(
+              (Join-Path 'C:/vcpkg/buildtrees/apr' '${{ matrix.arch }}-windows-rel'),
+              (Join-Path 'C:/vcpkg/buildtrees/apr-util' '${{ matrix.arch }}-windows-rel')
+          )) {
+              if (-not (Test-Path $buildTree)) {
+                  continue
+              }
+
+              Get-ChildItem -Path $buildTree -Filter *.exp -File | ForEach-Object {
+                  Copy-Item -Path $_.FullName -Destination $packageLibRoot -Force
+              }
+          }
+
+          $xmlCompatTarget = Join-Path $packageLibRoot 'xml.lib'
+          if (-not (Test-Path $xmlCompatTarget)) {
+              $xmlCompatSource = Get-ChildItem -Path $packageLibRoot -Filter '*expat*.lib' -File |
+                  Sort-Object Length -Descending |
+                  Select-Object -First 1
+              if ($xmlCompatSource) {
+                  Copy-Item -Path $xmlCompatSource.FullName -Destination $xmlCompatTarget -Force
+              }
+          }
+
           $manifest = Join-Path $packageRoot 'manifest.txt'
           Get-ChildItem -Path $packageRoot -Recurse -File |
               Sort-Object FullName |
