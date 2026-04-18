@@ -1,0 +1,254 @@
+name: Build apache
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: apache/httpd ref to build
+        required: true
+      php:
+        description: PHP version to build for
+        required: true
+defaults:
+  run:
+    shell: cmd
+jobs:
+  build:
+    strategy:
+      matrix:
+        arch: [x64]
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - name: Checkout winlib-builder
+        uses: actions/checkout@v5
+        with:
+          path: winlib-builder
+          repository: shivammathur/winlib-builder
+          repository: shivammathur/winlib-builder
+
+      - name: Checkout apache/httpd
+        uses: actions/checkout@v5
+        with:
+          path: httpd
+          repository: apache/httpd
+          ref: ${{ github.event.inputs.version }}
+
+      - name: Compute virtual inputs
+        id: virtuals
+        run: powershell winlib-builder/scripts/compute-virtuals -version ${{ github.event.inputs.php }} -arch ${{ matrix.arch }}
+
+      - name: Setup MSVC development environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+          toolset: ${{ steps.virtuals.outputs.toolset }}
+
+      - name: Install Apache build dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sharedTriplet = '${{ matrix.arch }}-windows'
+          $staticTriplet = '${{ matrix.arch }}-windows-static-md'
+          $commands = @(
+              "vcpkg install --triplet $sharedTriplet apr[private-headers] apr-util expat openssl pcre",
+              "vcpkg install --triplet $staticTriplet apr apr-util expat"
+          )
+
+          foreach ($command in $commands) {
+              for ($attempt = 1; $attempt -le 3; $attempt++) {
+                  try {
+                      Invoke-Expression $command
+                      break
+                  } catch {
+                      if ($attempt -eq 3) {
+                          throw
+                      }
+                      Start-Sleep -Seconds (5 * $attempt)
+                  }
+              }
+          }
+
+      - name: Prepare source-built dependencies
+        id: deps
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Copy-TreeContents {
+              param (
+                  [Parameter(Mandatory)] [String] $source,
+                  [Parameter(Mandatory)] [String] $destination
+              )
+
+              if (-not (Test-Path $source)) {
+                  return
+              }
+
+              New-Item -Path $destination -ItemType Directory -Force | Out-Null
+              Get-ChildItem -Path $source -Force | ForEach-Object {
+                  Copy-Item -Path $_.FullName -Destination $destination -Recurse -Force
+              }
+          }
+
+          $sharedTriplet = '${{ matrix.arch }}-windows'
+          $staticTriplet = '${{ matrix.arch }}-windows-static-md'
+          $sharedRoot = "C:/vcpkg/installed/$sharedTriplet"
+          $staticRoot = "C:/vcpkg/installed/$staticTriplet"
+          $iconvConfigArch = if ('${{ matrix.arch }}' -eq 'x64') { 'x64' } else { 'Win32' }
+
+          $apriconvSourceRoot = Join-Path $env:GITHUB_WORKSPACE 'apr-iconv-source'
+          $apriconvOutputRoot = Join-Path $env:GITHUB_WORKSPACE 'apr-iconv-install'
+
+          foreach ($path in @($apriconvSourceRoot, $apriconvOutputRoot)) {
+              if (Test-Path $path) {
+                  Remove-Item -Path $path -Recurse -Force
+              }
+              New-Item -Path $path -ItemType Directory -Force | Out-Null
+          }
+
+          foreach ($path in @(
+              (Join-Path $sharedRoot 'include\apr.h'),
+              (Join-Path $sharedRoot 'include\private\apr_escape_test_char.h'),
+              (Join-Path $sharedRoot 'lib\libapr-1.lib'),
+              (Join-Path $sharedRoot 'lib\libaprutil-1.lib'),
+              (Join-Path $staticRoot 'lib')
+          )) {
+              if (-not (Test-Path $path)) {
+                  throw "Required dependency path missing: $path"
+              }
+          }
+
+          $archive = Join-Path $env:RUNNER_TEMP 'apr-iconv.zip'
+          Invoke-WebRequest -Uri 'https://archive.apache.org/dist/apr/apr-iconv-1.2.1-win32-src-r2.zip' -OutFile $archive -UseBasicParsing
+          Expand-Archive -Path $archive -DestinationPath $apriconvSourceRoot -Force
+
+          $apriconvRoot = Get-ChildItem -Path $apriconvSourceRoot -Directory | Select-Object -First 1
+          if (-not $apriconvRoot) {
+              throw "APR-iconv sources were not extracted to $apriconvSourceRoot"
+          }
+
+          $apriconvParent = Split-Path -Path $apriconvRoot.FullName -Parent
+          $aprCompatRoot = Join-Path $apriconvParent 'apr'
+          $aprCompatReleaseRoot = if ('${{ matrix.arch }}' -eq 'x64') {
+              Join-Path $aprCompatRoot 'x64\Release'
+          } else {
+              Join-Path $aprCompatRoot 'Release'
+          }
+          $apriconvBuildRoot = if ('${{ matrix.arch }}' -eq 'x64') {
+              Join-Path $apriconvRoot.FullName 'x64\Release'
+          } else {
+              Join-Path $apriconvRoot.FullName 'Release'
+          }
+
+          if (Test-Path $aprCompatRoot) {
+              Remove-Item -Path $aprCompatRoot -Recurse -Force
+          }
+          New-Item -Path $aprCompatReleaseRoot -ItemType Directory -Force | Out-Null
+          Copy-TreeContents -source (Join-Path $sharedRoot 'include') -destination (Join-Path $aprCompatRoot 'include')
+          Copy-Item -Path (Join-Path $sharedRoot 'lib\libapr-1.lib') -Destination (Join-Path $aprCompatReleaseRoot 'libapr-1.lib') -Force
+
+          Push-Location $apriconvRoot.FullName
+          nmake /f libapriconv.mak CFG="libapriconv - $iconvConfigArch Release" RECURSE=0
+          Pop-Location
+
+          if (-not (Test-Path (Join-Path $apriconvBuildRoot 'libapriconv-1.lib'))) {
+              throw "APR-iconv import library was not built in $apriconvBuildRoot"
+          }
+
+          $apriconvLibInstall = Join-Path $apriconvOutputRoot 'lib'
+          $apriconvBinInstall = Join-Path $apriconvOutputRoot 'bin'
+          New-Item -Path $apriconvLibInstall -ItemType Directory -Force | Out-Null
+          New-Item -Path $apriconvBinInstall -ItemType Directory -Force | Out-Null
+
+          Get-ChildItem -Path $apriconvBuildRoot -File | ForEach-Object {
+              switch ($_.Extension.ToLowerInvariant()) {
+                  '.lib' { Copy-Item -Path $_.FullName -Destination $apriconvLibInstall -Force }
+                  '.exp' { Copy-Item -Path $_.FullName -Destination $apriconvLibInstall -Force }
+                  '.dll' { Copy-Item -Path $_.FullName -Destination $apriconvBinInstall -Force }
+                  '.pdb' { Copy-Item -Path $_.FullName -Destination $apriconvBinInstall -Force }
+              }
+          }
+
+          "shared_root=$($sharedRoot.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
+          "static_root=$($staticRoot.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
+          "apriconv_root=$($apriconvOutputRoot.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
+
+      - name: Configure apache/httpd
+        run: |
+          cmake -S httpd -B build -G "Visual Studio 17 2022" -A ${{ steps.virtuals.outputs.msarch }} ^
+            -T ${{ steps.virtuals.outputs.msts }} ^
+            -DCMAKE_SYSTEM_VERSION=${{ steps.virtuals.outputs.winsdk }} ^
+            -DCMAKE_INSTALL_PREFIX=%GITHUB_WORKSPACE%\apache-install ^
+            -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ^
+            -DAPR_INCLUDE_DIR="${{ steps.deps.outputs.shared_root }}/include" ^
+            "-DAPR_LIBRARIES=${{ steps.deps.outputs.shared_root }}/lib/libapr-1.lib;${{ steps.deps.outputs.shared_root }}/lib/libaprutil-1.lib" ^
+            -DOPENSSL_ROOT_DIR="${{ steps.deps.outputs.shared_root }}" ^
+            -DPCRE_INCLUDE_DIR="${{ steps.deps.outputs.shared_root }}/include" ^
+            -DPCRE_LIBRARIES="${{ steps.deps.outputs.shared_root }}/lib/pcre.lib" ^
+            -DINSTALL_MANUAL=OFF ^
+            -DINSTALL_PDB=ON
+
+      - name: Build apache/httpd
+        run: cmake --build build --config Release
+
+      - name: Install apache/httpd
+        run: cmake --install build --config Release
+
+      - name: Package apache
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $installRoot = Join-Path $env:GITHUB_WORKSPACE 'apache-install'
+          $sharedRoot = '${{ steps.deps.outputs.shared_root }}'
+          $staticRoot = '${{ steps.deps.outputs.static_root }}'
+          $apriconvRoot = '${{ steps.deps.outputs.apriconv_root }}'
+          $packageRoot = Join-Path $env:GITHUB_WORKSPACE 'install'
+
+          if (Test-Path $packageRoot) {
+              Remove-Item -Path $packageRoot -Recurse -Force
+          }
+
+          New-Item -Path $packageRoot -ItemType Directory -Force | Out-Null
+
+          function Copy-TreeContents {
+              param (
+                  [Parameter(Mandatory)] [String] $source,
+                  [Parameter(Mandatory)] [String] $destination
+              )
+
+              if (-not (Test-Path $source)) {
+                  return
+              }
+
+              New-Item -Path $destination -ItemType Directory -Force | Out-Null
+              Get-ChildItem -Path $source -Force | ForEach-Object {
+                  Copy-Item -Path $_.FullName -Destination $destination -Recurse -Force
+              }
+          }
+
+          Copy-TreeContents -source (Join-Path $sharedRoot 'include') -destination (Join-Path $packageRoot 'include\apache2_4')
+          Copy-TreeContents -source (Join-Path $sharedRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
+          Copy-TreeContents -source (Join-Path $sharedRoot 'bin') -destination (Join-Path $packageRoot 'bin')
+          Copy-TreeContents -source (Join-Path $staticRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
+          Copy-TreeContents -source (Join-Path $apriconvRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
+          Copy-TreeContents -source (Join-Path $apriconvRoot 'bin') -destination (Join-Path $packageRoot 'bin')
+
+          Copy-TreeContents -source (Join-Path $installRoot 'include') -destination (Join-Path $packageRoot 'include\apache2_4')
+          Copy-TreeContents -source (Join-Path $installRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
+          Copy-TreeContents -source (Join-Path $installRoot 'bin') -destination (Join-Path $packageRoot 'bin')
+          Copy-TreeContents -source (Join-Path $installRoot 'modules') -destination (Join-Path $packageRoot 'modules')
+
+          $manifest = Join-Path $packageRoot 'manifest.txt'
+          Get-ChildItem -Path $packageRoot -Recurse -File |
+              Sort-Object FullName |
+              ForEach-Object { $_.FullName.Substring($packageRoot.Length + 1) } |
+              Set-Content -Path $manifest
+
+          Get-Content -Path $manifest
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: apache-${{ github.event.inputs.version }}-${{ steps.virtuals.outputs.vs }}-${{ matrix.arch }}
+          path: install
