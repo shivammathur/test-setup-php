@@ -172,11 +172,12 @@ jobs:
           New-Item -Path $apriconvBinInstall -ItemType Directory -Force | Out-Null
 
           Get-ChildItem -Path $apriconvBuildRoot -File | ForEach-Object {
-              switch ($_.Extension.ToLowerInvariant()) {
-                  '.lib' { Copy-Item -Path $_.FullName -Destination $apriconvLibInstall -Force }
-                  '.exp' { Copy-Item -Path $_.FullName -Destination $apriconvLibInstall -Force }
-                  '.dll' { Copy-Item -Path $_.FullName -Destination $apriconvBinInstall -Force }
-                  '.pdb' { Copy-Item -Path $_.FullName -Destination $apriconvBinInstall -Force }
+              $artifact = $_
+              switch ($artifact.Extension.ToLowerInvariant()) {
+                  '.lib' { Copy-Item -Path $artifact.FullName -Destination $apriconvLibInstall -Force }
+                  '.exp' { Copy-Item -Path $artifact.FullName -Destination $apriconvLibInstall -Force }
+                  '.dll' { Copy-Item -Path $artifact.FullName -Destination $apriconvBinInstall -Force }
+                  '.pdb' { Copy-Item -Path $artifact.FullName -Destination $apriconvBinInstall -Force }
               }
           }
 
