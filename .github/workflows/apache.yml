@@ -55,36 +55,37 @@ jobs:
           toolset: ${{ steps.virtuals.outputs.toolset }}
 
       - name: Install PCRE build dependency
-        run: vcpkg install --triplet x64-windows pcre
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+              try {
+                  vcpkg install --triplet x64-windows pcre
+                  exit 0
+              } catch {
+                  if ($attempt -eq 3) {
+                      throw
+                  }
+                  Start-Sleep -Seconds (5 * $attempt)
+              }
+          }
 
       - name: Fetch SDK seed dependencies
         id: deps
         shell: pwsh
         env:
           PHP_VERSION: ${{ inputs.php || '8.4' }}
-          SDK_SERIES: ${{ inputs.stability || 'staging' }}
           SDK_VS: ${{ steps.virtuals.outputs.vs }}
         run: |
           $ErrorActionPreference = 'Stop'
 
           $sdkBase = 'https://downloads.php.net/~windows/php-sdk/deps'
-          $seriesUrl = "$sdkBase/series/packages-$env:PHP_VERSION-$env:SDK_VS-x64-$env:SDK_SERIES.txt"
-          $series = (Invoke-WebRequest -Uri $seriesUrl -UseBasicParsing).Content -split "\r?\n"
-          $opensslPackage = $series |
-              Where-Object { $_ -match "^openssl-.+-$($env:SDK_VS)-x64\.zip$" } |
-              Select-Object -First 1
-
-          if (-not $opensslPackage) {
-              throw "Unable to find an OpenSSL package in $seriesUrl"
-          }
-
           $seedRoot = Join-Path $env:GITHUB_WORKSPACE 'apache-seed'
-          $depsRoot = Join-Path $env:GITHUB_WORKSPACE 'sdk-deps'
           $aprSourceRoot = Join-Path $env:GITHUB_WORKSPACE 'apr-source'
           $aprBuildIncludeRaw = Join-Path $env:GITHUB_WORKSPACE 'apr-build-include'
           $diagRoot = Join-Path $env:GITHUB_WORKSPACE 'diagnostics'
 
-          foreach ($path in @($seedRoot, $depsRoot, $aprSourceRoot, $aprBuildIncludeRaw, $diagRoot)) {
+          foreach ($path in @($seedRoot, $aprSourceRoot, $aprBuildIncludeRaw, $diagRoot)) {
               if (Test-Path $path) {
                   Remove-Item -Path $path -Recurse -Force
               }
@@ -101,11 +102,6 @@ jobs:
                   Name = 'apr-source'
                   Url = 'https://archive.apache.org/dist/apr/apr-1.7.0-win32-src.zip'
                   Destination = $aprSourceRoot
-              },
-              @{
-                  Name = 'openssl'
-                  Url = "$sdkBase/$env:SDK_VS/x64/$opensslPackage"
-                  Destination = $depsRoot
               }
           )
 
@@ -123,17 +119,6 @@ jobs:
           } else {
               Join-Path $aprSourceRoot 'include'
           }
-          $opensslRoot = $depsRoot.Replace('\', '/')
-          $opensslIncludeRaw = Join-Path $depsRoot 'include'
-          $opensslLibRoot = Join-Path $depsRoot 'lib'
-          $sslLibrary = @('libssl.lib', 'ssleay32.lib') |
-              ForEach-Object { Join-Path $opensslLibRoot $_ } |
-              Where-Object { Test-Path $_ } |
-              Select-Object -First 1
-          $cryptoLibrary = @('libcrypto.lib', 'libeay32.lib') |
-              ForEach-Object { Join-Path $opensslLibRoot $_ } |
-              Where-Object { Test-Path $_ } |
-              Select-Object -First 1
 
           if (-not (Test-Path (Join-Path $seedIncludeRaw 'apr.h'))) {
               throw "APR headers were not extracted to $seedIncludeRaw"
@@ -143,9 +128,6 @@ jobs:
           }
           if (-not (Test-Path (Join-Path $aprSourceInclude 'arch\win32\apr_arch_file_io.h'))) {
               throw "APR private headers were not extracted to $aprSourceInclude"
-          }
-          if (-not $sslLibrary -or -not $cryptoLibrary) {
-              throw "Unable to locate OpenSSL import libraries in $opensslLibRoot"
           }
 
           Copy-Item -Path (Join-Path $aprSourceInclude '*') -Destination $aprBuildIncludeRaw -Recurse -Force
@@ -161,17 +143,10 @@ jobs:
               ForEach-Object { $_.FullName.Substring($aprBuildIncludeRaw.Length + 1) } |
               Sort-Object |
               Set-Content -Path (Join-Path $diagRoot 'apr-build-include.txt')
-          Get-ChildItem -Path $opensslLibRoot -File | ForEach-Object { $_.Name } |
-              Sort-Object |
-              Set-Content -Path (Join-Path $diagRoot 'openssl-libs.txt')
 
           "build_include=$($aprBuildIncludeRaw.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
           "seed_include=$($seedIncludeRaw.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
           "seed_lib_root=$($seedLibRootRaw.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
-          "openssl_root=$opensslRoot" | Add-Content -Path $env:GITHUB_OUTPUT
-          "openssl_include=$($opensslIncludeRaw.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
-          "openssl_ssl_library=$($sslLibrary.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
-          "openssl_crypto_library=$($cryptoLibrary.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
 
       - name: Record PCRE layout
         shell: pwsh
@@ -194,10 +169,7 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=%GITHUB_WORKSPACE%\apache-install ^
             -DAPR_INCLUDE_DIR="${{ steps.deps.outputs.build_include }}" ^
             "-DAPR_LIBRARIES=${{ steps.deps.outputs.seed_lib_root }}/libapr-1.lib;${{ steps.deps.outputs.seed_lib_root }}/libaprutil-1.lib" ^
-            -DOPENSSL_ROOT_DIR="${{ steps.deps.outputs.openssl_root }}" ^
-            -DOPENSSL_INCLUDE_DIR="${{ steps.deps.outputs.openssl_include }}" ^
-            -DOPENSSL_SSL_LIBRARY="${{ steps.deps.outputs.openssl_ssl_library }}" ^
-            -DOPENSSL_CRYPTO_LIBRARY="${{ steps.deps.outputs.openssl_crypto_library }}" ^
+            -DCMAKE_DISABLE_FIND_PACKAGE_OpenSSL=TRUE ^
             -DPCRE_INCLUDE_DIR=C:/vcpkg/installed/x64-windows/include ^
             -DPCRE_LIBRARIES=C:/vcpkg/installed/x64-windows/lib/pcre.lib ^
             -DINSTALL_MANUAL=OFF ^
