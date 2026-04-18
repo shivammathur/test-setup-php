@@ -80,9 +80,11 @@ jobs:
 
           $seedRoot = Join-Path $env:GITHUB_WORKSPACE 'apache-seed'
           $depsRoot = Join-Path $env:GITHUB_WORKSPACE 'sdk-deps'
+          $aprSourceRoot = Join-Path $env:GITHUB_WORKSPACE 'apr-source'
+          $aprBuildIncludeRaw = Join-Path $env:GITHUB_WORKSPACE 'apr-build-include'
           $diagRoot = Join-Path $env:GITHUB_WORKSPACE 'diagnostics'
 
-          foreach ($path in @($seedRoot, $depsRoot, $diagRoot)) {
+          foreach ($path in @($seedRoot, $depsRoot, $aprSourceRoot, $aprBuildIncludeRaw, $diagRoot)) {
               if (Test-Path $path) {
                   Remove-Item -Path $path -Recurse -Force
               }
@@ -94,6 +96,11 @@ jobs:
                   Name = 'apache'
                   Url = "$sdkBase/$env:SDK_VS/x64/apache-2.4.43-$env:SDK_VS-x64.zip"
                   Destination = $seedRoot
+              },
+              @{
+                  Name = 'apr-source'
+                  Url = 'https://archive.apache.org/dist/apr/apr-1.7.0-win32-src.zip'
+                  Destination = $aprSourceRoot
               },
               @{
                   Name = 'openssl'
@@ -110,6 +117,12 @@ jobs:
 
           $seedIncludeRaw = Join-Path $seedRoot 'include\apache2_4'
           $seedLibRootRaw = Join-Path $seedRoot 'lib\apache2_4'
+          $aprSourceTop = Get-ChildItem -Path $aprSourceRoot -Directory | Select-Object -First 1
+          $aprSourceInclude = if ($aprSourceTop) {
+              Join-Path $aprSourceTop.FullName 'include'
+          } else {
+              Join-Path $aprSourceRoot 'include'
+          }
           $opensslRoot = $depsRoot.Replace('\', '/')
           $opensslIncludeRaw = Join-Path $depsRoot 'include'
           $opensslLibRoot = Join-Path $depsRoot 'lib'
@@ -128,9 +141,15 @@ jobs:
           if (-not (Test-Path (Join-Path $seedLibRootRaw 'libapr-1.lib'))) {
               throw "APR import libraries were not extracted to $seedLibRootRaw"
           }
+          if (-not (Test-Path (Join-Path $aprSourceInclude 'arch\win32\apr_arch_file_io.h'))) {
+              throw "APR private headers were not extracted to $aprSourceInclude"
+          }
           if (-not $sslLibrary -or -not $cryptoLibrary) {
               throw "Unable to locate OpenSSL import libraries in $opensslLibRoot"
           }
+
+          Copy-Item -Path (Join-Path $aprSourceInclude '*') -Destination $aprBuildIncludeRaw -Recurse -Force
+          Get-ChildItem -Path $seedIncludeRaw -File | Copy-Item -Destination $aprBuildIncludeRaw -Force
 
           Get-ChildItem -Path $seedIncludeRaw -File | ForEach-Object { $_.Name } |
               Sort-Object |
@@ -138,10 +157,15 @@ jobs:
           Get-ChildItem -Path $seedLibRootRaw -File | ForEach-Object { $_.Name } |
               Sort-Object |
               Set-Content -Path (Join-Path $diagRoot 'seed-libs.txt')
+          Get-ChildItem -Path $aprBuildIncludeRaw -Recurse -File |
+              ForEach-Object { $_.FullName.Substring($aprBuildIncludeRaw.Length + 1) } |
+              Sort-Object |
+              Set-Content -Path (Join-Path $diagRoot 'apr-build-include.txt')
           Get-ChildItem -Path $opensslLibRoot -File | ForEach-Object { $_.Name } |
               Sort-Object |
               Set-Content -Path (Join-Path $diagRoot 'openssl-libs.txt')
 
+          "build_include=$($aprBuildIncludeRaw.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
           "seed_include=$($seedIncludeRaw.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
           "seed_lib_root=$($seedLibRootRaw.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
           "openssl_root=$opensslRoot" | Add-Content -Path $env:GITHUB_OUTPUT
@@ -168,7 +192,7 @@ jobs:
             -T ${{ steps.virtuals.outputs.msts }} ^
             -DCMAKE_SYSTEM_VERSION=${{ steps.virtuals.outputs.winsdk }} ^
             -DCMAKE_INSTALL_PREFIX=%GITHUB_WORKSPACE%\apache-install ^
-            -DAPR_INCLUDE_DIR="${{ steps.deps.outputs.seed_include }}" ^
+            -DAPR_INCLUDE_DIR="${{ steps.deps.outputs.build_include }}" ^
             "-DAPR_LIBRARIES=${{ steps.deps.outputs.seed_lib_root }}/libapr-1.lib;${{ steps.deps.outputs.seed_lib_root }}/libaprutil-1.lib" ^
             -DOPENSSL_ROOT_DIR="${{ steps.deps.outputs.openssl_root }}" ^
             -DOPENSSL_INCLUDE_DIR="${{ steps.deps.outputs.openssl_include }}" ^
