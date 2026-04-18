@@ -1,0 +1,193 @@
+name: Test Apache
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: apache/httpd ref to build
+        required: true
+        default: 2.4.43
+      php:
+        description: PHP version to build for
+        required: true
+        default: '8.4'
+
+defaults:
+  run:
+    shell: cmd
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 75
+
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v5
+
+      - name: Checkout winlib-builder
+        uses: actions/checkout@v5
+        with:
+          repository: shivammathur/winlib-builder
+          path: winlib-builder
+
+      - name: Checkout apache/httpd
+        uses: actions/checkout@v5
+        with:
+          repository: apache/httpd
+          ref: ${{ inputs.version }}
+          path: httpd
+
+      - name: Compute virtual inputs
+        id: virtuals
+        shell: powershell
+        run: winlib-builder\scripts\compute-virtuals.ps1 -version ${{ inputs.php }} -arch x64
+
+      - name: Setup MSVC development environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+          toolset: ${{ steps.virtuals.outputs.toolset }}
+
+      - name: Install apache build dependencies
+        run: |
+          vcpkg install --triplet x64-windows apr[private-headers] apr-util pcre2 openssl
+          vcpkg install --triplet x64-windows-static apr apr-util expat
+
+      - name: Record dependency layout
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $diagRoot = Join-Path $env:GITHUB_WORKSPACE 'diagnostics'
+          New-Item -Path $diagRoot -ItemType Directory -Force | Out-Null
+
+          @(
+              'C:\vcpkg\installed\x64-windows\include',
+              'C:\vcpkg\installed\x64-windows\lib',
+              'C:\vcpkg\installed\x64-windows-static\include',
+              'C:\vcpkg\installed\x64-windows-static\lib'
+          ) | ForEach-Object {
+              $name = $_ -replace '[:\\]', '_'
+              if (Test-Path $_) {
+                  Get-ChildItem -Path $_ -Recurse -File |
+                      ForEach-Object { $_.FullName } |
+                      Set-Content -Path (Join-Path $diagRoot "$name.txt")
+              }
+          }
+
+          Get-ChildItem -Path C:\vcpkg\buildtrees -Recurse -File -ErrorAction SilentlyContinue |
+              Where-Object {
+                  $_.FullName -match '\\(apr|apr-util|expat)\\' -and
+                  $_.Name -match 'apr_escape_test_char\.h|libapr.*\.(exp|lib)|aprutil.*\.lib|xml\.lib|expat\.lib|apriconv'
+              } |
+              ForEach-Object { $_.FullName } |
+              Set-Content -Path (Join-Path $diagRoot 'buildtree-matches.txt')
+
+      - name: Configure apache/httpd
+        run: |
+          cmake -S httpd -B build -G "Visual Studio 17 2022" -A x64 ^
+            -T ${{ steps.virtuals.outputs.msts }} ^
+            -DCMAKE_SYSTEM_VERSION=${{ steps.virtuals.outputs.winsdk }} ^
+            -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ^
+            -DVCPKG_TARGET_TRIPLET=x64-windows ^
+            -DCMAKE_INSTALL_PREFIX=%GITHUB_WORKSPACE%\apache-install ^
+            -DAPR_INCLUDE_DIR=C:/vcpkg/installed/x64-windows/include ^
+            "-DAPR_LIBRARIES=C:/vcpkg/installed/x64-windows/lib/libapr-1.lib;C:/vcpkg/installed/x64-windows/lib/libaprutil-1.lib" ^
+            -DINSTALL_MANUAL=OFF ^
+            -DINSTALL_PDB=ON
+
+      - name: Build apache/httpd
+        run: cmake --build build --config Release
+
+      - name: Install apache/httpd
+        run: cmake --install build --config Release
+
+      - name: Package SDK-style artifact
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $installRoot = Join-Path $env:GITHUB_WORKSPACE 'apache-install'
+          $httpdInclude = Join-Path $installRoot 'include'
+          $packageRoot = Join-Path $env:GITHUB_WORKSPACE 'package'
+          $includeRoot = Join-Path $packageRoot 'include\apache2_4'
+          $libRoot = Join-Path $packageRoot 'lib\apache2_4'
+          $diagRoot = Join-Path $env:GITHUB_WORKSPACE 'diagnostics'
+
+          if (Test-Path $packageRoot) {
+              Remove-Item -Path $packageRoot -Recurse -Force
+          }
+
+          New-Item -Path $includeRoot -ItemType Directory -Force | Out-Null
+          New-Item -Path $libRoot -ItemType Directory -Force | Out-Null
+
+          Get-ChildItem -Path $httpdInclude -Filter *.h -File | Copy-Item -Destination $includeRoot -Force
+
+          foreach ($pattern in @('apr*.h', 'apu*.h', 'expat.h')) {
+              Get-ChildItem -Path 'C:\vcpkg\installed\x64-windows\include' -Filter $pattern -File -ErrorAction SilentlyContinue |
+                  Copy-Item -Destination $includeRoot -Force
+          }
+
+          $aprEscapeHeader = Get-ChildItem -Path C:\vcpkg\buildtrees -Recurse -File -Filter apr_escape_test_char.h -ErrorAction SilentlyContinue |
+              Select-Object -First 1
+          if ($aprEscapeHeader) {
+              Copy-Item -Path $aprEscapeHeader.FullName -Destination (Join-Path $includeRoot 'apr_escape_test_char.h') -Force
+          }
+
+          $packageLibraries = @(
+              (Join-Path $installRoot 'lib\libhttpd.exp'),
+              (Join-Path $installRoot 'lib\libhttpd.lib'),
+              (Join-Path $installRoot 'lib\mod_dav.exp'),
+              (Join-Path $installRoot 'lib\mod_dav.lib'),
+              (Join-Path $installRoot 'lib\mod_proxy.lib'),
+              'C:\vcpkg\installed\x64-windows\lib\libapr-1.lib',
+              'C:\vcpkg\installed\x64-windows\lib\libaprutil-1.lib',
+              'C:\vcpkg\installed\x64-windows-static\lib\apr-1.lib',
+              'C:\vcpkg\installed\x64-windows-static\lib\aprutil-1.lib',
+              'C:\vcpkg\installed\x64-windows-static\lib\expat.lib'
+          )
+
+          foreach ($library in $packageLibraries) {
+              if (Test-Path $library) {
+                  $destination = Join-Path $libRoot ([IO.Path]::GetFileName($library))
+                  if ([IO.Path]::GetFileName($library) -eq 'expat.lib') {
+                      $destination = Join-Path $libRoot 'xml.lib'
+                  }
+                  Copy-Item -Path $library -Destination $destination -Force
+              }
+          }
+
+          Get-ChildItem -Path C:\vcpkg\buildtrees -Recurse -File -ErrorAction SilentlyContinue |
+              Where-Object { $_.Name -in 'libapr-1.exp', 'libaprutil-1.exp', 'libapriconv-1.exp', 'libapriconv-1.lib', 'xml.lib' } |
+              Sort-Object FullName -Unique |
+              ForEach-Object {
+                  $destination = Join-Path $libRoot $_.Name
+                  if (-not (Test-Path $destination)) {
+                      Copy-Item -Path $_.FullName -Destination $destination -Force
+                  }
+              }
+
+          $manifest = Join-Path $packageRoot 'manifest.txt'
+          Get-ChildItem -Path $packageRoot -Recurse -File |
+              Sort-Object FullName |
+              ForEach-Object { $_.FullName.Substring($packageRoot.Length + 1) } |
+              Set-Content -Path $manifest
+
+          Get-Content -Path $manifest
+
+          $copyLog = Join-Path $diagRoot 'packaged-files.txt'
+          Get-ChildItem -Path $packageRoot -Recurse -File |
+              ForEach-Object { $_.FullName } |
+              Set-Content -Path $copyLog
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apache-${{ inputs.version }}-${{ steps.virtuals.outputs.vs }}-x64
+          path: package
+
+      - name: Upload diagnostics artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-${{ inputs.version }}-${{ steps.virtuals.outputs.vs }}-x64
+          path: diagnostics
