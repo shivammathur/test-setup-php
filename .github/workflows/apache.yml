@@ -4,14 +4,14 @@ on:
   push:
   workflow_dispatch:
     inputs:
-      version:
-        description: apache/httpd ref to build
-        required: true
-        default: 2.4.43
       php:
         description: PHP version to build for
         required: true
-        default: '8.4'
+        default: "8.4"
+      stability:
+        description: the series stability
+        required: false
+        default: staging
 
 defaults:
   run:
@@ -24,7 +24,7 @@ jobs:
       matrix:
         version: [2.4.43, 2.4.66]
     runs-on: windows-2022
-    timeout-minutes: 75
+    timeout-minutes: 45
 
     steps:
       - name: Checkout test branch
@@ -54,50 +54,123 @@ jobs:
           arch: x64
           toolset: ${{ steps.virtuals.outputs.toolset }}
 
-      - name: Install apache build dependencies
-        run: |
-          vcpkg install --triplet x64-windows apr[private-headers] apr-util pcre2 openssl
-          vcpkg install --triplet x64-windows-static apr apr-util expat
+      - name: Install PCRE build dependency
+        run: vcpkg install --triplet x64-windows pcre
 
-      - name: Record dependency layout
+      - name: Fetch SDK seed dependencies
+        id: deps
         shell: pwsh
+        env:
+          PHP_VERSION: ${{ inputs.php || '8.4' }}
+          SDK_SERIES: ${{ inputs.stability || 'staging' }}
+          SDK_VS: ${{ steps.virtuals.outputs.vs }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $diagRoot = Join-Path $env:GITHUB_WORKSPACE 'diagnostics'
-          New-Item -Path $diagRoot -ItemType Directory -Force | Out-Null
 
-          @(
-              'C:\vcpkg\installed\x64-windows\include',
-              'C:\vcpkg\installed\x64-windows\lib',
-              'C:\vcpkg\installed\x64-windows-static\include',
-              'C:\vcpkg\installed\x64-windows-static\lib'
-          ) | ForEach-Object {
-              $name = $_ -replace '[:\\]', '_'
-              if (Test-Path $_) {
-                  Get-ChildItem -Path $_ -Recurse -File |
-                      ForEach-Object { $_.FullName } |
-                      Set-Content -Path (Join-Path $diagRoot "$name.txt")
-              }
+          $sdkBase = 'https://downloads.php.net/~windows/php-sdk/deps'
+          $seriesUrl = "$sdkBase/series/packages-$env:PHP_VERSION-$env:SDK_VS-x64-$env:SDK_SERIES.txt"
+          $series = (Invoke-WebRequest -Uri $seriesUrl -UseBasicParsing).Content -split "\r?\n"
+          $opensslPackage = $series |
+              Where-Object { $_ -match "^openssl-.+-$($env:SDK_VS)-x64\.zip$" } |
+              Select-Object -First 1
+
+          if (-not $opensslPackage) {
+              throw "Unable to find an OpenSSL package in $seriesUrl"
           }
 
-          Get-ChildItem -Path C:\vcpkg\buildtrees -Recurse -File -ErrorAction SilentlyContinue |
-              Where-Object {
-                  $_.FullName -match '\\(apr|apr-util|expat)\\' -and
-                  $_.Name -match 'apr_escape_test_char\.h|libapr.*\.(exp|lib)|aprutil.*\.lib|xml\.lib|expat\.lib|apriconv'
-              } |
-              ForEach-Object { $_.FullName } |
-              Set-Content -Path (Join-Path $diagRoot 'buildtree-matches.txt')
+          $seedRoot = Join-Path $env:GITHUB_WORKSPACE 'apache-seed'
+          $depsRoot = Join-Path $env:GITHUB_WORKSPACE 'sdk-deps'
+          $diagRoot = Join-Path $env:GITHUB_WORKSPACE 'diagnostics'
+
+          foreach ($path in @($seedRoot, $depsRoot, $diagRoot)) {
+              if (Test-Path $path) {
+                  Remove-Item -Path $path -Recurse -Force
+              }
+              New-Item -Path $path -ItemType Directory -Force | Out-Null
+          }
+
+          $downloads = @(
+              @{
+                  Name = 'apache'
+                  Url = "$sdkBase/$env:SDK_VS/x64/apache-2.4.43-$env:SDK_VS-x64.zip"
+                  Destination = $seedRoot
+              },
+              @{
+                  Name = 'openssl'
+                  Url = "$sdkBase/$env:SDK_VS/x64/$opensslPackage"
+                  Destination = $depsRoot
+              }
+          )
+
+          foreach ($download in $downloads) {
+              $archive = Join-Path $env:RUNNER_TEMP "$($download.Name).zip"
+              Invoke-WebRequest -Uri $download.Url -OutFile $archive -UseBasicParsing
+              Expand-Archive -Path $archive -DestinationPath $download.Destination -Force
+          }
+
+          $seedInclude = Join-Path $seedRoot 'include\apache2_4'
+          $seedLibRoot = Join-Path $seedRoot 'lib\apache2_4'
+          $opensslInclude = Join-Path $depsRoot 'include'
+          $opensslLibRoot = Join-Path $depsRoot 'lib'
+          $sslLibrary = @('libssl.lib', 'ssleay32.lib') |
+              ForEach-Object { Join-Path $opensslLibRoot $_ } |
+              Where-Object { Test-Path $_ } |
+              Select-Object -First 1
+          $cryptoLibrary = @('libcrypto.lib', 'libeay32.lib') |
+              ForEach-Object { Join-Path $opensslLibRoot $_ } |
+              Where-Object { Test-Path $_ } |
+              Select-Object -First 1
+
+          if (-not (Test-Path (Join-Path $seedInclude 'apr.h'))) {
+              throw "APR headers were not extracted to $seedInclude"
+          }
+          if (-not (Test-Path (Join-Path $seedLibRoot 'libapr-1.lib'))) {
+              throw "APR import libraries were not extracted to $seedLibRoot"
+          }
+          if (-not $sslLibrary -or -not $cryptoLibrary) {
+              throw "Unable to locate OpenSSL import libraries in $opensslLibRoot"
+          }
+
+          Get-ChildItem -Path $seedInclude -File | ForEach-Object { $_.Name } |
+              Sort-Object |
+              Set-Content -Path (Join-Path $diagRoot 'seed-headers.txt')
+          Get-ChildItem -Path $seedLibRoot -File | ForEach-Object { $_.Name } |
+              Sort-Object |
+              Set-Content -Path (Join-Path $diagRoot 'seed-libs.txt')
+          Get-ChildItem -Path $opensslLibRoot -File | ForEach-Object { $_.Name } |
+              Sort-Object |
+              Set-Content -Path (Join-Path $diagRoot 'openssl-libs.txt')
+
+          "seed_include=$seedInclude" | Add-Content -Path $env:GITHUB_OUTPUT
+          "seed_lib_root=$seedLibRoot" | Add-Content -Path $env:GITHUB_OUTPUT
+          "openssl_include=$opensslInclude" | Add-Content -Path $env:GITHUB_OUTPUT
+          "openssl_libs=$sslLibrary;$cryptoLibrary" | Add-Content -Path $env:GITHUB_OUTPUT
+
+      - name: Record PCRE layout
+        shell: pwsh
+        run: |
+          $diagRoot = Join-Path $env:GITHUB_WORKSPACE 'diagnostics'
+          Get-ChildItem -Path 'C:\vcpkg\installed\x64-windows\include' -Filter 'pcre*.h' -File |
+              ForEach-Object { $_.Name } |
+              Sort-Object |
+              Set-Content -Path (Join-Path $diagRoot 'pcre-headers.txt')
+          Get-ChildItem -Path 'C:\vcpkg\installed\x64-windows\lib' -Filter 'pcre*.lib' -File |
+              ForEach-Object { $_.Name } |
+              Sort-Object |
+              Set-Content -Path (Join-Path $diagRoot 'pcre-libs.txt')
 
       - name: Configure apache/httpd
         run: |
           cmake -S httpd -B build -G "Visual Studio 17 2022" -A x64 ^
             -T ${{ steps.virtuals.outputs.msts }} ^
             -DCMAKE_SYSTEM_VERSION=${{ steps.virtuals.outputs.winsdk }} ^
-            -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ^
-            -DVCPKG_TARGET_TRIPLET=x64-windows ^
             -DCMAKE_INSTALL_PREFIX=%GITHUB_WORKSPACE%\apache-install ^
-            -DAPR_INCLUDE_DIR=C:/vcpkg/installed/x64-windows/include ^
-            "-DAPR_LIBRARIES=C:/vcpkg/installed/x64-windows/lib/libapr-1.lib;C:/vcpkg/installed/x64-windows/lib/libaprutil-1.lib" ^
+            -DAPR_INCLUDE_DIR="${{ steps.deps.outputs.seed_include }}" ^
+            "-DAPR_LIBRARIES=${{ steps.deps.outputs.seed_lib_root }}\libapr-1.lib;${{ steps.deps.outputs.seed_lib_root }}\libaprutil-1.lib" ^
+            -DOPENSSL_INCLUDE_DIR="${{ steps.deps.outputs.openssl_include }}" ^
+            "-DOPENSSL_LIBRARIES=${{ steps.deps.outputs.openssl_libs }}" ^
+            -DPCRE_INCLUDE_DIR=C:/vcpkg/installed/x64-windows/include ^
+            -DPCRE_LIBRARIES=C:/vcpkg/installed/x64-windows/lib/pcre.lib ^
             -DINSTALL_MANUAL=OFF ^
             -DINSTALL_PDB=ON
 
@@ -113,7 +186,10 @@ jobs:
           $ErrorActionPreference = 'Stop'
 
           $installRoot = Join-Path $env:GITHUB_WORKSPACE 'apache-install'
+          $seedRoot = Join-Path $env:GITHUB_WORKSPACE 'apache-seed'
           $httpdInclude = Join-Path $installRoot 'include'
+          $seedInclude = Join-Path $seedRoot 'include\apache2_4'
+          $seedLibRoot = Join-Path $seedRoot 'lib\apache2_4'
           $packageRoot = Join-Path $env:GITHUB_WORKSPACE 'package'
           $includeRoot = Join-Path $packageRoot 'include\apache2_4'
           $libRoot = Join-Path $packageRoot 'lib\apache2_4'
@@ -126,51 +202,50 @@ jobs:
           New-Item -Path $includeRoot -ItemType Directory -Force | Out-Null
           New-Item -Path $libRoot -ItemType Directory -Force | Out-Null
 
-          Get-ChildItem -Path $httpdInclude -Filter *.h -File | Copy-Item -Destination $includeRoot -Force
-
-          foreach ($pattern in @('apr*.h', 'apu*.h', 'expat.h')) {
-              Get-ChildItem -Path 'C:\vcpkg\installed\x64-windows\include' -Filter $pattern -File -ErrorAction SilentlyContinue |
+          foreach ($pattern in @('apr*.h', 'apu*.h', 'expat*.h')) {
+              Get-ChildItem -Path $seedInclude -Filter $pattern -File -ErrorAction SilentlyContinue |
                   Copy-Item -Destination $includeRoot -Force
           }
 
-          $aprEscapeHeader = Get-ChildItem -Path C:\vcpkg\buildtrees -Recurse -File -Filter apr_escape_test_char.h -ErrorAction SilentlyContinue |
-              Select-Object -First 1
-          if ($aprEscapeHeader) {
-              Copy-Item -Path $aprEscapeHeader.FullName -Destination (Join-Path $includeRoot 'apr_escape_test_char.h') -Force
-          }
-
-          $packageLibraries = @(
-              (Join-Path $installRoot 'lib\libhttpd.exp'),
-              (Join-Path $installRoot 'lib\libhttpd.lib'),
-              (Join-Path $installRoot 'lib\mod_dav.exp'),
-              (Join-Path $installRoot 'lib\mod_dav.lib'),
-              (Join-Path $installRoot 'lib\mod_proxy.lib'),
-              'C:\vcpkg\installed\x64-windows\lib\libapr-1.lib',
-              'C:\vcpkg\installed\x64-windows\lib\libaprutil-1.lib',
-              'C:\vcpkg\installed\x64-windows-static\lib\apr-1.lib',
-              'C:\vcpkg\installed\x64-windows-static\lib\aprutil-1.lib',
-              'C:\vcpkg\installed\x64-windows-static\lib\expat.lib'
-          )
-
-          foreach ($library in $packageLibraries) {
-              if (Test-Path $library) {
-                  $destination = Join-Path $libRoot ([IO.Path]::GetFileName($library))
-                  if ([IO.Path]::GetFileName($library) -eq 'expat.lib') {
-                      $destination = Join-Path $libRoot 'xml.lib'
-                  }
-                  Copy-Item -Path $library -Destination $destination -Force
+          foreach ($header in @('api_version.h', 'iconv.h')) {
+              $candidate = Join-Path $seedInclude $header
+              if (Test-Path $candidate) {
+                  Copy-Item -Path $candidate -Destination (Join-Path $includeRoot $header) -Force
               }
           }
 
-          Get-ChildItem -Path C:\vcpkg\buildtrees -Recurse -File -ErrorAction SilentlyContinue |
-              Where-Object { $_.Name -in 'libapr-1.exp', 'libaprutil-1.exp', 'libapriconv-1.exp', 'libapriconv-1.lib', 'xml.lib' } |
-              Sort-Object FullName -Unique |
-              ForEach-Object {
-                  $destination = Join-Path $libRoot $_.Name
-                  if (-not (Test-Path $destination)) {
-                      Copy-Item -Path $_.FullName -Destination $destination -Force
-                  }
+          Get-ChildItem -Path $httpdInclude -Filter *.h -File |
+              Copy-Item -Destination $includeRoot -Force
+
+          foreach ($library in @(
+              'apr-1.lib',
+              'aprutil-1.lib',
+              'libapr-1.exp',
+              'libapr-1.lib',
+              'libapriconv-1.exp',
+              'libapriconv-1.lib',
+              'libaprutil-1.exp',
+              'libaprutil-1.lib',
+              'xml.lib'
+          )) {
+              $candidate = Join-Path $seedLibRoot $library
+              if (Test-Path $candidate) {
+                  Copy-Item -Path $candidate -Destination (Join-Path $libRoot $library) -Force
               }
+          }
+
+          foreach ($library in @(
+              'libhttpd.exp',
+              'libhttpd.lib',
+              'mod_dav.exp',
+              'mod_dav.lib',
+              'mod_proxy.lib'
+          )) {
+              $candidate = Join-Path $installRoot "lib\$library"
+              if (Test-Path $candidate) {
+                  Copy-Item -Path $candidate -Destination (Join-Path $libRoot $library) -Force
+              }
+          }
 
           $manifest = Join-Path $packageRoot 'manifest.txt'
           Get-ChildItem -Path $packageRoot -Recurse -File |
@@ -180,18 +255,20 @@ jobs:
 
           Get-Content -Path $manifest
 
-          $copyLog = Join-Path $diagRoot 'packaged-files.txt'
           Get-ChildItem -Path $packageRoot -Recurse -File |
-              ForEach-Object { $_.FullName } |
-              Set-Content -Path $copyLog
+              ForEach-Object { $_.FullName.Substring($packageRoot.Length + 1) } |
+              Sort-Object |
+              Set-Content -Path (Join-Path $diagRoot 'packaged-files.txt')
 
       - name: Upload package artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: apache-${{ matrix.version }}-${{ steps.virtuals.outputs.vs }}-x64
           path: package
 
       - name: Upload diagnostics artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: diagnostics-${{ matrix.version }}-${{ steps.virtuals.outputs.vs }}-x64
