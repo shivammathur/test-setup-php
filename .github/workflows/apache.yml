@@ -1,0 +1,296 @@
+name: Build apache
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: apache/httpd ref to build
+        required: true
+      php:
+        description: PHP version to build for
+        required: true
+defaults:
+  run:
+    shell: cmd
+jobs:
+  build:
+    strategy:
+      matrix:
+        arch: [x64]
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - name: Checkout winlib-builder
+        uses: actions/checkout@v5
+        with:
+          path: winlib-builder
+          repository: shivammathur/winlib-builder
+
+      - name: Apply fetch-deps test patch
+        shell: pwsh
+        run: |
+          @'
+          param (
+              [Parameter(Mandatory)] [String] $lib,
+              [Parameter(Mandatory)] [String] $version,
+              [Parameter(Mandatory)] [String] $vs,
+              [Parameter(Mandatory)] [String] $arch,
+              [String] $stability = "staging",
+              [String] $destination = "deps"
+          )
+
+          $ErrorActionPreference = "Stop"
+
+          function Expand-Package {
+              param (
+                  [Parameter(Mandatory)] [String] $url,
+                  [Parameter(Mandatory)] [String] $target
+              )
+
+              $temp = New-TemporaryFile | Rename-Item -NewName { $_.Name + ".zip" } -PassThru
+              Write-Output "Fetching $url"
+              Invoke-WebRequest -Uri $url -OutFile $temp
+              Expand-Archive -Path $temp -DestinationPath $target -Force
+          }
+
+          $specialPackages = @{
+              # Apache is seeded from the currently published PHP SDK package.
+              "apache" = @(
+                  @{
+                      Name = "apache"
+                      Version = "2.4.43"
+                      BaseUrl = "https://downloads.php.net/~windows/php-sdk/deps/$vs/$arch"
+                  }
+              )
+          }
+
+          if ($specialPackages.ContainsKey($lib)) {
+              New-Item -Path $destination -ItemType "directory" -Force | Out-Null
+              foreach ($package in $specialPackages[$lib]) {
+                  $url = "$($package.BaseUrl)/$($package.Name)-$($package.Version)-$vs-$arch.zip"
+                  Expand-Package -url $url -target $destination
+              }
+              exit
+          }
+
+          $dependencyMap = @{
+              "curl" = "brotli", "libssh2", "libzstd", "nghttp2", "openssl", "zlib";
+              "cyrus-sasl" = "liblmdb", "openssl", "sqlite3";
+              "enchant" = "glib";
+              "glib" = "libffi", "libintl", "zlib";
+              "libpng" = "zlib";
+              "librdkafka" = "libzstd", "openssl", "zlib";
+              "libssh2" = "openssl", "zlib";
+              "libxml2" = "libiconv";
+              "libxslt" = "libiconv", "libxml2";
+              "libzip" = "libbzip2", "zlib";
+              "net-snmp" = "openssl";
+              "openldap" = "openssl", "libsasl";
+              "postgresql" = "openssl"
+          }
+          if ($version -ge "8.0") {
+              $dependencyMap."libzip" += "liblzma"
+          }
+          $deps = $dependencyMap.$lib
+          if (-not $deps) {
+              exit
+          }
+
+          $needs = @{}
+          $response = Invoke-WebRequest -Uri "https://downloads.php.net/~windows/php-sdk/deps/series/packages-$version-$vs-$arch-$stability.txt" -UseBasicParsing
+          foreach ($line in $response.Content -split "\r?\n") {
+              foreach ($dep in $deps) {
+                  if ($line -match "$dep-(.+)-$vs-$arch.zip") {
+                      $needs.$dep = $matches[1]
+                  }
+              }
+          }
+
+          New-Item -Path $destination -ItemType "directory" -Force | Out-Null
+
+          $baseurl = "https://downloads.php.net/~windows/php-sdk/deps/$vs/$arch"
+          foreach ($dep in $needs.GetEnumerator()) {
+              $url = "$baseurl/$($dep.Name)-$($dep.Value)-$vs-$arch.zip"
+              Expand-Package -url $url -target $destination
+          }
+
+          $deps = $deps | Where-Object {$needs.Keys -NotContains $_}
+          if ($deps.Count -gt 0) {
+              $needs = @{}
+              $response = Invoke-WebRequest -Uri "https://downloads.php.net/~windows/pecl/deps/packages.txt" -UseBasicParsing
+              foreach ($line in $response.Content -split "\r?\n") {
+                  foreach ($dep in $deps) {
+                      if ($line -match "$dep-(.+)-$vs-$arch.zip") {
+                          $needs.$dep = $matches[1]
+                      }
+                  }
+              }
+
+              $baseurl = "https://downloads.php.net/~windows/pecl/deps"
+              foreach ($dep in $needs.GetEnumerator()) {
+                  $url = "$baseurl/$($dep.Name)-$($dep.Value)-$vs-$arch.zip"
+                  Expand-Package -url $url -target $destination
+              }
+          }
+
+          $deps = $deps | Where-Object {$needs.Keys -NotContains $_}
+          if ($deps.Count -gt 0) {
+              throw "dependencies not found: $deps"
+          }
+          '@ | Set-Content -Path winlib-builder\scripts\fetch-deps.ps1
+
+      - name: Checkout apache/httpd
+        uses: actions/checkout@v5
+        with:
+          path: httpd
+          repository: apache/httpd
+          ref: ${{ github.event.inputs.version }}
+
+      - name: Compute virtual inputs
+        id: virtuals
+        run: powershell winlib-builder/scripts/compute-virtuals -version ${{ github.event.inputs.php }} -arch ${{ matrix.arch }}
+
+      - name: Setup MSVC development environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+          toolset: ${{ steps.virtuals.outputs.toolset }}
+
+      - name: Install PCRE build dependency
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+              try {
+                  vcpkg install --triplet x64-windows pcre
+                  exit 0
+              } catch {
+                  if ($attempt -eq 3) {
+                      throw
+                  }
+                  Start-Sleep -Seconds (5 * $attempt)
+              }
+          }
+
+      - name: Fetch SDK seed package
+        run: powershell winlib-builder/scripts/fetch-deps -lib apache -version ${{ github.event.inputs.php }} -vs ${{ steps.virtuals.outputs.vs }} -arch ${{ matrix.arch }} -destination apache-seed
+
+      - name: Prepare APR build headers
+        id: deps
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $seedRoot = Join-Path $env:GITHUB_WORKSPACE 'apache-seed'
+          $aprSourceRoot = Join-Path $env:GITHUB_WORKSPACE 'apr-source'
+          $aprBuildIncludeRaw = Join-Path $env:GITHUB_WORKSPACE 'apr-build-include'
+
+          foreach ($path in @($aprSourceRoot, $aprBuildIncludeRaw)) {
+              if (Test-Path $path) {
+                  Remove-Item -Path $path -Recurse -Force
+              }
+              New-Item -Path $path -ItemType Directory -Force | Out-Null
+          }
+
+          $archive = Join-Path $env:RUNNER_TEMP 'apr-source.zip'
+          Invoke-WebRequest -Uri 'https://archive.apache.org/dist/apr/apr-1.7.0-win32-src.zip' -OutFile $archive -UseBasicParsing
+          Expand-Archive -Path $archive -DestinationPath $aprSourceRoot -Force
+
+          $seedIncludeRaw = Join-Path $seedRoot 'include\apache2_4'
+          $seedLibRootRaw = Join-Path $seedRoot 'lib\apache2_4'
+          $aprSourceTop = Get-ChildItem -Path $aprSourceRoot -Directory | Select-Object -First 1
+          $aprSourceInclude = if ($aprSourceTop) {
+              Join-Path $aprSourceTop.FullName 'include'
+          } else {
+              Join-Path $aprSourceRoot 'include'
+          }
+
+          if (-not (Test-Path (Join-Path $seedIncludeRaw 'apr.h'))) {
+              throw "APR headers were not extracted to $seedIncludeRaw"
+          }
+          if (-not (Test-Path (Join-Path $seedLibRootRaw 'libapr-1.lib'))) {
+              throw "APR import libraries were not extracted to $seedLibRootRaw"
+          }
+          if (-not (Test-Path (Join-Path $aprSourceInclude 'arch\win32\apr_arch_file_io.h'))) {
+              throw "APR private headers were not extracted to $aprSourceInclude"
+          }
+
+          Copy-Item -Path (Join-Path $aprSourceInclude '*') -Destination $aprBuildIncludeRaw -Recurse -Force
+          Get-ChildItem -Path $seedIncludeRaw -File | Copy-Item -Destination $aprBuildIncludeRaw -Force
+
+          "build_include=$($aprBuildIncludeRaw.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
+          "seed_lib_root=$($seedLibRootRaw.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
+
+      - name: Configure apache/httpd
+        run: |
+          cmake -S httpd -B build -G "Visual Studio 17 2022" -A ${{ steps.virtuals.outputs.msarch }} ^
+            -T ${{ steps.virtuals.outputs.msts }} ^
+            -DCMAKE_SYSTEM_VERSION=${{ steps.virtuals.outputs.winsdk }} ^
+            -DCMAKE_INSTALL_PREFIX=%GITHUB_WORKSPACE%\apache-install ^
+            -DAPR_INCLUDE_DIR="${{ steps.deps.outputs.build_include }}" ^
+            "-DAPR_LIBRARIES=${{ steps.deps.outputs.seed_lib_root }}/libapr-1.lib;${{ steps.deps.outputs.seed_lib_root }}/libaprutil-1.lib" ^
+            -DCMAKE_DISABLE_FIND_PACKAGE_OpenSSL=TRUE ^
+            -DPCRE_INCLUDE_DIR=C:/vcpkg/installed/x64-windows/include ^
+            -DPCRE_LIBRARIES=C:/vcpkg/installed/x64-windows/lib/pcre.lib ^
+            -DINSTALL_MANUAL=OFF ^
+            -DINSTALL_PDB=ON
+
+      - name: Build apache/httpd
+        run: cmake --build build --config Release
+
+      - name: Install apache/httpd
+        run: cmake --install build --config Release
+
+      - name: Package apache
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $installRoot = Join-Path $env:GITHUB_WORKSPACE 'apache-install'
+          $seedRoot = Join-Path $env:GITHUB_WORKSPACE 'apache-seed'
+          $packageRoot = Join-Path $env:GITHUB_WORKSPACE 'install'
+
+          if (Test-Path $packageRoot) {
+              Remove-Item -Path $packageRoot -Recurse -Force
+          }
+
+          New-Item -Path $packageRoot -ItemType Directory -Force | Out-Null
+
+          function Copy-TreeContents {
+              param (
+                  [Parameter(Mandatory)] [String] $source,
+                  [Parameter(Mandatory)] [String] $destination
+              )
+
+              if (-not (Test-Path $source)) {
+                  return
+              }
+
+              New-Item -Path $destination -ItemType Directory -Force | Out-Null
+              Get-ChildItem -Path $source -Force | ForEach-Object {
+                  Copy-Item -Path $_.FullName -Destination $destination -Recurse -Force
+              }
+          }
+
+          Copy-TreeContents -source (Join-Path $seedRoot 'include') -destination (Join-Path $packageRoot 'include')
+          Copy-TreeContents -source (Join-Path $seedRoot 'lib') -destination (Join-Path $packageRoot 'lib')
+          Copy-TreeContents -source (Join-Path $seedRoot 'bin') -destination (Join-Path $packageRoot 'bin')
+          Copy-TreeContents -source (Join-Path $seedRoot 'modules') -destination (Join-Path $packageRoot 'modules')
+
+          Copy-TreeContents -source (Join-Path $installRoot 'include') -destination (Join-Path $packageRoot 'include\apache2_4')
+          Copy-TreeContents -source (Join-Path $installRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
+          Copy-TreeContents -source (Join-Path $installRoot 'bin') -destination (Join-Path $packageRoot 'bin')
+          Copy-TreeContents -source (Join-Path $installRoot 'modules') -destination (Join-Path $packageRoot 'modules')
+
+          $manifest = Join-Path $packageRoot 'manifest.txt'
+          Get-ChildItem -Path $packageRoot -Recurse -File |
+              Sort-Object FullName |
+              ForEach-Object { $_.FullName.Substring($packageRoot.Length + 1) } |
+              Set-Content -Path $manifest
+
+          Get-Content -Path $manifest
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: apache-${{ github.event.inputs.version }}-${{ steps.virtuals.outputs.vs }}-${{ matrix.arch }}
+          path: install
