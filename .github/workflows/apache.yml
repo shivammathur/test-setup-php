@@ -216,6 +216,7 @@ jobs:
           }
 
           Get-ChildItem -Path $httpdInclude -Filter *.h -File |
+              Where-Object { $_.Name -notin @('mod_session.h', 'mod_xml2enc.h') } |
               Copy-Item -Destination $includeRoot -Force
 
           foreach ($library in @(
