@@ -49,7 +49,7 @@ jobs:
           $sharedTriplet = '${{ matrix.arch }}-windows'
           $staticTriplet = '${{ matrix.arch }}-windows-static-md'
           $commands = @(
-              "vcpkg install --triplet $sharedTriplet apr[private-headers] apr-util expat openssl pcre",
+              "vcpkg install --triplet $sharedTriplet apr[private-headers] apr-util expat pcre",
               "vcpkg install --triplet $staticTriplet apr apr-util expat"
           )
 
@@ -194,7 +194,7 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake ^
             -DAPR_INCLUDE_DIR="${{ steps.deps.outputs.deps_root }}/include" ^
             "-DAPR_LIBRARIES=${{ steps.deps.outputs.deps_root }}/lib/libapr-1.lib;${{ steps.deps.outputs.deps_root }}/lib/libaprutil-1.lib" ^
-            -DOPENSSL_ROOT_DIR="${{ steps.deps.outputs.deps_root }}" ^
+            -DCMAKE_DISABLE_FIND_PACKAGE_OpenSSL=TRUE ^
             -DPCRE_INCLUDE_DIR="${{ steps.deps.outputs.deps_root }}/include" ^
             -DPCRE_LIBRARIES="${{ steps.deps.outputs.deps_root }}/lib/pcre.lib" ^
             -DINSTALL_MANUAL=OFF ^
