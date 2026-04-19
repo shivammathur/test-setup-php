@@ -229,15 +229,6 @@ jobs:
           $mismatches = New-Object System.Collections.Generic.List[string]
           $httpdProcess = $null
 
-          Set-Content -Path (Join-Path $logsDir 'selection.txt') -Value @(
-            "package_key=$packageKey"
-            "package_root=$packageRoot"
-            "include_root=$includeRoot"
-            "lib_root=$libRoot"
-            "apache_root=$apacheRoot"
-            "apache_url=$apacheUrl"
-          ) -Encoding ascii
-
           $headerChecks = @(
             @{ Name = 'http_ssl.h'; Path = 'http_ssl.h'; Expected = @{ ours = $true; release = $false } },
             @{ Name = 'nghttp2/nghttp2ver.h'; Path = 'nghttp2/nghttp2ver.h'; Expected = @{ ours = $true; release = $false } },
@@ -301,6 +292,17 @@ jobs:
           if (Test-Path (Join-Path $libRoot 'brotlicommon.lib')) {
             $brotliLibraries += 'brotlicommon.lib'
           }
+
+          Set-Content -Path (Join-Path $logsDir 'selection.txt') -Value @(
+            "package_key=$packageKey"
+            "package_root=$packageRoot"
+            "include_root=$includeRoot"
+            "lib_root=$libRoot"
+            "apache_root=$apacheRoot"
+            "apache_url=$apacheUrl"
+            "curl_library=$curlLibrary"
+            "brotli_libraries=$($brotliLibraries -join ',')"
+          ) -Encoding ascii
 
           $baselineSource = @(
             '#include "httpd.h"',
@@ -467,6 +469,9 @@ jobs:
           foreach ($moduleBuild in $moduleBuilds) {
             $buildResult = Build-ApacheModule -Name $moduleBuild.Name -SourceLines $moduleBuild.Source -IncludeRoot $includeRoot -LibRoot $libRoot -LinkLibraries $moduleBuild.LinkLibraries -OutputDir $buildDir
             $buildResults[$moduleBuild.Name] = $buildResult
+            if (Test-Path $buildResult.LogPath) {
+              Copy-Item -Path $buildResult.LogPath -Destination (Join-Path $logsDir "$($moduleBuild.Name).build.log") -Force
+            }
             $expected = [bool] $moduleBuild.Expected[$packageKey]
 
             $results.Add([pscustomobject]@{
