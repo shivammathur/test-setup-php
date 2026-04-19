@@ -14,6 +14,7 @@ env:
   APACHE_LOUNGE_BUILD: "251206"
   APACHE_LOUNGE_TOOLSET: "VS17"
   APACHE_PORT: "8080"
+  APACHE_SSL_PORT: "8443"
 
 jobs:
   test-apachehandler:
@@ -41,7 +42,7 @@ jobs:
     steps:
       - name: Download built PHP artifacts
         if: matrix.source == 'built'
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: artifacts
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -49,7 +50,7 @@ jobs:
           run-id: ${{ matrix.php.source_run_id }}
           path: external/source-artifacts
 
-      - name: Run Apache handler validation
+      - name: Run Apache handler integration suite
         shell: pwsh
         env:
           TEST_SOURCE: ${{ matrix.source }}
@@ -70,30 +71,13 @@ jobs:
             }
           }
 
-          function Wait-ForUrl {
-            param(
-              [Parameter(Mandatory = $true)]
-              [string] $Url,
-              [int] $Retries = 30
-            )
-
-            for ($attempt = 1; $attempt -le $Retries; $attempt++) {
-              try {
-                return Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 5
-              } catch {
-                Start-Sleep -Seconds 1
-              }
-            }
-
-            throw "Timed out waiting for $Url"
-          }
-
           function Download-File {
             param(
               [Parameter(Mandatory = $true)]
               [string] $Url,
               [Parameter(Mandatory = $true)]
-              [string] $Path
+              [string] $Path,
+              [long] $MinimumSize = 1MB
             )
 
             & curl.exe --fail --location --silent --show-error --output $Path $Url
@@ -107,42 +91,241 @@ jobs:
             }
 
             $fileInfo = Get-Item -Path $Path
-            if ($fileInfo.Length -lt 1MB) {
+            if ($fileInfo.Length -lt $MinimumSize) {
               throw "Downloaded file was unexpectedly small ($($fileInfo.Length) bytes): $Url"
             }
 
+            $global:LASTEXITCODE = 0
             return $fileInfo.Length
+          }
+
+          function Invoke-WebRequestWithRetry {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $Uri,
+              [string] $Method = 'Get',
+              [object] $Body,
+              [hashtable] $Headers,
+              [hashtable] $Form,
+              [string] $ContentType,
+              [Microsoft.PowerShell.Commands.WebRequestSession] $WebSession,
+              [switch] $SkipCertificateCheck,
+              [int] $ExpectedStatusCode = 200,
+              [int] $Retries = 30,
+              [int] $TimeoutSec = 5
+            )
+
+            for ($attempt = 1; $attempt -le $Retries; $attempt++) {
+              try {
+                $params = @{
+                  Uri = $Uri
+                  Method = $Method
+                  TimeoutSec = $TimeoutSec
+                  SkipHttpErrorCheck = $true
+                }
+
+                if ($null -ne $Body) {
+                  $params.Body = $Body
+                }
+
+                if ($null -ne $Headers) {
+                  $params.Headers = $Headers
+                }
+
+                if ($null -ne $Form) {
+                  $params.Form = $Form
+                }
+
+                if ($null -ne $ContentType) {
+                  $params.ContentType = $ContentType
+                }
+
+                if ($null -ne $WebSession) {
+                  $params.WebSession = $WebSession
+                }
+
+                if ($SkipCertificateCheck) {
+                  $params.SkipCertificateCheck = $true
+                }
+
+                $response = Invoke-WebRequest @params
+                if ([int] $response.StatusCode -eq $ExpectedStatusCode) {
+                  return $response
+                }
+              } catch {
+              }
+
+              Start-Sleep -Seconds 1
+            }
+
+            throw "Timed out waiting for $Uri to return HTTP $ExpectedStatusCode"
+          }
+
+          function Get-Sha256Hex {
+            param(
+              [Parameter(Mandatory = $true)]
+              [byte[]] $Bytes
+            )
+
+            $sha256 = [System.Security.Cryptography.SHA256]::Create()
+            try {
+              return (($sha256.ComputeHash($Bytes) | ForEach-Object { $_.ToString('x2') }) -join '')
+            } finally {
+              $sha256.Dispose()
+            }
           }
 
           $source = $env:TEST_SOURCE
           $phpVersion = $env:TEST_PHP_VERSION
           $expectedVs = $env:TEST_VS
           $arch = $env:TEST_ARCH
+          $suiteName = "$source PHP $phpVersion $arch"
           $port = [int] $env:APACHE_PORT
+          $sslPort = [int] $env:APACHE_SSL_PORT
           $apacheArch = if ($arch -eq 'x64') { 'Win64' } else { 'Win32' }
           $workspace = Join-Path $env:RUNNER_TEMP "apachehandler-$source-$phpVersion-$arch"
           $logsDir = Join-Path $workspace 'logs'
           $apacheExtractRoot = Join-Path $workspace 'apache-extract'
           $apacheInstallRoot = 'C:\Apache24'
-          $apacheRoot = $null
-          $siteDir = $null
           $phpRoot = 'C:\php'
-          $httpdExe = $null
-          $httpdConf = $null
+          $phpDataRoot = 'C:\php-data'
+          $selectionPath = Join-Path $logsDir 'selection.txt'
           $apacheUrl = "https://www.apachelounge.com/download/VS17/binaries/httpd-$($env:APACHE_VERSION)-$($env:APACHE_LOUNGE_BUILD)-$apacheArch-$($env:APACHE_LOUNGE_TOOLSET).zip"
           $apacheZip = Join-Path $workspace 'apache.zip'
           $phpZip = $null
+          $apacheRoot = $null
+          $siteDir = $null
+          $httpdExe = $null
+          $httpdConf = $null
           $httpdProcess = $null
+          $testResults = New-Object System.Collections.Generic.List[object]
+          $mismatches = New-Object System.Collections.Generic.List[string]
 
+          function Add-TestResult {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $Suite,
+              [Parameter(Mandatory = $true)]
+              [string] $Name,
+              [Parameter(Mandatory = $true)]
+              [string] $Status,
+              [string] $Details = ''
+            )
+
+            $script:testResults.Add([pscustomobject]@{
+              SuiteName = $script:suiteName
+              Source = $script:source
+              PhpVersion = $script:phpVersion
+              Arch = $script:arch
+              Suite = $Suite
+              Name = $Name
+              Status = $Status
+              Details = $Details
+            }) | Out-Null
+
+            $statusLabel = switch ($Status) {
+              'passed' { 'PASS' }
+              'failed' { 'FAIL' }
+              'skipped' { 'SKIP' }
+              default { $Status.ToUpperInvariant() }
+            }
+
+            if ([string]::IsNullOrWhiteSpace($Details)) {
+              Write-Host "[$statusLabel] $Suite :: $Name"
+            } else {
+              Write-Host "[$statusLabel] $Suite :: $Name :: $Details"
+            }
+          }
+
+          function Assert-Test {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $Suite,
+              [Parameter(Mandatory = $true)]
+              [string] $Name,
+              [Parameter(Mandatory = $true)]
+              [bool] $Condition,
+              [Parameter(Mandatory = $true)]
+              [string] $Message,
+              [string] $SuccessDetails = '',
+              [string] $FailureDetails = ''
+            )
+
+            if ($Condition) {
+              Add-TestResult -Suite $Suite -Name $Name -Status 'passed' -Details $SuccessDetails
+              return
+            }
+
+            $detailText = if ([string]::IsNullOrWhiteSpace($FailureDetails)) { $Message } else { $FailureDetails }
+            Add-TestResult -Suite $Suite -Name $Name -Status 'failed' -Details $detailText
+            $script:mismatches.Add($Message) | Out-Null
+          }
+
+          function Add-SkippedTest {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $Suite,
+              [Parameter(Mandatory = $true)]
+              [string] $Name,
+              [string] $Reason = ''
+            )
+
+            Add-TestResult -Suite $Suite -Name $Name -Status 'skipped' -Details $Reason
+          }
+
+          function Invoke-TestAction {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $Suite,
+              [Parameter(Mandatory = $true)]
+              [string] $Name,
+              [Parameter(Mandatory = $true)]
+              [scriptblock] $Action,
+              [string] $SuccessDetails = ''
+            )
+
+            try {
+              $result = & $Action
+              Add-TestResult -Suite $Suite -Name $Name -Status 'passed' -Details $SuccessDetails
+              return $result
+            } catch {
+              Add-TestResult -Suite $Suite -Name $Name -Status 'failed' -Details $_.Exception.Message
+              $script:mismatches.Add("$Name failed: $($_.Exception.Message)") | Out-Null
+              return $null
+            }
+          }
+
+          function Get-TestStats {
+            param(
+              [Parameter(Mandatory = $true)]
+              [object[]] $Results
+            )
+
+            [pscustomobject]@{
+              suite_name = $script:suiteName
+              source = $script:source
+              php_version = $script:phpVersion
+              arch = $script:arch
+              total = @($Results).Count
+              passed = @($Results | Where-Object Status -eq 'passed').Count
+              failed = @($Results | Where-Object Status -eq 'failed').Count
+              skipped = @($Results | Where-Object Status -eq 'skipped').Count
+            }
+          }
+
+          Remove-Item -Path $workspace -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path $apacheInstallRoot -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path $phpRoot -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path $phpDataRoot -Recurse -Force -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Force -Path $logsDir | Out-Null
-          Remove-Item $apacheExtractRoot -Recurse -Force -ErrorAction SilentlyContinue
-          Remove-Item $apacheInstallRoot -Recurse -Force -ErrorAction SilentlyContinue
-          Remove-Item $phpRoot -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path (Join-Path $phpDataRoot 'session') | Out-Null
+          New-Item -ItemType Directory -Force -Path (Join-Path $phpDataRoot 'upload') | Out-Null
+          New-Item -ItemType Directory -Force -Path (Join-Path $phpDataRoot 'tmp') | Out-Null
 
           try {
             if ($source -eq 'built') {
               $artifactDir = Join-Path $env:GITHUB_WORKSPACE 'external\source-artifacts'
-              $phpZip = Get-ChildItem -Path $artifactDir -Filter 'php-*.zip' -File |
+              $selectedPhpZip = Get-ChildItem -Path $artifactDir -Filter 'php-*.zip' -File |
                 Where-Object {
                   $_.Name -match "^php-.+-Win32-v[sc]\d+-$arch\.zip$" -and
                   $_.Name -match "-$expectedVs-$arch\.zip$" -and
@@ -152,33 +335,32 @@ jobs:
                 Sort-Object Name |
                 Select-Object -First 1
 
-              if ($null -eq $phpZip) {
+              if ($null -eq $selectedPhpZip) {
                 throw "Unable to find a thread-safe $arch PHP package in $artifactDir"
               }
 
-              $phpZip = $phpZip.FullName
+              $phpZip = $selectedPhpZip.FullName
+              $phpZipSize = (Get-Item -Path $phpZip).Length
             } else {
               $phpZip = Join-Path $workspace 'php-release.zip'
               $releaseUrl = "https://windows.php.net/downloads/releases/latest/php-$phpVersion-Win32-$expectedVs-$arch-latest.zip"
-              $phpReleaseSize = Download-File -Url $releaseUrl -Path $phpZip
+              $phpZipSize = Download-File -Url $releaseUrl -Path $phpZip
             }
 
-            $selection = @(
+            Set-Content -Path $selectionPath -Value @(
+              "suite_name=$suiteName"
               "source=$source"
               "php_version=$phpVersion"
               "arch=$arch"
               "expected_vs=$expectedVs"
               "apache_url=$apacheUrl"
               "php_zip=$phpZip"
-            )
-            if ($source -eq 'release') {
-              $selection += "php_zip_size=$phpReleaseSize"
-            }
-            Set-Content -Path (Join-Path $logsDir 'selection.txt') -Value $selection -Encoding ascii
+              "php_zip_size=$phpZipSize"
+            ) -Encoding ascii
 
-            Write-Host "Checkpoint: download Apache"
             $apacheZipSize = Download-File -Url $apacheUrl -Path $apacheZip
-            Add-Content -Path (Join-Path $logsDir 'selection.txt') -Value "apache_zip_size=$apacheZipSize" -Encoding ascii
+            Add-Content -Path $selectionPath -Value "apache_zip_size=$apacheZipSize" -Encoding ascii
+
             New-Item -ItemType Directory -Force -Path $apacheExtractRoot | Out-Null
             Expand-Archive -Path $apacheZip -DestinationPath $apacheExtractRoot -Force
 
@@ -189,56 +371,316 @@ jobs:
               } |
               Select-Object -First 1 -ExpandProperty FullName
 
-            if (-not $extractedApacheRoot) {
-              throw "Unable to find Apache24 in extracted archive under $apacheExtractRoot"
-            }
-
+            Assert-True -Condition ([bool] $extractedApacheRoot) -Message "Unable to find Apache24 in extracted archive under $apacheExtractRoot"
             Copy-Item -Path $extractedApacheRoot -Destination $apacheInstallRoot -Recurse -Force
 
             $apacheRoot = $apacheInstallRoot
             $siteDir = Join-Path $apacheRoot 'htdocs'
             $httpdExe = Join-Path $apacheRoot 'bin\httpd.exe'
             $httpdConf = Join-Path $apacheRoot 'conf\httpd.conf'
+            $opensslExe = Join-Path $apacheRoot 'bin\openssl.exe'
+            $opensslConfig = Join-Path $apacheRoot 'conf\openssl-test.cnf'
+            $sslCert = Join-Path $apacheRoot 'conf\server.crt'
+            $sslKey = Join-Path $apacheRoot 'conf\server.key'
 
-            Add-Content -Path (Join-Path $logsDir 'selection.txt') -Value "extracted_apache_root=$extractedApacheRoot" -Encoding ascii
-            Add-Content -Path (Join-Path $logsDir 'selection.txt') -Value "apache_root=$apacheRoot" -Encoding ascii
-            Write-Host "Checkpoint: Apache extracted"
+            Add-Content -Path $selectionPath -Value @(
+              "apache_root=$apacheRoot"
+              "apache_extract_root=$extractedApacheRoot"
+            ) -Encoding ascii
 
             Expand-Archive -Path $phpZip -DestinationPath $phpRoot -Force
-            Write-Host "Checkpoint: PHP extracted"
+            Add-Content -Path $selectionPath -Value "php_root=$phpRoot" -Encoding ascii
 
-            $phpIni = @(
-              '[PHP]'
-              'display_errors=On'
-              'error_reporting=E_ALL'
-              'log_errors=On'
-              'date.timezone=UTC'
-              'extension_dir="C:/php/ext"'
-              "error_log=""$($apacheRoot -replace '\\', '/')/logs/php-errors.log"""
-            ) -join "`r`n"
+            Assert-True -Condition (Test-Path $opensslExe) -Message "Apache Lounge openssl.exe is missing: $opensslExe"
+
+            $opensslConfigText = @'
+          [req]
+          default_bits = 2048
+          prompt = no
+          default_md = sha256
+          distinguished_name = req_distinguished_name
+          x509_extensions = v3_req
+
+          [req_distinguished_name]
+          CN = 127.0.0.1
+
+          [v3_req]
+          subjectAltName = @alt_names
+
+          [alt_names]
+          DNS.1 = localhost
+          IP.1 = 127.0.0.1
+          '@
+            Set-Content -Path $opensslConfig -Value $opensslConfigText -Encoding ascii
+
+            $opensslOutput = & $opensslExe 'req' '-x509' '-newkey' 'rsa:2048' '-sha256' '-nodes' '-keyout' $sslKey '-out' $sslCert '-days' '1' '-config' $opensslConfig '-extensions' 'v3_req' 2>&1
+            $opensslOutput | Set-Content -Path (Join-Path $logsDir 'openssl.log') -Encoding utf8
+            Assert-True -Condition ($LASTEXITCODE -eq 0) -Message 'OpenSSL certificate generation failed'
+            $global:LASTEXITCODE = 0
+            Assert-True -Condition (Test-Path $sslCert) -Message "Generated SSL certificate is missing: $sslCert"
+            Assert-True -Condition (Test-Path $sslKey) -Message "Generated SSL private key is missing: $sslKey"
+
+            $phpIni = @"
+          [PHP]
+          display_errors=Off
+          log_errors=On
+          error_reporting=E_ALL
+          date.timezone=UTC
+          extension_dir="C:/php/ext"
+          error_log="$($apacheRoot -replace '\\', '/')/logs/php-errors.log"
+          session.save_path="C:/php-data/session"
+          upload_tmp_dir="C:/php-data/upload"
+          sys_temp_dir="C:/php-data/tmp"
+          session.cookie_httponly=1
+          output_buffering=Off
+          cgi.fix_pathinfo=1
+          file_uploads=On
+          post_max_size=32M
+          upload_max_filesize=32M
+          "@
             Set-Content -Path (Join-Path $phpRoot 'php.ini') -Value $phpIni -Encoding ascii
 
-            $healthScript = @(
-              '<?php'
-              "header('Content-Type: application/json');"
-              "header('X-PHP-Apache-Test: ok');"
-              "`$modules = function_exists('apache_get_modules') ? apache_get_modules() : [];"
-              'echo json_encode(['
-              "    'php_version' => PHP_VERSION,"
-              "    'php_major_minor' => PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION,"
-              "    'sapi' => PHP_SAPI,"
-              "    'apache_version' => function_exists('apache_get_version') ? apache_get_version() : null,"
-              "    'php_module_loaded' => in_array('php_module', `$modules, true),"
-              "    'server_software' => `$_SERVER['SERVER_SOFTWARE'] ?? null,"
-              "    'request_method' => `$_SERVER['REQUEST_METHOD'] ?? null,"
-              "    'query_name' => `$_GET['name'] ?? null,"
-              "    'post_name' => `$_POST['name'] ?? null,"
-              '], JSON_THROW_ON_ERROR);'
-            ) -join "`r`n"
+            $healthScript = @'
+          <?php
+          declare(strict_types=1);
+
+          header('Content-Type: application/json');
+          header('X-PHP-Apache-Test: ok');
+
+          $modules = function_exists('apache_get_modules') ? apache_get_modules() : [];
+
+          echo json_encode([
+              'php_version' => PHP_VERSION,
+              'php_major_minor' => PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION,
+              'sapi' => PHP_SAPI,
+              'apache_version' => function_exists('apache_get_version') ? apache_get_version() : null,
+              'php_module_loaded' => in_array('php_module', $modules, true),
+              'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? null,
+              'request_method' => $_SERVER['REQUEST_METHOD'] ?? null,
+              'query_name' => $_GET['name'] ?? null,
+              'apache_test_env' => $_SERVER['APACHE_TEST_ENV'] ?? getenv('APACHE_TEST_ENV') ?: null,
+          ], JSON_THROW_ON_ERROR);
+          '@
+
+            $echoScript = @'
+          <?php
+          declare(strict_types=1);
+
+          function normalize_headers(array $headers): array
+          {
+              $normalized = [];
+              foreach ($headers as $name => $value) {
+                  $normalized[strtolower((string) $name)] = $value;
+              }
+
+              return $normalized;
+          }
+
+          header('Content-Type: application/json');
+          header('X-Response-From-PHP: active');
+
+          $requestHeaders = function_exists('apache_request_headers')
+              ? normalize_headers(apache_request_headers())
+              : (function_exists('getallheaders') ? normalize_headers(getallheaders()) : []);
+          $allHeaders = function_exists('getallheaders') ? normalize_headers(getallheaders()) : [];
+          $responseHeaders = function_exists('apache_response_headers') ? normalize_headers(apache_response_headers()) : [];
+          $rawBody = file_get_contents('php://input');
+          $decodedJson = json_decode($rawBody, true);
+          $upload = $_FILES['upload'] ?? null;
+          $uploadHash = null;
+
+          if (is_array($upload) && isset($upload['tmp_name']) && is_string($upload['tmp_name']) && $upload['tmp_name'] !== '' && is_file($upload['tmp_name'])) {
+              $uploadHash = hash_file('sha256', $upload['tmp_name']);
+          }
+
+          echo json_encode([
+              'request_method' => $_SERVER['REQUEST_METHOD'] ?? null,
+              'query_name' => $_GET['name'] ?? null,
+              'query_route' => $_GET['route'] ?? null,
+              'post_name' => $_POST['name'] ?? null,
+              'post_note' => $_POST['note'] ?? null,
+              'raw_length' => strlen($rawBody),
+              'raw_sha256' => hash('sha256', $rawBody),
+              'json_name' => is_array($decodedJson) ? ($decodedJson['name'] ?? null) : null,
+              'json_value' => is_array($decodedJson) ? ($decodedJson['value'] ?? null) : null,
+              'header_x_test' => $requestHeaders['x-test-header'] ?? null,
+              'header_authorization' => $requestHeaders['authorization'] ?? null,
+              'getallheaders_x_test' => $allHeaders['x-test-header'] ?? null,
+              'apache_request_headers_available' => function_exists('apache_request_headers'),
+              'apache_response_headers_available' => function_exists('apache_response_headers'),
+              'response_header_probe' => $responseHeaders['x-response-from-php'] ?? null,
+              'request_uri' => $_SERVER['REQUEST_URI'] ?? null,
+              'script_name' => $_SERVER['SCRIPT_NAME'] ?? null,
+              'script_filename' => $_SERVER['SCRIPT_FILENAME'] ?? null,
+              'document_root' => $_SERVER['DOCUMENT_ROOT'] ?? null,
+              'path_info' => $_SERVER['PATH_INFO'] ?? null,
+              'php_self' => $_SERVER['PHP_SELF'] ?? null,
+              'server_port' => $_SERVER['SERVER_PORT'] ?? null,
+              'https' => $_SERVER['HTTPS'] ?? null,
+              'request_scheme' => $_SERVER['REQUEST_SCHEME'] ?? null,
+              'ssl_protocol' => $_SERVER['SSL_PROTOCOL'] ?? null,
+              'apache_test_env' => $_SERVER['APACHE_TEST_ENV'] ?? getenv('APACHE_TEST_ENV') ?: null,
+              'upload_name' => is_array($upload) ? ($upload['name'] ?? null) : null,
+              'upload_size' => is_array($upload) ? (int) ($upload['size'] ?? 0) : 0,
+              'upload_type' => is_array($upload) ? ($upload['type'] ?? null) : null,
+              'upload_error' => is_array($upload) ? (int) ($upload['error'] ?? 4) : 4,
+              'upload_sha256' => $uploadHash,
+          ], JSON_THROW_ON_ERROR);
+          '@
+
+            $sessionScript = @'
+          <?php
+          declare(strict_types=1);
+
+          header('Content-Type: application/json');
+          session_start();
+
+          if (!isset($_SESSION['count'])) {
+              $_SESSION['count'] = 0;
+          }
+
+          $_SESSION['count']++;
+          if (isset($_GET['message'])) {
+              $_SESSION['message'] = $_GET['message'];
+          }
+
+          echo json_encode([
+              'session_id' => session_id(),
+              'count' => $_SESSION['count'],
+              'message' => $_SESSION['message'] ?? null,
+          ], JSON_THROW_ON_ERROR);
+          '@
+
+            $cookieScript = @'
+          <?php
+          declare(strict_types=1);
+
+          header('Content-Type: application/json');
+
+          if (isset($_GET['set'])) {
+              setcookie('apache_cookie', (string) $_GET['set'], 0, '/');
+          }
+
+          echo json_encode([
+              'cookie' => $_COOKIE['apache_cookie'] ?? null,
+              'set' => $_GET['set'] ?? null,
+          ], JSON_THROW_ON_ERROR);
+          '@
+
+            $statusScript = @'
+          <?php
+          declare(strict_types=1);
+
+          header('Content-Type: application/json');
+          header('X-Status-Test: ok');
+          header('X-Response-Probe: status');
+          http_response_code(418);
+
+          $responseHeaders = function_exists('apache_response_headers') ? apache_response_headers() : [];
+          $responseProbe = null;
+          foreach ($responseHeaders as $name => $value) {
+              if (strtolower((string) $name) === 'x-response-probe') {
+                  $responseProbe = $value;
+                  break;
+              }
+          }
+
+          echo json_encode([
+              'status' => http_response_code(),
+              'response_probe' => $responseProbe,
+          ], JSON_THROW_ON_ERROR);
+          '@
+
+            $headScript = @'
+          <?php
+          declare(strict_types=1);
+
+          header('X-Head-Test: ok');
+          http_response_code(204);
+          '@
+
+            $httpsScript = @'
+          <?php
+          declare(strict_types=1);
+
+          header('Content-Type: application/json');
+
+          echo json_encode([
+              'https' => $_SERVER['HTTPS'] ?? null,
+              'request_scheme' => $_SERVER['REQUEST_SCHEME'] ?? null,
+              'server_port' => $_SERVER['SERVER_PORT'] ?? null,
+              'ssl_protocol' => $_SERVER['SSL_PROTOCOL'] ?? null,
+              'ssl_cipher' => $_SERVER['SSL_CIPHER'] ?? null,
+          ], JSON_THROW_ON_ERROR);
+          '@
+
+            $pathInfoScript = @'
+          <?php
+          declare(strict_types=1);
+
+          header('Content-Type: application/json');
+
+          echo json_encode([
+              'path_info' => $_SERVER['PATH_INFO'] ?? null,
+              'php_self' => $_SERVER['PHP_SELF'] ?? null,
+              'request_uri' => $_SERVER['REQUEST_URI'] ?? null,
+              'script_name' => $_SERVER['SCRIPT_NAME'] ?? null,
+          ], JSON_THROW_ON_ERROR);
+          '@
+
+            $directoryIndexScript = @'
+          <?php
+          declare(strict_types=1);
+
+          header('Content-Type: application/json');
+
+          echo json_encode([
+              'directory_index' => true,
+              'request_uri' => $_SERVER['REQUEST_URI'] ?? null,
+              'script_name' => $_SERVER['SCRIPT_NAME'] ?? null,
+          ], JSON_THROW_ON_ERROR);
+          '@
+
+            $rewriteIndexScript = @'
+          <?php
+          declare(strict_types=1);
+
+          header('Content-Type: application/json');
+
+          echo json_encode([
+              'request_uri' => $_SERVER['REQUEST_URI'] ?? null,
+              'script_name' => $_SERVER['SCRIPT_NAME'] ?? null,
+              'script_filename' => basename((string) ($_SERVER['SCRIPT_FILENAME'] ?? '')),
+              'route' => $_GET['route'] ?? null,
+              'name' => $_GET['name'] ?? null,
+          ], JSON_THROW_ON_ERROR);
+          '@
+
+            $rewriteHtaccess = @'
+          RewriteEngine On
+          RewriteCond %{REQUEST_FILENAME} !-f
+          RewriteCond %{REQUEST_FILENAME} !-d
+          RewriteRule ^(.+)$ index.php?route=$1 [QSA,L]
+          '@
+
+            New-Item -ItemType Directory -Force -Path (Join-Path $siteDir 'app') | Out-Null
+            New-Item -ItemType Directory -Force -Path (Join-Path $siteDir 'rewrite') | Out-Null
+
             Set-Content -Path (Join-Path $siteDir 'health.php') -Value $healthScript -Encoding ascii
+            Set-Content -Path (Join-Path $siteDir 'echo.php') -Value $echoScript -Encoding ascii
+            Set-Content -Path (Join-Path $siteDir 'session.php') -Value $sessionScript -Encoding ascii
+            Set-Content -Path (Join-Path $siteDir 'cookie.php') -Value $cookieScript -Encoding ascii
+            Set-Content -Path (Join-Path $siteDir 'status.php') -Value $statusScript -Encoding ascii
+            Set-Content -Path (Join-Path $siteDir 'head.php') -Value $headScript -Encoding ascii
+            Set-Content -Path (Join-Path $siteDir 'https.php') -Value $httpsScript -Encoding ascii
+            Set-Content -Path (Join-Path $siteDir 'pathinfo.php') -Value $pathInfoScript -Encoding ascii
+            Set-Content -Path (Join-Path $siteDir 'app\index.php') -Value $directoryIndexScript -Encoding ascii
+            Set-Content -Path (Join-Path $siteDir 'rewrite\index.php') -Value $rewriteIndexScript -Encoding ascii
+            Set-Content -Path (Join-Path $siteDir 'rewrite\.htaccess') -Value $rewriteHtaccess -Encoding ascii
             Set-Content -Path (Join-Path $siteDir 'static.txt') -Value 'apache static ok' -Encoding ascii
 
             $apacheRootConfigPath = $apacheRoot -replace '\\', '/'
+            $siteDirConfigPath = $siteDir -replace '\\', '/'
             $httpdConfig = Get-Content -Path $httpdConf -Raw
             $httpdConfig = $httpdConfig -replace '(?i)c:/Apache24(?:-(?:32|64))?', $apacheRootConfigPath
             $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*Define SRVROOT.*\r?$', "Define SRVROOT `"$apacheRootConfigPath`""
@@ -247,78 +689,498 @@ jobs:
             $httpdConfig = $httpdConfig -replace '(?m)^#?ServerName .+\r?$', "ServerName 127.0.0.1:$port"
             $httpdConfig = $httpdConfig -replace '(?m)^DirectoryIndex .+\r?$', 'DirectoryIndex index.php index.html'
 
-            if ($httpdConfig -notmatch '(?m)^LoadFile "c:/php/php8ts\.dll"$') {
-              $httpdConfig += "`r`nLoadFile `"c:/php/php8ts.dll`""
+            $customConfig = @()
+
+            if ($httpdConfig -notmatch '(?m)^[ \t]*LoadFile "c:/php/php8ts\.dll"$') {
+              $customConfig += 'LoadFile "c:/php/php8ts.dll"'
             }
 
-            if ($httpdConfig -notmatch '(?m)^LoadModule php_module "c:/php/php8apache2_4\.dll"$') {
-              $httpdConfig += "`r`nLoadModule php_module `"c:/php/php8apache2_4.dll`""
+            if ($httpdConfig -notmatch '(?m)^[ \t]*LoadModule php_module "c:/php/php8apache2_4\.dll"$') {
+              $customConfig += 'LoadModule php_module "c:/php/php8apache2_4.dll"'
             }
 
-            if ($httpdConfig -notmatch '(?m)^PHPIniDir "C:/php"$') {
-              $httpdConfig += "`r`nPHPIniDir `"C:/php`""
+            if ($httpdConfig -notmatch '(?m)^[ \t]*LoadModule\s+rewrite_module\s+') {
+              $customConfig += 'LoadModule rewrite_module "modules/mod_rewrite.so"'
             }
 
-            if ($httpdConfig -notmatch '(?m)^AddType application/x-httpd-php \.php$') {
-              $httpdConfig += "`r`nAddType application/x-httpd-php .php"
+            if ($httpdConfig -notmatch '(?m)^[ \t]*LoadModule\s+socache_shmcb_module\s+') {
+              $customConfig += 'LoadModule socache_shmcb_module "modules/mod_socache_shmcb.so"'
             }
 
+            if ($httpdConfig -notmatch '(?m)^[ \t]*LoadModule\s+ssl_module\s+') {
+              $customConfig += 'LoadModule ssl_module "modules/mod_ssl.so"'
+            }
+
+            $customConfig += @(
+              'PHPIniDir "C:/php"',
+              'AddType application/x-httpd-php .php',
+              'AcceptPathInfo On',
+              'EnableSendfile Off',
+              'SetEnv APACHE_TEST_ENV from-apache',
+              "Listen $sslPort",
+              "SSLSessionCache `"shmcb:${apacheRootConfigPath}/logs/ssl_scache(512000)`"",
+              'SSLSessionCacheTimeout 300',
+              "<Directory `"$siteDirConfigPath`">",
+              '    Options Indexes FollowSymLinks',
+              '    AllowOverride All',
+              '    Require all granted',
+              '</Directory>',
+              "<VirtualHost _default_:$sslPort>",
+              "    ServerName 127.0.0.1:$sslPort",
+              "    DocumentRoot `"$siteDirConfigPath`"",
+              '    SSLEngine on',
+              "    SSLCertificateFile `"$($sslCert -replace '\\', '/')`"",
+              "    SSLCertificateKeyFile `"$($sslKey -replace '\\', '/')`"",
+              '    SSLOptions +StdEnvVars',
+              "    <Directory `"$siteDirConfigPath`">",
+              '        Options Indexes FollowSymLinks',
+              '        AllowOverride All',
+              '        Require all granted',
+              '        SSLOptions +StdEnvVars',
+              '    </Directory>',
+              '</VirtualHost>'
+            )
+
+            $httpdConfig += "`r`n" + ($customConfig -join "`r`n") + "`r`n"
             Set-Content -Path $httpdConf -Value $httpdConfig -Encoding ascii
             Set-Content -Path (Join-Path $logsDir 'httpd.conf') -Value $httpdConfig -Encoding ascii
-            ($httpdConfig -split "\r?\n" | Select-Object -First 60 | ForEach-Object -Begin { $lineNumber = 1 } -Process {
+            ($httpdConfig -split "\r?\n" | Select-Object -First 120 | ForEach-Object -Begin { $lineNumber = 1 } -Process {
               '{0:D3}: {1}' -f $lineNumber, $_
               $lineNumber++
             }) | Set-Content -Path (Join-Path $logsDir 'httpd-head.txt') -Encoding ascii
 
-            Write-Host "Checkpoint: Apache config prepared"
-            $configTest = & $httpdExe '-d' $apacheRoot '-f' $httpdConf '-t' 2>&1
-            $configTest | Tee-Object -FilePath (Join-Path $logsDir 'httpd-configtest.txt')
-            Assert-True -Condition ($LASTEXITCODE -eq 0) -Message 'Apache config test failed'
+            $configTest = Invoke-TestAction -Suite 'apache-runtime' -Name 'httpd config test' -Action {
+              $configOutput = & $httpdExe '-d' $apacheRoot '-f' $httpdConf '-t' 2>&1
+              $configOutput | Set-Content -Path (Join-Path $logsDir 'httpd-configtest.txt') -Encoding utf8
+              if ($LASTEXITCODE -ne 0) {
+                $global:LASTEXITCODE = 0
+                throw 'Apache config test failed'
+              }
 
-            $moduleList = & $httpdExe '-d' $apacheRoot '-f' $httpdConf '-M' 2>&1
-            $moduleList | Tee-Object -FilePath (Join-Path $logsDir 'httpd-modules.txt')
-            Assert-True -Condition ($LASTEXITCODE -eq 0) -Message 'Apache module list failed'
-            Assert-True -Condition (($moduleList -join "`n") -match 'php_module \(shared\)') -Message 'php_module was not loaded by Apache'
+              $global:LASTEXITCODE = 0
+              return $configOutput
+            }
 
-            $httpdProcess = Start-Process -FilePath $httpdExe -ArgumentList @('-d', $apacheRoot, '-f', $httpdConf, '-X') -WorkingDirectory (Join-Path $apacheRoot 'bin') -PassThru
-            Write-Host "Checkpoint: Apache started"
+            $moduleList = $null
+            if ($null -ne $configTest) {
+              $moduleList = Invoke-TestAction -Suite 'apache-runtime' -Name 'httpd module list' -Action {
+                $moduleOutput = & $httpdExe '-d' $apacheRoot '-f' $httpdConf '-M' 2>&1
+                $moduleOutput | Set-Content -Path (Join-Path $logsDir 'httpd-modules.txt') -Encoding utf8
+                if ($LASTEXITCODE -ne 0) {
+                  $global:LASTEXITCODE = 0
+                  throw 'Apache module list failed'
+                }
 
-            $getResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/health.php?name=world"
-            $getResponse.Content | Set-Content -Path (Join-Path $logsDir 'health-get.json') -Encoding utf8
-            Assert-True -Condition ($getResponse.StatusCode -eq 200) -Message 'GET request did not return HTTP 200'
-            Assert-True -Condition (@($getResponse.Headers['X-PHP-Apache-Test']) -contains 'ok') -Message 'Expected Apache handler response header was missing'
+                $global:LASTEXITCODE = 0
+                return $moduleOutput
+              }
+            } else {
+              Add-SkippedTest -Suite 'apache-runtime' -Name 'httpd module list' -Reason 'Skipped because the config test failed'
+            }
 
-            $getPayload = $getResponse.Content | ConvertFrom-Json
-            Assert-True -Condition ($getPayload.sapi -eq 'apache2handler') -Message "Unexpected SAPI: $($getPayload.sapi)"
-            Assert-True -Condition ($getPayload.php_major_minor -eq $phpVersion) -Message "Unexpected PHP version: $($getPayload.php_major_minor)"
-            Assert-True -Condition ($getPayload.apache_version -like "Apache/$($env:APACHE_VERSION)*") -Message "Unexpected Apache version: $($getPayload.apache_version)"
-            Assert-True -Condition ($getPayload.server_software -like "Apache/$($env:APACHE_VERSION)*") -Message "Unexpected server software: $($getPayload.server_software)"
-            Assert-True -Condition ($getPayload.query_name -eq 'world') -Message 'Query string did not round-trip through Apache'
+            if ($null -ne $moduleList) {
+              $moduleListText = $moduleList -join "`n"
+              Assert-Test -Suite 'apache-runtime' -Name 'php_module loaded' -Condition ($moduleListText -match 'php_module \(shared\)') -Message 'php_module was not loaded by Apache'
+              Assert-Test -Suite 'apache-runtime' -Name 'rewrite_module loaded' -Condition ($moduleListText -match 'rewrite_module \(shared\)') -Message 'rewrite_module was not loaded by Apache'
+              Assert-Test -Suite 'apache-runtime' -Name 'ssl_module loaded' -Condition ($moduleListText -match 'ssl_module \(shared\)') -Message 'ssl_module was not loaded by Apache'
 
-            $postResponse = Invoke-WebRequest -Uri "http://127.0.0.1:$port/health.php?name=world" -Method Post -Body @{ name = 'apache' } -UseBasicParsing
-            $postResponse.Content | Set-Content -Path (Join-Path $logsDir 'health-post.json') -Encoding utf8
-            Assert-True -Condition ($postResponse.StatusCode -eq 200) -Message 'POST request did not return HTTP 200'
+              $httpdProcess = Invoke-TestAction -Suite 'apache-runtime' -Name 'httpd process starts' -Action {
+                $process = Start-Process -FilePath $httpdExe -ArgumentList @('-d', $apacheRoot, '-f', $httpdConf, '-X') -WorkingDirectory (Join-Path $apacheRoot 'bin') -PassThru
+                if ($null -eq $process) {
+                  throw 'Apache process did not start'
+                }
 
-            $postPayload = $postResponse.Content | ConvertFrom-Json
-            Assert-True -Condition ($postPayload.request_method -eq 'POST') -Message "Unexpected request method: $($postPayload.request_method)"
-            Assert-True -Condition ($postPayload.post_name -eq 'apache') -Message 'POST body did not round-trip through Apache'
+                return $process
+              }
+            } else {
+              Add-SkippedTest -Suite 'apache-runtime' -Name 'php_module loaded' -Reason 'Skipped because the module list did not run'
+              Add-SkippedTest -Suite 'apache-runtime' -Name 'rewrite_module loaded' -Reason 'Skipped because the module list did not run'
+              Add-SkippedTest -Suite 'apache-runtime' -Name 'ssl_module loaded' -Reason 'Skipped because the module list did not run'
+              Add-SkippedTest -Suite 'apache-runtime' -Name 'httpd process starts' -Reason 'Skipped because the module list did not run'
+            }
 
-            $staticResponse = Invoke-WebRequest -Uri "http://127.0.0.1:$port/static.txt" -UseBasicParsing
-            $staticResponse.Content | Set-Content -Path (Join-Path $logsDir 'static.txt') -Encoding utf8
-            Assert-True -Condition ($staticResponse.Content.Trim() -eq 'apache static ok') -Message 'Static content was not served correctly'
+            $cookieSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+            $sessionState = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+            $customHeaders = @{
+              'X-Test-Header' = 'apache-header'
+              'Authorization' = 'Bearer apache-integration'
+            }
+            $jsonBodyObject = @{
+              name = 'json-body'
+              value = 'payload-check'
+            }
+            $jsonBody = $jsonBodyObject | ConvertTo-Json -Compress
+            $jsonBodySha256 = Get-Sha256Hex -Bytes ([System.Text.Encoding]::UTF8.GetBytes($jsonBody))
+            $uploadFile = Join-Path $workspace 'upload.txt'
+            $uploadContent = "apache-upload-$source-$phpVersion-$arch"
+            Set-Content -Path $uploadFile -Value $uploadContent -Encoding ascii
+            $uploadHash = (Get-FileHash -Path $uploadFile -Algorithm SHA256).Hash.ToLowerInvariant()
+            $uploadFileInfo = Get-Item -Path $uploadFile
+
+            if ($null -ne $httpdProcess) {
+              $healthResponse = Invoke-TestAction -Suite 'php-runtime' -Name 'GET /health.php' -Action {
+                $response = Invoke-WebRequestWithRetry -Uri "http://127.0.0.1:$port/health.php?name=world"
+                $response.Content | Set-Content -Path (Join-Path $logsDir 'health-get.json') -Encoding utf8
+                return $response
+              }
+
+              if ($null -ne $healthResponse) {
+                Assert-Test -Suite 'php-runtime' -Name 'health header present' -Condition (@($healthResponse.Headers['X-PHP-Apache-Test']) -contains 'ok') -Message 'Expected Apache handler response header was missing'
+                $healthPayload = $healthResponse.Content | ConvertFrom-Json
+                Assert-Test -Suite 'php-runtime' -Name 'health uses apache2handler' -Condition ($healthPayload.sapi -eq 'apache2handler') -Message "Unexpected SAPI: $($healthPayload.sapi)"
+                Assert-Test -Suite 'php-runtime' -Name 'health reports expected PHP major.minor' -Condition ($healthPayload.php_major_minor -eq $phpVersion) -Message "Unexpected PHP version: $($healthPayload.php_major_minor)"
+                Assert-Test -Suite 'php-runtime' -Name 'health reports expected Apache version' -Condition ($healthPayload.apache_version -like "Apache/$($env:APACHE_VERSION)*") -Message "Unexpected Apache version: $($healthPayload.apache_version)"
+                Assert-Test -Suite 'php-runtime' -Name 'health reports server software' -Condition ($healthPayload.server_software -like "Apache/$($env:APACHE_VERSION)*") -Message "Unexpected server software: $($healthPayload.server_software)"
+                Assert-Test -Suite 'php-runtime' -Name 'health confirms php_module in apache_get_modules' -Condition ([bool] $healthPayload.php_module_loaded) -Message 'php_module was not reported by apache_get_modules'
+                Assert-Test -Suite 'php-runtime' -Name 'health echoes query parameter' -Condition ($healthPayload.query_name -eq 'world') -Message 'Query string did not round-trip through Apache'
+                Assert-Test -Suite 'php-runtime' -Name 'health reports GET request method' -Condition ($healthPayload.request_method -eq 'GET') -Message "Unexpected request method: $($healthPayload.request_method)"
+                Assert-Test -Suite 'php-runtime' -Name 'Apache SetEnv reaches PHP' -Condition ($healthPayload.apache_test_env -eq 'from-apache') -Message "Unexpected Apache environment value: $($healthPayload.apache_test_env)"
+              } else {
+                @(
+                  'health header present',
+                  'health uses apache2handler',
+                  'health reports expected PHP major.minor',
+                  'health reports expected Apache version',
+                  'health reports server software',
+                  'health confirms php_module in apache_get_modules',
+                  'health echoes query parameter',
+                  'health reports GET request method',
+                  'Apache SetEnv reaches PHP'
+                ) | ForEach-Object {
+                  Add-SkippedTest -Suite 'php-runtime' -Name $_ -Reason 'Skipped because the health request failed'
+                }
+              }
+
+              $headResponse = Invoke-TestAction -Suite 'php-runtime' -Name 'HEAD /head.php' -Action {
+                return Invoke-WebRequestWithRetry -Uri "http://127.0.0.1:$port/head.php" -Method Head -ExpectedStatusCode 204
+              }
+
+              if ($null -ne $headResponse) {
+                Assert-Test -Suite 'php-runtime' -Name 'HEAD response header present' -Condition (@($headResponse.Headers['X-Head-Test']) -contains 'ok') -Message 'HEAD response header was missing'
+              } else {
+                Add-SkippedTest -Suite 'php-runtime' -Name 'HEAD response header present' -Reason 'Skipped because the HEAD request failed'
+              }
+
+              $staticResponse = Invoke-TestAction -Suite 'php-runtime' -Name 'GET /static.txt' -Action {
+                $response = Invoke-WebRequestWithRetry -Uri "http://127.0.0.1:$port/static.txt"
+                $response.Content | Set-Content -Path (Join-Path $logsDir 'static.txt') -Encoding utf8
+                return $response
+              }
+
+              if ($null -ne $staticResponse) {
+                Assert-Test -Suite 'php-runtime' -Name 'static file content matches' -Condition ($staticResponse.Content.Trim() -eq 'apache static ok') -Message 'Static content was not served correctly'
+              } else {
+                Add-SkippedTest -Suite 'php-runtime' -Name 'static file content matches' -Reason 'Skipped because the static file request failed'
+              }
+
+              $directoryIndexResponse = Invoke-TestAction -Suite 'php-runtime' -Name 'GET /app/ directory index' -Action {
+                $response = Invoke-WebRequestWithRetry -Uri "http://127.0.0.1:$port/app/"
+                $response.Content | Set-Content -Path (Join-Path $logsDir 'app-index.json') -Encoding utf8
+                return $response
+              }
+
+              if ($null -ne $directoryIndexResponse) {
+                $directoryIndexPayload = $directoryIndexResponse.Content | ConvertFrom-Json
+                Assert-Test -Suite 'php-runtime' -Name 'directory index resolves to PHP' -Condition ([bool] $directoryIndexPayload.directory_index) -Message 'DirectoryIndex did not resolve to index.php'
+                Assert-Test -Suite 'php-runtime' -Name 'directory index preserves request URI' -Condition ($directoryIndexPayload.request_uri -eq '/app/') -Message "Unexpected directory index request URI: $($directoryIndexPayload.request_uri)"
+              } else {
+                Add-SkippedTest -Suite 'php-runtime' -Name 'directory index resolves to PHP' -Reason 'Skipped because the directory index request failed'
+                Add-SkippedTest -Suite 'php-runtime' -Name 'directory index preserves request URI' -Reason 'Skipped because the directory index request failed'
+              }
+
+              $pathInfoResponse = Invoke-TestAction -Suite 'php-runtime' -Name 'GET /pathinfo.php with PATH_INFO' -Action {
+                $response = Invoke-WebRequestWithRetry -Uri "http://127.0.0.1:$port/pathinfo.php/extra/segment?name=path"
+                $response.Content | Set-Content -Path (Join-Path $logsDir 'pathinfo.json') -Encoding utf8
+                return $response
+              }
+
+              if ($null -ne $pathInfoResponse) {
+                $pathInfoPayload = $pathInfoResponse.Content | ConvertFrom-Json
+                Assert-Test -Suite 'php-runtime' -Name 'PATH_INFO is reported' -Condition ($pathInfoPayload.path_info -eq '/extra/segment') -Message "Unexpected PATH_INFO value: $($pathInfoPayload.path_info)"
+                Assert-Test -Suite 'php-runtime' -Name 'PHP_SELF includes PATH_INFO' -Condition ($pathInfoPayload.php_self -like '/pathinfo.php/*') -Message "Unexpected PHP_SELF value: $($pathInfoPayload.php_self)"
+              } else {
+                Add-SkippedTest -Suite 'php-runtime' -Name 'PATH_INFO is reported' -Reason 'Skipped because the PATH_INFO request failed'
+                Add-SkippedTest -Suite 'php-runtime' -Name 'PHP_SELF includes PATH_INFO' -Reason 'Skipped because the PATH_INFO request failed'
+              }
+
+              $rewriteResponse = Invoke-TestAction -Suite 'php-runtime' -Name 'GET rewritten route' -Action {
+                $response = Invoke-WebRequestWithRetry -Uri "http://127.0.0.1:$port/rewrite/virtual/path?name=rewrite"
+                $response.Content | Set-Content -Path (Join-Path $logsDir 'rewrite.json') -Encoding utf8
+                return $response
+              }
+
+              if ($null -ne $rewriteResponse) {
+                $rewritePayload = $rewriteResponse.Content | ConvertFrom-Json
+                Assert-Test -Suite 'php-runtime' -Name 'rewrite route reaches PHP index' -Condition ($rewritePayload.route -eq 'virtual/path') -Message "Unexpected rewrite route: $($rewritePayload.route)"
+                Assert-Test -Suite 'php-runtime' -Name 'rewrite preserves query string values' -Condition ($rewritePayload.name -eq 'rewrite') -Message "Unexpected rewrite query value: $($rewritePayload.name)"
+                Assert-Test -Suite 'php-runtime' -Name 'rewrite keeps request URI' -Condition ($rewritePayload.request_uri -eq '/rewrite/virtual/path?name=rewrite') -Message "Unexpected rewritten request URI: $($rewritePayload.request_uri)"
+              } else {
+                Add-SkippedTest -Suite 'php-runtime' -Name 'rewrite route reaches PHP index' -Reason 'Skipped because the rewrite request failed'
+                Add-SkippedTest -Suite 'php-runtime' -Name 'rewrite preserves query string values' -Reason 'Skipped because the rewrite request failed'
+                Add-SkippedTest -Suite 'php-runtime' -Name 'rewrite keeps request URI' -Reason 'Skipped because the rewrite request failed'
+              }
+
+              $formResponse = Invoke-TestAction -Suite 'php-runtime' -Name 'POST form data to /echo.php' -Action {
+                $response = Invoke-WebRequestWithRetry -Uri "http://127.0.0.1:$port/echo.php?name=form" -Method Post -Body @{ name = 'apache-form' } -Headers $customHeaders
+                $response.Content | Set-Content -Path (Join-Path $logsDir 'echo-form.json') -Encoding utf8
+                return $response
+              }
+
+              if ($null -ne $formResponse) {
+                $formPayload = $formResponse.Content | ConvertFrom-Json
+                Assert-Test -Suite 'php-runtime' -Name 'form POST method is reported' -Condition ($formPayload.request_method -eq 'POST') -Message "Unexpected form request method: $($formPayload.request_method)"
+                Assert-Test -Suite 'php-runtime' -Name 'form POST body round-trips' -Condition ($formPayload.post_name -eq 'apache-form') -Message "Unexpected form POST value: $($formPayload.post_name)"
+                Assert-Test -Suite 'php-runtime' -Name 'apache_request_headers sees custom header' -Condition ($formPayload.header_x_test -eq 'apache-header') -Message "Unexpected X-Test-Header value: $($formPayload.header_x_test)"
+                Assert-Test -Suite 'php-runtime' -Name 'getallheaders sees custom header' -Condition ($formPayload.getallheaders_x_test -eq 'apache-header') -Message "Unexpected getallheaders X-Test-Header value: $($formPayload.getallheaders_x_test)"
+                Assert-Test -Suite 'php-runtime' -Name 'authorization header reaches PHP' -Condition ($formPayload.header_authorization -eq 'Bearer apache-integration') -Message "Unexpected Authorization header value: $($formPayload.header_authorization)"
+                Assert-Test -Suite 'php-runtime' -Name 'apache_request_headers function is available' -Condition ([bool] $formPayload.apache_request_headers_available) -Message 'apache_request_headers() was not available'
+                Assert-Test -Suite 'php-runtime' -Name 'apache_response_headers function is available' -Condition ([bool] $formPayload.apache_response_headers_available) -Message 'apache_response_headers() was not available'
+                Assert-Test -Suite 'php-runtime' -Name 'apache_response_headers sees PHP response headers' -Condition ($formPayload.response_header_probe -eq 'active') -Message "Unexpected response header probe value: $($formPayload.response_header_probe)"
+                Assert-Test -Suite 'php-runtime' -Name 'Apache environment reaches echo.php' -Condition ($formPayload.apache_test_env -eq 'from-apache') -Message "Unexpected Apache environment value in echo.php: $($formPayload.apache_test_env)"
+              } else {
+                @(
+                  'form POST method is reported',
+                  'form POST body round-trips',
+                  'apache_request_headers sees custom header',
+                  'getallheaders sees custom header',
+                  'authorization header reaches PHP',
+                  'apache_request_headers function is available',
+                  'apache_response_headers function is available',
+                  'apache_response_headers sees PHP response headers',
+                  'Apache environment reaches echo.php'
+                ) | ForEach-Object {
+                  Add-SkippedTest -Suite 'php-runtime' -Name $_ -Reason 'Skipped because the form request failed'
+                }
+              }
+
+              $jsonResponse = Invoke-TestAction -Suite 'php-runtime' -Name 'POST JSON to /echo.php' -Action {
+                $response = Invoke-WebRequestWithRetry -Uri "http://127.0.0.1:$port/echo.php" -Method Post -Body $jsonBody -ContentType 'application/json'
+                $response.Content | Set-Content -Path (Join-Path $logsDir 'echo-json.json') -Encoding utf8
+                return $response
+              }
+
+              if ($null -ne $jsonResponse) {
+                $jsonPayload = $jsonResponse.Content | ConvertFrom-Json
+                Assert-Test -Suite 'php-runtime' -Name 'JSON payload name round-trips' -Condition ($jsonPayload.json_name -eq $jsonBodyObject.name) -Message "Unexpected JSON name value: $($jsonPayload.json_name)"
+                Assert-Test -Suite 'php-runtime' -Name 'JSON payload value round-trips' -Condition ($jsonPayload.json_value -eq $jsonBodyObject.value) -Message "Unexpected JSON value: $($jsonPayload.json_value)"
+                Assert-Test -Suite 'php-runtime' -Name 'raw request body length matches' -Condition ([int] $jsonPayload.raw_length -eq ([System.Text.Encoding]::UTF8.GetByteCount($jsonBody))) -Message "Unexpected raw body length: $($jsonPayload.raw_length)"
+                Assert-Test -Suite 'php-runtime' -Name 'raw request body hash matches' -Condition ($jsonPayload.raw_sha256 -eq $jsonBodySha256) -Message "Unexpected raw body SHA-256: $($jsonPayload.raw_sha256)"
+              } else {
+                @(
+                  'JSON payload name round-trips',
+                  'JSON payload value round-trips',
+                  'raw request body length matches',
+                  'raw request body hash matches'
+                ) | ForEach-Object {
+                  Add-SkippedTest -Suite 'php-runtime' -Name $_ -Reason 'Skipped because the JSON request failed'
+                }
+              }
+
+              $uploadResponse = Invoke-TestAction -Suite 'php-runtime' -Name 'POST multipart upload to /echo.php' -Action {
+                $response = Invoke-WebRequestWithRetry -Uri "http://127.0.0.1:$port/echo.php" -Method Post -Form @{
+                  note = 'upload-note'
+                  upload = Get-Item -Path $uploadFile
+                }
+                $response.Content | Set-Content -Path (Join-Path $logsDir 'echo-upload.json') -Encoding utf8
+                return $response
+              }
+
+              if ($null -ne $uploadResponse) {
+                $uploadPayload = $uploadResponse.Content | ConvertFrom-Json
+                Assert-Test -Suite 'php-runtime' -Name 'uploaded form note round-trips' -Condition ($uploadPayload.post_note -eq 'upload-note') -Message "Unexpected upload note value: $($uploadPayload.post_note)"
+                Assert-Test -Suite 'php-runtime' -Name 'upload file name matches' -Condition ($uploadPayload.upload_name -eq 'upload.txt') -Message "Unexpected uploaded file name: $($uploadPayload.upload_name)"
+                Assert-Test -Suite 'php-runtime' -Name 'upload file size matches' -Condition ([int] $uploadPayload.upload_size -eq [int] $uploadFileInfo.Length) -Message "Unexpected uploaded file size: $($uploadPayload.upload_size)"
+                Assert-Test -Suite 'php-runtime' -Name 'upload file hash matches' -Condition ($uploadPayload.upload_sha256 -eq $uploadHash) -Message "Unexpected uploaded file hash: $($uploadPayload.upload_sha256)"
+                Assert-Test -Suite 'php-runtime' -Name 'upload completes without PHP upload error' -Condition ([int] $uploadPayload.upload_error -eq 0) -Message "Unexpected upload error code: $($uploadPayload.upload_error)"
+              } else {
+                @(
+                  'uploaded form note round-trips',
+                  'upload file name matches',
+                  'upload file size matches',
+                  'upload file hash matches',
+                  'upload completes without PHP upload error'
+                ) | ForEach-Object {
+                  Add-SkippedTest -Suite 'php-runtime' -Name $_ -Reason 'Skipped because the upload request failed'
+                }
+              }
+
+              $cookieSetResponse = Invoke-TestAction -Suite 'php-runtime' -Name 'set cookie through PHP' -Action {
+                $response = Invoke-WebRequestWithRetry -Uri "http://127.0.0.1:$port/cookie.php?set=chocolate" -WebSession $cookieSession
+                $response.Content | Set-Content -Path (Join-Path $logsDir 'cookie-set.json') -Encoding utf8
+                return $response
+              }
+
+              $cookieReadResponse = Invoke-TestAction -Suite 'php-runtime' -Name 'read cookie through PHP' -Action {
+                $response = Invoke-WebRequestWithRetry -Uri "http://127.0.0.1:$port/cookie.php" -WebSession $cookieSession
+                $response.Content | Set-Content -Path (Join-Path $logsDir 'cookie-read.json') -Encoding utf8
+                return $response
+              }
+
+              if ($null -ne $cookieReadResponse) {
+                $cookiePayload = $cookieReadResponse.Content | ConvertFrom-Json
+                Assert-Test -Suite 'php-runtime' -Name 'cookie round-trips through apache2handler' -Condition ($cookiePayload.cookie -eq 'chocolate') -Message "Unexpected cookie value: $($cookiePayload.cookie)"
+              } else {
+                Add-SkippedTest -Suite 'php-runtime' -Name 'cookie round-trips through apache2handler' -Reason 'Skipped because the cookie read request failed'
+              }
+
+              $sessionFirstResponse = Invoke-TestAction -Suite 'php-runtime' -Name 'start PHP session' -Action {
+                $response = Invoke-WebRequestWithRetry -Uri "http://127.0.0.1:$port/session.php?message=apache-session" -WebSession $sessionState
+                $response.Content | Set-Content -Path (Join-Path $logsDir 'session-first.json') -Encoding utf8
+                return $response
+              }
+
+              $sessionSecondResponse = Invoke-TestAction -Suite 'php-runtime' -Name 'resume PHP session' -Action {
+                $response = Invoke-WebRequestWithRetry -Uri "http://127.0.0.1:$port/session.php" -WebSession $sessionState
+                $response.Content | Set-Content -Path (Join-Path $logsDir 'session-second.json') -Encoding utf8
+                return $response
+              }
+
+              if ($null -ne $sessionFirstResponse) {
+                $sessionFirstPayload = $sessionFirstResponse.Content | ConvertFrom-Json
+                Assert-Test -Suite 'php-runtime' -Name 'session initializes count' -Condition ([int] $sessionFirstPayload.count -eq 1) -Message "Unexpected initial session count: $($sessionFirstPayload.count)"
+                Assert-Test -Suite 'php-runtime' -Name 'session stores message' -Condition ($sessionFirstPayload.message -eq 'apache-session') -Message "Unexpected initial session message: $($sessionFirstPayload.message)"
+              } else {
+                Add-SkippedTest -Suite 'php-runtime' -Name 'session initializes count' -Reason 'Skipped because the first session request failed'
+                Add-SkippedTest -Suite 'php-runtime' -Name 'session stores message' -Reason 'Skipped because the first session request failed'
+              }
+
+              if ($null -ne $sessionSecondResponse) {
+                $sessionSecondPayload = $sessionSecondResponse.Content | ConvertFrom-Json
+                Assert-Test -Suite 'php-runtime' -Name 'session persists count across requests' -Condition ([int] $sessionSecondPayload.count -eq 2) -Message "Unexpected resumed session count: $($sessionSecondPayload.count)"
+                Assert-Test -Suite 'php-runtime' -Name 'session persists message across requests' -Condition ($sessionSecondPayload.message -eq 'apache-session') -Message "Unexpected resumed session message: $($sessionSecondPayload.message)"
+              } else {
+                Add-SkippedTest -Suite 'php-runtime' -Name 'session persists count across requests' -Reason 'Skipped because the second session request failed'
+                Add-SkippedTest -Suite 'php-runtime' -Name 'session persists message across requests' -Reason 'Skipped because the second session request failed'
+              }
+
+              $statusResponse = Invoke-TestAction -Suite 'php-runtime' -Name 'GET /status.php' -Action {
+                $response = Invoke-WebRequestWithRetry -Uri "http://127.0.0.1:$port/status.php" -ExpectedStatusCode 418
+                $response.Content | Set-Content -Path (Join-Path $logsDir 'status.json') -Encoding utf8
+                return $response
+              }
+
+              if ($null -ne $statusResponse) {
+                Assert-Test -Suite 'php-runtime' -Name 'PHP status header is present' -Condition (@($statusResponse.Headers['X-Status-Test']) -contains 'ok') -Message 'Expected PHP status header was missing'
+                $statusPayload = $statusResponse.Content | ConvertFrom-Json
+                Assert-Test -Suite 'php-runtime' -Name 'PHP can emit custom HTTP status' -Condition ([int] $statusPayload.status -eq 418) -Message "Unexpected PHP status code: $($statusPayload.status)"
+                Assert-Test -Suite 'php-runtime' -Name 'apache_response_headers sees status probe header' -Condition ($statusPayload.response_probe -eq 'status') -Message "Unexpected apache_response_headers probe value: $($statusPayload.response_probe)"
+              } else {
+                Add-SkippedTest -Suite 'php-runtime' -Name 'PHP status header is present' -Reason 'Skipped because the status request failed'
+                Add-SkippedTest -Suite 'php-runtime' -Name 'PHP can emit custom HTTP status' -Reason 'Skipped because the status request failed'
+                Add-SkippedTest -Suite 'php-runtime' -Name 'apache_response_headers sees status probe header' -Reason 'Skipped because the status request failed'
+              }
+
+              $httpsResponse = Invoke-TestAction -Suite 'php-runtime' -Name 'GET /https.php over HTTPS' -Action {
+                $response = Invoke-WebRequestWithRetry -Uri "https://127.0.0.1:$sslPort/https.php" -SkipCertificateCheck
+                $response.Content | Set-Content -Path (Join-Path $logsDir 'https.json') -Encoding utf8
+                return $response
+              }
+
+              if ($null -ne $httpsResponse) {
+                $httpsPayload = $httpsResponse.Content | ConvertFrom-Json
+                Assert-Test -Suite 'php-runtime' -Name 'HTTPS flag reaches PHP' -Condition ($httpsPayload.https -eq 'on') -Message "Unexpected HTTPS flag: $($httpsPayload.https)"
+                Assert-Test -Suite 'php-runtime' -Name 'HTTPS request scheme is reported' -Condition ($httpsPayload.request_scheme -eq 'https') -Message "Unexpected HTTPS request scheme: $($httpsPayload.request_scheme)"
+                Assert-Test -Suite 'php-runtime' -Name 'HTTPS port is reported' -Condition ($httpsPayload.server_port -eq "$sslPort") -Message "Unexpected HTTPS server port: $($httpsPayload.server_port)"
+                Assert-Test -Suite 'php-runtime' -Name 'SSL protocol reaches PHP' -Condition (($httpsPayload.ssl_protocol -as [string]).StartsWith('TLS')) -Message "Unexpected SSL protocol: $($httpsPayload.ssl_protocol)"
+                Assert-Test -Suite 'php-runtime' -Name 'SSL cipher reaches PHP' -Condition (($httpsPayload.ssl_cipher -as [string]).Length -gt 0) -Message 'SSL cipher was not reported to PHP'
+              } else {
+                @(
+                  'HTTPS flag reaches PHP',
+                  'HTTPS request scheme is reported',
+                  'HTTPS port is reported',
+                  'SSL protocol reaches PHP',
+                  'SSL cipher reaches PHP'
+                ) | ForEach-Object {
+                  Add-SkippedTest -Suite 'php-runtime' -Name $_ -Reason 'Skipped because the HTTPS request failed'
+                }
+              }
+            } else {
+              @(
+                'GET /health.php',
+                'health header present',
+                'health uses apache2handler',
+                'health reports expected PHP major.minor',
+                'health reports expected Apache version',
+                'health reports server software',
+                'health confirms php_module in apache_get_modules',
+                'health echoes query parameter',
+                'health reports GET request method',
+                'Apache SetEnv reaches PHP',
+                'HEAD /head.php',
+                'HEAD response header present',
+                'GET /static.txt',
+                'static file content matches',
+                'GET /app/ directory index',
+                'directory index resolves to PHP',
+                'directory index preserves request URI',
+                'GET /pathinfo.php with PATH_INFO',
+                'PATH_INFO is reported',
+                'PHP_SELF includes PATH_INFO',
+                'GET rewritten route',
+                'rewrite route reaches PHP index',
+                'rewrite preserves query string values',
+                'rewrite keeps request URI',
+                'POST form data to /echo.php',
+                'form POST method is reported',
+                'form POST body round-trips',
+                'apache_request_headers sees custom header',
+                'getallheaders sees custom header',
+                'authorization header reaches PHP',
+                'apache_request_headers function is available',
+                'apache_response_headers function is available',
+                'apache_response_headers sees PHP response headers',
+                'Apache environment reaches echo.php',
+                'POST JSON to /echo.php',
+                'JSON payload name round-trips',
+                'JSON payload value round-trips',
+                'raw request body length matches',
+                'raw request body hash matches',
+                'POST multipart upload to /echo.php',
+                'uploaded form note round-trips',
+                'upload file name matches',
+                'upload file size matches',
+                'upload file hash matches',
+                'upload completes without PHP upload error',
+                'set cookie through PHP',
+                'read cookie through PHP',
+                'cookie round-trips through apache2handler',
+                'start PHP session',
+                'resume PHP session',
+                'session initializes count',
+                'session stores message',
+                'session persists count across requests',
+                'session persists message across requests',
+                'GET /status.php',
+                'PHP status header is present',
+                'PHP can emit custom HTTP status',
+                'apache_response_headers sees status probe header',
+                'GET /https.php over HTTPS',
+                'HTTPS flag reaches PHP',
+                'HTTPS request scheme is reported',
+                'HTTPS port is reported',
+                'SSL protocol reaches PHP',
+                'SSL cipher reaches PHP'
+              ) | ForEach-Object {
+                Add-SkippedTest -Suite 'php-runtime' -Name $_ -Reason 'Skipped because Apache did not start'
+              }
+            }
 
             $errorLog = Join-Path $apacheRoot 'logs\error.log'
             if (Test-Path $errorLog) {
-              Copy-Item $errorLog (Join-Path $logsDir 'error.log') -Force
+              Copy-Item -Path $errorLog -Destination (Join-Path $logsDir 'error.log') -Force
               $errorLogContent = Get-Content -Path $errorLog -Raw
-              Assert-True -Condition ($errorLogContent -notmatch 'PHP Fatal|Syntax error|Cannot load|error while loading') -Message 'Apache error log contains a startup or runtime failure'
+              Assert-Test -Suite 'apache-runtime' -Name 'Apache error log is clean' -Condition ($errorLogContent -notmatch 'PHP Fatal|Syntax error|Cannot load|error while loading|Fatal') -Message 'Apache error log contains a startup or runtime failure'
+            } else {
+              Add-SkippedTest -Suite 'apache-runtime' -Name 'Apache error log is clean' -Reason 'Skipped because Apache did not create an error log'
             }
 
             $phpErrorLog = Join-Path $apacheRoot 'logs\php-errors.log'
             if (Test-Path $phpErrorLog) {
-              Copy-Item $phpErrorLog (Join-Path $logsDir 'php-errors.log') -Force
+              Copy-Item -Path $phpErrorLog -Destination (Join-Path $logsDir 'php-errors.log') -Force
               $phpErrorContent = Get-Content -Path $phpErrorLog -Raw
-              Assert-True -Condition ($phpErrorContent -notmatch 'Fatal error|Parse error') -Message 'PHP error log contains a fatal or parse error'
+              Assert-Test -Suite 'php-runtime' -Name 'PHP error log is clean' -Condition ($phpErrorContent -notmatch 'Fatal error|Parse error') -Message 'PHP error log contains a fatal or parse error'
+            } else {
+              Add-SkippedTest -Suite 'php-runtime' -Name 'PHP error log is clean' -Reason 'Skipped because PHP did not create an error log'
             }
           } catch {
             $_ | Format-List * -Force | Out-String | Tee-Object -FilePath (Join-Path $logsDir 'exception.txt') | Write-Host
@@ -329,9 +1191,112 @@ jobs:
             }
           }
 
+          $stats = Get-TestStats -Results $testResults
+          $summaryLines = @(
+            "## $suiteName",
+            '',
+            '| Passed | Failed | Skipped | Total |',
+            '| --- | --- | --- | --- |',
+            "| $($stats.passed) | $($stats.failed) | $($stats.skipped) | $($stats.total) |",
+            '',
+            '| Suite | Test | Status | Details |',
+            '| --- | --- | --- | --- |'
+          )
+
+          foreach ($result in $testResults) {
+            $summaryLines += "| $($result.Suite) | $($result.Name) | $($result.Status) | $($result.Details) |"
+          }
+
+          Write-Host "Test totals for ${suiteName}: passed=$($stats.passed) failed=$($stats.failed) skipped=$($stats.skipped) total=$($stats.total)"
+          $summaryLines -join "`n" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          $testResults | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $logsDir 'test-results.json') -Encoding utf8
+          $stats | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $logsDir 'test-stats.json') -Encoding utf8
+
+          if ($mismatches.Count -gt 0) {
+            $mismatches | Set-Content -Path (Join-Path $logsDir 'mismatches.txt') -Encoding utf8
+            throw ($mismatches -join "`n")
+          }
+
+          $global:LASTEXITCODE = 0
+
       - name: Upload validation logs
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: apachehandler-${{ matrix.source }}-php${{ matrix.php.version }}-${{ matrix.arch }}
           path: ${{ runner.temp }}/apachehandler-${{ matrix.source }}-${{ matrix.php.version }}-${{ matrix.arch }}/logs
+
+  summarize-test-results:
+    name: Overall Test Summary
+    if: always()
+    needs: test-apachehandler
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download validation logs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: apachehandler-*
+          path: artifacts
+          merge-multiple: false
+
+      - name: Summarize overall integration stats
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $artifactDirs = Get-ChildItem -Path artifacts -Directory | Sort-Object Name
+          $allResults = New-Object System.Collections.Generic.List[object]
+          $suiteStats = New-Object System.Collections.Generic.List[object]
+
+          foreach ($artifactDir in $artifactDirs) {
+            $statsPath = Join-Path $artifactDir.FullName 'test-stats.json'
+            $resultsPath = Join-Path $artifactDir.FullName 'test-results.json'
+
+            if (Test-Path $statsPath) {
+              $stats = Get-Content -Path $statsPath -Raw | ConvertFrom-Json
+              $suiteStats.Add($stats) | Out-Null
+            }
+
+            if (Test-Path $resultsPath) {
+              foreach ($result in @(Get-Content -Path $resultsPath -Raw | ConvertFrom-Json)) {
+                $allResults.Add($result) | Out-Null
+              }
+            }
+          }
+
+          $allResultItems = @($allResults.ToArray())
+          $suiteStatItems = @($suiteStats.ToArray())
+
+          $overall = [pscustomobject]@{
+            total = $allResultItems.Count
+            passed = @($allResultItems | Where-Object { $_.Status -eq 'passed' }).Count
+            failed = @($allResultItems | Where-Object { $_.Status -eq 'failed' }).Count
+            skipped = @($allResultItems | Where-Object { $_.Status -eq 'skipped' }).Count
+          }
+
+          $summaryLines = @(
+            '## Overall Apache + PHP Integration Summary',
+            '',
+            '| Passed | Failed | Skipped | Total |',
+            '| --- | --- | --- | --- |',
+            "| $($overall.passed) | $($overall.failed) | $($overall.skipped) | $($overall.total) |",
+            '',
+            '| Suite | Passed | Failed | Skipped | Total |',
+            '| --- | --- | --- | --- | --- |'
+          )
+
+          foreach ($stats in $suiteStatItems) {
+            $summaryLines += "| $($stats.suite_name) | $($stats.passed) | $($stats.failed) | $($stats.skipped) | $($stats.total) |"
+          }
+
+          $summaryLines += ''
+          $summaryLines += '| Suite | Category | Test | Status | Details |'
+          $summaryLines += '| --- | --- | --- | --- | --- |'
+
+          foreach ($result in $allResultItems) {
+            $summaryLines += "| $($result.SuiteName) | $($result.Suite) | $($result.Name) | $($result.Status) | $($result.Details) |"
+          }
+
+          Write-Host "Overall integration totals: passed=$($overall.passed) failed=$($overall.failed) skipped=$($overall.skipped) total=$($overall.total)"
+          $summaryLines -join "`n" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
