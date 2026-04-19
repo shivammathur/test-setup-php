@@ -129,6 +129,7 @@ jobs:
             param(
               [Parameter(Mandatory = $true)]
               [string] $Name,
+              [AllowEmptyString()]
               [Parameter(Mandatory = $true)]
               [string[]] $SourceLines,
               [Parameter(Mandatory = $true)]
