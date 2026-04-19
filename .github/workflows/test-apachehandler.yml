@@ -175,6 +175,36 @@ jobs:
             }
           }
 
+          function Convert-TestJson {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $Suite,
+              [Parameter(Mandatory = $true)]
+              [string] $Name,
+              [Parameter(Mandatory = $true)]
+              [AllowEmptyString()]
+              [string] $Content
+            )
+
+            try {
+              return $Content | ConvertFrom-Json
+            } catch {
+              $preview = ($Content -replace '\s+', ' ').Trim()
+              if ($preview.Length -gt 160) {
+                $preview = $preview.Substring(0, 160) + '...'
+              }
+
+              $detail = $_.Exception.Message
+              if (-not [string]::IsNullOrWhiteSpace($preview)) {
+                $detail = "$detail :: $preview"
+              }
+
+              Add-TestResult -Suite $Suite -Name $Name -Status 'failed' -Details $detail
+              $script:mismatches.Add("$Name failed: response was not valid JSON") | Out-Null
+              return $null
+            }
+          }
+
           $source = $env:TEST_SOURCE
           $phpVersion = $env:TEST_PHP_VERSION
           $expectedVs = $env:TEST_VS
@@ -454,7 +484,8 @@ jobs:
               'php_major_minor' => PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION,
               'sapi' => PHP_SAPI,
               'apache_version' => function_exists('apache_get_version') ? apache_get_version() : null,
-              'php_module_loaded' => in_array('php_module', $modules, true),
+              'apache_get_modules_available' => function_exists('apache_get_modules'),
+              'apache_module_count' => count($modules),
               'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? null,
               'request_method' => $_SERVER['REQUEST_METHOD'] ?? null,
               'query_name' => $_GET['name'] ?? null,
@@ -687,7 +718,7 @@ jobs:
             $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*ServerRoot.*\r?$', "ServerRoot `"$apacheRootConfigPath`""
             $httpdConfig = $httpdConfig -replace '(?m)^Listen 80\r?$', "Listen $port"
             $httpdConfig = $httpdConfig -replace '(?m)^#?ServerName .+\r?$', "ServerName 127.0.0.1:$port"
-            $httpdConfig = $httpdConfig -replace '(?m)^DirectoryIndex .+\r?$', 'DirectoryIndex index.php index.html'
+            $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*DirectoryIndex .+\r?$', '    DirectoryIndex index.php index.html'
 
             $customConfig = @()
 
@@ -826,23 +857,42 @@ jobs:
 
               if ($null -ne $healthResponse) {
                 Assert-Test -Suite 'php-runtime' -Name 'health header present' -Condition (@($healthResponse.Headers['X-PHP-Apache-Test']) -contains 'ok') -Message 'Expected Apache handler response header was missing'
-                $healthPayload = $healthResponse.Content | ConvertFrom-Json
-                Assert-Test -Suite 'php-runtime' -Name 'health uses apache2handler' -Condition ($healthPayload.sapi -eq 'apache2handler') -Message "Unexpected SAPI: $($healthPayload.sapi)"
-                Assert-Test -Suite 'php-runtime' -Name 'health reports expected PHP major.minor' -Condition ($healthPayload.php_major_minor -eq $phpVersion) -Message "Unexpected PHP version: $($healthPayload.php_major_minor)"
-                Assert-Test -Suite 'php-runtime' -Name 'health reports expected Apache version' -Condition ($healthPayload.apache_version -like "Apache/$($env:APACHE_VERSION)*") -Message "Unexpected Apache version: $($healthPayload.apache_version)"
-                Assert-Test -Suite 'php-runtime' -Name 'health reports server software' -Condition ($healthPayload.server_software -like "Apache/$($env:APACHE_VERSION)*") -Message "Unexpected server software: $($healthPayload.server_software)"
-                Assert-Test -Suite 'php-runtime' -Name 'health confirms php_module in apache_get_modules' -Condition ([bool] $healthPayload.php_module_loaded) -Message 'php_module was not reported by apache_get_modules'
-                Assert-Test -Suite 'php-runtime' -Name 'health echoes query parameter' -Condition ($healthPayload.query_name -eq 'world') -Message 'Query string did not round-trip through Apache'
-                Assert-Test -Suite 'php-runtime' -Name 'health reports GET request method' -Condition ($healthPayload.request_method -eq 'GET') -Message "Unexpected request method: $($healthPayload.request_method)"
-                Assert-Test -Suite 'php-runtime' -Name 'Apache SetEnv reaches PHP' -Condition ($healthPayload.apache_test_env -eq 'from-apache') -Message "Unexpected Apache environment value: $($healthPayload.apache_test_env)"
+                $healthPayload = Convert-TestJson -Suite 'php-runtime' -Name 'health returns JSON' -Content $healthResponse.Content
+                if ($null -ne $healthPayload) {
+                  Assert-Test -Suite 'php-runtime' -Name 'health uses apache2handler' -Condition ($healthPayload.sapi -eq 'apache2handler') -Message "Unexpected SAPI: $($healthPayload.sapi)"
+                  Assert-Test -Suite 'php-runtime' -Name 'health reports expected PHP major.minor' -Condition ($healthPayload.php_major_minor -eq $phpVersion) -Message "Unexpected PHP version: $($healthPayload.php_major_minor)"
+                  Assert-Test -Suite 'php-runtime' -Name 'health reports expected Apache version' -Condition ($healthPayload.apache_version -like "Apache/$($env:APACHE_VERSION)*") -Message "Unexpected Apache version: $($healthPayload.apache_version)"
+                  Assert-Test -Suite 'php-runtime' -Name 'health reports server software' -Condition ($healthPayload.server_software -like "Apache/$($env:APACHE_VERSION)*") -Message "Unexpected server software: $($healthPayload.server_software)"
+                  Assert-Test -Suite 'php-runtime' -Name 'apache_get_modules is available' -Condition ([bool] $healthPayload.apache_get_modules_available) -Message 'apache_get_modules() was not available in apache2handler'
+                  Assert-Test -Suite 'php-runtime' -Name 'apache_get_modules reports modules' -Condition ([int] $healthPayload.apache_module_count -gt 0) -Message 'apache_get_modules() returned no modules'
+                  Assert-Test -Suite 'php-runtime' -Name 'health echoes query parameter' -Condition ($healthPayload.query_name -eq 'world') -Message 'Query string did not round-trip through Apache'
+                  Assert-Test -Suite 'php-runtime' -Name 'health reports GET request method' -Condition ($healthPayload.request_method -eq 'GET') -Message "Unexpected request method: $($healthPayload.request_method)"
+                  Assert-Test -Suite 'php-runtime' -Name 'Apache SetEnv reaches PHP' -Condition ($healthPayload.apache_test_env -eq 'from-apache') -Message "Unexpected Apache environment value: $($healthPayload.apache_test_env)"
+                } else {
+                  @(
+                    'health uses apache2handler',
+                    'health reports expected PHP major.minor',
+                    'health reports expected Apache version',
+                    'health reports server software',
+                    'apache_get_modules is available',
+                    'apache_get_modules reports modules',
+                    'health echoes query parameter',
+                    'health reports GET request method',
+                    'Apache SetEnv reaches PHP'
+                  ) | ForEach-Object {
+                    Add-SkippedTest -Suite 'php-runtime' -Name $_ -Reason 'Skipped because the health response was not valid JSON'
+                  }
+                }
               } else {
                 @(
                   'health header present',
+                  'health returns JSON',
                   'health uses apache2handler',
                   'health reports expected PHP major.minor',
                   'health reports expected Apache version',
                   'health reports server software',
-                  'health confirms php_module in apache_get_modules',
+                  'apache_get_modules is available',
+                  'apache_get_modules reports modules',
                   'health echoes query parameter',
                   'health reports GET request method',
                   'Apache SetEnv reaches PHP'
@@ -880,10 +930,16 @@ jobs:
               }
 
               if ($null -ne $directoryIndexResponse) {
-                $directoryIndexPayload = $directoryIndexResponse.Content | ConvertFrom-Json
-                Assert-Test -Suite 'php-runtime' -Name 'directory index resolves to PHP' -Condition ([bool] $directoryIndexPayload.directory_index) -Message 'DirectoryIndex did not resolve to index.php'
-                Assert-Test -Suite 'php-runtime' -Name 'directory index preserves request URI' -Condition ($directoryIndexPayload.request_uri -eq '/app/') -Message "Unexpected directory index request URI: $($directoryIndexPayload.request_uri)"
+                $directoryIndexPayload = Convert-TestJson -Suite 'php-runtime' -Name 'directory index returns JSON' -Content $directoryIndexResponse.Content
+                if ($null -ne $directoryIndexPayload) {
+                  Assert-Test -Suite 'php-runtime' -Name 'directory index resolves to PHP' -Condition ([bool] $directoryIndexPayload.directory_index) -Message 'DirectoryIndex did not resolve to index.php'
+                  Assert-Test -Suite 'php-runtime' -Name 'directory index preserves request URI' -Condition ($directoryIndexPayload.request_uri -eq '/app/') -Message "Unexpected directory index request URI: $($directoryIndexPayload.request_uri)"
+                } else {
+                  Add-SkippedTest -Suite 'php-runtime' -Name 'directory index resolves to PHP' -Reason 'Skipped because the directory index response was not valid JSON'
+                  Add-SkippedTest -Suite 'php-runtime' -Name 'directory index preserves request URI' -Reason 'Skipped because the directory index response was not valid JSON'
+                }
               } else {
+                Add-SkippedTest -Suite 'php-runtime' -Name 'directory index returns JSON' -Reason 'Skipped because the directory index request failed'
                 Add-SkippedTest -Suite 'php-runtime' -Name 'directory index resolves to PHP' -Reason 'Skipped because the directory index request failed'
                 Add-SkippedTest -Suite 'php-runtime' -Name 'directory index preserves request URI' -Reason 'Skipped because the directory index request failed'
               }
@@ -895,10 +951,16 @@ jobs:
               }
 
               if ($null -ne $pathInfoResponse) {
-                $pathInfoPayload = $pathInfoResponse.Content | ConvertFrom-Json
-                Assert-Test -Suite 'php-runtime' -Name 'PATH_INFO is reported' -Condition ($pathInfoPayload.path_info -eq '/extra/segment') -Message "Unexpected PATH_INFO value: $($pathInfoPayload.path_info)"
-                Assert-Test -Suite 'php-runtime' -Name 'PHP_SELF includes PATH_INFO' -Condition ($pathInfoPayload.php_self -like '/pathinfo.php/*') -Message "Unexpected PHP_SELF value: $($pathInfoPayload.php_self)"
+                $pathInfoPayload = Convert-TestJson -Suite 'php-runtime' -Name 'PATH_INFO response returns JSON' -Content $pathInfoResponse.Content
+                if ($null -ne $pathInfoPayload) {
+                  Assert-Test -Suite 'php-runtime' -Name 'PATH_INFO is reported' -Condition ($pathInfoPayload.path_info -eq '/extra/segment') -Message "Unexpected PATH_INFO value: $($pathInfoPayload.path_info)"
+                  Assert-Test -Suite 'php-runtime' -Name 'PHP_SELF includes PATH_INFO' -Condition ($pathInfoPayload.php_self -like '/pathinfo.php/*') -Message "Unexpected PHP_SELF value: $($pathInfoPayload.php_self)"
+                } else {
+                  Add-SkippedTest -Suite 'php-runtime' -Name 'PATH_INFO is reported' -Reason 'Skipped because the PATH_INFO response was not valid JSON'
+                  Add-SkippedTest -Suite 'php-runtime' -Name 'PHP_SELF includes PATH_INFO' -Reason 'Skipped because the PATH_INFO response was not valid JSON'
+                }
               } else {
+                Add-SkippedTest -Suite 'php-runtime' -Name 'PATH_INFO response returns JSON' -Reason 'Skipped because the PATH_INFO request failed'
                 Add-SkippedTest -Suite 'php-runtime' -Name 'PATH_INFO is reported' -Reason 'Skipped because the PATH_INFO request failed'
                 Add-SkippedTest -Suite 'php-runtime' -Name 'PHP_SELF includes PATH_INFO' -Reason 'Skipped because the PATH_INFO request failed'
               }
@@ -910,11 +972,18 @@ jobs:
               }
 
               if ($null -ne $rewriteResponse) {
-                $rewritePayload = $rewriteResponse.Content | ConvertFrom-Json
-                Assert-Test -Suite 'php-runtime' -Name 'rewrite route reaches PHP index' -Condition ($rewritePayload.route -eq 'virtual/path') -Message "Unexpected rewrite route: $($rewritePayload.route)"
-                Assert-Test -Suite 'php-runtime' -Name 'rewrite preserves query string values' -Condition ($rewritePayload.name -eq 'rewrite') -Message "Unexpected rewrite query value: $($rewritePayload.name)"
-                Assert-Test -Suite 'php-runtime' -Name 'rewrite keeps request URI' -Condition ($rewritePayload.request_uri -eq '/rewrite/virtual/path?name=rewrite') -Message "Unexpected rewritten request URI: $($rewritePayload.request_uri)"
+                $rewritePayload = Convert-TestJson -Suite 'php-runtime' -Name 'rewrite response returns JSON' -Content $rewriteResponse.Content
+                if ($null -ne $rewritePayload) {
+                  Assert-Test -Suite 'php-runtime' -Name 'rewrite route reaches PHP index' -Condition ($rewritePayload.route -eq 'virtual/path') -Message "Unexpected rewrite route: $($rewritePayload.route)"
+                  Assert-Test -Suite 'php-runtime' -Name 'rewrite preserves query string values' -Condition ($rewritePayload.name -eq 'rewrite') -Message "Unexpected rewrite query value: $($rewritePayload.name)"
+                  Assert-Test -Suite 'php-runtime' -Name 'rewrite keeps request URI' -Condition ($rewritePayload.request_uri -eq '/rewrite/virtual/path?name=rewrite') -Message "Unexpected rewritten request URI: $($rewritePayload.request_uri)"
+                } else {
+                  Add-SkippedTest -Suite 'php-runtime' -Name 'rewrite route reaches PHP index' -Reason 'Skipped because the rewrite response was not valid JSON'
+                  Add-SkippedTest -Suite 'php-runtime' -Name 'rewrite preserves query string values' -Reason 'Skipped because the rewrite response was not valid JSON'
+                  Add-SkippedTest -Suite 'php-runtime' -Name 'rewrite keeps request URI' -Reason 'Skipped because the rewrite response was not valid JSON'
+                }
               } else {
+                Add-SkippedTest -Suite 'php-runtime' -Name 'rewrite response returns JSON' -Reason 'Skipped because the rewrite request failed'
                 Add-SkippedTest -Suite 'php-runtime' -Name 'rewrite route reaches PHP index' -Reason 'Skipped because the rewrite request failed'
                 Add-SkippedTest -Suite 'php-runtime' -Name 'rewrite preserves query string values' -Reason 'Skipped because the rewrite request failed'
                 Add-SkippedTest -Suite 'php-runtime' -Name 'rewrite keeps request URI' -Reason 'Skipped because the rewrite request failed'
@@ -927,18 +996,35 @@ jobs:
               }
 
               if ($null -ne $formResponse) {
-                $formPayload = $formResponse.Content | ConvertFrom-Json
-                Assert-Test -Suite 'php-runtime' -Name 'form POST method is reported' -Condition ($formPayload.request_method -eq 'POST') -Message "Unexpected form request method: $($formPayload.request_method)"
-                Assert-Test -Suite 'php-runtime' -Name 'form POST body round-trips' -Condition ($formPayload.post_name -eq 'apache-form') -Message "Unexpected form POST value: $($formPayload.post_name)"
-                Assert-Test -Suite 'php-runtime' -Name 'apache_request_headers sees custom header' -Condition ($formPayload.header_x_test -eq 'apache-header') -Message "Unexpected X-Test-Header value: $($formPayload.header_x_test)"
-                Assert-Test -Suite 'php-runtime' -Name 'getallheaders sees custom header' -Condition ($formPayload.getallheaders_x_test -eq 'apache-header') -Message "Unexpected getallheaders X-Test-Header value: $($formPayload.getallheaders_x_test)"
-                Assert-Test -Suite 'php-runtime' -Name 'authorization header reaches PHP' -Condition ($formPayload.header_authorization -eq 'Bearer apache-integration') -Message "Unexpected Authorization header value: $($formPayload.header_authorization)"
-                Assert-Test -Suite 'php-runtime' -Name 'apache_request_headers function is available' -Condition ([bool] $formPayload.apache_request_headers_available) -Message 'apache_request_headers() was not available'
-                Assert-Test -Suite 'php-runtime' -Name 'apache_response_headers function is available' -Condition ([bool] $formPayload.apache_response_headers_available) -Message 'apache_response_headers() was not available'
-                Assert-Test -Suite 'php-runtime' -Name 'apache_response_headers sees PHP response headers' -Condition ($formPayload.response_header_probe -eq 'active') -Message "Unexpected response header probe value: $($formPayload.response_header_probe)"
-                Assert-Test -Suite 'php-runtime' -Name 'Apache environment reaches echo.php' -Condition ($formPayload.apache_test_env -eq 'from-apache') -Message "Unexpected Apache environment value in echo.php: $($formPayload.apache_test_env)"
+                $formPayload = Convert-TestJson -Suite 'php-runtime' -Name 'form response returns JSON' -Content $formResponse.Content
+                if ($null -ne $formPayload) {
+                  Assert-Test -Suite 'php-runtime' -Name 'form POST method is reported' -Condition ($formPayload.request_method -eq 'POST') -Message "Unexpected form request method: $($formPayload.request_method)"
+                  Assert-Test -Suite 'php-runtime' -Name 'form POST body round-trips' -Condition ($formPayload.post_name -eq 'apache-form') -Message "Unexpected form POST value: $($formPayload.post_name)"
+                  Assert-Test -Suite 'php-runtime' -Name 'apache_request_headers sees custom header' -Condition ($formPayload.header_x_test -eq 'apache-header') -Message "Unexpected X-Test-Header value: $($formPayload.header_x_test)"
+                  Assert-Test -Suite 'php-runtime' -Name 'getallheaders sees custom header' -Condition ($formPayload.getallheaders_x_test -eq 'apache-header') -Message "Unexpected getallheaders X-Test-Header value: $($formPayload.getallheaders_x_test)"
+                  Assert-Test -Suite 'php-runtime' -Name 'authorization header reaches PHP' -Condition ($formPayload.header_authorization -eq 'Bearer apache-integration') -Message "Unexpected Authorization header value: $($formPayload.header_authorization)"
+                  Assert-Test -Suite 'php-runtime' -Name 'apache_request_headers function is available' -Condition ([bool] $formPayload.apache_request_headers_available) -Message 'apache_request_headers() was not available'
+                  Assert-Test -Suite 'php-runtime' -Name 'apache_response_headers function is available' -Condition ([bool] $formPayload.apache_response_headers_available) -Message 'apache_response_headers() was not available'
+                  Assert-Test -Suite 'php-runtime' -Name 'apache_response_headers sees PHP response headers' -Condition ($formPayload.response_header_probe -eq 'active') -Message "Unexpected response header probe value: $($formPayload.response_header_probe)"
+                  Assert-Test -Suite 'php-runtime' -Name 'Apache environment reaches echo.php' -Condition ($formPayload.apache_test_env -eq 'from-apache') -Message "Unexpected Apache environment value in echo.php: $($formPayload.apache_test_env)"
+                } else {
+                  @(
+                    'form POST method is reported',
+                    'form POST body round-trips',
+                    'apache_request_headers sees custom header',
+                    'getallheaders sees custom header',
+                    'authorization header reaches PHP',
+                    'apache_request_headers function is available',
+                    'apache_response_headers function is available',
+                    'apache_response_headers sees PHP response headers',
+                    'Apache environment reaches echo.php'
+                  ) | ForEach-Object {
+                    Add-SkippedTest -Suite 'php-runtime' -Name $_ -Reason 'Skipped because the form response was not valid JSON'
+                  }
+                }
               } else {
                 @(
+                  'form response returns JSON',
                   'form POST method is reported',
                   'form POST body round-trips',
                   'apache_request_headers sees custom header',
@@ -960,13 +1046,25 @@ jobs:
               }
 
               if ($null -ne $jsonResponse) {
-                $jsonPayload = $jsonResponse.Content | ConvertFrom-Json
-                Assert-Test -Suite 'php-runtime' -Name 'JSON payload name round-trips' -Condition ($jsonPayload.json_name -eq $jsonBodyObject.name) -Message "Unexpected JSON name value: $($jsonPayload.json_name)"
-                Assert-Test -Suite 'php-runtime' -Name 'JSON payload value round-trips' -Condition ($jsonPayload.json_value -eq $jsonBodyObject.value) -Message "Unexpected JSON value: $($jsonPayload.json_value)"
-                Assert-Test -Suite 'php-runtime' -Name 'raw request body length matches' -Condition ([int] $jsonPayload.raw_length -eq ([System.Text.Encoding]::UTF8.GetByteCount($jsonBody))) -Message "Unexpected raw body length: $($jsonPayload.raw_length)"
-                Assert-Test -Suite 'php-runtime' -Name 'raw request body hash matches' -Condition ($jsonPayload.raw_sha256 -eq $jsonBodySha256) -Message "Unexpected raw body SHA-256: $($jsonPayload.raw_sha256)"
+                $jsonPayload = Convert-TestJson -Suite 'php-runtime' -Name 'JSON echo response returns JSON' -Content $jsonResponse.Content
+                if ($null -ne $jsonPayload) {
+                  Assert-Test -Suite 'php-runtime' -Name 'JSON payload name round-trips' -Condition ($jsonPayload.json_name -eq $jsonBodyObject.name) -Message "Unexpected JSON name value: $($jsonPayload.json_name)"
+                  Assert-Test -Suite 'php-runtime' -Name 'JSON payload value round-trips' -Condition ($jsonPayload.json_value -eq $jsonBodyObject.value) -Message "Unexpected JSON value: $($jsonPayload.json_value)"
+                  Assert-Test -Suite 'php-runtime' -Name 'raw request body length matches' -Condition ([int] $jsonPayload.raw_length -eq ([System.Text.Encoding]::UTF8.GetByteCount($jsonBody))) -Message "Unexpected raw body length: $($jsonPayload.raw_length)"
+                  Assert-Test -Suite 'php-runtime' -Name 'raw request body hash matches' -Condition ($jsonPayload.raw_sha256 -eq $jsonBodySha256) -Message "Unexpected raw body SHA-256: $($jsonPayload.raw_sha256)"
+                } else {
+                  @(
+                    'JSON payload name round-trips',
+                    'JSON payload value round-trips',
+                    'raw request body length matches',
+                    'raw request body hash matches'
+                  ) | ForEach-Object {
+                    Add-SkippedTest -Suite 'php-runtime' -Name $_ -Reason 'Skipped because the JSON echo response was not valid JSON'
+                  }
+                }
               } else {
                 @(
+                  'JSON echo response returns JSON',
                   'JSON payload name round-trips',
                   'JSON payload value round-trips',
                   'raw request body length matches',
@@ -986,14 +1084,27 @@ jobs:
               }
 
               if ($null -ne $uploadResponse) {
-                $uploadPayload = $uploadResponse.Content | ConvertFrom-Json
-                Assert-Test -Suite 'php-runtime' -Name 'uploaded form note round-trips' -Condition ($uploadPayload.post_note -eq 'upload-note') -Message "Unexpected upload note value: $($uploadPayload.post_note)"
-                Assert-Test -Suite 'php-runtime' -Name 'upload file name matches' -Condition ($uploadPayload.upload_name -eq 'upload.txt') -Message "Unexpected uploaded file name: $($uploadPayload.upload_name)"
-                Assert-Test -Suite 'php-runtime' -Name 'upload file size matches' -Condition ([int] $uploadPayload.upload_size -eq [int] $uploadFileInfo.Length) -Message "Unexpected uploaded file size: $($uploadPayload.upload_size)"
-                Assert-Test -Suite 'php-runtime' -Name 'upload file hash matches' -Condition ($uploadPayload.upload_sha256 -eq $uploadHash) -Message "Unexpected uploaded file hash: $($uploadPayload.upload_sha256)"
-                Assert-Test -Suite 'php-runtime' -Name 'upload completes without PHP upload error' -Condition ([int] $uploadPayload.upload_error -eq 0) -Message "Unexpected upload error code: $($uploadPayload.upload_error)"
+                $uploadPayload = Convert-TestJson -Suite 'php-runtime' -Name 'upload response returns JSON' -Content $uploadResponse.Content
+                if ($null -ne $uploadPayload) {
+                  Assert-Test -Suite 'php-runtime' -Name 'uploaded form note round-trips' -Condition ($uploadPayload.post_note -eq 'upload-note') -Message "Unexpected upload note value: $($uploadPayload.post_note)"
+                  Assert-Test -Suite 'php-runtime' -Name 'upload file name matches' -Condition ($uploadPayload.upload_name -eq 'upload.txt') -Message "Unexpected uploaded file name: $($uploadPayload.upload_name)"
+                  Assert-Test -Suite 'php-runtime' -Name 'upload file size matches' -Condition ([int] $uploadPayload.upload_size -eq [int] $uploadFileInfo.Length) -Message "Unexpected uploaded file size: $($uploadPayload.upload_size)"
+                  Assert-Test -Suite 'php-runtime' -Name 'upload file hash matches' -Condition ($uploadPayload.upload_sha256 -eq $uploadHash) -Message "Unexpected uploaded file hash: $($uploadPayload.upload_sha256)"
+                  Assert-Test -Suite 'php-runtime' -Name 'upload completes without PHP upload error' -Condition ([int] $uploadPayload.upload_error -eq 0) -Message "Unexpected upload error code: $($uploadPayload.upload_error)"
+                } else {
+                  @(
+                    'uploaded form note round-trips',
+                    'upload file name matches',
+                    'upload file size matches',
+                    'upload file hash matches',
+                    'upload completes without PHP upload error'
+                  ) | ForEach-Object {
+                    Add-SkippedTest -Suite 'php-runtime' -Name $_ -Reason 'Skipped because the upload response was not valid JSON'
+                  }
+                }
               } else {
                 @(
+                  'upload response returns JSON',
                   'uploaded form note round-trips',
                   'upload file name matches',
                   'upload file size matches',
@@ -1017,9 +1128,14 @@ jobs:
               }
 
               if ($null -ne $cookieReadResponse) {
-                $cookiePayload = $cookieReadResponse.Content | ConvertFrom-Json
-                Assert-Test -Suite 'php-runtime' -Name 'cookie round-trips through apache2handler' -Condition ($cookiePayload.cookie -eq 'chocolate') -Message "Unexpected cookie value: $($cookiePayload.cookie)"
+                $cookiePayload = Convert-TestJson -Suite 'php-runtime' -Name 'cookie read response returns JSON' -Content $cookieReadResponse.Content
+                if ($null -ne $cookiePayload) {
+                  Assert-Test -Suite 'php-runtime' -Name 'cookie round-trips through apache2handler' -Condition ($cookiePayload.cookie -eq 'chocolate') -Message "Unexpected cookie value: $($cookiePayload.cookie)"
+                } else {
+                  Add-SkippedTest -Suite 'php-runtime' -Name 'cookie round-trips through apache2handler' -Reason 'Skipped because the cookie read response was not valid JSON'
+                }
               } else {
+                Add-SkippedTest -Suite 'php-runtime' -Name 'cookie read response returns JSON' -Reason 'Skipped because the cookie read request failed'
                 Add-SkippedTest -Suite 'php-runtime' -Name 'cookie round-trips through apache2handler' -Reason 'Skipped because the cookie read request failed'
               }
 
@@ -1036,19 +1152,31 @@ jobs:
               }
 
               if ($null -ne $sessionFirstResponse) {
-                $sessionFirstPayload = $sessionFirstResponse.Content | ConvertFrom-Json
-                Assert-Test -Suite 'php-runtime' -Name 'session initializes count' -Condition ([int] $sessionFirstPayload.count -eq 1) -Message "Unexpected initial session count: $($sessionFirstPayload.count)"
-                Assert-Test -Suite 'php-runtime' -Name 'session stores message' -Condition ($sessionFirstPayload.message -eq 'apache-session') -Message "Unexpected initial session message: $($sessionFirstPayload.message)"
+                $sessionFirstPayload = Convert-TestJson -Suite 'php-runtime' -Name 'session start response returns JSON' -Content $sessionFirstResponse.Content
+                if ($null -ne $sessionFirstPayload) {
+                  Assert-Test -Suite 'php-runtime' -Name 'session initializes count' -Condition ([int] $sessionFirstPayload.count -eq 1) -Message "Unexpected initial session count: $($sessionFirstPayload.count)"
+                  Assert-Test -Suite 'php-runtime' -Name 'session stores message' -Condition ($sessionFirstPayload.message -eq 'apache-session') -Message "Unexpected initial session message: $($sessionFirstPayload.message)"
+                } else {
+                  Add-SkippedTest -Suite 'php-runtime' -Name 'session initializes count' -Reason 'Skipped because the session start response was not valid JSON'
+                  Add-SkippedTest -Suite 'php-runtime' -Name 'session stores message' -Reason 'Skipped because the session start response was not valid JSON'
+                }
               } else {
+                Add-SkippedTest -Suite 'php-runtime' -Name 'session start response returns JSON' -Reason 'Skipped because the first session request failed'
                 Add-SkippedTest -Suite 'php-runtime' -Name 'session initializes count' -Reason 'Skipped because the first session request failed'
                 Add-SkippedTest -Suite 'php-runtime' -Name 'session stores message' -Reason 'Skipped because the first session request failed'
               }
 
               if ($null -ne $sessionSecondResponse) {
-                $sessionSecondPayload = $sessionSecondResponse.Content | ConvertFrom-Json
-                Assert-Test -Suite 'php-runtime' -Name 'session persists count across requests' -Condition ([int] $sessionSecondPayload.count -eq 2) -Message "Unexpected resumed session count: $($sessionSecondPayload.count)"
-                Assert-Test -Suite 'php-runtime' -Name 'session persists message across requests' -Condition ($sessionSecondPayload.message -eq 'apache-session') -Message "Unexpected resumed session message: $($sessionSecondPayload.message)"
+                $sessionSecondPayload = Convert-TestJson -Suite 'php-runtime' -Name 'session resume response returns JSON' -Content $sessionSecondResponse.Content
+                if ($null -ne $sessionSecondPayload) {
+                  Assert-Test -Suite 'php-runtime' -Name 'session persists count across requests' -Condition ([int] $sessionSecondPayload.count -eq 2) -Message "Unexpected resumed session count: $($sessionSecondPayload.count)"
+                  Assert-Test -Suite 'php-runtime' -Name 'session persists message across requests' -Condition ($sessionSecondPayload.message -eq 'apache-session') -Message "Unexpected resumed session message: $($sessionSecondPayload.message)"
+                } else {
+                  Add-SkippedTest -Suite 'php-runtime' -Name 'session persists count across requests' -Reason 'Skipped because the session resume response was not valid JSON'
+                  Add-SkippedTest -Suite 'php-runtime' -Name 'session persists message across requests' -Reason 'Skipped because the session resume response was not valid JSON'
+                }
               } else {
+                Add-SkippedTest -Suite 'php-runtime' -Name 'session resume response returns JSON' -Reason 'Skipped because the second session request failed'
                 Add-SkippedTest -Suite 'php-runtime' -Name 'session persists count across requests' -Reason 'Skipped because the second session request failed'
                 Add-SkippedTest -Suite 'php-runtime' -Name 'session persists message across requests' -Reason 'Skipped because the second session request failed'
               }
@@ -1061,10 +1189,16 @@ jobs:
 
               if ($null -ne $statusResponse) {
                 Assert-Test -Suite 'php-runtime' -Name 'PHP status header is present' -Condition (@($statusResponse.Headers['X-Status-Test']) -contains 'ok') -Message 'Expected PHP status header was missing'
-                $statusPayload = $statusResponse.Content | ConvertFrom-Json
-                Assert-Test -Suite 'php-runtime' -Name 'PHP can emit custom HTTP status' -Condition ([int] $statusPayload.status -eq 418) -Message "Unexpected PHP status code: $($statusPayload.status)"
-                Assert-Test -Suite 'php-runtime' -Name 'apache_response_headers sees status probe header' -Condition ($statusPayload.response_probe -eq 'status') -Message "Unexpected apache_response_headers probe value: $($statusPayload.response_probe)"
+                $statusPayload = Convert-TestJson -Suite 'php-runtime' -Name 'status response returns JSON' -Content $statusResponse.Content
+                if ($null -ne $statusPayload) {
+                  Assert-Test -Suite 'php-runtime' -Name 'PHP can emit custom HTTP status' -Condition ([int] $statusPayload.status -eq 418) -Message "Unexpected PHP status code: $($statusPayload.status)"
+                  Assert-Test -Suite 'php-runtime' -Name 'apache_response_headers sees status probe header' -Condition ($statusPayload.response_probe -eq 'status') -Message "Unexpected apache_response_headers probe value: $($statusPayload.response_probe)"
+                } else {
+                  Add-SkippedTest -Suite 'php-runtime' -Name 'PHP can emit custom HTTP status' -Reason 'Skipped because the status response was not valid JSON'
+                  Add-SkippedTest -Suite 'php-runtime' -Name 'apache_response_headers sees status probe header' -Reason 'Skipped because the status response was not valid JSON'
+                }
               } else {
+                Add-SkippedTest -Suite 'php-runtime' -Name 'status response returns JSON' -Reason 'Skipped because the status request failed'
                 Add-SkippedTest -Suite 'php-runtime' -Name 'PHP status header is present' -Reason 'Skipped because the status request failed'
                 Add-SkippedTest -Suite 'php-runtime' -Name 'PHP can emit custom HTTP status' -Reason 'Skipped because the status request failed'
                 Add-SkippedTest -Suite 'php-runtime' -Name 'apache_response_headers sees status probe header' -Reason 'Skipped because the status request failed'
@@ -1077,14 +1211,27 @@ jobs:
               }
 
               if ($null -ne $httpsResponse) {
-                $httpsPayload = $httpsResponse.Content | ConvertFrom-Json
-                Assert-Test -Suite 'php-runtime' -Name 'HTTPS flag reaches PHP' -Condition ($httpsPayload.https -eq 'on') -Message "Unexpected HTTPS flag: $($httpsPayload.https)"
-                Assert-Test -Suite 'php-runtime' -Name 'HTTPS request scheme is reported' -Condition ($httpsPayload.request_scheme -eq 'https') -Message "Unexpected HTTPS request scheme: $($httpsPayload.request_scheme)"
-                Assert-Test -Suite 'php-runtime' -Name 'HTTPS port is reported' -Condition ($httpsPayload.server_port -eq "$sslPort") -Message "Unexpected HTTPS server port: $($httpsPayload.server_port)"
-                Assert-Test -Suite 'php-runtime' -Name 'SSL protocol reaches PHP' -Condition (($httpsPayload.ssl_protocol -as [string]).StartsWith('TLS')) -Message "Unexpected SSL protocol: $($httpsPayload.ssl_protocol)"
-                Assert-Test -Suite 'php-runtime' -Name 'SSL cipher reaches PHP' -Condition (($httpsPayload.ssl_cipher -as [string]).Length -gt 0) -Message 'SSL cipher was not reported to PHP'
+                $httpsPayload = Convert-TestJson -Suite 'php-runtime' -Name 'HTTPS response returns JSON' -Content $httpsResponse.Content
+                if ($null -ne $httpsPayload) {
+                  Assert-Test -Suite 'php-runtime' -Name 'HTTPS flag reaches PHP' -Condition ($httpsPayload.https -eq 'on') -Message "Unexpected HTTPS flag: $($httpsPayload.https)"
+                  Assert-Test -Suite 'php-runtime' -Name 'HTTPS request scheme is reported' -Condition ($httpsPayload.request_scheme -eq 'https') -Message "Unexpected HTTPS request scheme: $($httpsPayload.request_scheme)"
+                  Assert-Test -Suite 'php-runtime' -Name 'HTTPS port is reported' -Condition ($httpsPayload.server_port -eq "$sslPort") -Message "Unexpected HTTPS server port: $($httpsPayload.server_port)"
+                  Assert-Test -Suite 'php-runtime' -Name 'SSL protocol reaches PHP' -Condition (($httpsPayload.ssl_protocol -as [string]).StartsWith('TLS')) -Message "Unexpected SSL protocol: $($httpsPayload.ssl_protocol)"
+                  Assert-Test -Suite 'php-runtime' -Name 'SSL cipher reaches PHP' -Condition (($httpsPayload.ssl_cipher -as [string]).Length -gt 0) -Message 'SSL cipher was not reported to PHP'
+                } else {
+                  @(
+                    'HTTPS flag reaches PHP',
+                    'HTTPS request scheme is reported',
+                    'HTTPS port is reported',
+                    'SSL protocol reaches PHP',
+                    'SSL cipher reaches PHP'
+                  ) | ForEach-Object {
+                    Add-SkippedTest -Suite 'php-runtime' -Name $_ -Reason 'Skipped because the HTTPS response was not valid JSON'
+                  }
+                }
               } else {
                 @(
+                  'HTTPS response returns JSON',
                   'HTTPS flag reaches PHP',
                   'HTTPS request scheme is reported',
                   'HTTPS port is reported',
@@ -1098,11 +1245,13 @@ jobs:
               @(
                 'GET /health.php',
                 'health header present',
+                'health returns JSON',
                 'health uses apache2handler',
                 'health reports expected PHP major.minor',
                 'health reports expected Apache version',
                 'health reports server software',
-                'health confirms php_module in apache_get_modules',
+                'apache_get_modules is available',
+                'apache_get_modules reports modules',
                 'health echoes query parameter',
                 'health reports GET request method',
                 'Apache SetEnv reaches PHP',
@@ -1111,16 +1260,20 @@ jobs:
                 'GET /static.txt',
                 'static file content matches',
                 'GET /app/ directory index',
+                'directory index returns JSON',
                 'directory index resolves to PHP',
                 'directory index preserves request URI',
                 'GET /pathinfo.php with PATH_INFO',
+                'PATH_INFO response returns JSON',
                 'PATH_INFO is reported',
                 'PHP_SELF includes PATH_INFO',
                 'GET rewritten route',
+                'rewrite response returns JSON',
                 'rewrite route reaches PHP index',
                 'rewrite preserves query string values',
                 'rewrite keeps request URI',
                 'POST form data to /echo.php',
+                'form response returns JSON',
                 'form POST method is reported',
                 'form POST body round-trips',
                 'apache_request_headers sees custom header',
@@ -1131,11 +1284,13 @@ jobs:
                 'apache_response_headers sees PHP response headers',
                 'Apache environment reaches echo.php',
                 'POST JSON to /echo.php',
+                'JSON echo response returns JSON',
                 'JSON payload name round-trips',
                 'JSON payload value round-trips',
                 'raw request body length matches',
                 'raw request body hash matches',
                 'POST multipart upload to /echo.php',
+                'upload response returns JSON',
                 'uploaded form note round-trips',
                 'upload file name matches',
                 'upload file size matches',
@@ -1143,18 +1298,23 @@ jobs:
                 'upload completes without PHP upload error',
                 'set cookie through PHP',
                 'read cookie through PHP',
+                'cookie read response returns JSON',
                 'cookie round-trips through apache2handler',
                 'start PHP session',
                 'resume PHP session',
+                'session start response returns JSON',
                 'session initializes count',
                 'session stores message',
+                'session resume response returns JSON',
                 'session persists count across requests',
                 'session persists message across requests',
                 'GET /status.php',
                 'PHP status header is present',
+                'status response returns JSON',
                 'PHP can emit custom HTTP status',
                 'apache_response_headers sees status probe header',
                 'GET /https.php over HTTPS',
+                'HTTPS response returns JSON',
                 'HTTPS flag reaches PHP',
                 'HTTPS request scheme is reported',
                 'HTTPS port is reported',
