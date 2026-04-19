@@ -274,9 +274,7 @@ jobs:
             @{ Name = 'http_ssl.h'; Path = 'http_ssl.h'; Expected = @{ ours = $true; release = $false } },
             @{ Name = 'nghttp2/nghttp2ver.h'; Path = 'nghttp2/nghttp2ver.h'; Expected = @{ ours = $true; release = $false } },
             @{ Name = 'brotli/encode.h'; Path = 'brotli/encode.h'; Expected = @{ ours = $true; release = $false } },
-            @{ Name = 'curl/curl.h'; Path = 'curl/curl.h'; Expected = @{ ours = $true; release = $false } },
-            @{ Name = 'lua.h'; Path = 'lua.h'; Expected = @{ ours = $true; release = $false } },
-            @{ Name = 'jansson.h'; Path = 'jansson.h'; Expected = @{ ours = $true; release = $false } }
+            @{ Name = 'curl/curl.h'; Path = 'curl/curl.h'; Expected = @{ ours = $true; release = $false } }
           )
 
           foreach ($headerCheck in $headerChecks) {
@@ -298,9 +296,7 @@ jobs:
           $libraryChecks = @(
             @{ Name = 'nghttp2'; Candidates = @('nghttp2.lib'); Expected = @{ ours = $true; release = $false } },
             @{ Name = 'brotli'; Candidates = @('brotlienc.lib'); Expected = @{ ours = $true; release = $false } },
-            @{ Name = 'curl'; Candidates = @('curl.lib', 'libcurl.lib', 'libcurl_imp.lib'); Expected = @{ ours = $true; release = $false } },
-            @{ Name = 'lua'; Candidates = @('lua.lib'); Expected = @{ ours = $true; release = $false } },
-            @{ Name = 'jansson'; Candidates = @('jansson.lib'); Expected = @{ ours = $true; release = $false } }
+            @{ Name = 'curl'; Candidates = @('curl.lib', 'libcurl.lib', 'libcurl_imp.lib'); Expected = @{ ours = $true; release = $false } }
           )
 
           foreach ($libraryCheck in $libraryChecks) {
@@ -436,12 +432,14 @@ jobs:
             '#include <nghttp2/nghttp2ver.h>',
             '#include <brotli/encode.h>',
             '#include <curl/curl.h>',
-            '#include <lua.h>',
-            '#include <lauxlib.h>',
-            '#include <lualib.h>',
-            '#include <jansson.h>',
+            '#include <stdio.h>',
             '#include <stdlib.h>',
             '#include <string.h>',
+            '',
+            'typedef struct sdk_buffer_t {',
+            '    char data[2048];',
+            '    size_t size;',
+            '} sdk_buffer_t;',
             '',
             'static const char *sdk_get_name_arg(request_rec *r)',
             '{',
@@ -472,6 +470,25 @@ jobs:
             '    return apr_pstrndup(r->pool, start, (apr_size_t)(end - start));',
             '}',
             '',
+            'static size_t sdk_curl_write(char *ptr, size_t size, size_t nmemb, void *userdata)',
+            '{',
+            '    sdk_buffer_t *buffer = (sdk_buffer_t *)userdata;',
+            '    size_t total = size * nmemb;',
+            '    size_t available = sizeof(buffer->data) - buffer->size - 1;',
+            '',
+            '    if (total > available) {',
+            '        total = available;',
+            '    }',
+            '',
+            '    if (total > 0) {',
+            '        memcpy(buffer->data + buffer->size, ptr, total);',
+            '        buffer->size += total;',
+            '        buffer->data[buffer->size] = 0;',
+            '    }',
+            '',
+            '    return size * nmemb;',
+            '}',
+            '',
             'static int sdk_extras_handler(request_rec *r)',
             '{',
             '    const nghttp2_info *nghttp2_info = NULL;',
@@ -479,27 +496,19 @@ jobs:
             '    const char *name = NULL;',
             '    const char *nghttp2_proto = "null";',
             '    const char *nghttp2_version_text = "null";',
-            '    const char *lua_upper = "null";',
-            '    const char *curl_scheme = "null";',
-            '    const char *curl_host = "null";',
-            '    const char *curl_port_text = "null";',
-            '    const char *curl_path = "null";',
             '    const char *curl_version = "null";',
+            '    const char *curl_status = "not-run";',
             '    unsigned int curl_version_num = LIBCURL_VERSION_NUM;',
-            '    const char *lua_version = LUA_VERSION;',
-            '    const char *jansson_version = JANSSON_VERSION;',
-            '    CURLU *parsed_url = NULL;',
-            '    CURLUcode curl_url_code;',
-            '    char *curl_scheme_raw = NULL;',
-            '    char *curl_host_raw = NULL;',
-            '    char *curl_port_raw = NULL;',
-            '    char *curl_path_raw = NULL;',
-            '    lua_State *L = NULL;',
-            '    json_t *root = NULL;',
-            '    char *json_text = NULL;',
             '    BROTLI_BOOL brotli_ok;',
             '    uint8_t compressed[1024];',
             '    size_t compressed_size = sizeof(compressed);',
+            '    CURL *curl = NULL;',
+            '    CURLcode curl_code = CURLE_OK;',
+            '    long curl_http_code = 0;',
+            '    int curl_body_has_ssl = 0;',
+            '    int curl_body_has_tls = 0;',
+            '    sdk_buffer_t curl_buffer = {{0}, 0};',
+            '    char curl_url[256];',
             '',
             '    if (!r->handler || strcmp(r->handler, "sdk-extras") != 0) {',
             '        return DECLINED;',
@@ -517,32 +526,12 @@ jobs:
             '        }',
             '    }',
             '',
-            '    L = luaL_newstate();',
-            '    if (!L) {',
-            '        return HTTP_INTERNAL_SERVER_ERROR;',
-            '    }',
-            '',
-            '    luaL_openlibs(L);',
-            '    lua_getglobal(L, "string");',
-            '    lua_getfield(L, -1, "upper");',
-            '    lua_pushstring(L, name);',
-            '    if (lua_pcall(L, 1, 1, 0) != LUA_OK) {',
-            '        lua_close(L);',
-            '        return HTTP_INTERNAL_SERVER_ERROR;',
-            '    }',
-            '',
-            '    lua_upper = apr_pstrdup(r->pool, lua_tostring(L, -1));',
-            '    lua_close(L);',
-            '    if (!lua_upper) {',
-            '        return HTTP_INTERNAL_SERVER_ERROR;',
-            '    }',
-            '',
             '    brotli_ok = BrotliEncoderCompress(',
             '        BROTLI_DEFAULT_QUALITY,',
             '        BROTLI_DEFAULT_WINDOW,',
             '        BROTLI_MODE_GENERIC,',
-            '        strlen(lua_upper),',
-            '        (const uint8_t *)lua_upper,',
+            '        strlen(name),',
+            '        (const uint8_t *)name,',
             '        &compressed_size,',
             '        compressed',
             '    );',
@@ -558,57 +547,55 @@ jobs:
             '        curl_version_num = curl_info->version_num;',
             '    }',
             '',
-            '    parsed_url = curl_url();',
-            '    if (!parsed_url) {',
+            '    if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK) {',
             '        return HTTP_INTERNAL_SERVER_ERROR;',
             '    }',
             '',
-            "    curl_url_code = curl_url_set(parsed_url, CURLUPART_URL, `"https://127.0.0.1:$sslPort/sdk-http-ssl?source=sdk-extras`", 0);",
-            '    if (curl_url_code != CURLUE_OK) {',
+            "    if (_snprintf(curl_url, sizeof(curl_url), `"https://127.0.0.1:$sslPort/sdk-http-ssl`") < 0) {",
+            '        curl_global_cleanup();',
             '        return HTTP_INTERNAL_SERVER_ERROR;',
             '    }',
             '',
-            '    if (curl_url_get(parsed_url, CURLUPART_SCHEME, &curl_scheme_raw, 0) != CURLUE_OK ||',
-            '        curl_url_get(parsed_url, CURLUPART_HOST, &curl_host_raw, 0) != CURLUE_OK ||',
-            '        curl_url_get(parsed_url, CURLUPART_PORT, &curl_port_raw, CURLU_DEFAULT_PORT) != CURLUE_OK ||',
-            '        curl_url_get(parsed_url, CURLUPART_PATH, &curl_path_raw, 0) != CURLUE_OK) {',
+            '    curl = curl_easy_init();',
+            '    if (!curl) {',
+            '        curl_global_cleanup();',
             '        return HTTP_INTERNAL_SERVER_ERROR;',
             '    }',
             '',
-            '    curl_scheme = apr_pstrdup(r->pool, curl_scheme_raw);',
-            '    curl_host = apr_pstrdup(r->pool, curl_host_raw);',
-            '    curl_port_text = apr_pstrdup(r->pool, curl_port_raw);',
-            '    curl_path = apr_pstrdup(r->pool, curl_path_raw);',
-            '',
-            '    root = json_object();',
-            '    if (!root) {',
-            '        return HTTP_INTERNAL_SERVER_ERROR;',
+            '    curl_easy_setopt(curl, CURLOPT_URL, curl_url);',
+            '    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);',
+            '    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);',
+            '    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);',
+            '    curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 5000L);',
+            '    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, sdk_curl_write);',
+            '    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &curl_buffer);',
+            '    curl_code = curl_easy_perform(curl);',
+            '    if (curl_code == CURLE_OK) {',
+            '        curl_status = "ok";',
+            '        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &curl_http_code);',
+            '        curl_body_has_ssl = strstr(curl_buffer.data, "ssl_conn_is_ssl=1") != NULL;',
+            '        curl_body_has_tls = strstr(curl_buffer.data, "ssl_protocol=TLS") != NULL;',
+            '    } else {',
+            '        curl_status = curl_easy_strerror(curl_code);',
             '    }',
             '',
-            '    json_object_set_new(root, "name", json_string(name));',
-            '    json_object_set_new(root, "lua_upper", json_string(lua_upper));',
-            '    json_object_set_new(root, "lua_version", json_string(lua_version));',
-            '    json_object_set_new(root, "jansson_version", json_string(jansson_version));',
-            '    json_object_set_new(root, "nghttp2_proto", json_string(nghttp2_proto));',
-            '    json_object_set_new(root, "nghttp2_version", json_string(nghttp2_version_text));',
-            '    json_object_set_new(root, "nghttp2_version_num", json_integer((json_int_t)NGHTTP2_VERSION_NUM));',
-            '    json_object_set_new(root, "brotli_ok", json_boolean(brotli_ok));',
-            '    json_object_set_new(root, "brotli_encoder_version", json_integer((json_int_t)BrotliEncoderVersion()));',
-            '    json_object_set_new(root, "brotli_size", json_integer((json_int_t)compressed_size));',
-            '    json_object_set_new(root, "curl_scheme", json_string(curl_scheme));',
-            '    json_object_set_new(root, "curl_host", json_string(curl_host));',
-            '    json_object_set_new(root, "curl_port", json_string(curl_port_text));',
-            '    json_object_set_new(root, "curl_path", json_string(curl_path));',
-            '    json_object_set_new(root, "curl_version", json_string(curl_version));',
-            '    json_object_set_new(root, "curl_version_num", json_integer((json_int_t)curl_version_num));',
+            '    curl_easy_cleanup(curl);',
+            '    curl_global_cleanup();',
             '',
-            '    json_text = json_dumps(root, JSON_COMPACT | JSON_SORT_KEYS);',
-            '    if (!json_text) {',
-            '        return HTTP_INTERNAL_SERVER_ERROR;',
-            '    }',
-            '',
-            '    ap_set_content_type(r, "application/json");',
-            '    ap_rputs(json_text, r);',
+            '    ap_set_content_type(r, "text/plain");',
+            '    ap_rprintf(r, "name=%s\\n", name);',
+            '    ap_rprintf(r, "nghttp2_proto=%s\\n", nghttp2_proto);',
+            '    ap_rprintf(r, "nghttp2_version=%s\\n", nghttp2_version_text);',
+            '    ap_rprintf(r, "nghttp2_version_num=%d\\n", NGHTTP2_VERSION_NUM);',
+            '    ap_rprintf(r, "brotli_ok=%d\\n", brotli_ok ? 1 : 0);',
+            '    ap_rprintf(r, "brotli_encoder_version=%u\\n", BrotliEncoderVersion());',
+            '    ap_rprintf(r, "brotli_size=%u\\n", (unsigned int)compressed_size);',
+            '    ap_rprintf(r, "curl_status=%s\\n", curl_status);',
+            '    ap_rprintf(r, "curl_http_code=%ld\\n", curl_http_code);',
+            '    ap_rprintf(r, "curl_body_has_ssl=%d\\n", curl_body_has_ssl);',
+            '    ap_rprintf(r, "curl_body_has_tls=%d\\n", curl_body_has_tls);',
+            '    ap_rprintf(r, "curl_version=%s\\n", curl_version);',
+            '    ap_rprintf(r, "curl_version_num=%u\\n", curl_version_num);',
             '    return OK;',
             '}',
             '',
@@ -645,7 +632,7 @@ jobs:
               Name = 'sdk_extras'
               Expected = @{ ours = $true; release = $false }
               Source = $extrasSource
-              LinkLibraries = @('nghttp2.lib') + $brotliLibraries + @($curlLibrary, 'lua.lib', 'jansson.lib')
+              LinkLibraries = @('nghttp2.lib') + $brotliLibraries + @($curlLibrary)
             }
           )
 
@@ -794,23 +781,19 @@ jobs:
             if ($buildResults['sdk_extras'].Success) {
               $extrasResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-extras?name=world"
               $extrasResponse.Content | Set-Content -Path (Join-Path $logsDir 'sdk-extras.txt') -Encoding utf8
-              $extrasJson = $extrasResponse.Content | ConvertFrom-Json
-              Assert-True -Condition ($extrasJson.name -eq 'world') -Message 'Apache extras endpoint did not echo the expected query argument'
-              Assert-True -Condition ($extrasJson.lua_upper -eq 'WORLD') -Message 'Apache extras endpoint did not transform the query argument with Lua'
-              Assert-True -Condition (($extrasJson.lua_version -as [string]).Length -gt 0) -Message 'Apache extras endpoint did not report the Lua version'
-              Assert-True -Condition (($extrasJson.jansson_version -as [string]).Length -gt 0) -Message 'Apache extras endpoint did not report the Jansson version'
-              Assert-True -Condition ($extrasJson.nghttp2_proto -eq 'h2') -Message 'Apache extras endpoint did not report the nghttp2 protocol id'
-              Assert-True -Condition (($extrasJson.nghttp2_version -as [string]).Length -gt 0) -Message 'Apache extras endpoint did not report the nghttp2 version string'
-              Assert-True -Condition ([int] $extrasJson.nghttp2_version_num -gt 0) -Message 'Apache extras endpoint did not report the nghttp2 version number'
-              Assert-True -Condition ([bool] $extrasJson.brotli_ok) -Message 'Apache extras endpoint did not report successful Brotli compression'
-              Assert-True -Condition ([int] $extrasJson.brotli_encoder_version -gt 0) -Message 'Apache extras endpoint did not report the Brotli encoder version'
-              Assert-True -Condition ([int] $extrasJson.brotli_size -gt 0) -Message 'Apache extras endpoint did not report a compressed Brotli payload size'
-              Assert-True -Condition ($extrasJson.curl_scheme -eq 'https') -Message 'Apache extras endpoint did not parse the expected curl URL scheme'
-              Assert-True -Condition ($extrasJson.curl_host -eq '127.0.0.1') -Message 'Apache extras endpoint did not parse the expected curl URL host'
-              Assert-True -Condition ($extrasJson.curl_port -eq "$sslPort") -Message 'Apache extras endpoint did not parse the expected curl URL port'
-              Assert-True -Condition ($extrasJson.curl_path -eq '/sdk-http-ssl') -Message 'Apache extras endpoint did not parse the expected curl URL path'
-              Assert-True -Condition (($extrasJson.curl_version -as [string]).Length -gt 0) -Message 'Apache extras endpoint did not report the curl version string'
-              Assert-True -Condition ([int] $extrasJson.curl_version_num -gt 0) -Message 'Apache extras endpoint did not report the curl version number'
+              Assert-True -Condition ($extrasResponse.Content -match '(?m)^name=world$') -Message 'Apache extras endpoint did not echo the expected query argument'
+              Assert-True -Condition ($extrasResponse.Content -match '(?m)^nghttp2_proto=h2$') -Message 'Apache extras endpoint did not report the nghttp2 protocol id'
+              Assert-True -Condition ($extrasResponse.Content -match '(?m)^nghttp2_version=.+$') -Message 'Apache extras endpoint did not report the nghttp2 version string'
+              Assert-True -Condition ($extrasResponse.Content -match '(?m)^nghttp2_version_num=[1-9]\d*$') -Message 'Apache extras endpoint did not report the nghttp2 version number'
+              Assert-True -Condition ($extrasResponse.Content -match '(?m)^brotli_ok=1$') -Message 'Apache extras endpoint did not report successful Brotli compression'
+              Assert-True -Condition ($extrasResponse.Content -match '(?m)^brotli_encoder_version=[1-9]\d*$') -Message 'Apache extras endpoint did not report the Brotli encoder version'
+              Assert-True -Condition ($extrasResponse.Content -match '(?m)^brotli_size=[1-9]\d*$') -Message 'Apache extras endpoint did not report a compressed Brotli payload size'
+              Assert-True -Condition ($extrasResponse.Content -match '(?m)^curl_status=ok$') -Message 'Apache extras endpoint did not complete the libcurl HTTPS request'
+              Assert-True -Condition ($extrasResponse.Content -match '(?m)^curl_http_code=200$') -Message 'Apache extras endpoint did not receive an HTTP 200 from the HTTPS probe'
+              Assert-True -Condition ($extrasResponse.Content -match '(?m)^curl_body_has_ssl=1$') -Message 'Apache extras endpoint did not observe SSL state in the HTTPS probe body'
+              Assert-True -Condition ($extrasResponse.Content -match '(?m)^curl_body_has_tls=1$') -Message 'Apache extras endpoint did not observe TLS protocol details in the HTTPS probe body'
+              Assert-True -Condition ($extrasResponse.Content -match '(?m)^curl_version=.+$') -Message 'Apache extras endpoint did not report the curl version string'
+              Assert-True -Condition ($extrasResponse.Content -match '(?m)^curl_version_num=[1-9]\d*$') -Message 'Apache extras endpoint did not report the curl version number'
             } else {
               $extrasMissingResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-extras?name=world" -ExpectedStatusCode 404
               $extrasMissingResponse.Content | Set-Content -Path (Join-Path $logsDir 'sdk-extras-missing.txt') -Encoding utf8
