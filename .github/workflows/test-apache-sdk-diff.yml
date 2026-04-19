@@ -13,6 +13,10 @@ env:
   WINLIBS_APACHE_RUN_ID: "24624419180"
   WINLIBS_APACHE_ARTIFACT: "apache-2.4.66-vs17-x64"
   PHP_SDK_APACHE_URL: "https://downloads.php.net/~windows/php-sdk/deps/vs17/x64/apache-2.4.43-vs17-x64.zip"
+  APACHE_LOUNGE_VERSION: "2.4.66"
+  APACHE_LOUNGE_BUILD: "251206"
+  APACHE_LOUNGE_TOOLSET: "VS17"
+  APACHE_PORT: "8080"
 
 jobs:
   compare-sdk-packages:
@@ -43,7 +47,7 @@ jobs:
         with:
           arch: x64
 
-      - name: Run SDK delta probes
+      - name: Run Apache SDK runtime probes
         shell: pwsh
         env:
           TEST_PACKAGE_KEY: ${{ matrix.package.key }}
@@ -70,13 +74,58 @@ jobs:
             )
 
             & curl.exe --fail --location --silent --show-error --output $Path $Url
-
             if ($LASTEXITCODE -ne 0) {
               throw "Failed to download $Url"
             }
+
+            if (-not (Test-Path $Path)) {
+              throw "Downloaded file is missing: $Path"
+            }
+
+            $global:LASTEXITCODE = 0
           }
 
-          function Invoke-CompileProbe {
+          function Wait-ForUrl {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $Url,
+              [int] $ExpectedStatusCode = 200,
+              [int] $Retries = 30
+            )
+
+            for ($attempt = 1; $attempt -le $Retries; $attempt++) {
+              try {
+                $response = Invoke-WebRequest -Uri $Url -SkipHttpErrorCheck -TimeoutSec 5
+                if ([int] $response.StatusCode -eq $ExpectedStatusCode) {
+                  return $response
+                }
+              } catch {
+              }
+
+              Start-Sleep -Seconds 1
+            }
+
+            throw "Timed out waiting for $Url to return HTTP $ExpectedStatusCode"
+          }
+
+          function Resolve-LibraryName {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $LibRoot,
+              [Parameter(Mandatory = $true)]
+              [string[]] $Candidates
+            )
+
+            foreach ($candidate in $Candidates) {
+              if (Test-Path (Join-Path $LibRoot $candidate)) {
+                return $candidate
+              }
+            }
+
+            return $Candidates[0]
+          }
+
+          function Build-ApacheModule {
             param(
               [Parameter(Mandatory = $true)]
               [string] $Name,
@@ -85,20 +134,38 @@ jobs:
               [Parameter(Mandatory = $true)]
               [string] $IncludeRoot,
               [Parameter(Mandatory = $true)]
-              [string] $Workspace
+              [string] $LibRoot,
+              [string[]] $LinkLibraries = @(),
+              [Parameter(Mandatory = $true)]
+              [string] $OutputDir
             )
 
-            $sourcePath = Join-Path $Workspace "$Name.c"
-            $objectPath = Join-Path $Workspace "$Name.obj"
-            $logPath = Join-Path $Workspace "$Name.compile.log"
+            $sourcePath = Join-Path $OutputDir "mod_$Name.c"
+            $modulePath = Join-Path $OutputDir "mod_$Name.so"
+            $logPath = Join-Path $OutputDir "$Name.build.log"
 
             Set-Content -Path $sourcePath -Value ($SourceLines -join "`r`n") -Encoding ascii
 
-            $output = & cl.exe /nologo /TC /c /I"$IncludeRoot" /Fo"$objectPath" "$sourcePath" 2>&1
+            $linkArgs = @(
+              '/link',
+              '/NOLOGO',
+              '/DLL',
+              "/OUT:$modulePath",
+              "/LIBPATH:$LibRoot",
+              'libhttpd.lib',
+              'libapr-1.lib',
+              'libaprutil-1.lib'
+            ) + $LinkLibraries
+
+            $output = & cl.exe /nologo /W3 /MD /LD /I"$IncludeRoot" "$sourcePath" @linkArgs 2>&1
             $output | Set-Content -Path $logPath -Encoding utf8
 
+            $success = ($LASTEXITCODE -eq 0) -and (Test-Path $modulePath)
+            $global:LASTEXITCODE = 0
+
             return [pscustomobject]@{
-              Success = ($LASTEXITCODE -eq 0)
+              Success = $success
+              ModulePath = $modulePath
               LogPath = $logPath
             }
           }
@@ -106,8 +173,12 @@ jobs:
           $packageKey = $env:TEST_PACKAGE_KEY
           $workspace = Join-Path $env:RUNNER_TEMP "apache-sdk-delta-$packageKey"
           $logsDir = Join-Path $workspace 'logs'
+          $buildDir = Join-Path $workspace 'build'
           $releaseZip = Join-Path $workspace 'apache-release.zip'
           $releaseRoot = Join-Path $workspace 'release'
+          $apacheZip = Join-Path $workspace 'apache-lounge.zip'
+          $apacheExtractRoot = Join-Path $workspace 'apache-extract'
+          $apacheInstallRoot = 'C:\Apache24'
           $packageRoot = if ($packageKey -eq 'ours') {
             Join-Path $env:GITHUB_WORKSPACE 'external\ours'
           } else {
@@ -119,6 +190,8 @@ jobs:
           }
 
           New-Item -Path $logsDir -ItemType Directory -Force | Out-Null
+          New-Item -Path $buildDir -ItemType Directory -Force | Out-Null
+          Remove-Item -Path $apacheInstallRoot -Recurse -Force -ErrorAction SilentlyContinue
 
           if ($packageKey -eq 'release') {
             Download-File -Url $env:PHP_SDK_APACHE_URL -Path $releaseZip
@@ -131,148 +204,407 @@ jobs:
           Assert-True -Condition (Test-Path $includeRoot) -Message "Apache include root missing: $includeRoot"
           Assert-True -Condition (Test-Path $libRoot) -Message "Apache lib root missing: $libRoot"
 
+          $apacheUrl = "https://www.apachelounge.com/download/VS17/binaries/httpd-$($env:APACHE_LOUNGE_VERSION)-$($env:APACHE_LOUNGE_BUILD)-Win64-$($env:APACHE_LOUNGE_TOOLSET).zip"
+          Download-File -Url $apacheUrl -Path $apacheZip
+          Expand-Archive -Path $apacheZip -DestinationPath $apacheExtractRoot -Force
+
+          $extractedApacheRoot = Get-ChildItem -Path $apacheExtractRoot -Directory -Recurse |
+            Where-Object {
+              $_.Name -eq 'Apache24' -and
+              (Test-Path (Join-Path $_.FullName 'bin\httpd.exe'))
+            } |
+            Select-Object -First 1 -ExpandProperty FullName
+
+          Assert-True -Condition ([bool] $extractedApacheRoot) -Message "Unable to find Apache24 in extracted Apache Lounge archive"
+
+          Copy-Item -Path $extractedApacheRoot -Destination $apacheInstallRoot -Recurse -Force
+
+          $apacheRoot = $apacheInstallRoot
+          $httpdExe = Join-Path $apacheRoot 'bin\httpd.exe'
+          $httpdConf = Join-Path $apacheRoot 'conf\httpd.conf'
+          $apacheModulesDir = Join-Path $apacheRoot 'modules'
+          $port = [int] $env:APACHE_PORT
+          $results = New-Object System.Collections.Generic.List[object]
+          $mismatches = New-Object System.Collections.Generic.List[string]
+          $httpdProcess = $null
+
           Set-Content -Path (Join-Path $logsDir 'selection.txt') -Value @(
             "package_key=$packageKey"
             "package_root=$packageRoot"
             "include_root=$includeRoot"
             "lib_root=$libRoot"
+            "apache_root=$apacheRoot"
+            "apache_url=$apacheUrl"
           ) -Encoding ascii
 
-          $probes = @(
-            @{
-              Name = 'baseline-httpd'
-              Expected = @{ ours = $true; release = $true }
-              Libraries = @('libhttpd.lib')
-              Source = @(
-                '#include <httpd.h>',
-                '#ifndef MODULE_MAGIC_NUMBER_MAJOR',
-                '#error Missing Apache module ABI macro',
-                '#endif',
-                'int main(void) {',
-                '    return MODULE_MAGIC_NUMBER_MAJOR > 0 ? 0 : 1;',
-                '}'
-              )
-            },
-            @{
-              Name = 'http_ssl-header'
-              Expected = @{ ours = $true; release = $false }
-              Libraries = @()
-              Source = @(
-                '#include <http_ssl.h>',
-                'int main(void) {',
-                '    return 0;',
-                '}'
-              )
-            },
-            @{
-              Name = 'nghttp2-sdk'
-              Expected = @{ ours = $true; release = $false }
-              Libraries = @('nghttp2.lib')
-              Source = @(
-                '#include <nghttp2/nghttp2ver.h>',
-                'int main(void) {',
-                '    return NGHTTP2_VERSION_NUM > 0 ? 0 : 1;',
-                '}'
-              )
-            },
-            @{
-              Name = 'brotli-sdk'
-              Expected = @{ ours = $true; release = $false }
-              Libraries = @('brotlienc.lib')
-              Source = @(
-                '#include <brotli/encode.h>',
-                'int main(void) {',
-                '    return BROTLI_TRUE ? 0 : 1;',
-                '}'
-              )
-            },
-            @{
-              Name = 'curl-sdk'
-              Expected = @{ ours = $true; release = $false }
-              Libraries = @('curl.lib', 'libcurl.lib', 'libcurl_imp.lib')
-              Source = @(
-                '#include <curl/curl.h>',
-                'int main(void) {',
-                '    return LIBCURL_VERSION_NUM > 0 ? 0 : 1;',
-                '}'
-              )
-            },
-            @{
-              Name = 'lua-sdk'
-              Expected = @{ ours = $true; release = $false }
-              Libraries = @('lua.lib')
-              Source = @(
-                '#include <lua.h>',
-                'int main(void) {',
-                '    return LUA_VERSION_NUM > 0 ? 0 : 1;',
-                '}'
-              )
-            },
-            @{
-              Name = 'jansson-sdk'
-              Expected = @{ ours = $true; release = $false }
-              Libraries = @('jansson.lib')
-              Source = @(
-                '#include <jansson.h>',
-                'int main(void) {',
-                '    return JANSSON_VERSION_HEX > 0 ? 0 : 1;',
-                '}'
-              )
-            }
+          $headerChecks = @(
+            @{ Name = 'http_ssl.h'; Path = 'http_ssl.h'; Expected = @{ ours = $true; release = $false } },
+            @{ Name = 'nghttp2/nghttp2ver.h'; Path = 'nghttp2/nghttp2ver.h'; Expected = @{ ours = $true; release = $false } },
+            @{ Name = 'brotli/encode.h'; Path = 'brotli/encode.h'; Expected = @{ ours = $true; release = $false } },
+            @{ Name = 'curl/curl.h'; Path = 'curl/curl.h'; Expected = @{ ours = $true; release = $false } },
+            @{ Name = 'lua.h'; Path = 'lua.h'; Expected = @{ ours = $true; release = $false } },
+            @{ Name = 'jansson.h'; Path = 'jansson.h'; Expected = @{ ours = $true; release = $false } }
           )
 
-          $results = New-Object System.Collections.Generic.List[object]
-          $mismatches = New-Object System.Collections.Generic.List[string]
-
-          foreach ($probe in $probes) {
-            $compileResult = Invoke-CompileProbe -Name $probe.Name -SourceLines $probe.Source -IncludeRoot $includeRoot -Workspace $logsDir
-            $compileSucceeded = $compileResult.Success
-
-            $librariesPresent = $true
-            $libraryDetails = @()
-            foreach ($library in $probe.Libraries) {
-              $libraryPath = Join-Path $libRoot $library
-              $present = Test-Path $libraryPath
-              $libraryDetails += "$library=$present"
-              if ($present) {
-                $librariesPresent = $true
-                break
-              }
-              $librariesPresent = $false
-            }
-
-            if ($probe.Libraries.Count -eq 0) {
-              $libraryDetails = @('none-required')
-            }
-
-            $actual = $compileSucceeded -and $librariesPresent
-            $expected = [bool] $probe.Expected[$packageKey]
+          foreach ($headerCheck in $headerChecks) {
+            $actual = Test-Path (Join-Path $includeRoot $headerCheck.Path)
+            $expected = [bool] $headerCheck.Expected[$packageKey]
 
             $results.Add([pscustomobject]@{
-              Probe = $probe.Name
+              Kind = 'header'
+              Name = $headerCheck.Name
               Expected = $expected
-              CompileSucceeded = $compileSucceeded
-              LibrariesPresent = $librariesPresent
               Actual = $actual
-              LibraryDetails = ($libraryDetails -join ', ')
             }) | Out-Null
 
             if ($actual -ne $expected) {
-              $mismatches.Add("Probe $($probe.Name) expected $expected but got $actual") | Out-Null
+              $mismatches.Add("Header $($headerCheck.Name) expected $expected but got $actual") | Out-Null
+            }
+          }
+
+          $libraryChecks = @(
+            @{ Name = 'nghttp2'; Candidates = @('nghttp2.lib'); Expected = @{ ours = $true; release = $false } },
+            @{ Name = 'brotli'; Candidates = @('brotlienc.lib'); Expected = @{ ours = $true; release = $false } },
+            @{ Name = 'curl'; Candidates = @('curl.lib', 'libcurl.lib', 'libcurl_imp.lib'); Expected = @{ ours = $true; release = $false } },
+            @{ Name = 'lua'; Candidates = @('lua.lib'); Expected = @{ ours = $true; release = $false } },
+            @{ Name = 'jansson'; Candidates = @('jansson.lib'); Expected = @{ ours = $true; release = $false } }
+          )
+
+          foreach ($libraryCheck in $libraryChecks) {
+            $found = $false
+            $details = @()
+            foreach ($candidate in $libraryCheck.Candidates) {
+              $present = Test-Path (Join-Path $libRoot $candidate)
+              $details += "$candidate=$present"
+              if ($present) {
+                $found = $true
+              }
+            }
+
+            $expected = [bool] $libraryCheck.Expected[$packageKey]
+            $results.Add([pscustomobject]@{
+              Kind = 'library'
+              Name = $libraryCheck.Name
+              Expected = $expected
+              Actual = $found
+              Details = ($details -join ', ')
+            }) | Out-Null
+
+            if ($found -ne $expected) {
+              $mismatches.Add("Library set $($libraryCheck.Name) expected $expected but got $found") | Out-Null
+            }
+          }
+
+          $curlLibrary = Resolve-LibraryName -LibRoot $libRoot -Candidates @('libcurl_imp.lib', 'libcurl.lib', 'curl.lib')
+          $brotliLibraries = @('brotlienc.lib')
+          if (Test-Path (Join-Path $libRoot 'brotlicommon.lib')) {
+            $brotliLibraries += 'brotlicommon.lib'
+          }
+
+          $baselineSource = @(
+            '#include "httpd.h"',
+            '#include "http_config.h"',
+            '#include "http_protocol.h"',
+            '#include "http_request.h"',
+            '#include <string.h>',
+            '',
+            'static int sdk_baseline_handler(request_rec *r)',
+            '{',
+            '    if (!r->handler || strcmp(r->handler, "sdk-baseline") != 0) {',
+            '        return DECLINED;',
+            '    }',
+            '',
+            '    ap_set_content_type(r, "text/plain");',
+            '    ap_rputs("sdk_baseline_ok\n", r);',
+            '    return OK;',
+            '}',
+            '',
+            'static void sdk_baseline_register_hooks(apr_pool_t *p)',
+            '{',
+            '    ap_hook_handler(sdk_baseline_handler, NULL, NULL, APR_HOOK_MIDDLE);',
+            '}',
+            '',
+            'module AP_MODULE_DECLARE_DATA sdk_baseline_module = {',
+            '    STANDARD20_MODULE_STUFF,',
+            '    NULL,',
+            '    NULL,',
+            '    NULL,',
+            '    NULL,',
+            '    NULL,',
+            '    sdk_baseline_register_hooks',
+            '};'
+          )
+
+          $httpSslSource = @(
+            '#include "httpd.h"',
+            '#include "http_config.h"',
+            '#include "http_protocol.h"',
+            '#include "http_request.h"',
+            '#include "http_ssl.h"',
+            '#include <string.h>',
+            '',
+            'static int sdk_httpssl_handler(request_rec *r)',
+            '{',
+            '    if (!r->handler || strcmp(r->handler, "sdk-http-ssl") != 0) {',
+            '        return DECLINED;',
+            '    }',
+            '',
+            '    ap_set_content_type(r, "text/plain");',
+            '    ap_rprintf(r, "ssl_conn_is_ssl=%d\n", ap_ssl_conn_is_ssl(r->connection));',
+            '    return OK;',
+            '}',
+            '',
+            'static void sdk_httpssl_register_hooks(apr_pool_t *p)',
+            '{',
+            '    ap_hook_handler(sdk_httpssl_handler, NULL, NULL, APR_HOOK_MIDDLE);',
+            '}',
+            '',
+            'module AP_MODULE_DECLARE_DATA sdk_httpssl_module = {',
+            '    STANDARD20_MODULE_STUFF,',
+            '    NULL,',
+            '    NULL,',
+            '    NULL,',
+            '    NULL,',
+            '    NULL,',
+            '    sdk_httpssl_register_hooks',
+            '};'
+          )
+
+          $extrasSource = @(
+            '#include "httpd.h"',
+            '#include "http_config.h"',
+            '#include "http_protocol.h"',
+            '#include "http_request.h"',
+            '#include <nghttp2/nghttp2.h>',
+            '#include <nghttp2/nghttp2ver.h>',
+            '#include <brotli/encode.h>',
+            '#include <curl/curl.h>',
+            '#include <string.h>',
+            '',
+            'static int sdk_extras_handler(request_rec *r)',
+            '{',
+            '    const nghttp2_info *nghttp2_info = NULL;',
+            '    curl_version_info_data *curl_info = NULL;',
+            '    const char *nghttp2_name = "null";',
+            '    const char *nghttp2_version = "null";',
+            '    const char *curl_version = "null";',
+            '    unsigned int curl_version_num = LIBCURL_VERSION_NUM;',
+            '',
+            '    if (!r->handler || strcmp(r->handler, "sdk-extras") != 0) {',
+            '        return DECLINED;',
+            '    }',
+            '',
+            '    nghttp2_info = nghttp2_version(0);',
+            '    if (nghttp2_info) {',
+            '        if (nghttp2_info->name) {',
+            '            nghttp2_name = nghttp2_info->name;',
+            '        }',
+            '        if (nghttp2_info->version_str) {',
+            '            nghttp2_version = nghttp2_info->version_str;',
+            '        }',
+            '    }',
+            '',
+            '    curl_info = curl_version_info(CURLVERSION_NOW);',
+            '    if (curl_info) {',
+            '        if (curl_info->version) {',
+            '            curl_version = curl_info->version;',
+            '        }',
+            '        curl_version_num = curl_info->version_num;',
+            '    }',
+            '',
+            '    ap_set_content_type(r, "text/plain");',
+            '    ap_rprintf(r,',
+            '               "nghttp2_name=%s\nnghttp2_version=%s\nnghttp2_version_num=%d\nbrotli_encoder_version=%u\ncurl_version=%s\ncurl_version_num=%u\n",',
+            '               nghttp2_name,',
+            '               nghttp2_version,',
+            '               NGHTTP2_VERSION_NUM,',
+            '               (unsigned int) BrotliEncoderVersion(),',
+            '               curl_version,',
+            '               curl_version_num);',
+            '    return OK;',
+            '}',
+            '',
+            'static void sdk_extras_register_hooks(apr_pool_t *p)',
+            '{',
+            '    ap_hook_handler(sdk_extras_handler, NULL, NULL, APR_HOOK_MIDDLE);',
+            '}',
+            '',
+            'module AP_MODULE_DECLARE_DATA sdk_extras_module = {',
+            '    STANDARD20_MODULE_STUFF,',
+            '    NULL,',
+            '    NULL,',
+            '    NULL,',
+            '    NULL,',
+            '    NULL,',
+            '    sdk_extras_register_hooks',
+            '};'
+          )
+
+          $moduleBuilds = @(
+            @{
+              Name = 'sdk_baseline'
+              Expected = @{ ours = $true; release = $true }
+              Source = $baselineSource
+              LinkLibraries = @()
+            },
+            @{
+              Name = 'sdk_httpssl'
+              Expected = @{ ours = $true; release = $false }
+              Source = $httpSslSource
+              LinkLibraries = @()
+            },
+            @{
+              Name = 'sdk_extras'
+              Expected = @{ ours = $true; release = $false }
+              Source = $extrasSource
+              LinkLibraries = @('nghttp2.lib') + $brotliLibraries + @($curlLibrary)
+            }
+          )
+
+          $buildResults = @{}
+
+          foreach ($moduleBuild in $moduleBuilds) {
+            $buildResult = Build-ApacheModule -Name $moduleBuild.Name -SourceLines $moduleBuild.Source -IncludeRoot $includeRoot -LibRoot $libRoot -LinkLibraries $moduleBuild.LinkLibraries -OutputDir $buildDir
+            $buildResults[$moduleBuild.Name] = $buildResult
+            $expected = [bool] $moduleBuild.Expected[$packageKey]
+
+            $results.Add([pscustomobject]@{
+              Kind = 'module-build'
+              Name = $moduleBuild.Name
+              Expected = $expected
+              Actual = $buildResult.Success
+            }) | Out-Null
+
+            if ($buildResult.Success -ne $expected) {
+              $mismatches.Add("Module build $($moduleBuild.Name) expected $expected but got $($buildResult.Success)") | Out-Null
+            }
+          }
+
+          Assert-True -Condition $buildResults['sdk_baseline'].Success -Message 'Baseline Apache module did not build'
+
+          Copy-Item -Path $buildResults['sdk_baseline'].ModulePath -Destination (Join-Path $apacheModulesDir 'mod_sdk_baseline.so') -Force
+          if ($buildResults['sdk_httpssl'].Success) {
+            Copy-Item -Path $buildResults['sdk_httpssl'].ModulePath -Destination (Join-Path $apacheModulesDir 'mod_sdk_httpssl.so') -Force
+          }
+          if ($buildResults['sdk_extras'].Success) {
+            Copy-Item -Path $buildResults['sdk_extras'].ModulePath -Destination (Join-Path $apacheModulesDir 'mod_sdk_extras.so') -Force
+          }
+
+          $apacheRootConfigPath = $apacheRoot -replace '\\', '/'
+          $httpdConfig = Get-Content -Path $httpdConf -Raw
+          $httpdConfig = $httpdConfig -replace '(?i)c:/Apache24(?:-(?:32|64))?', $apacheRootConfigPath
+          $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*Define SRVROOT.*\r?$', "Define SRVROOT `"$apacheRootConfigPath`""
+          $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*ServerRoot.*\r?$', "ServerRoot `"$apacheRootConfigPath`""
+          $httpdConfig = $httpdConfig -replace '(?m)^Listen 80\r?$', "Listen $port"
+          $httpdConfig = $httpdConfig -replace '(?m)^#?ServerName .+\r?$', "ServerName 127.0.0.1:$port"
+
+          $customConfig = @(
+            'LoadModule sdk_baseline_module "modules/mod_sdk_baseline.so"',
+            '<Location /sdk-baseline>',
+            '    SetHandler sdk-baseline',
+            '</Location>'
+          )
+
+          if ($buildResults['sdk_httpssl'].Success) {
+            $customConfig += @(
+              'LoadModule sdk_httpssl_module "modules/mod_sdk_httpssl.so"',
+              '<Location /sdk-http-ssl>',
+              '    SetHandler sdk-http-ssl',
+              '</Location>'
+            )
+          }
+
+          if ($buildResults['sdk_extras'].Success) {
+            $customConfig += @(
+              'LoadModule sdk_extras_module "modules/mod_sdk_extras.so"',
+              '<Location /sdk-extras>',
+              '    SetHandler sdk-extras',
+              '</Location>'
+            )
+          }
+
+          $httpdConfig += "`r`n" + ($customConfig -join "`r`n") + "`r`n"
+          Set-Content -Path $httpdConf -Value $httpdConfig -Encoding ascii
+          Set-Content -Path (Join-Path $logsDir 'httpd.conf') -Value $httpdConfig -Encoding ascii
+          ($httpdConfig -split "\r?\n" | Select-Object -First 80 | ForEach-Object -Begin { $lineNumber = 1 } -Process {
+            '{0:D3}: {1}' -f $lineNumber, $_
+            $lineNumber++
+          }) | Set-Content -Path (Join-Path $logsDir 'httpd-head.txt') -Encoding ascii
+
+          try {
+            $configTest = & $httpdExe '-d' $apacheRoot '-f' $httpdConf '-t' 2>&1
+            $configTest | Set-Content -Path (Join-Path $logsDir 'httpd-configtest.txt') -Encoding utf8
+            Assert-True -Condition ($LASTEXITCODE -eq 0) -Message 'Apache config test failed'
+            $global:LASTEXITCODE = 0
+
+            $moduleList = & $httpdExe '-d' $apacheRoot '-f' $httpdConf '-M' 2>&1
+            $moduleList | Set-Content -Path (Join-Path $logsDir 'httpd-modules.txt') -Encoding utf8
+            Assert-True -Condition ($LASTEXITCODE -eq 0) -Message 'Apache module list failed'
+            $global:LASTEXITCODE = 0
+
+            Assert-True -Condition (($moduleList -join "`n") -match 'sdk_baseline_module \(shared\)') -Message 'Baseline module was not loaded by Apache'
+
+            if ($buildResults['sdk_httpssl'].Success) {
+              Assert-True -Condition (($moduleList -join "`n") -match 'sdk_httpssl_module \(shared\)') -Message 'SSL feature module was not loaded by Apache'
+            }
+
+            if ($buildResults['sdk_extras'].Success) {
+              Assert-True -Condition (($moduleList -join "`n") -match 'sdk_extras_module \(shared\)') -Message 'Extras feature module was not loaded by Apache'
+            }
+
+            $httpdProcess = Start-Process -FilePath $httpdExe -ArgumentList @('-d', $apacheRoot, '-f', $httpdConf, '-X') -WorkingDirectory (Join-Path $apacheRoot 'bin') -PassThru
+
+            $baselineResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-baseline"
+            $baselineResponse.Content | Set-Content -Path (Join-Path $logsDir 'baseline.txt') -Encoding utf8
+            Assert-True -Condition ($baselineResponse.Content.Trim() -eq 'sdk_baseline_ok') -Message 'Baseline Apache endpoint returned unexpected output'
+
+            if ($buildResults['sdk_httpssl'].Success) {
+              $sslResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-http-ssl"
+              $sslResponse.Content | Set-Content -Path (Join-Path $logsDir 'sdk-http-ssl.txt') -Encoding utf8
+              Assert-True -Condition ($sslResponse.Content.Trim() -eq 'ssl_conn_is_ssl=0') -Message 'HTTP SSL Apache endpoint returned unexpected output'
+            } else {
+              $sslMissingResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-http-ssl" -ExpectedStatusCode 404
+              $sslMissingResponse.Content | Set-Content -Path (Join-Path $logsDir 'sdk-http-ssl-missing.txt') -Encoding utf8
+            }
+
+            if ($buildResults['sdk_extras'].Success) {
+              $extrasResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-extras"
+              $extrasResponse.Content | Set-Content -Path (Join-Path $logsDir 'sdk-extras.txt') -Encoding utf8
+              Assert-True -Condition ($extrasResponse.Content -match 'nghttp2_name=nghttp2') -Message 'nghttp2 name was not returned by Apache extras endpoint'
+              Assert-True -Condition ($extrasResponse.Content -match 'nghttp2_version=.+') -Message 'nghttp2 version string was not returned by Apache extras endpoint'
+              Assert-True -Condition ($extrasResponse.Content -match 'nghttp2_version_num=\d+') -Message 'nghttp2 version was not returned by Apache extras endpoint'
+              Assert-True -Condition ($extrasResponse.Content -match 'brotli_encoder_version=\d+') -Message 'brotli version was not returned by Apache extras endpoint'
+              Assert-True -Condition ($extrasResponse.Content -match 'curl_version=.+') -Message 'curl version string was not returned by Apache extras endpoint'
+              Assert-True -Condition ($extrasResponse.Content -match 'curl_version_num=\d+') -Message 'curl version was not returned by Apache extras endpoint'
+            } else {
+              $extrasMissingResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-extras" -ExpectedStatusCode 404
+              $extrasMissingResponse.Content | Set-Content -Path (Join-Path $logsDir 'sdk-extras-missing.txt') -Encoding utf8
+            }
+
+            $errorLog = Join-Path $apacheRoot 'logs\error.log'
+            if (Test-Path $errorLog) {
+              Copy-Item -Path $errorLog -Destination (Join-Path $logsDir 'error.log') -Force
+              $errorLogContent = Get-Content -Path $errorLog -Raw
+              Assert-True -Condition ($errorLogContent -notmatch 'Syntax error|Cannot load|error while loading|Fatal') -Message 'Apache error log contains a startup or runtime failure'
+            }
+          } finally {
+            if ($null -ne $httpdProcess -and -not $httpdProcess.HasExited) {
+              Stop-Process -Id $httpdProcess.Id -Force -ErrorAction SilentlyContinue
             }
           }
 
           $summaryLines = @(
-            '| Probe | Expected | Compile | Libs | Actual | Details |',
-            '| --- | --- | --- | --- | --- | --- |'
+            '| Kind | Name | Expected | Actual | Details |',
+            '| --- | --- | --- | --- | --- |'
           )
 
           foreach ($result in $results) {
-            $summaryLines += "| $($result.Probe) | $($result.Expected) | $($result.CompileSucceeded) | $($result.LibrariesPresent) | $($result.Actual) | $($result.LibraryDetails) |"
+            $details = if ($null -ne $result.PSObject.Properties['Details']) { $result.Details } else { '' }
+            $summaryLines += "| $($result.Kind) | $($result.Name) | $($result.Expected) | $($result.Actual) | $details |"
           }
 
           $summaryLines -join "`n" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
-          $results | ConvertTo-Json -Depth 4 | Set-Content -Path (Join-Path $logsDir 'results.json') -Encoding utf8
+          $results | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $logsDir 'results.json') -Encoding utf8
 
           if ($mismatches.Count -gt 0) {
             $mismatches | Set-Content -Path (Join-Path $logsDir 'mismatches.txt') -Encoding utf8
