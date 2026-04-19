@@ -122,18 +122,19 @@ jobs:
           $apacheArch = if ($arch -eq 'x64') { 'Win64' } else { 'Win32' }
           $workspace = Join-Path $env:RUNNER_TEMP "apachehandler-$source-$phpVersion-$arch"
           $logsDir = Join-Path $workspace 'logs'
-          $siteDir = 'C:\Apache24\htdocs'
-          $apacheRoot = 'C:\Apache24'
+          $apacheExtractRoot = Join-Path $workspace 'apache-extract'
+          $apacheRoot = $null
+          $siteDir = $null
           $phpRoot = 'C:\php'
-          $httpdExe = Join-Path $apacheRoot 'bin\httpd.exe'
-          $httpdConf = Join-Path $apacheRoot 'conf\httpd.conf'
+          $httpdExe = $null
+          $httpdConf = $null
           $apacheUrl = "https://www.apachelounge.com/download/VS17/binaries/httpd-$($env:APACHE_VERSION)-$($env:APACHE_LOUNGE_BUILD)-$apacheArch-$($env:APACHE_LOUNGE_TOOLSET).zip"
           $apacheZip = Join-Path $workspace 'apache.zip'
           $phpZip = $null
           $httpdProcess = $null
 
           New-Item -ItemType Directory -Force -Path $logsDir | Out-Null
-          Remove-Item $apacheRoot -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item $apacheExtractRoot -Recurse -Force -ErrorAction SilentlyContinue
           Remove-Item $phpRoot -Recurse -Force -ErrorAction SilentlyContinue
 
           try {
@@ -176,7 +177,25 @@ jobs:
             Write-Host "Checkpoint: download Apache"
             $apacheZipSize = Download-File -Url $apacheUrl -Path $apacheZip
             Add-Content -Path (Join-Path $logsDir 'selection.txt') -Value "apache_zip_size=$apacheZipSize" -Encoding ascii
-            Expand-Archive -Path $apacheZip -DestinationPath 'C:\' -Force
+            New-Item -ItemType Directory -Force -Path $apacheExtractRoot | Out-Null
+            Expand-Archive -Path $apacheZip -DestinationPath $apacheExtractRoot -Force
+
+            $apacheRoot = Get-ChildItem -Path $apacheExtractRoot -Directory -Recurse |
+              Where-Object {
+                $_.Name -eq 'Apache24' -and
+                (Test-Path (Join-Path $_.FullName 'bin\httpd.exe'))
+              } |
+              Select-Object -First 1 -ExpandProperty FullName
+
+            if (-not $apacheRoot) {
+              throw "Unable to find Apache24 in extracted archive under $apacheExtractRoot"
+            }
+
+            $siteDir = Join-Path $apacheRoot 'htdocs'
+            $httpdExe = Join-Path $apacheRoot 'bin\httpd.exe'
+            $httpdConf = Join-Path $apacheRoot 'conf\httpd.conf'
+
+            Add-Content -Path (Join-Path $logsDir 'selection.txt') -Value "apache_root=$apacheRoot" -Encoding ascii
             Write-Host "Checkpoint: Apache extracted"
 
             Expand-Archive -Path $phpZip -DestinationPath $phpRoot -Force
@@ -189,7 +208,7 @@ jobs:
               'log_errors=On'
               'date.timezone=UTC'
               'extension_dir="C:/php/ext"'
-              'error_log="C:/Apache24/logs/php-errors.log"'
+              "error_log=""$($apacheRoot -replace '\\', '/')/logs/php-errors.log"""
             ) -join "`r`n"
             Set-Content -Path (Join-Path $phpRoot 'php.ini') -Value $phpIni -Encoding ascii
 
@@ -213,7 +232,10 @@ jobs:
             Set-Content -Path (Join-Path $siteDir 'health.php') -Value $healthScript -Encoding ascii
             Set-Content -Path (Join-Path $siteDir 'static.txt') -Value 'apache static ok' -Encoding ascii
 
+            $apacheRootConfigPath = $apacheRoot -replace '\\', '/'
             $httpdConfig = Get-Content -Path $httpdConf -Raw
+            $httpdConfig = $httpdConfig -replace '(?m)^Define SRVROOT ".+"$', "Define SRVROOT `"$apacheRootConfigPath`""
+            $httpdConfig = $httpdConfig -replace '(?m)^ServerRoot ".+"$', "ServerRoot `"$apacheRootConfigPath`""
             $httpdConfig = $httpdConfig -replace '(?m)^Listen 80$', "Listen $port"
             $httpdConfig = $httpdConfig -replace '(?m)^#?ServerName .+$', "ServerName 127.0.0.1:$port"
             $httpdConfig = $httpdConfig -replace '(?m)^DirectoryIndex .+$', 'DirectoryIndex index.php index.html'
