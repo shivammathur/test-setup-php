@@ -602,6 +602,8 @@ jobs:
           <?php
           declare(strict_types=1);
 
+          $protocol = $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1';
+          header($protocol . ' 418 I am a teapot');
           header('Content-Type: application/json');
           header('X-Status-Test: ok');
           header('X-Response-Probe: status');
