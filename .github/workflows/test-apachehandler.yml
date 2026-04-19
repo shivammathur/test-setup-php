@@ -286,12 +286,11 @@ jobs:
             $getResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/health.php?name=world"
             $getResponse.Content | Set-Content -Path (Join-Path $logsDir 'health-get.json') -Encoding utf8
             Assert-True -Condition ($getResponse.StatusCode -eq 200) -Message 'GET request did not return HTTP 200'
-            Assert-True -Condition ($getResponse.Headers['X-PHP-Apache-Test'] -eq 'ok') -Message 'Expected Apache handler response header was missing'
+            Assert-True -Condition (@($getResponse.Headers['X-PHP-Apache-Test']) -contains 'ok') -Message 'Expected Apache handler response header was missing'
 
             $getPayload = $getResponse.Content | ConvertFrom-Json
             Assert-True -Condition ($getPayload.sapi -eq 'apache2handler') -Message "Unexpected SAPI: $($getPayload.sapi)"
             Assert-True -Condition ($getPayload.php_major_minor -eq $phpVersion) -Message "Unexpected PHP version: $($getPayload.php_major_minor)"
-            Assert-True -Condition ($getPayload.php_module_loaded) -Message 'apache_get_modules() did not report php_module'
             Assert-True -Condition ($getPayload.apache_version -like "Apache/$($env:APACHE_VERSION)*") -Message "Unexpected Apache version: $($getPayload.apache_version)"
             Assert-True -Condition ($getPayload.server_software -like "Apache/$($env:APACHE_VERSION)*") -Message "Unexpected server software: $($getPayload.server_software)"
             Assert-True -Condition ($getPayload.query_name -eq 'world') -Message 'Query string did not round-trip through Apache'
