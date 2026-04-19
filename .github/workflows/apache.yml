@@ -32,6 +32,24 @@ jobs:
           repository: apache/httpd
           ref: ${{ github.event.inputs.version }}
 
+      - name: Determine apache build profile
+        id: httpd_profile
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $cmakeLists = Get-Content -Path (Join-Path $env:GITHUB_WORKSPACE 'httpd\CMakeLists.txt') -Raw
+          $supportsPcre2 = $cmakeLists -match 'FIND_PACKAGE\(PCRE2'
+
+          $pcrePackage = if ($supportsPcre2) { 'pcre2' } else { 'pcre' }
+          $pcreLibPath = if ($supportsPcre2) { 'lib/pcre2-8.lib' } else { 'lib/pcre.lib' }
+          $pcreFlags = if ($supportsPcre2) { '-DHAVE_PCRE2' } else { '' }
+
+          "supports_pcre2=$($supportsPcre2.ToString().ToLowerInvariant())" | Add-Content -Path $env:GITHUB_OUTPUT
+          "pcre_package=$pcrePackage" | Add-Content -Path $env:GITHUB_OUTPUT
+          "pcre_lib_path=$pcreLibPath" | Add-Content -Path $env:GITHUB_OUTPUT
+          "pcre_flags=$pcreFlags" | Add-Content -Path $env:GITHUB_OUTPUT
+
       - name: Compute virtual inputs
         id: virtuals
         run: powershell winlib-builder/scripts/compute-virtuals -version ${{ github.event.inputs.php }} -arch ${{ matrix.arch }}
@@ -48,8 +66,17 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $sharedTriplet = '${{ matrix.arch }}-windows'
           $staticTriplet = '${{ matrix.arch }}-windows-static-md'
+          $sharedPackages = @(
+              'apr[private-headers]',
+              'apr-util',
+              'brotli',
+              'expat',
+              'nghttp2',
+              '${{ steps.httpd_profile.outputs.pcre_package }}',
+              'zlib'
+          )
           $commands = @(
-              "vcpkg install --triplet $sharedTriplet apr[private-headers] apr-util expat pcre",
+              "vcpkg install --triplet $sharedTriplet $($sharedPackages -join ' ')",
               "vcpkg install --triplet $staticTriplet apr apr-util expat"
           )
 
@@ -95,6 +122,7 @@ jobs:
           $staticRoot = "C:/vcpkg/installed/$staticTriplet"
           $depsRoot = Join-Path $env:GITHUB_WORKSPACE 'deps-install'
           $iconvConfigArch = if ('${{ matrix.arch }}' -eq 'x64') { 'x64' } else { 'Win32' }
+          $pcreLibrary = Join-Path $sharedRoot '${{ steps.httpd_profile.outputs.pcre_lib_path }}'
 
           $apriconvSourceRoot = Join-Path $env:GITHUB_WORKSPACE 'apr-iconv-source'
           $apriconvOutputRoot = Join-Path $env:GITHUB_WORKSPACE 'apr-iconv-install'
@@ -112,6 +140,7 @@ jobs:
               (Join-Path $sharedRoot 'include\arch\win32\apr_private.h'),
               (Join-Path $sharedRoot 'lib\libapr-1.lib'),
               (Join-Path $sharedRoot 'lib\libaprutil-1.lib'),
+              $pcreLibrary,
               (Join-Path $staticRoot 'lib'),
               $genTestChar
           )) {
@@ -168,8 +197,10 @@ jobs:
 
           $apriconvLibInstall = Join-Path $apriconvOutputRoot 'lib'
           $apriconvBinInstall = Join-Path $apriconvOutputRoot 'bin'
+          $apriconvIncludeInstall = Join-Path $apriconvOutputRoot 'include'
           New-Item -Path $apriconvLibInstall -ItemType Directory -Force | Out-Null
           New-Item -Path $apriconvBinInstall -ItemType Directory -Force | Out-Null
+          Copy-TreeContents -source (Join-Path $apriconvRoot.FullName 'include') -destination $apriconvIncludeInstall
 
           Get-ChildItem -Path $apriconvBuildRoot -File | ForEach-Object {
               $artifact = $_
@@ -196,7 +227,13 @@ jobs:
             "-DAPR_LIBRARIES=${{ steps.deps.outputs.deps_root }}/lib/libapr-1.lib;${{ steps.deps.outputs.deps_root }}/lib/libaprutil-1.lib" ^
             -DCMAKE_DISABLE_FIND_PACKAGE_OpenSSL=TRUE ^
             -DPCRE_INCLUDE_DIR="${{ steps.deps.outputs.deps_root }}/include" ^
-            -DPCRE_LIBRARIES="${{ steps.deps.outputs.deps_root }}/lib/pcre.lib" ^
+            -DPCRE_LIBRARIES="${{ steps.deps.outputs.deps_root }}/${{ steps.httpd_profile.outputs.pcre_lib_path }}" ^
+            -DPCRE_CFLAGS="${{ steps.httpd_profile.outputs.pcre_flags }}" ^
+            -DNGHTTP2_INCLUDE_DIR="${{ steps.deps.outputs.deps_root }}/include" ^
+            -DNGHTTP2_LIBRARIES="${{ steps.deps.outputs.deps_root }}/lib/nghttp2.lib" ^
+            -DBROTLI_INCLUDE_DIR="${{ steps.deps.outputs.deps_root }}/include" ^
+            "-DBROTLI_LIBRARIES=${{ steps.deps.outputs.deps_root }}/lib/brotlienc.lib;${{ steps.deps.outputs.deps_root }}/lib/brotlicommon.lib" ^
+            -DENABLE_MODULES=i ^
             -DINSTALL_MANUAL=ON ^
             -DINSTALL_PDB=ON
 
@@ -253,6 +290,7 @@ jobs:
           Copy-TreeContents -source (Join-Path $depsRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
           Copy-TreeContents -source (Join-Path $depsRoot 'bin') -destination (Join-Path $packageRoot 'bin')
           Copy-TreeContents -source (Join-Path $staticRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
+          Copy-TreeContents -source (Join-Path $apriconvRoot 'include') -destination (Join-Path $packageRoot 'include\apache2_4')
           Copy-TreeContents -source (Join-Path $apriconvRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
           Copy-TreeContents -source (Join-Path $apriconvRoot 'bin') -destination (Join-Path $packageRoot 'bin')
 
@@ -260,8 +298,27 @@ jobs:
           Copy-TreeContents -source (Join-Path $installRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
           Copy-TreeContents -source (Join-Path $installRoot 'bin') -destination (Join-Path $packageRoot 'bin')
           Copy-TreeContents -source (Join-Path $installRoot 'modules') -destination (Join-Path $packageRoot 'modules')
+          $cgiExamplesRoot = Join-Path $httpdSourceRoot 'docs\cgi-examples'
+          $packageCgiRoot = Join-Path $packageRoot 'cgi-bin'
+          if (Test-Path $cgiExamplesRoot) {
+              New-Item -Path $packageCgiRoot -ItemType Directory -Force | Out-Null
+              Get-ChildItem -Path $cgiExamplesRoot -File | ForEach-Object {
+                  Copy-Item -Path $_.FullName -Destination (Join-Path $packageCgiRoot $_.Name) -Force
+                  if (-not $_.Extension) {
+                      Copy-Item -Path $_.FullName -Destination (Join-Path $packageCgiRoot "$($_.Name).pl") -Force
+                  }
+              }
+          }
 
           $packageLibRoot = Join-Path $packageRoot 'lib\apache2_4'
+          Get-ChildItem -Path $packageLibRoot -Filter 'lib*.lib' -File | ForEach-Object {
+              $aliasName = $_.Name.Substring(3)
+              $aliasTarget = Join-Path $packageLibRoot $aliasName
+              if (-not (Test-Path $aliasTarget)) {
+                  Copy-Item -Path $_.FullName -Destination $aliasTarget -Force
+              }
+          }
+
           foreach ($buildTree in @(
               (Join-Path 'C:/vcpkg/buildtrees/apr' '${{ matrix.arch }}-windows-rel'),
               (Join-Path 'C:/vcpkg/buildtrees/apr-util' '${{ matrix.arch }}-windows-rel')
