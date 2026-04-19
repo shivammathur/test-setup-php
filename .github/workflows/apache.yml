@@ -197,7 +197,7 @@ jobs:
             -DCMAKE_DISABLE_FIND_PACKAGE_OpenSSL=TRUE ^
             -DPCRE_INCLUDE_DIR="${{ steps.deps.outputs.deps_root }}/include" ^
             -DPCRE_LIBRARIES="${{ steps.deps.outputs.deps_root }}/lib/pcre.lib" ^
-            -DINSTALL_MANUAL=OFF ^
+            -DINSTALL_MANUAL=ON ^
             -DINSTALL_PDB=ON
 
       - name: Build apache/httpd
@@ -212,6 +212,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
 
           $installRoot = Join-Path $env:GITHUB_WORKSPACE 'apache-install'
+          $httpdSourceRoot = Join-Path $env:GITHUB_WORKSPACE 'httpd'
           $depsRoot = '${{ steps.deps.outputs.deps_root }}'
           $staticRoot = '${{ steps.deps.outputs.static_root }}'
           $apriconvRoot = '${{ steps.deps.outputs.apriconv_root }}'
@@ -237,6 +238,15 @@ jobs:
               Get-ChildItem -Path $source -Force | ForEach-Object {
                   Copy-Item -Path $_.FullName -Destination $destination -Recurse -Force
               }
+          }
+
+          Copy-TreeContents -source $installRoot -destination $packageRoot
+
+          Get-ChildItem -Path $httpdSourceRoot -File | Where-Object {
+              $_.Name -cmatch '^[A-Z][A-Z0-9._-]*$'
+          } | ForEach-Object {
+              $destinationName = if ($_.Extension) { $_.Name } else { "$($_.Name).txt" }
+              Copy-Item -Path $_.FullName -Destination (Join-Path $packageRoot $destinationName) -Force
           }
 
           Copy-TreeContents -source (Join-Path $depsRoot 'include') -destination (Join-Path $packageRoot 'include\apache2_4')
