@@ -1,0 +1,288 @@
+name: Test Apache SDK Delta
+run-name: Test Apache SDK delta
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  WINLIBS_APACHE_RUN_ID: "24624419180"
+  WINLIBS_APACHE_ARTIFACT: "apache-2.4.66-vs17-x64"
+  PHP_SDK_APACHE_URL: "https://downloads.php.net/~windows/php-sdk/deps/vs17/x64/apache-2.4.43-vs17-x64.zip"
+
+jobs:
+  compare-sdk-packages:
+    name: ${{ matrix.package.name }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - name: Current php-sdk Apache
+            key: release
+          - name: New winlibs Apache
+            key: ours
+
+    steps:
+      - name: Download new winlibs Apache artifact
+        if: matrix.package.key == 'ours'
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.WINLIBS_APACHE_ARTIFACT }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: winlibs/winlib-builder
+          run-id: ${{ env.WINLIBS_APACHE_RUN_ID }}
+          path: external/ours
+
+      - name: Setup MSVC development environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+          toolset: 14.3
+
+      - name: Run SDK delta probes
+        shell: pwsh
+        env:
+          TEST_PACKAGE_KEY: ${{ matrix.package.key }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Assert-True {
+            param(
+              [bool] $Condition,
+              [string] $Message
+            )
+
+            if (-not $Condition) {
+              throw $Message
+            }
+          }
+
+          function Download-File {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $Url,
+              [Parameter(Mandatory = $true)]
+              [string] $Path
+            )
+
+            & curl.exe --fail --location --silent --show-error --output $Path $Url
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to download $Url"
+            }
+          }
+
+          function Invoke-CompileProbe {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $Name,
+              [Parameter(Mandatory = $true)]
+              [string[]] $SourceLines,
+              [Parameter(Mandatory = $true)]
+              [string] $IncludeRoot,
+              [Parameter(Mandatory = $true)]
+              [string] $Workspace
+            )
+
+            $sourcePath = Join-Path $Workspace "$Name.c"
+            $objectPath = Join-Path $Workspace "$Name.obj"
+            $logPath = Join-Path $Workspace "$Name.compile.log"
+
+            Set-Content -Path $sourcePath -Value ($SourceLines -join "`r`n") -Encoding ascii
+
+            $output = & cl.exe /nologo /TC /c /I"$IncludeRoot" /Fo"$objectPath" "$sourcePath" 2>&1
+            $output | Set-Content -Path $logPath -Encoding utf8
+
+            return [pscustomobject]@{
+              Success = ($LASTEXITCODE -eq 0)
+              LogPath = $logPath
+            }
+          }
+
+          $packageKey = $env:TEST_PACKAGE_KEY
+          $workspace = Join-Path $env:RUNNER_TEMP "apache-sdk-delta-$packageKey"
+          $logsDir = Join-Path $workspace 'logs'
+          $releaseZip = Join-Path $workspace 'apache-release.zip'
+          $releaseRoot = Join-Path $workspace 'release'
+          $packageRoot = if ($packageKey -eq 'ours') {
+            Join-Path $env:GITHUB_WORKSPACE 'external\ours'
+          } else {
+            $releaseRoot
+          }
+
+          if (Test-Path $workspace) {
+            Remove-Item -Path $workspace -Recurse -Force
+          }
+
+          New-Item -Path $logsDir -ItemType Directory -Force | Out-Null
+
+          if ($packageKey -eq 'release') {
+            Download-File -Url $env:PHP_SDK_APACHE_URL -Path $releaseZip
+            Expand-Archive -Path $releaseZip -DestinationPath $releaseRoot -Force
+          }
+
+          $includeRoot = Join-Path $packageRoot 'include\apache2_4'
+          $libRoot = Join-Path $packageRoot 'lib\apache2_4'
+
+          Assert-True -Condition (Test-Path $includeRoot) -Message "Apache include root missing: $includeRoot"
+          Assert-True -Condition (Test-Path $libRoot) -Message "Apache lib root missing: $libRoot"
+
+          Set-Content -Path (Join-Path $logsDir 'selection.txt') -Value @(
+            "package_key=$packageKey"
+            "package_root=$packageRoot"
+            "include_root=$includeRoot"
+            "lib_root=$libRoot"
+          ) -Encoding ascii
+
+          $probes = @(
+            @{
+              Name = 'baseline-httpd'
+              Expected = @{ ours = $true; release = $true }
+              Libraries = @('libhttpd.lib')
+              Source = @(
+                '#include <httpd.h>',
+                '#ifndef MODULE_MAGIC_NUMBER_MAJOR',
+                '#error Missing Apache module ABI macro',
+                '#endif',
+                'int main(void) {',
+                '    return MODULE_MAGIC_NUMBER_MAJOR > 0 ? 0 : 1;',
+                '}'
+              )
+            },
+            @{
+              Name = 'http_ssl-header'
+              Expected = @{ ours = $true; release = $false }
+              Libraries = @()
+              Source = @(
+                '#include <http_ssl.h>',
+                'int main(void) {',
+                '    return 0;',
+                '}'
+              )
+            },
+            @{
+              Name = 'nghttp2-sdk'
+              Expected = @{ ours = $true; release = $false }
+              Libraries = @('nghttp2.lib')
+              Source = @(
+                '#include <nghttp2/nghttp2.h>',
+                'int main(void) {',
+                '    return NGHTTP2_VERSION_AGE >= 0 ? 0 : 1;',
+                '}'
+              )
+            },
+            @{
+              Name = 'brotli-sdk'
+              Expected = @{ ours = $true; release = $false }
+              Libraries = @('brotlienc.lib')
+              Source = @(
+                '#include <brotli/encode.h>',
+                'int main(void) {',
+                '    return BROTLI_TRUE ? 0 : 1;',
+                '}'
+              )
+            },
+            @{
+              Name = 'curl-sdk'
+              Expected = @{ ours = $true; release = $false }
+              Libraries = @('curl.lib', 'libcurl.lib', 'libcurl_imp.lib')
+              Source = @(
+                '#include <curl/curl.h>',
+                'int main(void) {',
+                '    return LIBCURL_VERSION_NUM > 0 ? 0 : 1;',
+                '}'
+              )
+            },
+            @{
+              Name = 'lua-sdk'
+              Expected = @{ ours = $true; release = $false }
+              Libraries = @('lua.lib')
+              Source = @(
+                '#include <lua.h>',
+                'int main(void) {',
+                '    return LUA_VERSION_NUM > 0 ? 0 : 1;',
+                '}'
+              )
+            },
+            @{
+              Name = 'jansson-sdk'
+              Expected = @{ ours = $true; release = $false }
+              Libraries = @('jansson.lib')
+              Source = @(
+                '#include <jansson.h>',
+                'int main(void) {',
+                '    return JANSSON_VERSION_HEX > 0 ? 0 : 1;',
+                '}'
+              )
+            }
+          )
+
+          $results = New-Object System.Collections.Generic.List[object]
+          $mismatches = New-Object System.Collections.Generic.List[string]
+
+          foreach ($probe in $probes) {
+            $compileResult = Invoke-CompileProbe -Name $probe.Name -SourceLines $probe.Source -IncludeRoot $includeRoot -Workspace $logsDir
+            $compileSucceeded = $compileResult.Success
+
+            $librariesPresent = $true
+            $libraryDetails = @()
+            foreach ($library in $probe.Libraries) {
+              $libraryPath = Join-Path $libRoot $library
+              $present = Test-Path $libraryPath
+              $libraryDetails += "$library=$present"
+              if ($present) {
+                $librariesPresent = $true
+                break
+              }
+              $librariesPresent = $false
+            }
+
+            if ($probe.Libraries.Count -eq 0) {
+              $libraryDetails = @('none-required')
+            }
+
+            $actual = $compileSucceeded -and $librariesPresent
+            $expected = [bool] $probe.Expected[$packageKey]
+
+            $results.Add([pscustomobject]@{
+              Probe = $probe.Name
+              Expected = $expected
+              CompileSucceeded = $compileSucceeded
+              LibrariesPresent = $librariesPresent
+              Actual = $actual
+              LibraryDetails = ($libraryDetails -join ', ')
+            }) | Out-Null
+
+            if ($actual -ne $expected) {
+              $mismatches.Add("Probe $($probe.Name) expected $expected but got $actual") | Out-Null
+            }
+          }
+
+          $summaryLines = @(
+            '| Probe | Expected | Compile | Libs | Actual | Details |',
+            '| --- | --- | --- | --- | --- | --- |'
+          )
+
+          foreach ($result in $results) {
+            $summaryLines += "| $($result.Probe) | $($result.Expected) | $($result.CompileSucceeded) | $($result.LibrariesPresent) | $($result.Actual) | $($result.LibraryDetails) |"
+          }
+
+          $summaryLines -join "`n" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          $results | ConvertTo-Json -Depth 4 | Set-Content -Path (Join-Path $logsDir 'results.json') -Encoding utf8
+
+          if ($mismatches.Count -gt 0) {
+            $mismatches | Set-Content -Path (Join-Path $logsDir 'mismatches.txt') -Encoding utf8
+            throw ($mismatches -join "`n")
+          }
+
+      - name: Upload probe logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: apache-sdk-delta-${{ matrix.package.key }}
+          path: ${{ runner.temp }}/apache-sdk-delta-${{ matrix.package.key }}/logs
