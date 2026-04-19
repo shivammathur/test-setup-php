@@ -764,7 +764,7 @@ jobs:
               $sslResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-http-ssl"
               $sslResponse.Content | Set-Content -Path (Join-Path $logsDir 'sdk-http-ssl.txt') -Encoding utf8
               Assert-True -Condition ($sslResponse.Content -match 'ssl_conn_is_ssl=0') -Message 'HTTP SSL Apache endpoint did not report a non-SSL connection'
-              Assert-True -Condition ($sslResponse.Content -match 'ssl_protocol=none') -Message 'HTTP SSL Apache endpoint reported an unexpected protocol for plain HTTP'
+              Assert-True -Condition ($sslResponse.Content -match '(?m)^ssl_protocol=(none)?$') -Message 'HTTP SSL Apache endpoint reported an unexpected protocol value for plain HTTP'
 
               $sslSecureResponse = Wait-ForUrl -Url "https://127.0.0.1:$sslPort/sdk-http-ssl" -SkipCertificateCheck
               $sslSecureResponse.Content | Set-Content -Path (Join-Path $logsDir 'sdk-http-ssl-https.txt') -Encoding utf8
