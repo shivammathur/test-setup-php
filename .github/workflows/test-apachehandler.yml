@@ -162,23 +162,23 @@ jobs:
             ) -join "`r`n"
             Set-Content -Path (Join-Path $phpRoot 'php.ini') -Value $phpIni -Encoding ascii
 
-            $healthScript = @'
-            <?php
-            header('Content-Type: application/json');
-            header('X-PHP-Apache-Test: ok');
-            $modules = function_exists('apache_get_modules') ? apache_get_modules() : [];
-            echo json_encode([
-                'php_version' => PHP_VERSION,
-                'php_major_minor' => PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION,
-                'sapi' => PHP_SAPI,
-                'apache_version' => function_exists('apache_get_version') ? apache_get_version() : null,
-                'php_module_loaded' => in_array('php_module', $modules, true),
-                'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? null,
-                'request_method' => $_SERVER['REQUEST_METHOD'] ?? null,
-                'query_name' => $_GET['name'] ?? null,
-                'post_name' => $_POST['name'] ?? null,
-            ], JSON_THROW_ON_ERROR);
-            '@
+            $healthScript = @(
+              '<?php'
+              "header('Content-Type: application/json');"
+              "header('X-PHP-Apache-Test: ok');"
+              '$modules = function_exists(''apache_get_modules'') ? apache_get_modules() : [];'
+              'echo json_encode(['
+              "    'php_version' => PHP_VERSION,"
+              "    'php_major_minor' => PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION,"
+              "    'sapi' => PHP_SAPI,"
+              "    'apache_version' => function_exists(''apache_get_version'') ? apache_get_version() : null,"
+              "    'php_module_loaded' => in_array(''php_module'', \$modules, true),"
+              "    'server_software' => \$_SERVER[''SERVER_SOFTWARE''] ?? null,"
+              "    'request_method' => \$_SERVER[''REQUEST_METHOD''] ?? null,"
+              "    'query_name' => \$_GET[''name''] ?? null,"
+              "    'post_name' => \$_POST[''name''] ?? null,"
+              '], JSON_THROW_ON_ERROR);'
+            ) -join "`r`n"
             Set-Content -Path (Join-Path $siteDir 'health.php') -Value $healthScript -Encoding ascii
             Set-Content -Path (Join-Path $siteDir 'static.txt') -Value 'apache static ok' -Encoding ascii
 
