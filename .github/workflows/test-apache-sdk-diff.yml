@@ -1111,11 +1111,14 @@ jobs:
             }
           }
 
+          $allResultItems = @($allResults.ToArray())
+          $packageStatItems = @($packageStats.ToArray())
+
           $overall = [pscustomobject]@{
-            total = @($allResults).Count
-            passed = @($allResults | Where-Object Status -eq 'passed').Count
-            failed = @($allResults | Where-Object Status -eq 'failed').Count
-            skipped = @($allResults | Where-Object Status -eq 'skipped').Count
+            total = $allResultItems.Count
+            passed = @($allResultItems | Where-Object { $_.Status -eq 'passed' }).Count
+            failed = @($allResultItems | Where-Object { $_.Status -eq 'failed' }).Count
+            skipped = @($allResultItems | Where-Object { $_.Status -eq 'skipped' }).Count
           }
 
           $summaryLines = @(
@@ -1129,7 +1132,7 @@ jobs:
             '| --- | --- | --- | --- | --- |'
           )
 
-          foreach ($stats in $packageStats) {
+          foreach ($stats in $packageStatItems) {
             $summaryLines += "| $($stats.package_name) | $($stats.passed) | $($stats.failed) | $($stats.skipped) | $($stats.total) |"
           }
 
@@ -1137,7 +1140,7 @@ jobs:
           $summaryLines += '| Package | Suite | Test | Status | Details |'
           $summaryLines += '| --- | --- | --- | --- | --- |'
 
-          foreach ($result in $allResults) {
+          foreach ($result in $allResultItems) {
             $summaryLines += "| $($result.PackageName) | $($result.Suite) | $($result.Name) | $($result.Status) | $($result.Details) |"
           }
 
