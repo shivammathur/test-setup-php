@@ -1,0 +1,62 @@
+name: homebrew-php-5238
+
+on:
+  push:
+    branches:
+      - test-issue-homebrew-php-5238
+  workflow_dispatch:
+
+jobs:
+  verify-symbol:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+      NONINTERACTIVE: "1"
+    steps:
+      - name: Install Homebrew
+        run: |
+          set -euxo pipefail
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew --version
+
+      - name: Install php@8.4-zts from shivammathur/php
+        run: |
+          set -euxo pipefail
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew tap shivammathur/php
+          brew install shivammathur/php/php@8.4-zts
+
+      - name: Verify net-snmp linkage and symbol
+        run: |
+          set -euxo pipefail
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+          php_prefix="$(brew --prefix shivammathur/php/php@8.4-zts)"
+          snmp_prefix="$(brew --prefix net-snmp)"
+          php_lib="${php_prefix}/lib/libphp.so"
+          snmp_lib="${snmp_prefix}/lib/libnetsnmp.so.45"
+
+          {
+            echo "PHP lib: ${php_lib}"
+            echo "SNMP lib: ${snmp_lib}"
+            echo
+            echo "readelf -d libphp.so | grep libnetsnmp"
+            readelf -d "${php_lib}" | grep 'libnetsnmp\.so\.45'
+            echo
+            echo "nm -D libphp.so | grep usmHMACMD5AuthProtocol"
+            nm -D "${php_lib}" | grep 'usmHMACMD5AuthProtocol'
+            echo
+            echo "nm -D libnetsnmp.so.45 | grep usmHMACMD5AuthProtocol"
+            nm -D "${snmp_lib}" | grep 'usmHMACMD5AuthProtocol'
+          } | tee symbol-check.txt
+
+          {
+            echo "## Homebrew PHP 5238 Symbol Check"
+            echo
+            echo '```text'
+            cat symbol-check.txt
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
