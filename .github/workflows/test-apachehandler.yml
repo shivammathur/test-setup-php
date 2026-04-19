@@ -123,6 +123,7 @@ jobs:
           $workspace = Join-Path $env:RUNNER_TEMP "apachehandler-$source-$phpVersion-$arch"
           $logsDir = Join-Path $workspace 'logs'
           $apacheExtractRoot = Join-Path $workspace 'apache-extract'
+          $apacheInstallRoot = 'C:\Apache24'
           $apacheRoot = $null
           $siteDir = $null
           $phpRoot = 'C:\php'
@@ -135,6 +136,7 @@ jobs:
 
           New-Item -ItemType Directory -Force -Path $logsDir | Out-Null
           Remove-Item $apacheExtractRoot -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item $apacheInstallRoot -Recurse -Force -ErrorAction SilentlyContinue
           Remove-Item $phpRoot -Recurse -Force -ErrorAction SilentlyContinue
 
           try {
@@ -180,21 +182,25 @@ jobs:
             New-Item -ItemType Directory -Force -Path $apacheExtractRoot | Out-Null
             Expand-Archive -Path $apacheZip -DestinationPath $apacheExtractRoot -Force
 
-            $apacheRoot = Get-ChildItem -Path $apacheExtractRoot -Directory -Recurse |
+            $extractedApacheRoot = Get-ChildItem -Path $apacheExtractRoot -Directory -Recurse |
               Where-Object {
                 $_.Name -eq 'Apache24' -and
                 (Test-Path (Join-Path $_.FullName 'bin\httpd.exe'))
               } |
               Select-Object -First 1 -ExpandProperty FullName
 
-            if (-not $apacheRoot) {
+            if (-not $extractedApacheRoot) {
               throw "Unable to find Apache24 in extracted archive under $apacheExtractRoot"
             }
 
+            Copy-Item -Path $extractedApacheRoot -Destination $apacheInstallRoot -Recurse -Force
+
+            $apacheRoot = $apacheInstallRoot
             $siteDir = Join-Path $apacheRoot 'htdocs'
             $httpdExe = Join-Path $apacheRoot 'bin\httpd.exe'
             $httpdConf = Join-Path $apacheRoot 'conf\httpd.conf'
 
+            Add-Content -Path (Join-Path $logsDir 'selection.txt') -Value "extracted_apache_root=$extractedApacheRoot" -Encoding ascii
             Add-Content -Path (Join-Path $logsDir 'selection.txt') -Value "apache_root=$apacheRoot" -Encoding ascii
             Write-Host "Checkpoint: Apache extracted"
 
