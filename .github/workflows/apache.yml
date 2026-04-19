@@ -325,7 +325,6 @@ jobs:
           Copy-TreeContents -source (Join-Path $depsRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
           Copy-TreeContents -source (Join-Path $depsRoot 'bin') -destination (Join-Path $packageRoot 'bin')
           Copy-TreeContents -source (Join-Path $depsRoot 'share') -destination (Join-Path $packageRoot 'share')
-          Copy-TreeContents -source (Join-Path $staticRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
           Copy-TreeContents -source (Join-Path $apriconvRoot 'include') -destination (Join-Path $packageRoot 'include\apache2_4')
           Copy-TreeContents -source (Join-Path $apriconvRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
           Copy-TreeContents -source (Join-Path $apriconvRoot 'bin') -destination (Join-Path $packageRoot 'bin')
@@ -390,7 +389,46 @@ jobs:
               }
           }
 
+          $supportRoot = Join-Path $httpdSourceRoot 'support'
+          $packageBinRoot = Join-Path $packageRoot 'bin'
+          if (Test-Path $supportRoot) {
+              Get-ChildItem -Path $supportRoot -File | ForEach-Object {
+                  $firstLine = Get-Content -Path $_.FullName -TotalCount 1 -ErrorAction SilentlyContinue
+                  $copyAsScript = $_.Name -like '*.pl.in' -or
+                      $_.Name -like '*.cgi.in' -or
+                      $_.Extension -in @('.pl', '.cgi') -or
+                      $firstLine -match '^#!.*perl'
+
+                  if ($copyAsScript) {
+                      if ($_.Name -like '*.pl.in' -or $_.Name -like '*.cgi.in') {
+                          $destinationName = $_.BaseName
+                      } elseif ($_.Extension -eq '.in') {
+                          $destinationName = "$($_.BaseName).pl"
+                      } else {
+                          $destinationName = $_.Name
+                      }
+
+                      Copy-Item -Path $_.FullName -Destination (Join-Path $packageBinRoot $destinationName) -Force
+                  }
+              }
+          }
+
           $packageLibRoot = Join-Path $packageRoot 'lib\apache2_4'
+          $staticLibRoot = Join-Path $staticRoot 'lib'
+          if (Test-Path $staticLibRoot) {
+              Get-ChildItem -Path $staticLibRoot -Filter *.lib -File | ForEach-Object {
+                  $sharedDestination = Join-Path $packageLibRoot $_.Name
+                  $staticSuffix = if ($_.BaseName -match '[-.]') { '-static' } else { 'static' }
+                  $staticDestination = Join-Path $packageLibRoot "$($_.BaseName)$staticSuffix$($_.Extension)"
+
+                  if (Test-Path $sharedDestination) {
+                      Copy-Item -Path $_.FullName -Destination $staticDestination -Force
+                  } else {
+                      Copy-Item -Path $_.FullName -Destination $sharedDestination -Force
+                  }
+              }
+          }
+
           Get-ChildItem -Path $packageLibRoot -Filter 'lib*.lib' -File | ForEach-Object {
               $aliasName = $_.Name.Substring(3)
               $aliasTarget = Join-Path $packageLibRoot $aliasName
