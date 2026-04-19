@@ -110,7 +110,7 @@ jobs:
           Remove-Item $apacheRoot -Recurse -Force -ErrorAction SilentlyContinue
           Remove-Item $phpRoot -Recurse -Force -ErrorAction SilentlyContinue
 
-          Invoke-WebRequest -Uri $apacheUrl -OutFile $apacheZip
+          Invoke-WebRequest -Uri $apacheUrl -OutFile $apacheZip -AllowInsecureRedirect
           Expand-Archive -Path $apacheZip -DestinationPath 'C:\' -Force
 
           if ($source -eq 'built') {
