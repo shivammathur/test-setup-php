@@ -169,9 +169,9 @@ jobs:
               Expected = @{ ours = $true; release = $false }
               Libraries = @('nghttp2.lib')
               Source = @(
-                '#include <nghttp2/nghttp2.h>',
+                '#include <nghttp2/nghttp2ver.h>',
                 'int main(void) {',
-                '    return NGHTTP2_VERSION_AGE >= 0 ? 0 : 1;',
+                '    return NGHTTP2_VERSION_NUM > 0 ? 0 : 1;',
                 '}'
               )
             },
