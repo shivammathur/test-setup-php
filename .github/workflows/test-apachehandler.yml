@@ -241,11 +241,11 @@ jobs:
             $apacheRootConfigPath = $apacheRoot -replace '\\', '/'
             $httpdConfig = Get-Content -Path $httpdConf -Raw
             $httpdConfig = $httpdConfig -replace '(?i)c:/Apache24', $apacheRootConfigPath
-            $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*Define SRVROOT.*$', "Define SRVROOT `"$apacheRootConfigPath`""
-            $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*ServerRoot.*$', "ServerRoot `"$apacheRootConfigPath`""
-            $httpdConfig = $httpdConfig -replace '(?m)^Listen 80$', "Listen $port"
-            $httpdConfig = $httpdConfig -replace '(?m)^#?ServerName .+$', "ServerName 127.0.0.1:$port"
-            $httpdConfig = $httpdConfig -replace '(?m)^DirectoryIndex .+$', 'DirectoryIndex index.php index.html'
+            $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*Define SRVROOT.*\r?$', "Define SRVROOT `"$apacheRootConfigPath`""
+            $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*ServerRoot.*\r?$', "ServerRoot `"$apacheRootConfigPath`""
+            $httpdConfig = $httpdConfig -replace '(?m)^Listen 80\r?$', "Listen $port"
+            $httpdConfig = $httpdConfig -replace '(?m)^#?ServerName .+\r?$', "ServerName 127.0.0.1:$port"
+            $httpdConfig = $httpdConfig -replace '(?m)^DirectoryIndex .+\r?$', 'DirectoryIndex index.php index.html'
 
             if ($httpdConfig -notmatch '(?m)^LoadFile "c:/php/php8ts\.dll"$') {
               $httpdConfig += "`r`nLoadFile `"c:/php/php8ts.dll`""
