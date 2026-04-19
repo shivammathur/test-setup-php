@@ -374,6 +374,7 @@ jobs:
           )
 
           $extrasSource = @(
+            '#define NGHTTP2_NO_SSIZE_T 1',
             '#include "httpd.h"',
             '#include "http_config.h"',
             '#include "http_protocol.h"',
@@ -388,7 +389,7 @@ jobs:
             '{',
             '    const nghttp2_info *nghttp2_info = NULL;',
             '    curl_version_info_data *curl_info = NULL;',
-            '    const char *nghttp2_name = "null";',
+            '    const char *nghttp2_proto = "null";',
             '    const char *nghttp2_version = "null";',
             '    const char *curl_version = "null";',
             '    unsigned int curl_version_num = LIBCURL_VERSION_NUM;',
@@ -399,11 +400,11 @@ jobs:
             '',
             '    nghttp2_info = nghttp2_version(0);',
             '    if (nghttp2_info) {',
-            '        if (nghttp2_info->name) {',
-            '            nghttp2_name = nghttp2_info->name;',
-            '        }',
             '        if (nghttp2_info->version_str) {',
             '            nghttp2_version = nghttp2_info->version_str;',
+            '        }',
+            '        if (nghttp2_info->proto_str) {',
+            '            nghttp2_proto = nghttp2_info->proto_str;',
             '        }',
             '    }',
             '',
@@ -417,8 +418,8 @@ jobs:
             '',
             '    ap_set_content_type(r, "text/plain");',
             '    ap_rprintf(r,',
-            '               "nghttp2_name=%s\nnghttp2_version=%s\nnghttp2_version_num=%d\nbrotli_encoder_version=%u\ncurl_version=%s\ncurl_version_num=%u\n",',
-            '               nghttp2_name,',
+            '               "nghttp2_proto=%s\nnghttp2_version=%s\nnghttp2_version_num=%d\nbrotli_encoder_version=%u\ncurl_version=%s\ncurl_version_num=%u\n",',
+            '               nghttp2_proto,',
             '               nghttp2_version,',
             '               NGHTTP2_VERSION_NUM,',
             '               (unsigned int) BrotliEncoderVersion(),',
@@ -576,7 +577,7 @@ jobs:
             if ($buildResults['sdk_extras'].Success) {
               $extrasResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-extras"
               $extrasResponse.Content | Set-Content -Path (Join-Path $logsDir 'sdk-extras.txt') -Encoding utf8
-              Assert-True -Condition ($extrasResponse.Content -match 'nghttp2_name=nghttp2') -Message 'nghttp2 name was not returned by Apache extras endpoint'
+              Assert-True -Condition ($extrasResponse.Content -match 'nghttp2_proto=h2') -Message 'nghttp2 protocol id was not returned by Apache extras endpoint'
               Assert-True -Condition ($extrasResponse.Content -match 'nghttp2_version=.+') -Message 'nghttp2 version string was not returned by Apache extras endpoint'
               Assert-True -Condition ($extrasResponse.Content -match 'nghttp2_version_num=\d+') -Message 'nghttp2 version was not returned by Apache extras endpoint'
               Assert-True -Condition ($extrasResponse.Content -match 'brotli_encoder_version=\d+') -Message 'brotli version was not returned by Apache extras endpoint'
