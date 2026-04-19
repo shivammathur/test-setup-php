@@ -88,6 +88,32 @@ jobs:
             throw "Timed out waiting for $Url"
           }
 
+          function Download-File {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $Url,
+              [Parameter(Mandatory = $true)]
+              [string] $Path
+            )
+
+            & curl.exe --fail --location --silent --show-error --output $Path $Url
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to download $Url"
+            }
+
+            if (-not (Test-Path $Path)) {
+              throw "Downloaded file is missing: $Path"
+            }
+
+            $fileInfo = Get-Item -Path $Path
+            if ($fileInfo.Length -lt 1MB) {
+              throw "Downloaded file was unexpectedly small ($($fileInfo.Length) bytes): $Url"
+            }
+
+            return $fileInfo.Length
+          }
+
           $source = $env:TEST_SOURCE
           $phpVersion = $env:TEST_PHP_VERSION
           $expectedVs = $env:TEST_VS
@@ -131,20 +157,25 @@ jobs:
             } else {
               $phpZip = Join-Path $workspace 'php-release.zip'
               $releaseUrl = "https://windows.php.net/downloads/releases/latest/php-$phpVersion-Win32-$expectedVs-$arch-latest.zip"
-              Invoke-WebRequest -Uri $releaseUrl -OutFile $phpZip
+              $phpReleaseSize = Download-File -Url $releaseUrl -Path $phpZip
             }
 
-            Set-Content -Path (Join-Path $logsDir 'selection.txt') -Value @(
+            $selection = @(
               "source=$source"
               "php_version=$phpVersion"
               "arch=$arch"
               "expected_vs=$expectedVs"
               "apache_url=$apacheUrl"
               "php_zip=$phpZip"
-            ) -Encoding ascii
+            )
+            if ($source -eq 'release') {
+              $selection += "php_zip_size=$phpReleaseSize"
+            }
+            Set-Content -Path (Join-Path $logsDir 'selection.txt') -Value $selection -Encoding ascii
 
             Write-Host "Checkpoint: download Apache"
-            Invoke-WebRequest -Uri $apacheUrl -OutFile $apacheZip -AllowInsecureRedirect
+            $apacheZipSize = Download-File -Url $apacheUrl -Path $apacheZip
+            Add-Content -Path (Join-Path $logsDir 'selection.txt') -Value "apache_zip_size=$apacheZipSize" -Encoding ascii
             Expand-Archive -Path $apacheZip -DestinationPath 'C:\' -Force
             Write-Host "Checkpoint: Apache extracted"
 
