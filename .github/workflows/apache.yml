@@ -133,6 +133,11 @@ jobs:
           $depsRoot = Join-Path $env:GITHUB_WORKSPACE 'deps-install'
           $iconvConfigArch = if ('${{ matrix.arch }}' -eq 'x64') { 'x64' } else { 'Win32' }
           $pcreLibrary = Join-Path $sharedRoot '${{ steps.httpd_profile.outputs.pcre_lib_path }}'
+          $curlLibrary = if (Test-Path (Join-Path $sharedRoot 'lib\libcurl_imp.lib')) {
+              Join-Path $sharedRoot 'lib\libcurl_imp.lib'
+          } else {
+              Join-Path $sharedRoot 'lib\libcurl.lib'
+          }
 
           $apriconvSourceRoot = Join-Path $env:GITHUB_WORKSPACE 'apr-iconv-source'
           $apriconvOutputRoot = Join-Path $env:GITHUB_WORKSPACE 'apr-iconv-install'
@@ -151,6 +156,7 @@ jobs:
               (Join-Path $sharedRoot 'lib\libapr-1.lib'),
               (Join-Path $sharedRoot 'lib\libaprutil-1.lib'),
               $pcreLibrary,
+              $curlLibrary,
               (Join-Path $staticRoot 'lib'),
               $genTestChar
           )) {
@@ -225,6 +231,7 @@ jobs:
           "deps_root=$($depsRoot.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
           "static_root=$($staticRoot.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
           "apriconv_root=$($apriconvOutputRoot.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
+          "curl_library=$($curlLibrary.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
 
       - name: Configure apache/httpd
         run: |
@@ -243,6 +250,8 @@ jobs:
             -DNGHTTP2_LIBRARIES="${{ steps.deps.outputs.deps_root }}/lib/nghttp2.lib" ^
             -DBROTLI_INCLUDE_DIR="${{ steps.deps.outputs.deps_root }}/include" ^
             "-DBROTLI_LIBRARIES=${{ steps.deps.outputs.deps_root }}/lib/brotlienc.lib;${{ steps.deps.outputs.deps_root }}/lib/brotlicommon.lib" ^
+            -DCURL_INCLUDE_DIR="${{ steps.deps.outputs.deps_root }}/include" ^
+            -DCURL_LIBRARIES="${{ steps.deps.outputs.curl_library }}" ^
             -DJANSSON_INCLUDE_DIR="${{ steps.deps.outputs.deps_root }}/include" ^
             -DJANSSON_LIBRARIES="${{ steps.deps.outputs.deps_root }}/lib/jansson.lib" ^
             -DENABLE_MODULES=i ^
