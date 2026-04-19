@@ -1053,7 +1053,7 @@ jobs:
             $summaryLines += "| $($result.Suite) | $($result.Name) | $($result.Status) | $($result.Details) |"
           }
 
-          Write-Host "Test totals for $packageName: passed=$($stats.passed) failed=$($stats.failed) skipped=$($stats.skipped) total=$($stats.total)"
+          Write-Host "Test totals for ${packageName}: passed=$($stats.passed) failed=$($stats.failed) skipped=$($stats.skipped) total=$($stats.total)"
           $summaryLines -join "`n" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
           $testResults | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $logsDir 'test-results.json') -Encoding utf8
           $stats | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $logsDir 'test-stats.json') -Encoding utf8
