@@ -241,8 +241,8 @@ jobs:
             $apacheRootConfigPath = $apacheRoot -replace '\\', '/'
             $httpdConfig = Get-Content -Path $httpdConf -Raw
             $httpdConfig = $httpdConfig -replace '(?i)c:/Apache24', $apacheRootConfigPath
-            $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*Define SRVROOT\s+".+"$', "Define SRVROOT `"$apacheRootConfigPath`""
-            $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*ServerRoot\s+".+"$', "ServerRoot `"$apacheRootConfigPath`""
+            $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*Define SRVROOT.*$', "Define SRVROOT `"$apacheRootConfigPath`""
+            $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*ServerRoot.*$', "ServerRoot `"$apacheRootConfigPath`""
             $httpdConfig = $httpdConfig -replace '(?m)^Listen 80$', "Listen $port"
             $httpdConfig = $httpdConfig -replace '(?m)^#?ServerName .+$', "ServerName 127.0.0.1:$port"
             $httpdConfig = $httpdConfig -replace '(?m)^DirectoryIndex .+$', 'DirectoryIndex index.php index.html'
@@ -264,6 +264,11 @@ jobs:
             }
 
             Set-Content -Path $httpdConf -Value $httpdConfig -Encoding ascii
+            Set-Content -Path (Join-Path $logsDir 'httpd.conf') -Value $httpdConfig -Encoding ascii
+            ($httpdConfig -split "\r?\n" | Select-Object -First 60 | ForEach-Object -Begin { $lineNumber = 1 } -Process {
+              '{0:D3}: {1}' -f $lineNumber, $_
+              $lineNumber++
+            }) | Set-Content -Path (Join-Path $logsDir 'httpd-head.txt') -Encoding ascii
 
             Write-Host "Checkpoint: Apache config prepared"
             $configTest = & $httpdExe '-d' $apacheRoot '-f' $httpdConf '-t' 2>&1
