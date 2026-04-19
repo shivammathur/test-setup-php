@@ -234,8 +234,9 @@ jobs:
 
             $apacheRootConfigPath = $apacheRoot -replace '\\', '/'
             $httpdConfig = Get-Content -Path $httpdConf -Raw
-            $httpdConfig = $httpdConfig -replace '(?m)^Define SRVROOT ".+"$', "Define SRVROOT `"$apacheRootConfigPath`""
-            $httpdConfig = $httpdConfig -replace '(?m)^ServerRoot ".+"$', "ServerRoot `"$apacheRootConfigPath`""
+            $httpdConfig = $httpdConfig -replace '(?i)c:/Apache24', $apacheRootConfigPath
+            $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*Define SRVROOT\s+".+"$', "Define SRVROOT `"$apacheRootConfigPath`""
+            $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*ServerRoot\s+".+"$', "ServerRoot `"$apacheRootConfigPath`""
             $httpdConfig = $httpdConfig -replace '(?m)^Listen 80$', "Listen $port"
             $httpdConfig = $httpdConfig -replace '(?m)^#?ServerName .+$', "ServerName 127.0.0.1:$port"
             $httpdConfig = $httpdConfig -replace '(?m)^DirectoryIndex .+$', 'DirectoryIndex index.php index.html'
@@ -259,16 +260,16 @@ jobs:
             Set-Content -Path $httpdConf -Value $httpdConfig -Encoding ascii
 
             Write-Host "Checkpoint: Apache config prepared"
-            $configTest = & $httpdExe '-t' 2>&1
+            $configTest = & $httpdExe '-d' $apacheRoot '-f' $httpdConf '-t' 2>&1
             $configTest | Tee-Object -FilePath (Join-Path $logsDir 'httpd-configtest.txt')
             Assert-True -Condition ($LASTEXITCODE -eq 0) -Message 'Apache config test failed'
 
-            $moduleList = & $httpdExe '-M' 2>&1
+            $moduleList = & $httpdExe '-d' $apacheRoot '-f' $httpdConf '-M' 2>&1
             $moduleList | Tee-Object -FilePath (Join-Path $logsDir 'httpd-modules.txt')
             Assert-True -Condition ($LASTEXITCODE -eq 0) -Message 'Apache module list failed'
             Assert-True -Condition (($moduleList -join "`n") -match 'php_module \(shared\)') -Message 'php_module was not loaded by Apache'
 
-            $httpdProcess = Start-Process -FilePath $httpdExe -ArgumentList '-X' -WorkingDirectory (Join-Path $apacheRoot 'bin') -PassThru
+            $httpdProcess = Start-Process -FilePath $httpdExe -ArgumentList @('-d', $apacheRoot, '-f', $httpdConf, '-X') -WorkingDirectory (Join-Path $apacheRoot 'bin') -PassThru
             Write-Host "Checkpoint: Apache started"
 
             $getResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/health.php?name=world"
