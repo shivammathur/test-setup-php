@@ -284,17 +284,19 @@ jobs:
           $ErrorActionPreference = 'Stop'
 
           $installRoot = Join-Path $env:GITHUB_WORKSPACE 'apache-install'
-          $httpdSourceRoot = Join-Path $env:GITHUB_WORKSPACE 'httpd'
           $depsRoot = '${{ steps.deps.outputs.deps_root }}'
           $staticRoot = '${{ steps.deps.outputs.static_root }}'
           $apriconvRoot = '${{ steps.deps.outputs.apriconv_root }}'
           $packageRoot = Join-Path $env:GITHUB_WORKSPACE 'install'
+          $packageIncludeRoot = Join-Path $packageRoot 'include\apache2_4'
+          $packageLibRoot = Join-Path $packageRoot 'lib\apache2_4'
 
           if (Test-Path $packageRoot) {
               Remove-Item -Path $packageRoot -Recurse -Force
           }
 
-          New-Item -Path $packageRoot -ItemType Directory -Force | Out-Null
+          New-Item -Path $packageIncludeRoot -ItemType Directory -Force | Out-Null
+          New-Item -Path $packageLibRoot -ItemType Directory -Force | Out-Null
 
           function Copy-TreeContents {
               param (
@@ -312,108 +314,14 @@ jobs:
               }
           }
 
-          Copy-TreeContents -source $installRoot -destination $packageRoot
+          Copy-TreeContents -source (Join-Path $depsRoot 'include') -destination $packageIncludeRoot
+          Copy-TreeContents -source (Join-Path $apriconvRoot 'include') -destination $packageIncludeRoot
+          Copy-TreeContents -source (Join-Path $installRoot 'include') -destination $packageIncludeRoot
 
-          Get-ChildItem -Path $httpdSourceRoot -File | Where-Object {
-              $_.Name -cmatch '^[A-Z][A-Z0-9._-]*$'
-          } | ForEach-Object {
-              $destinationName = if ($_.Extension) { $_.Name } else { "$($_.Name).txt" }
-              Copy-Item -Path $_.FullName -Destination (Join-Path $packageRoot $destinationName) -Force
-          }
+          Copy-TreeContents -source (Join-Path $depsRoot 'lib') -destination $packageLibRoot
+          Copy-TreeContents -source (Join-Path $apriconvRoot 'lib') -destination $packageLibRoot
+          Copy-TreeContents -source (Join-Path $installRoot 'lib') -destination $packageLibRoot
 
-          Copy-TreeContents -source (Join-Path $depsRoot 'include') -destination (Join-Path $packageRoot 'include\apache2_4')
-          Copy-TreeContents -source (Join-Path $depsRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
-          Copy-TreeContents -source (Join-Path $depsRoot 'bin') -destination (Join-Path $packageRoot 'bin')
-          Copy-TreeContents -source (Join-Path $depsRoot 'share') -destination (Join-Path $packageRoot 'share')
-          Copy-TreeContents -source (Join-Path $apriconvRoot 'include') -destination (Join-Path $packageRoot 'include\apache2_4')
-          Copy-TreeContents -source (Join-Path $apriconvRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
-          Copy-TreeContents -source (Join-Path $apriconvRoot 'bin') -destination (Join-Path $packageRoot 'bin')
-
-          Copy-TreeContents -source (Join-Path $installRoot 'include') -destination (Join-Path $packageRoot 'include\apache2_4')
-          Copy-TreeContents -source (Join-Path $installRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
-          Copy-TreeContents -source (Join-Path $installRoot 'bin') -destination (Join-Path $packageRoot 'bin')
-          Copy-TreeContents -source (Join-Path $installRoot 'modules') -destination (Join-Path $packageRoot 'modules')
-
-          $depsShareRoot = Join-Path $depsRoot 'share'
-          $packageCmakeRoot = Join-Path $packageRoot 'lib\cmake'
-          if (Test-Path $depsShareRoot) {
-              Get-ChildItem -Path $depsShareRoot -Directory | ForEach-Object {
-                  $shareDir = $_.FullName
-                  if (Get-ChildItem -Path $shareDir -Recurse -File -Filter *.cmake | Select-Object -First 1) {
-                      Copy-TreeContents -source $shareDir -destination (Join-Path $packageCmakeRoot $_.Name)
-                  }
-              }
-          }
-
-          $depsToolsRoot = Join-Path $depsRoot 'tools'
-          if (Test-Path $depsToolsRoot) {
-              Get-ChildItem -Path $depsToolsRoot -Directory | ForEach-Object {
-                  $toolRoot = $_.FullName
-
-                  Get-ChildItem -Path $toolRoot -File | Where-Object {
-                      $_.Extension -in @('.exe', '.dll', '.pl', '.ps1', '.bat', '.cmd', '.wsf') -or
-                      [String]::IsNullOrEmpty($_.Extension)
-                  } | ForEach-Object {
-                      Copy-Item -Path $_.FullName -Destination (Join-Path $packageRoot 'bin') -Force
-                  }
-
-                  Get-ChildItem -Path $toolRoot -File | Where-Object {
-                      $_.Name -like '*.cnf*'
-                  } | ForEach-Object {
-                      Copy-Item -Path $_.FullName -Destination (Join-Path $packageRoot 'conf') -Force
-                  }
-
-                  foreach ($layout in @(
-                      @{ Source = 'misc'; Destination = 'conf\misc' },
-                      @{ Source = 'engines-3'; Destination = 'lib\engines-3' },
-                      @{ Source = 'ossl-modules'; Destination = 'lib\ossl-modules' },
-                      @{ Source = 'lib\engines-3'; Destination = 'lib\engines-3' },
-                      @{ Source = 'lib\ossl-modules'; Destination = 'lib\ossl-modules' }
-                  )) {
-                      $sourcePath = Join-Path $toolRoot $layout.Source
-                      if (Test-Path $sourcePath) {
-                          Copy-TreeContents -source $sourcePath -destination (Join-Path $packageRoot $layout.Destination)
-                      }
-                  }
-              }
-          }
-          $cgiExamplesRoot = Join-Path $httpdSourceRoot 'docs\cgi-examples'
-          $packageCgiRoot = Join-Path $packageRoot 'cgi-bin'
-          if (Test-Path $cgiExamplesRoot) {
-              New-Item -Path $packageCgiRoot -ItemType Directory -Force | Out-Null
-              Get-ChildItem -Path $cgiExamplesRoot -File | ForEach-Object {
-                  Copy-Item -Path $_.FullName -Destination (Join-Path $packageCgiRoot $_.Name) -Force
-                  if (-not $_.Extension) {
-                      Copy-Item -Path $_.FullName -Destination (Join-Path $packageCgiRoot "$($_.Name).pl") -Force
-                  }
-              }
-          }
-
-          $supportRoot = Join-Path $httpdSourceRoot 'support'
-          $packageBinRoot = Join-Path $packageRoot 'bin'
-          if (Test-Path $supportRoot) {
-              Get-ChildItem -Path $supportRoot -File | ForEach-Object {
-                  $firstLine = Get-Content -Path $_.FullName -TotalCount 1 -ErrorAction SilentlyContinue
-                  $copyAsScript = $_.Name -like '*.pl.in' -or
-                      $_.Name -like '*.cgi.in' -or
-                      $_.Extension -in @('.pl', '.cgi') -or
-                      $firstLine -match '^#!.*perl'
-
-                  if ($copyAsScript) {
-                      if ($_.Name -like '*.pl.in' -or $_.Name -like '*.cgi.in') {
-                          $destinationName = $_.BaseName
-                      } elseif ($_.Extension -eq '.in') {
-                          $destinationName = "$($_.BaseName).pl"
-                      } else {
-                          $destinationName = $_.Name
-                      }
-
-                      Copy-Item -Path $_.FullName -Destination (Join-Path $packageBinRoot $destinationName) -Force
-                  }
-              }
-          }
-
-          $packageLibRoot = Join-Path $packageRoot 'lib\apache2_4'
           $staticLibRoot = Join-Path $staticRoot 'lib'
           if (Test-Path $staticLibRoot) {
               Get-ChildItem -Path $staticLibRoot -Filter *.lib -File | ForEach-Object {
@@ -459,14 +367,6 @@ jobs:
                   Copy-Item -Path $xmlCompatSource.FullName -Destination $xmlCompatTarget -Force
               }
           }
-
-          $manifest = Join-Path $packageRoot 'manifest.txt'
-          Get-ChildItem -Path $packageRoot -Recurse -File |
-              Sort-Object FullName |
-              ForEach-Object { $_.FullName.Substring($packageRoot.Length + 1) } |
-              Set-Content -Path $manifest
-
-          Get-Content -Path $manifest
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
