@@ -1,0 +1,265 @@
+name: Test Apache Handler
+run-name: Test Apache handler compatibility
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  APACHE_VERSION: "2.4.66"
+  APACHE_LOUNGE_BUILD: "251206"
+  APACHE_LOUNGE_TOOLSET: "VS17"
+  APACHE_PORT: "8080"
+
+jobs:
+  test-apachehandler:
+    name: ${{ matrix.source }} PHP ${{ matrix.php.version }} ${{ matrix.arch }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86]
+        source: [built, release]
+        php:
+          - version: "8.2"
+            vs: "vs16"
+            source_run_id: "24624728893"
+          - version: "8.3"
+            vs: "vs16"
+            source_run_id: "24624728900"
+          - version: "8.4"
+            vs: "vs17"
+            source_run_id: "24624728891"
+          - version: "8.5"
+            vs: "vs17"
+            source_run_id: "24624728959"
+
+    steps:
+      - name: Download built PHP artifacts
+        if: matrix.source == 'built'
+        uses: actions/download-artifact@v8
+        with:
+          name: artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.php.source_run_id }}
+          path: external/source-artifacts
+
+      - name: Run Apache handler validation
+        shell: pwsh
+        env:
+          TEST_SOURCE: ${{ matrix.source }}
+          TEST_PHP_VERSION: ${{ matrix.php.version }}
+          TEST_VS: ${{ matrix.php.vs }}
+          TEST_ARCH: ${{ matrix.arch }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Assert-True {
+            param(
+              [bool] $Condition,
+              [string] $Message
+            )
+
+            if (-not $Condition) {
+              throw $Message
+            }
+          }
+
+          function Wait-ForUrl {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $Url,
+              [int] $Retries = 30
+            )
+
+            for ($attempt = 1; $attempt -le $Retries; $attempt++) {
+              try {
+                return Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 5
+              } catch {
+                Start-Sleep -Seconds 1
+              }
+            }
+
+            throw "Timed out waiting for $Url"
+          }
+
+          $source = $env:TEST_SOURCE
+          $phpVersion = $env:TEST_PHP_VERSION
+          $expectedVs = $env:TEST_VS
+          $arch = $env:TEST_ARCH
+          $port = [int] $env:APACHE_PORT
+          $apacheArch = if ($arch -eq 'x64') { 'Win64' } else { 'Win32' }
+          $workspace = Join-Path $env:RUNNER_TEMP "apachehandler-$source-$phpVersion-$arch"
+          $logsDir = Join-Path $workspace 'logs'
+          $siteDir = 'C:\Apache24\htdocs'
+          $apacheRoot = 'C:\Apache24'
+          $phpRoot = 'C:\php'
+          $httpdExe = Join-Path $apacheRoot 'bin\httpd.exe'
+          $httpdConf = Join-Path $apacheRoot 'conf\httpd.conf'
+          $apacheUrl = "https://www.apachelounge.com/download/VS17/binaries/httpd-$($env:APACHE_VERSION)-$($env:APACHE_LOUNGE_BUILD)-$apacheArch-$($env:APACHE_LOUNGE_TOOLSET).zip"
+          $apacheZip = Join-Path $workspace 'apache.zip'
+          $phpZip = $null
+          $httpdProcess = $null
+
+          New-Item -ItemType Directory -Force -Path $logsDir | Out-Null
+          Remove-Item $apacheRoot -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item $phpRoot -Recurse -Force -ErrorAction SilentlyContinue
+
+          Invoke-WebRequest -Uri $apacheUrl -OutFile $apacheZip
+          Expand-Archive -Path $apacheZip -DestinationPath 'C:\' -Force
+
+          if ($source -eq 'built') {
+            $artifactDir = Join-Path $env:GITHUB_WORKSPACE 'external\source-artifacts'
+            $phpZip = Get-ChildItem -Path $artifactDir -Filter 'php-*.zip' -File |
+              Where-Object {
+                $_.Name -match "^php-.+-Win32-v[sc]\d+-$arch\.zip$" -and
+                $_.Name -match "-$expectedVs-$arch\.zip$" -and
+                $_.Name -notmatch '-nts-' -and
+                $_.Name -notmatch '^php-(debug-pack|devel-pack|test-pack|src)'
+              } |
+              Sort-Object Name |
+              Select-Object -First 1
+
+            if ($null -eq $phpZip) {
+              throw "Unable to find a thread-safe $arch PHP package in $artifactDir"
+            }
+
+            $phpZip = $phpZip.FullName
+          } else {
+            $phpZip = Join-Path $workspace 'php-release.zip'
+            $releaseUrl = "https://windows.php.net/downloads/releases/latest/php-$phpVersion-Win32-$expectedVs-$arch-latest.zip"
+            Invoke-WebRequest -Uri $releaseUrl -OutFile $phpZip
+          }
+
+          Expand-Archive -Path $phpZip -DestinationPath $phpRoot -Force
+
+          $phpIni = @(
+            '[PHP]'
+            'display_errors=On'
+            'error_reporting=E_ALL'
+            'log_errors=On'
+            'date.timezone=UTC'
+            'extension_dir="C:/php/ext"'
+            'error_log="C:/Apache24/logs/php-errors.log"'
+          ) -join "`r`n"
+          Set-Content -Path (Join-Path $phpRoot 'php.ini') -Value $phpIni -Encoding ascii
+
+          $healthScript = @'
+          <?php
+          header('Content-Type: application/json');
+          header('X-PHP-Apache-Test: ok');
+          $modules = function_exists('apache_get_modules') ? apache_get_modules() : [];
+          echo json_encode([
+              'php_version' => PHP_VERSION,
+              'php_major_minor' => PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION,
+              'sapi' => PHP_SAPI,
+              'apache_version' => function_exists('apache_get_version') ? apache_get_version() : null,
+              'php_module_loaded' => in_array('php_module', $modules, true),
+              'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? null,
+              'request_method' => $_SERVER['REQUEST_METHOD'] ?? null,
+              'query_name' => $_GET['name'] ?? null,
+              'post_name' => $_POST['name'] ?? null,
+          ], JSON_THROW_ON_ERROR);
+          '@
+          Set-Content -Path (Join-Path $siteDir 'health.php') -Value $healthScript -Encoding ascii
+          Set-Content -Path (Join-Path $siteDir 'static.txt') -Value 'apache static ok' -Encoding ascii
+
+          $httpdConfig = Get-Content -Path $httpdConf -Raw
+          $httpdConfig = $httpdConfig -replace '(?m)^Listen 80$', "Listen $port"
+          $httpdConfig = $httpdConfig -replace '(?m)^#?ServerName .+$', "ServerName 127.0.0.1:$port"
+          $httpdConfig = $httpdConfig -replace '(?m)^DirectoryIndex .+$', 'DirectoryIndex index.php index.html'
+
+          if ($httpdConfig -notmatch '(?m)^LoadFile "c:/php/php8ts\.dll"$') {
+            $httpdConfig += "`r`nLoadFile `"c:/php/php8ts.dll`""
+          }
+
+          if ($httpdConfig -notmatch '(?m)^LoadModule php_module "c:/php/php8apache2_4\.dll"$') {
+            $httpdConfig += "`r`nLoadModule php_module `"c:/php/php8apache2_4.dll`""
+          }
+
+          if ($httpdConfig -notmatch '(?m)^PHPIniDir "C:/php"$') {
+            $httpdConfig += "`r`nPHPIniDir `"C:/php`""
+          }
+
+          if ($httpdConfig -notmatch '(?m)^AddType application/x-httpd-php \.php$') {
+            $httpdConfig += "`r`nAddType application/x-httpd-php .php"
+          }
+
+          Set-Content -Path $httpdConf -Value $httpdConfig -Encoding ascii
+
+          try {
+            $configTest = & $httpdExe '-t' 2>&1
+            $configTest | Set-Content -Path (Join-Path $logsDir 'httpd-configtest.txt') -Encoding utf8
+            Assert-True ($LASTEXITCODE -eq 0) 'Apache config test failed'
+
+            $moduleList = & $httpdExe '-M' 2>&1
+            $moduleList | Set-Content -Path (Join-Path $logsDir 'httpd-modules.txt') -Encoding utf8
+            Assert-True ($LASTEXITCODE -eq 0) 'Apache module list failed'
+            Assert-True (($moduleList -join "`n") -match 'php_module \(shared\)') 'php_module was not loaded by Apache'
+
+            $httpdProcess = Start-Process -FilePath $httpdExe -ArgumentList '-X' -WorkingDirectory (Join-Path $apacheRoot 'bin') -PassThru
+
+            $getResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/health.php?name=world"
+            $getResponse.Content | Set-Content -Path (Join-Path $logsDir 'health-get.json') -Encoding utf8
+            Assert-True ($getResponse.StatusCode -eq 200) 'GET request did not return HTTP 200'
+            Assert-True ($getResponse.Headers['X-PHP-Apache-Test'] -eq 'ok') 'Expected Apache handler response header was missing'
+
+            $getPayload = $getResponse.Content | ConvertFrom-Json
+            Assert-True ($getPayload.sapi -eq 'apache2handler') "Unexpected SAPI: $($getPayload.sapi)"
+            Assert-True ($getPayload.php_major_minor -eq $phpVersion) "Unexpected PHP version: $($getPayload.php_major_minor)"
+            Assert-True ($getPayload.php_module_loaded) 'apache_get_modules() did not report php_module'
+            Assert-True ($getPayload.apache_version -like "Apache/$($env:APACHE_VERSION)*") "Unexpected Apache version: $($getPayload.apache_version)"
+            Assert-True ($getPayload.server_software -like "Apache/$($env:APACHE_VERSION)*") "Unexpected server software: $($getPayload.server_software)"
+            Assert-True ($getPayload.query_name -eq 'world') 'Query string did not round-trip through Apache'
+
+            $postResponse = Invoke-WebRequest -Uri "http://127.0.0.1:$port/health.php?name=world" -Method Post -Body @{ name = 'apache' } -UseBasicParsing
+            $postResponse.Content | Set-Content -Path (Join-Path $logsDir 'health-post.json') -Encoding utf8
+            Assert-True ($postResponse.StatusCode -eq 200) 'POST request did not return HTTP 200'
+
+            $postPayload = $postResponse.Content | ConvertFrom-Json
+            Assert-True ($postPayload.request_method -eq 'POST') "Unexpected request method: $($postPayload.request_method)"
+            Assert-True ($postPayload.post_name -eq 'apache') 'POST body did not round-trip through Apache'
+
+            $staticResponse = Invoke-WebRequest -Uri "http://127.0.0.1:$port/static.txt" -UseBasicParsing
+            $staticResponse.Content | Set-Content -Path (Join-Path $logsDir 'static.txt') -Encoding utf8
+            Assert-True ($staticResponse.Content.Trim() -eq 'apache static ok') 'Static content was not served correctly'
+
+            $errorLog = Join-Path $apacheRoot 'logs\error.log'
+            if (Test-Path $errorLog) {
+              Copy-Item $errorLog (Join-Path $logsDir 'error.log') -Force
+              $errorLogContent = Get-Content -Path $errorLog -Raw
+              Assert-True ($errorLogContent -notmatch 'PHP Fatal|Syntax error|Cannot load|error while loading') 'Apache error log contains a startup or runtime failure'
+            }
+
+            $phpErrorLog = Join-Path $apacheRoot 'logs\php-errors.log'
+            if (Test-Path $phpErrorLog) {
+              Copy-Item $phpErrorLog (Join-Path $logsDir 'php-errors.log') -Force
+              $phpErrorContent = Get-Content -Path $phpErrorLog -Raw
+              Assert-True ($phpErrorContent -notmatch 'Fatal error|Parse error') 'PHP error log contains a fatal or parse error'
+            }
+
+            Set-Content -Path (Join-Path $logsDir 'selection.txt') -Value @(
+              "source=$source"
+              "php_version=$phpVersion"
+              "arch=$arch"
+              "expected_vs=$expectedVs"
+              "apache_url=$apacheUrl"
+              "php_zip=$phpZip"
+            ) -Encoding ascii
+          } finally {
+            if ($null -ne $httpdProcess -and -not $httpdProcess.HasExited) {
+              Stop-Process -Id $httpdProcess.Id -Force -ErrorAction SilentlyContinue
+            }
+          }
+
+      - name: Upload validation logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: apachehandler-${{ matrix.source }}-php${{ matrix.php.version }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/apachehandler-${{ matrix.source }}-${{ matrix.php.version }}-${{ matrix.arch }}/logs
