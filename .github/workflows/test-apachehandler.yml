@@ -990,7 +990,7 @@ jobs:
               }
 
               $formResponse = Invoke-TestAction -Suite 'php-runtime' -Name 'POST form data to /echo.php' -Action {
-                $response = Invoke-WebRequestWithRetry -Uri "http://127.0.0.1:$port/echo.php?name=form" -Method Post -Body @{ name = 'apache-form' } -Headers $customHeaders
+                $response = Invoke-WebRequestWithRetry -Uri "http://127.0.0.1:$port/echo.php?name=form" -Method Post -Body 'name=apache-form' -ContentType 'application/x-www-form-urlencoded' -Headers $customHeaders
                 $response.Content | Set-Content -Path (Join-Path $logsDir 'echo-form.json') -Encoding utf8
                 return $response
               }
