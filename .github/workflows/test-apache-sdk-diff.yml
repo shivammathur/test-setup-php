@@ -179,6 +179,7 @@ jobs:
           }
 
           $packageKey = $env:TEST_PACKAGE_KEY
+          $packageName = if ($packageKey -eq 'ours') { 'New winlibs Apache' } else { 'Current php-sdk Apache' }
           $workspace = Join-Path $env:RUNNER_TEMP "apache-sdk-delta-$packageKey"
           $logsDir = Join-Path $workspace 'logs'
           $buildDir = Join-Path $workspace 'build'
@@ -238,9 +239,117 @@ jobs:
           $sslCert = Join-Path $apacheRoot 'conf\server.crt'
           $sslKey = Join-Path $apacheRoot 'conf\server.key'
           $apacheHtdocs = Join-Path $apacheRoot 'htdocs'
-          $results = New-Object System.Collections.Generic.List[object]
+          $testResults = New-Object System.Collections.Generic.List[object]
           $mismatches = New-Object System.Collections.Generic.List[string]
           $httpdProcess = $null
+
+          function Add-TestResult {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $Suite,
+              [Parameter(Mandatory = $true)]
+              [string] $Name,
+              [Parameter(Mandatory = $true)]
+              [string] $Status,
+              [string] $Details = ''
+            )
+
+            $script:testResults.Add([pscustomobject]@{
+              PackageKey = $script:packageKey
+              PackageName = $script:packageName
+              Suite = $Suite
+              Name = $Name
+              Status = $Status
+              Details = $Details
+            }) | Out-Null
+
+            $statusLabel = switch ($Status) {
+              'passed' { 'PASS' }
+              'failed' { 'FAIL' }
+              'skipped' { 'SKIP' }
+              default { $Status.ToUpperInvariant() }
+            }
+
+            if ([string]::IsNullOrWhiteSpace($Details)) {
+              Write-Host "[$statusLabel] $Suite :: $Name"
+            } else {
+              Write-Host "[$statusLabel] $Suite :: $Name :: $Details"
+            }
+          }
+
+          function Assert-Test {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $Suite,
+              [Parameter(Mandatory = $true)]
+              [string] $Name,
+              [Parameter(Mandatory = $true)]
+              [bool] $Condition,
+              [Parameter(Mandatory = $true)]
+              [string] $Message,
+              [string] $SuccessDetails = '',
+              [string] $FailureDetails = ''
+            )
+
+            if ($Condition) {
+              Add-TestResult -Suite $Suite -Name $Name -Status 'passed' -Details $SuccessDetails
+              return
+            }
+
+            $details = if ([string]::IsNullOrWhiteSpace($FailureDetails)) { $Message } else { $FailureDetails }
+            Add-TestResult -Suite $Suite -Name $Name -Status 'failed' -Details $details
+            $script:mismatches.Add($Message) | Out-Null
+          }
+
+          function Add-SkippedTest {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $Suite,
+              [Parameter(Mandatory = $true)]
+              [string] $Name,
+              [string] $Reason = ''
+            )
+
+            Add-TestResult -Suite $Suite -Name $Name -Status 'skipped' -Details $Reason
+          }
+
+          function Invoke-TestAction {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string] $Suite,
+              [Parameter(Mandatory = $true)]
+              [string] $Name,
+              [Parameter(Mandatory = $true)]
+              [scriptblock] $Action,
+              [string] $SuccessDetails = ''
+            )
+
+            try {
+              $result = & $Action
+              Add-TestResult -Suite $Suite -Name $Name -Status 'passed' -Details $SuccessDetails
+              return $result
+            } catch {
+              Add-TestResult -Suite $Suite -Name $Name -Status 'failed' -Details $_.Exception.Message
+              $script:mismatches.Add("$Name failed: $($_.Exception.Message)") | Out-Null
+              return $null
+            }
+          }
+
+          function Get-TestStats {
+            param(
+              [Parameter(Mandatory = $true)]
+              [object[]] $Results
+            )
+
+            [pscustomobject]@{
+              package_key = $script:packageKey
+              package_name = $script:packageName
+              total = @($Results).Count
+              passed = @($Results | Where-Object Status -eq 'passed').Count
+              failed = @($Results | Where-Object Status -eq 'failed').Count
+              skipped = @($Results | Where-Object Status -eq 'skipped').Count
+            }
+          }
 
           Assert-True -Condition (Test-Path $opensslExe) -Message "Apache Lounge openssl.exe is missing: $opensslExe"
 
@@ -280,17 +389,7 @@ jobs:
           foreach ($headerCheck in $headerChecks) {
             $actual = Test-Path (Join-Path $includeRoot $headerCheck.Path)
             $expected = [bool] $headerCheck.Expected[$packageKey]
-
-            $results.Add([pscustomobject]@{
-              Kind = 'header'
-              Name = $headerCheck.Name
-              Expected = $expected
-              Actual = $actual
-            }) | Out-Null
-
-            if ($actual -ne $expected) {
-              $mismatches.Add("Header $($headerCheck.Name) expected $expected but got $actual") | Out-Null
-            }
+            Assert-Test -Suite 'package-surface' -Name "header::$($headerCheck.Name)" -Condition ($actual -eq $expected) -Message "Header $($headerCheck.Name) expected $expected but got $actual" -SuccessDetails "expected=$expected actual=$actual" -FailureDetails "expected=$expected actual=$actual"
           }
 
           $libraryChecks = @(
@@ -311,17 +410,8 @@ jobs:
             }
 
             $expected = [bool] $libraryCheck.Expected[$packageKey]
-            $results.Add([pscustomobject]@{
-              Kind = 'library'
-              Name = $libraryCheck.Name
-              Expected = $expected
-              Actual = $found
-              Details = ($details -join ', ')
-            }) | Out-Null
-
-            if ($found -ne $expected) {
-              $mismatches.Add("Library set $($libraryCheck.Name) expected $expected but got $found") | Out-Null
-            }
+            $detailText = $details -join ', '
+            Assert-Test -Suite 'package-surface' -Name "library::$($libraryCheck.Name)" -Condition ($found -eq $expected) -Message "Library set $($libraryCheck.Name) expected $expected but got $found" -SuccessDetails $detailText -FailureDetails $detailText
           }
 
           $curlLibrary = Resolve-LibraryName -LibRoot $libRoot -Candidates @('libcurl_imp.lib', 'libcurl.lib', 'curl.lib')
@@ -645,17 +735,7 @@ jobs:
               Copy-Item -Path $buildResult.LogPath -Destination (Join-Path $logsDir "$($moduleBuild.Name).build.log") -Force
             }
             $expected = [bool] $moduleBuild.Expected[$packageKey]
-
-            $results.Add([pscustomobject]@{
-              Kind = 'module-build'
-              Name = $moduleBuild.Name
-              Expected = $expected
-              Actual = $buildResult.Success
-            }) | Out-Null
-
-            if ($buildResult.Success -ne $expected) {
-              $mismatches.Add("Module build $($moduleBuild.Name) expected $expected but got $($buildResult.Success)") | Out-Null
-            }
+            Assert-Test -Suite 'module-build' -Name $moduleBuild.Name -Condition ($buildResult.Success -eq $expected) -Message "Module build $($moduleBuild.Name) expected $expected but got $($buildResult.Success)" -SuccessDetails "expected=$expected actual=$($buildResult.Success)" -FailureDetails "expected=$expected actual=$($buildResult.Success)"
           }
 
           Assert-True -Condition $buildResults['sdk_baseline'].Success -Message 'Baseline Apache module did not build'
@@ -734,76 +814,222 @@ jobs:
           }) | Set-Content -Path (Join-Path $logsDir 'httpd-head.txt') -Encoding ascii
 
           try {
-            $configTest = & $httpdExe '-d' $apacheRoot '-f' $httpdConf '-t' 2>&1
-            $configTest | Set-Content -Path (Join-Path $logsDir 'httpd-configtest.txt') -Encoding utf8
-            Assert-True -Condition ($LASTEXITCODE -eq 0) -Message 'Apache config test failed'
-            $global:LASTEXITCODE = 0
+            $configTest = Invoke-TestAction -Suite 'apache-runtime' -Name 'httpd config test' -Action {
+              $configOutput = & $httpdExe '-d' $apacheRoot '-f' $httpdConf '-t' 2>&1
+              $configOutput | Set-Content -Path (Join-Path $logsDir 'httpd-configtest.txt') -Encoding utf8
+              if ($LASTEXITCODE -ne 0) {
+                $global:LASTEXITCODE = 0
+                throw 'Apache config test failed'
+              }
 
-            $moduleList = & $httpdExe '-d' $apacheRoot '-f' $httpdConf '-M' 2>&1
-            $moduleList | Set-Content -Path (Join-Path $logsDir 'httpd-modules.txt') -Encoding utf8
-            Assert-True -Condition ($LASTEXITCODE -eq 0) -Message 'Apache module list failed'
-            $global:LASTEXITCODE = 0
-
-            Assert-True -Condition (($moduleList -join "`n") -match 'sdk_baseline_module \(shared\)') -Message 'Baseline module was not loaded by Apache'
-
-            if ($buildResults['sdk_httpssl'].Success) {
-              Assert-True -Condition (($moduleList -join "`n") -match 'sdk_httpssl_module \(shared\)') -Message 'SSL feature module was not loaded by Apache'
+              $global:LASTEXITCODE = 0
+              return $configOutput
             }
 
-            if ($buildResults['sdk_extras'].Success) {
-              Assert-True -Condition (($moduleList -join "`n") -match 'sdk_extras_module \(shared\)') -Message 'Extras feature module was not loaded by Apache'
-            }
+            $moduleList = $null
+            if ($null -ne $configTest) {
+              $moduleList = Invoke-TestAction -Suite 'apache-runtime' -Name 'httpd module list' -Action {
+                $moduleOutput = & $httpdExe '-d' $apacheRoot '-f' $httpdConf '-M' 2>&1
+                $moduleOutput | Set-Content -Path (Join-Path $logsDir 'httpd-modules.txt') -Encoding utf8
+                if ($LASTEXITCODE -ne 0) {
+                  $global:LASTEXITCODE = 0
+                  throw 'Apache module list failed'
+                }
 
-            $httpdProcess = Start-Process -FilePath $httpdExe -ArgumentList @('-d', $apacheRoot, '-f', $httpdConf, '-X') -WorkingDirectory (Join-Path $apacheRoot 'bin') -PassThru
-
-            $baselineResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-baseline"
-            $baselineResponse.Content | Set-Content -Path (Join-Path $logsDir 'baseline.txt') -Encoding utf8
-            Assert-True -Condition ($baselineResponse.Content.Trim() -eq 'sdk_baseline_ok') -Message 'Baseline Apache endpoint returned unexpected output'
-
-            if ($buildResults['sdk_httpssl'].Success) {
-              $sslResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-http-ssl"
-              $sslResponse.Content | Set-Content -Path (Join-Path $logsDir 'sdk-http-ssl.txt') -Encoding utf8
-              Assert-True -Condition ($sslResponse.Content -match 'ssl_conn_is_ssl=0') -Message 'HTTP SSL Apache endpoint did not report a non-SSL connection'
-              Assert-True -Condition ($sslResponse.Content -match '(?m)^ssl_protocol=(none)?$') -Message 'HTTP SSL Apache endpoint reported an unexpected protocol value for plain HTTP'
-
-              $sslSecureResponse = Wait-ForUrl -Url "https://127.0.0.1:$sslPort/sdk-http-ssl" -SkipCertificateCheck
-              $sslSecureResponse.Content | Set-Content -Path (Join-Path $logsDir 'sdk-http-ssl-https.txt') -Encoding utf8
-              Assert-True -Condition ($sslSecureResponse.Content -match 'ssl_conn_is_ssl=1') -Message 'HTTPS SSL Apache endpoint did not report an encrypted connection'
-              Assert-True -Condition ($sslSecureResponse.Content -match 'ssl_protocol=TLS') -Message 'HTTPS SSL Apache endpoint did not report a TLS protocol'
+                $global:LASTEXITCODE = 0
+                return $moduleOutput
+              }
             } else {
-              $sslMissingResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-http-ssl" -ExpectedStatusCode 404
-              $sslMissingResponse.Content | Set-Content -Path (Join-Path $logsDir 'sdk-http-ssl-missing.txt') -Encoding utf8
-
-              $sslMissingSecureResponse = Wait-ForUrl -Url "https://127.0.0.1:$sslPort/sdk-http-ssl" -ExpectedStatusCode 404 -SkipCertificateCheck
-              $sslMissingSecureResponse.Content | Set-Content -Path (Join-Path $logsDir 'sdk-http-ssl-https-missing.txt') -Encoding utf8
+              Add-SkippedTest -Suite 'apache-runtime' -Name 'httpd module list' -Reason 'Skipped because the config test failed'
             }
 
-            if ($buildResults['sdk_extras'].Success) {
-              $extrasResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-extras?name=world"
-              $extrasResponse.Content | Set-Content -Path (Join-Path $logsDir 'sdk-extras.txt') -Encoding utf8
-              Assert-True -Condition ($extrasResponse.Content -match '(?m)^name=world$') -Message 'Apache extras endpoint did not echo the expected query argument'
-              Assert-True -Condition ($extrasResponse.Content -match '(?m)^nghttp2_proto=h2$') -Message 'Apache extras endpoint did not report the nghttp2 protocol id'
-              Assert-True -Condition ($extrasResponse.Content -match '(?m)^nghttp2_version=.+$') -Message 'Apache extras endpoint did not report the nghttp2 version string'
-              Assert-True -Condition ($extrasResponse.Content -match '(?m)^nghttp2_version_num=[1-9]\d*$') -Message 'Apache extras endpoint did not report the nghttp2 version number'
-              Assert-True -Condition ($extrasResponse.Content -match '(?m)^brotli_ok=1$') -Message 'Apache extras endpoint did not report successful Brotli compression'
-              Assert-True -Condition ($extrasResponse.Content -match '(?m)^brotli_encoder_version=[1-9]\d*$') -Message 'Apache extras endpoint did not report the Brotli encoder version'
-              Assert-True -Condition ($extrasResponse.Content -match '(?m)^brotli_size=[1-9]\d*$') -Message 'Apache extras endpoint did not report a compressed Brotli payload size'
-              Assert-True -Condition ($extrasResponse.Content -match '(?m)^curl_status=ok$') -Message 'Apache extras endpoint did not complete the libcurl HTTPS request'
-              Assert-True -Condition ($extrasResponse.Content -match '(?m)^curl_http_code=200$') -Message 'Apache extras endpoint did not receive an HTTP 200 from the HTTPS probe'
-              Assert-True -Condition ($extrasResponse.Content -match '(?m)^curl_body_has_ssl=1$') -Message 'Apache extras endpoint did not observe SSL state in the HTTPS probe body'
-              Assert-True -Condition ($extrasResponse.Content -match '(?m)^curl_body_has_tls=1$') -Message 'Apache extras endpoint did not observe TLS protocol details in the HTTPS probe body'
-              Assert-True -Condition ($extrasResponse.Content -match '(?m)^curl_version=.+$') -Message 'Apache extras endpoint did not report the curl version string'
-              Assert-True -Condition ($extrasResponse.Content -match '(?m)^curl_version_num=[1-9]\d*$') -Message 'Apache extras endpoint did not report the curl version number'
+            if ($null -ne $moduleList) {
+              $moduleListText = $moduleList -join "`n"
+              Assert-Test -Suite 'apache-runtime' -Name 'baseline module loaded' -Condition ($moduleListText -match 'sdk_baseline_module \(shared\)') -Message 'Baseline module was not loaded by Apache'
+
+              if ($buildResults['sdk_httpssl'].Success) {
+                Assert-Test -Suite 'apache-runtime' -Name 'ssl module loaded' -Condition ($moduleListText -match 'sdk_httpssl_module \(shared\)') -Message 'SSL feature module was not loaded by Apache'
+              } else {
+                Add-SkippedTest -Suite 'apache-runtime' -Name 'ssl module loaded' -Reason 'Skipped because the SSL feature module was not expected to build'
+              }
+
+              if ($buildResults['sdk_extras'].Success) {
+                Assert-Test -Suite 'apache-runtime' -Name 'extras module loaded' -Condition ($moduleListText -match 'sdk_extras_module \(shared\)') -Message 'Extras feature module was not loaded by Apache'
+              } else {
+                Add-SkippedTest -Suite 'apache-runtime' -Name 'extras module loaded' -Reason 'Skipped because the extras feature module was not expected to build'
+              }
+
+              $httpdProcess = Invoke-TestAction -Suite 'apache-runtime' -Name 'httpd process starts' -Action {
+                $process = Start-Process -FilePath $httpdExe -ArgumentList @('-d', $apacheRoot, '-f', $httpdConf, '-X') -WorkingDirectory (Join-Path $apacheRoot 'bin') -PassThru
+                if ($null -eq $process) {
+                  throw 'Apache process did not start'
+                }
+
+                return $process
+              }
             } else {
-              $extrasMissingResponse = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-extras?name=world" -ExpectedStatusCode 404
-              $extrasMissingResponse.Content | Set-Content -Path (Join-Path $logsDir 'sdk-extras-missing.txt') -Encoding utf8
+              Add-SkippedTest -Suite 'apache-runtime' -Name 'baseline module loaded' -Reason 'Skipped because the module list did not run'
+              Add-SkippedTest -Suite 'apache-runtime' -Name 'ssl module loaded' -Reason 'Skipped because the module list did not run'
+              Add-SkippedTest -Suite 'apache-runtime' -Name 'extras module loaded' -Reason 'Skipped because the module list did not run'
+              Add-SkippedTest -Suite 'apache-runtime' -Name 'httpd process starts' -Reason 'Skipped because the module list did not run'
+            }
+
+            if ($null -ne $httpdProcess) {
+              $baselineResponse = Invoke-TestAction -Suite 'endpoint' -Name 'GET /sdk-baseline' -Action {
+                $response = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-baseline"
+                $response.Content | Set-Content -Path (Join-Path $logsDir 'baseline.txt') -Encoding utf8
+                return $response
+              }
+
+              if ($null -ne $baselineResponse) {
+                Assert-Test -Suite 'endpoint' -Name 'baseline payload' -Condition ($baselineResponse.Content.Trim() -eq 'sdk_baseline_ok') -Message 'Baseline Apache endpoint returned unexpected output'
+              } else {
+                Add-SkippedTest -Suite 'endpoint' -Name 'baseline payload' -Reason 'Skipped because the baseline request failed'
+              }
+
+              if ($buildResults['sdk_httpssl'].Success) {
+                $sslResponse = Invoke-TestAction -Suite 'endpoint' -Name 'GET /sdk-http-ssl over HTTP' -Action {
+                  $response = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-http-ssl"
+                  $response.Content | Set-Content -Path (Join-Path $logsDir 'sdk-http-ssl.txt') -Encoding utf8
+                  return $response
+                }
+
+                if ($null -ne $sslResponse) {
+                  Assert-Test -Suite 'endpoint' -Name 'http ssl reports plain transport' -Condition ($sslResponse.Content -match 'ssl_conn_is_ssl=0') -Message 'HTTP SSL Apache endpoint did not report a non-SSL connection'
+                  Assert-Test -Suite 'endpoint' -Name 'http ssl protocol field for plain transport' -Condition ($sslResponse.Content -match '(?m)^ssl_protocol=(none)?$') -Message 'HTTP SSL Apache endpoint reported an unexpected protocol value for plain HTTP'
+                } else {
+                  Add-SkippedTest -Suite 'endpoint' -Name 'http ssl reports plain transport' -Reason 'Skipped because the HTTP SSL request failed'
+                  Add-SkippedTest -Suite 'endpoint' -Name 'http ssl protocol field for plain transport' -Reason 'Skipped because the HTTP SSL request failed'
+                }
+
+                $sslSecureResponse = Invoke-TestAction -Suite 'endpoint' -Name 'GET /sdk-http-ssl over HTTPS' -Action {
+                  $response = Wait-ForUrl -Url "https://127.0.0.1:$sslPort/sdk-http-ssl" -SkipCertificateCheck
+                  $response.Content | Set-Content -Path (Join-Path $logsDir 'sdk-http-ssl-https.txt') -Encoding utf8
+                  return $response
+                }
+
+                if ($null -ne $sslSecureResponse) {
+                  Assert-Test -Suite 'endpoint' -Name 'https ssl reports encrypted transport' -Condition ($sslSecureResponse.Content -match 'ssl_conn_is_ssl=1') -Message 'HTTPS SSL Apache endpoint did not report an encrypted connection'
+                  Assert-Test -Suite 'endpoint' -Name 'https ssl reports tls protocol' -Condition ($sslSecureResponse.Content -match 'ssl_protocol=TLS') -Message 'HTTPS SSL Apache endpoint did not report a TLS protocol'
+                } else {
+                  Add-SkippedTest -Suite 'endpoint' -Name 'https ssl reports encrypted transport' -Reason 'Skipped because the HTTPS SSL request failed'
+                  Add-SkippedTest -Suite 'endpoint' -Name 'https ssl reports tls protocol' -Reason 'Skipped because the HTTPS SSL request failed'
+                }
+              } else {
+                $sslMissingResponse = Invoke-TestAction -Suite 'endpoint' -Name 'GET /sdk-http-ssl over HTTP returns 404' -Action {
+                  $response = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-http-ssl" -ExpectedStatusCode 404
+                  $response.Content | Set-Content -Path (Join-Path $logsDir 'sdk-http-ssl-missing.txt') -Encoding utf8
+                  return $response
+                }
+                $sslMissingSecureResponse = Invoke-TestAction -Suite 'endpoint' -Name 'GET /sdk-http-ssl over HTTPS returns 404' -Action {
+                  $response = Wait-ForUrl -Url "https://127.0.0.1:$sslPort/sdk-http-ssl" -ExpectedStatusCode 404 -SkipCertificateCheck
+                  $response.Content | Set-Content -Path (Join-Path $logsDir 'sdk-http-ssl-https-missing.txt') -Encoding utf8
+                  return $response
+                }
+              }
+
+              if ($buildResults['sdk_extras'].Success) {
+                $extrasResponse = Invoke-TestAction -Suite 'endpoint' -Name 'GET /sdk-extras' -Action {
+                  $response = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-extras?name=world"
+                  $response.Content | Set-Content -Path (Join-Path $logsDir 'sdk-extras.txt') -Encoding utf8
+                  return $response
+                }
+
+                if ($null -ne $extrasResponse) {
+                  Assert-Test -Suite 'endpoint' -Name 'extras echoes query argument' -Condition ($extrasResponse.Content -match '(?m)^name=world$') -Message 'Apache extras endpoint did not echo the expected query argument'
+                  Assert-Test -Suite 'endpoint' -Name 'extras reports nghttp2 protocol' -Condition ($extrasResponse.Content -match '(?m)^nghttp2_proto=h2$') -Message 'Apache extras endpoint did not report the nghttp2 protocol id'
+                  Assert-Test -Suite 'endpoint' -Name 'extras reports nghttp2 version string' -Condition ($extrasResponse.Content -match '(?m)^nghttp2_version=.+$') -Message 'Apache extras endpoint did not report the nghttp2 version string'
+                  Assert-Test -Suite 'endpoint' -Name 'extras reports nghttp2 version number' -Condition ($extrasResponse.Content -match '(?m)^nghttp2_version_num=[1-9]\d*$') -Message 'Apache extras endpoint did not report the nghttp2 version number'
+                  Assert-Test -Suite 'endpoint' -Name 'extras reports successful brotli compression' -Condition ($extrasResponse.Content -match '(?m)^brotli_ok=1$') -Message 'Apache extras endpoint did not report successful Brotli compression'
+                  Assert-Test -Suite 'endpoint' -Name 'extras reports brotli encoder version' -Condition ($extrasResponse.Content -match '(?m)^brotli_encoder_version=[1-9]\d*$') -Message 'Apache extras endpoint did not report the Brotli encoder version'
+                  Assert-Test -Suite 'endpoint' -Name 'extras reports brotli payload size' -Condition ($extrasResponse.Content -match '(?m)^brotli_size=[1-9]\d*$') -Message 'Apache extras endpoint did not report a compressed Brotli payload size'
+                  Assert-Test -Suite 'endpoint' -Name 'extras completes libcurl https request' -Condition ($extrasResponse.Content -match '(?m)^curl_status=ok$') -Message 'Apache extras endpoint did not complete the libcurl HTTPS request'
+                  Assert-Test -Suite 'endpoint' -Name 'extras gets http 200 from https probe' -Condition ($extrasResponse.Content -match '(?m)^curl_http_code=200$') -Message 'Apache extras endpoint did not receive an HTTP 200 from the HTTPS probe'
+                  Assert-Test -Suite 'endpoint' -Name 'extras sees ssl state in https probe body' -Condition ($extrasResponse.Content -match '(?m)^curl_body_has_ssl=1$') -Message 'Apache extras endpoint did not observe SSL state in the HTTPS probe body'
+                  Assert-Test -Suite 'endpoint' -Name 'extras sees tls state in https probe body' -Condition ($extrasResponse.Content -match '(?m)^curl_body_has_tls=1$') -Message 'Apache extras endpoint did not observe TLS protocol details in the HTTPS probe body'
+                  Assert-Test -Suite 'endpoint' -Name 'extras reports curl version string' -Condition ($extrasResponse.Content -match '(?m)^curl_version=.+$') -Message 'Apache extras endpoint did not report the curl version string'
+                  Assert-Test -Suite 'endpoint' -Name 'extras reports curl version number' -Condition ($extrasResponse.Content -match '(?m)^curl_version_num=[1-9]\d*$') -Message 'Apache extras endpoint did not report the curl version number'
+                } else {
+                  @(
+                    'extras echoes query argument',
+                    'extras reports nghttp2 protocol',
+                    'extras reports nghttp2 version string',
+                    'extras reports nghttp2 version number',
+                    'extras reports successful brotli compression',
+                    'extras reports brotli encoder version',
+                    'extras reports brotli payload size',
+                    'extras completes libcurl https request',
+                    'extras gets http 200 from https probe',
+                    'extras sees ssl state in https probe body',
+                    'extras sees tls state in https probe body',
+                    'extras reports curl version string',
+                    'extras reports curl version number'
+                  ) | ForEach-Object {
+                    Add-SkippedTest -Suite 'endpoint' -Name $_ -Reason 'Skipped because the extras request failed'
+                  }
+                }
+              } else {
+                [void] (Invoke-TestAction -Suite 'endpoint' -Name 'GET /sdk-extras returns 404' -Action {
+                  $response = Wait-ForUrl -Url "http://127.0.0.1:$port/sdk-extras?name=world" -ExpectedStatusCode 404
+                  $response.Content | Set-Content -Path (Join-Path $logsDir 'sdk-extras-missing.txt') -Encoding utf8
+                  return $response
+                })
+              }
+            } else {
+              Add-SkippedTest -Suite 'endpoint' -Name 'GET /sdk-baseline' -Reason 'Skipped because Apache did not start'
+              Add-SkippedTest -Suite 'endpoint' -Name 'baseline payload' -Reason 'Skipped because Apache did not start'
+
+              if ($buildResults['sdk_httpssl'].Success) {
+                @(
+                  'GET /sdk-http-ssl over HTTP',
+                  'http ssl reports plain transport',
+                  'http ssl protocol field for plain transport',
+                  'GET /sdk-http-ssl over HTTPS',
+                  'https ssl reports encrypted transport',
+                  'https ssl reports tls protocol'
+                ) | ForEach-Object {
+                  Add-SkippedTest -Suite 'endpoint' -Name $_ -Reason 'Skipped because Apache did not start'
+                }
+              } else {
+                @(
+                  'GET /sdk-http-ssl over HTTP returns 404',
+                  'GET /sdk-http-ssl over HTTPS returns 404'
+                ) | ForEach-Object {
+                  Add-SkippedTest -Suite 'endpoint' -Name $_ -Reason 'Skipped because Apache did not start'
+                }
+              }
+
+              if ($buildResults['sdk_extras'].Success) {
+                @(
+                  'GET /sdk-extras',
+                  'extras echoes query argument',
+                  'extras reports nghttp2 protocol',
+                  'extras reports nghttp2 version string',
+                  'extras reports nghttp2 version number',
+                  'extras reports successful brotli compression',
+                  'extras reports brotli encoder version',
+                  'extras reports brotli payload size',
+                  'extras completes libcurl https request',
+                  'extras gets http 200 from https probe',
+                  'extras sees ssl state in https probe body',
+                  'extras sees tls state in https probe body',
+                  'extras reports curl version string',
+                  'extras reports curl version number'
+                ) | ForEach-Object {
+                  Add-SkippedTest -Suite 'endpoint' -Name $_ -Reason 'Skipped because Apache did not start'
+                }
+              } else {
+                Add-SkippedTest -Suite 'endpoint' -Name 'GET /sdk-extras returns 404' -Reason 'Skipped because Apache did not start'
+              }
             }
 
             $errorLog = Join-Path $apacheRoot 'logs\error.log'
             if (Test-Path $errorLog) {
               Copy-Item -Path $errorLog -Destination (Join-Path $logsDir 'error.log') -Force
               $errorLogContent = Get-Content -Path $errorLog -Raw
-              Assert-True -Condition ($errorLogContent -notmatch 'Syntax error|Cannot load|error while loading|Fatal') -Message 'Apache error log contains a startup or runtime failure'
+              Assert-Test -Suite 'apache-runtime' -Name 'error log is clean' -Condition ($errorLogContent -notmatch 'Syntax error|Cannot load|error while loading|Fatal') -Message 'Apache error log contains a startup or runtime failure'
+            } else {
+              Add-SkippedTest -Suite 'apache-runtime' -Name 'error log is clean' -Reason 'Skipped because Apache did not create an error log'
             }
           } finally {
             if ($null -ne $httpdProcess -and -not $httpdProcess.HasExited) {
@@ -811,18 +1037,26 @@ jobs:
             }
           }
 
+          $stats = Get-TestStats -Results $testResults
           $summaryLines = @(
-            '| Kind | Name | Expected | Actual | Details |',
-            '| --- | --- | --- | --- | --- |'
+            "## $packageName",
+            '',
+            "| Passed | Failed | Skipped | Total |",
+            "| --- | --- | --- | --- |",
+            "| $($stats.passed) | $($stats.failed) | $($stats.skipped) | $($stats.total) |",
+            '',
+            '| Suite | Test | Status | Details |',
+            '| --- | --- | --- | --- |'
           )
 
-          foreach ($result in $results) {
-            $details = if ($null -ne $result.PSObject.Properties['Details']) { $result.Details } else { '' }
-            $summaryLines += "| $($result.Kind) | $($result.Name) | $($result.Expected) | $($result.Actual) | $details |"
+          foreach ($result in $testResults) {
+            $summaryLines += "| $($result.Suite) | $($result.Name) | $($result.Status) | $($result.Details) |"
           }
 
+          Write-Host "Test totals for $packageName: passed=$($stats.passed) failed=$($stats.failed) skipped=$($stats.skipped) total=$($stats.total)"
           $summaryLines -join "`n" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
-          $results | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $logsDir 'results.json') -Encoding utf8
+          $testResults | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $logsDir 'test-results.json') -Encoding utf8
+          $stats | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $logsDir 'test-stats.json') -Encoding utf8
 
           if ($mismatches.Count -gt 0) {
             $mismatches | Set-Content -Path (Join-Path $logsDir 'mismatches.txt') -Encoding utf8
@@ -837,3 +1071,75 @@ jobs:
         with:
           name: apache-sdk-delta-${{ matrix.package.key }}
           path: ${{ runner.temp }}/apache-sdk-delta-${{ matrix.package.key }}/logs
+
+  summarize-test-results:
+    name: Overall Test Summary
+    if: always()
+    needs: compare-sdk-packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download probe logs
+        uses: actions/download-artifact@v8
+        with:
+          pattern: apache-sdk-delta-*
+          path: artifacts
+          merge-multiple: false
+
+      - name: Summarize overall test stats
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $artifactDirs = Get-ChildItem -Path artifacts -Directory | Sort-Object Name
+          $allResults = New-Object System.Collections.Generic.List[object]
+          $packageStats = New-Object System.Collections.Generic.List[object]
+
+          foreach ($artifactDir in $artifactDirs) {
+            $statsPath = Join-Path $artifactDir.FullName 'test-stats.json'
+            $resultsPath = Join-Path $artifactDir.FullName 'test-results.json'
+
+            if (Test-Path $statsPath) {
+              $stats = Get-Content -Path $statsPath -Raw | ConvertFrom-Json
+              $packageStats.Add($stats) | Out-Null
+            }
+
+            if (Test-Path $resultsPath) {
+              foreach ($result in @(Get-Content -Path $resultsPath -Raw | ConvertFrom-Json)) {
+                $allResults.Add($result) | Out-Null
+              }
+            }
+          }
+
+          $overall = [pscustomobject]@{
+            total = @($allResults).Count
+            passed = @($allResults | Where-Object Status -eq 'passed').Count
+            failed = @($allResults | Where-Object Status -eq 'failed').Count
+            skipped = @($allResults | Where-Object Status -eq 'skipped').Count
+          }
+
+          $summaryLines = @(
+            '## Overall Apache SDK Test Summary',
+            '',
+            '| Passed | Failed | Skipped | Total |',
+            '| --- | --- | --- | --- |',
+            "| $($overall.passed) | $($overall.failed) | $($overall.skipped) | $($overall.total) |",
+            '',
+            '| Package | Passed | Failed | Skipped | Total |',
+            '| --- | --- | --- | --- | --- |'
+          )
+
+          foreach ($stats in $packageStats) {
+            $summaryLines += "| $($stats.package_name) | $($stats.passed) | $($stats.failed) | $($stats.skipped) | $($stats.total) |"
+          }
+
+          $summaryLines += ''
+          $summaryLines += '| Package | Suite | Test | Status | Details |'
+          $summaryLines += '| --- | --- | --- | --- | --- |'
+
+          foreach ($result in $allResults) {
+            $summaryLines += "| $($result.PackageName) | $($result.Suite) | $($result.Name) | $($result.Status) | $($result.Details) |"
+          }
+
+          Write-Host "Overall test totals: passed=$($overall.passed) failed=$($overall.failed) skipped=$($overall.skipped) total=$($overall.total)"
+          $summaryLines -join "`n" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
