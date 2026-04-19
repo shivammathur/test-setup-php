@@ -240,7 +240,7 @@ jobs:
 
             $apacheRootConfigPath = $apacheRoot -replace '\\', '/'
             $httpdConfig = Get-Content -Path $httpdConf -Raw
-            $httpdConfig = $httpdConfig -replace '(?i)c:/Apache24', $apacheRootConfigPath
+            $httpdConfig = $httpdConfig -replace '(?i)c:/Apache24(?:-(?:32|64))?', $apacheRootConfigPath
             $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*Define SRVROOT.*\r?$', "Define SRVROOT `"$apacheRootConfigPath`""
             $httpdConfig = $httpdConfig -replace '(?m)^[ \t]*ServerRoot.*\r?$', "ServerRoot `"$apacheRootConfigPath`""
             $httpdConfig = $httpdConfig -replace '(?m)^Listen 80\r?$', "Listen $port"
