@@ -77,17 +77,18 @@ jobs:
               'apr[private-headers]',
               'apr-util[crypto]',
               'brotli',
-              'curl',
+              'curl[tool,openssl,http2,brotli]',
               'expat',
               'jansson',
+              'lua[tools]',
               'nghttp2',
-              'openssl',
+              'openssl[tools]',
               '${{ steps.httpd_profile.outputs.pcre_package }}',
               'zlib'
           )
           $commands = @(
               "vcpkg install --triplet $sharedTriplet $($sharedPackages -join ' ')",
-              "vcpkg install --triplet $staticTriplet apr apr-util expat"
+              "vcpkg install --triplet $staticTriplet apr apr-util expat ${{ steps.httpd_profile.outputs.pcre_package }} zlib"
           )
 
           foreach ($command in $commands) {
@@ -138,6 +139,11 @@ jobs:
           } else {
               Join-Path $sharedRoot 'lib\libcurl.lib'
           }
+          $luaLibrary = Get-ChildItem -Path (Join-Path $sharedRoot 'lib') -Filter 'lua*.lib' -File |
+              Sort-Object `
+                  @{ Expression = { if ($_.BaseName -match '\d') { 0 } else { 1 } } }, `
+                  @{ Expression = { $_.Name } } |
+              Select-Object -First 1
 
           $apriconvSourceRoot = Join-Path $env:GITHUB_WORKSPACE 'apr-iconv-source'
           $apriconvOutputRoot = Join-Path $env:GITHUB_WORKSPACE 'apr-iconv-install'
@@ -153,10 +159,12 @@ jobs:
           foreach ($path in @(
               (Join-Path $sharedRoot 'include\apr.h'),
               (Join-Path $sharedRoot 'include\arch\win32\apr_private.h'),
+              (Join-Path $sharedRoot 'include\lua.h'),
               (Join-Path $sharedRoot 'lib\libapr-1.lib'),
               (Join-Path $sharedRoot 'lib\libaprutil-1.lib'),
               $pcreLibrary,
               $curlLibrary,
+              $luaLibrary.FullName,
               (Join-Path $staticRoot 'lib'),
               $genTestChar
           )) {
@@ -168,6 +176,8 @@ jobs:
           Copy-TreeContents -source (Join-Path $sharedRoot 'include') -destination (Join-Path $depsRoot 'include')
           Copy-TreeContents -source (Join-Path $sharedRoot 'lib') -destination (Join-Path $depsRoot 'lib')
           Copy-TreeContents -source (Join-Path $sharedRoot 'bin') -destination (Join-Path $depsRoot 'bin')
+          Copy-TreeContents -source (Join-Path $sharedRoot 'share') -destination (Join-Path $depsRoot 'share')
+          Copy-TreeContents -source (Join-Path $sharedRoot 'tools') -destination (Join-Path $depsRoot 'tools')
 
           $generatedAprHeader = Join-Path $depsRoot 'include\apr_escape_test_char.h'
           if (-not (Test-Path $generatedAprHeader)) {
@@ -232,6 +242,7 @@ jobs:
           "static_root=$($staticRoot.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
           "apriconv_root=$($apriconvOutputRoot.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
           "curl_library=$($curlLibrary.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
+          "lua_library=$($luaLibrary.FullName.Replace('\', '/'))" | Add-Content -Path $env:GITHUB_OUTPUT
 
       - name: Configure apache/httpd
         run: |
@@ -254,6 +265,9 @@ jobs:
             -DCURL_LIBRARIES="${{ steps.deps.outputs.curl_library }}" ^
             -DJANSSON_INCLUDE_DIR="${{ steps.deps.outputs.deps_root }}/include" ^
             -DJANSSON_LIBRARIES="${{ steps.deps.outputs.deps_root }}/lib/jansson.lib" ^
+            -DLUA_INCLUDE_DIR="${{ steps.deps.outputs.deps_root }}/include" ^
+            -DLUA_LIBRARY="${{ steps.deps.outputs.lua_library }}" ^
+            -DLUA_LIBRARIES="${{ steps.deps.outputs.lua_library }}" ^
             -DENABLE_MODULES=i ^
             -DINSTALL_MANUAL=ON ^
             -DINSTALL_PDB=ON
@@ -310,6 +324,7 @@ jobs:
           Copy-TreeContents -source (Join-Path $depsRoot 'include') -destination (Join-Path $packageRoot 'include\apache2_4')
           Copy-TreeContents -source (Join-Path $depsRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
           Copy-TreeContents -source (Join-Path $depsRoot 'bin') -destination (Join-Path $packageRoot 'bin')
+          Copy-TreeContents -source (Join-Path $depsRoot 'share') -destination (Join-Path $packageRoot 'share')
           Copy-TreeContents -source (Join-Path $staticRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
           Copy-TreeContents -source (Join-Path $apriconvRoot 'include') -destination (Join-Path $packageRoot 'include\apache2_4')
           Copy-TreeContents -source (Join-Path $apriconvRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
@@ -319,6 +334,50 @@ jobs:
           Copy-TreeContents -source (Join-Path $installRoot 'lib') -destination (Join-Path $packageRoot 'lib\apache2_4')
           Copy-TreeContents -source (Join-Path $installRoot 'bin') -destination (Join-Path $packageRoot 'bin')
           Copy-TreeContents -source (Join-Path $installRoot 'modules') -destination (Join-Path $packageRoot 'modules')
+
+          $depsShareRoot = Join-Path $depsRoot 'share'
+          $packageCmakeRoot = Join-Path $packageRoot 'lib\cmake'
+          if (Test-Path $depsShareRoot) {
+              Get-ChildItem -Path $depsShareRoot -Directory | ForEach-Object {
+                  $shareDir = $_.FullName
+                  if (Get-ChildItem -Path $shareDir -Recurse -File -Filter *.cmake | Select-Object -First 1) {
+                      Copy-TreeContents -source $shareDir -destination (Join-Path $packageCmakeRoot $_.Name)
+                  }
+              }
+          }
+
+          $depsToolsRoot = Join-Path $depsRoot 'tools'
+          if (Test-Path $depsToolsRoot) {
+              Get-ChildItem -Path $depsToolsRoot -Directory | ForEach-Object {
+                  $toolRoot = $_.FullName
+
+                  Get-ChildItem -Path $toolRoot -File | Where-Object {
+                      $_.Extension -in @('.exe', '.dll', '.pl', '.ps1', '.bat', '.cmd', '.wsf') -or
+                      [String]::IsNullOrEmpty($_.Extension)
+                  } | ForEach-Object {
+                      Copy-Item -Path $_.FullName -Destination (Join-Path $packageRoot 'bin') -Force
+                  }
+
+                  Get-ChildItem -Path $toolRoot -File | Where-Object {
+                      $_.Name -like '*.cnf*'
+                  } | ForEach-Object {
+                      Copy-Item -Path $_.FullName -Destination (Join-Path $packageRoot 'conf') -Force
+                  }
+
+                  foreach ($layout in @(
+                      @{ Source = 'misc'; Destination = 'conf\misc' },
+                      @{ Source = 'engines-3'; Destination = 'lib\engines-3' },
+                      @{ Source = 'ossl-modules'; Destination = 'lib\ossl-modules' },
+                      @{ Source = 'lib\engines-3'; Destination = 'lib\engines-3' },
+                      @{ Source = 'lib\ossl-modules'; Destination = 'lib\ossl-modules' }
+                  )) {
+                      $sourcePath = Join-Path $toolRoot $layout.Source
+                      if (Test-Path $sourcePath) {
+                          Copy-TreeContents -source $sourcePath -destination (Join-Path $packageRoot $layout.Destination)
+                      }
+                  }
+              }
+          }
           $cgiExamplesRoot = Join-Path $httpdSourceRoot 'docs\cgi-examples'
           $packageCgiRoot = Join-Path $packageRoot 'cgi-bin'
           if (Test-Path $cgiExamplesRoot) {
