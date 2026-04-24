@@ -1,0 +1,450 @@
+name: iis-pr-21710-repro
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - test-pr-21710
+
+permissions:
+  contents: read
+
+jobs:
+  repro:
+    runs-on: windows-2022
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download PR artifact from php/php-windows-builder
+        uses: actions/download-artifact@v4
+        with:
+          name: artifacts
+          repository: php/php-windows-builder
+          run-id: 24851804919
+          path: ${{ runner.temp }}\php-pr-artifacts
+          github-token: ${{ secrets.PAT }}
+
+      - name: Reproduce on IIS with 8.5.5 and validate PR artifact
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Write-Section {
+            param([string] $Message)
+            Write-Host ""
+            Write-Host "==== $Message ===="
+          }
+
+          function Ensure-Directory {
+            param([string] $Path)
+            if (-not (Test-Path -LiteralPath $Path)) {
+              New-Item -ItemType Directory -Path $Path | Out-Null
+            }
+          }
+
+          function Enable-IisFeature {
+            param([string] $Name)
+            $feature = Get-WindowsOptionalFeature -Online -FeatureName $Name
+            if ($feature.State -ne 'Enabled') {
+              Enable-WindowsOptionalFeature -Online -FeatureName $Name -All -NoRestart | Out-Null
+            }
+          }
+
+          function Ensure-Iis {
+            Write-Section "Enable IIS features"
+            $features = @(
+              'IIS-WebServerRole',
+              'IIS-WebServer',
+              'IIS-CommonHttpFeatures',
+              'IIS-DefaultDocument',
+              'IIS-StaticContent',
+              'IIS-HttpErrors',
+              'IIS-HttpRedirect',
+              'IIS-ApplicationDevelopment',
+              'IIS-ISAPIExtensions',
+              'IIS-ISAPIFilter',
+              'IIS-CGI',
+              'IIS-RequestFiltering'
+            )
+
+            foreach ($feature in $features) {
+              Enable-IisFeature -Name $feature
+            }
+
+            Import-Module WebAdministration
+            Start-Service WAS -ErrorAction SilentlyContinue
+            Start-Service W3SVC -ErrorAction SilentlyContinue
+          }
+
+          function New-PhpIni {
+            param(
+              [string] $PhpDir,
+              [string] $OpcacheDir,
+              [string] $ErrorLog
+            )
+
+            Ensure-Directory $OpcacheDir
+            $extensionDir = (Join-Path $PhpDir 'ext').Replace('\', '/')
+            $opcacheDir = $OpcacheDir.Replace('\', '/')
+            $errorLogPath = $ErrorLog.Replace('\', '/')
+
+            $ini = @"
+[PHP]
+extension_dir="$extensionDir"
+date.timezone=UTC
+memory_limit=512M
+max_execution_time=120
+display_errors=Off
+log_errors=On
+error_log="$errorLogPath"
+cgi.fix_pathinfo=1
+
+extension=bz2
+extension=curl
+extension=fileinfo
+extension=gd
+extension=mbstring
+extension=openssl
+extension=pdo_sqlite
+extension=sqlite3
+extension=zip
+
+zend_extension=opcache
+
+[opcache]
+opcache.enable=1
+opcache.enable_cli=0
+opcache.memory_consumption=128
+opcache.interned_strings_buffer=16
+opcache.max_accelerated_files=20000
+opcache.file_cache="$opcacheDir"
+opcache.file_cache_only=0
+opcache.file_cache_consistency_checks=0
+opcache.jit_buffer_size=128M
+opcache.jit=1255
+"@
+
+            Set-Content -LiteralPath (Join-Path $PhpDir 'php.ini') -Value $ini -Encoding ASCII
+          }
+
+          function Add-FastCgiApplication {
+            param(
+              [string] $PhpDir,
+              [string] $PhpCgi,
+              [string] $AppCmd
+            )
+
+            $existing = & $AppCmd list config -section:system.webServer/fastCgi 2>$null
+            if ($existing -notmatch [regex]::Escape($PhpCgi)) {
+              & $AppCmd set config -section:system.webServer/fastCgi "/+[fullPath='$PhpCgi',instanceMaxRequests='10000']" /commit:apphost | Out-Null
+              & $AppCmd set config -section:system.webServer/fastCgi "/+[fullPath='$PhpCgi'].environmentVariables.[name='PHPRC',value='$PhpDir']" /commit:apphost | Out-Null
+              & $AppCmd set config -section:system.webServer/fastCgi "/+[fullPath='$PhpCgi'].environmentVariables.[name='PHP_FCGI_MAX_REQUESTS',value='10000']" /commit:apphost | Out-Null
+            }
+          }
+
+          function Ensure-ReproSite {
+            param(
+              [string] $SiteName,
+              [string] $SiteRoot,
+              [string] $AppCmd
+            )
+
+            $existingSite = (& $AppCmd list site $SiteName /text:name 2>$null)
+            if (-not $existingSite) {
+              & $AppCmd add site "/name:$SiteName" "/bindings:http/*:8085:" "/physicalPath:$SiteRoot" | Out-Null
+            }
+
+            & $AppCmd set config $SiteName -section:system.webServer/handlers /accessPolicy:Read,Script /commit:apphost | Out-Null
+            & $AppCmd set config $SiteName -section:system.webServer/defaultDocument "/+files.[value='index.php']" /commit:apphost | Out-Null
+          }
+
+          function Set-ReproPhp {
+            param(
+              [string] $SiteName,
+              [string] $AppPool,
+              [string] $PhpDir,
+              [string] $AppCmd
+            )
+
+            $phpCgi = Join-Path $PhpDir 'php-cgi.exe'
+            Add-FastCgiApplication -PhpDir $PhpDir -PhpCgi $phpCgi -AppCmd $AppCmd
+
+            if (-not (& $AppCmd list apppool $AppPool /text:name 2>$null)) {
+              & $AppCmd add apppool "/name:$AppPool" | Out-Null
+            }
+
+            & $AppCmd set app "/app.name:$SiteName/" "/applicationPool:$AppPool" | Out-Null
+
+            $handlers = & $AppCmd list config $SiteName -section:system.webServer/handlers 2>$null
+            if ($handlers -match 'name="PHP-FastCGI"') {
+              & $AppCmd set config $SiteName -section:system.webServer/handlers "/-[name='PHP-FastCGI']" /commit:apphost | Out-Null
+            }
+
+            & $AppCmd set config $SiteName -section:system.webServer/handlers "/+[name='PHP-FastCGI',path='*.php',verb='GET,HEAD,POST',modules='FastCgiModule',scriptProcessor='$phpCgi',resourceType='Either',requireAccess='Script']" /commit:apphost | Out-Null
+            Restart-WebAppPool -Name $AppPool
+          }
+
+          function Wait-Url {
+            param(
+              [string] $Url,
+              [int] $TimeoutSec = 60
+            )
+
+            $deadline = (Get-Date).AddSeconds($TimeoutSec)
+            do {
+              try {
+                $response = Invoke-WebRequest -UseBasicParsing -Uri $Url -TimeoutSec 15
+                if ($response.StatusCode -eq 200) {
+                  return $response
+                }
+              } catch {
+              }
+              Start-Sleep -Seconds 2
+            } while ((Get-Date) -lt $deadline)
+
+            throw "Timed out waiting for $Url"
+          }
+
+          function Get-PhpCrashEvents {
+            param(
+              [datetime] $Since,
+              [string] $PhpDir
+            )
+
+            $phpCgi = [regex]::Escape((Join-Path $PhpDir 'php-cgi.exe'))
+            $phpDll = [regex]::Escape((Join-Path $PhpDir 'php8.dll'))
+
+            Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = $Since } -ErrorAction SilentlyContinue |
+              Where-Object {
+                $_.ProviderName -in @('Application Error', 'Windows Error Reporting') -and
+                ($_.Message -match $phpCgi -or $_.Message -match $phpDll)
+              }
+          }
+
+          function Invoke-ReproPhase {
+            param(
+              [string] $Name,
+              [string] $BaseUrl,
+              [string] $PhpDir,
+              [int] $Loops = 100
+            )
+
+            Write-Section "Run $Name repro phase"
+            $marker = Get-Date
+            $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+
+            Wait-Url -Url "$BaseUrl/codex-health.php" -TimeoutSec 90 | Out-Null
+            Invoke-WebRequest -UseBasicParsing -Uri "$BaseUrl/wp-login.php" -WebSession $session -TimeoutSec 20 | Out-Null
+            Invoke-WebRequest -UseBasicParsing -Uri "$BaseUrl/wp-login.php" -Method Post -WebSession $session -TimeoutSec 20 -Body @{
+              log         = 'admin'
+              pwd         = 'Admin123!Pass'
+              'wp-submit' = 'Log In'
+              redirect_to = "$BaseUrl/wp-admin/options-general.php"
+              testcookie  = '1'
+            } | Out-Null
+
+            $targets = @(
+              @{ Url = "$BaseUrl/"; Session = $null },
+              @{ Url = "$BaseUrl/wp-login.php"; Session = $null },
+              @{ Url = "$BaseUrl/wp-admin/options-general.php"; Session = $session }
+            )
+
+            $failures = 0
+            $status500 = 0
+            $timeouts = 0
+
+            foreach ($i in 1..$Loops) {
+              foreach ($target in $targets) {
+                try {
+                  $invokeArgs = @{
+                    Uri             = $target.Url
+                    UseBasicParsing = $true
+                    TimeoutSec      = 20
+                    Headers         = @{ 'Cache-Control' = 'no-cache' }
+                  }
+                  if ($target.Session) {
+                    $invokeArgs.WebSession = $target.Session
+                  }
+                  $response = Invoke-WebRequest @invokeArgs
+                  if ($response.StatusCode -ge 500) {
+                    $status500++
+                  }
+                } catch {
+                  $message = $_.Exception.Message
+                  $response = $_.Exception.Response
+                  if ($response -and [int] $response.StatusCode -ge 500) {
+                    $status500++
+                  } elseif ($message -match 'timed out|Timeout') {
+                    $timeouts++
+                    $failures++
+                  } else {
+                    $failures++
+                  }
+                }
+              }
+            }
+
+            $events = @(Get-PhpCrashEvents -Since $marker -PhpDir $PhpDir)
+            $summary = [pscustomobject]@{
+              Name        = $Name
+              Requests    = $Loops * $targets.Count
+              Failures    = $failures
+              Status500   = $status500
+              Timeouts    = $timeouts
+              CrashEvents = $events.Count
+            }
+
+            $summary | ConvertTo-Json -Compress | Write-Host
+            if ($events.Count -gt 0) {
+              $events | Select-Object -First 3 | ForEach-Object {
+                Write-Host $_.Message
+              }
+            }
+
+            return $summary
+          }
+
+          Write-Section "Prepare directories"
+          $root = Join-Path $env:RUNNER_TEMP 'pr-21710-repro'
+          $downloads = Join-Path $root 'downloads'
+          $logs = Join-Path $root 'logs'
+          $wordpressRoot = Join-Path $root 'wordpress'
+          $officialPhpDir = Join-Path $root 'php-8.5.5-nts'
+          $artifactPhpDir = Join-Path $root 'php-pr-artifact'
+          $officialOpcache = Join-Path $root 'opcache-855'
+          $artifactOpcache = Join-Path $root 'opcache-pr'
+          $officialErrorLog = Join-Path $logs 'php-855-errors.log'
+          $artifactErrorLog = Join-Path $logs 'php-pr-errors.log'
+          $appCmd = Join-Path $env:windir 'System32\inetsrv\appcmd.exe'
+          $siteName = 'WordPressRepro'
+          $baseUrl = 'http://127.0.0.1:8085'
+
+          @($root, $downloads, $logs, $wordpressRoot) | ForEach-Object { Ensure-Directory $_ }
+
+          Ensure-Iis
+
+          Write-Section "Download PHP 8.5.5 NTS"
+          $officialPhpZip = Join-Path $downloads 'php-8.5.5-nts-Win32-vs17-x64.zip'
+          Invoke-WebRequest -UseBasicParsing -Uri 'https://windows.php.net/downloads/releases/php-8.5.5-nts-Win32-vs17-x64.zip' -OutFile $officialPhpZip
+          Expand-Archive -LiteralPath $officialPhpZip -DestinationPath $officialPhpDir -Force
+
+          Write-Section "Extract PR artifact PHP"
+          $artifactInnerZip = Get-ChildItem -LiteralPath (Join-Path $env:RUNNER_TEMP 'php-pr-artifacts') -File |
+            Where-Object { $_.Name -match '^php-\d+\.\d+\.\d+.*-nts-Win32-vs17-x64\.zip$' } |
+            Sort-Object Name -Descending |
+            Select-Object -First 1
+          if (-not $artifactInnerZip) {
+            throw 'Could not find the NTS x64 PHP zip in the downloaded artifact.'
+          }
+          Write-Host "Using PR artifact zip: $($artifactInnerZip.Name)"
+          Expand-Archive -LiteralPath $artifactInnerZip.FullName -DestinationPath $artifactPhpDir -Force
+
+          New-PhpIni -PhpDir $officialPhpDir -OpcacheDir $officialOpcache -ErrorLog $officialErrorLog
+          New-PhpIni -PhpDir $artifactPhpDir -OpcacheDir $artifactOpcache -ErrorLog $artifactErrorLog
+
+          Write-Section "Download WordPress and SQLite drop-in"
+          $wordpressZip = Join-Path $downloads 'wordpress.zip'
+          $wordpressExtract = Join-Path $root 'wordpress-extract'
+          Ensure-Directory $wordpressExtract
+          Invoke-WebRequest -UseBasicParsing -Uri 'https://wordpress.org/latest.zip' -OutFile $wordpressZip
+          Expand-Archive -LiteralPath $wordpressZip -DestinationPath $wordpressExtract -Force
+          Copy-Item -LiteralPath (Join-Path $wordpressExtract 'wordpress\*') -Destination $wordpressRoot -Recurse -Force
+          Ensure-Directory (Join-Path $wordpressRoot 'wp-content\database')
+          Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/aaemnnosttv/wp-sqlite-db/master/src/db.php' -OutFile (Join-Path $wordpressRoot 'wp-content\db.php')
+
+          Write-Section "Generate WordPress config and helpers"
+          $wpConfig = @"
+<?php
+define('DB_NAME', 'codex');
+define('DB_USER', 'root');
+define('DB_PASSWORD', '');
+define('DB_HOST', 'localhost');
+define('DB_CHARSET', 'utf8');
+define('DB_COLLATE', '');
+define('DB_ENGINE', 'sqlite');
+define('DB_DIR', __DIR__ . '/wp-content/database/');
+define('DB_FILE', 'wordpress.sqlite');
+define('WP_HOME', 'http://127.0.0.1:8085');
+define('WP_SITEURL', 'http://127.0.0.1:8085');
+define('WP_DEBUG', false);
+define('WP_CACHE', false);
+define('AUTH_KEY',         'codex-auth-key');
+define('SECURE_AUTH_KEY',  'codex-secure-auth-key');
+define('LOGGED_IN_KEY',    'codex-logged-in-key');
+define('NONCE_KEY',        'codex-nonce-key');
+define('AUTH_SALT',        'codex-auth-salt');
+define('SECURE_AUTH_SALT', 'codex-secure-auth-salt');
+define('LOGGED_IN_SALT',   'codex-logged-in-salt');
+define('NONCE_SALT',       'codex-nonce-salt');
+$table_prefix = 'wp_';
+if (!defined('ABSPATH')) {
+    define('ABSPATH', __DIR__ . '/');
+}
+require_once ABSPATH . 'wp-settings.php';
+"@
+          Set-Content -LiteralPath (Join-Path $wordpressRoot 'wp-config.php') -Value $wpConfig -Encoding ASCII
+
+          $installPhp = @"
+<?php
+define('WP_INSTALLING', true);
+$_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
+$_SERVER['REQUEST_METHOD'] = 'GET';
+$_SERVER['SERVER_NAME'] = '127.0.0.1';
+$_SERVER['HTTP_HOST'] = '127.0.0.1:8085';
+$_SERVER['SERVER_PORT'] = '8085';
+$_SERVER['REQUEST_URI'] = '/';
+
+require __DIR__ . '/wp-load.php';
+require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+$result = wp_install('Codex Repro', 'admin', 'admin@example.com', true, '', 'Admin123!Pass');
+echo json_encode($result, JSON_PRETTY_PRINT), PHP_EOL;
+"@
+          Set-Content -LiteralPath (Join-Path $wordpressRoot 'install-wp.php') -Value $installPhp -Encoding ASCII
+
+          $healthPhp = @"
+<?php
+header('Content-Type: text/plain');
+echo 'ok', PHP_EOL;
+echo 'php=', PHP_VERSION, PHP_EOL;
+echo 'sapi=', PHP_SAPI, PHP_EOL;
+echo 'bz2=', extension_loaded('bz2') ? '1' : '0', PHP_EOL;
+echo 'sqlite3=', extension_loaded('sqlite3') ? '1' : '0', PHP_EOL;
+echo 'opcache=', extension_loaded('Zend OPcache') ? '1' : '0', PHP_EOL;
+"@
+          Set-Content -LiteralPath (Join-Path $wordpressRoot 'codex-health.php') -Value $healthPhp -Encoding ASCII
+
+          Write-Section "Install WordPress"
+          & (Join-Path $officialPhpDir 'php.exe') '-c' (Join-Path $officialPhpDir 'php.ini') (Join-Path $wordpressRoot 'install-wp.php')
+
+          Ensure-ReproSite -SiteName $siteName -SiteRoot $wordpressRoot -AppCmd $appCmd
+
+          Set-ReproPhp -SiteName $siteName -AppPool 'WordPress855Pool' -PhpDir $officialPhpDir -AppCmd $appCmd
+          $health855 = Wait-Url -Url "$baseUrl/codex-health.php" -TimeoutSec 90
+          Write-Host $health855.Content
+          $baseline = Invoke-ReproPhase -Name 'php-8.5.5-nts' -BaseUrl $baseUrl -PhpDir $officialPhpDir -Loops 120
+
+          Set-ReproPhp -SiteName $siteName -AppPool 'WordPressPR21710Pool' -PhpDir $artifactPhpDir -AppCmd $appCmd
+          $healthPr = Wait-Url -Url "$baseUrl/codex-health.php" -TimeoutSec 90
+          Write-Host $healthPr.Content
+          $artifact = Invoke-ReproPhase -Name 'pr-artifact' -BaseUrl $baseUrl -PhpDir $artifactPhpDir -Loops 120
+
+          Write-Section "Assertions"
+          $baselineFailed = ($baseline.CrashEvents -gt 0) -or ($baseline.Failures -gt 0) -or ($baseline.Status500 -gt 0)
+          $artifactPassed = ($artifact.CrashEvents -eq 0) -and ($artifact.Failures -eq 0) -and ($artifact.Status500 -eq 0)
+
+          "Baseline: $($baseline | ConvertTo-Json -Compress)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "Artifact: $($artifact | ConvertTo-Json -Compress)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+          if (-not $baselineFailed) {
+            throw "PHP 8.5.5 NTS did not reproduce the IIS/WordPress failure in this run."
+          }
+
+          if (-not $artifactPassed) {
+            throw "The PR artifact did not stay clean under the same IIS/WordPress workload."
+          }
+
+          Write-Section "Done"
+          Write-Host "Observed the expected behavior: 8.5.5 failed, PR artifact passed."
