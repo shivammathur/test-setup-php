@@ -163,9 +163,11 @@ jobs:
           if ($modules -contains 'Zend OPcache') {
             $zendOpcacheLine = '; Zend OPcache is built in'
           } elseif (Test-Path -LiteralPath (Join-Path $env:PHP_DIR 'ext\\php_opcache.dll')) {
-            $zendOpcacheLine = 'zend_extension=php_opcache.dll'
+            $zendOpcachePath = (Join-Path $env:PHP_DIR 'ext\\php_opcache.dll').Replace('\', '/')
+            $zendOpcacheLine = "zend_extension=`"$zendOpcachePath`""
           } elseif (Test-Path -LiteralPath (Join-Path $env:PHP_DIR 'php_opcache.dll')) {
-            $zendOpcacheLine = 'zend_extension=php_opcache.dll'
+            $zendOpcachePath = (Join-Path $env:PHP_DIR 'php_opcache.dll').Replace('\', '/')
+            $zendOpcacheLine = "zend_extension=`"$zendOpcachePath`""
           } else {
             $zendOpcacheLine = 'zend_extension=opcache'
           }
@@ -200,6 +202,18 @@ jobs:
           opcache.jit_hot_side_exit=1
           opcache.jit_max_side_traces=16
           "@ | Set-Content -LiteralPath (Join-Path $env:PHP_DIR 'php.ini') -Encoding ASCII
+
+      - name: Verify OPcache JIT config
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $phpExe = Join-Path $env:PHP_DIR 'php.exe'
+          $phpIni = Join-Path $env:PHP_DIR 'php.ini'
+          $result = & $phpExe -c $phpIni -d opcache.enable_cli=1 -r '$s = function_exists("opcache_get_status") ? opcache_get_status(false) : false; echo json_encode(["status" => $s !== false, "jit_enabled" => $s["jit"]["enabled"] ?? false, "jit_on" => $s["jit"]["on"] ?? false, "php" => PHP_VERSION]);'
+          Write-Host "OPcache check: $result"
+          if ($result -notmatch '"status":true' -or $result -notmatch '"jit_enabled":true' -or $result -notmatch '"jit_on":true') {
+            throw "OPcache JIT is not active with the generated php.ini: $result"
+          }
 
       - name: Configure IIS FastCGI
         shell: pwsh
@@ -423,9 +437,11 @@ jobs:
           if ($modules -contains 'Zend OPcache') {
             $zendOpcacheLine = '; Zend OPcache is built in'
           } elseif (Test-Path -LiteralPath (Join-Path $env:PHP_DIR 'ext\\php_opcache.dll')) {
-            $zendOpcacheLine = 'zend_extension=php_opcache.dll'
+            $zendOpcachePath = (Join-Path $env:PHP_DIR 'ext\\php_opcache.dll').Replace('\', '/')
+            $zendOpcacheLine = "zend_extension=`"$zendOpcachePath`""
           } elseif (Test-Path -LiteralPath (Join-Path $env:PHP_DIR 'php_opcache.dll')) {
-            $zendOpcacheLine = 'zend_extension=php_opcache.dll'
+            $zendOpcachePath = (Join-Path $env:PHP_DIR 'php_opcache.dll').Replace('\', '/')
+            $zendOpcacheLine = "zend_extension=`"$zendOpcachePath`""
           } else {
             $zendOpcacheLine = 'zend_extension=opcache'
           }
@@ -460,6 +476,18 @@ jobs:
           opcache.jit_hot_side_exit=1
           opcache.jit_max_side_traces=16
           "@ | Set-Content -LiteralPath (Join-Path $env:PHP_DIR 'php.ini') -Encoding ASCII
+
+      - name: Verify OPcache JIT config
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $phpExe = Join-Path $env:PHP_DIR 'php.exe'
+          $phpIni = Join-Path $env:PHP_DIR 'php.ini'
+          $result = & $phpExe -c $phpIni -d opcache.enable_cli=1 -r '$s = function_exists("opcache_get_status") ? opcache_get_status(false) : false; echo json_encode(["status" => $s !== false, "jit_enabled" => $s["jit"]["enabled"] ?? false, "jit_on" => $s["jit"]["on"] ?? false, "php" => PHP_VERSION]);'
+          Write-Host "OPcache check: $result"
+          if ($result -notmatch '"status":true' -or $result -notmatch '"jit_enabled":true' -or $result -notmatch '"jit_on":true') {
+            throw "OPcache JIT is not active with the generated php.ini: $result"
+          }
 
       - name: Configure IIS FastCGI
         shell: pwsh
