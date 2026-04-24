@@ -228,89 +228,6 @@ jobs:
               }
           }
 
-          function Invoke-ReproPhase {
-            param(
-              [string] $Name,
-              [string] $BaseUrl,
-              [string] $PhpDir,
-              [int] $Loops = 100
-            )
-
-            Write-Section "Run $Name repro phase"
-            $marker = Get-Date
-            $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-
-            Wait-Url -Url "$BaseUrl/codex-health.php" -TimeoutSec 90 | Out-Null
-            Invoke-WebRequest -UseBasicParsing -Uri "$BaseUrl/wp-login.php" -WebSession $session -TimeoutSec 20 | Out-Null
-            Invoke-WebRequest -UseBasicParsing -Uri "$BaseUrl/wp-login.php" -Method Post -WebSession $session -TimeoutSec 20 -Body @{
-              log         = 'admin'
-              pwd         = 'Admin123!Pass'
-              'wp-submit' = 'Log In'
-              redirect_to = "$BaseUrl/wp-admin/options-general.php"
-              testcookie  = '1'
-            } | Out-Null
-
-            $targets = @(
-              @{ Url = "$BaseUrl/"; Session = $null },
-              @{ Url = "$BaseUrl/wp-login.php"; Session = $null },
-              @{ Url = "$BaseUrl/wp-admin/options-general.php"; Session = $session }
-            )
-
-            $failures = 0
-            $status500 = 0
-            $timeouts = 0
-
-            foreach ($i in 1..$Loops) {
-              foreach ($target in $targets) {
-                try {
-                  $invokeArgs = @{
-                    Uri             = $target.Url
-                    UseBasicParsing = $true
-                    TimeoutSec      = 20
-                    Headers         = @{ 'Cache-Control' = 'no-cache' }
-                  }
-                  if ($target.Session) {
-                    $invokeArgs.WebSession = $target.Session
-                  }
-                  $response = Invoke-WebRequest @invokeArgs
-                  if ($response.StatusCode -ge 500) {
-                    $status500++
-                  }
-                } catch {
-                  $message = $_.Exception.Message
-                  $response = $_.Exception.Response
-                  if ($response -and [int] $response.StatusCode -ge 500) {
-                    $status500++
-                  } elseif ($message -match 'timed out|Timeout') {
-                    $timeouts++
-                    $failures++
-                  } else {
-                    $failures++
-                  }
-                }
-              }
-            }
-
-            $events = @(Get-PhpCrashEvents -Since $marker -PhpDir $PhpDir)
-            $summary = [pscustomobject]@{
-              Name        = $Name
-              Requests    = $Loops * $targets.Count
-              Failures    = $failures
-              Status500   = $status500
-              Timeouts    = $timeouts
-              CrashEvents = $events.Count
-            }
-
-            $summary | ConvertTo-Json -Compress | Write-Host
-            if ($events.Count -gt 0) {
-              $events | Select-Object -First 3 | ForEach-Object {
-                Write-Host $_.Message
-              }
-            }
-
-            return $summary
-          }
-
           function Invoke-JitProbePhase {
             param(
               [string] $Name,
@@ -372,7 +289,7 @@ jobs:
           $root = Join-Path $env:RUNNER_TEMP 'pr-21710-repro'
           $downloads = Join-Path $root 'downloads'
           $logs = Join-Path $root 'logs'
-          $wordpressRoot = Join-Path $root 'wordpress'
+          $siteRoot = Join-Path $root 'site'
           $officialPhpDir = Join-Path $root 'php-8.5.5-nts'
           $artifactPhpDir = Join-Path $root 'php-pr-artifact'
           $officialOpcache = Join-Path $root 'opcache-855'
@@ -380,10 +297,10 @@ jobs:
           $officialErrorLog = Join-Path $logs 'php-855-errors.log'
           $artifactErrorLog = Join-Path $logs 'php-pr-errors.log'
           $appCmd = Join-Path $env:windir 'System32\inetsrv\appcmd.exe'
-          $siteName = 'WordPressRepro'
+          $siteName = 'PhpJitRepro'
           $baseUrl = 'http://127.0.0.1:8085'
 
-          @($root, $downloads, $logs, $wordpressRoot) | ForEach-Object { Ensure-Directory $_ }
+          @($root, $downloads, $logs, $siteRoot) | ForEach-Object { Ensure-Directory $_ }
 
           Ensure-Iis
 
@@ -406,70 +323,7 @@ jobs:
           New-PhpIni -PhpDir $officialPhpDir -OpcacheDir $officialOpcache -ErrorLog $officialErrorLog
           New-PhpIni -PhpDir $artifactPhpDir -OpcacheDir $artifactOpcache -ErrorLog $artifactErrorLog
 
-          Write-Section "Download WordPress and SQLite drop-in"
-          $wordpressZip = Join-Path $downloads 'wordpress.zip'
-          $wordpressExtract = Join-Path $root 'wordpress-extract'
-          $wordpressSource = Join-Path $wordpressExtract 'wordpress'
-          Ensure-Directory $wordpressExtract
-          Invoke-WebRequest -UseBasicParsing -Uri 'https://wordpress.org/latest.zip' -OutFile $wordpressZip
-          Expand-Archive -LiteralPath $wordpressZip -DestinationPath $wordpressExtract -Force
-          Copy-Item -Path (Join-Path $wordpressSource '*') -Destination $wordpressRoot -Recurse -Force
-          Ensure-Directory (Join-Path $wordpressRoot 'wp-content\database')
-          Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/aaemnnosttv/wp-sqlite-db/master/src/db.php' -OutFile (Join-Path $wordpressRoot 'wp-content\db.php')
-
-          Write-Section "Generate WordPress config and helpers"
-          $wpConfig = @(
-            '<?php'
-            "define('DB_NAME', 'codex');"
-            "define('DB_USER', 'root');"
-            "define('DB_PASSWORD', '');"
-            "define('DB_HOST', 'localhost');"
-            "define('DB_CHARSET', 'utf8');"
-            "define('DB_COLLATE', '');"
-            "define('DB_ENGINE', 'sqlite');"
-            "define('DB_DIR', __DIR__ . '/wp-content/database/');"
-            "define('DB_FILE', 'wordpress.sqlite');"
-            "define('WP_HOME', 'http://127.0.0.1:8085');"
-            "define('WP_SITEURL', 'http://127.0.0.1:8085');"
-            "define('WP_DEBUG', false);"
-            "define('WP_CACHE', false);"
-            "define('DISABLE_WP_CRON', true);"
-            "define('AUTH_KEY',         'codex-auth-key');"
-            "define('SECURE_AUTH_KEY',  'codex-secure-auth-key');"
-            "define('LOGGED_IN_KEY',    'codex-logged-in-key');"
-            "define('NONCE_KEY',        'codex-nonce-key');"
-            "define('AUTH_SALT',        'codex-auth-salt');"
-            "define('SECURE_AUTH_SALT', 'codex-secure-auth-salt');"
-            "define('LOGGED_IN_SALT',   'codex-logged-in-salt');"
-            "define('NONCE_SALT',       'codex-nonce-salt');"
-            "`$table_prefix = 'wp_';"
-            "if (!defined('ABSPATH')) {"
-            "    define('ABSPATH', __DIR__ . '/');"
-            '}'
-            "require_once ABSPATH . 'wp-settings.php';"
-          )
-          Set-Content -LiteralPath (Join-Path $wordpressRoot 'wp-config.php') -Value $wpConfig -Encoding ASCII
-
-          Write-Section "Grant IIS write access"
-          & icacls $root '/grant' 'IIS_IUSRS:(OI)(CI)M' '/T' '/C' | Out-Null
-
-          $installPhp = @(
-            '<?php'
-            "define('WP_INSTALLING', true);"
-            "`$_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';"
-            "`$_SERVER['REQUEST_METHOD'] = 'GET';"
-            "`$_SERVER['SERVER_NAME'] = '127.0.0.1';"
-            "`$_SERVER['HTTP_HOST'] = '127.0.0.1:8085';"
-            "`$_SERVER['SERVER_PORT'] = '8085';"
-            "`$_SERVER['REQUEST_URI'] = '/';"
-            ''
-            "require __DIR__ . '/wp-load.php';"
-            "require_once ABSPATH . 'wp-admin/includes/upgrade.php';"
-            ''
-            "`$result = wp_install('Codex Repro', 'admin', 'admin@example.com', true, '', 'Admin123!Pass');"
-            'echo json_encode($result, JSON_PRETTY_PRINT), PHP_EOL;'
-          )
-          Set-Content -LiteralPath (Join-Path $wordpressRoot 'install-wp.php') -Value $installPhp -Encoding ASCII
+          Write-Section "Generate simple IIS repro pages"
 
           $healthPhp = @(
             '<?php'
@@ -481,7 +335,17 @@ jobs:
             "echo 'sqlite3=', extension_loaded('sqlite3') ? '1' : '0', PHP_EOL;"
             "echo 'opcache=', extension_loaded('Zend OPcache') ? '1' : '0', PHP_EOL;"
           )
-          Set-Content -LiteralPath (Join-Path $wordpressRoot 'codex-health.php') -Value $healthPhp -Encoding ASCII
+          Set-Content -LiteralPath (Join-Path $siteRoot 'codex-health.php') -Value $healthPhp -Encoding ASCII
+
+          $indexPhp = @(
+            '<?php'
+            "header('Content-Type: text/plain');"
+            "echo 'PHP JIT repro site', PHP_EOL;"
+            "echo 'health=/codex-health.php', PHP_EOL;"
+            "echo 'probe=/gh21267.php', PHP_EOL;"
+            "echo 'probe_complex=/gh21267-complex.php', PHP_EOL;"
+          )
+          Set-Content -LiteralPath (Join-Path $siteRoot 'index.php') -Value $indexPhp -Encoding ASCII
 
           $jitProbePhp = @(
             '<?php'
@@ -507,7 +371,7 @@ jobs:
             "header('Content-Type: text/plain');"
             "echo 'OK';"
           )
-          Set-Content -LiteralPath (Join-Path $wordpressRoot 'gh21267.php') -Value $jitProbePhp -Encoding ASCII
+          Set-Content -LiteralPath (Join-Path $siteRoot 'gh21267.php') -Value $jitProbePhp -Encoding ASCII
 
           $jitComplexProbePhp = @(
             '<?php'
@@ -561,20 +425,20 @@ jobs:
             "header('Content-Type: text/plain');"
             "echo 'OK';"
           )
-          Set-Content -LiteralPath (Join-Path $wordpressRoot 'gh21267-complex.php') -Value $jitComplexProbePhp -Encoding ASCII
+          Set-Content -LiteralPath (Join-Path $siteRoot 'gh21267-complex.php') -Value $jitComplexProbePhp -Encoding ASCII
 
-          Write-Section "Install WordPress"
-          & (Join-Path $officialPhpDir 'php.exe') '-c' (Join-Path $officialPhpDir 'php.ini') (Join-Path $wordpressRoot 'install-wp.php')
+          Write-Section "Grant IIS write access"
+          & icacls $root '/grant' 'IIS_IUSRS:(OI)(CI)M' '/T' '/C' | Out-Null
 
-          Ensure-ReproSite -SiteName $siteName -SiteRoot $wordpressRoot -AppCmd $appCmd
+          Ensure-ReproSite -SiteName $siteName -SiteRoot $siteRoot -AppCmd $appCmd
 
-          Set-ReproPhp -SiteName $siteName -AppPool 'WordPress855Pool' -PhpDir $officialPhpDir -AppCmd $appCmd
+          Set-ReproPhp -SiteName $siteName -AppPool 'Php855Pool' -PhpDir $officialPhpDir -AppCmd $appCmd
           $health855 = Wait-Url -Url "$baseUrl/codex-health.php" -TimeoutSec 90
           Write-Host $health855.Content
           $baselineProbe = Invoke-JitProbePhase -Name 'php-8.5.5-nts-jit-probe' -BaseUrl $baseUrl -PhpDir $officialPhpDir -Path 'gh21267.php' -Loops 12
           $baselineComplexProbe = Invoke-JitProbePhase -Name 'php-8.5.5-nts-jit-complex-probe' -BaseUrl $baseUrl -PhpDir $officialPhpDir -Path 'gh21267-complex.php' -Loops 6
 
-          Set-ReproPhp -SiteName $siteName -AppPool 'WordPressPR21710Pool' -PhpDir $artifactPhpDir -AppCmd $appCmd
+          Set-ReproPhp -SiteName $siteName -AppPool 'PhpPr21710Pool' -PhpDir $artifactPhpDir -AppCmd $appCmd
           $healthPr = Wait-Url -Url "$baseUrl/codex-health.php" -TimeoutSec 90
           Write-Host $healthPr.Content
           $artifactProbe = Invoke-JitProbePhase -Name 'pr-artifact-jit-probe' -BaseUrl $baseUrl -PhpDir $artifactPhpDir -Path 'gh21267.php' -Loops 12
@@ -596,7 +460,7 @@ jobs:
           }
 
           if (-not $artifactPassed) {
-            throw "The PR artifact did not stay clean under the same IIS/WordPress workload."
+            throw "The PR artifact did not stay clean under the same IIS probe workload."
           }
 
           Write-Section "Done"
