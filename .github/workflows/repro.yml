@@ -24,8 +24,17 @@ jobs:
           "ROOT=${{ runner.temp }}\iis-pr-21710-repro" >> $env:GITHUB_ENV
           "SITE_ROOT=${{ runner.temp }}\iis-pr-21710-repro\site" >> $env:GITHUB_ENV
           "LOG_DIR=${{ runner.temp }}\iis-pr-21710-repro\logs" >> $env:GITHUB_ENV
-          "PHP_DIR=${{ runner.temp }}\iis-pr-21710-repro\php-8.5.5-nts" >> $env:GITHUB_ENV
-          "PHP_ERROR_LOG=${{ runner.temp }}\iis-pr-21710-repro\logs\php-855-errors.log" >> $env:GITHUB_ENV
+          "PHP_DIR=${{ runner.temp }}\iis-pr-21710-repro\php-artifact" >> $env:GITHUB_ENV
+          "PHP_ERROR_LOG=${{ runner.temp }}\iis-pr-21710-repro\logs\php-repro-errors.log" >> $env:GITHUB_ENV
+
+      - name: Download repro artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: artifacts
+          repository: php/php-windows-builder
+          run-id: 24851804919
+          path: ${{ runner.temp }}\php-repro-artifacts
+          github-token: ${{ secrets.PAT }}
 
       - name: Enable IIS
         shell: pwsh
@@ -114,13 +123,19 @@ jobs:
           & $appCmd set config $env:SITE_NAME -section:system.webServer/handlers /accessPolicy:Read,Script /commit:apphost | Out-Null
           & $appCmd set config $env:SITE_NAME -section:system.webServer/defaultDocument "/+files.[value='repro.php']" /commit:apphost | Out-Null
 
-      - name: Install PHP 8.5.5 NTS
+      - name: Install PHP repro build
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $zip = Join-Path $env:ROOT 'php-8.5.5-nts-Win32-vs17-x64.zip'
-          Invoke-WebRequest -UseBasicParsing -Uri 'https://windows.php.net/downloads/releases/php-8.5.5-nts-Win32-vs17-x64.zip' -OutFile $zip
-          Expand-Archive -LiteralPath $zip -DestinationPath $env:PHP_DIR -Force
+          $artifactRoot = '${{ runner.temp }}\php-repro-artifacts'
+          $zip = Get-ChildItem -LiteralPath $artifactRoot -File | Where-Object {
+            $_.Name -match '^php-\d+\.\d+\.\d+.*-nts-Win32-vs17-x64\.zip$'
+          } | Sort-Object Name -Descending | Select-Object -First 1
+          if (-not $zip) {
+            throw 'Could not find the NTS x64 PHP zip in the repro artifact.'
+          }
+          Write-Host "Using repro zip: $($zip.Name)"
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath $env:PHP_DIR -Force
 
       - name: Write php.ini with JIT
         shell: pwsh
@@ -230,7 +245,7 @@ jobs:
             Write-Host 'No PHP crash events found.'
           }
           if ($failures -eq 0 -and $events.Count -eq 0) {
-            throw 'PHP 8.5.5 NTS did not reproduce the IIS failure in this run.'
+            throw 'The repro build did not reproduce the IIS failure in this run.'
           }
 
   test-fix:
@@ -254,8 +269,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: artifacts
-          repository: php/php-windows-builder
-          run-id: 24851804919
+          repository: shivammathur/php-windows-builder
+          run-id: 24851225899
           path: ${{ runner.temp }}\php-pr-artifacts
           github-token: ${{ secrets.PAT }}
 
