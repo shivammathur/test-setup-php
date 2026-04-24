@@ -100,9 +100,9 @@ jobs:
           
           if ($generation !== (int) $state['generation'] || !is_file($payloadPath)) {
               $namespace = 'Payload' . $generation;
-              $payload = <<<PHP
+              $payload = <<<'PAYLOAD'
           <?php
-          namespace $namespace;
+          namespace __PAYLOAD_NAMESPACE__;
           
           class C {
               public $x = true;
@@ -139,7 +139,9 @@ jobs:
           }
           
           return __NAMESPACE__ . '\\runHotLoop';
-          PHP;
+          PAYLOAD;
+          
+              $payload = str_replace('__PAYLOAD_NAMESPACE__', $namespace, $payload);
           
               file_put_contents($payloadPath, $payload);
               clearstatcache(true, $payloadPath);
@@ -259,6 +261,9 @@ jobs:
             $_.ProviderName -in @('Application Error', 'Windows Error Reporting') -and $_.Message -match 'php-cgi\.exe|php8\.dll'
           })
           Write-Host "statuses=$($statuses -join ',')"
+          if ($sample -match 'Parse error|Fatal error') {
+            throw "The generated repro script is invalid: $sample"
+          }
           if ($sample) {
             Write-Host 'Failure sample'
             Write-Host $sample
@@ -377,9 +382,9 @@ jobs:
           
           if ($generation !== (int) $state['generation'] || !is_file($payloadPath)) {
               $namespace = 'Payload' . $generation;
-              $payload = <<<PHP
+              $payload = <<<'PAYLOAD'
           <?php
-          namespace $namespace;
+          namespace __PAYLOAD_NAMESPACE__;
           
           class C {
               public $x = true;
@@ -416,7 +421,9 @@ jobs:
           }
           
           return __NAMESPACE__ . '\\runHotLoop';
-          PHP;
+          PAYLOAD;
+          
+              $payload = str_replace('__PAYLOAD_NAMESPACE__', $namespace, $payload);
           
               file_put_contents($payloadPath, $payload);
               clearstatcache(true, $payloadPath);
@@ -536,6 +543,9 @@ jobs:
             $_.ProviderName -in @('Application Error', 'Windows Error Reporting') -and $_.Message -match 'php-cgi\.exe|php8\.dll'
           })
           Write-Host "statuses=$($statuses -join ',')"
+          if ($sample -match 'Parse error|Fatal error') {
+            throw "The generated repro script is invalid: $sample"
+          }
           if ($sample) {
             Write-Host 'Failure sample'
             Write-Host $sample
