@@ -148,9 +148,6 @@ jobs:
               if (function_exists('opcache_invalidate')) {
                   @opcache_invalidate($payloadPath, true);
               }
-              if (function_exists('opcache_compile_file')) {
-                  @opcache_compile_file($payloadPath);
-              }
               $state['generation'] = $generation;
           }
           
@@ -429,9 +426,6 @@ jobs:
               clearstatcache(true, $payloadPath);
               if (function_exists('opcache_invalidate')) {
                   @opcache_invalidate($payloadPath, true);
-              }
-              if (function_exists('opcache_compile_file')) {
-                  @opcache_compile_file($payloadPath);
               }
               $state['generation'] = $generation;
           }
