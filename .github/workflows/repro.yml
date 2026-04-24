@@ -14,15 +14,19 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 60
     env:
-      ROOT: ${{ runner.temp }}\iis-pr-21710-repro
-      SITE_ROOT: ${{ runner.temp }}\iis-pr-21710-repro\site
-      LOG_DIR: ${{ runner.temp }}\iis-pr-21710-repro\logs
-      PHP_DIR: ${{ runner.temp }}\iis-pr-21710-repro\php-8.5.5-nts
-      PHP_ERROR_LOG: ${{ runner.temp }}\iis-pr-21710-repro\logs\php-855-errors.log
       SITE_NAME: PhpJitRepro
       APP_POOL: PhpReproPool
       BASE_URL: 'http://127.0.0.1:8085'
     steps:
+      - name: Set job paths
+        shell: pwsh
+        run: |
+          "ROOT=${{ runner.temp }}\iis-pr-21710-repro" >> $env:GITHUB_ENV
+          "SITE_ROOT=${{ runner.temp }}\iis-pr-21710-repro\site" >> $env:GITHUB_ENV
+          "LOG_DIR=${{ runner.temp }}\iis-pr-21710-repro\logs" >> $env:GITHUB_ENV
+          "PHP_DIR=${{ runner.temp }}\iis-pr-21710-repro\php-8.5.5-nts" >> $env:GITHUB_ENV
+          "PHP_ERROR_LOG=${{ runner.temp }}\iis-pr-21710-repro\logs\php-855-errors.log" >> $env:GITHUB_ENV
+
       - name: Enable IIS
         shell: pwsh
         run: |
@@ -233,15 +237,19 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 60
     env:
-      ROOT: ${{ runner.temp }}\iis-pr-21710-fix
-      SITE_ROOT: ${{ runner.temp }}\iis-pr-21710-fix\site
-      LOG_DIR: ${{ runner.temp }}\iis-pr-21710-fix\logs
-      PHP_DIR: ${{ runner.temp }}\iis-pr-21710-fix\php-artifact
-      PHP_ERROR_LOG: ${{ runner.temp }}\iis-pr-21710-fix\logs\php-artifact-errors.log
       SITE_NAME: PhpJitRepro
       APP_POOL: PhpReproPool
       BASE_URL: 'http://127.0.0.1:8085'
     steps:
+      - name: Set job paths
+        shell: pwsh
+        run: |
+          "ROOT=${{ runner.temp }}\iis-pr-21710-fix" >> $env:GITHUB_ENV
+          "SITE_ROOT=${{ runner.temp }}\iis-pr-21710-fix\site" >> $env:GITHUB_ENV
+          "LOG_DIR=${{ runner.temp }}\iis-pr-21710-fix\logs" >> $env:GITHUB_ENV
+          "PHP_DIR=${{ runner.temp }}\iis-pr-21710-fix\php-artifact" >> $env:GITHUB_ENV
+          "PHP_ERROR_LOG=${{ runner.temp }}\iis-pr-21710-fix\logs\php-artifact-errors.log" >> $env:GITHUB_ENV
+
       - name: Download PHP artifact
         uses: actions/download-artifact@v4
         with:
