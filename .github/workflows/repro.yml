@@ -242,6 +242,7 @@ jobs:
             $failures = 0
             $status500 = 0
             $timeouts = 0
+            $unexpectedSample = $null
 
             foreach ($i in 1..$Loops) {
               try {
@@ -250,6 +251,13 @@ jobs:
                   $status500++
                 } elseif ($response.Content -notmatch '^OK\s*$') {
                   $failures++
+                  if (-not $unexpectedSample) {
+                    $sample = $response.Content
+                    if ($sample.Length -gt 240) {
+                      $sample = $sample.Substring(0, 240)
+                    }
+                    $unexpectedSample = $sample.Replace("`r", '\r').Replace("`n", '\n')
+                  }
                 }
               } catch {
                 $message = $_.Exception.Message
@@ -259,8 +267,14 @@ jobs:
                 } elseif ($message -match 'timed out|Timeout') {
                   $timeouts++
                   $failures++
+                  if (-not $unexpectedSample) {
+                    $unexpectedSample = $message
+                  }
                 } else {
                   $failures++
+                  if (-not $unexpectedSample) {
+                    $unexpectedSample = $message
+                  }
                 }
               }
             }
@@ -273,6 +287,7 @@ jobs:
               Status500   = $status500
               Timeouts    = $timeouts
               CrashEvents = $events.Count
+              Sample      = $unexpectedSample
             }
 
             $summary | ConvertTo-Json -Compress | Write-Host
