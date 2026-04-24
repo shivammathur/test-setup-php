@@ -233,7 +233,7 @@ jobs:
               [string] $Name,
               [string] $BaseUrl,
               [string] $PhpDir,
-              [string] $Path = 'gh21267.php',
+              [string] $Path = 'probe.php',
               [int] $Loops = 12
             )
 
@@ -357,8 +357,8 @@ jobs:
             "header('Content-Type: text/plain');"
             "echo 'PHP JIT repro site', PHP_EOL;"
             "echo 'health=/codex-health.php', PHP_EOL;"
-            "echo 'probe=/gh21267.php', PHP_EOL;"
-            "echo 'probe_complex=/gh21267-complex.php', PHP_EOL;"
+            "echo 'probe=/probe.php', PHP_EOL;"
+            "echo 'probe_complex=/probe-complex.php', PHP_EOL;"
           )
           Set-Content -LiteralPath (Join-Path $siteRoot 'index.php') -Value $indexPhp -Encoding ASCII
 
@@ -386,7 +386,7 @@ jobs:
             "header('Content-Type: text/plain');"
             "echo 'OK';"
           )
-          Set-Content -LiteralPath (Join-Path $siteRoot 'gh21267.php') -Value $jitProbePhp -Encoding ASCII
+          Set-Content -LiteralPath (Join-Path $siteRoot 'probe.php') -Value $jitProbePhp -Encoding ASCII
 
           $jitComplexProbePhp = @(
             '<?php'
@@ -440,24 +440,25 @@ jobs:
             "header('Content-Type: text/plain');"
             "echo 'OK';"
           )
-          Set-Content -LiteralPath (Join-Path $siteRoot 'gh21267-complex.php') -Value $jitComplexProbePhp -Encoding ASCII
+          Set-Content -LiteralPath (Join-Path $siteRoot 'probe-complex.php') -Value $jitComplexProbePhp -Encoding ASCII
 
           Write-Section "Grant IIS write access"
           & icacls $root '/grant' 'IIS_IUSRS:(OI)(CI)M' '/T' '/C' | Out-Null
+          Get-ChildItem -LiteralPath $siteRoot | Select-Object Name,Length | Format-Table -AutoSize | Out-String | Write-Host
 
           Ensure-ReproSite -SiteName $siteName -SiteRoot $siteRoot -AppCmd $appCmd
 
           Set-ReproPhp -SiteName $siteName -AppPool 'Php855Pool' -PhpDir $officialPhpDir -AppCmd $appCmd
           $health855 = Wait-Url -Url "$baseUrl/codex-health.php" -TimeoutSec 90
           Write-Host $health855.Content
-          $baselineProbe = Invoke-JitProbePhase -Name 'php-8.5.5-nts-jit-probe' -BaseUrl $baseUrl -PhpDir $officialPhpDir -Path 'gh21267.php' -Loops 12
-          $baselineComplexProbe = Invoke-JitProbePhase -Name 'php-8.5.5-nts-jit-complex-probe' -BaseUrl $baseUrl -PhpDir $officialPhpDir -Path 'gh21267-complex.php' -Loops 6
+          $baselineProbe = Invoke-JitProbePhase -Name 'php-8.5.5-nts-jit-probe' -BaseUrl $baseUrl -PhpDir $officialPhpDir -Path 'probe.php' -Loops 12
+          $baselineComplexProbe = Invoke-JitProbePhase -Name 'php-8.5.5-nts-jit-complex-probe' -BaseUrl $baseUrl -PhpDir $officialPhpDir -Path 'probe-complex.php' -Loops 6
 
           Set-ReproPhp -SiteName $siteName -AppPool 'PhpPr21710Pool' -PhpDir $artifactPhpDir -AppCmd $appCmd
           $healthPr = Wait-Url -Url "$baseUrl/codex-health.php" -TimeoutSec 90
           Write-Host $healthPr.Content
-          $artifactProbe = Invoke-JitProbePhase -Name 'pr-artifact-jit-probe' -BaseUrl $baseUrl -PhpDir $artifactPhpDir -Path 'gh21267.php' -Loops 12
-          $artifactComplexProbe = Invoke-JitProbePhase -Name 'pr-artifact-jit-complex-probe' -BaseUrl $baseUrl -PhpDir $artifactPhpDir -Path 'gh21267-complex.php' -Loops 6
+          $artifactProbe = Invoke-JitProbePhase -Name 'pr-artifact-jit-probe' -BaseUrl $baseUrl -PhpDir $artifactPhpDir -Path 'probe.php' -Loops 12
+          $artifactComplexProbe = Invoke-JitProbePhase -Name 'pr-artifact-jit-complex-probe' -BaseUrl $baseUrl -PhpDir $artifactPhpDir -Path 'probe-complex.php' -Loops 6
 
           Write-Section "Assertions"
           $baselineProbeFailed = ($baselineProbe.CrashEvents -gt 0) -or ($baselineProbe.Failures -gt 0) -or ($baselineProbe.Status500 -gt 0) -or ($baselineProbe.Timeouts -gt 0)
