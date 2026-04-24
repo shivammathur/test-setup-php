@@ -371,6 +371,7 @@ jobs:
             "define('WP_SITEURL', 'http://127.0.0.1:8085');"
             "define('WP_DEBUG', false);"
             "define('WP_CACHE', false);"
+            "define('DISABLE_WP_CRON', true);"
             "define('AUTH_KEY',         'codex-auth-key');"
             "define('SECURE_AUTH_KEY',  'codex-secure-auth-key');"
             "define('LOGGED_IN_KEY',    'codex-logged-in-key');"
@@ -386,6 +387,9 @@ jobs:
             "require_once ABSPATH . 'wp-settings.php';"
           )
           Set-Content -LiteralPath (Join-Path $wordpressRoot 'wp-config.php') -Value $wpConfig -Encoding ASCII
+
+          Write-Section "Grant IIS write access"
+          & icacls $root '/grant' 'IIS_IUSRS:(OI)(CI)M' '/T' '/C' | Out-Null
 
           $installPhp = @(
             '<?php'
