@@ -43,10 +43,10 @@ jobs:
           Start-Service WAS -ErrorAction SilentlyContinue
           Start-Service W3SVC -ErrorAction SilentlyContinue
 
-      - name: Install PHP 8.5.5
+      - name: Install PHP 8.4 baseline
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.5.5'
+          php-version: '8.4'
           coverage: none
           tools: none
 
@@ -58,8 +58,9 @@ jobs:
           $phpDir = Split-Path -Parent $phpCgi
           "PHP_DIR=$phpDir" >> $env:GITHUB_ENV
           $version = & (Join-Path $phpDir 'php.exe') -r "echo PHP_VERSION;"
-          if ($version -ne '8.5.5') {
-            throw "Expected PHP 8.5.5, got $version"
+          Write-Host "Baseline PHP version: $version"
+          if ($version -notmatch '^8\.4\.') {
+            throw "Expected a PHP 8.4 build, got $version"
           }
           $threadSafety = & (Join-Path $phpDir 'php.exe') -r "echo PHP_ZTS ? 'ts' : 'nts';"
           if ($threadSafety -ne 'nts') {
@@ -264,7 +265,7 @@ jobs:
             Write-Host 'No PHP crash events found.'
           }
           if ($failures -eq 0 -and $events.Count -eq 0) {
-            throw 'The PHP 8.5.5 baseline did not reproduce the IIS failure.'
+            throw 'The PHP 8.4 baseline did not reproduce the IIS failure.'
           }
 
   test-fix:
