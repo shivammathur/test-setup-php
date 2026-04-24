@@ -316,6 +316,7 @@ jobs:
               [string] $Name,
               [string] $BaseUrl,
               [string] $PhpDir,
+              [string] $Path = 'gh21267.php',
               [int] $Loops = 12
             )
 
@@ -327,7 +328,7 @@ jobs:
 
             foreach ($i in 1..$Loops) {
               try {
-                $response = Invoke-WebRequest -UseBasicParsing -Uri "$BaseUrl/gh21267.php?run=$i" -TimeoutSec 10 -Headers @{ 'Cache-Control' = 'no-cache' }
+                $response = Invoke-WebRequest -UseBasicParsing -Uri "$BaseUrl/$Path?run=$i" -TimeoutSec 10 -Headers @{ 'Cache-Control' = 'no-cache' }
                 if ($response.StatusCode -ge 500) {
                   $status500++
                 } elseif ($response.Content -notmatch '^OK\s*$') {
@@ -508,6 +509,60 @@ jobs:
           )
           Set-Content -LiteralPath (Join-Path $wordpressRoot 'gh21267.php') -Value $jitProbePhp -Encoding ASCII
 
+          $jitComplexProbePhp = @(
+            '<?php'
+            'class Base'
+            '{'
+            '    public $incrementing = true;'
+            ''
+            '    public function __get($name) { return null; }'
+            ''
+            '    public function getIncrementing() { return $this->incrementing; }'
+            ''
+            '    public function getCasts(): array'
+            '    {'
+            '        if ($this->getIncrementing()) {'
+            "            return ['id' => 'int'];"
+            '        }'
+            '        return [];'
+            '    }'
+            ''
+            '    public function hasCast(string $key): bool'
+            '    {'
+            '        return array_key_exists($key, $this->getCasts());'
+            '    }'
+            '}'
+            ''
+            'class ChildA extends Base {}'
+            'class ChildB extends Base {}'
+            'class ChildC extends Base { public $incrementing = false; }'
+            ''
+            '$classes = [ChildA::class, ChildB::class, ChildC::class];'
+            ''
+            'for ($round = 0; $round < 5; $round++) {'
+            '    for ($i = 0; $i < 1000; $i++) {'
+            '        $m = new $classes[$i % 3]();'
+            '        $m->getIncrementing();'
+            '        $m->getCasts();'
+            "        $m->hasCast('id');"
+            '    }'
+            '}'
+            ''
+            'for ($i = 0; $i < 3000; $i++) {'
+            '    $m = new $classes[$i % 3]();'
+            '    if ($i % 7 === 0) {'
+            '        unset($m->incrementing);'
+            '    }'
+            '    @$m->getIncrementing();'
+            '    @$m->getCasts();'
+            "    @$m->hasCast('id');"
+            '}'
+            ''
+            "header('Content-Type: text/plain');"
+            "echo 'OK';"
+          )
+          Set-Content -LiteralPath (Join-Path $wordpressRoot 'gh21267-complex.php') -Value $jitComplexProbePhp -Encoding ASCII
+
           Write-Section "Install WordPress"
           & (Join-Path $officialPhpDir 'php.exe') '-c' (Join-Path $officialPhpDir 'php.ini') (Join-Path $wordpressRoot 'install-wp.php')
 
@@ -516,25 +571,25 @@ jobs:
           Set-ReproPhp -SiteName $siteName -AppPool 'WordPress855Pool' -PhpDir $officialPhpDir -AppCmd $appCmd
           $health855 = Wait-Url -Url "$baseUrl/codex-health.php" -TimeoutSec 90
           Write-Host $health855.Content
-          $baseline = Invoke-ReproPhase -Name 'php-8.5.5-nts' -BaseUrl $baseUrl -PhpDir $officialPhpDir -Loops 120
-          $baselineProbe = Invoke-JitProbePhase -Name 'php-8.5.5-nts-jit-probe' -BaseUrl $baseUrl -PhpDir $officialPhpDir -Loops 12
+          $baselineProbe = Invoke-JitProbePhase -Name 'php-8.5.5-nts-jit-probe' -BaseUrl $baseUrl -PhpDir $officialPhpDir -Path 'gh21267.php' -Loops 12
+          $baselineComplexProbe = Invoke-JitProbePhase -Name 'php-8.5.5-nts-jit-complex-probe' -BaseUrl $baseUrl -PhpDir $officialPhpDir -Path 'gh21267-complex.php' -Loops 6
 
           Set-ReproPhp -SiteName $siteName -AppPool 'WordPressPR21710Pool' -PhpDir $artifactPhpDir -AppCmd $appCmd
           $healthPr = Wait-Url -Url "$baseUrl/codex-health.php" -TimeoutSec 90
           Write-Host $healthPr.Content
-          $artifact = Invoke-ReproPhase -Name 'pr-artifact' -BaseUrl $baseUrl -PhpDir $artifactPhpDir -Loops 120
-          $artifactProbe = Invoke-JitProbePhase -Name 'pr-artifact-jit-probe' -BaseUrl $baseUrl -PhpDir $artifactPhpDir -Loops 12
+          $artifactProbe = Invoke-JitProbePhase -Name 'pr-artifact-jit-probe' -BaseUrl $baseUrl -PhpDir $artifactPhpDir -Path 'gh21267.php' -Loops 12
+          $artifactComplexProbe = Invoke-JitProbePhase -Name 'pr-artifact-jit-complex-probe' -BaseUrl $baseUrl -PhpDir $artifactPhpDir -Path 'gh21267-complex.php' -Loops 6
 
           Write-Section "Assertions"
-          $baselineWordPressFailed = ($baseline.CrashEvents -gt 0) -or ($baseline.Failures -gt 0) -or ($baseline.Status500 -gt 0)
           $baselineProbeFailed = ($baselineProbe.CrashEvents -gt 0) -or ($baselineProbe.Failures -gt 0) -or ($baselineProbe.Status500 -gt 0) -or ($baselineProbe.Timeouts -gt 0)
-          $baselineFailed = $baselineWordPressFailed -or $baselineProbeFailed
-          $artifactPassed = ($artifact.CrashEvents -eq 0) -and ($artifact.Failures -eq 0) -and ($artifact.Status500 -eq 0) -and ($artifactProbe.CrashEvents -eq 0) -and ($artifactProbe.Failures -eq 0) -and ($artifactProbe.Status500 -eq 0) -and ($artifactProbe.Timeouts -eq 0)
+          $baselineComplexProbeFailed = ($baselineComplexProbe.CrashEvents -gt 0) -or ($baselineComplexProbe.Failures -gt 0) -or ($baselineComplexProbe.Status500 -gt 0) -or ($baselineComplexProbe.Timeouts -gt 0)
+          $baselineFailed = $baselineProbeFailed -or $baselineComplexProbeFailed
+          $artifactPassed = ($artifactProbe.CrashEvents -eq 0) -and ($artifactProbe.Failures -eq 0) -and ($artifactProbe.Status500 -eq 0) -and ($artifactProbe.Timeouts -eq 0) -and ($artifactComplexProbe.CrashEvents -eq 0) -and ($artifactComplexProbe.Failures -eq 0) -and ($artifactComplexProbe.Status500 -eq 0) -and ($artifactComplexProbe.Timeouts -eq 0)
 
-          "Baseline: $($baseline | ConvertTo-Json -Compress)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
           "Baseline probe: $($baselineProbe | ConvertTo-Json -Compress)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
-          "Artifact: $($artifact | ConvertTo-Json -Compress)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "Baseline complex probe: $($baselineComplexProbe | ConvertTo-Json -Compress)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
           "Artifact probe: $($artifactProbe | ConvertTo-Json -Compress)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "Artifact complex probe: $($artifactComplexProbe | ConvertTo-Json -Compress)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
 
           if (-not $baselineFailed) {
             throw "PHP 8.5.5 NTS did not reproduce the IIS workload failure in this run."
