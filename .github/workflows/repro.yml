@@ -246,7 +246,8 @@ jobs:
 
             foreach ($i in 1..$Loops) {
               try {
-                $response = Invoke-WebRequest -UseBasicParsing -Uri "$BaseUrl/$Path?run=$i" -TimeoutSec 10 -Headers @{ 'Cache-Control' = 'no-cache' }
+                $probeUrl = '{0}/{1}?run={2}' -f $BaseUrl.TrimEnd('/'), $Path.TrimStart('/'), $i
+                $response = Invoke-WebRequest -UseBasicParsing -Uri $probeUrl -TimeoutSec 10 -Headers @{ 'Cache-Control' = 'no-cache' }
                 if ($response.StatusCode -ge 500) {
                   $status500++
                 } elseif ($response.Content -notmatch '^OK\s*$') {
