@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+env:
+  ARTIFACT_NAME: artifacts
+  UNPATCHED_RUN_ID: 24892026240
+  PATCHED_RUN_ID: 24890166964
+
 jobs:
   repro:
     runs-on: windows-2022
@@ -24,6 +29,7 @@ jobs:
           "ROOT=${{ runner.temp }}\iis-pr-21710-repro" >> $env:GITHUB_ENV
           "SITE_ROOT=${{ runner.temp }}\iis-pr-21710-repro\site" >> $env:GITHUB_ENV
           "LOG_DIR=${{ runner.temp }}\iis-pr-21710-repro\logs" >> $env:GITHUB_ENV
+          "PHP_DIR=${{ runner.temp }}\iis-pr-21710-repro\php-artifact" >> $env:GITHUB_ENV
           "PHP_ERROR_LOG=${{ runner.temp }}\iis-pr-21710-repro\logs\php-errors.log" >> $env:GITHUB_ENV
 
       - name: Enable IIS
@@ -39,29 +45,36 @@ jobs:
           Start-Service WAS -ErrorAction SilentlyContinue
           Start-Service W3SVC -ErrorAction SilentlyContinue
 
-      - name: Install PHP 8.5.5
-        uses: shivammathur/setup-php@v2
+      - name: Download unpatched PHP artifact
+        uses: actions/download-artifact@v4
         with:
-          php-version: '8.5.5'
-          coverage: none
-          tools: none
+          name: ${{ env.ARTIFACT_NAME }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ env.UNPATCHED_RUN_ID }}
+          path: ${{ runner.temp }}\php-unpatched-artifacts
+          github-token: ${{ secrets.PAT }}
 
-      - name: Resolve PHP directory
+      - name: Install unpatched PHP
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $phpCgi = (Get-Command php-cgi.exe).Source
-          $phpDir = Split-Path -Parent $phpCgi
-          "PHP_DIR=$phpDir" >> $env:GITHUB_ENV
-          $version = & (Join-Path $phpDir 'php.exe') -r "echo PHP_VERSION;"
+          $artifactRoot = '${{ runner.temp }}\php-unpatched-artifacts'
+          $zip = Get-ChildItem -LiteralPath $artifactRoot -File | Where-Object {
+            $_.Name -match '^php-\d+\.\d+\.\d+.*-nts-Win32-vs17-x64\.zip$'
+          } | Sort-Object Name -Descending | Select-Object -First 1
+          if (-not $zip) {
+            throw 'Could not find the unpatched NTS x64 PHP zip in the downloaded artifact.'
+          }
+          Write-Host "Using artifact zip: $($zip.Name)"
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath $env:PHP_DIR -Force
+          $version = & (Join-Path $env:PHP_DIR 'php.exe') -r "echo PHP_VERSION;"
           if ($version -ne '8.5.5') {
             throw "Expected PHP 8.5.5, got $version"
           }
-          $threadSafety = & (Join-Path $phpDir 'php.exe') -r "echo PHP_ZTS ? 'ts' : 'nts';"
+          $threadSafety = & (Join-Path $env:PHP_DIR 'php.exe') -r "echo PHP_ZTS ? 'ts' : 'nts';"
           if ($threadSafety -ne 'nts') {
             throw "Expected an NTS build, got $threadSafety"
           }
-          Write-Host "PHP_DIR=$phpDir"
 
       - name: Create IIS site and repro.php
         shell: pwsh
@@ -324,9 +337,9 @@ jobs:
       - name: Download patched PHP artifact
         uses: actions/download-artifact@v4
         with:
-          name: artifacts
+          name: ${{ env.ARTIFACT_NAME }}
           repository: shivammathur/php-windows-builder
-          run-id: 24890166964
+          run-id: ${{ env.PATCHED_RUN_ID }}
           path: ${{ runner.temp }}\php-pr-artifacts
           github-token: ${{ secrets.PAT }}
 
