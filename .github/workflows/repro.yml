@@ -124,6 +124,11 @@ jobs:
               'opcache.file_cache_consistency_checks=0'
               'opcache.jit_buffer_size=128M'
               'opcache.jit=1255'
+              'opcache.jit_hot_loop=0'
+              'opcache.jit_hot_func=2'
+              'opcache.jit_hot_return=0'
+              'opcache.jit_hot_side_exit=1'
+              'opcache.jit_max_side_traces=0'
             )
 
             Set-Content -LiteralPath (Join-Path $PhpDir 'php.ini') -Value $ini -Encoding ASCII
@@ -306,6 +311,62 @@ jobs:
             return $summary
           }
 
+          function Invoke-JitProbePhase {
+            param(
+              [string] $Name,
+              [string] $BaseUrl,
+              [string] $PhpDir,
+              [int] $Loops = 12
+            )
+
+            Write-Section "Run $Name JIT probe"
+            $marker = Get-Date
+            $failures = 0
+            $status500 = 0
+            $timeouts = 0
+
+            foreach ($i in 1..$Loops) {
+              try {
+                $response = Invoke-WebRequest -UseBasicParsing -Uri "$BaseUrl/gh21267.php?run=$i" -TimeoutSec 10 -Headers @{ 'Cache-Control' = 'no-cache' }
+                if ($response.StatusCode -ge 500) {
+                  $status500++
+                } elseif ($response.Content -notmatch '^OK\s*$') {
+                  $failures++
+                }
+              } catch {
+                $message = $_.Exception.Message
+                $response = $_.Exception.Response
+                if ($response -and [int] $response.StatusCode -ge 500) {
+                  $status500++
+                } elseif ($message -match 'timed out|Timeout') {
+                  $timeouts++
+                  $failures++
+                } else {
+                  $failures++
+                }
+              }
+            }
+
+            $events = @(Get-PhpCrashEvents -Since $marker -PhpDir $PhpDir)
+            $summary = [pscustomobject]@{
+              Name        = $Name
+              Requests    = $Loops
+              Failures    = $failures
+              Status500   = $status500
+              Timeouts    = $timeouts
+              CrashEvents = $events.Count
+            }
+
+            $summary | ConvertTo-Json -Compress | Write-Host
+            if ($events.Count -gt 0) {
+              $events | Select-Object -First 3 | ForEach-Object {
+                Write-Host $_.Message
+              }
+            }
+
+            return $summary
+          }
+
           Write-Section "Prepare directories"
           $root = Join-Path $env:RUNNER_TEMP 'pr-21710-repro'
           $downloads = Join-Path $root 'downloads'
@@ -421,6 +482,32 @@ jobs:
           )
           Set-Content -LiteralPath (Join-Path $wordpressRoot 'codex-health.php') -Value $healthPhp -Encoding ASCII
 
+          $jitProbePhp = @(
+            '<?php'
+            'class C {'
+            '    public $x = true;'
+            '    public function __get($name) { return null; }'
+            '    public function getX() { return $this->x; }'
+            '}'
+            ''
+            '$o1 = new C;'
+            '$o2 = new C;'
+            '$o2->x = false;'
+            '$o3 = new C;'
+            'unset($o3->x);'
+            '$a = [$o1, $o2, $o3];'
+            ''
+            'for ($i = 0; $i < 64; $i++) {'
+            '    $m = $a[$i % 3];'
+            '    $m->getX();'
+            '    $m->getX();'
+            '}'
+            ''
+            "header('Content-Type: text/plain');"
+            "echo 'OK';"
+          )
+          Set-Content -LiteralPath (Join-Path $wordpressRoot 'gh21267.php') -Value $jitProbePhp -Encoding ASCII
+
           Write-Section "Install WordPress"
           & (Join-Path $officialPhpDir 'php.exe') '-c' (Join-Path $officialPhpDir 'php.ini') (Join-Path $wordpressRoot 'install-wp.php')
 
@@ -430,21 +517,27 @@ jobs:
           $health855 = Wait-Url -Url "$baseUrl/codex-health.php" -TimeoutSec 90
           Write-Host $health855.Content
           $baseline = Invoke-ReproPhase -Name 'php-8.5.5-nts' -BaseUrl $baseUrl -PhpDir $officialPhpDir -Loops 120
+          $baselineProbe = Invoke-JitProbePhase -Name 'php-8.5.5-nts-jit-probe' -BaseUrl $baseUrl -PhpDir $officialPhpDir -Loops 12
 
           Set-ReproPhp -SiteName $siteName -AppPool 'WordPressPR21710Pool' -PhpDir $artifactPhpDir -AppCmd $appCmd
           $healthPr = Wait-Url -Url "$baseUrl/codex-health.php" -TimeoutSec 90
           Write-Host $healthPr.Content
           $artifact = Invoke-ReproPhase -Name 'pr-artifact' -BaseUrl $baseUrl -PhpDir $artifactPhpDir -Loops 120
+          $artifactProbe = Invoke-JitProbePhase -Name 'pr-artifact-jit-probe' -BaseUrl $baseUrl -PhpDir $artifactPhpDir -Loops 12
 
           Write-Section "Assertions"
-          $baselineFailed = ($baseline.CrashEvents -gt 0) -or ($baseline.Failures -gt 0) -or ($baseline.Status500 -gt 0)
-          $artifactPassed = ($artifact.CrashEvents -eq 0) -and ($artifact.Failures -eq 0) -and ($artifact.Status500 -eq 0)
+          $baselineWordPressFailed = ($baseline.CrashEvents -gt 0) -or ($baseline.Failures -gt 0) -or ($baseline.Status500 -gt 0)
+          $baselineProbeFailed = ($baselineProbe.CrashEvents -gt 0) -or ($baselineProbe.Failures -gt 0) -or ($baselineProbe.Status500 -gt 0) -or ($baselineProbe.Timeouts -gt 0)
+          $baselineFailed = $baselineWordPressFailed -or $baselineProbeFailed
+          $artifactPassed = ($artifact.CrashEvents -eq 0) -and ($artifact.Failures -eq 0) -and ($artifact.Status500 -eq 0) -and ($artifactProbe.CrashEvents -eq 0) -and ($artifactProbe.Failures -eq 0) -and ($artifactProbe.Status500 -eq 0) -and ($artifactProbe.Timeouts -eq 0)
 
           "Baseline: $($baseline | ConvertTo-Json -Compress)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "Baseline probe: $($baselineProbe | ConvertTo-Json -Compress)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
           "Artifact: $($artifact | ConvertTo-Json -Compress)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          "Artifact probe: $($artifactProbe | ConvertTo-Json -Compress)" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
 
           if (-not $baselineFailed) {
-            throw "PHP 8.5.5 NTS did not reproduce the IIS/WordPress failure in this run."
+            throw "PHP 8.5.5 NTS did not reproduce the IIS workload failure in this run."
           }
 
           if (-not $artifactPassed) {
