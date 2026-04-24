@@ -11,7 +11,7 @@ permissions:
 
 env:
   ARTIFACT_NAME: artifacts
-  PATCHED_RUN_ID: 24890166964
+  PATCHED_RUN_ID: 24851225899
 
 jobs:
   repro:
@@ -138,7 +138,7 @@ jobs:
           
           $state['count'] = (int) $state['count'] + 1;
           $count = (int) $state['count'];
-          $generation = $count;
+          $generation = intdiv($count - 1, 2) + 1;
           
           if ($generation !== (int) $state['generation'] || !is_file($payloadPath) || !is_file($bridgePath)) {
               $namespace = 'Payload' . $generation;
@@ -513,7 +513,7 @@ jobs:
           
           $state['count'] = (int) $state['count'] + 1;
           $count = (int) $state['count'];
-          $generation = $count;
+          $generation = intdiv($count - 1, 2) + 1;
           
           if ($generation !== (int) $state['generation'] || !is_file($payloadPath) || !is_file($bridgePath)) {
               $namespace = 'Payload' . $generation;
