@@ -11,7 +11,6 @@ permissions:
 
 env:
   ARTIFACT_NAME: artifacts
-  UNPATCHED_RUN_ID: 24892026240
   PATCHED_RUN_ID: 24890166964
 
 jobs:
@@ -29,7 +28,6 @@ jobs:
           "ROOT=${{ runner.temp }}\iis-pr-21710-repro" >> $env:GITHUB_ENV
           "SITE_ROOT=${{ runner.temp }}\iis-pr-21710-repro\site" >> $env:GITHUB_ENV
           "LOG_DIR=${{ runner.temp }}\iis-pr-21710-repro\logs" >> $env:GITHUB_ENV
-          "PHP_DIR=${{ runner.temp }}\iis-pr-21710-repro\php-artifact" >> $env:GITHUB_ENV
           "PHP_ERROR_LOG=${{ runner.temp }}\iis-pr-21710-repro\logs\php-errors.log" >> $env:GITHUB_ENV
 
       - name: Enable IIS
@@ -45,33 +43,25 @@ jobs:
           Start-Service WAS -ErrorAction SilentlyContinue
           Start-Service W3SVC -ErrorAction SilentlyContinue
 
-      - name: Download unpatched PHP artifact
-        uses: actions/download-artifact@v4
+      - name: Install PHP 8.5.5
+        uses: shivammathur/setup-php@v2
         with:
-          name: ${{ env.ARTIFACT_NAME }}
-          repository: shivammathur/php-windows-builder
-          run-id: ${{ env.UNPATCHED_RUN_ID }}
-          path: ${{ runner.temp }}\php-unpatched-artifacts
-          github-token: ${{ secrets.PAT }}
+          php-version: '8.5.5'
+          coverage: none
+          tools: none
 
-      - name: Install unpatched PHP
+      - name: Resolve PHP directory
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $artifactRoot = '${{ runner.temp }}\php-unpatched-artifacts'
-          $zip = Get-ChildItem -LiteralPath $artifactRoot -File | Where-Object {
-            $_.Name -match '^php-\d+\.\d+\.\d+.*-nts-Win32-vs17-x64\.zip$'
-          } | Sort-Object Name -Descending | Select-Object -First 1
-          if (-not $zip) {
-            throw 'Could not find the unpatched NTS x64 PHP zip in the downloaded artifact.'
-          }
-          Write-Host "Using artifact zip: $($zip.Name)"
-          Expand-Archive -LiteralPath $zip.FullName -DestinationPath $env:PHP_DIR -Force
-          $version = & (Join-Path $env:PHP_DIR 'php.exe') -r "echo PHP_VERSION;"
+          $phpCgi = (Get-Command php-cgi.exe).Source
+          $phpDir = Split-Path -Parent $phpCgi
+          "PHP_DIR=$phpDir" >> $env:GITHUB_ENV
+          $version = & (Join-Path $phpDir 'php.exe') -r "echo PHP_VERSION;"
           if ($version -ne '8.5.5') {
             throw "Expected PHP 8.5.5, got $version"
           }
-          $threadSafety = & (Join-Path $env:PHP_DIR 'php.exe') -r "echo PHP_ZTS ? 'ts' : 'nts';"
+          $threadSafety = & (Join-Path $phpDir 'php.exe') -r "echo PHP_ZTS ? 'ts' : 'nts';"
           if ($threadSafety -ne 'nts') {
             throw "Expected an NTS build, got $threadSafety"
           }
@@ -126,6 +116,7 @@ jobs:
           
           $statePath = __DIR__ . '/state.json';
           $payloadPath = __DIR__ . '/payload.php';
+          $bridgePath = __DIR__ . '/bridge.php';
           
           $handle = fopen($statePath, 'c+');
           if (!$handle) {
@@ -147,10 +138,11 @@ jobs:
           
           $state['count'] = (int) $state['count'] + 1;
           $count = (int) $state['count'];
-          $generation = intdiv($count - 1, 4) + 1;
+          $generation = $count;
           
-          if ($generation !== (int) $state['generation'] || !is_file($payloadPath)) {
+          if ($generation !== (int) $state['generation'] || !is_file($payloadPath) || !is_file($bridgePath)) {
               $namespace = 'Payload' . $generation;
+              $bridgeNamespace = 'Bridge' . $generation;
               $payload = <<<'PAYLOAD'
           <?php
           namespace __PAYLOAD_NAMESPACE__;
@@ -168,6 +160,15 @@ jobs:
                   return $this->x;
               }
           }
+
+          class Harness {
+              public static function fetch(array $items, int $i)
+              {
+                  $m = $items[$i % 3];
+                  $m->getX();
+                  return $m->getX();
+              }
+          }
           
           function runHotLoop(): string
           {
@@ -180,9 +181,7 @@ jobs:
           
               for ($repeat = 0; $repeat < 64; $repeat++) {
                   for ($i = 0; $i < 512; $i++) {
-                      $m = $a[$i % 3];
-                      $m->getX();
-                      $m->getX();
+                      Harness::fetch($a, $i);
                   }
               }
           
@@ -191,13 +190,33 @@ jobs:
           
           return __NAMESPACE__ . '\\runHotLoop';
           PAYLOAD;
+
+              $bridge = <<<'BRIDGE'
+          <?php
+          namespace __BRIDGE_NAMESPACE__;
+
+          function invoke(callable $runner): string
+          {
+              $result = '';
+              for ($i = 0; $i < 16; $i++) {
+                  $result = $runner();
+              }
+              return $result;
+          }
+
+          return __NAMESPACE__ . '\\invoke';
+          BRIDGE;
           
               $payload = str_replace('__PAYLOAD_NAMESPACE__', $namespace, $payload);
+              $bridge = str_replace('__BRIDGE_NAMESPACE__', $bridgeNamespace, $bridge);
           
               file_put_contents($payloadPath, $payload);
+              file_put_contents($bridgePath, $bridge);
               clearstatcache(true, $payloadPath);
+              clearstatcache(true, $bridgePath);
               if (function_exists('opcache_invalidate')) {
                   @opcache_invalidate($payloadPath, true);
+                  @opcache_invalidate($bridgePath, true);
               }
               $state['generation'] = $generation;
           }
@@ -210,10 +229,8 @@ jobs:
           fclose($handle);
           
           $runner = require $payloadPath;
-          $result = '';
-          for ($i = 0; $i < 16; $i++) {
-              $result = $runner();
-          }
+          $bridge = require $bridgePath;
+          $result = $bridge($runner);
           
           header('Content-Type: text/plain');
           echo "OK\n";
@@ -239,6 +256,17 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $extensionDir = (Join-Path $env:PHP_DIR 'ext').Replace('\', '/')
           $errorLog = $env:PHP_ERROR_LOG.Replace('\', '/')
+          $phpExe = Join-Path $env:PHP_DIR 'php.exe'
+          $modules = & $phpExe -m
+          if ($modules -contains 'Zend OPcache') {
+            $zendOpcacheLine = '; Zend OPcache is built in'
+          } elseif (Test-Path -LiteralPath (Join-Path $env:PHP_DIR 'ext\\php_opcache.dll')) {
+            $zendOpcacheLine = 'zend_extension=php_opcache.dll'
+          } elseif (Test-Path -LiteralPath (Join-Path $env:PHP_DIR 'php_opcache.dll')) {
+            $zendOpcacheLine = 'zend_extension=php_opcache.dll'
+          } else {
+            $zendOpcacheLine = 'zend_extension=opcache'
+          }
           @"
           [PHP]
           extension_dir="$extensionDir"
@@ -265,6 +293,7 @@ jobs:
           extension=pdo_sqlite
           extension=openssl
           extension=sockets
+          $zendOpcacheLine
           
           [opcache]
           opcache.enable=1
@@ -312,6 +341,10 @@ jobs:
             $bodyText = Get-Content -LiteralPath $body -Raw -ErrorAction SilentlyContinue
             $statuses += $status
             Write-Host "run=$i status=$status"
+            if ($i -eq 1) {
+              Write-Host 'First response'
+              Write-Host $bodyText
+            }
             if ($status -ne '200' -or $bodyText -notmatch '^OK' -or $bodyText -notmatch 'jit_on=1') {
               $failures++
               if (-not $sample) {
@@ -458,6 +491,7 @@ jobs:
           
           $statePath = __DIR__ . '/state.json';
           $payloadPath = __DIR__ . '/payload.php';
+          $bridgePath = __DIR__ . '/bridge.php';
           
           $handle = fopen($statePath, 'c+');
           if (!$handle) {
@@ -479,10 +513,11 @@ jobs:
           
           $state['count'] = (int) $state['count'] + 1;
           $count = (int) $state['count'];
-          $generation = intdiv($count - 1, 4) + 1;
+          $generation = $count;
           
-          if ($generation !== (int) $state['generation'] || !is_file($payloadPath)) {
+          if ($generation !== (int) $state['generation'] || !is_file($payloadPath) || !is_file($bridgePath)) {
               $namespace = 'Payload' . $generation;
+              $bridgeNamespace = 'Bridge' . $generation;
               $payload = <<<'PAYLOAD'
           <?php
           namespace __PAYLOAD_NAMESPACE__;
@@ -500,6 +535,15 @@ jobs:
                   return $this->x;
               }
           }
+
+          class Harness {
+              public static function fetch(array $items, int $i)
+              {
+                  $m = $items[$i % 3];
+                  $m->getX();
+                  return $m->getX();
+              }
+          }
           
           function runHotLoop(): string
           {
@@ -512,9 +556,7 @@ jobs:
           
               for ($repeat = 0; $repeat < 64; $repeat++) {
                   for ($i = 0; $i < 512; $i++) {
-                      $m = $a[$i % 3];
-                      $m->getX();
-                      $m->getX();
+                      Harness::fetch($a, $i);
                   }
               }
           
@@ -523,13 +565,33 @@ jobs:
           
           return __NAMESPACE__ . '\\runHotLoop';
           PAYLOAD;
+
+              $bridge = <<<'BRIDGE'
+          <?php
+          namespace __BRIDGE_NAMESPACE__;
+
+          function invoke(callable $runner): string
+          {
+              $result = '';
+              for ($i = 0; $i < 16; $i++) {
+                  $result = $runner();
+              }
+              return $result;
+          }
+
+          return __NAMESPACE__ . '\\invoke';
+          BRIDGE;
           
               $payload = str_replace('__PAYLOAD_NAMESPACE__', $namespace, $payload);
+              $bridge = str_replace('__BRIDGE_NAMESPACE__', $bridgeNamespace, $bridge);
           
               file_put_contents($payloadPath, $payload);
+              file_put_contents($bridgePath, $bridge);
               clearstatcache(true, $payloadPath);
+              clearstatcache(true, $bridgePath);
               if (function_exists('opcache_invalidate')) {
                   @opcache_invalidate($payloadPath, true);
+                  @opcache_invalidate($bridgePath, true);
               }
               $state['generation'] = $generation;
           }
@@ -542,10 +604,8 @@ jobs:
           fclose($handle);
           
           $runner = require $payloadPath;
-          $result = '';
-          for ($i = 0; $i < 16; $i++) {
-              $result = $runner();
-          }
+          $bridge = require $bridgePath;
+          $result = $bridge($runner);
           
           header('Content-Type: text/plain');
           echo "OK\n";
@@ -571,6 +631,17 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $extensionDir = (Join-Path $env:PHP_DIR 'ext').Replace('\', '/')
           $errorLog = $env:PHP_ERROR_LOG.Replace('\', '/')
+          $phpExe = Join-Path $env:PHP_DIR 'php.exe'
+          $modules = & $phpExe -m
+          if ($modules -contains 'Zend OPcache') {
+            $zendOpcacheLine = '; Zend OPcache is built in'
+          } elseif (Test-Path -LiteralPath (Join-Path $env:PHP_DIR 'ext\\php_opcache.dll')) {
+            $zendOpcacheLine = 'zend_extension=php_opcache.dll'
+          } elseif (Test-Path -LiteralPath (Join-Path $env:PHP_DIR 'php_opcache.dll')) {
+            $zendOpcacheLine = 'zend_extension=php_opcache.dll'
+          } else {
+            $zendOpcacheLine = 'zend_extension=opcache'
+          }
           @"
           [PHP]
           extension_dir="$extensionDir"
@@ -597,6 +668,7 @@ jobs:
           extension=pdo_sqlite
           extension=openssl
           extension=sockets
+          $zendOpcacheLine
           
           [opcache]
           opcache.enable=1
@@ -644,6 +716,10 @@ jobs:
             $bodyText = Get-Content -LiteralPath $body -Raw -ErrorAction SilentlyContinue
             $statuses += $status
             Write-Host "run=$i status=$status"
+            if ($i -eq 1) {
+              Write-Host 'First response'
+              Write-Host $bodyText
+            }
             if ($status -ne '200' -or $bodyText -notmatch '^OK' -or $bodyText -notmatch 'jit_on=1') {
               $failures++
               if (-not $sample) {
