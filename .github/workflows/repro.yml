@@ -85,12 +85,43 @@ jobs:
           $reproPhp = @'
           <?php
           declare(strict_types=1);
+
+          $jitStatus = function_exists('opcache_get_status') ? opcache_get_status(false) : false;
+          $jit = is_array($jitStatus) && isset($jitStatus['jit']) && is_array($jitStatus['jit']) ? $jitStatus['jit'] : [];
+          if (empty($jit['enabled']) || empty($jit['on'])) {
+              http_response_code(500);
+              header('Content-Type: text/plain');
+              echo "jit-disabled\n";
+              echo 'php=' . PHP_VERSION . "\n";
+              exit(1);
+          }
           
           if (function_exists('bzcompress')) {
               bzcompress('codex');
           }
           if (function_exists('curl_version')) {
               curl_version();
+          }
+          if (function_exists('mb_strlen')) {
+              mb_strlen('codex');
+          }
+          if (function_exists('idn_to_ascii')) {
+              idn_to_ascii('example.test');
+          }
+          if (function_exists('com_create_guid')) {
+              com_create_guid();
+          }
+          if (function_exists('odbc_connection_string_quote')) {
+              odbc_connection_string_quote('codex');
+          }
+          if (function_exists('mysqli_get_client_info')) {
+              mysqli_get_client_info();
+          }
+          if (class_exists('SQLite3')) {
+              SQLite3::version();
+          }
+          if (function_exists('openssl_cipher_iv_length')) {
+              openssl_cipher_iv_length('aes-128-cbc');
           }
           
           $statePath = __DIR__ . '/state.json';
@@ -116,7 +147,7 @@ jobs:
           
           $state['count'] = (int) $state['count'] + 1;
           $count = (int) $state['count'];
-          $generation = intdiv($count - 1, 8) + 1;
+          $generation = intdiv($count - 1, 4) + 1;
           
           if ($generation !== (int) $state['generation'] || !is_file($payloadPath)) {
               $namespace = 'Payload' . $generation;
@@ -180,7 +211,7 @@ jobs:
           
           $runner = require $payloadPath;
           $result = '';
-          for ($i = 0; $i < 12; $i++) {
+          for ($i = 0; $i < 16; $i++) {
               $result = $runner();
           }
           
@@ -189,6 +220,9 @@ jobs:
           echo "count=$count\n";
           echo "generation=$generation\n";
           echo "result=$result\n";
+          echo 'jit_enabled=' . (!empty($jit['enabled']) ? '1' : '0') . "\n";
+          echo 'jit_on=' . (!empty($jit['on']) ? '1' : '0') . "\n";
+          echo 'jit_kind=' . ($jit['kind'] ?? '0') . "\n";
           echo 'php=' . PHP_VERSION . "\n";
           '@
           Set-Content -LiteralPath (Join-Path $env:SITE_ROOT 'repro.php') -Value $reproPhp.TrimStart() -Encoding ASCII
@@ -220,8 +254,17 @@ jobs:
           
           extension=bz2
           extension=curl
-          
-          zend_extension=opcache
+          extension=mbstring
+          extension=com_dotnet
+          extension=odbc
+          extension=intl
+          extension=fileinfo
+          extension=mysqli
+          extension=pdo_mysql
+          extension=sqlite3
+          extension=pdo_sqlite
+          extension=openssl
+          extension=sockets
           
           [opcache]
           opcache.enable=1
@@ -233,12 +276,12 @@ jobs:
           opcache.max_accelerated_files=10000
           opcache.interned_strings_buffer=16
           opcache.jit_buffer_size=64M
-          opcache.jit=tracing
+          opcache.jit=1255
           opcache.jit_hot_loop=0
           opcache.jit_hot_func=1
           opcache.jit_hot_return=0
           opcache.jit_hot_side_exit=1
-          opcache.jit_max_side_traces=8
+          opcache.jit_max_side_traces=16
           "@ | Set-Content -LiteralPath (Join-Path $env:PHP_DIR 'php.ini') -Encoding ASCII
 
       - name: Configure IIS FastCGI
@@ -260,7 +303,7 @@ jobs:
           $failures = 0
           $statuses = @()
           $sample = $null
-          1..240 | ForEach-Object {
+          1..480 | ForEach-Object {
             $i = $_
             $headers = Join-Path $env:ROOT "repro-$i.headers.txt"
             $body = Join-Path $env:ROOT "repro-$i.body.txt"
@@ -269,13 +312,13 @@ jobs:
             $bodyText = Get-Content -LiteralPath $body -Raw -ErrorAction SilentlyContinue
             $statuses += $status
             Write-Host "run=$i status=$status"
-            if ($status -ne '200' -or $bodyText -notmatch '^OK') {
+            if ($status -ne '200' -or $bodyText -notmatch '^OK' -or $bodyText -notmatch 'jit_on=1') {
               $failures++
               if (-not $sample) {
                 $sample = $bodyText
               }
             }
-            Start-Sleep -Milliseconds 100
+            Start-Sleep -Milliseconds 50
           }
           $events = @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = $start } -ErrorAction SilentlyContinue | Where-Object {
             $_.ProviderName -in @('Application Error', 'Windows Error Reporting') -and $_.Message -match 'php-cgi\.exe|php8\.dll'
@@ -374,12 +417,43 @@ jobs:
           $reproPhp = @'
           <?php
           declare(strict_types=1);
+
+          $jitStatus = function_exists('opcache_get_status') ? opcache_get_status(false) : false;
+          $jit = is_array($jitStatus) && isset($jitStatus['jit']) && is_array($jitStatus['jit']) ? $jitStatus['jit'] : [];
+          if (empty($jit['enabled']) || empty($jit['on'])) {
+              http_response_code(500);
+              header('Content-Type: text/plain');
+              echo "jit-disabled\n";
+              echo 'php=' . PHP_VERSION . "\n";
+              exit(1);
+          }
           
           if (function_exists('bzcompress')) {
               bzcompress('codex');
           }
           if (function_exists('curl_version')) {
               curl_version();
+          }
+          if (function_exists('mb_strlen')) {
+              mb_strlen('codex');
+          }
+          if (function_exists('idn_to_ascii')) {
+              idn_to_ascii('example.test');
+          }
+          if (function_exists('com_create_guid')) {
+              com_create_guid();
+          }
+          if (function_exists('odbc_connection_string_quote')) {
+              odbc_connection_string_quote('codex');
+          }
+          if (function_exists('mysqli_get_client_info')) {
+              mysqli_get_client_info();
+          }
+          if (class_exists('SQLite3')) {
+              SQLite3::version();
+          }
+          if (function_exists('openssl_cipher_iv_length')) {
+              openssl_cipher_iv_length('aes-128-cbc');
           }
           
           $statePath = __DIR__ . '/state.json';
@@ -405,7 +479,7 @@ jobs:
           
           $state['count'] = (int) $state['count'] + 1;
           $count = (int) $state['count'];
-          $generation = intdiv($count - 1, 8) + 1;
+          $generation = intdiv($count - 1, 4) + 1;
           
           if ($generation !== (int) $state['generation'] || !is_file($payloadPath)) {
               $namespace = 'Payload' . $generation;
@@ -469,7 +543,7 @@ jobs:
           
           $runner = require $payloadPath;
           $result = '';
-          for ($i = 0; $i < 12; $i++) {
+          for ($i = 0; $i < 16; $i++) {
               $result = $runner();
           }
           
@@ -478,6 +552,9 @@ jobs:
           echo "count=$count\n";
           echo "generation=$generation\n";
           echo "result=$result\n";
+          echo 'jit_enabled=' . (!empty($jit['enabled']) ? '1' : '0') . "\n";
+          echo 'jit_on=' . (!empty($jit['on']) ? '1' : '0') . "\n";
+          echo 'jit_kind=' . ($jit['kind'] ?? '0') . "\n";
           echo 'php=' . PHP_VERSION . "\n";
           '@
           Set-Content -LiteralPath (Join-Path $env:SITE_ROOT 'repro.php') -Value $reproPhp.TrimStart() -Encoding ASCII
@@ -509,8 +586,17 @@ jobs:
           
           extension=bz2
           extension=curl
-          
-          zend_extension=opcache
+          extension=mbstring
+          extension=com_dotnet
+          extension=odbc
+          extension=intl
+          extension=fileinfo
+          extension=mysqli
+          extension=pdo_mysql
+          extension=sqlite3
+          extension=pdo_sqlite
+          extension=openssl
+          extension=sockets
           
           [opcache]
           opcache.enable=1
@@ -522,12 +608,12 @@ jobs:
           opcache.max_accelerated_files=10000
           opcache.interned_strings_buffer=16
           opcache.jit_buffer_size=64M
-          opcache.jit=tracing
+          opcache.jit=1255
           opcache.jit_hot_loop=0
           opcache.jit_hot_func=1
           opcache.jit_hot_return=0
           opcache.jit_hot_side_exit=1
-          opcache.jit_max_side_traces=8
+          opcache.jit_max_side_traces=16
           "@ | Set-Content -LiteralPath (Join-Path $env:PHP_DIR 'php.ini') -Encoding ASCII
 
       - name: Configure IIS FastCGI
@@ -549,7 +635,7 @@ jobs:
           $failures = 0
           $statuses = @()
           $sample = $null
-          1..240 | ForEach-Object {
+          1..480 | ForEach-Object {
             $i = $_
             $headers = Join-Path $env:ROOT "repro-$i.headers.txt"
             $body = Join-Path $env:ROOT "repro-$i.body.txt"
@@ -558,13 +644,13 @@ jobs:
             $bodyText = Get-Content -LiteralPath $body -Raw -ErrorAction SilentlyContinue
             $statuses += $status
             Write-Host "run=$i status=$status"
-            if ($status -ne '200' -or $bodyText -notmatch '^OK') {
+            if ($status -ne '200' -or $bodyText -notmatch '^OK' -or $bodyText -notmatch 'jit_on=1') {
               $failures++
               if (-not $sample) {
                 $sample = $bodyText
               }
             }
-            Start-Sleep -Milliseconds 100
+            Start-Sleep -Milliseconds 50
           }
           $events = @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = $start } -ErrorAction SilentlyContinue | Where-Object {
             $_.ProviderName -in @('Application Error', 'Windows Error Reporting') -and $_.Message -match 'php-cgi\.exe|php8\.dll'
