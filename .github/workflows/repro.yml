@@ -347,10 +347,11 @@ jobs:
           Write-Section "Download WordPress and SQLite drop-in"
           $wordpressZip = Join-Path $downloads 'wordpress.zip'
           $wordpressExtract = Join-Path $root 'wordpress-extract'
+          $wordpressSource = Join-Path $wordpressExtract 'wordpress'
           Ensure-Directory $wordpressExtract
           Invoke-WebRequest -UseBasicParsing -Uri 'https://wordpress.org/latest.zip' -OutFile $wordpressZip
           Expand-Archive -LiteralPath $wordpressZip -DestinationPath $wordpressExtract -Force
-          Copy-Item -LiteralPath (Join-Path $wordpressExtract 'wordpress\*') -Destination $wordpressRoot -Recurse -Force
+          Copy-Item -Path (Join-Path $wordpressSource '*') -Destination $wordpressRoot -Recurse -Force
           Ensure-Directory (Join-Path $wordpressRoot 'wp-content\database')
           Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/aaemnnosttv/wp-sqlite-db/master/src/db.php' -OutFile (Join-Path $wordpressRoot 'wp-content\db.php')
 
