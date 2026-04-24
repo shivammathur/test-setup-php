@@ -16,7 +16,7 @@ jobs:
     env:
       SITE_NAME: PhpJitRepro
       APP_POOL: PhpReproPool
-      BASE_URL: 'http://127.0.0.1:8085'
+      BASE_URL: "http://127.0.0.1:8085"
     steps:
       - name: Set job paths
         shell: pwsh
@@ -24,23 +24,13 @@ jobs:
           "ROOT=${{ runner.temp }}\iis-pr-21710-repro" >> $env:GITHUB_ENV
           "SITE_ROOT=${{ runner.temp }}\iis-pr-21710-repro\site" >> $env:GITHUB_ENV
           "LOG_DIR=${{ runner.temp }}\iis-pr-21710-repro\logs" >> $env:GITHUB_ENV
-          "PHP_DIR=${{ runner.temp }}\iis-pr-21710-repro\php-artifact" >> $env:GITHUB_ENV
-          "PHP_ERROR_LOG=${{ runner.temp }}\iis-pr-21710-repro\logs\php-repro-errors.log" >> $env:GITHUB_ENV
-
-      - name: Download repro artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          repository: php/php-windows-builder
-          run-id: 24851804919
-          path: ${{ runner.temp }}\php-repro-artifacts
-          github-token: ${{ secrets.PAT }}
+          "PHP_ERROR_LOG=${{ runner.temp }}\iis-pr-21710-repro\logs\php-errors.log" >> $env:GITHUB_ENV
 
       - name: Enable IIS
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          foreach ($feature in 'IIS-WebServerRole','IIS-WebServer','IIS-CommonHttpFeatures','IIS-DefaultDocument','IIS-StaticContent','IIS-ApplicationDevelopment','IIS-CGI') {
+          foreach ($feature in 'IIS-WebServerRole','IIS-WebServer','IIS-CommonHttpFeatures','IIS-StaticContent','IIS-DefaultDocument','IIS-ApplicationDevelopment','IIS-CGI') {
             if ((Get-WindowsOptionalFeature -Online -FeatureName $feature).State -ne 'Enabled') {
               Enable-WindowsOptionalFeature -Online -FeatureName $feature -All -NoRestart | Out-Null
             }
@@ -49,93 +39,146 @@ jobs:
           Start-Service WAS -ErrorAction SilentlyContinue
           Start-Service W3SVC -ErrorAction SilentlyContinue
 
+      - name: Install PHP 8.5.5
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5.5'
+          coverage: none
+          tools: none
+
+      - name: Resolve PHP directory
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $phpCgi = (Get-Command php-cgi.exe).Source
+          $phpDir = Split-Path -Parent $phpCgi
+          "PHP_DIR=$phpDir" >> $env:GITHUB_ENV
+          $version = & (Join-Path $phpDir 'php.exe') -r "echo PHP_VERSION;"
+          if ($version -ne '8.5.5') {
+            throw "Expected PHP 8.5.5, got $version"
+          }
+          $threadSafety = & (Join-Path $phpDir 'php.exe') -r "echo PHP_ZTS ? 'ts' : 'nts';"
+          if ($threadSafety -ne 'nts') {
+            throw "Expected an NTS build, got $threadSafety"
+          }
+          Write-Host "PHP_DIR=$phpDir"
+
       - name: Create IIS site and repro.php
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $appCmd = Join-Path $env:windir 'System32\inetsrv\appcmd.exe'
-          New-Item -ItemType Directory -Force -Path $env:ROOT, $env:SITE_ROOT, $env:LOG_DIR, (Join-Path $env:ROOT 'opcache') | Out-Null
+          New-Item -ItemType Directory -Force -Path $env:ROOT, $env:SITE_ROOT, $env:LOG_DIR | Out-Null
           $reproPhp = @'
           <?php
-          if (function_exists('bzcompress')) { bzcompress('codex'); }
-          if (function_exists('curl_version')) { curl_version(); }
-          if (function_exists('mb_strlen')) { mb_strlen('codex'); }
+          declare(strict_types=1);
           
-          class HotValue {
+          $statePath = __DIR__ . '/state.json';
+          $payloadPath = __DIR__ . '/payload.php';
+          
+          $handle = fopen($statePath, 'c+');
+          if (!$handle) {
+              http_response_code(500);
+              echo "state-open-failed\n";
+              exit(1);
+          }
+          
+          flock($handle, LOCK_EX);
+          
+          $state = ['count' => 0, 'generation' => 0];
+          $raw = stream_get_contents($handle);
+          if (is_string($raw) && $raw !== '') {
+              $decoded = json_decode($raw, true);
+              if (is_array($decoded)) {
+                  $state = array_merge($state, $decoded);
+              }
+          }
+          
+          $state['count'] = (int) $state['count'] + 1;
+          $count = (int) $state['count'];
+          $generation = intdiv($count - 1, 8) + 1;
+          
+          if ($generation !== (int) $state['generation'] || !is_file($payloadPath)) {
+              $namespace = 'Payload' . $generation;
+              $payload = <<<PHP
+          <?php
+          namespace $namespace;
+          
+          class C {
               public $x = true;
-              public function __get($name) { return null; }
-              public function getX() { return $this->x; }
-          }
           
-          function hotFetchObj(): void {
-              $a = new HotValue;
-              $b = new HotValue;
-              $b->x = false;
-              $c = new HotValue;
-              unset($c->x);
-              $items = [$a, $b, $c];
+              public function __get(string $name)
+              {
+                  return null;
+              }
           
-              for ($i = 0; $i < 4096; $i++) {
-                  $m = $items[$i % 3];
-                  $m->getX();
-                  $m->getX();
+              public function getX()
+              {
+                  return $this->x;
               }
           }
           
-          class BaseModel {
-              public $incrementing = true;
-              public function __get($name) { return null; }
-              public function getIncrementing() { return $this->incrementing; }
-              public function getCasts(): array {
-                  return $this->getIncrementing() ? ['id' => 'int'] : [];
-              }
-              public function hasCast(string $key): bool {
-                  return array_key_exists($key, $this->getCasts());
-              }
-          }
+          function runHotLoop(): string
+          {
+              $o1 = new C;
+              $o2 = new C;
+              $o2->x = false;
+              $o3 = new C;
+              unset($o3->x);
+              $a = [$o1, $o2, $o3];
           
-          class ModelA extends BaseModel {}
-          class ModelB extends BaseModel {}
-          class ModelC extends BaseModel { public $incrementing = false; }
-          
-          $classes = [ModelA::class, ModelB::class, ModelC::class];
-          
-          for ($round = 0; $round < 25; $round++) {
-              hotFetchObj();
-              for ($i = 0; $i < 8000; $i++) {
-                  $m = new ($classes[$i % 3])();
-                  if (($i % 7) === 0) {
-                      unset($m->incrementing);
+              for ($repeat = 0; $repeat < 64; $repeat++) {
+                  for ($i = 0; $i < 512; $i++) {
+                      $m = $a[$i % 3];
+                      $m->getX();
+                      $m->getX();
                   }
-                  @$m->getIncrementing();
-                  @$m->getCasts();
-                  @$m->hasCast('id');
               }
+          
+              return 'OK';
+          }
+          
+          return __NAMESPACE__ . '\\runHotLoop';
+          PHP;
+          
+              file_put_contents($payloadPath, $payload);
+              clearstatcache(true, $payloadPath);
+              if (function_exists('opcache_invalidate')) {
+                  @opcache_invalidate($payloadPath, true);
+              }
+              if (function_exists('opcache_compile_file')) {
+                  @opcache_compile_file($payloadPath);
+              }
+              $state['generation'] = $generation;
+          }
+          
+          rewind($handle);
+          ftruncate($handle, 0);
+          fwrite($handle, json_encode($state));
+          fflush($handle);
+          flock($handle, LOCK_UN);
+          fclose($handle);
+          
+          $runner = require $payloadPath;
+          $result = '';
+          for ($i = 0; $i < 12; $i++) {
+              $result = $runner();
           }
           
           header('Content-Type: text/plain');
           echo "OK\n";
+          echo "count=$count\n";
+          echo "generation=$generation\n";
+          echo "result=$result\n";
           echo 'php=' . PHP_VERSION . "\n";
           '@
           Set-Content -LiteralPath (Join-Path $env:SITE_ROOT 'repro.php') -Value $reproPhp.TrimStart() -Encoding ASCII
           & icacls $env:ROOT '/grant' 'IIS_IUSRS:(OI)(CI)M' '/T' '/C' | Out-Null
           & $appCmd add site "/name:$env:SITE_NAME" "/bindings:http/*:8085:" "/physicalPath:$env:SITE_ROOT" | Out-Null
+          & $appCmd add apppool "/name:$env:APP_POOL" | Out-Null
+          & $appCmd set apppool "$env:APP_POOL" /processModel.maxProcesses:1 /failure.rapidFailProtection:false /recycling.periodicRestart.time:00:00:00 | Out-Null
+          & $appCmd set app "/app.name:$env:SITE_NAME/" "/applicationPool:$env:APP_POOL" | Out-Null
           & $appCmd set config $env:SITE_NAME -section:system.webServer/handlers /accessPolicy:Read,Script /commit:apphost | Out-Null
-          & $appCmd set config $env:SITE_NAME -section:system.webServer/defaultDocument "/+files.[value='repro.php']" /commit:apphost | Out-Null
-
-      - name: Install PHP repro build
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $artifactRoot = '${{ runner.temp }}\php-repro-artifacts'
-          $zip = Get-ChildItem -LiteralPath $artifactRoot -File | Where-Object {
-            $_.Name -match '^php-\d+\.\d+\.\d+.*-nts-Win32-vs17-x64\.zip$'
-          } | Sort-Object Name -Descending | Select-Object -First 1
-          if (-not $zip) {
-            throw 'Could not find the NTS x64 PHP zip in the repro artifact.'
-          }
-          Write-Host "Using repro zip: $($zip.Name)"
-          Expand-Archive -LiteralPath $zip.FullName -DestinationPath $env:PHP_DIR -Force
 
       - name: Write php.ini with JIT
         shell: pwsh
@@ -143,44 +186,34 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $extensionDir = (Join-Path $env:PHP_DIR 'ext').Replace('\', '/')
           $errorLog = $env:PHP_ERROR_LOG.Replace('\', '/')
-          $fileCache = (Join-Path $env:ROOT 'opcache').Replace('\', '/')
           @"
           [PHP]
           extension_dir="$extensionDir"
           date.timezone=UTC
+          display_errors=1
+          html_errors=0
+          log_errors=1
+          error_log="$errorLog"
           memory_limit=512M
           max_execution_time=120
-          display_errors=Off
-          log_errors=On
-          error_log="$errorLog"
+          output_buffering=0
           cgi.fix_pathinfo=1
-          
-          extension=bz2
-          extension=com_dotnet
-          extension=curl
-          extension=fileinfo
-          extension=mbstring
-          extension=odbc
-          extension=openssl
-          extension=pdo_sqlite
-          extension=sqlite3
-          extension=zip
           
           zend_extension=opcache
           
           [opcache]
           opcache.enable=1
           opcache.enable_cli=0
+          opcache.validate_timestamps=1
+          opcache.revalidate_freq=0
+          opcache.file_update_protection=0
           opcache.memory_consumption=128
+          opcache.max_accelerated_files=10000
           opcache.interned_strings_buffer=16
-          opcache.max_accelerated_files=20000
-          opcache.file_cache="$fileCache"
-          opcache.file_cache_only=0
-          opcache.file_cache_consistency_checks=0
-          opcache.jit_buffer_size=128M
-          opcache.jit=1255
+          opcache.jit_buffer_size=64M
+          opcache.jit=tracing
           opcache.jit_hot_loop=0
-          opcache.jit_hot_func=1
+          opcache.jit_hot_func=2
           opcache.jit_hot_return=0
           opcache.jit_hot_side_exit=1
           opcache.jit_max_side_traces=8
@@ -192,14 +225,10 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $appCmd = Join-Path $env:windir 'System32\inetsrv\appcmd.exe'
           $phpCgi = Join-Path $env:PHP_DIR 'php-cgi.exe'
-          Import-Module WebAdministration
-          & $appCmd add apppool "/name:$env:APP_POOL" | Out-Null
-          & $appCmd set app "/app.name:$env:SITE_NAME/" "/applicationPool:$env:APP_POOL" | Out-Null
-          & $appCmd set config -section:system.webServer/fastCgi "/+[fullPath='$phpCgi',instanceMaxRequests='10000']" /commit:apphost | Out-Null
+          & $appCmd set config -section:system.webServer/fastCgi "/+[fullPath='$phpCgi',maxInstances='1',instanceMaxRequests='100000']" /commit:apphost | Out-Null
           & $appCmd set config -section:system.webServer/fastCgi "/+[fullPath='$phpCgi'].environmentVariables.[name='PHPRC',value='$env:PHP_DIR']" /commit:apphost | Out-Null
-          & $appCmd set config -section:system.webServer/fastCgi "/+[fullPath='$phpCgi'].environmentVariables.[name='PHP_FCGI_MAX_REQUESTS',value='10000']" /commit:apphost | Out-Null
-          & $appCmd set config $env:SITE_NAME -section:system.webServer/handlers "/+[name='PHP-Repro-FastCGI',path='*.php',verb='GET,HEAD,POST',modules='FastCgiModule',scriptProcessor='$phpCgi',resourceType='Either',requireAccess='Script']" /commit:apphost | Out-Null
-          Restart-WebAppPool -Name $env:APP_POOL
+          & $appCmd set config -section:system.webServer/fastCgi "/+[fullPath='$phpCgi'].environmentVariables.[name='PHP_FCGI_MAX_REQUESTS',value='100000']" /commit:apphost | Out-Null
+          & $appCmd set config $env:SITE_NAME -section:system.webServer/handlers "/+[name='PHP-Repro-FastCGI',path='repro.php',verb='GET,HEAD,POST',modules='FastCgiModule',scriptProcessor='$phpCgi',resourceType='Either',requireAccess='Script']" /commit:apphost | Out-Null
 
       - name: Run curl repro and log errors
         shell: pwsh
@@ -209,7 +238,7 @@ jobs:
           $failures = 0
           $statuses = @()
           $sample = $null
-          1..10 | ForEach-Object {
+          1..120 | ForEach-Object {
             $i = $_
             $headers = Join-Path $env:ROOT "repro-$i.headers.txt"
             $body = Join-Path $env:ROOT "repro-$i.body.txt"
@@ -218,20 +247,22 @@ jobs:
             $bodyText = Get-Content -LiteralPath $body -Raw -ErrorAction SilentlyContinue
             $statuses += $status
             Write-Host "run=$i status=$status"
-            if ($bodyText) {
-              Write-Host ($bodyText.Trim())
-            }
             if ($status -ne '200' -or $bodyText -notmatch '^OK') {
               $failures++
               if (-not $sample) {
                 $sample = $bodyText
               }
             }
+            Start-Sleep -Milliseconds 100
           }
           $events = @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = $start } -ErrorAction SilentlyContinue | Where-Object {
             $_.ProviderName -in @('Application Error', 'Windows Error Reporting') -and $_.Message -match 'php-cgi\.exe|php8\.dll'
           })
           Write-Host "statuses=$($statuses -join ',')"
+          if ($sample) {
+            Write-Host 'Failure sample'
+            Write-Host $sample
+          }
           if (Test-Path -LiteralPath $env:PHP_ERROR_LOG) {
             Write-Host 'PHP error log'
             Get-Content -LiteralPath $env:PHP_ERROR_LOG -Tail 40 | Write-Host
@@ -245,7 +276,7 @@ jobs:
             Write-Host 'No PHP crash events found.'
           }
           if ($failures -eq 0 -and $events.Count -eq 0) {
-            throw 'The repro build did not reproduce the IIS failure in this run.'
+            throw 'The PHP 8.5.5 baseline did not reproduce the IIS failure.'
           }
 
   test-fix:
@@ -254,7 +285,7 @@ jobs:
     env:
       SITE_NAME: PhpJitRepro
       APP_POOL: PhpReproPool
-      BASE_URL: 'http://127.0.0.1:8085'
+      BASE_URL: "http://127.0.0.1:8085"
     steps:
       - name: Set job paths
         shell: pwsh
@@ -263,22 +294,13 @@ jobs:
           "SITE_ROOT=${{ runner.temp }}\iis-pr-21710-fix\site" >> $env:GITHUB_ENV
           "LOG_DIR=${{ runner.temp }}\iis-pr-21710-fix\logs" >> $env:GITHUB_ENV
           "PHP_DIR=${{ runner.temp }}\iis-pr-21710-fix\php-artifact" >> $env:GITHUB_ENV
-          "PHP_ERROR_LOG=${{ runner.temp }}\iis-pr-21710-fix\logs\php-artifact-errors.log" >> $env:GITHUB_ENV
-
-      - name: Download PHP artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts
-          repository: shivammathur/php-windows-builder
-          run-id: 24851225899
-          path: ${{ runner.temp }}\php-pr-artifacts
-          github-token: ${{ secrets.PAT }}
+          "PHP_ERROR_LOG=${{ runner.temp }}\iis-pr-21710-fix\logs\php-errors.log" >> $env:GITHUB_ENV
 
       - name: Enable IIS
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          foreach ($feature in 'IIS-WebServerRole','IIS-WebServer','IIS-CommonHttpFeatures','IIS-DefaultDocument','IIS-StaticContent','IIS-ApplicationDevelopment','IIS-CGI') {
+          foreach ($feature in 'IIS-WebServerRole','IIS-WebServer','IIS-CommonHttpFeatures','IIS-StaticContent','IIS-DefaultDocument','IIS-ApplicationDevelopment','IIS-CGI') {
             if ((Get-WindowsOptionalFeature -Online -FeatureName $feature).State -ne 'Enabled') {
               Enable-WindowsOptionalFeature -Online -FeatureName $feature -All -NoRestart | Out-Null
             }
@@ -287,81 +309,16 @@ jobs:
           Start-Service WAS -ErrorAction SilentlyContinue
           Start-Service W3SVC -ErrorAction SilentlyContinue
 
-      - name: Create IIS site and repro.php
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $appCmd = Join-Path $env:windir 'System32\inetsrv\appcmd.exe'
-          New-Item -ItemType Directory -Force -Path $env:ROOT, $env:SITE_ROOT, $env:LOG_DIR, (Join-Path $env:ROOT 'opcache') | Out-Null
-          $reproPhp = @'
-          <?php
-          if (function_exists('bzcompress')) { bzcompress('codex'); }
-          if (function_exists('curl_version')) { curl_version(); }
-          if (function_exists('mb_strlen')) { mb_strlen('codex'); }
-          
-          class HotValue {
-              public $x = true;
-              public function __get($name) { return null; }
-              public function getX() { return $this->x; }
-          }
-          
-          function hotFetchObj(): void {
-              $a = new HotValue;
-              $b = new HotValue;
-              $b->x = false;
-              $c = new HotValue;
-              unset($c->x);
-              $items = [$a, $b, $c];
-          
-              for ($i = 0; $i < 4096; $i++) {
-                  $m = $items[$i % 3];
-                  $m->getX();
-                  $m->getX();
-              }
-          }
-          
-          class BaseModel {
-              public $incrementing = true;
-              public function __get($name) { return null; }
-              public function getIncrementing() { return $this->incrementing; }
-              public function getCasts(): array {
-                  return $this->getIncrementing() ? ['id' => 'int'] : [];
-              }
-              public function hasCast(string $key): bool {
-                  return array_key_exists($key, $this->getCasts());
-              }
-          }
-          
-          class ModelA extends BaseModel {}
-          class ModelB extends BaseModel {}
-          class ModelC extends BaseModel { public $incrementing = false; }
-          
-          $classes = [ModelA::class, ModelB::class, ModelC::class];
-          
-          for ($round = 0; $round < 25; $round++) {
-              hotFetchObj();
-              for ($i = 0; $i < 8000; $i++) {
-                  $m = new ($classes[$i % 3])();
-                  if (($i % 7) === 0) {
-                      unset($m->incrementing);
-                  }
-                  @$m->getIncrementing();
-                  @$m->getCasts();
-                  @$m->hasCast('id');
-              }
-          }
-          
-          header('Content-Type: text/plain');
-          echo "OK\n";
-          echo 'php=' . PHP_VERSION . "\n";
-          '@
-          Set-Content -LiteralPath (Join-Path $env:SITE_ROOT 'repro.php') -Value $reproPhp.TrimStart() -Encoding ASCII
-          & icacls $env:ROOT '/grant' 'IIS_IUSRS:(OI)(CI)M' '/T' '/C' | Out-Null
-          & $appCmd add site "/name:$env:SITE_NAME" "/bindings:http/*:8085:" "/physicalPath:$env:SITE_ROOT" | Out-Null
-          & $appCmd set config $env:SITE_NAME -section:system.webServer/handlers /accessPolicy:Read,Script /commit:apphost | Out-Null
-          & $appCmd set config $env:SITE_NAME -section:system.webServer/defaultDocument "/+files.[value='repro.php']" /commit:apphost | Out-Null
+      - name: Download patched PHP artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: artifacts
+          repository: shivammathur/php-windows-builder
+          run-id: 24890166964
+          path: ${{ runner.temp }}\php-pr-artifacts
+          github-token: ${{ secrets.PAT }}
 
-      - name: Install PHP from artifact
+      - name: Install patched PHP
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -370,10 +327,135 @@ jobs:
             $_.Name -match '^php-\d+\.\d+\.\d+.*-nts-Win32-vs17-x64\.zip$'
           } | Sort-Object Name -Descending | Select-Object -First 1
           if (-not $zip) {
-            throw 'Could not find the NTS x64 PHP zip in the downloaded artifact.'
+            throw 'Could not find the patched NTS x64 PHP zip in the downloaded artifact.'
           }
           Write-Host "Using artifact zip: $($zip.Name)"
           Expand-Archive -LiteralPath $zip.FullName -DestinationPath $env:PHP_DIR -Force
+          $version = & (Join-Path $env:PHP_DIR 'php.exe') -r "echo PHP_VERSION;"
+          if ($version -ne '8.5.5') {
+            throw "Expected patched PHP 8.5.5, got $version"
+          }
+          $threadSafety = & (Join-Path $env:PHP_DIR 'php.exe') -r "echo PHP_ZTS ? 'ts' : 'nts';"
+          if ($threadSafety -ne 'nts') {
+            throw "Expected an NTS build, got $threadSafety"
+          }
+
+      - name: Create IIS site and repro.php
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $appCmd = Join-Path $env:windir 'System32\inetsrv\appcmd.exe'
+          New-Item -ItemType Directory -Force -Path $env:ROOT, $env:SITE_ROOT, $env:LOG_DIR | Out-Null
+          $reproPhp = @'
+          <?php
+          declare(strict_types=1);
+          
+          $statePath = __DIR__ . '/state.json';
+          $payloadPath = __DIR__ . '/payload.php';
+          
+          $handle = fopen($statePath, 'c+');
+          if (!$handle) {
+              http_response_code(500);
+              echo "state-open-failed\n";
+              exit(1);
+          }
+          
+          flock($handle, LOCK_EX);
+          
+          $state = ['count' => 0, 'generation' => 0];
+          $raw = stream_get_contents($handle);
+          if (is_string($raw) && $raw !== '') {
+              $decoded = json_decode($raw, true);
+              if (is_array($decoded)) {
+                  $state = array_merge($state, $decoded);
+              }
+          }
+          
+          $state['count'] = (int) $state['count'] + 1;
+          $count = (int) $state['count'];
+          $generation = intdiv($count - 1, 8) + 1;
+          
+          if ($generation !== (int) $state['generation'] || !is_file($payloadPath)) {
+              $namespace = 'Payload' . $generation;
+              $payload = <<<PHP
+          <?php
+          namespace $namespace;
+          
+          class C {
+              public $x = true;
+          
+              public function __get(string $name)
+              {
+                  return null;
+              }
+          
+              public function getX()
+              {
+                  return $this->x;
+              }
+          }
+          
+          function runHotLoop(): string
+          {
+              $o1 = new C;
+              $o2 = new C;
+              $o2->x = false;
+              $o3 = new C;
+              unset($o3->x);
+              $a = [$o1, $o2, $o3];
+          
+              for ($repeat = 0; $repeat < 64; $repeat++) {
+                  for ($i = 0; $i < 512; $i++) {
+                      $m = $a[$i % 3];
+                      $m->getX();
+                      $m->getX();
+                  }
+              }
+          
+              return 'OK';
+          }
+          
+          return __NAMESPACE__ . '\\runHotLoop';
+          PHP;
+          
+              file_put_contents($payloadPath, $payload);
+              clearstatcache(true, $payloadPath);
+              if (function_exists('opcache_invalidate')) {
+                  @opcache_invalidate($payloadPath, true);
+              }
+              if (function_exists('opcache_compile_file')) {
+                  @opcache_compile_file($payloadPath);
+              }
+              $state['generation'] = $generation;
+          }
+          
+          rewind($handle);
+          ftruncate($handle, 0);
+          fwrite($handle, json_encode($state));
+          fflush($handle);
+          flock($handle, LOCK_UN);
+          fclose($handle);
+          
+          $runner = require $payloadPath;
+          $result = '';
+          for ($i = 0; $i < 12; $i++) {
+              $result = $runner();
+          }
+          
+          header('Content-Type: text/plain');
+          echo "OK\n";
+          echo "count=$count\n";
+          echo "generation=$generation\n";
+          echo "result=$result\n";
+          echo 'php=' . PHP_VERSION . "\n";
+          '@
+          Set-Content -LiteralPath (Join-Path $env:SITE_ROOT 'repro.php') -Value $reproPhp.TrimStart() -Encoding ASCII
+          & icacls $env:ROOT '/grant' 'IIS_IUSRS:(OI)(CI)M' '/T' '/C' | Out-Null
+          & $appCmd add site "/name:$env:SITE_NAME" "/bindings:http/*:8085:" "/physicalPath:$env:SITE_ROOT" | Out-Null
+          & $appCmd add apppool "/name:$env:APP_POOL" | Out-Null
+          & $appCmd set apppool "$env:APP_POOL" /processModel.maxProcesses:1 /failure.rapidFailProtection:false /recycling.periodicRestart.time:00:00:00 | Out-Null
+          & $appCmd set app "/app.name:$env:SITE_NAME/" "/applicationPool:$env:APP_POOL" | Out-Null
+          & $appCmd set config $env:SITE_NAME -section:system.webServer/handlers /accessPolicy:Read,Script /commit:apphost | Out-Null
 
       - name: Write php.ini with JIT
         shell: pwsh
@@ -381,44 +463,34 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $extensionDir = (Join-Path $env:PHP_DIR 'ext').Replace('\', '/')
           $errorLog = $env:PHP_ERROR_LOG.Replace('\', '/')
-          $fileCache = (Join-Path $env:ROOT 'opcache').Replace('\', '/')
           @"
           [PHP]
           extension_dir="$extensionDir"
           date.timezone=UTC
+          display_errors=1
+          html_errors=0
+          log_errors=1
+          error_log="$errorLog"
           memory_limit=512M
           max_execution_time=120
-          display_errors=Off
-          log_errors=On
-          error_log="$errorLog"
+          output_buffering=0
           cgi.fix_pathinfo=1
-          
-          extension=bz2
-          extension=com_dotnet
-          extension=curl
-          extension=fileinfo
-          extension=mbstring
-          extension=odbc
-          extension=openssl
-          extension=pdo_sqlite
-          extension=sqlite3
-          extension=zip
           
           zend_extension=opcache
           
           [opcache]
           opcache.enable=1
           opcache.enable_cli=0
+          opcache.validate_timestamps=1
+          opcache.revalidate_freq=0
+          opcache.file_update_protection=0
           opcache.memory_consumption=128
+          opcache.max_accelerated_files=10000
           opcache.interned_strings_buffer=16
-          opcache.max_accelerated_files=20000
-          opcache.file_cache="$fileCache"
-          opcache.file_cache_only=0
-          opcache.file_cache_consistency_checks=0
-          opcache.jit_buffer_size=128M
-          opcache.jit=1255
+          opcache.jit_buffer_size=64M
+          opcache.jit=tracing
           opcache.jit_hot_loop=0
-          opcache.jit_hot_func=1
+          opcache.jit_hot_func=2
           opcache.jit_hot_return=0
           opcache.jit_hot_side_exit=1
           opcache.jit_max_side_traces=8
@@ -430,14 +502,10 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $appCmd = Join-Path $env:windir 'System32\inetsrv\appcmd.exe'
           $phpCgi = Join-Path $env:PHP_DIR 'php-cgi.exe'
-          Import-Module WebAdministration
-          & $appCmd add apppool "/name:$env:APP_POOL" | Out-Null
-          & $appCmd set app "/app.name:$env:SITE_NAME/" "/applicationPool:$env:APP_POOL" | Out-Null
-          & $appCmd set config -section:system.webServer/fastCgi "/+[fullPath='$phpCgi',instanceMaxRequests='10000']" /commit:apphost | Out-Null
+          & $appCmd set config -section:system.webServer/fastCgi "/+[fullPath='$phpCgi',maxInstances='1',instanceMaxRequests='100000']" /commit:apphost | Out-Null
           & $appCmd set config -section:system.webServer/fastCgi "/+[fullPath='$phpCgi'].environmentVariables.[name='PHPRC',value='$env:PHP_DIR']" /commit:apphost | Out-Null
-          & $appCmd set config -section:system.webServer/fastCgi "/+[fullPath='$phpCgi'].environmentVariables.[name='PHP_FCGI_MAX_REQUESTS',value='10000']" /commit:apphost | Out-Null
-          & $appCmd set config $env:SITE_NAME -section:system.webServer/handlers "/+[name='PHP-Repro-FastCGI',path='*.php',verb='GET,HEAD,POST',modules='FastCgiModule',scriptProcessor='$phpCgi',resourceType='Either',requireAccess='Script']" /commit:apphost | Out-Null
-          Restart-WebAppPool -Name $env:APP_POOL
+          & $appCmd set config -section:system.webServer/fastCgi "/+[fullPath='$phpCgi'].environmentVariables.[name='PHP_FCGI_MAX_REQUESTS',value='100000']" /commit:apphost | Out-Null
+          & $appCmd set config $env:SITE_NAME -section:system.webServer/handlers "/+[name='PHP-Repro-FastCGI',path='repro.php',verb='GET,HEAD,POST',modules='FastCgiModule',scriptProcessor='$phpCgi',resourceType='Either',requireAccess='Script']" /commit:apphost | Out-Null
 
       - name: Run curl repro and log errors
         shell: pwsh
@@ -447,7 +515,7 @@ jobs:
           $failures = 0
           $statuses = @()
           $sample = $null
-          1..10 | ForEach-Object {
+          1..120 | ForEach-Object {
             $i = $_
             $headers = Join-Path $env:ROOT "repro-$i.headers.txt"
             $body = Join-Path $env:ROOT "repro-$i.body.txt"
@@ -456,20 +524,22 @@ jobs:
             $bodyText = Get-Content -LiteralPath $body -Raw -ErrorAction SilentlyContinue
             $statuses += $status
             Write-Host "run=$i status=$status"
-            if ($bodyText) {
-              Write-Host ($bodyText.Trim())
-            }
             if ($status -ne '200' -or $bodyText -notmatch '^OK') {
               $failures++
               if (-not $sample) {
                 $sample = $bodyText
               }
             }
+            Start-Sleep -Milliseconds 100
           }
           $events = @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = $start } -ErrorAction SilentlyContinue | Where-Object {
             $_.ProviderName -in @('Application Error', 'Windows Error Reporting') -and $_.Message -match 'php-cgi\.exe|php8\.dll'
           })
           Write-Host "statuses=$($statuses -join ',')"
+          if ($sample) {
+            Write-Host 'Failure sample'
+            Write-Host $sample
+          }
           if (Test-Path -LiteralPath $env:PHP_ERROR_LOG) {
             Write-Host 'PHP error log'
             Get-Content -LiteralPath $env:PHP_ERROR_LOG -Tail 40 | Write-Host
@@ -483,5 +553,5 @@ jobs:
             Write-Host 'No PHP crash events found.'
           }
           if ($failures -gt 0 -or $events.Count -gt 0) {
-            throw 'Artifact PHP failed under the IIS repro workload.'
+            throw 'The patched PHP artifact still failed under the IIS repro workload.'
           }
