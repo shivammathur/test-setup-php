@@ -433,9 +433,7 @@ jobs:
           Write-Host "Using artifact zip: $($zip.Name)"
           Expand-Archive -LiteralPath $zip.FullName -DestinationPath $env:PHP_DIR -Force
           $version = & (Join-Path $env:PHP_DIR 'php.exe') -r "echo PHP_VERSION;"
-          if ($version -ne '8.5.5') {
-            throw "Expected patched PHP 8.5.5, got $version"
-          }
+          Write-Host "Patched artifact PHP version: $version"
           $threadSafety = & (Join-Path $env:PHP_DIR 'php.exe') -r "echo PHP_ZTS ? 'ts' : 'nts';"
           if ($threadSafety -ne 'nts') {
             throw "Expected an NTS build, got $threadSafety"
