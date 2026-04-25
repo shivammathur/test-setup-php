@@ -1,0 +1,217 @@
+name: GLib Enchant artifact tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - glib-enchant-artifact-tests
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  enchant:
+    name: PHP ${{ matrix.php-version }} enchant tests
+    runs-on: windows-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php-version: 8.2.31-dev
+            run-id: 24922565042
+            vs: vs16
+          - php-version: 8.3.31-dev
+            run-id: 24922568939
+            vs: vs16
+          - php-version: 8.4.22-dev
+            run-id: 24922576556
+            vs: vs17
+          - php-version: 8.5.7-dev
+            run-id: 24922580223
+            vs: vs17
+
+    steps:
+      - name: Download PHP build artifacts
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+          RUN_ID: ${{ matrix.run-id }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          gh run download $env:RUN_ID `
+            -R shivammathur/php-windows-builder `
+            -n artifacts `
+            -D artifacts
+          Get-ChildItem artifacts | Sort-Object Name | Select-Object Name, Length
+
+      - name: Run ext/enchant tests
+        shell: pwsh
+        env:
+          PHP_VERSION: ${{ matrix.php-version }}
+          VS_VERSION: ${{ matrix.vs }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Expand-With7Zip {
+            param(
+              [Parameter(Mandatory = $true)][string] $Zip,
+              [Parameter(Mandatory = $true)][string] $Destination
+            )
+
+            New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+            $output = & 7z x $Zip "-o$Destination" -y 2>&1
+            $exitCode = $LASTEXITCODE
+            $output | Out-Host
+            if ($exitCode -gt 1) {
+              throw "7z failed extracting $Zip with exit code $exitCode"
+            }
+          }
+
+          function Prepare-EnchantRuntime {
+            param(
+              [Parameter(Mandatory = $true)][string] $PhpDirectory
+            )
+
+            $driveRoot = [System.IO.Path]::GetPathRoot((Get-Location).Path)
+            $pluginDir = Join-Path $driveRoot 'usr\local\lib\enchant-2'
+            $dictDir = Join-Path $driveRoot 'usr\local\share\enchant\hunspell'
+
+            New-Item -ItemType Directory -Force -Path $pluginDir | Out-Null
+            New-Item -ItemType Directory -Force -Path $dictDir | Out-Null
+
+            $plugin = Join-Path $PhpDirectory 'lib\enchant\libenchant2_hunspell.dll'
+            if (-not (Test-Path -LiteralPath $plugin)) {
+              throw "Enchant hunspell plugin not found at $plugin"
+            }
+            Copy-Item -LiteralPath $plugin -Destination $pluginDir -Force
+
+            if (-not (Get-ChildItem -Path $dictDir -Filter '*.dic' -File -ErrorAction SilentlyContinue)) {
+              $dictZip = Join-Path $dictDir 'dict.zip'
+              Invoke-WebRequest `
+                -Uri 'https://downloads.php.net/~windows/qa/appveyor/ext/enchant/dict.zip' `
+                -UseBasicParsing `
+                -OutFile $dictZip
+              Expand-With7Zip -Zip $dictZip -Destination $dictDir
+              Remove-Item -LiteralPath $dictZip -Force -ErrorAction SilentlyContinue
+            }
+
+            $env:ENCHANT_MODULE_PATH = "$pluginDir;$PhpDirectory\lib\enchant"
+            $env:DICPATH = $dictDir
+          }
+
+          $artifactRoot = Join-Path $PWD 'artifacts'
+          $testPack = Join-Path $artifactRoot "php-test-pack-$env:PHP_VERSION.zip"
+          if (-not (Test-Path -LiteralPath $testPack)) {
+            throw "Test pack not found: $testPack"
+          }
+
+          $testsRoot = Join-Path $PWD "tests-$env:PHP_VERSION"
+          Expand-With7Zip -Zip $testPack -Destination $testsRoot
+
+          $enchantTests = Join-Path $testsRoot 'ext\enchant\tests'
+          if (-not (Test-Path -LiteralPath $enchantTests)) {
+            throw "ext/enchant tests not found at $enchantTests"
+          }
+          $testCount = (Get-ChildItem -Path $enchantTests -Filter '*.phpt' -File).Count
+          Write-Host "Found $testCount ext/enchant tests"
+
+          $variants = @(
+            @{ Arch = 'x64'; Ts = 'ts';  Zip = "php-$env:PHP_VERSION-Win32-$env:VS_VERSION-x64.zip" },
+            @{ Arch = 'x64'; Ts = 'nts'; Zip = "php-$env:PHP_VERSION-nts-Win32-$env:VS_VERSION-x64.zip" },
+            @{ Arch = 'x86'; Ts = 'ts';  Zip = "php-$env:PHP_VERSION-Win32-$env:VS_VERSION-x86.zip" },
+            @{ Arch = 'x86'; Ts = 'nts'; Zip = "php-$env:PHP_VERSION-nts-Win32-$env:VS_VERSION-x86.zip" }
+          )
+
+          $resultRoot = Join-Path $PWD 'test-results'
+          New-Item -ItemType Directory -Force -Path $resultRoot | Out-Null
+          $failures = @()
+
+          foreach ($variant in $variants) {
+            $label = "$env:PHP_VERSION-$($variant.Arch)-$($variant.Ts)"
+            Write-Host "::group::$label"
+
+            $phpZip = Join-Path $artifactRoot $variant.Zip
+            if (-not (Test-Path -LiteralPath $phpZip)) {
+              throw "PHP zip not found: $phpZip"
+            }
+
+            $phpDir = Join-Path $PWD "php-$label"
+            Expand-With7Zip -Zip $phpZip -Destination $phpDir
+            Prepare-EnchantRuntime -PhpDirectory $phpDir
+
+            $phpExe = Join-Path $phpDir 'php.exe'
+            $phpIni = Join-Path $phpDir 'php-enchant.ini'
+            @(
+              "extension_dir=`"$phpDir\ext`"",
+              'extension=php_enchant.dll'
+            ) | Set-Content -Path $phpIni -Encoding ascii
+
+            $env:Path = "$phpDir;$env:SystemRoot\System32;$env:Path"
+            $env:TEST_PHP_EXECUTABLE = $phpExe
+            $env:TEST_PHP_JUNIT = Join-Path $resultRoot "junit-$label.xml"
+            $env:NO_INTERACTION = 1
+            $env:REPORT_EXIT_STATUS = 1
+
+            & $phpExe -n -c $phpIni -v
+            if ($LASTEXITCODE -ne 0) { throw "php -v failed for $label" }
+
+            & $phpExe -n -c $phpIni --ri enchant
+            if ($LASTEXITCODE -ne 0) { throw "php --ri enchant failed for $label" }
+
+            $check = @(
+              'if (!extension_loaded("enchant")) { throw new Exception("enchant extension is not loaded"); }',
+              '$broker = enchant_broker_init();',
+              '$dicts = enchant_broker_list_dicts($broker);',
+              'if (!$dicts) { throw new Exception("No enchant dictionaries found"); }',
+              'foreach ($dicts as $dict) { echo $dict["lang_tag"], PHP_EOL; }'
+            ) -join "`n"
+            & $phpExe -n -c $phpIni -r $check
+            if ($LASTEXITCODE -ne 0) { throw "enchant dictionary check failed for $label" }
+
+            $log = Join-Path $resultRoot "run-tests-$label.log"
+            $testArgs = @(
+              '-n',
+              '-d', 'open_basedir=',
+              '-d', 'output_buffering=0',
+              (Join-Path $testsRoot 'run-tests.php'),
+              '-p', $phpExe,
+              '-n',
+              '-c', $phpIni,
+              '--no-progress',
+              '-g', 'FAIL,BORK,WARN,LEAK',
+              '-q',
+              '--offline',
+              '--show-diff',
+              '--set-timeout', '300',
+              $enchantTests
+            )
+
+            Push-Location $testsRoot
+            try {
+              $testOutput = & $phpExe @testArgs 2>&1
+              $exitCode = $LASTEXITCODE
+            } finally {
+              Pop-Location
+            }
+
+            $testOutput | Tee-Object -FilePath $log
+            if ($exitCode -ne 0) {
+              $failures += "$label exited with $exitCode"
+            }
+
+            Write-Host "::endgroup::"
+          }
+
+          if ($failures.Count -gt 0) {
+            throw "Enchant test failures: $($failures -join '; ')"
+          }
+
+      - name: Upload enchant test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enchant-results-${{ matrix.php-version }}
+          path: test-results/**
+          if-no-files-found: ignore
