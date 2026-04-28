@@ -14,7 +14,7 @@ jobs:
       - uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: decimal, excimer, gearman, gnupg, grpc, http, lz4, mailparse, maxminddb, mcrypt, oauth, opentelemetry, pq, protobuf, propro, psr, raphf, rdkafka, rrd, smbclient, solr, ssh2, swoole, uopz, uploadprogress, uuid, xhprof, xlswriter, xmlrpc, zstd
+          extensions: decimal, excimer, gearman, gnupg, grpc, http, lz4, mailparse, maxminddb, mcrypt, oauth, opentelemetry, pq, protobuf, psr, raphf, rdkafka, smbclient, solr, ssh2, uopz, uploadprogress, uuid, xhprof, xlswriter, xmlrpc, zstd
       - run: |
           php -v
           php -m
