@@ -1,0 +1,95 @@
+name: Verify installed libraries
+
+on:
+  push:
+    branches:
+      - verify-runner-libraries-20260428
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-22.04
+          - ubuntu-24.04
+          - ubuntu-22.04-arm
+          - ubuntu-24.04-arm
+
+    steps:
+      - name: Check installed packages
+        shell: bash
+        run: |
+          set -u
+
+          result_file="runner-library-results-${{ matrix.os }}.tsv"
+          printf 'dev_package\tstatus\tinstalled_package\tversion\n' > "$result_file"
+
+          package_info() {
+            dpkg-query -W -f="\${binary:Package}\t\${Version}\n" "$1" 2>/dev/null | head -n 1
+          }
+
+          check_package() {
+            local dev_package=$1
+            shift
+            local runtime_packages=("$@")
+            local info package runtime_package tab version
+            tab="$(printf '\t')"
+
+            if info="$(package_info "$dev_package")" && [ -n "$info" ]; then
+              IFS="$tab" read -r package version <<< "$info"
+              printf '%s\tdev\t%s\t%s\n' "$dev_package" "$package" "$version" | tee -a "$result_file"
+              return
+            fi
+
+            for runtime_package in "${runtime_packages[@]}"; do
+              if info="$(package_info "$runtime_package")" && [ -n "$info" ]; then
+                IFS="$tab" read -r package version <<< "$info"
+                printf '%s\truntime\t%s\t%s\n' "$dev_package" "$package" "$version" | tee -a "$result_file"
+                return
+              fi
+            done
+
+            printf '%s\tmissing\t-\t-\n' "$dev_package" | tee -a "$result_file"
+          }
+
+          echo "Runner: ${{ matrix.os }} / ${RUNNER_ARCH}"
+          check_package libbrotli-dev libbrotli1
+          check_package libc-ares-dev libc-ares2 libcares2
+          check_package libevent-dev libevent-2.1-7 libevent-2.1-7t64 libevent-core-2.1-7 libevent-core-2.1-7t64
+          check_package libgearman-dev libgearman8 libgearman8t64
+          check_package libgpgme-dev libgpgme11 libgpgme11t64
+          check_package libmaxminddb-dev libmaxminddb0
+          check_package libmcrypt-dev libmcrypt4
+          check_package libmpdec-dev libmpdec2 libmpdec3 libmpdec4
+          check_package libnghttp2-dev libnghttp2-14
+          check_package librdkafka-dev librdkafka1
+          check_package librrd-dev librrd8 librrd8t64
+          check_package libsmbclient-dev libsmbclient libsmbclient0
+          check_package libssh2-1-dev libssh2-1 libssh2-1t64
+          check_package libssl-dev libssl3 libssl3t64 libssl1.1
+          check_package patch patch
+          check_package uuid-dev libuuid1
+
+          {
+            echo "### ${{ matrix.os }}"
+            echo
+            echo '| Dev package | Status | Installed package | Version |'
+            echo '| --- | --- | --- | --- |'
+            tab="$(printf '\t')"
+            tail -n +2 "$result_file" | while IFS="$tab" read -r dev status package version; do
+              printf "| \`%s\` | %s | \`%s\` | \`%s\` |\n" "$dev" "$status" "$package" "$version"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: runner-library-results-${{ matrix.os }}
+          path: runner-library-results-${{ matrix.os }}.tsv
