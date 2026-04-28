@@ -32,7 +32,8 @@ jobs:
           printf 'dev_package\tstatus\tinstalled_package\tversion\n' > "$result_file"
 
           package_info() {
-            dpkg-query -W -f="\${binary:Package}\t\${Version}\n" "$1" 2>/dev/null | head -n 1
+            dpkg-query -W -f="\${Status}\t\${binary:Package}\t\${Version}\n" "$1" 2>/dev/null \
+              | awk -F'\t' '$1 == "install ok installed" { print $2 "\t" $3; exit }'
           }
 
           check_package() {
