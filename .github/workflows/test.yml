@@ -5,6 +5,7 @@ on:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    container: ubuntu:24.04
     strategy:
       fail-fast: false
       matrix:
