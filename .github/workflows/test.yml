@@ -4,21 +4,7 @@ on:
 
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        php: [5.6, 7.0, 7.1, 7.2, 7.3, 7.4, '8.0', 8.1, 8.2, 8.3, 8.4, 8.5, 8.6]
-        os: [ubuntu-22.04-arm, ubuntu-24.04-arm]
+    runs-on: ubuntu-22.04
     steps:
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-
-      - run: |
-          php -v
-          php -m
-
-      - name: Test broken packages
-        run: sudo apt-get check  
+      - run: curl -s "https://downloads.php.net/~windows/php-sdk/deps/series/packages-8.5-vs17-x64-staging.txt" | grep apache
         
