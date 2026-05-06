@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-22.04
     container: ubuntu:${{ matrix.container }}
     steps:
-      - uses: shivammathur/setup-php@v2
+      - uses: shivammathur/setup-php@verbose
         with:
            php-version: ${{ matrix.php }}
       - run: php -v && php -m     
