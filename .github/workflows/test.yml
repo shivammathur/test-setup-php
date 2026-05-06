@@ -6,5 +6,24 @@ jobs:
   test:
     runs-on: ubuntu-22.04
     steps:
-      - run: curl -s https://downloads.php.net/\~windows/php-sdk/deps/series/packages-8.3-vs16-x64-staging.txt | grep apache
+      - run: |
+          set -euo pipefail
+          root=/tmp/libssh2-vs17-x64-test
+          rm -rf "$root"
+          mkdir -p "$root"/{zips,extract,reports}
+          cd "$root/zips"
+          
+          for name in libssh2-1.11.1-vs17-x64.zip libssh2-1.11.1-1-vs17-x64.zip; do
+            curl -L --http1.1 --fail -O "https://downloads.php.net/~windows/php-sdk/deps/vs17/x64/$name"
+            unzip -tq "$name"
+            mkdir -p "$root/extract/${name%.zip}"
+            unzip -q "$name" -d "$root/extract/${name%.zip}"
+          done
+          
+          for d in "$root"/extract/*; do
+            echo "## ${d##*/}"
+            file "$d/bin/libssh2.dll"
+            strings -a "$d/bin/libssh2.dll" | grep -Ei 'SSH-2\.0-libssh2|deflate [0-9]|inflate [0-9]' | sort -u
+            objdump -p "$d/bin/libssh2.dll" | grep 'DLL Name' | sort -u
+          done
         
