@@ -4,26 +4,15 @@ on:
 
 jobs:
   test:
+    strategy:
+      matrix:
+        container: [24.04, 22.04]
+        php: [7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6]
     runs-on: ubuntu-22.04
+    container: ubuntu:${{ matrix.container }}
     steps:
-      - run: |
-          set -euo pipefail
-          root=/tmp/libssh2-vs17-x64-test
-          rm -rf "$root"
-          mkdir -p "$root"/{zips,extract,reports}
-          cd "$root/zips"
-          
-          for name in libssh2-1.11.1-vs17-x64.zip libssh2-1.11.1-1-vs17-x64.zip; do
-            curl -L --http1.1 --fail -O "https://downloads.php.net/~windows/php-sdk/deps/vs17/x64/$name"
-            unzip -tq "$name"
-            mkdir -p "$root/extract/${name%.zip}"
-            unzip -q "$name" -d "$root/extract/${name%.zip}"
-          done
-          
-          for d in "$root"/extract/*; do
-            echo "## ${d##*/}"
-            file "$d/bin/libssh2.dll"
-            strings -a "$d/bin/libssh2.dll" | grep -Ei 'SSH-2\.0-libssh2|deflate [0-9]|inflate [0-9]' | sort -u
-            objdump -p "$d/bin/libssh2.dll" | grep 'DLL Name' | sort -u
-          done
+      - uses: shivammathur/setup-php@v2
+        with:
+           php-version: ${{ matrix.php }}
+      - run: php -v && php -m     
         
