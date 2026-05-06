@@ -6,12 +6,10 @@ jobs:
   test:
     strategy:
       matrix:
-        container: [24.04, 22.04]
-        php: [7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6]
-    runs-on: ubuntu-22.04
-    container: ubuntu:${{ matrix.container }}
+        php: [8.5]
+    runs-on: warp-ubuntu-latest-x64-2x
     steps:
-      - uses: shivammathur/setup-php@verbose
+      - uses: shivammathur/setup-php@more-verbose
         with:
            php-version: ${{ matrix.php }}
            extensions: ctype, curl, dom, fileinfo, filter, hash, mbstring, openssl, pcre, pdo, pdo_mysql, pdo_pgsql, pgsql, session, tokenizer, xml, redis
