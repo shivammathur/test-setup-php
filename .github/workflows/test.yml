@@ -9,7 +9,7 @@ jobs:
         php: [8.5]
     runs-on: warp-ubuntu-latest-x64-2x
     steps:
-      - uses: shivammathur/setup-php@more-verbose
+      - uses: shivammathur/setup-php@verbose
         with:
            php-version: ${{ matrix.php }}
            extensions: ctype, curl, dom, fileinfo, filter, hash, mbstring, openssl, pcre, pdo, pdo_mysql, pdo_pgsql, pgsql, session, tokenizer, xml, redis
