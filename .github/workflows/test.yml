@@ -14,5 +14,6 @@ jobs:
       - uses: shivammathur/setup-php@verbose
         with:
            php-version: ${{ matrix.php }}
+           extensions: ctype, curl, dom, fileinfo, filter, hash, mbstring, openssl, pcre, pdo, pdo_mysql, pdo_pgsql, pgsql, session, tokenizer, xml, redis
       - run: php -v && php -m     
         
