@@ -6,12 +6,12 @@ jobs:
   test:
     strategy:
       matrix:
-        php: [8.5]
-    runs-on: warp-ubuntu-latest-x64-2x
+        php: [7.4, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6]
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: shivammathur/setup-php@verbose
         with:
            php-version: ${{ matrix.php }}
-           extensions: ctype, curl, dom, fileinfo, filter, hash, mbstring, openssl, pcre, pdo, pdo_mysql, pdo_pgsql, pgsql, session, tokenizer, xml, redis
-      - run: php -v && php -m     
+      - run: php -v && php -m
         
