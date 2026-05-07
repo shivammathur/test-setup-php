@@ -12,25 +12,44 @@ permissions:
 
 jobs:
   stacktrace:
-    name: Run failing tests under cdb
+    name: Compare PGO and no-PGO traces under cdb
     runs-on: windows-2022
-    timeout-minutes: 90
+    timeout-minutes: 120
 
     steps:
       - name: Download PHP build artifacts
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
-          RUN_ID: 25329578176
+          PGO_RUN_ID: 25329578176
+          NO_PGO_RUN_ID: 25501839341
         run: |
           $ErrorActionPreference = 'Stop'
-          gh run download $env:RUN_ID `
-            -R shivammathur/php-windows-builder `
-            -n artifacts `
-            -D artifacts
-          Get-ChildItem artifacts | Sort-Object Name | Select-Object Name, Length
 
-      - name: Run failing PHPTs under cdb
+          $builds = @(
+            @{
+              Name = 'pgo'
+              RunId = $env:PGO_RUN_ID
+              Artifact = 'artifacts'
+            },
+            @{
+              Name = 'nopgo'
+              RunId = $env:NO_PGO_RUN_ID
+              Artifact = 'artifacts-source-x64-nts'
+            }
+          )
+
+          foreach ($build in $builds) {
+            $destination = Join-Path $PWD "artifacts\$($build.Name)"
+            New-Item -ItemType Directory -Force -Path $destination | Out-Null
+            gh run download $build.RunId `
+              -R shivammathur/php-windows-builder `
+              -n $build.Artifact `
+              -D $destination
+            Get-ChildItem $destination | Sort-Object Name | Select-Object Name, Length
+          }
+
+      - name: Run traces under cdb
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -91,99 +110,123 @@ jobs:
             }
           }
 
-          $artifactRoot = Join-Path $PWD 'artifacts'
-          $phpVersion = '8.6.0-dev'
-          $phpZip = Join-Path $artifactRoot "php-$phpVersion-nts-Win32-vs17-x64.zip"
-          $debugZip = Join-Path $artifactRoot "php-debug-pack-$phpVersion-nts-Win32-vs17-x64.zip"
-          $testZip = Join-Path $artifactRoot "php-test-pack-$phpVersion.zip"
+          function Get-OneFile {
+            param(
+              [Parameter(Mandatory = $true)][string] $Directory,
+              [Parameter(Mandatory = $true)][string] $Filter
+            )
 
-          foreach ($zip in @($phpZip, $debugZip, $testZip)) {
-            if (-not (Test-Path -LiteralPath $zip)) {
-              throw "Required artifact not found: $zip"
+            $files = @(Get-ChildItem -Path $Directory -Filter $Filter -File | Sort-Object Name)
+            if ($files.Count -ne 1) {
+              throw "Expected one $Filter in $Directory, found $($files.Count)"
             }
+            return $files[0].FullName
           }
 
-          $phpDir = Join-Path $PWD 'php'
-          $symbolsDir = Join-Path $PWD 'symbols'
-          $testsRoot = Join-Path $PWD 'tests'
-          $traceRoot = Join-Path $PWD 'stacktraces'
-          $fileCache = Join-Path $PWD 'opcache-file-cache'
-          $symbolCache = Join-Path $PWD 'symbol-cache'
-          New-Item -ItemType Directory -Force -Path $traceRoot, $fileCache, $symbolCache | Out-Null
+          function Get-PhpZip {
+            param(
+              [Parameter(Mandatory = $true)][string] $Directory
+            )
 
-          Expand-With7Zip -Zip $phpZip -Destination $phpDir
-          Expand-With7Zip -Zip $debugZip -Destination $symbolsDir
-          Expand-With7Zip -Zip $testZip -Destination $testsRoot
-
-          $phpExe = Join-Path $phpDir 'php.exe'
-          $phpIni = Join-Path $phpDir 'php.ini'
-          $extDir = Join-Path $phpDir 'ext'
-          $opcacheLog = Join-Path $traceRoot 'opcache-error.log'
-
-          @(
-            'memory_limit=-1',
-            "extension_dir=`"$extDir`"",
-            'extension=php_openssl.dll',
-            'extension=php_sockets.dll',
-            'opcache.memory_consumption=256',
-            'opcache.interned_strings_buffer=16',
-            'opcache.max_accelerated_files=8000',
-            'opcache.revalidate_freq=60',
-            'opcache.fast_shutdown=1',
-            'opcache.enable=1',
-            'opcache.enable_cli=1',
-            "opcache.error_log=`"$opcacheLog`"",
-            'opcache.log_verbosity_level=2',
-            "opcache.file_cache=`"$fileCache`"",
-            'opcache.file_cache_fallback=1',
-            'opcache.protect_memory=1',
-            'opcache.jit_buffer_size=64M',
-            'opcache.jit=tracing',
-            'opcache.record_warnings=1'
-          ) | Set-Content -Path $phpIni -Encoding ascii
-
-          $env:Path = "$phpDir;$extDir;$env:SystemRoot\System32;$env:Path"
-          $env:TEST_PHP_EXECUTABLE = $phpExe
-          $env:NO_INTERACTION = 1
-          $env:REPORT_EXIT_STATUS = 1
-          $env:SKIP_IO_CAPTURE_TESTS = 1
-
-          & $phpExe -n -c $phpIni -v
-          if ($LASTEXITCODE -ne 0) { throw 'php -v failed' }
-          & $phpExe -n -c $phpIni -m
-          if ($LASTEXITCODE -ne 0) { throw 'php -m failed' }
-          & $phpExe -n -c $phpIni --ri 'Zend OPcache'
-          if ($LASTEXITCODE -ne 0) { throw 'Zend OPcache is not available' }
-
-          $pdbDirs = Get-ChildItem -Path $symbolsDir -Filter '*.pdb' -Recurse -ErrorAction SilentlyContinue |
-            Select-Object -ExpandProperty DirectoryName -Unique
-          $localSymbolDirs = @($phpDir, $extDir) + $pdbDirs
-          $symPath = (($localSymbolDirs | Where-Object { $_ } | Select-Object -Unique) -join ';') +
-            ";srv*$symbolCache*https://msdl.microsoft.com/download/symbols"
-          Write-Host "Symbol path: $symPath"
-
-          $cdb = Find-Cdb
-          if (-not $cdb) {
-            Install-DebuggingTools
-            $cdb = Find-Cdb
+            $files = @(Get-ChildItem -Path $Directory -Filter 'php-*-nts-Win32-vs17-x64.zip' -File |
+              Where-Object { $_.Name -match '^php-[0-9].*-nts-Win32-vs17-x64\.zip$' } |
+              Sort-Object Name)
+            if ($files.Count -ne 1) {
+              throw "Expected one PHP zip in $Directory, found $($files.Count)"
+            }
+            return $files[0].FullName
           }
-          if (-not $cdb) {
-            throw 'cdb.exe was not found'
+
+          function Invoke-Cdb {
+            param(
+              [Parameter(Mandatory = $true)][string] $Cdb,
+              [Parameter(Mandatory = $true)][string] $SymPath,
+              [Parameter(Mandatory = $true)][string] $PhpExe,
+              [Parameter(Mandatory = $true)][string[]] $Arguments,
+              [Parameter(Mandatory = $true)][string] $Commands,
+              [Parameter(Mandatory = $true)][string] $Log
+            )
+
+            $cdbArgs = @('-lines', '-y', $SymPath, '-c', $Commands, $PhpExe) + $Arguments
+            $output = & $Cdb @cdbArgs 2>&1
+            $exitCode = $LASTEXITCODE
+            $output | Tee-Object -FilePath $Log
+            "cdb exit code: $exitCode" | Tee-Object -FilePath $Log -Append
           }
-          Write-Host "Using cdb: $cdb"
 
-          $runTests = Join-Path $testsRoot 'run-tests.php'
-          $tests = @(
-            'Zend\tests\inheritance\deprecation_to_exception_during_inheritance.phpt',
-            'Zend\tests\inheritance\deprecation_to_exception_during_inheritance_can_be_caught.phpt',
-            'Zend\tests\inheritance\gh15907.phpt',
-            'Zend\tests\record_errors_001.phpt'
-          )
+          function Invoke-BuildTrace {
+            param(
+              [Parameter(Mandatory = $true)][string] $Name,
+              [Parameter(Mandatory = $true)][string] $ArtifactRoot,
+              [Parameter(Mandatory = $true)][string] $Cdb
+            )
 
-          $failures = @()
-          foreach ($test in $tests) {
+            $phpZip = Get-PhpZip -Directory $ArtifactRoot
+            $debugZip = Get-OneFile -Directory $ArtifactRoot -Filter 'php-debug-pack-*-nts-Win32-vs17-x64.zip'
+            $testZip = Get-OneFile -Directory $ArtifactRoot -Filter 'php-test-pack-*.zip'
+
+            $workRoot = Join-Path $PWD "work-$Name"
+            $phpDir = Join-Path $workRoot 'php'
+            $symbolsDir = Join-Path $workRoot 'symbols'
+            $testsRoot = Join-Path $workRoot 'tests'
+            $traceRoot = Join-Path $PWD "stacktraces\$Name"
+            $fileCache = Join-Path $workRoot 'opcache-file-cache'
+            $symbolCache = Join-Path $workRoot 'symbol-cache'
+            New-Item -ItemType Directory -Force -Path $traceRoot, $fileCache, $symbolCache | Out-Null
+
+            Expand-With7Zip -Zip $phpZip -Destination $phpDir
+            Expand-With7Zip -Zip $debugZip -Destination $symbolsDir
+            Expand-With7Zip -Zip $testZip -Destination $testsRoot
+
+            $phpExe = Join-Path $phpDir 'php.exe'
+            $phpIni = Join-Path $phpDir 'php.ini'
+            $extDir = Join-Path $phpDir 'ext'
+            $opcacheLog = Join-Path $traceRoot 'opcache-error.log'
+
+            @(
+              'memory_limit=-1',
+              "extension_dir=`"$extDir`"",
+              'extension=php_openssl.dll',
+              'extension=php_sockets.dll',
+              'opcache.memory_consumption=256',
+              'opcache.interned_strings_buffer=16',
+              'opcache.max_accelerated_files=8000',
+              'opcache.revalidate_freq=60',
+              'opcache.fast_shutdown=1',
+              'opcache.enable=1',
+              'opcache.enable_cli=1',
+              "opcache.error_log=`"$opcacheLog`"",
+              'opcache.log_verbosity_level=2',
+              "opcache.file_cache=`"$fileCache`"",
+              'opcache.file_cache_fallback=1',
+              'opcache.protect_memory=1',
+              'opcache.jit_buffer_size=64M',
+              'opcache.jit=tracing',
+              'opcache.record_warnings=1'
+            ) | Set-Content -Path $phpIni -Encoding ascii
+
+            $env:Path = "$phpDir;$extDir;$env:SystemRoot\System32;$env:Path"
+            $env:TEST_PHP_EXECUTABLE = $phpExe
+            $env:NO_INTERACTION = 1
+            $env:REPORT_EXIT_STATUS = 1
+            $env:SKIP_IO_CAPTURE_TESTS = 1
+
+            & $phpExe -n -c $phpIni -v | Tee-Object -FilePath (Join-Path $traceRoot 'php-v.log')
+            if ($LASTEXITCODE -ne 0) { throw "$Name php -v failed" }
+            & $phpExe -n -c $phpIni --ri 'Zend OPcache' | Tee-Object -FilePath (Join-Path $traceRoot 'opcache-ri.log')
+            if ($LASTEXITCODE -ne 0) { throw "$Name Zend OPcache is not available" }
+
+            $pdbDirs = Get-ChildItem -Path $symbolsDir -Filter '*.pdb' -Recurse -ErrorAction SilentlyContinue |
+              Select-Object -ExpandProperty DirectoryName -Unique
+            $localSymbolDirs = @($phpDir, $extDir) + $pdbDirs
+            $symPath = (($localSymbolDirs | Where-Object { $_ } | Select-Object -Unique) -join ';') +
+              ";srv*$symbolCache*https://msdl.microsoft.com/download/symbols"
+            Write-Host "[$Name] Symbol path: $symPath"
+
+            $runTests = Join-Path $testsRoot 'run-tests.php'
+            $test = 'Zend\tests\record_errors_001.phpt'
             $safeName = ($test -replace '[\\/:]+', '_') -replace '\.phpt$', ''
-            $log = Join-Path $traceRoot "$safeName.cdb.log"
+            $testLog = Join-Path $traceRoot "$safeName.cdb.log"
             $dump = Join-Path $traceRoot "$safeName.dmp"
             $env:TEST_PHP_JUNIT = Join-Path $traceRoot "$safeName.xml"
 
@@ -191,7 +234,7 @@ jobs:
               '.reload /f',
               'sxd av',
               'g',
-              ".echo ===== PHP crash context for $test =====",
+              ".echo ===== PHP crash context for $Name $test =====",
               '.ecxr',
               '.echo ===== stack with parameters =====',
               'kP',
@@ -219,32 +262,18 @@ jobs:
               '--set-timeout', '300',
               $test
             )
-            $cdbArgs = @('-lines', '-o', '-G', '-g', '-xd', 'av', '-y', $symPath, '-c', $debugCommands, $phpExe) + $testArgs
 
-            Write-Host "::group::$test"
+            Write-Host "::group::$Name $test"
             Push-Location $testsRoot
             try {
-              $output = & $cdb @cdbArgs 2>&1
-              $exitCode = $LASTEXITCODE
+              Invoke-Cdb -Cdb $Cdb -SymPath $symPath -PhpExe $phpExe -Arguments $testArgs -Commands $debugCommands -Log $testLog
             } finally {
               Pop-Location
             }
-            $output | Tee-Object -FilePath $log
-            "cdb exit code: $exitCode" | Tee-Object -FilePath $log -Append
-
-            if ($exitCode -ne 0) {
-              $failures += "$test exited with cdb status $exitCode"
-            }
             Write-Host "::endgroup::"
-          }
 
-          if ($failures.Count -gt 0) {
-            Write-Host "Debugger completed with non-zero statuses:"
-            $failures | ForEach-Object { Write-Host " - $_" }
-          }
-
-          $repro = Join-Path $traceRoot 'record_errors_001_repro.php'
-          $reproSource = @'
+            $repro = Join-Path $traceRoot 'record_errors_001_repro.php'
+            $reproSource = @'
           <?php
           set_error_handler(function($code, $msg) {
               echo "Error: $msg\n";
@@ -255,72 +284,131 @@ jobs:
               function getTimezone() {}
           };
           '@
-          $reproSource | Set-Content -Path $repro -Encoding ascii
+            $reproSource | Set-Content -Path $repro -Encoding ascii
 
-          $watchLog = Join-Path $traceRoot 'record_errors_001_size_watchpoint.cdb.log'
-          $watchCommands = @'
-          .reload /f php8.dll;
-          .echo ===== executor_globals.errors layout =====;
-          dt php8!_zend_executor_globals errors;
-          dt php8!zend_err_buf;
-          .echo ===== setting watchpoint on EG(errors).size =====;
-          ? php8!executor_globals+0x7d0;
-          ba w4 php8!executor_globals+0x7d0 ".echo ===== EG(errors).size write =====; ? dwo(php8!executor_globals+0x7d0); dq php8!executor_globals+0x7d0 L2; kP; gc";
-          bl;
-          g;
-          q
-          '@
-          $watchCommands = $watchCommands -replace "(`r`n|`n)", ' '
-
-          $watchArgs = @('-lines', '-y', $symPath, '-c', $watchCommands, $phpExe, '-n', '-c', $phpIni, $repro)
-          Write-Host '::group::EG(errors).size watchpoint'
-          $watchOutput = & $cdb @watchArgs 2>&1
-          $watchExitCode = $LASTEXITCODE
-          $watchOutput | Tee-Object -FilePath $watchLog
-          "cdb exit code: $watchExitCode" | Tee-Object -FilePath $watchLog -Append
-          Write-Host '::endgroup::'
-
-          $recordingLog = Join-Path $traceRoot 'record_errors_001_recording_breakpoint.cdb.log'
-          $recordingCommands = @'
-          .reload /f php8.dll;
-          .echo ===== executor globals record layout =====;
-          dt php8!_zend_executor_globals record_errors errors;
-          .echo ===== breaking when zend_error_zstr_at is called =====;
-          bp php8!zend_error_zstr_at ".echo ===== zend_error_zstr_at hit =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; dq php8!executor_globals+0x7d0 L2; kP; gc";
-          g;
-          q
-          '@
-          $recordingCommands = $recordingCommands -replace "(`r`n|`n)", ' '
-
-          $recordingArgs = @('-lines', '-y', $symPath, '-c', $recordingCommands, $phpExe, '-n', '-c', $phpIni, $repro)
-          Write-Host '::group::zend_error_zstr_at recording breakpoint'
-          $recordingOutput = & $cdb @recordingArgs 2>&1
-          $recordingExitCode = $LASTEXITCODE
-          $recordingOutput | Tee-Object -FilePath $recordingLog
-          "cdb exit code: $recordingExitCode" | Tee-Object -FilePath $recordingLog -Append
-          Write-Host '::endgroup::'
-
-          $lifecycleLog = Join-Path $traceRoot 'record_errors_001_lifecycle_breakpoints.cdb.log'
-          $lifecycleCommands = @'
+            $lifecycleLog = Join-Path $traceRoot 'record_errors_001_lifecycle_breakpoints.cdb.log'
+            $lifecycleCommands = @'
           .reload /f php8.dll;
           .echo ===== recording lifecycle breakpoints =====;
-          bp php8!zend_begin_record_errors ".echo ===== zend_begin_record_errors =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; kP; gc";
-          bp php8!zend_error_zstr_at ".echo ===== zend_error_zstr_at =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; kP; gc";
-          bp php8!zend_emit_recorded_errors ".echo ===== zend_emit_recorded_errors =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; kP; gc";
-          bp php8!zend_emit_recorded_errors_ex ".echo ===== zend_emit_recorded_errors_ex =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; kP; gc";
+          bp php8!zend_begin_record_errors ".echo ===== zend_begin_record_errors =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; dq php8!executor_globals+0x7d0 L2; kP; gc";
+          bp php8!zend_error_zstr_at ".echo ===== zend_error_zstr_at =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; dq php8!executor_globals+0x7d0 L2; kP; gc";
+          bp php8!zend_emit_recorded_errors ".echo ===== zend_emit_recorded_errors =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; dq php8!executor_globals+0x7d0 L2; kP; gc";
+          bp php8!zend_emit_recorded_errors_ex ".echo ===== zend_emit_recorded_errors_ex =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; dq php8!executor_globals+0x7d0 L2; kP; gc";
           bp php8!zend_free_recorded_errors ".echo ===== zend_free_recorded_errors =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; dq php8!executor_globals+0x7d0 L2; kP; gc";
           g;
           q
           '@
-          $lifecycleCommands = $lifecycleCommands -replace "(`r`n|`n)", ' '
+            $lifecycleCommands = $lifecycleCommands -replace "(`r`n|`n)", ' '
+            Write-Host "::group::$Name recorded error lifecycle breakpoints"
+            Invoke-Cdb -Cdb $Cdb -SymPath $symPath -PhpExe $phpExe -Arguments @('-n', '-c', $phpIni, $repro) -Commands $lifecycleCommands -Log $lifecycleLog
+            Write-Host "::endgroup::"
 
-          $lifecycleArgs = @('-lines', '-y', $symPath, '-c', $lifecycleCommands, $phpExe, '-n', '-c', $phpIni, $repro)
-          Write-Host '::group::recorded error lifecycle breakpoints'
-          $lifecycleOutput = & $cdb @lifecycleArgs 2>&1
-          $lifecycleExitCode = $LASTEXITCODE
-          $lifecycleOutput | Tee-Object -FilePath $lifecycleLog
-          "cdb exit code: $lifecycleExitCode" | Tee-Object -FilePath $lifecycleLog -Append
-          Write-Host '::endgroup::'
+            $watchLog = Join-Path $traceRoot 'record_errors_001_error_buffer_watchpoints.cdb.log'
+            $watchCommands = @'
+          .reload /f php8.dll;
+          .echo ===== executor_globals.errors layout =====;
+          dt php8!_zend_executor_globals record_errors errors;
+          dt php8!zend_err_buf;
+          .echo ===== setting watchpoints on EG(errors) fields =====;
+          ?? &php8!executor_globals.errors.size;
+          ?? &php8!executor_globals.errors.capacity;
+          ?? &php8!executor_globals.errors.errors;
+          ba w4 @@c++(&php8!executor_globals.errors.size) ".echo ===== EG(errors).size write =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; dq @@c++(&php8!executor_globals.errors) L2; kP; gc";
+          ba w4 @@c++(&php8!executor_globals.errors.capacity) ".echo ===== EG(errors).capacity write =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; dq @@c++(&php8!executor_globals.errors) L2; kP; gc";
+          ba w8 @@c++(&php8!executor_globals.errors.errors) ".echo ===== EG(errors).errors write =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; dq @@c++(&php8!executor_globals.errors) L2; kP; gc";
+          bl;
+          g;
+          q
+          '@
+            $watchCommands = $watchCommands -replace "(`r`n|`n)", ' '
+            Write-Host "::group::$Name EG(errors) field watchpoints"
+            Invoke-Cdb -Cdb $Cdb -SymPath $symPath -PhpExe $phpExe -Arguments @('-n', '-c', $phpIni, $repro) -Commands $watchCommands -Log $watchLog
+            Write-Host "::endgroup::"
+
+            $lineLog = Join-Path $traceRoot 'record_errors_001_zend_error_all_line_breakpoints.cdb.log'
+            $lineScript = Join-Path $traceRoot 'zend_error_zstr_at_all_lines.cdb.cmd'
+            $lineCommandList = @(
+              '.reload /f php8.dll',
+              'dx @$debuggerRootNamespace.Debugger.Settings.EngineInitialization.ResolveAmbiguousBreakpoints = true',
+              'dx @$debuggerRootNamespace.Debugger.Settings.EngineInitialization.ResolveAmbiguousBreakpoints',
+              '.echo ===== zend_error_zstr_at all source line breakpoints ====='
+            )
+            foreach ($line in 1437..1623) {
+              $lineCommandList += ('bp `D:\a\php-windows-builder\php-windows-builder\Zend\zend.c:{0}` ".echo ===== zend_error_zstr_at L{0} =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; gc"' -f $line)
+            }
+            $lineCommandList += 'bl'
+            $lineCommandList += 'g'
+            $lineCommandList += 'q'
+            $lineCommandList | Set-Content -Path $lineScript -Encoding ascii
+            $lineCommands = "`$<$lineScript"
+            Write-Host "::group::$Name zend_error_zstr_at source line breakpoints"
+            Invoke-Cdb -Cdb $Cdb -SymPath $symPath -PhpExe $phpExe -Arguments @('-n', '-c', $phpIni, $repro) -Commands $lineCommands -Log $lineLog
+            Write-Host "::endgroup::"
+
+            $detailLog = Join-Path $traceRoot 'record_errors_001_orig_errors_buf_detail.cdb.log'
+            $detailCommands = @'
+          .reload /f php8.dll;
+          .echo ===== orig_errors_buf detail =====;
+          dt php8!zend_err_buf;
+          dt php8!_zend_executor_globals record_errors errors;
+          bp `D:\a\php-windows-builder\php-windows-builder\Zend\zend.c:1575` ".echo ===== L1575 save point =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; ?? orig_errors_buf; dv /t /v; r; ub @rip L8; u @rip L16; gc";
+          bp `D:\a\php-windows-builder\php-windows-builder\Zend\zend.c:1578` ".echo ===== L1578 before handler call =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; ?? orig_errors_buf; dv /t /v; r; ub @rip L8; u @rip L16; gc";
+          bp `D:\a\php-windows-builder\php-windows-builder\Zend\zend.c:1580` ".echo ===== L1580 after handler call =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; ?? orig_errors_buf; dv /t /v; r; ub @rip L8; u @rip L16; gc";
+          bp `D:\a\php-windows-builder\php-windows-builder\Zend\zend.c:1581` ".echo ===== L1581 before EG(errors) restore =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; ?? orig_errors_buf; dv /t /v; r; ub @rip L8; u @rip L16; gc";
+          bp `D:\a\php-windows-builder\php-windows-builder\Zend\zend.c:1583` ".echo ===== L1583 after EG(errors) restore =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; ?? orig_errors_buf; dv /t /v; r; ub @rip L8; u @rip L16; gc";
+          bl;
+          g;
+          q
+          '@
+            $detailCommands = $detailCommands -replace "(`r`n|`n)", ' '
+            Write-Host "::group::$Name orig_errors_buf detail"
+            Invoke-Cdb -Cdb $Cdb -SymPath $symPath -PhpExe $phpExe -Arguments @('-n', '-c', $phpIni, $repro) -Commands $detailCommands -Log $detailLog
+            Write-Host "::endgroup::"
+
+            $restoreStepLog = Join-Path $traceRoot 'record_errors_001_restore_single_step.cdb.log'
+            $restoreStepCommands = @'
+          .reload /f php8.dll;
+          .echo ===== restore single-step =====;
+          bp `D:\a\php-windows-builder\php-windows-builder\Zend\zend.c:1581` ".echo ===== L1581 before restore step =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; ?? orig_errors_buf; dv /t /v; r; ub @rip L8; u @rip L16; p; .echo ===== after step 1 =====; ?? php8!executor_globals.errors; r; u @rip L8; p; .echo ===== after step 2 =====; ?? php8!executor_globals.errors; r; u @rip L8; p; .echo ===== after step 3 =====; ?? php8!executor_globals.errors; r; u @rip L8; gc";
+          bl;
+          g;
+          q
+          '@
+            $restoreStepCommands = $restoreStepCommands -replace "(`r`n|`n)", ' '
+            Write-Host "::group::$Name restore single-step"
+            Invoke-Cdb -Cdb $Cdb -SymPath $symPath -PhpExe $phpExe -Arguments @('-n', '-c', $phpIni, $repro) -Commands $restoreStepCommands -Log $restoreStepLog
+            Write-Host "::endgroup::"
+
+            $xmmLog = Join-Path $traceRoot 'record_errors_001_restore_xmm6.cdb.log'
+            $xmmCommands = @'
+          .reload /f php8.dll;
+          .echo ===== restore xmm6 =====;
+          bp `D:\a\php-windows-builder\php-windows-builder\Zend\zend.c:1578` ".echo ===== L1578 before handler call =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; r xmm0; r xmm6; ub @rip L16; u @rip L24; gc";
+          bp `D:\a\php-windows-builder\php-windows-builder\Zend\zend.c:1580` ".echo ===== L1580 after handler call =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; r xmm0; r xmm6; ub @rip L16; u @rip L24; gc";
+          bp `D:\a\php-windows-builder\php-windows-builder\Zend\zend.c:1581` ".echo ===== L1581 before EG(errors) restore =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; r xmm0; r xmm6; ub @rip L16; u @rip L24; gc";
+          bp `D:\a\php-windows-builder\php-windows-builder\Zend\zend.c:1583` ".echo ===== L1583 after EG(errors) restore =====; ?? php8!executor_globals.record_errors; ?? php8!executor_globals.errors; r xmm0; r xmm6; ub @rip L16; u @rip L24; gc";
+          bl;
+          g;
+          q
+          '@
+            $xmmCommands = $xmmCommands -replace "(`r`n|`n)", ' '
+            Write-Host "::group::$Name restore xmm6"
+            Invoke-Cdb -Cdb $Cdb -SymPath $symPath -PhpExe $phpExe -Arguments @('-n', '-c', $phpIni, $repro) -Commands $xmmCommands -Log $xmmLog
+            Write-Host "::endgroup::"
+          }
+
+          $cdb = Find-Cdb
+          if (-not $cdb) {
+            Install-DebuggingTools
+            $cdb = Find-Cdb
+          }
+          if (-not $cdb) {
+            throw 'cdb.exe was not found'
+          }
+          Write-Host "Using cdb: $cdb"
+
+          Invoke-BuildTrace -Name pgo -ArtifactRoot (Join-Path $PWD 'artifacts\pgo') -Cdb $cdb
+          Invoke-BuildTrace -Name nopgo -ArtifactRoot (Join-Path $PWD 'artifacts\nopgo') -Cdb $cdb
 
           exit 0
 
@@ -328,6 +416,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: windows-pgo-stacktraces
+          name: windows-pgo-comparison-stacktraces
           path: stacktraces/**
           if-no-files-found: error
