@@ -1,0 +1,286 @@
+name: QA PHP LDAP artifacts
+
+on:
+  push:
+    branches:
+      - openldap-artifact-qa
+  workflow_dispatch:
+    inputs:
+      php82-run:
+        description: "php-windows-builder run ID for PHP-8.2 artifacts"
+        required: true
+        default: "25557123127"
+      php83-run:
+        description: "php-windows-builder run ID for PHP-8.3 artifacts"
+        required: true
+        default: "25557124547"
+      php84-run:
+        description: "php-windows-builder run ID for PHP-8.4 artifacts"
+        required: true
+        default: "25557126274"
+      php85-run:
+        description: "php-windows-builder run ID for PHP-8.5 artifacts"
+        required: true
+        default: "25557127793"
+      ldap-sdk-version:
+        description: "UnboundID LDAP SDK version used for the local LDAP server"
+        required: true
+        default: "7.0.3"
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  ldap:
+    name: PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: windows-2022
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: "8.2"
+            run-id: ${{ inputs.php82-run || '25557123127' }}
+            arch: x64
+            ts: ts
+          - php: "8.2"
+            run-id: ${{ inputs.php82-run || '25557123127' }}
+            arch: x64
+            ts: nts
+          - php: "8.2"
+            run-id: ${{ inputs.php82-run || '25557123127' }}
+            arch: x86
+            ts: ts
+          - php: "8.2"
+            run-id: ${{ inputs.php82-run || '25557123127' }}
+            arch: x86
+            ts: nts
+          - php: "8.3"
+            run-id: ${{ inputs.php83-run || '25557124547' }}
+            arch: x64
+            ts: ts
+          - php: "8.3"
+            run-id: ${{ inputs.php83-run || '25557124547' }}
+            arch: x64
+            ts: nts
+          - php: "8.3"
+            run-id: ${{ inputs.php83-run || '25557124547' }}
+            arch: x86
+            ts: ts
+          - php: "8.3"
+            run-id: ${{ inputs.php83-run || '25557124547' }}
+            arch: x86
+            ts: nts
+          - php: "8.4"
+            run-id: ${{ inputs.php84-run || '25557126274' }}
+            arch: x64
+            ts: ts
+          - php: "8.4"
+            run-id: ${{ inputs.php84-run || '25557126274' }}
+            arch: x64
+            ts: nts
+          - php: "8.4"
+            run-id: ${{ inputs.php84-run || '25557126274' }}
+            arch: x86
+            ts: ts
+          - php: "8.4"
+            run-id: ${{ inputs.php84-run || '25557126274' }}
+            arch: x86
+            ts: nts
+          - php: "8.5"
+            run-id: ${{ inputs.php85-run || '25557127793' }}
+            arch: x64
+            ts: ts
+          - php: "8.5"
+            run-id: ${{ inputs.php85-run || '25557127793' }}
+            arch: x64
+            ts: nts
+          - php: "8.5"
+            run-id: ${{ inputs.php85-run || '25557127793' }}
+            arch: x86
+            ts: ts
+          - php: "8.5"
+            run-id: ${{ inputs.php85-run || '25557127793' }}
+            arch: x86
+            ts: nts
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Download PHP artifacts
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run-id }}
+          name: artifacts
+          path: artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract PHP build
+        id: php
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ('${{ matrix.ts }}' -eq 'nts') {
+            $zipPattern = "^php-(.+?)-nts-Win32-v[sc]\d+-${{ matrix.arch }}\.zip$"
+            $zip = Get-ChildItem -Path artifacts -Filter 'php-*.zip' -File |
+              Where-Object { $_.Name -match $zipPattern } |
+              Sort-Object Name |
+              Select-Object -First 1
+          } else {
+            $zipPattern = "^php-(.+?)-Win32-v[sc]\d+-${{ matrix.arch }}\.zip$"
+            $zip = Get-ChildItem -Path artifacts -Filter 'php-*.zip' -File |
+              Where-Object { $_.Name -match $zipPattern -and $_.Name -notmatch '-nts-Win32-' } |
+              Sort-Object Name |
+              Select-Object -First 1
+          }
+          if ($null -eq $zip) {
+            Get-ChildItem -Path artifacts -File | Select-Object -ExpandProperty Name
+            throw "Could not find PHP zip for ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}"
+          }
+
+          $phpDir = Join-Path $PWD 'phpbin'
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath $phpDir -Force
+          $php = Join-Path $phpDir 'php.exe'
+          $ldapDll = Join-Path $phpDir 'ext\php_ldap.dll'
+          if (!(Test-Path $php)) { throw "Missing php.exe in $phpDir" }
+          if (!(Test-Path $ldapDll)) { throw "Missing php_ldap.dll in $phpDir\ext" }
+
+          $ldapText = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($ldapDll))
+          if ($ldapText.IndexOf('c:\openldap\sysconf\ldap.conf', [StringComparison]::OrdinalIgnoreCase) -lt 0) {
+            throw 'php_ldap.dll does not contain c:\openldap\sysconf\ldap.conf'
+          }
+          foreach ($bad in @('D:\a\winlib-builder\', '/winlib-builder/', '\install\etc\openldap\ldap.conf')) {
+            if ($ldapText.IndexOf($bad, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+              throw "php_ldap.dll still contains bad path fragment: $bad"
+            }
+          }
+
+          $ini = Join-Path $phpDir 'php.ini'
+          @(
+            "extension_dir=`"$phpDir\ext`"",
+            'extension=ldap',
+            'error_reporting=E_ALL',
+            'display_errors=1',
+            'log_errors=0'
+          ) | Set-Content -Path $ini -Encoding ASCII
+
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "php-dir=$phpDir"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "php=$php"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "php-ini=$ini"
+
+      - name: Prepare OpenLDAP client config
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sysconf = 'C:\openldap\sysconf'
+          New-Item -ItemType Directory -Force -Path $sysconf | Out-Null
+          @(
+            'URI ldap://127.0.0.1:1389',
+            'BASE dc=example,dc=org',
+            'DEREF always',
+            'REFERRALS off',
+            'NETWORK_TIMEOUT 5',
+            'TIMEOUT 5',
+            'TLS_REQCERT never'
+          ) | Set-Content -Path (Join-Path $sysconf 'ldap.conf') -Encoding ASCII
+          Get-Content -Path (Join-Path $sysconf 'ldap.conf')
+
+      - name: Test PHP LDAP functionality
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $process = $null
+          $out = Join-Path $PWD 'ldap-server.out.log'
+          $err = Join-Path $PWD 'ldap-server.err.log'
+          function Invoke-Checked {
+            param(
+              [Parameter(Mandatory = $true)][string] $FilePath,
+              [Parameter(ValueFromRemainingArguments = $true)][string[]] $ArgumentList
+            )
+            & $FilePath @ArgumentList
+            if ($LASTEXITCODE -ne 0) {
+              throw "$FilePath $($ArgumentList -join ' ') failed with exit code $LASTEXITCODE"
+            }
+          }
+          function Wait-TestPort {
+            param(
+              [Parameter(Mandatory = $true)][int] $Port,
+              [Parameter(Mandatory = $true)][Diagnostics.Process] $Process
+            )
+            $deadline = (Get-Date).AddSeconds(30)
+            do {
+              try {
+                if ($Process.HasExited) {
+                  Get-Content $out -ErrorAction SilentlyContinue
+                  Get-Content $err -ErrorAction SilentlyContinue
+                  throw "LDAP test server exited early with code $($Process.ExitCode)"
+                }
+
+                $client = [Net.Sockets.TcpClient]::new()
+                $async = $client.BeginConnect('127.0.0.1', $Port, $null, $null)
+                if ($async.AsyncWaitHandle.WaitOne(500)) {
+                  $client.EndConnect($async)
+                  $client.Close()
+                  return
+                }
+                $client.Close()
+              } catch {
+                Start-Sleep -Milliseconds 500
+              }
+            } while ((Get-Date) -lt $deadline)
+
+            Get-Content $out -ErrorAction SilentlyContinue
+            Get-Content $err -ErrorAction SilentlyContinue
+            throw "LDAP test server did not start on 127.0.0.1:$Port"
+          }
+
+          try {
+            Invoke-Checked java -version
+            Invoke-Checked javac -version
+
+            $jar = Join-Path $PWD 'unboundid-ldapsdk.jar'
+            $version = '${{ inputs.ldap-sdk-version || '7.0.3' }}'
+            $uri = "https://repo1.maven.org/maven2/com/unboundid/unboundid-ldapsdk/$version/unboundid-ldapsdk-$version.jar"
+            Invoke-WebRequest -Uri $uri -OutFile $jar
+
+            Invoke-Checked javac -cp $jar scripts\LdapTestServer.java
+            $classpath = "scripts;$jar"
+            $process = Start-Process -FilePath java -ArgumentList @('-cp', $classpath, 'LdapTestServer') -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
+
+            Wait-TestPort -Port 1389 -Process $process
+            Wait-TestPort -Port 1636 -Process $process
+
+            Get-Content $out -ErrorAction SilentlyContinue
+
+            $env:PATH = "${{ steps.php.outputs.php-dir }};$env:PATH"
+            Remove-Item Env:\LDAPCONF -ErrorAction SilentlyContinue
+            Remove-Item Env:\LDAPRC -ErrorAction SilentlyContinue
+            Remove-Item Env:\LDAPNOINIT -ErrorAction SilentlyContinue
+
+            Invoke-Checked '${{ steps.php.outputs.php }}' -c '${{ steps.php.outputs.php-ini }}' -v
+
+            $modules = & '${{ steps.php.outputs.php }}' -c '${{ steps.php.outputs.php-ini }}' -m
+            if ($LASTEXITCODE -ne 0) { throw 'ldap extension is not loaded' }
+            if (!($modules -contains 'ldap')) {
+              $modules
+              throw 'ldap extension is not loaded'
+            }
+            $modules | Where-Object { $_ -eq 'ldap' }
+
+            Invoke-Checked '${{ steps.php.outputs.php }}' -c '${{ steps.php.outputs.php-ini }}' scripts\test-ldap.php
+          } finally {
+            if ($null -ne $process) {
+              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            }
+            Get-Content $out -ErrorAction SilentlyContinue
+            Get-Content $err -ErrorAction SilentlyContinue
+          }
