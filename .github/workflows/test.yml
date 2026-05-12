@@ -3,15 +3,18 @@ on:
   push:
 
 jobs:
-  test:
-    strategy:
-      matrix:
-        php: [7.4, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6]
-        os: [ubuntu-22.04, ubuntu-24.04]
-    runs-on: ${{ matrix.os }}
+  tap-syntax:
+    runs-on: ubuntu-22.04
+    container:
+      image: ghcr.io/homebrew/ubuntu22.04:main
+    env:
+      HOMEBREW_SIMULATE_MACOS_ON_LINUX: 1
     steps:
-      - uses: shivammathur/setup-php@verbose
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@main
         with:
-           php-version: ${{ matrix.php }}
-      - run: php -v && php -m
+          core: true
+          cask: false
+      - run: brew doctor    
         
