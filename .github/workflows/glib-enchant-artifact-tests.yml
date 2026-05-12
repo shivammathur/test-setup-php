@@ -1,0 +1,92 @@
+name: Winlibs PHP Artifact QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      builder_repository:
+        description: Repository that produced the PHP artifacts
+        required: true
+        default: shivammathur/php-windows-builder
+      builder_run_ids:
+        description: Comma-separated run IDs to test. Empty means latest successful source builds.
+        required: false
+        default: ""
+      latest_builder_runs:
+        description: Number of latest source-build runs to test per PHP series when run IDs are empty
+        required: true
+        default: "1"
+      official_series:
+        description: Comma-separated PHP release series to compare with official Windows builds
+        required: true
+        default: "8.2,8.3,8.4,8.5"
+      variants:
+        description: Comma-separated variants to test
+        required: true
+        default: "x64-ts,x64-nts,x86-ts,x86-nts"
+      skip_official:
+        description: Skip official PHP release comparison
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  prepare:
+    name: Prepare PHP series matrix
+    runs-on: ubuntu-latest
+    outputs:
+      php_series: ${{ steps.series.outputs.php_series }}
+    steps:
+      - name: Build series matrix
+        id: series
+        shell: pwsh
+        run: |
+          $series = @('${{ inputs.official_series }}' -split '[,\s]+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+          if ($series -notcontains '8.6') {
+            $series += '8.6'
+          }
+          $series = @($series | Select-Object -Unique)
+          "php_series=$($series | ConvertTo-Json -Compress -AsArray)" >> $env:GITHUB_OUTPUT
+
+  qa:
+    name: PHP ${{ matrix.php_series }} gettext, enchant and glib artifact QA
+    needs: prepare
+    runs-on: windows-2022
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        php_series: ${{ fromJson(needs.prepare.outputs.php_series) }}
+    steps:
+      - name: Checkout tests
+        uses: actions/checkout@v5
+
+      - name: Run artifact QA
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
+        run: |
+          $skipOfficial = [System.Convert]::ToBoolean('${{ inputs.skip_official }}')
+          $qaArgs = @{
+            BuilderRepository = '${{ inputs.builder_repository }}'
+            BuilderRunIds = '${{ inputs.builder_run_ids }}'
+            LatestBuilderRuns = [int] '${{ inputs.latest_builder_runs }}'
+            Series = '${{ matrix.php_series }}'
+            OfficialSeries = '${{ inputs.official_series }}'
+            Variants = '${{ inputs.variants }}'
+            WorkDir = (Join-Path $env:RUNNER_TEMP 'winlibs-qa')
+          }
+          if ($skipOfficial) {
+            $qaArgs.SkipOfficial = $true
+          }
+          & .\scripts\winlibs-qa.ps1 @qaArgs
+
+      - name: Upload QA report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: winlibs-php-artifact-qa-${{ matrix.php_series }}
+          path: ${{ runner.temp }}\winlibs-qa\report
