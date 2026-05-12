@@ -16,5 +16,10 @@ jobs:
         with:
           core: true
           cask: false
-      - run: brew doctor    
+      - run: brew doctor  
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/homebrew-php
+          ref: master
+      - run: brew test-bot --only-tap-syntax    
         
