@@ -22,7 +22,7 @@ jobs:
         env:
           CSV_CONFIGURE_OPTS: --enable-csv
           GD_CONFIGURE_OPTS: --enable-gd=shared,/usr --with-external-gd --with-jpeg
-          GD_LIBS: libgd-dev libjpeg-dev
+          GD_LIBS: libgd-dev libjpeg-dev libbrotli-dev
           GD_PATH: ext/gd
           PROTOBUF_CONFIGURE_OPTS: --enable-protobuf
           PROTOBUF_PATH: php/ext/google/protobuf
