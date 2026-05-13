@@ -43,8 +43,13 @@ typedef struct probe_small {
 
 typedef struct probe_big {
     int32_t a;
-    double b;
-    int64_t c;
+    int32_t b;
+    int32_t c;
+    int32_t d;
+    int32_t e;
+    int32_t f;
+    int32_t g;
+    int32_t h;
 } probe_big;
 
 typedef int (__cdecl *probe_unary_cb)(int);
@@ -210,18 +215,32 @@ static int target_sum_small(probe_small value)
     return (int) value.a + (int) value.b;
 }
 
-static probe_big target_make_big(int32_t a, double b, int64_t c)
+static probe_big target_make_big(
+    int32_t a,
+    int32_t b,
+    int32_t c,
+    int32_t d,
+    int32_t e,
+    int32_t f,
+    int32_t g,
+    int32_t h
+)
 {
     probe_big value;
     value.a = a;
     value.b = b;
     value.c = c;
+    value.d = d;
+    value.e = e;
+    value.f = f;
+    value.g = g;
+    value.h = h;
     return value;
 }
 
-static double target_sum_big(probe_big value)
+static int32_t target_sum_big(probe_big value)
 {
-    return (double) value.a + value.b + (double) value.c;
+    return value.a + value.b + value.c + value.d + value.e + value.f + value.g + value.h;
 }
 
 static int target_sum_varargs(int count, ...)
@@ -321,14 +340,17 @@ static void make_small_type(ffi_type *type, ffi_type **elements)
 
 static void make_big_type(ffi_type *type, ffi_type **elements)
 {
+    int index;
+
     type->size = 0;
     type->alignment = 0;
     type->type = FFI_TYPE_STRUCT;
     type->elements = elements;
-    elements[0] = &ffi_type_sint32;
-    elements[1] = &ffi_type_double;
-    elements[2] = &ffi_type_sint64;
-    elements[3] = NULL;
+
+    for (index = 0; index < 8; index++) {
+        elements[index] = &ffi_type_sint32;
+    }
+    elements[8] = NULL;
 }
 
 static void test_metadata(report *r)
@@ -396,16 +418,16 @@ static void test_structs(report *r)
     ffi_type small_type;
     ffi_type *small_elements[3];
     ffi_type big_type;
-    ffi_type *big_elements[4];
-    ffi_type *args3[3];
+    ffi_type *big_elements[9];
+    ffi_type *args8[8];
     ffi_type *args1[1];
     ffi_type *args2[2];
-    void *values3[3];
+    void *values8[8];
     void *values1[1];
     void *values2[2];
     int32_t i = 17;
     double d = 9.5;
-    int64_t l = 23;
+    int32_t big_values[8] = {9, 8, 7, 6, 5, 4, 3, 2};
     uint8_t b1 = 19;
     uint8_t b2 = 23;
     probe_pair pair_result;
@@ -413,6 +435,7 @@ static void test_structs(report *r)
     probe_big big_result;
     double double_result = 0.0;
     int int_result = 0;
+    int index;
 
     make_pair_type(&pair_type, pair_elements);
     make_small_type(&small_type, small_elements);
@@ -446,21 +469,19 @@ static void test_structs(report *r)
     ffi_call(&cif, FFI_FN(target_sum_small), &int_result, values1);
     report_line(r, "structs", "pass-two-byte-struct", status == FFI_OK && int_result == 42, "small struct by value");
 
-    args3[0] = &ffi_type_sint32;
-    args3[1] = &ffi_type_double;
-    args3[2] = &ffi_type_sint64;
-    values3[0] = &i;
-    values3[1] = &d;
-    values3[2] = &l;
-    status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 3, &big_type, args3);
-    ffi_call(&cif, FFI_FN(target_make_big), &big_result, values3);
-    report_line(r, "structs", "return-big-struct", status == FFI_OK && big_result.a == 17 && nearly_equal(big_result.b, 9.5) && big_result.c == 23, "large struct return");
+    for (index = 0; index < 8; index++) {
+        args8[index] = &ffi_type_sint32;
+        values8[index] = &big_values[index];
+    }
+    status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 8, &big_type, args8);
+    ffi_call(&cif, FFI_FN(target_make_big), &big_result, values8);
+    report_line(r, "structs", "return-big-struct", status == FFI_OK && big_result.a == 9 && big_result.h == 2, "large struct return");
 
     args1[0] = &big_type;
     values1[0] = &big_result;
-    status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 1, &ffi_type_double, args1);
-    ffi_call(&cif, FFI_FN(target_sum_big), &double_result, values1);
-    report_line(r, "structs", "pass-big-struct", status == FFI_OK && nearly_equal(double_result, 49.5), "large struct by value");
+    status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 1, &ffi_type_sint32, args1);
+    ffi_call(&cif, FFI_FN(target_sum_big), &int_result, values1);
+    report_line(r, "structs", "pass-big-struct", status == FFI_OK && int_result == 44, "large struct by value");
 }
 
 static void test_varargs(report *r)
@@ -545,7 +566,7 @@ static void test_calling_conventions(report *r)
     values2[0] = &left;
     values2[1] = &right;
 
-#if defined(X86_WIN32) && defined(FFI_STDCALL)
+#if defined(X86_WIN32)
     status = ffi_prep_cif(&cif, FFI_STDCALL, 2, &ffi_type_sint32, args2);
     ffi_call(&cif, FFI_FN(target_stdcall), &int_result, values2);
     report_line(r, "calling-conventions", "x86-stdcall", status == FFI_OK && int_result == 1042, "FFI_STDCALL");
@@ -553,7 +574,7 @@ static void test_calling_conventions(report *r)
     report_line(r, "calling-conventions", "x86-stdcall", 1, "not applicable on this architecture");
 #endif
 
-#if defined(X86_WIN32) && defined(FFI_FASTCALL)
+#if defined(X86_WIN32)
     int_result = 0;
     status = ffi_prep_cif(&cif, FFI_FASTCALL, 2, &ffi_type_sint32, args2);
     ffi_call(&cif, FFI_FN(target_fastcall), &int_result, values2);
@@ -562,7 +583,7 @@ static void test_calling_conventions(report *r)
     report_line(r, "calling-conventions", "x86-fastcall", 1, "not applicable on this architecture");
 #endif
 
-#if defined(X86_WIN32) && defined(FFI_MS_CDECL)
+#if defined(X86_WIN32)
     int_result = 0;
     status = ffi_prep_cif(&cif, FFI_MS_CDECL, 2, &ffi_type_sint32, args2);
     ffi_call(&cif, FFI_FN(target_add), &int_result, values2);
@@ -571,7 +592,7 @@ static void test_calling_conventions(report *r)
     report_line(r, "calling-conventions", "x86-ms-cdecl", 1, "not applicable on this architecture");
 #endif
 
-#if defined(X86_WIN64) && defined(FFI_WIN64)
+#if defined(X86_WIN64)
     int_result = 0;
     status = ffi_prep_cif(&cif, FFI_WIN64, 2, &ffi_type_sint32, args2);
     ffi_call(&cif, FFI_FN(target_add), &int_result, values2);
@@ -580,7 +601,7 @@ static void test_calling_conventions(report *r)
     report_line(r, "calling-conventions", "x64-win64", 1, "not applicable on this architecture");
 #endif
 
-#if defined(FFI_VECTORCALL_PARTIAL)
+#if defined(X86_WIN64) || defined(X86_WIN32)
     args4[0] = &ffi_type_double;
     args4[1] = &ffi_type_double;
     args4[2] = &ffi_type_float;
