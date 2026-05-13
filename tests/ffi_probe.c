@@ -52,6 +52,19 @@ typedef struct probe_big {
     int32_t h;
 } probe_big;
 
+typedef struct probe_single {
+    int32_t value;
+} probe_single;
+
+typedef struct probe_nested_inner {
+    int32_t value;
+} probe_nested_inner;
+
+typedef struct probe_nested {
+    probe_nested_inner inner;
+    double weight;
+} probe_nested;
+
 typedef int (__cdecl *probe_unary_cb)(int);
 
 typedef struct report {
@@ -157,6 +170,31 @@ EXPORT double probe_sum_pair(probe_pair value)
     return (double) value.a + value.b;
 }
 
+EXPORT probe_single probe_make_single(int32_t value)
+{
+    probe_single result;
+    result.value = value;
+    return result;
+}
+
+EXPORT int32_t probe_unbox_single(probe_single value)
+{
+    return value.value;
+}
+
+EXPORT probe_nested probe_make_nested(int32_t value, double weight)
+{
+    probe_nested result;
+    result.inner.value = value;
+    result.weight = weight;
+    return result;
+}
+
+EXPORT double probe_sum_nested(probe_nested value)
+{
+    return (double) value.inner.value + value.weight;
+}
+
 EXPORT int probe_fill_buffer(char *buffer, size_t capacity)
 {
     const char *message = "ffi-buffer-ok";
@@ -187,6 +225,21 @@ static int target_add(int left, int right)
 static double target_scalar_mix(int32_t a, uint64_t b, float c, double d)
 {
     return (double) a + (double) b + (double) c + d;
+}
+
+static uint8_t target_return_u8(uint8_t value)
+{
+    return (uint8_t) (value + 1u);
+}
+
+static int16_t target_return_s16(int16_t value)
+{
+    return (int16_t) (value - 2);
+}
+
+static int64_t target_return_s64(int64_t value)
+{
+    return value + 42;
 }
 
 static probe_pair target_make_pair(int32_t left, double right)
@@ -243,6 +296,26 @@ static int32_t target_sum_big(probe_big value)
     return value.a + value.b + value.c + value.d + value.e + value.f + value.g + value.h;
 }
 
+static probe_single target_make_single(int32_t value)
+{
+    return probe_make_single(value);
+}
+
+static int32_t target_unbox_single(probe_single value)
+{
+    return probe_unbox_single(value);
+}
+
+static probe_nested target_make_nested(int32_t value, double weight)
+{
+    return probe_make_nested(value, weight);
+}
+
+static double target_sum_nested(probe_nested value)
+{
+    return probe_sum_nested(value);
+}
+
 static int target_sum_varargs(int count, ...)
 {
     int i;
@@ -255,6 +328,20 @@ static int target_sum_varargs(int count, ...)
     }
     va_end(ap);
 
+    return total;
+}
+
+static double target_sum_varargs_double(int count, ...)
+{
+    int i;
+    double total = 0.0;
+    va_list ap;
+
+    va_start(ap, count);
+    for (i = 0; i < count; i++) {
+        total += va_arg(ap, double);
+    }
+    va_end(ap);
     return total;
 }
 
@@ -292,6 +379,11 @@ static int FASTCALL target_fastcall(int left, int right)
 static double VECTORCALL target_vectorcall(double left, double right, float third, int fourth)
 {
     return left + right + (double) third + (double) fourth + 3000.0;
+}
+
+static int VECTORCALL target_vectorcall_i4(int a, int b, int c, int d)
+{
+    return a + b + c + d + 3000;
 }
 
 static void closure_handler(ffi_cif *cif, void *ret, void **args, void *user_data)
@@ -353,6 +445,39 @@ static void make_big_type(ffi_type *type, ffi_type **elements)
     elements[8] = NULL;
 }
 
+static void make_single_type(ffi_type *type, ffi_type **elements)
+{
+    type->size = 0;
+    type->alignment = 0;
+    type->type = FFI_TYPE_STRUCT;
+    type->elements = elements;
+    elements[0] = &ffi_type_sint32;
+    elements[1] = NULL;
+}
+
+static void make_nested_types(
+    ffi_type *inner_type,
+    ffi_type **inner_elements,
+    ffi_type *nested_type,
+    ffi_type **nested_elements
+)
+{
+    inner_type->size = 0;
+    inner_type->alignment = 0;
+    inner_type->type = FFI_TYPE_STRUCT;
+    inner_type->elements = inner_elements;
+    inner_elements[0] = &ffi_type_sint32;
+    inner_elements[1] = NULL;
+
+    nested_type->size = 0;
+    nested_type->alignment = 0;
+    nested_type->type = FFI_TYPE_STRUCT;
+    nested_type->elements = nested_elements;
+    nested_elements[0] = inner_type;
+    nested_elements[1] = &ffi_type_double;
+    nested_elements[2] = NULL;
+}
+
 static void test_metadata(report *r)
 {
     const char *version = ffi_get_version();
@@ -371,13 +496,21 @@ static void test_scalar_calls(report *r)
 {
     ffi_cif cif;
     ffi_status status;
+    ffi_type *args1[1];
     ffi_type *args2[2];
     ffi_type *args4[4];
+    void *values1[1];
     void *values2[2];
     void *values4[4];
     int left = 9;
     int right = 4;
     int int_result = 0;
+    uint8_t u8 = 41;
+    uint8_t u8_result = 0;
+    int16_t s16 = -1200;
+    int16_t s16_result = 0;
+    int64_t s64 = -900719925474000LL;
+    int64_t s64_result = 0;
     int32_t a = -7;
     uint64_t b = 9007199254740991ULL;
     float c = 1.25f;
@@ -407,6 +540,24 @@ static void test_scalar_calls(report *r)
     status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 4, &ffi_type_double, args4);
     ffi_call(&cif, FFI_FN(target_scalar_mix), &double_result, values4);
     report_line(r, "scalar", "mixed-int-float-double", status == FFI_OK && nearly_equal(double_result, expected), "wide scalar argument mix");
+
+    args1[0] = &ffi_type_uint8;
+    values1[0] = &u8;
+    status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 1, &ffi_type_uint8, args1);
+    ffi_call(&cif, FFI_FN(target_return_u8), &u8_result, values1);
+    report_line(r, "scalar", "return-uint8", status == FFI_OK && u8_result == 42, "small unsigned return");
+
+    args1[0] = &ffi_type_sint16;
+    values1[0] = &s16;
+    status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 1, &ffi_type_sint16, args1);
+    ffi_call(&cif, FFI_FN(target_return_s16), &s16_result, values1);
+    report_line(r, "scalar", "return-sint16", status == FFI_OK && s16_result == -1202, "small signed return");
+
+    args1[0] = &ffi_type_sint64;
+    values1[0] = &s64;
+    status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 1, &ffi_type_sint64, args1);
+    ffi_call(&cif, FFI_FN(target_return_s64), &s64_result, values1);
+    report_line(r, "scalar", "return-sint64", status == FFI_OK && s64_result == -900719925473958LL, "64-bit signed return");
 }
 
 static void test_structs(report *r)
@@ -419,6 +570,12 @@ static void test_structs(report *r)
     ffi_type *small_elements[3];
     ffi_type big_type;
     ffi_type *big_elements[9];
+    ffi_type single_type;
+    ffi_type *single_elements[2];
+    ffi_type nested_inner_type;
+    ffi_type *nested_inner_elements[2];
+    ffi_type nested_type;
+    ffi_type *nested_elements[3];
     ffi_type *args8[8];
     ffi_type *args1[1];
     ffi_type *args2[2];
@@ -433,6 +590,8 @@ static void test_structs(report *r)
     probe_pair pair_result;
     probe_small small_result;
     probe_big big_result;
+    probe_single single_result;
+    probe_nested nested_result;
     double double_result = 0.0;
     int int_result = 0;
     int index;
@@ -440,6 +599,8 @@ static void test_structs(report *r)
     make_pair_type(&pair_type, pair_elements);
     make_small_type(&small_type, small_elements);
     make_big_type(&big_type, big_elements);
+    make_single_type(&single_type, single_elements);
+    make_nested_types(&nested_inner_type, nested_inner_elements, &nested_type, nested_elements);
 
     args2[0] = &ffi_type_sint32;
     args2[1] = &ffi_type_double;
@@ -482,6 +643,32 @@ static void test_structs(report *r)
     status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 1, &ffi_type_sint32, args1);
     ffi_call(&cif, FFI_FN(target_sum_big), &int_result, values1);
     report_line(r, "structs", "pass-big-struct", status == FFI_OK && int_result == 44, "large struct by value");
+
+    args1[0] = &ffi_type_sint32;
+    values1[0] = &i;
+    status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 1, &single_type, args1);
+    ffi_call(&cif, FFI_FN(target_make_single), &single_result, values1);
+    report_line(r, "structs", "return-single-entry-struct", status == FFI_OK && single_result.value == 17, "single-entry struct return");
+
+    args1[0] = &single_type;
+    values1[0] = &single_result;
+    status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 1, &ffi_type_sint32, args1);
+    ffi_call(&cif, FFI_FN(target_unbox_single), &int_result, values1);
+    report_line(r, "structs", "pass-single-entry-struct", status == FFI_OK && int_result == 17, "single-entry struct by value");
+
+    args2[0] = &ffi_type_sint32;
+    args2[1] = &ffi_type_double;
+    values2[0] = &i;
+    values2[1] = &d;
+    status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 2, &nested_type, args2);
+    ffi_call(&cif, FFI_FN(target_make_nested), &nested_result, values2);
+    report_line(r, "structs", "return-nested-struct", status == FFI_OK && nested_result.inner.value == 17 && nearly_equal(nested_result.weight, 9.5), "nested struct return");
+
+    args1[0] = &nested_type;
+    values1[0] = &nested_result;
+    status = ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 1, &ffi_type_double, args1);
+    ffi_call(&cif, FFI_FN(target_sum_nested), &double_result, values1);
+    report_line(r, "structs", "pass-nested-struct", status == FFI_OK && nearly_equal(double_result, 26.5), "nested struct by value");
 }
 
 static void test_varargs(report *r)
@@ -493,7 +680,11 @@ static void test_varargs(report *r)
     int a = 10;
     int b = 20;
     int c = 30;
+    double da = 1.25;
+    double db = 2.50;
+    double dc = 3.75;
     int result = 0;
+    double double_result = 0.0;
     ffi_status status;
 
     args[0] = &ffi_type_sint32;
@@ -508,6 +699,19 @@ static void test_varargs(report *r)
     status = ffi_prep_cif_var(&cif, FFI_DEFAULT_ABI, 1, 4, &ffi_type_sint32, args);
     ffi_call(&cif, FFI_FN(target_sum_varargs), &result, values);
     report_line(r, "varargs", "prep-cif-var-int-sum", status == FFI_OK && result == 60, "ffi_prep_cif_var");
+
+    args[0] = &ffi_type_sint32;
+    args[1] = &ffi_type_double;
+    args[2] = &ffi_type_double;
+    args[3] = &ffi_type_double;
+    values[0] = &count;
+    values[1] = &da;
+    values[2] = &db;
+    values[3] = &dc;
+
+    status = ffi_prep_cif_var(&cif, FFI_DEFAULT_ABI, 1, 4, &ffi_type_double, args);
+    ffi_call(&cif, FFI_FN(target_sum_varargs_double), &double_result, values);
+    report_line(r, "varargs", "prep-cif-var-double-sum", status == FFI_OK && nearly_equal(double_result, 7.5), "ffi_prep_cif_var promoted doubles");
 }
 
 static void test_closures(report *r)
@@ -554,6 +758,10 @@ static void test_calling_conventions(report *r)
     int left = 11;
     int right = 31;
     int int_result = 0;
+    int v1 = 1;
+    int v2 = 2;
+    int v3 = 3;
+    int v4 = 4;
     double d1 = 1.5;
     double d2 = 2.5;
     float f = 3.5f;
@@ -601,7 +809,20 @@ static void test_calling_conventions(report *r)
     report_line(r, "calling-conventions", "x64-win64", 1, "not applicable on this architecture");
 #endif
 
-#if defined(X86_WIN64) || defined(X86_WIN32)
+#if defined(X86_WIN32)
+    args4[0] = &ffi_type_sint32;
+    args4[1] = &ffi_type_sint32;
+    args4[2] = &ffi_type_sint32;
+    args4[3] = &ffi_type_sint32;
+    values4[0] = &v1;
+    values4[1] = &v2;
+    values4[2] = &v3;
+    values4[3] = &v4;
+    int_result = 0;
+    status = ffi_prep_cif(&cif, FFI_VECTORCALL_PARTIAL, 4, &ffi_type_sint32, args4);
+    ffi_call(&cif, FFI_FN(target_vectorcall_i4), &int_result, values4);
+    report_line(r, "calling-conventions", "vectorcall-partial", status == FFI_OK && int_result == 3010, "FFI_VECTORCALL_PARTIAL integer subset");
+#elif defined(X86_WIN64)
     args4[0] = &ffi_type_double;
     args4[1] = &ffi_type_double;
     args4[2] = &ffi_type_float;
@@ -612,7 +833,7 @@ static void test_calling_conventions(report *r)
     values4[3] = &i;
     status = ffi_prep_cif(&cif, FFI_VECTORCALL_PARTIAL, 4, &ffi_type_double, args4);
     ffi_call(&cif, FFI_FN(target_vectorcall), &double_result, values4);
-    report_line(r, "calling-conventions", "vectorcall-partial", status == FFI_OK && nearly_equal(double_result, 3011.5), "FFI_VECTORCALL_PARTIAL");
+    report_line(r, "calling-conventions", "vectorcall-partial", status == FFI_OK && nearly_equal(double_result, 3011.5), "FFI_VECTORCALL_PARTIAL scalar subset");
 #else
     report_line(r, "calling-conventions", "vectorcall-partial", 0, "FFI_VECTORCALL_PARTIAL missing");
 #endif

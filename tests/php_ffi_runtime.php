@@ -87,6 +87,19 @@ typedef struct probe_pair {
     double b;
 } probe_pair;
 
+typedef struct probe_single {
+    int32_t value;
+} probe_single;
+
+typedef struct probe_nested_inner {
+    int32_t value;
+} probe_nested_inner;
+
+typedef struct probe_nested {
+    probe_nested_inner inner;
+    double weight;
+} probe_nested;
+
 const char *probe_libffi_version(void);
 unsigned long probe_libffi_version_number(void);
 unsigned int probe_default_abi(void);
@@ -95,6 +108,10 @@ int probe_add(int left, int right);
 double probe_mix(int32_t left, double middle, int64_t right);
 probe_pair probe_make_pair(int32_t left, double right);
 double probe_sum_pair(probe_pair value);
+probe_single probe_make_single(int32_t value);
+int32_t probe_unbox_single(probe_single value);
+probe_nested probe_make_nested(int32_t value, double weight);
+double probe_sum_nested(probe_nested value);
 int probe_fill_buffer(char *buffer, size_t capacity);
 int probe_call_unary_callback(int (*callback)(int), int value);
 int probe_run_all(char *buffer, size_t capacity);
@@ -115,7 +132,8 @@ try {
     exit(1);
 }
 
-$version = FFI::string($ffi->probe_libffi_version());
+$rawVersion = $ffi->probe_libffi_version();
+$version = is_string($rawVersion) ? $rawVersion : FFI::string($rawVersion);
 add_result($results, 'artifact-metadata-via-php', 'version-string', $version === '3.5.2', $version);
 add_result($results, 'artifact-metadata-via-php', 'version-number', $ffi->probe_libffi_version_number() === 30502, (string) $ffi->probe_libffi_version_number());
 add_result($results, 'artifact-metadata-via-php', 'default-abi', $ffi->probe_default_abi() > 0, (string) $ffi->probe_default_abi());
@@ -127,6 +145,12 @@ add_result($results, 'php-ffi-calls', 'mixed-scalar-call', same_float($ffi->prob
 $pair = $ffi->probe_make_pair(33, 9.25);
 add_result($results, 'php-ffi-structs', 'return-struct', $pair->a === 33 && same_float($pair->b, 9.25), 'struct returned from DLL');
 add_result($results, 'php-ffi-structs', 'pass-struct-by-value', same_float($ffi->probe_sum_pair($pair), 42.25), 'struct passed back by value');
+$single = $ffi->probe_make_single(42);
+add_result($results, 'php-ffi-structs', 'return-single-entry-struct', $single->value === 42, 'single-entry struct returned from DLL');
+add_result($results, 'php-ffi-structs', 'pass-single-entry-struct', $ffi->probe_unbox_single($single) === 42, 'single-entry struct passed by value');
+$nested = $ffi->probe_make_nested(30, 12.25);
+add_result($results, 'php-ffi-structs', 'return-nested-struct', $nested->inner->value === 30 && same_float($nested->weight, 12.25), 'nested struct returned from DLL');
+add_result($results, 'php-ffi-structs', 'pass-nested-struct', same_float($ffi->probe_sum_nested($nested), 42.25), 'nested struct passed by value');
 
 $buffer = FFI::new('char[64]');
 $written = $ffi->probe_fill_buffer(FFI::addr($buffer[0]), FFI::sizeof($buffer));

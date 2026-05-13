@@ -159,5 +159,6 @@ jobs:
 
       - name: Compare
         run: |
+          set -o pipefail
           php scripts/aggregate_results.php all-results | tee summary.md
           cat summary.md >> "$GITHUB_STEP_SUMMARY"

@@ -1,8 +1,8 @@
 # libffi PHP QA
 
 This orphan branch contains a standalone GitHub Actions workflow for validating
-`libffi-3.5.2` Windows artifacts against the latest PHP 8.2, 8.3, 8.4, and 8.5
-releases resolved by `shivammathur/setup-php`.
+`libffi-3.5.2` Windows artifacts against the latest Windows PHP 8.2, 8.3,
+8.4, and 8.5 release zips.
 
 The tests are custom C and PHP FFI tests, not php-src PHPTs. The workflow:
 
