@@ -127,7 +127,43 @@ jobs:
           php -v
           php -m | findstr /i ffi
           $result = "results\php-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.vs }}.json"
-          php -d display_errors=stderr tests\php_ffi_runtime.php (Resolve-Path build\ffi_probe.dll) (Resolve-Path results\artifact-self.txt) "${{ matrix.php }}" "${{ matrix.arch }}" "$env:ARTIFACT_NAME" | Tee-Object -FilePath $result
+          $output = & php -d display_errors=stderr tests\php_ffi_runtime.php (Resolve-Path build\ffi_probe.dll) (Resolve-Path results\artifact-self.txt) "${{ matrix.php }}" "${{ matrix.arch }}" "$env:ARTIFACT_NAME" 2>&1
+          $probeExit = $LASTEXITCODE
+          $rawOutputText = ($output | Out-String).Trim()
+          $rawOutputText | Tee-Object -FilePath $result
+
+          & php -r 'json_decode(file_get_contents($argv[1])); exit(json_last_error() === JSON_ERROR_NONE ? 0 : 1);' $result
+          if ($LASTEXITCODE -ne 0) {
+            $fallbackDetail = $rawOutputText
+            if ($fallbackDetail.Length -gt 1000) {
+              $fallbackDetail = $fallbackDetail.Substring(0, 1000)
+            }
+            $fallback = @{
+              php_input = "${{ matrix.php }}"
+              php_version = (& php -r 'echo PHP_VERSION;')
+              php_sapi = "cli"
+              php_int_size = if ("${{ matrix.arch }}" -eq "x64") { 8 } else { 4 }
+              arch = "${{ matrix.arch }}"
+              artifact = "$env:ARTIFACT_NAME"
+              os = "Windows"
+              results = @(
+                @{
+                  group = "php-runtime"
+                  name = "harness-json-output"
+                  id = "php-runtime/harness-json-output"
+                  pass = $false
+                  detail = "php_ffi_runtime exited $probeExit without valid JSON: $fallbackDetail"
+                }
+              )
+              failures = 1
+            } | ConvertTo-Json -Depth 8
+            $fallback | Tee-Object -FilePath $result
+            if ($probeExit -eq 0) {
+              $probeExit = 1
+            }
+          }
+
+          exit $probeExit
 
       - name: Upload per-version results
         if: always()

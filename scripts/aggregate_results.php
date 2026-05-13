@@ -22,6 +22,72 @@ sort($files);
 $runs = [];
 $allIds = [];
 $failures = [];
+$probeIds = [
+    'artifact-calling-conventions/vectorcall-partial',
+    'artifact-calling-conventions/x64-win64',
+    'artifact-calling-conventions/x86-fastcall',
+    'artifact-calling-conventions/x86-ms-cdecl',
+    'artifact-calling-conventions/x86-stdcall',
+    'artifact-closures/call-prepared-closure',
+    'artifact-memory-safety/guarded-u8-argument',
+    'artifact-metadata/closure-size',
+    'artifact-metadata/default-abi-range',
+    'artifact-metadata/long-double-symbol',
+    'artifact-metadata/version-number',
+    'artifact-metadata/version-string',
+    'artifact-registers/gp-sse-mixed-arguments',
+    'artifact-scalar/cdecl-int32',
+    'artifact-scalar/mixed-int-float-double',
+    'artifact-scalar/return-sint16',
+    'artifact-scalar/return-sint64',
+    'artifact-scalar/return-uint8',
+    'artifact-structs/pass-big-struct',
+    'artifact-structs/pass-int-double-struct',
+    'artifact-structs/pass-nested-struct',
+    'artifact-structs/pass-single-entry-struct',
+    'artifact-structs/pass-two-byte-struct',
+    'artifact-structs/return-big-struct',
+    'artifact-structs/return-int-double-struct',
+    'artifact-structs/return-nested-struct',
+    'artifact-structs/return-single-entry-struct',
+    'artifact-structs/return-two-byte-struct',
+    'artifact-varargs/prep-cif-var-double-sum',
+    'artifact-varargs/prep-cif-var-int-sum',
+];
+$expectedIds = [
+    'artifact-metadata-via-php/closure-size',
+    'artifact-metadata-via-php/default-abi',
+    'artifact-metadata-via-php/version-number',
+    'artifact-metadata-via-php/version-string',
+    'artifact-self-exe/output-present',
+    'artifact-self-via-php/dll-self-test-exit',
+    'php-ffi-callbacks/php-closure-to-c-callback',
+    'php-ffi-calling-conventions/winapi-get-current-process-id',
+    'php-ffi-calls/mixed-scalar-call',
+    'php-ffi-calls/scalar-add',
+    'php-ffi-memory/array-access-and-size',
+    'php-ffi-memory/write-and-read-buffer',
+    'php-ffi-structs/pass-nested-struct',
+    'php-ffi-structs/pass-single-entry-struct',
+    'php-ffi-structs/pass-struct-by-value',
+    'php-ffi-structs/return-nested-struct',
+    'php-ffi-structs/return-single-entry-struct',
+    'php-ffi-structs/return-struct',
+    'php-runtime/ffi-class-present',
+    'php-runtime/ffi-enabled-for-cli',
+    'php-runtime/ffi-extension-loaded',
+    'php-runtime/load-probe-dll',
+];
+
+foreach ($probeIds as $probeId) {
+    $expectedIds[] = 'dll-' . $probeId;
+    $expectedIds[] = 'exe-' . $probeId;
+}
+
+foreach ($expectedIds as $expectedId) {
+    $allIds[$expectedId] = true;
+}
+
 $expectedRuns = [
     '8.2-x64',
     '8.2-x86',
