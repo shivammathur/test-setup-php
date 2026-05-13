@@ -2,12 +2,20 @@ name: Runner
 on:
   push:
 jobs:
-  composer:
-    runs-on: ubuntu-22.04
+  repro:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     steps:
-      - uses: shivammathur/setup-php@v2
-      - uses: actions/checkout@v6
+      - name: Setup PHP with affected Composer
+        uses: shivammathur/setup-php@v2
         with:
-          repository: laravel/laravel
-      - run: composer install
+          php-version: '8.3'
+          tools: composer:2.9.7
+        env:
+          COMPOSER_TOKEN: ${{ github.token }}
+
+      - name: Trigger Composer auth loading
+        run: composer show -a composer/composer || true
         
