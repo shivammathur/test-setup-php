@@ -1,0 +1,173 @@
+name: Oniguruma PHP Artifact Functional Tests
+
+run-name: Oniguruma PHP artifact QA
+
+on:
+  push:
+    branches:
+      - test/oniguruma-6.9.10-php-functional
+  workflow_dispatch:
+    inputs:
+      php82-artifact-run:
+        description: php-windows-builder source run for PHP-8.2 artifacts
+        required: true
+        default: '25587613474'
+      php83-artifact-run:
+        description: php-windows-builder source run for PHP-8.3 artifacts
+        required: true
+        default: '25587614032'
+      php84-artifact-run:
+        description: php-windows-builder source run for PHP-8.4 artifacts
+        required: true
+        default: '25587614589'
+      php85-artifact-run:
+        description: php-windows-builder source run for PHP-8.5 artifacts
+        required: true
+        default: '25588182861'
+      release-manifest-url:
+        description: Windows PHP release manifest
+        required: true
+        default: https://downloads.php.net/~windows/releases/releases.json
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  artifact-tests:
+    name: artifact ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: windows-2022
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4', '8.5']
+        arch: [x64, x86]
+        ts: [nts, ts]
+        include:
+          - php: '8.2'
+            artifact-run: ${{ inputs['php82-artifact-run'] || '25587613474' }}
+          - php: '8.3'
+            artifact-run: ${{ inputs['php83-artifact-run'] || '25587614032' }}
+          - php: '8.4'
+            artifact-run: ${{ inputs['php84-artifact-run'] || '25587614589' }}
+          - php: '8.5'
+            artifact-run: ${{ inputs['php85-artifact-run'] || '25588182861' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download PHP artifacts
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.artifact-run }}
+          name: artifacts
+          path: downloaded-artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare artifact PHP
+        shell: pwsh
+        run: |
+          ./scripts/prepare-artifact-php.ps1 `
+            -ArtifactDirectory (Join-Path $PWD 'downloaded-artifacts') `
+            -PhpVersion '${{ matrix.php }}' `
+            -Arch '${{ matrix.arch }}' `
+            -ThreadSafety '${{ matrix.ts }}' `
+            -Destination (Join-Path $PWD 'php')
+
+      - name: Run functional suite
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path reports | Out-Null
+          $php = Join-Path $PWD 'php/php.exe'
+          $ini = Join-Path $PWD 'php/php.ini'
+          & $php -c $ini tests/php-functional-suite.php `
+            --profile=artifact `
+            --php='${{ matrix.php }}' `
+            --arch='${{ matrix.arch }}' `
+            --ts='${{ matrix.ts }}' `
+            --require-onig=6.9.10 `
+            --report="reports/artifact-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}.json"
+
+      - name: Upload report
+        uses: actions/upload-artifact@v7
+        with:
+          name: report-artifact-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: reports/*.json
+
+  release-tests:
+    name: release ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: windows-2022
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4', '8.5']
+        arch: [x64, x86]
+        ts: [nts, ts]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Prepare latest release PHP
+        shell: pwsh
+        run: |
+          ./scripts/prepare-release-php.ps1 `
+            -ManifestUrl '${{ inputs['release-manifest-url'] || 'https://downloads.php.net/~windows/releases/releases.json' }}' `
+            -PhpVersion '${{ matrix.php }}' `
+            -Arch '${{ matrix.arch }}' `
+            -ThreadSafety '${{ matrix.ts }}' `
+            -Destination (Join-Path $PWD 'php')
+
+      - name: Run functional suite
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path reports | Out-Null
+          $php = Join-Path $PWD 'php/php.exe'
+          $ini = Join-Path $PWD 'php/php.ini'
+          & $php -c $ini tests/php-functional-suite.php `
+            --profile=release `
+            --php='${{ matrix.php }}' `
+            --arch='${{ matrix.arch }}' `
+            --ts='${{ matrix.ts }}' `
+            --report="reports/release-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}.json"
+
+      - name: Upload report
+        uses: actions/upload-artifact@v7
+        with:
+          name: report-release-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: reports/*.json
+
+  compare:
+    name: Compare artifact and release reports
+    runs-on: ubuntu-latest
+    needs: [artifact-tests, release-tests]
+    if: always()
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Download reports
+        uses: actions/download-artifact@v8
+        with:
+          pattern: report-*
+          path: reports
+          merge-multiple: true
+
+      - name: Compare reports
+        run: |
+          php scripts/compare-reports.php --dir=reports --out=comparison.md
+          cat comparison.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload comparison
+        uses: actions/upload-artifact@v7
+        with:
+          name: comparison-summary
+          path: comparison.md
