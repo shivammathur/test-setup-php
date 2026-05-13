@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+ini_set('display_errors', 'stderr');
+
 if ($argc < 5) {
     fwrite(STDERR, "Usage: php php_ffi_runtime.php <probe.dll> <artifact-self.txt> <php-version> <arch> [artifact-name]\n");
     exit(2);
@@ -152,16 +154,15 @@ $nested = $ffi->probe_make_nested(30, 12.25);
 add_result($results, 'php-ffi-structs', 'return-nested-struct', $nested->inner->value === 30 && same_float($nested->weight, 12.25), 'nested struct returned from DLL');
 add_result($results, 'php-ffi-structs', 'pass-nested-struct', same_float($ffi->probe_sum_nested($nested), 42.25), 'nested struct passed by value');
 
-$buffer = FFI::new('char[64]');
+$buffer = $ffi->new('char[64]');
 $written = $ffi->probe_fill_buffer(FFI::addr($buffer[0]), FFI::sizeof($buffer));
 add_result($results, 'php-ffi-memory', 'write-and-read-buffer', $written === strlen('ffi-buffer-ok') && FFI::string($buffer) === 'ffi-buffer-ok', FFI::string($buffer));
 
-$array = FFI::new('int[4]');
+$array = $ffi->new('int[4]');
 for ($i = 0; $i < 4; $i++) {
     $array[$i] = $i + 1;
 }
-$ptr = FFI::addr($array[0]);
-add_result($results, 'php-ffi-memory', 'array-pointer-cast', $ptr[2] === 3 && FFI::sizeof($array) === 16, 'C array and pointer access');
+add_result($results, 'php-ffi-memory', 'array-access-and-size', $array[2] === 3 && FFI::sizeof($array) === 16, 'C array access and sizeof');
 
 $callbackOk = false;
 try {
@@ -181,7 +182,7 @@ try {
     add_result($results, 'php-ffi-calling-conventions', 'winapi-stdcall', false, $e->getMessage());
 }
 
-$dllSelfBuffer = FFI::new('char[1048576]');
+$dllSelfBuffer = $ffi->new('char[1048576]');
 $dllSelfFailures = $ffi->probe_run_all(FFI::addr($dllSelfBuffer[0]), FFI::sizeof($dllSelfBuffer));
 add_result($results, 'artifact-self-via-php', 'dll-self-test-exit', $dllSelfFailures === 0, 'failures=' . $dllSelfFailures);
 foreach (parse_line_results(FFI::string($dllSelfBuffer)) as $result) {

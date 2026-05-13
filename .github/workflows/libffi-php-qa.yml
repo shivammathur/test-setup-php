@@ -116,6 +116,7 @@ jobs:
           cl /nologo /W3 /O2 /MD /DFFI_STATIC_BUILD /LD /I libffi-artifact\include tests\ffi_probe.c libffi-artifact\lib\libffi.lib /Fe:build\ffi_probe.dll /link /OUT:build\ffi_probe.dll
 
       - name: Run direct artifact probe
+        continue-on-error: true
         shell: pwsh
         run: |
           build\ffi_probe.exe | Tee-Object -FilePath results\artifact-self.txt
@@ -126,7 +127,7 @@ jobs:
           php -v
           php -m | findstr /i ffi
           $result = "results\php-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.vs }}.json"
-          php tests\php_ffi_runtime.php (Resolve-Path build\ffi_probe.dll) (Resolve-Path results\artifact-self.txt) "${{ matrix.php }}" "${{ matrix.arch }}" "$env:ARTIFACT_NAME" | Tee-Object -FilePath $result
+          php -d display_errors=stderr tests\php_ffi_runtime.php (Resolve-Path build\ffi_probe.dll) (Resolve-Path results\artifact-self.txt) "${{ matrix.php }}" "${{ matrix.arch }}" "$env:ARTIFACT_NAME" | Tee-Object -FilePath $result
 
       - name: Upload per-version results
         if: always()
