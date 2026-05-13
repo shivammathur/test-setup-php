@@ -55,7 +55,7 @@ jobs:
     env:
       ARTIFACT_NAME: libffi-3.5.2-${{ matrix.vs }}-${{ matrix.arch }}
       PHP_ZIP_URL: https://windows.php.net/downloads/releases/latest/php-${{ matrix.php }}-nts-Win32-${{ matrix.vs }}-${{ matrix.arch }}-latest.zip
-      RUN_ID: ${{ matrix.vs == 'vs16' && inputs['vs16-run-id'] || inputs['vs17-run-id'] }}
+      RUN_ID: ${{ matrix.vs == 'vs16' && (inputs['vs16-run-id'] || '25585952791') || (inputs['vs17-run-id'] || '25585960265') }}
 
     steps:
       - name: Checkout QA harness
