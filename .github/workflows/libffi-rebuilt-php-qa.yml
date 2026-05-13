@@ -1,0 +1,196 @@
+name: Rebuilt PHP libffi QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      php82-run-id:
+        description: php-windows-builder run id for PHP-8.2
+        required: true
+        default: "25773928019"
+      php83-run-id:
+        description: php-windows-builder run id for PHP-8.3
+        required: true
+        default: "25773934493"
+      php84-run-id:
+        description: php-windows-builder run id for PHP-8.4
+        required: true
+        default: "25773944458"
+      php85-run-id:
+        description: php-windows-builder run id for PHP-8.5
+        required: true
+        default: "25773950930"
+      master-run-id:
+        description: php-windows-builder run id for master
+        required: true
+        default: "25773958393"
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php }} ${{ matrix.arch }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: "8.2"
+            run-id: ${{ inputs.php82-run-id }}
+            arch: x64
+          - php: "8.2"
+            run-id: ${{ inputs.php82-run-id }}
+            arch: x86
+          - php: "8.3"
+            run-id: ${{ inputs.php83-run-id }}
+            arch: x64
+          - php: "8.3"
+            run-id: ${{ inputs.php83-run-id }}
+            arch: x86
+          - php: "8.4"
+            run-id: ${{ inputs.php84-run-id }}
+            arch: x64
+          - php: "8.4"
+            run-id: ${{ inputs.php84-run-id }}
+            arch: x86
+          - php: "8.5"
+            run-id: ${{ inputs.php85-run-id }}
+            arch: x64
+          - php: "8.5"
+            run-id: ${{ inputs.php85-run-id }}
+            arch: x86
+          - php: master
+            run-id: ${{ inputs.master-run-id }}
+            arch: x64
+          - php: master
+            run-id: ${{ inputs.master-run-id }}
+            arch: x86
+
+    env:
+      PHP_INPUT: ${{ matrix.php }}
+      PHP_BUILD_RUN_ID: ${{ matrix.run-id }}
+      ARCH: ${{ matrix.arch }}
+
+    steps:
+      - name: Checkout QA harness
+        uses: actions/checkout@v5
+
+      - name: Download rebuilt PHP artifacts
+        uses: actions/download-artifact@v4
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ env.PHP_BUILD_RUN_ID }}
+          name: artifacts
+          path: php-artifacts
+          github-token: ${{ secrets.WINLIBS_ACTIONS_TOKEN || github.token }}
+
+      - name: List rebuilt PHP artifacts
+        shell: pwsh
+        run: Get-ChildItem -Recurse php-artifacts | Select-Object FullName, Length
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+
+      - name: Compile plain FFI target
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build, results | Out-Null
+          cl /nologo /W3 /O2 /MD /LD tests\php_ffi_plain_target.c /Fe:build\ffi_plain_target.dll /link /OUT:build\ffi_plain_target.dll
+
+      - name: Test rebuilt PHP FFI extension
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+
+          $zips = Get-ChildItem php-artifacts -Filter 'php-*.zip' -File |
+            Where-Object {
+              $_.Name -notmatch '^php-(debug|devel|test)-pack-' -and
+              $_.Name -match "Win32-vs\d+-$env:ARCH\.zip$"
+            }
+
+          foreach ($threadSafety in @('nts', 'ts')) {
+            if ($threadSafety -eq 'nts') {
+              $zip = $zips | Where-Object { $_.Name -match '-nts-Win32-' } | Select-Object -First 1
+            } else {
+              $zip = $zips | Where-Object { $_.Name -notmatch '-nts-Win32-' } | Select-Object -First 1
+            }
+
+            if ($null -eq $zip) {
+              throw "Could not find $threadSafety PHP zip for $env:PHP_INPUT $env:ARCH in run $env:PHP_BUILD_RUN_ID"
+            }
+
+            $phpRoot = Join-Path $pwd "php-$threadSafety"
+            Expand-Archive -Path $zip.FullName -DestinationPath $phpRoot -Force
+            Copy-Item (Join-Path $phpRoot 'php.ini-development') (Join-Path $phpRoot 'php.ini')
+            $extensionDir = (Join-Path $phpRoot 'ext').Replace('\', '/')
+            Add-Content -Path (Join-Path $phpRoot 'php.ini') -Value @(
+              "extension_dir=$extensionDir",
+              'extension=ffi',
+              'ffi.enable=true'
+            )
+
+            $env:Path = "$phpRoot;$env:Path"
+            $env:PHPRC = "$phpRoot"
+
+            & (Join-Path $phpRoot 'php.exe') -v
+            & (Join-Path $phpRoot 'php.exe') -m | findstr /i ffi
+
+            $result = "results\php-$env:PHP_INPUT-$env:ARCH-$threadSafety.json"
+            $output = & (Join-Path $phpRoot 'php.exe') -d display_errors=stderr tests\php_artifact_ffi_runtime.php `
+              (Resolve-Path build\ffi_plain_target.dll) `
+              "$env:PHP_INPUT" `
+              "$env:ARCH" `
+              "$threadSafety" `
+              "$($zip.Name)" `
+              "$env:PHP_BUILD_RUN_ID" 2>&1
+            $probeExit = $LASTEXITCODE
+            $rawOutputText = ($output | Out-String).Trim()
+            $rawOutputText | Tee-Object -FilePath $result
+
+            & (Join-Path $phpRoot 'php.exe') -r 'json_decode(file_get_contents($argv[1])); exit(json_last_error() === JSON_ERROR_NONE ? 0 : 1);' $result
+            if ($LASTEXITCODE -ne 0) {
+              throw "FFI runtime did not produce valid JSON for $env:PHP_INPUT $env:ARCH $threadSafety"
+            }
+            if ($probeExit -ne 0) {
+              exit $probeExit
+            }
+          }
+
+      - name: Upload per-version results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rebuilt-php-libffi-qa-${{ matrix.php }}-${{ matrix.arch }}
+          path: results
+
+  compare:
+    name: Compare rebuilt PHP artifacts
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+    steps:
+      - name: Checkout QA harness
+        uses: actions/checkout@v5
+
+      - name: Setup PHP for aggregation
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+
+      - name: Download matrix results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: rebuilt-php-libffi-qa-*
+          path: all-results
+          merge-multiple: false
+
+      - name: Compare
+        run: |
+          set -o pipefail
+          php scripts/aggregate_php_artifact_results.php all-results | tee summary.md
+          cat summary.md >> "$GITHUB_STEP_SUMMARY"
