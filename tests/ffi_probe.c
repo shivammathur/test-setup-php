@@ -685,6 +685,7 @@ static void test_varargs(report *r)
     double dc = 3.75;
     int result = 0;
     double double_result = 0.0;
+    char detail[96];
     ffi_status status;
 
     args[0] = &ffi_type_sint32;
@@ -711,7 +712,8 @@ static void test_varargs(report *r)
 
     status = ffi_prep_cif_var(&cif, FFI_DEFAULT_ABI, 1, 4, &ffi_type_double, args);
     ffi_call(&cif, FFI_FN(target_sum_varargs_double), &double_result, values);
-    report_line(r, "varargs", "prep-cif-var-double-sum", status == FFI_OK && nearly_equal(double_result, 7.5), "ffi_prep_cif_var promoted doubles");
+    snprintf(detail, sizeof(detail), "status=%d result=%.17g expected=7.5", (int) status, double_result);
+    report_line(r, "varargs", "prep-cif-var-double-sum", status == FFI_OK && nearly_equal(double_result, 7.5), detail);
 }
 
 static void test_closures(report *r)
