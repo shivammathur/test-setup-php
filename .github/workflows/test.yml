@@ -8,7 +8,7 @@ jobs:
       matrix:
         php: ['8.0']
     steps:
-      - uses: shivammathur/setup-php@verbose
+      - uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php }}
           extensions: >-
