@@ -1,0 +1,160 @@
+name: libffi PHP QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      vs16-run-id:
+        description: winlibs/winlib-builder run id containing libffi-3.5.2-vs16 artifacts
+        required: true
+        default: "25585952791"
+      vs17-run-id:
+        description: winlibs/winlib-builder run id containing libffi-3.5.2-vs17 artifacts
+        required: true
+        default: "25585960265"
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.vs }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: "8.2"
+            vs: vs16
+            arch: x64
+          - php: "8.2"
+            vs: vs16
+            arch: x86
+          - php: "8.3"
+            vs: vs16
+            arch: x64
+          - php: "8.3"
+            vs: vs16
+            arch: x86
+          - php: "8.4"
+            vs: vs17
+            arch: x64
+          - php: "8.4"
+            vs: vs17
+            arch: x86
+          - php: "8.5"
+            vs: vs17
+            arch: x64
+          - php: "8.5"
+            vs: vs17
+            arch: x86
+
+    env:
+      ARTIFACT_NAME: libffi-3.5.2-${{ matrix.vs }}-${{ matrix.arch }}
+      PHP_ZIP_URL: https://windows.php.net/downloads/releases/latest/php-${{ matrix.php }}-nts-Win32-${{ matrix.vs }}-${{ matrix.arch }}-latest.zip
+      RUN_ID: ${{ matrix.vs == 'vs16' && inputs['vs16-run-id'] || inputs['vs17-run-id'] }}
+
+    steps:
+      - name: Checkout QA harness
+        uses: actions/checkout@v5
+
+      - name: Install latest PHP ${{ matrix.php }} ${{ matrix.arch }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+          $phpRoot = Join-Path $pwd 'php'
+          Invoke-WebRequest -Uri $env:PHP_ZIP_URL -OutFile php.zip
+          Expand-Archive -Path php.zip -DestinationPath $phpRoot
+          Copy-Item (Join-Path $phpRoot 'php.ini-development') (Join-Path $phpRoot 'php.ini')
+          Add-Content -Path (Join-Path $phpRoot 'php.ini') -Value @(
+            'extension_dir=ext',
+            'extension=ffi',
+            'ffi.enable=true'
+          )
+          $phpRoot | Out-File -FilePath $env:GITHUB_PATH -Append
+          $env:Path = "$phpRoot;$env:Path"
+          php -v
+          php -m | findstr /i ffi
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+
+      - name: Download libffi artifact
+        uses: actions/download-artifact@v4
+        with:
+          repository: winlibs/winlib-builder
+          run-id: ${{ env.RUN_ID }}
+          name: ${{ env.ARTIFACT_NAME }}
+          path: libffi-artifact
+          github-token: ${{ secrets.WINLIBS_ACTIONS_TOKEN || github.token }}
+
+      - name: List libffi artifact
+        shell: pwsh
+        run: Get-ChildItem -Recurse libffi-artifact | Select-Object FullName, Length
+
+      - name: Sanity check artifact headers
+        shell: pwsh
+        run: |
+          $ffi = Get-Content libffi-artifact\include\ffi.h -Raw
+          $target = Get-Content libffi-artifact\include\ffitarget.h -Raw
+          if ($ffi -notmatch '#define FFI_STATIC_BUILD') { throw 'FFI_STATIC_BUILD missing from packaged ffi.h' }
+          if ($ffi -notmatch '#define FFI_BUILDING') { throw 'FFI_BUILDING missing from packaged ffi.h' }
+          if ($ffi -notmatch 'FFI_VERSION_STRING "3\.5\.2"') { throw 'ffi.h version is not 3.5.2' }
+          if ($target -notmatch 'FFI_VECTORCALL_PARTIAL') { throw 'FFI_VECTORCALL_PARTIAL missing from ffitarget.h' }
+
+      - name: Compile artifact probe
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build, results | Out-Null
+          cl /nologo /W3 /O2 /MD /DFFI_STATIC_BUILD /DPROBE_EXE /I libffi-artifact\include tests\ffi_probe.c libffi-artifact\lib\libffi.lib /Fe:build\ffi_probe.exe
+          cl /nologo /W3 /O2 /MD /DFFI_STATIC_BUILD /LD /I libffi-artifact\include tests\ffi_probe.c libffi-artifact\lib\libffi.lib /Fe:build\ffi_probe.dll /link /OUT:build\ffi_probe.dll
+
+      - name: Run direct artifact probe
+        shell: pwsh
+        run: |
+          build\ffi_probe.exe | Tee-Object -FilePath results\artifact-self.txt
+
+      - name: Run PHP FFI probe
+        shell: pwsh
+        run: |
+          php -v
+          php -m | findstr /i ffi
+          $result = "results\php-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.vs }}.json"
+          php tests\php_ffi_runtime.php (Resolve-Path build\ffi_probe.dll) (Resolve-Path results\artifact-self.txt) "${{ matrix.php }}" "${{ matrix.arch }}" "$env:ARTIFACT_NAME" | Tee-Object -FilePath $result
+
+      - name: Upload per-version results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: libffi-php-qa-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.vs }}
+          path: results
+
+  compare:
+    name: Compare latest PHP releases
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+    steps:
+      - name: Checkout QA harness
+        uses: actions/checkout@v5
+
+      - name: Setup PHP for aggregation
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+
+      - name: Download matrix results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: libffi-php-qa-*
+          path: all-results
+          merge-multiple: false
+
+      - name: Compare
+        run: |
+          php scripts/aggregate_results.php all-results | tee summary.md
+          cat summary.md >> "$GITHUB_STEP_SUMMARY"
