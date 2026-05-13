@@ -9,6 +9,14 @@ jobs:
         uses: shivammathur/setup-php@more-verbose
         with:
           php-version: '7.4'
+
+      - name:
+        run: composer -V
+
+      - name: Setup PHP with affected Composer
+        uses: shivammathur/setup-php@more-verbose
+        with:
+          php-version: '7.4'
           tools: composer:v1
 
       - name:
