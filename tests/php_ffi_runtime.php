@@ -62,6 +62,41 @@ function same_float(float $left, float $right): bool
     return abs($left - $right) < 0.000001;
 }
 
+function run_php_child(string $code, array $args): array
+{
+    $path = tempnam(sys_get_temp_dir(), 'ffi-child-');
+    if ($path === false) {
+        return [1, 'tempnam failed'];
+    }
+
+    file_put_contents($path, $code);
+
+    $command = escapeshellarg(PHP_BINARY) . ' -d display_errors=stderr ' . escapeshellarg($path);
+    foreach ($args as $arg) {
+        $command .= ' ' . escapeshellarg($arg);
+    }
+
+    $pipes = [];
+    $process = proc_open($command, [
+        1 => ['pipe', 'w'],
+        2 => ['pipe', 'w'],
+    ], $pipes);
+
+    if (!is_resource($process)) {
+        @unlink($path);
+        return [1, 'proc_open failed'];
+    }
+
+    $stdout = stream_get_contents($pipes[1]);
+    fclose($pipes[1]);
+    $stderr = stream_get_contents($pipes[2]);
+    fclose($pipes[2]);
+    $exitCode = proc_close($process);
+    @unlink($path);
+
+    return [$exitCode, trim((string) $stdout . "\n" . (string) $stderr)];
+}
+
 add_result($results, 'php-runtime', 'ffi-extension-loaded', extension_loaded('FFI'), PHP_VERSION);
 add_result($results, 'php-runtime', 'ffi-class-present', class_exists(FFI::class), 'FFI class available');
 add_result($results, 'php-runtime', 'ffi-enabled-for-cli', ini_get('ffi.enable') !== '0', 'ffi.enable=' . (string) ini_get('ffi.enable'));
@@ -164,22 +199,36 @@ for ($i = 0; $i < 4; $i++) {
 }
 add_result($results, 'php-ffi-memory', 'array-access-and-size', $array[2] === 3 && FFI::sizeof($array) === 16, 'C array access and sizeof');
 
-$callbackOk = false;
-try {
-    $callback = static function (int $value): int {
-        return ($value * 3) + 1;
-    };
-    $callbackOk = $ffi->probe_call_unary_callback($callback, 12) === 42;
-    add_result($results, 'php-ffi-callbacks', 'php-closure-to-c-callback', $callbackOk, 'PHP closure converted to C callback');
-} catch (Throwable $e) {
-    add_result($results, 'php-ffi-callbacks', 'php-closure-to-c-callback', false, $e->getMessage());
+$callbackCode = <<<'PHP'
+<?php
+declare(strict_types=1);
+ini_set('display_errors', 'stderr');
+if ($argc < 2) {
+    exit(2);
 }
+$ffi = FFI::cdef('int probe_call_unary_callback(int (*callback)(int), int value);', $argv[1]);
+$callback = static function (int $value): int {
+    return ($value * 3) + 1;
+};
+exit($ffi->probe_call_unary_callback($callback, 12) === 42 ? 0 : 1);
+PHP;
+[$callbackExit, $callbackOutput] = run_php_child($callbackCode, [$probeDll]);
+add_result(
+    $results,
+    'php-ffi-callbacks',
+    'php-closure-to-c-callback',
+    $callbackExit === 0,
+    $callbackOutput !== '' ? $callbackOutput : 'exit=' . $callbackExit
+);
 
 try {
-    $kernel32 = FFI::cdef('unsigned long __stdcall GetCurrentProcessId(void);', 'kernel32.dll');
-    add_result($results, 'php-ffi-calling-conventions', 'winapi-stdcall', $kernel32->GetCurrentProcessId() > 0, 'kernel32 GetCurrentProcessId');
+    $winapiSignature = $arch === 'x86'
+        ? 'unsigned long __stdcall GetCurrentProcessId(void);'
+        : 'unsigned long GetCurrentProcessId(void);';
+    $kernel32 = FFI::cdef($winapiSignature, 'kernel32.dll');
+    add_result($results, 'php-ffi-calling-conventions', 'winapi-get-current-process-id', $kernel32->GetCurrentProcessId() > 0, 'kernel32 GetCurrentProcessId');
 } catch (Throwable $e) {
-    add_result($results, 'php-ffi-calling-conventions', 'winapi-stdcall', false, $e->getMessage());
+    add_result($results, 'php-ffi-calling-conventions', 'winapi-get-current-process-id', false, $e->getMessage());
 }
 
 $dllSelfBuffer = $ffi->new('char[1048576]');
