@@ -213,7 +213,7 @@ $results = [];
 add_result($results, 'php-runtime', 'ffi-extension-loaded', extension_loaded('FFI'), PHP_VERSION);
 add_result($results, 'php-runtime', 'ffi-class-present', class_exists(FFI::class), 'FFI class available');
 add_result($results, 'php-runtime', 'ffi-enabled-for-cli', ini_get('ffi.enable') !== '0', 'ffi.enable=' . (string) ini_get('ffi.enable'));
-add_result($results, 'php-runtime', 'thread-safety-matches-artifact', (PHP_ZTS === 1) === ($threadSafety === 'ts'), 'PHP_ZTS=' . PHP_ZTS . ', expected=' . $threadSafety);
+add_result($results, 'php-runtime', 'thread-safety-matches-artifact', ((bool) PHP_ZTS) === ($threadSafety === 'ts'), 'PHP_ZTS=' . PHP_ZTS . ', expected=' . $threadSafety);
 
 if (!extension_loaded('FFI') || !class_exists(FFI::class)) {
     $failures = array_values(array_filter($results, static fn(array $result): bool => !$result['pass']));
@@ -234,7 +234,8 @@ if (!extension_loaded('FFI') || !class_exists(FFI::class)) {
 }
 
 run_child_result($results, 'php-ffi-load', 'plain-target-dll', <<<'PHP'
-$marker = FFI::string($ffi->plain_marker());
+$rawMarker = $ffi->plain_marker();
+$marker = is_string($rawMarker) ? $rawMarker : FFI::string($rawMarker);
 emit_result($marker === 'php-ffi-plain-target', $marker);
 PHP, $targetDll, $arch);
 
@@ -259,8 +260,10 @@ emit_result($actual === -42, (string) $actual);
 PHP, $targetDll, $arch);
 
 run_child_result($results, 'php-ffi-calls', 'int64-return', <<<'PHP'
-$actual = $ffi->plain_return_s64(-900719925473958);
-emit_result($actual === -900719925473916, (string) $actual);
+$input = PHP_INT_SIZE === 8 ? -900719925473958 : -1000000000;
+$expected = $input + 42;
+$actual = $ffi->plain_return_s64($input);
+emit_result($actual === $expected, 'actual=' . $actual . ', expected=' . $expected);
 PHP, $targetDll, $arch);
 
 run_child_result($results, 'php-ffi-calls', 'gp-sse-register-mix', <<<'PHP'

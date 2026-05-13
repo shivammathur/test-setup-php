@@ -1,6 +1,14 @@
 name: Rebuilt PHP libffi QA
 
 on:
+  push:
+    branches:
+      - libffi-3.5.2-php-qa
+    paths:
+      - ".github/workflows/libffi-rebuilt-php-qa.yml"
+      - "scripts/aggregate_php_artifact_results.php"
+      - "tests/php_artifact_ffi_runtime.php"
+      - "tests/php_ffi_plain_target.c"
   workflow_dispatch:
     inputs:
       php82-run-id:
@@ -37,34 +45,34 @@ jobs:
       matrix:
         include:
           - php: "8.2"
-            run-id: ${{ inputs.php82-run-id }}
+            run-id: ${{ github.event_name == 'workflow_dispatch' && inputs['php82-run-id'] || '25773928019' }}
             arch: x64
           - php: "8.2"
-            run-id: ${{ inputs.php82-run-id }}
+            run-id: ${{ github.event_name == 'workflow_dispatch' && inputs['php82-run-id'] || '25773928019' }}
             arch: x86
           - php: "8.3"
-            run-id: ${{ inputs.php83-run-id }}
+            run-id: ${{ github.event_name == 'workflow_dispatch' && inputs['php83-run-id'] || '25773934493' }}
             arch: x64
           - php: "8.3"
-            run-id: ${{ inputs.php83-run-id }}
+            run-id: ${{ github.event_name == 'workflow_dispatch' && inputs['php83-run-id'] || '25773934493' }}
             arch: x86
           - php: "8.4"
-            run-id: ${{ inputs.php84-run-id }}
+            run-id: ${{ github.event_name == 'workflow_dispatch' && inputs['php84-run-id'] || '25773944458' }}
             arch: x64
           - php: "8.4"
-            run-id: ${{ inputs.php84-run-id }}
+            run-id: ${{ github.event_name == 'workflow_dispatch' && inputs['php84-run-id'] || '25773944458' }}
             arch: x86
           - php: "8.5"
-            run-id: ${{ inputs.php85-run-id }}
+            run-id: ${{ github.event_name == 'workflow_dispatch' && inputs['php85-run-id'] || '25773950930' }}
             arch: x64
           - php: "8.5"
-            run-id: ${{ inputs.php85-run-id }}
+            run-id: ${{ github.event_name == 'workflow_dispatch' && inputs['php85-run-id'] || '25773950930' }}
             arch: x86
           - php: master
-            run-id: ${{ inputs.master-run-id }}
+            run-id: ${{ github.event_name == 'workflow_dispatch' && inputs['master-run-id'] || '25773958393' }}
             arch: x64
           - php: master
-            run-id: ${{ inputs.master-run-id }}
+            run-id: ${{ github.event_name == 'workflow_dispatch' && inputs['master-run-id'] || '25773958393' }}
             arch: x86
 
     env:
@@ -112,6 +120,7 @@ jobs:
               $_.Name -match "Win32-vs\d+-$env:ARCH\.zip$"
             }
 
+          $hadFailure = $false
           foreach ($threadSafety in @('nts', 'ts')) {
             if ($threadSafety -eq 'nts') {
               $zip = $zips | Where-Object { $_.Name -match '-nts-Win32-' } | Select-Object -First 1
@@ -156,8 +165,12 @@ jobs:
               throw "FFI runtime did not produce valid JSON for $env:PHP_INPUT $env:ARCH $threadSafety"
             }
             if ($probeExit -ne 0) {
-              exit $probeExit
+              $hadFailure = $true
             }
+          }
+
+          if ($hadFailure) {
+            exit 1
           }
 
       - name: Upload per-version results
