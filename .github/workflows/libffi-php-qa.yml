@@ -1,6 +1,9 @@
 name: libffi PHP QA
 
 on:
+  push:
+    branches:
+      - libffi-3.5.2-php-qa
   workflow_dispatch:
     inputs:
       vs16-run-id:
