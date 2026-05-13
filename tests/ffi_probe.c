@@ -331,15 +331,23 @@ static int target_sum_varargs(int count, ...)
     return total;
 }
 
+static int seen_varargs_double_count;
+static double seen_varargs_double_values[3];
+
 static double target_sum_varargs_double(int count, ...)
 {
     int i;
     double total = 0.0;
     va_list ap;
 
+    seen_varargs_double_count = count;
     va_start(ap, count);
     for (i = 0; i < count; i++) {
-        total += va_arg(ap, double);
+        double value = va_arg(ap, double);
+        if (i < 3) {
+            seen_varargs_double_values[i] = value;
+        }
+        total += value;
     }
     va_end(ap);
     return total;
@@ -685,7 +693,8 @@ static void test_varargs(report *r)
     double dc = 3.75;
     int result = 0;
     double double_result = 0.0;
-    char detail[96];
+    double direct_double_result;
+    char detail[192];
     ffi_status status;
 
     args[0] = &ffi_type_sint32;
@@ -710,9 +719,14 @@ static void test_varargs(report *r)
     values[2] = &db;
     values[3] = &dc;
 
+    direct_double_result = target_sum_varargs_double(count, da, db, dc);
+    seen_varargs_double_count = 0;
+    seen_varargs_double_values[0] = 0.0;
+    seen_varargs_double_values[1] = 0.0;
+    seen_varargs_double_values[2] = 0.0;
     status = ffi_prep_cif_var(&cif, FFI_DEFAULT_ABI, 1, 4, &ffi_type_double, args);
     ffi_call(&cif, FFI_FN(target_sum_varargs_double), &double_result, values);
-    snprintf(detail, sizeof(detail), "status=%d result=%.17g expected=7.5", (int) status, double_result);
+    snprintf(detail, sizeof(detail), "status=%d result=%.17g direct=%.17g seen=%d/%.17g,%.17g,%.17g expected=7.5", (int) status, double_result, direct_double_result, seen_varargs_double_count, seen_varargs_double_values[0], seen_varargs_double_values[1], seen_varargs_double_values[2]);
     report_line(r, "varargs", "prep-cif-var-double-sum", status == FFI_OK && nearly_equal(double_result, 7.5), detail);
 }
 
