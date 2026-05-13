@@ -4,18 +4,13 @@ on:
 jobs:
   repro:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     steps:
       - name: Setup PHP with affected Composer
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@more-verbose
         with:
-          php-version: '8.3'
-          tools: composer:snapshot
-        env:
-          COMPOSER_TOKEN: ${{ github.token }}
+          php-version: '7.4'
+          tools: composer:v1
 
-      - name: Trigger Composer auth loading
-        run: composer show -a composer/composer || true
+      - name:
+        run: composer -V
         
