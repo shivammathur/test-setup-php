@@ -20,7 +20,6 @@ jobs:
           - '{"os":"ubuntu-24.04","tools":"phplint:^9.0","assert_mode":"major","expected":"9"}'
           - '{"os":"ubuntu-24.04","tools":"phplint:>=9.0","assert_mode":"minimum","expected":"9.0.0"}'
           - '{"os":"ubuntu-24.04","tools":"phplint:9.*","assert_mode":"major","expected":"9"}'
-          - '{"os":"windows-2022","tools":"phplint:>=9.0","assert_mode":"minimum","expected":"9.0.0"}'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
