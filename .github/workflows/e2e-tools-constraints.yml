@@ -1,0 +1,87 @@
+name: E2E - Tool Constraints
+on:
+  push:
+    branches:
+      - e2e-regression-workflows
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  composer-tool-constraints:
+    name: ${{ matrix.tools }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            tools: 'phplint:^9.0'
+            assert-mode: major
+            expected: '9'
+          - os: ubuntu-24.04
+            tools: 'phplint:>=9.0'
+            assert-mode: minimum
+            expected: '9.0.0'
+          - os: ubuntu-24.04
+            tools: 'phplint:9.*'
+            assert-mode: major
+            expected: '9'
+          - os: windows-2022
+            tools: 'phplint:>=9.0'
+            assert-mode: minimum
+            expected: '9.0.0'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP with constrained tool
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          tools: ${{ matrix.tools }}
+
+      - name: Assert tool version on unix
+        if: runner.os != 'Windows'
+        run: |
+          command -v phplint
+          version_output=$(phplint --version)
+          echo "$version_output"
+          version=$(echo "$version_output" | grep -Eo '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n 1)
+          if [ -z "$version" ]; then
+            echo 'Could not parse phplint version output'
+            exit 1
+          fi
+          if [ "${{ matrix.assert-mode }}" = "major" ]; then
+            [[ "$version" == "${{ matrix.expected }}".* ]] || {
+              echo "Expected phplint version $version to stay on major ${{ matrix.expected }}"
+              exit 1
+            }
+          else
+            printf '%s\n' '<?php' "exit(version_compare(\$argv[1], \$argv[2], \">=\") ? 0 : 1);" > /tmp/assert-version.php
+            php /tmp/assert-version.php "$version" "${{ matrix.expected }}" || {
+              exit 1
+            }
+          fi
+
+      - name: Assert tool version on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-Command phplint
+          $versionOutput = phplint --version
+          $versionOutput
+          $version = [regex]::Match($versionOutput, '[0-9]+\.[0-9]+(\.[0-9]+)?').Value
+          if (-not $version) {
+            throw 'Could not parse phplint version output'
+          }
+          if ('${{ matrix.assert-mode }}' -eq 'major') {
+            if (-not $version.StartsWith('${{ matrix.expected }}.')) {
+              throw "Expected phplint version $version to stay on major ${{ matrix.expected }}"
+            }
+          } else {
+            @('<?php', 'exit(version_compare($argv[1], $argv[2], ">=") ? 0 : 1);') | Set-Content assert-version.php
+            php .\assert-version.php $version "${{ matrix.expected }}"
+            if ($LASTEXITCODE -ne 0) {
+              throw "Expected phplint version $version to be >= ${{ matrix.expected }}"
+            }
+          }

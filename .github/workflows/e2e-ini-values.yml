@@ -1,0 +1,95 @@
+name: E2E - Ini Values
+on:
+  push:
+    branches:
+      - e2e-regression-workflows
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unix-ini-values:
+    name: Ini values on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            ini-file: php.ini-development
+          - os: macos-15-intel
+            ini-file: /etc/php.ini-production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP with escaped ini values
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          ini-file: ${{ matrix.ini-file }}
+          ini-values: 'error_reporting=E_ALL & ~E_NOTICE, error_log=$HOME/setup-php-e2e.log, user_ini.filename="a, b", doc_root=`whoami`'
+
+      - name: Assert ini behavior
+        run: |
+          cat > /tmp/assert-ini.php <<'PHP'
+          <?php
+          if ((error_reporting() & E_NOTICE) !== 0) {
+              fwrite(STDERR, "E_NOTICE was not masked\n");
+              exit(1);
+          }
+          if (ini_get('error_log') !== '$HOME/setup-php-e2e.log') {
+              fwrite(STDERR, 'error_log mismatch: ' . ini_get('error_log') . PHP_EOL);
+              exit(1);
+          }
+          if (ini_get('user_ini.filename') !== 'a, b') {
+              fwrite(STDERR, 'user_ini.filename mismatch: ' . ini_get('user_ini.filename') . PHP_EOL);
+              exit(1);
+          }
+          if (ini_get('doc_root') !== '`whoami`') {
+              fwrite(STDERR, 'doc_root mismatch: ' . ini_get('doc_root') . PHP_EOL);
+              exit(1);
+          }
+          PHP
+          php /tmp/assert-ini.php
+
+  windows-ini-values:
+    name: Ini values on Windows
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP with escaped ini values
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          ini-file: php.ini-development
+          ini-values: 'error_reporting=E_ALL & ~E_NOTICE, error_log=$HOME\setup-php-e2e.log, user_ini.filename="a, b", doc_root=`whoami`, sys_temp_dir="C:\setup-php-e2e"'
+
+      - name: Assert ini behavior
+        shell: pwsh
+        run: |
+          @'
+          <?php
+          if ((error_reporting() & E_NOTICE) !== 0) {
+              fwrite(STDERR, "E_NOTICE was not masked\n");
+              exit(1);
+          }
+          if (ini_get('error_log') !== '$HOME\setup-php-e2e.log') {
+              fwrite(STDERR, 'error_log mismatch: ' . ini_get('error_log') . PHP_EOL);
+              exit(1);
+          }
+          if (ini_get('user_ini.filename') !== 'a, b') {
+              fwrite(STDERR, 'user_ini.filename mismatch: ' . ini_get('user_ini.filename') . PHP_EOL);
+              exit(1);
+          }
+          if (ini_get('doc_root') !== '`whoami`') {
+              fwrite(STDERR, 'doc_root mismatch: ' . ini_get('doc_root') . PHP_EOL);
+              exit(1);
+          }
+          if (ini_get('sys_temp_dir') !== 'C:\setup-php-e2e') {
+              fwrite(STDERR, 'sys_temp_dir mismatch: ' . ini_get('sys_temp_dir') . PHP_EOL);
+              exit(1);
+          }
+          '@ | Set-Content assert-ini.php
+          php .\assert-ini.php

@@ -1,0 +1,101 @@
+name: E2E - Invalid Version Guards
+on:
+  push:
+    branches:
+      - e2e-regression-workflows
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  invalid-inputs:
+    name: Invalid input on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04
+          - macos-15-intel
+          - windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP with invalid direct input
+        id: setup
+        continue-on-error: true
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ';id'
+
+      - name: Assert invalid input failed
+        shell: bash
+        run: |
+          [[ '${{ steps.setup.outcome }}' == 'failure' ]] || {
+            echo "Expected setup to fail for invalid direct input"
+            exit 1
+          }
+          [[ -z '${{ steps.setup.outputs.php-version }}' ]] || {
+            echo "Expected no php-version output for invalid direct input"
+            exit 1
+          }
+
+  invalid-repository-sources:
+    name: Invalid ${{ matrix.label }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: '.php-version'
+            source: php-version-file
+            payload: '$0'
+          - label: 'custom php-version-file'
+            source: custom-php-version-file
+            payload: '$$'
+            php-version-file: custom-php-version
+          - label: composer.lock
+            source: composer-lock
+            payload: '`w`'
+          - label: composer.json
+            source: composer-json
+            payload: bogus
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Stage invalid repository source
+        run: |
+          rm -f .php-version custom-php-version composer.json composer.lock
+          case '${{ matrix.source }}' in
+            php-version-file)
+              printf '%s\n' '${{ matrix.payload }}' > .php-version
+              ;;
+            custom-php-version-file)
+              printf '%s\n' '${{ matrix.payload }}' > custom-php-version
+              ;;
+            composer-lock)
+              printf '{ "platform-overrides": { "php": "%s" } }\n' '${{ matrix.payload }}' > composer.lock
+              ;;
+            composer-json)
+              printf '{ "config": { "platform": { "php": "%s" } } }\n' '${{ matrix.payload }}' > composer.json
+              ;;
+          esac
+
+      - name: Setup PHP with invalid repository source
+        id: setup
+        continue-on-error: true
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version-file: ${{ matrix.php-version-file }}
+
+      - name: Assert invalid repository source failed
+        run: |
+          [[ '${{ steps.setup.outcome }}' == 'failure' ]] || {
+            echo "Expected setup to fail for invalid repository source"
+            exit 1
+          }
+          [[ -z '${{ steps.setup.outputs.php-version }}' ]] || {
+            echo "Expected no php-version output for invalid repository source"
+            exit 1
+          }

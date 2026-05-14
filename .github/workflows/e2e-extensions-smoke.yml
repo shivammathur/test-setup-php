@@ -1,0 +1,104 @@
+name: E2E - Extensions Smoke
+on:
+  push:
+    branches:
+      - e2e-regression-workflows
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  common-extensions:
+    name: Common extensions on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            extensions: 'sqlite, pdo_pgsql, xdebug'
+          - os: macos-15-intel
+            extensions: 'sqlite, xdebug'
+          - os: windows-2022
+            extensions: 'sqlite, xdebug'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP with common extensions
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          extensions: ${{ matrix.extensions }}
+
+      - name: Assert common extensions on unix
+        if: runner.os != 'Windows'
+        run: |
+          php -r 'if (!extension_loaded("sqlite3")) { fwrite(STDERR, "sqlite3 missing\n"); exit(1); }'
+          php -r 'if (!extension_loaded("xdebug")) { fwrite(STDERR, "xdebug missing\n"); exit(1); }'
+          if [ '${{ runner.os }}' = 'Linux' ]; then
+            php -r 'if (!extension_loaded("pdo_pgsql")) { fwrite(STDERR, "pdo_pgsql missing\n"); exit(1); }'
+          fi
+
+      - name: Assert common extensions on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          php -r 'if (!extension_loaded("sqlite3")) { fwrite(STDERR, "sqlite3 missing\n"); exit(1); }'
+          php -r 'if (!extension_loaded("xdebug")) { fwrite(STDERR, "xdebug missing\n"); exit(1); }'
+
+  disable-extension:
+    name: Disable a shared extension
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP with extension disable syntax
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          extensions: 'xdebug, :xdebug, sqlite'
+
+      - name: Assert disable syntax still works
+        run: |
+          php -r 'if (extension_loaded("xdebug")) { fwrite(STDERR, "xdebug should be disabled\n"); exit(1); }'
+          php -r 'if (!extension_loaded("sqlite3")) { fwrite(STDERR, "sqlite3 missing\n"); exit(1); }'
+
+  semver-extension:
+    name: Exact PECL version syntax
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Resolve latest stable xdebug version
+        id: xdebug
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import urllib.request
+          import xml.etree.ElementTree as ET
+
+          data = urllib.request.urlopen(
+              'https://pecl.php.net/rest/r/xdebug/allreleases.xml'
+          ).read()
+          root = ET.fromstring(data)
+          for release in root.findall('r'):
+              state = release.findtext('s')
+              version = release.findtext('v')
+              if state == 'stable':
+                  print(f'version={version}')
+                  break
+          else:
+              raise SystemExit('No stable xdebug release found')
+          PY
+
+      - name: Setup PHP with exact xdebug version
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          extensions: 'sqlite, xdebug-${{ steps.xdebug.outputs.version }}'
+
+      - name: Assert semver extension syntax
+        run: |
+          php -r 'if (!extension_loaded("sqlite3")) { fwrite(STDERR, "sqlite3 missing\n"); exit(1); }'
+          php -r 'if (phpversion("xdebug") !== "${{ steps.xdebug.outputs.version }}") { fwrite(STDERR, "xdebug version mismatch: " . phpversion("xdebug") . "\n"); exit(1); }'

@@ -1,0 +1,250 @@
+name: E2E - Version Resolution
+on:
+  push:
+    branches:
+      - e2e-regression-workflows
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  input-and-aliases:
+    name: Input/Alias ${{ matrix.label }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            label: '8'
+            php-version: '8'
+            expected-prefix: '8.0'
+          - os: ubuntu-24.04
+            label: '8.4'
+            php-version: '8.4'
+            expected-prefix: '8.4'
+          - os: ubuntu-24.04
+            label: '8.4.2'
+            php-version: '8.4.2'
+            expected-prefix: '8.4'
+          - os: ubuntu-24.04
+            label: latest
+            php-version: latest
+            manifest-key: latest
+          - os: ubuntu-24.04
+            label: lowest
+            php-version: lowest
+            manifest-key: lowest
+          - os: ubuntu-24.04
+            label: highest
+            php-version: highest
+            manifest-key: highest
+          - os: ubuntu-24.04
+            label: nightly
+            php-version: nightly
+            manifest-key: nightly
+          - os: ubuntu-24.04
+            label: '8.x'
+            php-version: '8.x'
+            manifest-key: 8.x
+          - os: macos-15-intel
+            label: '8.4.2'
+            php-version: '8.4.2'
+            expected-prefix: '8.4'
+          - os: macos-15-intel
+            label: latest
+            php-version: latest
+            manifest-key: latest
+          - os: windows-2022
+            label: '8.4.2'
+            php-version: '8.4.2'
+            expected-prefix: '8.4'
+          - os: windows-2022
+            label: latest
+            php-version: latest
+            manifest-key: latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP from input
+        id: setup
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-version }}
+
+      - name: Resolve expected version
+        id: expected
+        shell: bash
+        run: |
+          if [ -n '${{ matrix.manifest-key }}' ]; then
+            python3 -c "import json, urllib.request; data=json.load(urllib.request.urlopen('https://raw.githubusercontent.com/shivammathur/setup-php/develop/src/configs/php-versions.json')); print('expected_prefix=' + data['${{ matrix.manifest-key }}'])" >> "$GITHUB_OUTPUT"
+          else
+            echo 'expected_prefix=${{ matrix.expected-prefix }}' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Assert resolved version on unix
+        if: runner.os != 'Windows'
+        run: |
+          resolved='${{ steps.setup.outputs.php-version }}'
+          runtime=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')
+          [[ "$resolved" == "${{ steps.expected.outputs.expected_prefix }}"* ]] || {
+            echo "Resolved output '$resolved' does not start with '${{ steps.expected.outputs.expected_prefix }}'"
+            exit 1
+          }
+          [[ "$runtime" == "${{ steps.expected.outputs.expected_prefix }}" ]] || {
+            echo "Runtime version '$runtime' does not equal '${{ steps.expected.outputs.expected_prefix }}'"
+            exit 1
+          }
+
+      - name: Assert resolved version on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $resolved = '${{ steps.setup.outputs.php-version }}'
+          $runtime = php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;'
+          if (-not $resolved.StartsWith('${{ steps.expected.outputs.expected_prefix }}')) {
+            throw "Resolved output '$resolved' does not start with '${{ steps.expected.outputs.expected_prefix }}'"
+          }
+          if ($runtime -ne '${{ steps.expected.outputs.expected_prefix }}') {
+            throw "Runtime version '$runtime' does not equal '${{ steps.expected.outputs.expected_prefix }}'"
+          }
+
+  repository-sources:
+    name: Source ${{ matrix.label }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: '.php-version'
+            source: php-version-file
+            expected-prefix: '8.4'
+          - label: '.php-version (php prefix)'
+            source: php-version-file-prefixed
+            expected-prefix: '8.4'
+          - label: 'custom php-version-file'
+            source: custom-php-version-file
+            php-version-file: custom-php-version
+            expected-prefix: '8.4'
+          - label: composer.lock
+            source: composer-lock
+            expected-prefix: '8.4'
+          - label: composer.json
+            source: composer-json
+            expected-prefix: '8.4'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Stage repository source
+        run: |
+          rm -f .php-version custom-php-version composer.json composer.lock
+          case '${{ matrix.source }}' in
+            php-version-file)
+              printf '8.4.2\n' > .php-version
+              ;;
+            php-version-file-prefixed)
+              printf 'php 8.4.2\n' > .php-version
+              ;;
+            custom-php-version-file)
+              printf '8.4.2\n' > custom-php-version
+              ;;
+            composer-lock)
+              printf '{ "platform-overrides": { "php": "8.4.2" } }\n' > composer.lock
+              ;;
+            composer-json)
+              printf '{ "config": { "platform": { "php": "8.4.2" } } }\n' > composer.json
+              ;;
+          esac
+
+      - name: Setup PHP from repository source
+        id: setup
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version-file: ${{ matrix.php-version-file }}
+
+      - name: Assert resolved version
+        run: |
+          resolved='${{ steps.setup.outputs.php-version }}'
+          runtime=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')
+          [[ "$resolved" == "${{ matrix.expected-prefix }}"* ]] || {
+            echo "Resolved output '$resolved' does not start with '${{ matrix.expected-prefix }}'"
+            exit 1
+          }
+          [[ "$runtime" == "${{ matrix.expected-prefix }}" ]] || {
+            echo "Runtime version '$runtime' does not equal '${{ matrix.expected-prefix }}'"
+            exit 1
+          }
+
+  source-precedence:
+    name: Source precedence
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Stage competing sources
+        run: |
+          printf '8.4.2\n' > .php-version
+          printf '{ "platform-overrides": { "php": "8.3.99" } }\n' > composer.lock
+          printf '{ "config": { "platform": { "php": "8.2.99" } } }\n' > composer.json
+
+      - name: Setup PHP with default precedence
+        id: setup-default
+        uses: shivammathur/setup-php@develop
+
+      - name: Assert .php-version wins over composer files
+        run: |
+          resolved='${{ steps.setup-default.outputs.php-version }}'
+          runtime=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')
+          [[ "$resolved" == 8.4* ]] || {
+            echo "Resolved output '$resolved' does not start with '8.4'"
+            exit 1
+          }
+          [[ "$runtime" == '8.4' ]] || {
+            echo "Runtime version '$runtime' does not equal '8.4'"
+            exit 1
+          }
+
+      - name: Setup PHP with explicit input override
+        id: setup-input
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+
+      - name: Assert explicit input wins over repository sources
+        run: |
+          resolved='${{ steps.setup-input.outputs.php-version }}'
+          runtime=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')
+          [[ "$resolved" == 8.3* ]] || {
+            echo "Resolved output '$resolved' does not start with '8.3'"
+            exit 1
+          }
+          [[ "$runtime" == '8.3' ]] || {
+            echo "Runtime version '$runtime' does not equal '8.3'"
+            exit 1
+          }
+
+      - name: Stage custom file override
+        run: |
+          printf '8.3.99\n' > .php-version
+          printf '8.5.1\n' > custom-php-version
+
+      - name: Setup PHP with custom php-version-file
+        id: setup-custom
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version-file: custom-php-version
+
+      - name: Assert custom file wins over .php-version
+        run: |
+          resolved='${{ steps.setup-custom.outputs.php-version }}'
+          runtime=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')
+          [[ "$resolved" == 8.5* ]] || {
+            echo "Resolved output '$resolved' does not start with '8.5'"
+            exit 1
+          }
+          [[ "$runtime" == '8.5' ]] || {
+            echo "Runtime version '$runtime' does not equal '8.5'"
+            exit 1
+          }
