@@ -17,10 +17,26 @@ jobs:
           - develop
           - v2
         case:
+          - label: phpstan/phpstan:^1
+            tools: phpstan/phpstan:^1
+            binary: phpstan
+            allowed_majors: '1'
+          - label: phpstan/phpstan:">=1,<2"
+            tools: 'phpstan/phpstan:">=1,<2"'
+            binary: phpstan
+            allowed_majors: '1'
           - label: phpstan/phpstan:^1 || ^2
             tools: phpstan/phpstan:^1 || ^2
             binary: phpstan
             allowed_majors: '1|2'
+          - label: vimeo/psalm:^5
+            tools: vimeo/psalm:^5
+            binary: psalm
+            allowed_majors: '5'
+          - label: vimeo/psalm:">=5,<6"
+            tools: 'vimeo/psalm:">=5,<6"'
+            binary: psalm
+            allowed_majors: '5'
           - label: vimeo/psalm:^5 || ^6
             tools: vimeo/psalm:^5 || ^6
             binary: psalm
