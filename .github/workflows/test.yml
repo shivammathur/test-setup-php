@@ -5,12 +5,8 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - uses: shivammathur/setup-php@develop
+      - uses: shivammathur/setup-php@more-verbose
         with:
-          php-version: 4.x
-  run2:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: 4.x    
+          php-version: 8.1
+          tools: vapor:1.11
+      - run: vapor -V    
