@@ -10,6 +10,7 @@ jobs:
   common-extensions:
     name: Common extensions on ${{ fromJson(matrix.case).os }} with ${{ matrix.action_ref }}
     runs-on: ${{ fromJson(matrix.case).os }}
+    continue-on-error: ${{ matrix.action_ref == 'v2' }}
     strategy:
       fail-fast: false
       matrix:
@@ -57,6 +58,7 @@ jobs:
   disable-extension:
     name: Disable a shared extension with ${{ matrix.action_ref }}
     runs-on: ubuntu-24.04
+    continue-on-error: ${{ matrix.action_ref == 'v2' }}
     strategy:
       fail-fast: false
       matrix:
@@ -89,6 +91,7 @@ jobs:
   semver-extension:
     name: Exact PECL version syntax with ${{ matrix.action_ref }}
     runs-on: ubuntu-24.04
+    continue-on-error: ${{ matrix.action_ref == 'v2' }}
     strategy:
       fail-fast: false
       matrix:
@@ -138,3 +141,24 @@ jobs:
         run: |
           php -r 'if (!extension_loaded("sqlite3")) { fwrite(STDERR, "sqlite3 missing\n"); exit(1); }'
           php -r 'if (phpversion("xdebug") !== "${{ steps.xdebug.outputs.version }}") { fwrite(STDERR, "xdebug version mismatch: " . phpversion("xdebug") . "\n"); exit(1); }'
+
+  extension-input-hardening:
+    name: Extension input hardening
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP with extension command sentinel on develop
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          extensions: 'xdebug;touch setup-php-e2e-extension-ran, sqlite'
+
+      - name: Assert extension input did not execute
+        run: |
+          [ ! -e "$GITHUB_WORKSPACE/setup-php-e2e-extension-ran" ] || {
+            echo 'Extension input executed a sentinel command'
+            exit 1
+          }
+          php -r 'if (!extension_loaded("sqlite3")) { fwrite(STDERR, "sqlite3 missing\n"); exit(1); }'

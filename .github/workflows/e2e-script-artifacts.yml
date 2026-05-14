@@ -65,3 +65,39 @@ jobs:
           if ($script -notmatch 'error_log=`\$HOME/setup-php-e2e\.log') {
             throw "Expected escaped ini value in generated Windows script`n$script"
           }
+
+  ini-file-hardening:
+    name: ini-file hardening on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04
+          - macos-15-intel
+          - windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP with ini-file command sentinel on develop
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          ini-file: 'production;touch setup-php-e2e-ini-file-ran'
+
+      - name: Assert ini-file input did not execute on unix
+        if: runner.os != 'Windows'
+        run: |
+          [ ! -e "$GITHUB_WORKSPACE/setup-php-e2e-ini-file-ran" ] && [ ! -e setup-php-e2e-ini-file-ran ] || {
+            echo 'ini-file input executed a sentinel command'
+            exit 1
+          }
+
+      - name: Assert ini-file input did not execute on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if ((Test-Path "$env:GITHUB_WORKSPACE\setup-php-e2e-ini-file-ran") -or (Test-Path setup-php-e2e-ini-file-ran)) {
+            throw 'ini-file input executed a sentinel command'
+          }

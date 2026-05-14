@@ -50,6 +50,18 @@ jobs:
             label: quoted-comma
             ini-values: 'disable_functions="exec,system"'
             assert: quoted-comma
+          - os: ubuntu-24.04
+            label: command-substitution
+            ini-values: 'error_log=$(touch setup-php-e2e-ini-ran)'
+            assert: command-substitution
+          - os: macos-15-intel
+            label: command-substitution
+            ini-values: 'error_log=$(touch setup-php-e2e-ini-ran)'
+            assert: command-substitution
+          - os: windows-2022
+            label: command-substitution
+            ini-values: 'error_log=$(touch setup-php-e2e-ini-ran)'
+            assert: command-substitution
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -82,6 +94,18 @@ jobs:
                 exit 1
               }
               ;;
+            command-substitution)
+              value=$(php -r 'echo ini_get("error_log");')
+              # shellcheck disable=SC2016
+              [ "$value" = '$(touch setup-php-e2e-ini-ran)' ] || {
+                echo "Expected command substitution to stay literal; got '$value'"
+                exit 1
+              }
+              [ ! -e "$GITHUB_WORKSPACE/setup-php-e2e-ini-ran" ] && [ ! -e setup-php-e2e-ini-ran ] || {
+                echo 'ini-values input executed a sentinel command'
+                exit 1
+              }
+              ;;
           esac
 
       - name: Assert ini behavior on Windows
@@ -105,6 +129,15 @@ jobs:
               $value = php -r 'echo ini_get("disable_functions");'
               if ($value -ne 'exec,system') {
                 throw "Expected disable_functions to stay quoted as exec,system; got '$value'"
+              }
+            }
+            'command-substitution' {
+              $value = php -r 'echo ini_get("error_log");'
+              if ($value -ne '$(touch setup-php-e2e-ini-ran)') {
+                throw "Expected command substitution to stay literal; got '$value'"
+              }
+              if ((Test-Path "$env:GITHUB_WORKSPACE\setup-php-e2e-ini-ran") -or (Test-Path setup-php-e2e-ini-ran)) {
+                throw 'ini-values input executed a sentinel command'
               }
             }
           }

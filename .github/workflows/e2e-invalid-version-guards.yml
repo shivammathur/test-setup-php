@@ -8,7 +8,7 @@ permissions:
   contents: read
 jobs:
   invalid-inputs:
-    name: Invalid input on ${{ matrix.os }}
+    name: Invalid ${{ matrix.case.label }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -17,6 +17,15 @@ jobs:
           - ubuntu-24.04
           - macos-15-intel
           - windows-2022
+        case:
+          - label: shell metachar
+            payload: ';id'
+          - label: command substitution
+            payload: '$(id)'
+          - label: unsupported 4.x alias
+            payload: '4.x'
+          - label: command sentinel
+            payload: '8.4;touch $GITHUB_WORKSPACE/setup-php-version-ran'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -26,7 +35,7 @@ jobs:
         continue-on-error: true
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ';id'
+          php-version: ${{ matrix.case.payload }}
 
       - name: Assert invalid input failed
         shell: bash
@@ -37,6 +46,10 @@ jobs:
           }
           [[ -z '${{ steps.setup.outputs.php-version }}' ]] || {
             echo "Expected no php-version output for invalid direct input"
+            exit 1
+          }
+          [[ ! -e "$GITHUB_WORKSPACE/setup-php-version-ran" ]] || {
+            echo "Invalid php-version input executed a sentinel command"
             exit 1
           }
 
@@ -50,26 +63,46 @@ jobs:
           - label: '.php-version'
             source: php-version-file
             payload: '$0'
+          - label: '.php-version 4.x'
+            source: php-version-file
+            payload: '4.x'
+          - label: '.tool-versions injection'
+            source: tool-versions
+            payload: 'php 8.4.2;touch $GITHUB_WORKSPACE/setup-php-version-ran'
+            php-version-file: .tool-versions
           - label: 'custom php-version-file'
             source: custom-php-version-file
             payload: '$$'
             php-version-file: custom-php-version
+          - label: 'custom php-version-file 4.x'
+            source: custom-php-version-file
+            payload: '4.x'
+            php-version-file: custom-php-version
           - label: composer.lock
             source: composer-lock
             payload: '`w`'
+          - label: composer.lock 4.x
+            source: composer-lock
+            payload: '4.x'
           - label: composer.json
             source: composer-json
             payload: bogus
+          - label: composer.json 4.x
+            source: composer-json
+            payload: '4.x'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
       - name: Stage invalid repository source
         run: |
-          rm -f .php-version custom-php-version composer.json composer.lock
+          rm -f .php-version .tool-versions custom-php-version composer.json composer.lock
           case '${{ matrix.source }}' in
             php-version-file)
               printf '%s\n' '${{ matrix.payload }}' > .php-version
+              ;;
+            tool-versions)
+              printf '%s\n' '${{ matrix.payload }}' > .tool-versions
               ;;
             custom-php-version-file)
               printf '%s\n' '${{ matrix.payload }}' > custom-php-version
@@ -97,5 +130,9 @@ jobs:
           }
           [[ -z '${{ steps.setup.outputs.php-version }}' ]] || {
             echo "Expected no php-version output for invalid repository source"
+            exit 1
+          }
+          [[ ! -e "$GITHUB_WORKSPACE/setup-php-version-ran" ]] || {
+            echo "Invalid repository version source executed a sentinel command"
             exit 1
           }

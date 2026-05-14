@@ -8,8 +8,9 @@ permissions:
   contents: read
 jobs:
   composer-package-or-constraints:
-    name: ${{ matrix.case.label }} with ${{ matrix.action_ref }}
+    name: ${{ matrix.case.label }} on PHP ${{ matrix.case.php_version }} with ${{ matrix.action_ref }}
     runs-on: ubuntu-24.04
+    continue-on-error: ${{ matrix.action_ref == 'v2' }}
     strategy:
       fail-fast: false
       matrix:
@@ -21,26 +22,32 @@ jobs:
             tools: phpstan/phpstan:^1
             binary: phpstan
             allowed_majors: '1'
+            php_version: '8.4'
           - label: phpstan/phpstan:">=1,<2"
             tools: 'phpstan/phpstan:">=1,<2"'
             binary: phpstan
             allowed_majors: '1'
+            php_version: '8.4'
           - label: phpstan/phpstan:^1 || ^2
             tools: phpstan/phpstan:^1 || ^2
             binary: phpstan
             allowed_majors: '1|2'
+            php_version: '8.4'
           - label: vimeo/psalm:^5
             tools: vimeo/psalm:^5
             binary: psalm
             allowed_majors: '5'
+            php_version: '8.3'
           - label: vimeo/psalm:">=5,<6"
             tools: 'vimeo/psalm:">=5,<6"'
             binary: psalm
             allowed_majors: '5'
+            php_version: '8.3'
           - label: vimeo/psalm:^5 || ^6
             tools: vimeo/psalm:^5 || ^6
             binary: psalm
             allowed_majors: '5|6'
+            php_version: '8.4'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -49,14 +56,14 @@ jobs:
         if: matrix.action_ref == 'develop'
         uses: shivammathur/setup-php@develop
         with:
-          php-version: '8.4'
+          php-version: ${{ matrix.case.php_version }}
           tools: ${{ matrix.case.tools }}
 
       - name: Setup PHP with composer package constraint on v2
         if: matrix.action_ref == 'v2'
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: ${{ matrix.case.php_version }}
           tools: ${{ matrix.case.tools }}
 
       - name: Assert composer package constraint

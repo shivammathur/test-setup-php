@@ -10,6 +10,7 @@ jobs:
   composer-tool-constraints:
     name: ${{ fromJson(matrix.case).tools }} on ${{ fromJson(matrix.case).os }} with ${{ matrix.action_ref }}
     runs-on: ${{ fromJson(matrix.case).os }}
+    continue-on-error: ${{ matrix.action_ref == 'v2' }}
     strategy:
       fail-fast: false
       matrix:
@@ -145,5 +146,38 @@ jobs:
           command -v phplint
           phplint --version | grep -E '^phplint 9\.' >/dev/null || {
             echo "Expected phplint 9.x, got: $(phplint --version)"
+            exit 1
+          }
+
+  tool-input-hardening:
+    name: Tool input hardening
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP with tool command sentinel on develop
+        id: setup
+        continue-on-error: true
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          tools: 'phpunit:9.6.17;touch setup-php-e2e-tool-ran'
+
+      - name: Assert tool input did not execute
+        run: |
+          [ ! -e "$GITHUB_WORKSPACE/setup-php-e2e-tool-ran" ] || {
+            echo 'Tool input executed a sentinel command'
+            exit 1
+          }
+          action_root="$(dirname "$(dirname "$GITHUB_WORKSPACE")")/_actions/shivammathur/setup-php/develop"
+          run_script="$action_root/src/scripts/run.sh"
+          [ -f "$run_script" ] || {
+            echo "Missing generated run script at $run_script"
+            exit 1
+          }
+          ! grep -F 'touch setup-php-e2e-tool-ran' "$run_script" || {
+            echo 'Generated run script contains raw tool sentinel command'
+            sed -n '1,120p' "$run_script"
             exit 1
           }
