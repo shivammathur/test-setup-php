@@ -8,27 +8,35 @@ permissions:
   contents: read
 jobs:
   common-extensions:
-    name: Common extensions on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Common extensions on ${{ fromJson(matrix.case).os }} with ${{ matrix.action_ref }}
+    runs-on: ${{ fromJson(matrix.case).os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-24.04
-            extensions: 'sqlite, pdo_pgsql, xdebug'
-          - os: macos-15-intel
-            extensions: 'sqlite, xdebug'
-          - os: windows-2022
-            extensions: 'sqlite, xdebug'
+        action_ref:
+          - develop
+          - v2
+        case:
+          - '{"os":"ubuntu-24.04","extensions":"sqlite, pdo_pgsql, xdebug"}'
+          - '{"os":"macos-15-intel","extensions":"sqlite, xdebug"}'
+          - '{"os":"windows-2022","extensions":"sqlite, xdebug"}'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup PHP with common extensions
+      - name: Setup PHP with common extensions on develop
+        if: matrix.action_ref == 'develop'
         uses: shivammathur/setup-php@develop
         with:
           php-version: '8.4'
-          extensions: ${{ matrix.extensions }}
+          extensions: ${{ fromJson(matrix.case).extensions }}
+
+      - name: Setup PHP with common extensions on v2
+        if: matrix.action_ref == 'v2'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: ${{ fromJson(matrix.case).extensions }}
 
       - name: Assert common extensions on unix
         if: runner.os != 'Windows'
@@ -47,14 +55,28 @@ jobs:
           php -r 'if (!extension_loaded("xdebug")) { fwrite(STDERR, "xdebug missing\n"); exit(1); }'
 
   disable-extension:
-    name: Disable a shared extension
+    name: Disable a shared extension with ${{ matrix.action_ref }}
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        action_ref:
+          - develop
+          - v2
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup PHP with extension disable syntax
+      - name: Setup PHP with extension disable syntax on develop
+        if: matrix.action_ref == 'develop'
         uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          extensions: 'xdebug, :xdebug, sqlite'
+
+      - name: Setup PHP with extension disable syntax on v2
+        if: matrix.action_ref == 'v2'
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           extensions: 'xdebug, :xdebug, sqlite'
@@ -65,8 +87,14 @@ jobs:
           php -r 'if (!extension_loaded("sqlite3")) { fwrite(STDERR, "sqlite3 missing\n"); exit(1); }'
 
   semver-extension:
-    name: Exact PECL version syntax
+    name: Exact PECL version syntax with ${{ matrix.action_ref }}
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        action_ref:
+          - develop
+          - v2
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -74,7 +102,7 @@ jobs:
       - name: Resolve latest stable xdebug version
         id: xdebug
         run: |
-          python - <<'PY' >> "$GITHUB_OUTPUT"
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import urllib.request
           import xml.etree.ElementTree as ET
 
@@ -82,9 +110,9 @@ jobs:
               'https://pecl.php.net/rest/r/xdebug/allreleases.xml'
           ).read()
           root = ET.fromstring(data)
-          for release in root.findall('r'):
-              state = release.findtext('s')
-              version = release.findtext('v')
+          for release in root.findall('{*}r'):
+              state = release.findtext('{*}s')
+              version = release.findtext('{*}v')
               if state == 'stable':
                   print(f'version={version}')
                   break
@@ -92,8 +120,16 @@ jobs:
               raise SystemExit('No stable xdebug release found')
           PY
 
-      - name: Setup PHP with exact xdebug version
+      - name: Setup PHP with exact xdebug version on develop
+        if: matrix.action_ref == 'develop'
         uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          extensions: 'sqlite, xdebug-${{ steps.xdebug.outputs.version }}'
+
+      - name: Setup PHP with exact xdebug version on v2
+        if: matrix.action_ref == 'v2'
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           extensions: 'sqlite, xdebug-${{ steps.xdebug.outputs.version }}'

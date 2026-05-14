@@ -8,25 +8,35 @@ permissions:
   contents: read
 jobs:
   unix-ini-values:
-    name: Ini values on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Ini values on ${{ fromJson(matrix.case).os }} with ${{ matrix.action_ref }}
+    runs-on: ${{ fromJson(matrix.case).os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-24.04
-            ini-file: php.ini-development
-          - os: macos-15-intel
-            ini-file: /etc/php.ini-production
+        action_ref:
+          - develop
+          - v2
+        case:
+          - '{"os":"ubuntu-24.04","ini_file":"php.ini-development"}'
+          - '{"os":"macos-15-intel","ini_file":"/etc/php.ini-production"}'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup PHP with escaped ini values
+      - name: Setup PHP with escaped ini values on develop
+        if: matrix.action_ref == 'develop'
         uses: shivammathur/setup-php@develop
         with:
           php-version: '8.4'
-          ini-file: ${{ matrix.ini-file }}
+          ini-file: ${{ fromJson(matrix.case).ini_file }}
+          ini-values: 'error_reporting=E_ALL & ~E_NOTICE, error_log=$HOME/setup-php-e2e.log, user_ini.filename="a, b", doc_root=`whoami`'
+
+      - name: Setup PHP with escaped ini values on v2
+        if: matrix.action_ref == 'v2'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          ini-file: ${{ fromJson(matrix.case).ini_file }}
           ini-values: 'error_reporting=E_ALL & ~E_NOTICE, error_log=$HOME/setup-php-e2e.log, user_ini.filename="a, b", doc_root=`whoami`'
 
       - name: Assert ini behavior
@@ -53,14 +63,29 @@ jobs:
           php /tmp/assert-ini.php
 
   windows-ini-values:
-    name: Ini values on Windows
+    name: Ini values on Windows with ${{ matrix.action_ref }}
     runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        action_ref:
+          - develop
+          - v2
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup PHP with escaped ini values
+      - name: Setup PHP with escaped ini values on develop
+        if: matrix.action_ref == 'develop'
         uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          ini-file: php.ini-development
+          ini-values: 'error_reporting=E_ALL & ~E_NOTICE, error_log=$HOME\setup-php-e2e.log, user_ini.filename="a, b", doc_root=`whoami`, sys_temp_dir="C:\setup-php-e2e"'
+
+      - name: Setup PHP with escaped ini values on v2
+        if: matrix.action_ref == 'v2'
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           ini-file: php.ini-development

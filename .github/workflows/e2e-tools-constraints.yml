@@ -8,37 +8,36 @@ permissions:
   contents: read
 jobs:
   composer-tool-constraints:
-    name: ${{ matrix.tools }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: ${{ fromJson(matrix.case).tools }} on ${{ fromJson(matrix.case).os }} with ${{ matrix.action_ref }}
+    runs-on: ${{ fromJson(matrix.case).os }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-24.04
-            tools: 'phplint:^9.0'
-            assert-mode: major
-            expected: '9'
-          - os: ubuntu-24.04
-            tools: 'phplint:>=9.0'
-            assert-mode: minimum
-            expected: '9.0.0'
-          - os: ubuntu-24.04
-            tools: 'phplint:9.*'
-            assert-mode: major
-            expected: '9'
-          - os: windows-2022
-            tools: 'phplint:>=9.0'
-            assert-mode: minimum
-            expected: '9.0.0'
+        action_ref:
+          - develop
+          - v2
+        case:
+          - '{"os":"ubuntu-24.04","tools":"phplint:^9.0","assert_mode":"major","expected":"9"}'
+          - '{"os":"ubuntu-24.04","tools":"phplint:>=9.0","assert_mode":"minimum","expected":"9.0.0"}'
+          - '{"os":"ubuntu-24.04","tools":"phplint:9.*","assert_mode":"major","expected":"9"}'
+          - '{"os":"windows-2022","tools":"phplint:>=9.0","assert_mode":"minimum","expected":"9.0.0"}'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup PHP with constrained tool
+      - name: Setup PHP with constrained tool on develop
+        if: matrix.action_ref == 'develop'
         uses: shivammathur/setup-php@develop
         with:
           php-version: '8.4'
-          tools: ${{ matrix.tools }}
+          tools: ${{ fromJson(matrix.case).tools }}
+
+      - name: Setup PHP with constrained tool on v2
+        if: matrix.action_ref == 'v2'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: ${{ fromJson(matrix.case).tools }}
 
       - name: Assert tool version on unix
         if: runner.os != 'Windows'
@@ -51,14 +50,14 @@ jobs:
             echo 'Could not parse phplint version output'
             exit 1
           fi
-          if [ "${{ matrix.assert-mode }}" = "major" ]; then
-            [[ "$version" == "${{ matrix.expected }}".* ]] || {
-              echo "Expected phplint version $version to stay on major ${{ matrix.expected }}"
+          if [ "${{ fromJson(matrix.case).assert_mode }}" = "major" ]; then
+            [[ "$version" == "${{ fromJson(matrix.case).expected }}".* ]] || {
+              echo "Expected phplint version $version to stay on major ${{ fromJson(matrix.case).expected }}"
               exit 1
             }
           else
             printf '%s\n' '<?php' "exit(version_compare(\$argv[1], \$argv[2], \">=\") ? 0 : 1);" > /tmp/assert-version.php
-            php /tmp/assert-version.php "$version" "${{ matrix.expected }}" || {
+            php /tmp/assert-version.php "$version" "${{ fromJson(matrix.case).expected }}" || {
               exit 1
             }
           fi
@@ -74,14 +73,14 @@ jobs:
           if (-not $version) {
             throw 'Could not parse phplint version output'
           }
-          if ('${{ matrix.assert-mode }}' -eq 'major') {
-            if (-not $version.StartsWith('${{ matrix.expected }}.')) {
-              throw "Expected phplint version $version to stay on major ${{ matrix.expected }}"
+          if ('${{ fromJson(matrix.case).assert_mode }}' -eq 'major') {
+            if (-not $version.StartsWith('${{ fromJson(matrix.case).expected }}.')) {
+              throw "Expected phplint version $version to stay on major ${{ fromJson(matrix.case).expected }}"
             }
           } else {
             @('<?php', 'exit(version_compare($argv[1], $argv[2], ">=") ? 0 : 1);') | Set-Content assert-version.php
-            php .\assert-version.php $version "${{ matrix.expected }}"
+            php .\assert-version.php $version "${{ fromJson(matrix.case).expected }}"
             if ($LASTEXITCODE -ne 0) {
-              throw "Expected phplint version $version to be >= ${{ matrix.expected }}"
+              throw "Expected phplint version $version to be >= ${{ fromJson(matrix.case).expected }}"
             }
           }
