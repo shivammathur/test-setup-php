@@ -1,0 +1,59 @@
+name: E2E - Composer Package Constraints
+on:
+  push:
+    branches:
+      - e2e-regression-workflows
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  composer-package-or-constraints:
+    name: ${{ matrix.case.label }} with ${{ matrix.action_ref }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        action_ref:
+          - develop
+          - v2
+        case:
+          - label: phpstan/phpstan:^1 || ^2
+            tools: phpstan/phpstan:^1 || ^2
+            binary: phpstan
+            allowed_majors: '1|2'
+          - label: vimeo/psalm:^5 || ^6
+            tools: vimeo/psalm:^5 || ^6
+            binary: psalm
+            allowed_majors: '5|6'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP with composer package constraint on develop
+        if: matrix.action_ref == 'develop'
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          tools: ${{ matrix.case.tools }}
+
+      - name: Setup PHP with composer package constraint on v2
+        if: matrix.action_ref == 'v2'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: ${{ matrix.case.tools }}
+
+      - name: Assert composer package constraint
+        run: |
+          command -v '${{ matrix.case.binary }}'
+          version_output=$('${{ matrix.case.binary }}' --version 2>&1)
+          echo "$version_output"
+          version=$(echo "$version_output" | grep -Eo '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n 1)
+          [ -n "$version" ] || {
+            echo 'Could not parse tool version output'
+            exit 1
+          }
+          echo "$version" | grep -E '^(${{ matrix.case.allowed_majors }})\.' >/dev/null || {
+            echo "Expected ${{ matrix.case.binary }} version in majors ${{ matrix.case.allowed_majors }}, got $version"
+            exit 1
+          }
