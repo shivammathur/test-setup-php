@@ -1,0 +1,110 @@
+name: E2E - Ini Values
+on:
+  push:
+    branches:
+      - e2e-regression-workflows
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  special-ini-values:
+    name: ${{ matrix.label }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            label: error-reporting-expression
+            ini-values: 'error_reporting=E_ALL & ~E_NOTICE'
+            assert: error-reporting
+          - os: macos-15-intel
+            label: error-reporting-expression
+            ini-values: 'error_reporting=E_ALL & ~E_NOTICE'
+            assert: error-reporting
+          - os: windows-2022
+            label: error-reporting-expression
+            ini-values: 'error_reporting=E_ALL & ~E_NOTICE'
+            assert: error-reporting
+          - os: ubuntu-24.04
+            label: literal-dollar
+            ini-values: 'error_log=$HOME/setup-php-e2e.log'
+            assert: literal-dollar
+          - os: macos-15-intel
+            label: literal-dollar
+            ini-values: 'error_log=$HOME/setup-php-e2e.log'
+            assert: literal-dollar
+          - os: windows-2022
+            label: literal-dollar
+            ini-values: 'error_log=$HOME/setup-php-e2e.log'
+            assert: literal-dollar
+          - os: ubuntu-24.04
+            label: quoted-comma
+            ini-values: 'disable_functions="exec,system"'
+            assert: quoted-comma
+          - os: macos-15-intel
+            label: quoted-comma
+            ini-values: 'disable_functions="exec,system"'
+            assert: quoted-comma
+          - os: windows-2022
+            label: quoted-comma
+            ini-values: 'disable_functions="exec,system"'
+            assert: quoted-comma
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP on develop
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          ini-values: ${{ matrix.ini-values }}
+
+      - name: Assert ini behavior on unix
+        if: runner.os != 'Windows'
+        run: |
+          expected_literal="\$HOME/setup-php-e2e.log"
+          case '${{ matrix.assert }}' in
+            error-reporting)
+              php -r 'exit(((error_reporting() & E_NOTICE) === 0 && (error_reporting() & E_ALL) !== 0) ? 0 : 1);'
+              ;;
+            literal-dollar)
+              value=$(php -r 'echo ini_get("error_log");')
+              [ "$value" = "$expected_literal" ] || {
+                echo "Expected literal dollar value, got '$value'"
+                exit 1
+              }
+              ;;
+            quoted-comma)
+              value=$(php -r 'echo ini_get("disable_functions");')
+              [ "$value" = 'exec,system' ] || {
+                echo "Expected disable_functions to stay quoted as exec,system; got '$value'"
+                exit 1
+              }
+              ;;
+          esac
+
+      - name: Assert ini behavior on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          switch ('${{ matrix.assert }}') {
+            'error-reporting' {
+              php -r 'exit(((error_reporting() & E_NOTICE) === 0 && (error_reporting() & E_ALL) !== 0) ? 0 : 1);'
+              if ($LASTEXITCODE -ne 0) {
+                throw 'Expected E_NOTICE to be disabled while keeping E_ALL enabled'
+              }
+            }
+            'literal-dollar' {
+              $value = php -r 'echo ini_get("error_log");'
+              if ($value -ne '$HOME/setup-php-e2e.log') {
+                throw "Expected literal dollar value, got '$value'"
+              }
+            }
+            'quoted-comma' {
+              $value = php -r 'echo ini_get("disable_functions");'
+              if ($value -ne 'exec,system') {
+                throw "Expected disable_functions to stay quoted as exec,system; got '$value'"
+              }
+            }
+          }

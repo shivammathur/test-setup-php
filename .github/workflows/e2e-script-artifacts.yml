@@ -1,0 +1,67 @@
+name: E2E - Script Artifacts
+on:
+  push:
+    branches:
+      - e2e-regression-workflows
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect-generated-run-script:
+    name: Inspect generated run script on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-24.04
+          - macos-15-intel
+          - windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP on develop
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4.2'
+          ini-values: 'error_log=$HOME/setup-php-e2e.log'
+
+      - name: Assert generated run script on unix
+        if: runner.os != 'Windows'
+        run: |
+          action_root="$(dirname "$(dirname "$GITHUB_WORKSPACE")")/_actions/shivammathur/setup-php/develop"
+          run_script="$action_root/src/scripts/run.sh"
+          expected_ini="error_log=\\\$HOME/setup-php-e2e.log"
+          [ -f "$run_script" ] || {
+            echo "Missing generated run script at $run_script"
+            exit 1
+          }
+          grep -F "linux.sh '8.4' production" "$run_script" >/dev/null || \
+          grep -F "darwin.sh '8.4' production" "$run_script" >/dev/null || {
+            echo "Expected quoted PHP version in generated script"
+            sed -n '1,40p' "$run_script"
+            exit 1
+          }
+          grep -F "$expected_ini" "$run_script" >/dev/null || {
+            echo 'Expected escaped ini value in generated script'
+            sed -n '1,120p' "$run_script"
+            exit 1
+          }
+
+      - name: Assert generated run script on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $actionRoot = Join-Path (Split-Path (Split-Path $env:GITHUB_WORKSPACE)) '_actions/shivammathur/setup-php/develop'
+          $runScript = Join-Path $actionRoot 'src/scripts/run.ps1'
+          if (-not (Test-Path $runScript)) {
+            throw "Missing generated run script at $runScript"
+          }
+          $script = Get-Content $runScript -Raw
+          if ($script -notmatch "win32\.ps1 '8\.4' production") {
+            throw "Expected quoted PHP version in generated Windows script`n$script"
+          }
+          if ($script -notmatch 'error_log=`\$HOME/setup-php-e2e\.log') {
+            throw "Expected escaped ini value in generated Windows script`n$script"
+          }

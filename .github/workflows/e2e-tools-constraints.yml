@@ -18,7 +18,6 @@ jobs:
           - v2
         case:
           - '{"os":"ubuntu-24.04","tools":"phplint:^9.0","assert_mode":"major","expected":"9"}'
-          - '{"os":"ubuntu-24.04","tools":"phplint:>=9.0","assert_mode":"minimum","expected":"9.0.0"}'
           - '{"os":"ubuntu-24.04","tools":"phplint:9.*","assert_mode":"major","expected":"9"}'
     steps:
       - name: Checkout
@@ -82,4 +81,69 @@ jobs:
             if ($LASTEXITCODE -ne 0) {
               throw "Expected phplint version $version to be >= ${{ fromJson(matrix.case).expected }}"
             }
+          }
+
+  minimum-constraint-on-develop:
+    name: phplint:>=9.0 on ubuntu-24.04 with develop
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP with minimum tool constraint on develop
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          tools: 'phplint:>=9.0'
+
+      - name: Assert minimum tool constraint
+        run: |
+          command -v phplint
+          version_output=$(phplint --version)
+          echo "$version_output"
+          version=$(echo "$version_output" | grep -Eo '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n 1)
+          [ -n "$version" ] || {
+            echo 'Could not parse phplint version output'
+            exit 1
+          }
+          cat <<'PHP' > /tmp/assert-version.php
+          <?php
+          exit(version_compare($argv[1], $argv[2], '>=') ? 0 : 1);
+          PHP
+          php /tmp/assert-version.php "$version" '9.0.0'
+
+  composer-reordering:
+    name: ${{ matrix.label }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: composer listed first
+            tools: 'composer:2.8.12, phplint:^9.0'
+          - label: composer listed last
+            tools: 'phplint:^9.0, composer:2.8.12'
+          - label: composer with v prefix
+            tools: 'phplint:9.*, composer:v2.8.12'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP with composer ordering case on develop
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          tools: ${{ matrix.tools }}
+
+      - name: Assert composer and phplint versions
+        run: |
+          composer_version=$(composer --version | grep -Eo '2\.8\.12')
+          [ "$composer_version" = '2.8.12' ] || {
+            echo "Expected composer 2.8.12, got: $(composer --version)"
+            exit 1
+          }
+          command -v phplint
+          phplint --version | grep -E '^phplint 9\.' >/dev/null || {
+            echo "Expected phplint 9.x, got: $(phplint --version)"
+            exit 1
           }
