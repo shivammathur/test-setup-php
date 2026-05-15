@@ -1,0 +1,138 @@
+name: E2E - Environment Lookup
+
+on:
+  workflow_dispatch:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  php-version-env:
+    name: PHP version env lookup (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    steps:
+      - name: v2 - lowercase php-version env
+        uses: shivammathur/setup-php@v2
+        with:
+          tools: none
+        env:
+          php-version: '8.2'
+
+      - name: v2 - check lowercase result
+        shell: bash
+        run: |
+          php -v
+          php -r "if (strpos(PHP_VERSION, '8.2') !== 0) { throw new Exception('Expected PHP 8.2, got ' . PHP_VERSION); }"
+
+      - name: candidate - lowercase php-version env
+        uses: shivammathur/setup-php@b76777ed552a433318934af33e3400c337ed236e
+        with:
+          tools: none
+        env:
+          php-version: '8.2'
+
+      - name: candidate - check lowercase result
+        shell: bash
+        run: |
+          php -v
+          php -r "if (strpos(PHP_VERSION, '8.2') !== 0) { throw new Exception('Expected PHP 8.2, got ' . PHP_VERSION); }"
+
+      - name: v2 - uppercase PHP-VERSION env
+        uses: shivammathur/setup-php@v2
+        with:
+          tools: none
+        env:
+          PHP-VERSION: '8.3'
+
+      - name: v2 - check uppercase result
+        shell: bash
+        run: |
+          php -v
+          php -r "if (strpos(PHP_VERSION, '8.3') !== 0) { throw new Exception('Expected PHP 8.3, got ' . PHP_VERSION); }"
+
+      - name: candidate - uppercase PHP-VERSION env
+        uses: shivammathur/setup-php@b76777ed552a433318934af33e3400c337ed236e
+        with:
+          tools: none
+        env:
+          PHP-VERSION: '8.3'
+
+      - name: candidate - check uppercase result
+        shell: bash
+        run: |
+          php -v
+          php -r "if (strpos(PHP_VERSION, '8.3') !== 0) { throw new Exception('Expected PHP 8.3, got ' . PHP_VERSION); }"
+
+  composer-project-dir:
+    name: COMPOSER_PROJECT_DIR env lookup (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    steps:
+      - name: Prepare Composer projects
+        shell: bash
+        run: |
+          mkdir lower-project hyphen-project
+          printf '{"config":{"platform":{"php":"8.2.0"}}}\n' > lower-project/composer.json
+          printf '{"config":{"platform":{"php":"8.3.0"}}}\n' > hyphen-project/composer.json
+
+      - name: v2 - hyphen fallback
+        uses: shivammathur/setup-php@v2
+        with:
+          tools: none
+        env:
+          composer-project_dir: hyphen-project
+
+      - name: v2 - check hyphen fallback
+        shell: bash
+        run: |
+          php -v
+          php -r "if (strpos(PHP_VERSION, '8.3') !== 0) { throw new Exception('Expected PHP 8.3, got ' . PHP_VERSION); }"
+
+      - name: candidate - hyphen fallback
+        uses: shivammathur/setup-php@b76777ed552a433318934af33e3400c337ed236e
+        with:
+          tools: none
+        env:
+          composer-project_dir: hyphen-project
+
+      - name: candidate - check hyphen fallback
+        shell: bash
+        run: |
+          php -v
+          php -r "if (strpos(PHP_VERSION, '8.3') !== 0) { throw new Exception('Expected PHP 8.3, got ' . PHP_VERSION); }"
+
+      - name: v2 - existing precedence
+        uses: shivammathur/setup-php@v2
+        with:
+          tools: none
+        env:
+          composer_project_dir: lower-project
+          composer-project_dir: hyphen-project
+
+      - name: v2 - check existing precedence
+        shell: bash
+        run: |
+          php -v
+          php -r "if (strpos(PHP_VERSION, '8.2') !== 0) { throw new Exception('Expected PHP 8.2, got ' . PHP_VERSION); }"
+
+      - name: candidate - existing precedence
+        uses: shivammathur/setup-php@b76777ed552a433318934af33e3400c337ed236e
+        with:
+          tools: none
+        env:
+          composer_project_dir: lower-project
+          composer-project_dir: hyphen-project
+
+      - name: candidate - check existing precedence
+        shell: bash
+        run: |
+          php -v
+          php -r "if (strpos(PHP_VERSION, '8.2') !== 0) { throw new Exception('Expected PHP 8.2, got ' . PHP_VERSION); }"
