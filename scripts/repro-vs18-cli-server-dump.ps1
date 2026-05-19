@@ -1,0 +1,506 @@
+param(
+    [Parameter(Mandatory = $true)]
+    [string] $BuilderRepoPath,
+    [Parameter(Mandatory = $true)]
+    [string] $ArtifactsDir,
+    [Parameter(Mandatory = $true)]
+    [string] $ResultsDir,
+    [Parameter(Mandatory = $true)]
+    [string] $OutputDir,
+    [Parameter(Mandatory = $true)]
+    [string] $PhpVersion,
+    [Parameter(Mandatory = $true)]
+    [ValidateSet('x86', 'x64')]
+    [string] $Arch,
+    [Parameter(Mandatory = $true)]
+    [ValidateSet('ts', 'nts')]
+    [string] $Ts,
+    [Parameter(Mandatory = $true)]
+    [ValidateSet('opcache', 'nocache')]
+    [string] $Opcache,
+    [Parameter(Mandatory = $true)]
+    [ValidateSet('php', 'ext')]
+    [string] $TestType,
+    [Parameter(Mandatory = $true)]
+    [string] $SourceRepository,
+    [Parameter(Mandatory = $true)]
+    [string] $SourceRef,
+    [Parameter(Mandatory = $true)]
+    [string] $ProcDumpPath,
+    [Parameter(Mandatory = $false)]
+    [string] $CdbPath = '',
+    [Parameter(Mandatory = $false)]
+    [bool] $RunFullSuite = $true,
+    [Parameter(Mandatory = $false)]
+    [int] $StressIterations = 120
+)
+
+Set-StrictMode -Version 2.0
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+
+function Write-Section {
+    param([string] $Message)
+    Write-Host ''
+    Write-Host "===== $Message ====="
+}
+
+function Get-PhpDebugPackPath {
+    $tsPart = if ($Ts -eq 'nts') { 'nts-Win32' } else { 'Win32' }
+    $fileName = "php-debug-pack-$PhpVersion-$tsPart-vs18-$Arch.zip"
+    return Join-Path $ArtifactsDir $fileName
+}
+
+function Set-CliServerDumpCapture {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Path
+    )
+
+    $content = Get-Content -Path $Path -Raw
+    if ($content -match 'PHP_CLI_SERVER_PROCDUMP') {
+        Write-Host "CLI server dump capture patch already present in $Path"
+        return
+    }
+
+    $oldIterator = @'
+                $iterator = new RecursiveIteratorIterator(
+                    new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS)
+                );
+'@
+    $newIterator = @'
+                $iterator = new RecursiveIteratorIterator(
+                    new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
+                    RecursiveIteratorIterator::LEAVES_ONLY,
+                    RecursiveIteratorIterator::CATCH_GET_CHILD
+                );
+'@
+    if ($content.Contains($oldIterator)) {
+        $content = $content.Replace($oldIterator, $newIterator)
+    }
+
+    $debugFunctions = @'
+function php_cli_server_debug_matches_filter(string $test_script, string $filter): bool
+{
+    $test_name = basename($test_script, '.php');
+    foreach (preg_split('/[;,]/', $filter) as $entry) {
+        $entry = trim($entry);
+        if ($entry !== '' && stripos($test_name, $entry) !== false) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function php_cli_server_debug_prepare(string $doc_root): ?array
+{
+    if (PHP_OS_FAMILY !== "Windows") {
+        return null;
+    }
+
+    $procdump = getenv('PHP_CLI_SERVER_PROCDUMP');
+    if (!$procdump || !is_file($procdump)) {
+        return null;
+    }
+
+    $test_script = (string) ($_SERVER['PHP_SELF'] ?? '');
+    $filter = (string) getenv('PHP_CLI_SERVER_DEBUG_FILTER');
+    if ($filter !== '' && !php_cli_server_debug_matches_filter($test_script, $filter)) {
+        return null;
+    }
+
+    $dump_dir = getenv('PHP_CLI_SERVER_DUMP_DIR');
+    if (!$dump_dir) {
+        $dump_dir = sys_get_temp_dir();
+    }
+    if (!is_dir($dump_dir) && !@mkdir($dump_dir, 0777, true) && !is_dir($dump_dir)) {
+        return null;
+    }
+
+    return [
+        'procdump' => $procdump,
+        'dump_dir' => $dump_dir,
+    ];
+}
+
+function php_cli_server_debug_attach(?int $pid, string $doc_root)
+{
+    if ($pid === null) {
+        return null;
+    }
+
+    $debug = php_cli_server_debug_prepare($doc_root);
+    if ($debug === null) {
+        return null;
+    }
+
+    $null_device = PHP_OS_FAMILY === "Windows" ? 'NUL' : '/dev/null';
+    $descriptorspec = [
+        0 => ['file', $null_device, 'r'],
+        1 => ['file', $null_device, 'a'],
+        2 => ['file', $null_device, 'a'],
+    ];
+
+    return @proc_open(
+        [
+            $debug['procdump'],
+            '-accepteula',
+            '-e',
+            '1',
+            '-ma',
+            '-x',
+            $debug['dump_dir'],
+            (string) $pid,
+        ],
+        $descriptorspec,
+        $pipes,
+        $doc_root,
+        null,
+        ["suppress_errors" => true]
+    );
+}
+
+'@
+    $startMarker = 'function php_cli_server_start('
+    if (-not $content.Contains($startMarker)) {
+        throw "Unable to locate php_cli_server_start() in $Path"
+    }
+    $content = $content.Replace($startMarker, $debugFunctions + $startMarker)
+
+    $oldProcOpen = @'
+    $handle = proc_open($cmd, $descriptorspec, $pipes, $doc_root, null, array("suppress_errors" => true));
+    if ($handle === false) {
+        echo php_cli_server_failure_diagnostics("Server failed to start", $cmd, $doc_root, $handle, $output_file, $php_executable, false);
+        exit(1);
+    }
+'@
+    $newProcOpen = @'
+    $handle = proc_open($cmd, $descriptorspec, $pipes, $doc_root, null, array("suppress_errors" => true));
+    if ($handle === false) {
+        echo php_cli_server_failure_diagnostics("Server failed to start", $cmd, $doc_root, $handle, $output_file, $php_executable, false);
+        exit(1);
+    }
+    $initial_status = proc_get_status($handle);
+    $debug_handle = php_cli_server_debug_attach($initial_status['pid'] ?? null, $doc_root);
+'@
+    if (-not $content.Contains($oldProcOpen)) {
+        throw "Unable to patch proc_open() block in $Path"
+    }
+    $content = $content.Replace($oldProcOpen, $newProcOpen)
+
+    $oldShutdown = @'
+    register_shutdown_function(
+        function($handle) use($router, $doc_root, $output_file) {
+            proc_terminate($handle);
+            $status = proc_get_status($handle);
+            if ($status['exitcode'] !== -1 && $status['exitcode'] !== 0
+                    && !($status['exitcode'] === 255 && PHP_OS_FAMILY == 'Windows')) {
+                printf("Server exited with non-zero status: %d\n", $status['exitcode']);
+                printf("Server output:\n%s\n", file_get_contents($output_file));
+            }
+            @unlink(__DIR__ . "/{$router}");
+            remove_directory($doc_root);
+        },
+        $handle
+    );
+'@
+    $newShutdown = @'
+    register_shutdown_function(
+        function($handle, $debug_handle) use($router, $doc_root, $output_file) {
+            proc_terminate($handle);
+            $status = proc_get_status($handle);
+            if ($status['exitcode'] !== -1 && $status['exitcode'] !== 0
+                    && !($status['exitcode'] === 255 && PHP_OS_FAMILY == 'Windows')) {
+                printf("Server exited with non-zero status: %d\n", $status['exitcode']);
+                printf("Server output:\n%s\n", file_get_contents($output_file));
+            }
+            if (is_resource($debug_handle)) {
+                @proc_terminate($debug_handle);
+            }
+            @unlink(__DIR__ . "/{$router}");
+            remove_directory($doc_root);
+        },
+        $handle,
+        $debug_handle
+    );
+'@
+    if (-not $content.Contains($oldShutdown)) {
+        throw "Unable to patch register_shutdown_function() block in $Path"
+    }
+    $content = $content.Replace($oldShutdown, $newShutdown)
+
+    Set-Content -Path $Path -Value $content -NoNewline
+    Write-Host "Patched CLI server helper for live ProcDump capture: $Path"
+}
+
+function Get-TestRunParams {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Root,
+        [Parameter(Mandatory = $true)]
+        [string] $TestListFile,
+        [Parameter(Mandatory = $true)]
+        [object] $Settings
+    )
+
+    $timeout = if ($TestType -eq 'ext') { '300' } else { '120' }
+    $params = @(
+        '-n',
+        '-d', 'open_basedir=',
+        '-d', 'output_buffering=0',
+        $Settings.runner,
+        '-p', (Join-Path $Root 'phpbin\php.exe'),
+        '-n',
+        '-c', (Join-Path $Root 'phpbin\php.ini'),
+        $Settings.progress,
+        '-g', 'FAIL,BORK,WARN,LEAK',
+        '-q',
+        '--offline',
+        '--show-diff',
+        '--show-slow', '1000',
+        '--set-timeout', $timeout,
+        '--temp-source', (Join-Path $Root 'tests_tmp'),
+        '--temp-target', (Join-Path $Root 'tests_tmp'),
+        '-r', $TestListFile
+    )
+    if ($Settings.workers) {
+        $params += $Settings.workers
+    }
+    return ,$params
+}
+
+function Reset-TestEnvironment {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Root,
+        [Parameter(Mandatory = $true)]
+        [string] $DumpDir
+    )
+
+    Set-Variable -Name Arch -Value $Arch -Scope Global
+    Remove-Item (Join-Path $Root 'file_cache') -Recurse -Force -ErrorAction Ignore
+    Set-PhpIniForTests -BuildDirectory $Root -Opcache $Opcache -TestType $TestType
+
+    $env:Path = (Join-Path $Root 'phpbin') + ';' + (Join-Path $env:DEPS_DIR 'bin') + ';' + $env:Path
+    $env:TEST_PHP_EXECUTABLE = Join-Path $Root 'phpbin\php.exe'
+    $env:TEST_PHPDBG_EXECUTABLE = Join-Path $Root 'phpbin\phpdbg.exe'
+    $env:SKIP_IO_CAPTURE_TESTS = '1'
+    $env:NO_INTERACTION = '1'
+    $env:REPORT_EXIT_STATUS = '1'
+    $env:PHP_CLI_SERVER_PROCDUMP = $ProcDumpPath
+    $env:PHP_CLI_SERVER_DEBUG_FILTER = 'bug67198,php_cli_server_017,php_cli_server_019,bug65066_422,bug67429_1,ghsa-4w77-75f9-2c8w'
+    $env:PHP_CLI_SERVER_DUMP_DIR = $DumpDir
+}
+
+function Invoke-TestBatch {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Name,
+        [Parameter(Mandatory = $true)]
+        [string] $Root,
+        [Parameter(Mandatory = $true)]
+        [string] $DumpDir,
+        [Parameter(Mandatory = $true)]
+        [object] $Settings,
+        [Parameter(Mandatory = $true)]
+        [int] $Iterations,
+        [Parameter(Mandatory = $false)]
+        [string[]] $TestDirectories = @()
+    )
+
+    Set-Location (Join-Path $Root 'tests')
+    for ($iteration = 1; $iteration -le $Iterations; $iteration++) {
+        Reset-TestEnvironment -Root $Root -DumpDir $DumpDir
+        Remove-Item (Join-Path $DumpDir '*') -Force -Recurse -ErrorAction Ignore
+
+        $testListFile = "$Name-tests-to-run.txt"
+        Get-TestsList -OutputFile $testListFile -Type $TestType -TestDirectories $TestDirectories
+
+        $logFile = Join-Path $OutputDir ("$Name-{0:D3}.log" -f $iteration)
+        if (Test-Path $logFile) {
+            Remove-Item $logFile -Force
+        }
+
+        $env:TEST_PHP_JUNIT = Join-Path $OutputDir ("$Name-{0:D3}.xml" -f $iteration)
+        $params = Get-TestRunParams -Root $Root -TestListFile $testListFile -Settings $Settings
+
+        Write-Section "$Name iteration $iteration"
+        & (Join-Path $Root 'phpbin\php.exe') @params 2>&1 | Tee-Object -FilePath $logFile | Out-Host
+        $exitCode = $LASTEXITCODE
+        $dumps = @(Get-ChildItem $DumpDir -Filter '*.dmp' -File -Recurse -ErrorAction Ignore | Sort-Object LastWriteTime -Descending)
+        if ($dumps.Count -gt 0) {
+            return [PSCustomObject]@{
+                Captured = $true
+                Dumps = $dumps
+                LogFile = $logFile
+                ExitCode = $exitCode
+                Batch = $Name
+                Iteration = $iteration
+            }
+        }
+    }
+
+    return [PSCustomObject]@{
+        Captured = $false
+        Dumps = @()
+        LogFile = $null
+        ExitCode = 0
+        Batch = $Name
+        Iteration = $Iterations
+    }
+}
+
+function Analyze-Dumps {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.IO.FileInfo[]] $Dumps,
+        [Parameter(Mandatory = $true)]
+        [string] $StackDir
+    )
+
+    if ([string]::IsNullOrWhiteSpace($CdbPath) -or -not (Test-Path $CdbPath)) {
+        Write-Warning 'cdb.exe not found. Skipping dump analysis.'
+        return @()
+    }
+
+    $debugPack = Get-PhpDebugPackPath
+    $symbolRoot = Join-Path $OutputDir 'symbols'
+    Remove-Item $symbolRoot -Recurse -Force -ErrorAction Ignore
+    if (Test-Path $debugPack) {
+        Expand-Archive -Path $debugPack -DestinationPath $symbolRoot -Force
+    } else {
+        Write-Warning "Debug pack not found: $debugPack"
+    }
+
+    $symbolPaths = New-Object System.Collections.Generic.List[string]
+    if (Test-Path $symbolRoot) {
+        Get-ChildItem -Path $symbolRoot -Filter '*.pdb' -File -Recurse -ErrorAction Ignore |
+            Select-Object -ExpandProperty DirectoryName -Unique |
+            ForEach-Object { $symbolPaths.Add($_) }
+    }
+    $symbolPaths.Add("srv*$(Join-Path $OutputDir 'symcache')*https://msdl.microsoft.com/download/symbols")
+    $searchPath = ($symbolPaths | Select-Object -Unique) -join ';'
+
+    $stackFiles = @()
+    foreach ($dump in $Dumps) {
+        $stackFile = Join-Path $StackDir ($dump.BaseName + '.stack.txt')
+        $analysis = & $CdbPath -z $dump.FullName -y $searchPath -c '!analyze -v; .ecxr; kpn; q' 2>&1 | Out-String -Width 300
+        Set-Content -Path $stackFile -Value $analysis
+        $stackFiles += $stackFile
+    }
+    return ,$stackFiles
+}
+
+Write-Section 'Validating inputs'
+if (-not (Test-Path $BuilderRepoPath)) {
+    throw "Builder repo path not found: $BuilderRepoPath"
+}
+if (-not (Test-Path $ArtifactsDir)) {
+    throw "Artifacts directory not found: $ArtifactsDir"
+}
+if (-not (Test-Path $ProcDumpPath)) {
+    throw "ProcDump was not found: $ProcDumpPath"
+}
+
+$repoRoot = $PWD.Path
+$reproRoot = Join-Path $repoRoot 'repro-worktree'
+$dumpDir = Join-Path $OutputDir 'dumps'
+$stackDir = Join-Path $OutputDir 'stacks'
+
+Remove-Item $OutputDir -Recurse -Force -ErrorAction Ignore
+Remove-Item $reproRoot -Recurse -Force -ErrorAction Ignore
+New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
+New-Item -Path $dumpDir -ItemType Directory -Force | Out-Null
+New-Item -Path $stackDir -ItemType Directory -Force | Out-Null
+New-Item -Path $reproRoot -ItemType Directory -Force | Out-Null
+New-Item -Path (Join-Path $reproRoot 'tests_tmp') -ItemType Directory -Force | Out-Null
+
+$env:DEPS_DIR = Join-Path $reproRoot 'deps'
+$env:DEPS_CACHE_HIT = 'false'
+
+Write-Section 'Importing builder module'
+Import-Module (Join-Path $BuilderRepoPath 'php\BuildPhp') -Force
+
+Write-Section 'Preparing artifact-backed test tree'
+Set-Location $reproRoot
+$setup = Add-TestRequirements `
+    -PhpVersion $PhpVersion `
+    -Arch $Arch `
+    -Ts $Ts `
+    -VsVersion 'vs18' `
+    -TestsDirectory 'tests' `
+    -ArtifactsDirectory $ArtifactsDir `
+    -SourceRepository $SourceRepository `
+    -SourceRef $SourceRef
+$setup | Format-List | Out-Host
+
+$cliServerHelper = Join-Path $reproRoot 'tests\sapi\cli\tests\php_cli_server.inc'
+Set-CliServerDumpCapture -Path $cliServerHelper
+
+Write-Section 'Preparing run settings'
+$settings = Get-TestSettings -PhpVersion $PhpVersion
+$fullResult = $null
+$targetedResult = $null
+
+if ($RunFullSuite) {
+    $fullResult = Invoke-TestBatch -Name 'full-suite' -Root $reproRoot -DumpDir $dumpDir -Settings $settings -Iterations 1
+}
+
+if (($null -eq $fullResult -or -not $fullResult.Captured) -and $StressIterations -gt 0) {
+    $targetedTests = @(
+        'tests\basic\bug67198.phpt',
+        'sapi\cli\tests\php_cli_server_017.phpt',
+        'sapi\cli\tests\php_cli_server_019.phpt',
+        'sapi\cli\tests\bug65066_422.phpt',
+        'sapi\cli\tests\bug67429_1.phpt',
+        'sapi\cli\tests\ghsa-4w77-75f9-2c8w.phpt'
+    )
+    $targetedResult = Invoke-TestBatch -Name 'targeted-loop' -Root $reproRoot -DumpDir $dumpDir -Settings $settings -Iterations $StressIterations -TestDirectories $targetedTests
+}
+
+$capturedResult = @($fullResult, $targetedResult) | Where-Object { $null -ne $_ -and $_.Captured } | Select-Object -First 1
+$stackFiles = @()
+if ($null -ne $capturedResult) {
+    Write-Section 'Analyzing dumps'
+    $stackFiles = Analyze-Dumps -Dumps $capturedResult.Dumps -StackDir $stackDir
+}
+
+$summaryFile = Join-Path $OutputDir 'summary.md'
+$summary = New-Object System.Collections.Generic.List[string]
+$summary.Add('# VS18 CLI Server Dump Repro')
+$summary.Add('')
+$summary.Add("- PHP version: $PhpVersion")
+$summary.Add("- Architecture: $Arch")
+$summary.Add("- TS: $Ts")
+$summary.Add("- Opcache: $Opcache")
+$summary.Add("- Test type: $TestType")
+$summary.Add("- Source tests: $SourceRepository@$SourceRef")
+$summary.Add("- Build artifacts: $ArtifactsDir")
+$summary.Add("- Baseline results: $ResultsDir")
+$summary.Add("- Full suite attempted: $RunFullSuite")
+$summary.Add("- Targeted stress iterations: $StressIterations")
+$summary.Add('')
+if ($null -ne $capturedResult) {
+    $summary.Add("- Dump captured: true")
+    $summary.Add("- Capture batch: $($capturedResult.Batch)")
+    $summary.Add("- Capture iteration: $($capturedResult.Iteration)")
+    foreach ($dump in $capturedResult.Dumps) {
+        $summary.Add("- Dump: $($dump.FullName)")
+    }
+    foreach ($stackFile in $stackFiles) {
+        $summary.Add("- Stack: $stackFile")
+    }
+} else {
+    $summary.Add("- Dump captured: false")
+}
+Set-Content -Path $summaryFile -Value ($summary -join [Environment]::NewLine)
+
+if ($env:GITHUB_OUTPUT) {
+    Add-Content -Path $env:GITHUB_OUTPUT -Value ("dump_found={0}" -f (($null -ne $capturedResult).ToString().ToLowerInvariant()))
+    Add-Content -Path $env:GITHUB_OUTPUT -Value ("summary_path={0}" -f $summaryFile)
+}
+
+Set-Location $repoRoot
+Write-Section 'Summary'
+Get-Content $summaryFile | Out-Host

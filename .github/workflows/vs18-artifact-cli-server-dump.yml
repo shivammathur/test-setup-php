@@ -1,0 +1,165 @@
+name: VS18 Artifact CLI Server Dump
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: php-windows-builder run id containing the failing artifacts
+        required: true
+        default: '26068816066'
+      build_artifact_name:
+        description: Artifact name containing the PHP build zips
+        required: true
+        default: artifacts
+      baseline_results_artifact_name:
+        description: Artifact name containing the original failing test logs
+        required: true
+        default: test-results-x86-ts-opcache-php
+      builder_ref:
+        description: php-windows-builder ref to use for the repro harness
+        required: true
+        default: 15d92c3
+      php_version:
+        description: PHP version embedded in the downloaded artifacts
+        required: true
+        default: 8.6.0-dev
+      php_src_repository:
+        description: php-src repository to source tests from
+        required: true
+        default: shivammathur/php-src
+      php_src_ref:
+        description: php-src ref to source tests from
+        required: true
+        default: add-vs18-support-master
+      arch:
+        description: Target architecture
+        required: true
+        default: x86
+      ts:
+        description: Thread safety flavor
+        required: true
+        default: ts
+      opcache:
+        description: Opcache mode
+        required: true
+        default: opcache
+      test_type:
+        description: Test suite type
+        required: true
+        default: php
+      run_full_suite:
+        description: Run the full php test suite once before targeted looping
+        required: true
+        type: boolean
+        default: true
+      stress_iterations:
+        description: Targeted -j6 loop count if the full suite does not capture a dump
+        required: true
+        default: '120'
+      fail_if_no_dump:
+        description: Mark the workflow failed if no dump was captured
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  repro:
+    runs-on: windows-2025-vs2026
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout repro repo
+        uses: actions/checkout@v4
+
+      - name: Checkout php-windows-builder
+        uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: ${{ inputs.builder_ref }}
+          path: builder
+
+      - name: Download build artifacts
+        shell: pwsh
+        run: |
+          New-Item -Path artifacts -ItemType Directory -Force | Out-Null
+          gh run download ${{ inputs.run_id }} -R shivammathur/php-windows-builder -n ${{ inputs.build_artifact_name }} -D artifacts
+
+      - name: Download baseline results
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          New-Item -Path baseline-results -ItemType Directory -Force | Out-Null
+          gh run download ${{ inputs.run_id }} -R shivammathur/php-windows-builder -n ${{ inputs.baseline_results_artifact_name }} -D baseline-results
+
+      - name: Install WinDbg
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          winget install --id Microsoft.WinDbg --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity
+
+      - name: Download ProcDump
+        shell: pwsh
+        run: |
+          $toolDir = Join-Path $PWD 'tools\procdump'
+          New-Item -Path $toolDir -ItemType Directory -Force | Out-Null
+          $zip = Join-Path $toolDir 'Procdump.zip'
+          Invoke-WebRequest -Uri 'https://download.sysinternals.com/files/Procdump.zip' -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath $toolDir -Force
+          Get-ChildItem $toolDir -Filter 'procdump*.exe' | Select-Object Name, FullName | Format-Table -AutoSize
+
+      - name: Run artifact repro
+        id: repro
+        shell: pwsh
+        run: |
+          $pkg = Get-AppxPackage Microsoft.WinDbg -ErrorAction SilentlyContinue
+          $candidates = New-Object System.Collections.Generic.List[string]
+          if ($pkg) {
+            Get-ChildItem $pkg.InstallLocation -Recurse -Filter cdb.exe -File -ErrorAction SilentlyContinue |
+              Select-Object -ExpandProperty FullName |
+              ForEach-Object { $candidates.Add($_) }
+          }
+          $command = Get-Command cdb.exe -ErrorAction SilentlyContinue
+          if ($command) {
+            $candidates.Add($command.Source)
+          }
+          $cdb = $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+          if ($null -eq $cdb) {
+            Write-Warning 'cdb.exe was not found. Dump analysis will be skipped if ProcDump captures a crash.'
+            $cdb = ''
+          }
+
+          .\scripts\repro-vs18-cli-server-dump.ps1 `
+            -BuilderRepoPath (Join-Path $PWD 'builder') `
+            -ArtifactsDir (Join-Path $PWD 'artifacts') `
+            -ResultsDir (Join-Path $PWD 'baseline-results') `
+            -OutputDir (Join-Path $PWD 'repro-output') `
+            -PhpVersion '${{ inputs.php_version }}' `
+            -Arch '${{ inputs.arch }}' `
+            -Ts '${{ inputs.ts }}' `
+            -Opcache '${{ inputs.opcache }}' `
+            -TestType '${{ inputs.test_type }}' `
+            -SourceRepository '${{ inputs.php_src_repository }}' `
+            -SourceRef '${{ inputs.php_src_ref }}' `
+            -ProcDumpPath (Join-Path $PWD 'tools\procdump\procdump.exe') `
+            -CdbPath $cdb `
+            -RunFullSuite ([System.Convert]::ToBoolean('${{ inputs.run_full_suite }}')) `
+            -StressIterations ([int]'${{ inputs.stress_iterations }}')
+
+      - name: Upload repro artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vs18-cli-server-dump-repro
+          path: |
+            repro-output/**
+            baseline-results/**
+
+      - name: Fail if no dump was captured
+        if: always() && inputs.fail_if_no_dump && steps.repro.outputs.dump_found != 'true'
+        shell: pwsh
+        run: |
+          throw 'No crash dump was captured.'
