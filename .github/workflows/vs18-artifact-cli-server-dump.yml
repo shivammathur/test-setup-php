@@ -74,6 +74,20 @@ jobs:
     runs-on: windows-2025-vs2026
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RUN_ID: ${{ github.event.inputs.run_id || '26068816066' }}
+      BUILD_ARTIFACT_NAME: ${{ github.event.inputs.build_artifact_name || 'artifacts' }}
+      BASELINE_RESULTS_ARTIFACT_NAME: ${{ github.event.inputs.baseline_results_artifact_name || 'test-results-x86-ts-opcache-php' }}
+      BUILDER_REF: ${{ github.event.inputs.builder_ref || '15d92c3' }}
+      PHP_VERSION: ${{ github.event.inputs.php_version || '8.6.0-dev' }}
+      PHP_SRC_REPOSITORY: ${{ github.event.inputs.php_src_repository || 'shivammathur/php-src' }}
+      PHP_SRC_REF: ${{ github.event.inputs.php_src_ref || 'add-vs18-support-master' }}
+      PHP_ARCH: ${{ github.event.inputs.arch || 'x86' }}
+      PHP_TS: ${{ github.event.inputs.ts || 'ts' }}
+      PHP_OPCACHE: ${{ github.event.inputs.opcache || 'opcache' }}
+      PHP_TEST_TYPE: ${{ github.event.inputs.test_type || 'php' }}
+      RUN_FULL_SUITE: ${{ github.event.inputs.run_full_suite || 'true' }}
+      STRESS_ITERATIONS: ${{ github.event.inputs.stress_iterations || '120' }}
+      FAIL_IF_NO_DUMP: ${{ github.event.inputs.fail_if_no_dump || 'true' }}
     steps:
       - name: Checkout repro repo
         uses: actions/checkout@v4
@@ -82,21 +96,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: shivammathur/php-windows-builder
-          ref: ${{ inputs.builder_ref }}
+          ref: ${{ env.BUILDER_REF }}
           path: builder
 
       - name: Download build artifacts
         shell: pwsh
         run: |
           New-Item -Path artifacts -ItemType Directory -Force | Out-Null
-          gh run download ${{ inputs.run_id }} -R shivammathur/php-windows-builder -n ${{ inputs.build_artifact_name }} -D artifacts
+          gh run download $env:RUN_ID -R shivammathur/php-windows-builder -n $env:BUILD_ARTIFACT_NAME -D artifacts
 
       - name: Download baseline results
         continue-on-error: true
         shell: pwsh
         run: |
           New-Item -Path baseline-results -ItemType Directory -Force | Out-Null
-          gh run download ${{ inputs.run_id }} -R shivammathur/php-windows-builder -n ${{ inputs.baseline_results_artifact_name }} -D baseline-results
+          gh run download $env:RUN_ID -R shivammathur/php-windows-builder -n $env:BASELINE_RESULTS_ARTIFACT_NAME -D baseline-results
 
       - name: Install WinDbg
         shell: pwsh
@@ -140,17 +154,17 @@ jobs:
             -ArtifactsDir (Join-Path $PWD 'artifacts') `
             -ResultsDir (Join-Path $PWD 'baseline-results') `
             -OutputDir (Join-Path $PWD 'repro-output') `
-            -PhpVersion '${{ inputs.php_version }}' `
-            -Arch '${{ inputs.arch }}' `
-            -Ts '${{ inputs.ts }}' `
-            -Opcache '${{ inputs.opcache }}' `
-            -TestType '${{ inputs.test_type }}' `
-            -SourceRepository '${{ inputs.php_src_repository }}' `
-            -SourceRef '${{ inputs.php_src_ref }}' `
+            -PhpVersion $env:PHP_VERSION `
+            -Arch $env:PHP_ARCH `
+            -Ts $env:PHP_TS `
+            -Opcache $env:PHP_OPCACHE `
+            -TestType $env:PHP_TEST_TYPE `
+            -SourceRepository $env:PHP_SRC_REPOSITORY `
+            -SourceRef $env:PHP_SRC_REF `
             -ProcDumpPath (Join-Path $PWD 'tools\procdump\procdump.exe') `
             -CdbPath $cdb `
-            -RunFullSuite ([System.Convert]::ToBoolean('${{ inputs.run_full_suite }}')) `
-            -StressIterations ([int]'${{ inputs.stress_iterations }}')
+            -RunFullSuite ([System.Convert]::ToBoolean($env:RUN_FULL_SUITE)) `
+            -StressIterations ([int]$env:STRESS_ITERATIONS)
 
       - name: Upload repro artifacts
         if: always()
@@ -162,7 +176,7 @@ jobs:
             baseline-results/**
 
       - name: Fail if no dump was captured
-        if: always() && inputs.fail_if_no_dump && steps.repro.outputs.dump_found != 'true'
+        if: always() && env.FAIL_IF_NO_DUMP == 'true' && steps.repro.outputs.dump_found != 'true'
         shell: pwsh
         run: |
           throw 'No crash dump was captured.'
