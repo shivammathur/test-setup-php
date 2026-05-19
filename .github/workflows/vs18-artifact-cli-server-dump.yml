@@ -18,6 +18,10 @@ on:
         description: Artifact name containing the original failing test logs
         required: true
         default: test-results-x86-ts-opcache-php
+      builder_branch:
+        description: php-windows-builder branch containing the repro harness commit
+        required: true
+        default: vs18-test
       builder_ref:
         description: php-windows-builder ref to use for the repro harness
         required: true
@@ -77,6 +81,7 @@ jobs:
       RUN_ID: ${{ github.event.inputs.run_id || '26068816066' }}
       BUILD_ARTIFACT_NAME: ${{ github.event.inputs.build_artifact_name || 'artifacts' }}
       BASELINE_RESULTS_ARTIFACT_NAME: ${{ github.event.inputs.baseline_results_artifact_name || 'test-results-x86-ts-opcache-php' }}
+      BUILDER_BRANCH: ${{ github.event.inputs.builder_branch || 'vs18-test' }}
       BUILDER_REF: ${{ github.event.inputs.builder_ref || '15d92c3' }}
       PHP_VERSION: ${{ github.event.inputs.php_version || '8.6.0-dev' }}
       PHP_SRC_REPOSITORY: ${{ github.event.inputs.php_src_repository || 'shivammathur/php-src' }}
@@ -96,8 +101,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: shivammathur/php-windows-builder
-          ref: ${{ env.BUILDER_REF }}
+          ref: ${{ env.BUILDER_BRANCH }}
           path: builder
+          fetch-depth: 0
+
+      - name: Pin php-windows-builder commit
+        shell: pwsh
+        run: |
+          if (-not [string]::IsNullOrWhiteSpace($env:BUILDER_REF)) {
+            git -C builder checkout $env:BUILDER_REF
+          }
 
       - name: Download build artifacts
         shell: pwsh
@@ -176,7 +189,7 @@ jobs:
             baseline-results/**
 
       - name: Fail if no dump was captured
-        if: always() && env.FAIL_IF_NO_DUMP == 'true' && steps.repro.outputs.dump_found != 'true'
+        if: always() && steps.repro.conclusion == 'success' && env.FAIL_IF_NO_DUMP == 'true' && steps.repro.outputs.dump_found != 'true'
         shell: pwsh
         run: |
           throw 'No crash dump was captured.'
