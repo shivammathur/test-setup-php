@@ -66,19 +66,38 @@ function Restore-Newlines {
     return (ConvertTo-Lf -Text $Text) -replace "`n", $Newline
 }
 
+function ConvertTo-PhpSingleQuotedLiteral {
+    param([string] $Text)
+
+    return "'" + (($Text -replace '\\', '\\\\') -replace "'", "\\'") + "'"
+}
+
 function Set-CliServerDumpCapture {
     param(
         [Parameter(Mandatory = $true)]
-        [string] $Path
+        [string] $Path,
+        [Parameter(Mandatory = $true)]
+        [string] $DumpDir,
+        [Parameter(Mandatory = $true)]
+        [string] $ProcDumpExe,
+        [Parameter(Mandatory = $true)]
+        [string] $DebugFilter,
+        [Parameter(Mandatory = $true)]
+        [string] $DebugLogPath
     )
 
     $rawContent = Get-Content -Path $Path -Raw
     $newline = if ($rawContent.Contains("`r`n")) { "`r`n" } else { "`n" }
     $content = ConvertTo-Lf -Text $rawContent
-    if ($content -match 'PHP_CLI_SERVER_PROCDUMP') {
+    if ($content -match 'php_cli_server_debug_attach') {
         Write-Host "CLI server dump capture patch already present in $Path"
         return
     }
+
+    $phpProcDumpPath = ConvertTo-PhpSingleQuotedLiteral -Text $ProcDumpExe
+    $phpDumpDir = ConvertTo-PhpSingleQuotedLiteral -Text $DumpDir
+    $phpDebugFilter = ConvertTo-PhpSingleQuotedLiteral -Text $DebugFilter
+    $phpDebugLogPath = ConvertTo-PhpSingleQuotedLiteral -Text $DebugLogPath
 
     $oldIterator = ConvertTo-Lf -Text @'
                 $iterator = new RecursiveIteratorIterator(
@@ -99,10 +118,7 @@ function Set-CliServerDumpCapture {
     $debugFunctions = ConvertTo-Lf -Text @'
 function php_cli_server_debug_log(string $message): void
 {
-    $log_file = getenv('PHP_CLI_SERVER_DEBUG_LOG');
-    if (!$log_file) {
-        return;
-    }
+    $log_file = __DEBUG_LOG_PATH__;
 
     @file_put_contents(
         $log_file,
@@ -131,24 +147,21 @@ function php_cli_server_debug_prepare(string $doc_root): ?array
         return null;
     }
 
-    $procdump = getenv('PHP_CLI_SERVER_PROCDUMP');
+    $procdump = __PROCDUMP_PATH__;
     if (!$procdump || !is_file($procdump)) {
         php_cli_server_debug_log('skip: ProcDump missing');
         return null;
     }
 
     $test_script = (string) ($_SERVER['PHP_SELF'] ?? '');
-    $filter = (string) getenv('PHP_CLI_SERVER_DEBUG_FILTER');
+    $filter = __DEBUG_FILTER__;
     php_cli_server_debug_log('prepare: self=' . $test_script . ' filter=' . $filter);
     if ($filter !== '' && !php_cli_server_debug_matches_filter($test_script, $filter)) {
         php_cli_server_debug_log('skip: filter mismatch');
         return null;
     }
 
-    $dump_dir = getenv('PHP_CLI_SERVER_DUMP_DIR');
-    if (!$dump_dir) {
-        $dump_dir = sys_get_temp_dir();
-    }
+    $dump_dir = __DUMP_DIR__;
     if (!is_dir($dump_dir) && !@mkdir($dump_dir, 0777, true) && !is_dir($dump_dir)) {
         php_cli_server_debug_log('skip: dump dir unavailable ' . $dump_dir);
         return null;
@@ -204,6 +217,10 @@ function php_cli_server_debug_attach(?int $pid, string $doc_root)
 }
 
 '@
+    $debugFunctions = $debugFunctions.Replace('__PROCDUMP_PATH__', $phpProcDumpPath)
+    $debugFunctions = $debugFunctions.Replace('__DUMP_DIR__', $phpDumpDir)
+    $debugFunctions = $debugFunctions.Replace('__DEBUG_FILTER__', $phpDebugFilter)
+    $debugFunctions = $debugFunctions.Replace('__DEBUG_LOG_PATH__', $phpDebugLogPath)
     $startMarker = 'function php_cli_server_start('
     if (-not $content.Contains($startMarker)) {
         throw "Unable to locate php_cli_server_start() in $Path"
@@ -330,10 +347,6 @@ function Reset-TestEnvironment {
     $env:SKIP_IO_CAPTURE_TESTS = '1'
     $env:NO_INTERACTION = '1'
     $env:REPORT_EXIT_STATUS = '1'
-    $env:PHP_CLI_SERVER_PROCDUMP = $ProcDumpPath
-    $env:PHP_CLI_SERVER_DEBUG_FILTER = 'bug67198,php_cli_server_017,php_cli_server_019,bug65066_422,bug67429_1,ghsa-4w77-75f9-2c8w'
-    $env:PHP_CLI_SERVER_DUMP_DIR = $DumpDir
-    $env:PHP_CLI_SERVER_DEBUG_LOG = Join-Path $DumpDir 'cli-server-debug.log'
 }
 
 function Stop-ReproProcesses {
@@ -512,7 +525,12 @@ $setup = Add-TestRequirements `
 $setup | Format-List | Out-Host
 
 $cliServerHelper = Join-Path $reproRoot 'tests\sapi\cli\tests\php_cli_server.inc'
-Set-CliServerDumpCapture -Path $cliServerHelper
+Set-CliServerDumpCapture `
+    -Path $cliServerHelper `
+    -DumpDir $dumpDir `
+    -ProcDumpExe $ProcDumpPath `
+    -DebugFilter 'bug67198,php_cli_server_017,php_cli_server_019,bug65066_422,bug67429_1,ghsa-4w77-75f9-2c8w' `
+    -DebugLogPath (Join-Path $dumpDir 'cli-server-debug.log')
 
 Write-Section 'Preparing run settings'
 $settings = Get-TestSettings -PhpVersion $PhpVersion
