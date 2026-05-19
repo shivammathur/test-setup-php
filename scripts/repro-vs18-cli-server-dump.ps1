@@ -89,7 +89,7 @@ function Set-CliServerDumpCapture {
     $rawContent = Get-Content -Path $Path -Raw
     $newline = if ($rawContent.Contains("`r`n")) { "`r`n" } else { "`n" }
     $content = ConvertTo-Lf -Text $rawContent
-    if ($content -match 'php_cli_server_debug_attach') {
+    if ($content -match 'php_cli_server_debug_log') {
         Write-Host "CLI server dump capture patch already present in $Path"
         return
     }
@@ -140,17 +140,27 @@ function php_cli_server_debug_matches_filter(string $test_script, string $filter
     return false;
 }
 
-function php_cli_server_debug_prepare(string $doc_root): ?array
+function php_cli_server_debug_prepare(string $php_executable, string $doc_root): array
 {
+    $server_executable = dirname($php_executable) . DIRECTORY_SEPARATOR . 'php-cli-server.exe';
+    if (!is_file($server_executable)) {
+        $server_executable = $php_executable;
+    }
+
+    $result = [
+        'server_executable' => $server_executable,
+        'watch_handle' => null,
+    ];
+
     if (PHP_OS_FAMILY !== "Windows") {
         php_cli_server_debug_log('skip: non-Windows');
-        return null;
+        return $result;
     }
 
     $procdump = __PROCDUMP_PATH__;
     if (!$procdump || !is_file($procdump)) {
         php_cli_server_debug_log('skip: ProcDump missing');
-        return null;
+        return $result;
     }
 
     $test_script = (string) ($_SERVER['PHP_SELF'] ?? '');
@@ -158,32 +168,13 @@ function php_cli_server_debug_prepare(string $doc_root): ?array
     php_cli_server_debug_log('prepare: self=' . $test_script . ' filter=' . $filter);
     if ($filter !== '' && !php_cli_server_debug_matches_filter($test_script, $filter)) {
         php_cli_server_debug_log('skip: filter mismatch');
-        return null;
+        return $result;
     }
 
     $dump_dir = __DUMP_DIR__;
     if (!is_dir($dump_dir) && !@mkdir($dump_dir, 0777, true) && !is_dir($dump_dir)) {
         php_cli_server_debug_log('skip: dump dir unavailable ' . $dump_dir);
-        return null;
-    }
-
-    php_cli_server_debug_log('prepare: armed for doc_root=' . $doc_root . ' dump_dir=' . $dump_dir);
-    return [
-        'procdump' => $procdump,
-        'dump_dir' => $dump_dir,
-    ];
-}
-
-function php_cli_server_debug_attach(?int $pid, string $doc_root)
-{
-    if ($pid === null) {
-        php_cli_server_debug_log('skip: missing PID');
-        return null;
-    }
-
-    $debug = php_cli_server_debug_prepare($doc_root);
-    if ($debug === null) {
-        return null;
+        return $result;
     }
 
     $null_device = PHP_OS_FAMILY === "Windows" ? 'NUL' : '/dev/null';
@@ -193,27 +184,39 @@ function php_cli_server_debug_attach(?int $pid, string $doc_root)
         2 => ['file', $null_device, 'a'],
     ];
 
-    php_cli_server_debug_log('attach: monitoring pid=' . $pid);
-    $handle = @proc_open(
+    $watch_name = basename($server_executable);
+    php_cli_server_debug_log('prepare: armed for script=' . $test_script . ' watch=' . $watch_name . ' dump_dir=' . $dump_dir);
+    $watch_handle = @proc_open(
         [
-            $debug['procdump'],
+            $procdump,
             '-accepteula',
+            '-ma',
             '-e',
             '1',
-            '-ma',
-            '-x',
-            $debug['dump_dir'],
-            (string) $pid,
+            '-w',
+            $watch_name,
+            $dump_dir,
         ],
         $descriptorspec,
         $pipes,
         $doc_root,
         null,
-        ["suppress_errors" => true]
+        [
+            "suppress_errors" => true,
+            'create_new_console' => true,
+        ]
     );
 
-    php_cli_server_debug_log('attach: proc_open=' . (is_resource($handle) ? 'resource' : 'null'));
-    return $handle;
+    php_cli_server_debug_log(
+        'watch: executable=' . $server_executable
+        . ' handle=' . (is_resource($watch_handle) ? 'resource' : 'null')
+    );
+    if (is_resource($watch_handle)) {
+        usleep(100000);
+    }
+
+    $result['watch_handle'] = $watch_handle;
+    return $result;
 }
 
 '@
@@ -226,6 +229,21 @@ function php_cli_server_debug_attach(?int $pid, string $doc_root)
         throw "Unable to locate php_cli_server_start() in $Path"
     }
     $content = $content.Replace($startMarker, $debugFunctions + $startMarker)
+
+    $oldCommand = ConvertTo-Lf -Text @'
+    $cmd = [$php_executable, '-t', $doc_root, '-n', ...$cmd_args, '-S', 'localhost:0'];
+'@
+    $newCommand = ConvertTo-Lf -Text @'
+    $debug = php_cli_server_debug_prepare($php_executable, $doc_root);
+    $server_php_executable = $debug['server_executable'];
+    $debug_handle = $debug['watch_handle'];
+
+    $cmd = [$server_php_executable, '-t', $doc_root, '-n', ...$cmd_args, '-S', 'localhost:0'];
+'@
+    if (-not $content.Contains($oldCommand)) {
+        throw "Unable to patch command block in $Path"
+    }
+    $content = $content.Replace($oldCommand, $newCommand)
 
     $oldProcOpen = ConvertTo-Lf -Text @'
     $handle = proc_open($cmd, $descriptorspec, $pipes, $doc_root, null, array("suppress_errors" => true));
@@ -240,8 +258,6 @@ function php_cli_server_debug_attach(?int $pid, string $doc_root)
         echo php_cli_server_failure_diagnostics("Server failed to start", $cmd, $doc_root, $handle, $output_file, $php_executable, false);
         exit(1);
     }
-    $initial_status = proc_get_status($handle);
-    $debug_handle = php_cli_server_debug_attach($initial_status['pid'] ?? null, $doc_root);
 '@
     if (-not $content.Contains($oldProcOpen)) {
         throw "Unable to patch proc_open() block in $Path"
@@ -467,6 +483,22 @@ function Reset-TestEnvironment {
     $env:REPORT_EXIT_STATUS = '1'
 }
 
+function Initialize-CliServerExecutable {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Root
+    )
+
+    $sourceExe = Join-Path $Root 'phpbin\php.exe'
+    $targetExe = Join-Path $Root 'phpbin\php-cli-server.exe'
+    if (-not (Test-Path $sourceExe)) {
+        throw "CLI server source executable not found: $sourceExe"
+    }
+
+    Copy-Item -Path $sourceExe -Destination $targetExe -Force
+    Write-Host "Prepared dedicated CLI server executable: $targetExe"
+}
+
 function Stop-ReproProcesses {
     param(
         [Parameter(Mandatory = $true)]
@@ -474,7 +506,7 @@ function Stop-ReproProcesses {
     )
 
     $phpBin = (Join-Path $Root 'phpbin').ToLowerInvariant()
-    $processNames = @('php.exe', 'php-cgi.exe', 'phpdbg.exe', 'procdump.exe', 'procdump64.exe')
+    $processNames = @('php.exe', 'php-cli-server.exe', 'php-cgi.exe', 'phpdbg.exe', 'procdump.exe', 'procdump64.exe')
     $processes = @(Get-CimInstance Win32_Process -ErrorAction Ignore | Where-Object { $processNames -contains $_.Name })
 
     foreach ($process in $processes) {
@@ -642,6 +674,8 @@ $setup = Add-TestRequirements `
     -SourceRef $SourceRef
 $setup | Format-List | Out-Host
 
+Initialize-CliServerExecutable -Root $reproRoot
+
 $cliServerHelper = Join-Path $reproRoot 'tests\sapi\cli\tests\php_cli_server.inc'
 Set-CliServerDumpCapture `
     -Path $cliServerHelper `
@@ -649,13 +683,6 @@ Set-CliServerDumpCapture `
     -ProcDumpExe $ProcDumpPath `
     -DebugFilter 'bug67198,php_cli_server_017,php_cli_server_019,bug65066_422,bug67429_1,ghsa-4w77-75f9-2c8w' `
     -DebugLogPath (Join-Path $dumpDir 'cli-server-debug.log')
-
-$runTestsPath = Join-Path $reproRoot 'tests\run-tests.php'
-Set-RunTestsWorkerDumpCapture `
-    -Path $runTestsPath `
-    -DumpDir $dumpDir `
-    -ProcDumpExe $ProcDumpPath `
-    -DebugLogPath (Join-Path $OutputDir 'worker-procdump.log')
 
 Write-Section 'Preparing run settings'
 $settings = Get-TestSettings -PhpVersion $PhpVersion
