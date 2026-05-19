@@ -142,24 +142,13 @@ function php_cli_server_debug_matches_filter(string $test_script, string $filter
 
 function php_cli_server_debug_prepare(string $php_executable, string $doc_root): array
 {
-    $server_executable = dirname($php_executable) . DIRECTORY_SEPARATOR . 'php-cli-server.exe';
-    if (!is_file($server_executable)) {
-        $server_executable = $php_executable;
-    }
-
     $result = [
-        'server_executable' => $server_executable,
+        'server_executable' => $php_executable,
         'watch_handle' => null,
     ];
 
     if (PHP_OS_FAMILY !== "Windows") {
         php_cli_server_debug_log('skip: non-Windows');
-        return $result;
-    }
-
-    $procdump = __PROCDUMP_PATH__;
-    if (!$procdump || !is_file($procdump)) {
-        php_cli_server_debug_log('skip: ProcDump missing');
         return $result;
     }
 
@@ -171,9 +160,22 @@ function php_cli_server_debug_prepare(string $php_executable, string $doc_root):
         return $result;
     }
 
+    $server_executable = dirname($php_executable) . DIRECTORY_SEPARATOR . 'php-cli-server.exe';
+    if (is_file($server_executable)) {
+        $result['server_executable'] = $server_executable;
+    } else {
+        $server_executable = $php_executable;
+    }
+
     $dump_dir = __DUMP_DIR__;
     if (!is_dir($dump_dir) && !@mkdir($dump_dir, 0777, true) && !is_dir($dump_dir)) {
         php_cli_server_debug_log('skip: dump dir unavailable ' . $dump_dir);
+        return $result;
+    }
+
+    $procdump = __PROCDUMP_PATH__;
+    if (!$procdump || !is_file($procdump)) {
+        php_cli_server_debug_log('skip: ProcDump missing');
         return $result;
     }
 
@@ -499,6 +501,52 @@ function Initialize-CliServerExecutable {
     Write-Host "Prepared dedicated CLI server executable: $targetExe"
 }
 
+function Enable-SilentProcessExitDumpCapture {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $ImageName,
+        [Parameter(Mandatory = $true)]
+        [string] $DumpDir
+    )
+
+    if (-not $IsWindows) {
+        Write-Warning 'Silent Process Exit dump capture is only available on Windows.'
+        return $false
+    }
+
+    New-Item -Path $DumpDir -ItemType Directory -Force | Out-Null
+
+    $ifeo = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\$ImageName"
+    $spe = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\$ImageName"
+
+    New-Item -Path $ifeo -Force | Out-Null
+    New-Item -Path $spe -Force | Out-Null
+    New-ItemProperty -Path $ifeo -Name GlobalFlag -Value 0x200 -PropertyType DWord -Force | Out-Null
+    New-ItemProperty -Path $spe -Name ReportingMode -Value 2 -PropertyType DWord -Force | Out-Null
+    New-ItemProperty -Path $spe -Name DumpType -Value 2 -PropertyType DWord -Force | Out-Null
+    New-ItemProperty -Path $spe -Name LocalDumpFolder -Value $DumpDir -PropertyType ExpandString -Force | Out-Null
+
+    Write-Host "Enabled Silent Process Exit dumps for $ImageName in $DumpDir"
+    return $true
+}
+
+function Disable-SilentProcessExitDumpCapture {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $ImageName
+    )
+
+    if (-not $IsWindows) {
+        return
+    }
+
+    $ifeo = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\$ImageName"
+    $spe = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\$ImageName"
+    Remove-Item -Path $ifeo -Recurse -Force -ErrorAction Ignore
+    Remove-Item -Path $spe -Recurse -Force -ErrorAction Ignore
+    Write-Host "Disabled Silent Process Exit dumps for $ImageName"
+}
+
 function Stop-ReproProcesses {
     param(
         [Parameter(Mandatory = $true)]
@@ -568,7 +616,14 @@ function Invoke-TestBatch {
         }
 
         $dumps = @(Get-ChildItem $DumpDir -Filter '*.dmp' -File -Recurse -ErrorAction Ignore | Sort-Object LastWriteTime -Descending)
-        if ($dumps.Count -gt 0) {
+        $crashObserved = (Test-Path -Path $logFile -PathType Leaf) -and (
+            Select-String -Path $logFile -SimpleMatch -Quiet -Pattern @(
+                'Server failed to start',
+                'exitcode: -1073741819',
+                '0xC0000005'
+            )
+        )
+        if ($dumps.Count -gt 0 -and $crashObserved) {
             return [PSCustomObject]@{
                 Captured = $true
                 Dumps = $dumps
@@ -577,6 +632,9 @@ function Invoke-TestBatch {
                 Batch = $Name
                 Iteration = $iteration
             }
+        } elseif ($dumps.Count -gt 0) {
+            Write-Host "Discarding $($dumps.Count) dump(s) from $Name iteration $iteration because no CLI crash marker was logged."
+            $dumps | Remove-Item -Force -ErrorAction Ignore
         }
     }
 
@@ -688,28 +746,42 @@ Write-Section 'Preparing run settings'
 $settings = Get-TestSettings -PhpVersion $PhpVersion
 $fullResult = $null
 $targetedResult = $null
+$silentExitImageName = 'php-cli-server.exe'
+$silentExitEnabled = $false
 
-if ($RunFullSuite) {
-    $fullResult = Invoke-TestBatch -Name 'full-suite' -Root $reproRoot -DumpDir $dumpDir -Settings $settings -Iterations 1
-}
+try {
+    try {
+        $silentExitEnabled = Enable-SilentProcessExitDumpCapture -ImageName $silentExitImageName -DumpDir $dumpDir
+    } catch {
+        Write-Warning "Unable to enable Silent Process Exit dumps for $silentExitImageName`: $_"
+    }
 
-if (($null -eq $fullResult -or -not $fullResult.Captured) -and $StressIterations -gt 0) {
-    $targetedTests = @(
-        'tests\basic\bug67198.phpt',
-        'sapi\cli\tests\php_cli_server_017.phpt',
-        'sapi\cli\tests\php_cli_server_019.phpt',
-        'sapi\cli\tests\bug65066_422.phpt',
-        'sapi\cli\tests\bug67429_1.phpt',
-        'sapi\cli\tests\ghsa-4w77-75f9-2c8w.phpt'
-    )
-    $targetedResult = Invoke-TestBatch -Name 'targeted-loop' -Root $reproRoot -DumpDir $dumpDir -Settings $settings -Iterations $StressIterations -TestDirectories $targetedTests
-}
+    if ($RunFullSuite) {
+        $fullResult = Invoke-TestBatch -Name 'full-suite' -Root $reproRoot -DumpDir $dumpDir -Settings $settings -Iterations 1
+    }
 
-$capturedResult = @($fullResult, $targetedResult) | Where-Object { $null -ne $_ -and $_.Captured } | Select-Object -First 1
-$stackFiles = @()
-if ($null -ne $capturedResult) {
-    Write-Section 'Analyzing dumps'
-    $stackFiles = Analyze-Dumps -Dumps $capturedResult.Dumps -StackDir $stackDir
+    if (($null -eq $fullResult -or -not $fullResult.Captured) -and $StressIterations -gt 0) {
+        $targetedTests = @(
+            'tests\basic\bug67198.phpt',
+            'sapi\cli\tests\php_cli_server_017.phpt',
+            'sapi\cli\tests\php_cli_server_019.phpt',
+            'sapi\cli\tests\bug65066_422.phpt',
+            'sapi\cli\tests\bug67429_1.phpt',
+            'sapi\cli\tests\ghsa-4w77-75f9-2c8w.phpt'
+        )
+        $targetedResult = Invoke-TestBatch -Name 'targeted-loop' -Root $reproRoot -DumpDir $dumpDir -Settings $settings -Iterations $StressIterations -TestDirectories $targetedTests
+    }
+
+    $capturedResult = @($fullResult, $targetedResult) | Where-Object { $null -ne $_ -and $_.Captured } | Select-Object -First 1
+    $stackFiles = @()
+    if ($null -ne $capturedResult) {
+        Write-Section 'Analyzing dumps'
+        $stackFiles = Analyze-Dumps -Dumps $capturedResult.Dumps -StackDir $stackDir
+    }
+} finally {
+    if ($silentExitEnabled) {
+        Disable-SilentProcessExitDumpCapture -ImageName $silentExitImageName
+    }
 }
 
 $summaryFile = Join-Path $OutputDir 'summary.md'
