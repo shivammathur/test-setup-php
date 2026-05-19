@@ -1,6 +1,9 @@
 name: VS18 Artifact CLI Server Dump
 
 on:
+  push:
+    branches:
+      - feature/vs18-cli-server-dump-repro
   workflow_dispatch:
     inputs:
       run_id:
