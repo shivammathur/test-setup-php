@@ -51,24 +51,41 @@ function Get-PhpDebugPackPath {
     return Join-Path $ArtifactsDir $fileName
 }
 
+function ConvertTo-Lf {
+    param([string] $Text)
+
+    return (($Text -replace "`r`n", "`n") -replace "`r", "`n")
+}
+
+function Restore-Newlines {
+    param(
+        [string] $Text,
+        [string] $Newline
+    )
+
+    return (ConvertTo-Lf -Text $Text) -replace "`n", $Newline
+}
+
 function Set-CliServerDumpCapture {
     param(
         [Parameter(Mandatory = $true)]
         [string] $Path
     )
 
-    $content = Get-Content -Path $Path -Raw
+    $rawContent = Get-Content -Path $Path -Raw
+    $newline = if ($rawContent.Contains("`r`n")) { "`r`n" } else { "`n" }
+    $content = ConvertTo-Lf -Text $rawContent
     if ($content -match 'PHP_CLI_SERVER_PROCDUMP') {
         Write-Host "CLI server dump capture patch already present in $Path"
         return
     }
 
-    $oldIterator = @'
+    $oldIterator = ConvertTo-Lf -Text @'
                 $iterator = new RecursiveIteratorIterator(
                     new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS)
                 );
 '@
-    $newIterator = @'
+    $newIterator = ConvertTo-Lf -Text @'
                 $iterator = new RecursiveIteratorIterator(
                     new RecursiveDirectoryIterator($dir, RecursiveDirectoryIterator::SKIP_DOTS),
                     RecursiveIteratorIterator::LEAVES_ONLY,
@@ -79,7 +96,7 @@ function Set-CliServerDumpCapture {
         $content = $content.Replace($oldIterator, $newIterator)
     }
 
-    $debugFunctions = @'
+    $debugFunctions = ConvertTo-Lf -Text @'
 function php_cli_server_debug_matches_filter(string $test_script, string $filter): bool
 {
     $test_name = basename($test_script, '.php');
@@ -168,14 +185,14 @@ function php_cli_server_debug_attach(?int $pid, string $doc_root)
     }
     $content = $content.Replace($startMarker, $debugFunctions + $startMarker)
 
-    $oldProcOpen = @'
+    $oldProcOpen = ConvertTo-Lf -Text @'
     $handle = proc_open($cmd, $descriptorspec, $pipes, $doc_root, null, array("suppress_errors" => true));
     if ($handle === false) {
         echo php_cli_server_failure_diagnostics("Server failed to start", $cmd, $doc_root, $handle, $output_file, $php_executable, false);
         exit(1);
     }
 '@
-    $newProcOpen = @'
+    $newProcOpen = ConvertTo-Lf -Text @'
     $handle = proc_open($cmd, $descriptorspec, $pipes, $doc_root, null, array("suppress_errors" => true));
     if ($handle === false) {
         echo php_cli_server_failure_diagnostics("Server failed to start", $cmd, $doc_root, $handle, $output_file, $php_executable, false);
@@ -189,7 +206,7 @@ function php_cli_server_debug_attach(?int $pid, string $doc_root)
     }
     $content = $content.Replace($oldProcOpen, $newProcOpen)
 
-    $oldShutdown = @'
+    $oldShutdown = ConvertTo-Lf -Text @'
     register_shutdown_function(
         function($handle) use($router, $doc_root, $output_file) {
             proc_terminate($handle);
@@ -205,7 +222,7 @@ function php_cli_server_debug_attach(?int $pid, string $doc_root)
         $handle
     );
 '@
-    $newShutdown = @'
+    $newShutdown = ConvertTo-Lf -Text @'
     register_shutdown_function(
         function($handle, $debug_handle) use($router, $doc_root, $output_file) {
             proc_terminate($handle);
@@ -230,7 +247,7 @@ function php_cli_server_debug_attach(?int $pid, string $doc_root)
     }
     $content = $content.Replace($oldShutdown, $newShutdown)
 
-    Set-Content -Path $Path -Value $content -NoNewline
+    Set-Content -Path $Path -Value (Restore-Newlines -Text $content -Newline $newline) -NoNewline
     Write-Host "Patched CLI server helper for live ProcDump capture: $Path"
 }
 
