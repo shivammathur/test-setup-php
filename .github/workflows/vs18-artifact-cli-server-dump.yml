@@ -1,4 +1,4 @@
-name: VS18 Artifact CLI Server Dump
+name: VS18 Source Test CLI Server Dump
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       run_id:
-        description: php-windows-builder run id containing the failing artifacts
+        description: php-windows-builder run id containing the build artifacts
         required: true
         default: '26068816066'
       build_artifact_name:
@@ -19,17 +19,13 @@ on:
         required: true
         default: test-results-x86-ts-opcache-php
       builder_branch:
-        description: php-windows-builder branch containing the repro harness commit
+        description: php-windows-builder branch containing the VS18 harness
         required: true
         default: vs18-test
       builder_ref:
-        description: php-windows-builder ref to use for the repro harness
+        description: php-windows-builder ref to use
         required: true
         default: 15d92c3
-      php_version:
-        description: PHP version embedded in the downloaded artifacts
-        required: true
-        default: 8.6.0-dev
       php_src_repository:
         description: php-src repository to source tests from
         required: true
@@ -38,6 +34,10 @@ on:
         description: php-src ref to source tests from
         required: true
         default: add-vs18-support-master
+      libs_build_runs:
+        description: Comma-separated list of winlibs/winlib-builder run IDs
+        required: false
+        default: ''
       arch:
         description: Target architecture
         required: true
@@ -54,15 +54,10 @@ on:
         description: Test suite type
         required: true
         default: php
-      run_full_suite:
-        description: Run the full php test suite once before targeted looping
+      debug_filter:
+        description: CLI-server tests to arm with the listener
         required: true
-        type: boolean
-        default: true
-      stress_iterations:
-        description: Targeted -j6 loop count if the full suite does not capture a dump
-        required: true
-        default: '120'
+        default: bug67198
       fail_if_no_dump:
         description: Mark the workflow failed if no dump was captured
         required: true
@@ -83,22 +78,27 @@ jobs:
       BASELINE_RESULTS_ARTIFACT_NAME: ${{ github.event.inputs.baseline_results_artifact_name || 'test-results-x86-ts-opcache-php' }}
       BUILDER_BRANCH: ${{ github.event.inputs.builder_branch || 'vs18-test' }}
       BUILDER_REF: ${{ github.event.inputs.builder_ref || '15d92c3' }}
-      PHP_VERSION: ${{ github.event.inputs.php_version || '8.6.0-dev' }}
       PHP_SRC_REPOSITORY: ${{ github.event.inputs.php_src_repository || 'shivammathur/php-src' }}
       PHP_SRC_REF: ${{ github.event.inputs.php_src_ref || 'add-vs18-support-master' }}
+      LIBS_BUILD_RUNS: ${{ github.event.inputs.libs_build_runs || '' }}
       PHP_ARCH: ${{ github.event.inputs.arch || 'x86' }}
       PHP_TS: ${{ github.event.inputs.ts || 'ts' }}
       PHP_OPCACHE: ${{ github.event.inputs.opcache || 'opcache' }}
       PHP_TEST_TYPE: ${{ github.event.inputs.test_type || 'php' }}
-      RUN_FULL_SUITE: ${{ github.event.inputs.run_full_suite || 'true' }}
-      STRESS_ITERATIONS: ${{ github.event.inputs.stress_iterations || '120' }}
+      DEBUG_FILTER: ${{ github.event.inputs.debug_filter || 'bug67198' }}
       FAIL_IF_NO_DUMP: ${{ github.event.inputs.fail_if_no_dump || 'true' }}
     steps:
+      - name: Configure PHP source line endings
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
       - name: Checkout repro repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout php-windows-builder
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: shivammathur/php-windows-builder
           ref: ${{ env.BUILDER_BRANCH }}
@@ -115,8 +115,8 @@ jobs:
       - name: Download build artifacts
         shell: pwsh
         run: |
-          New-Item -Path artifacts -ItemType Directory -Force | Out-Null
-          gh run download $env:RUN_ID -R shivammathur/php-windows-builder -n $env:BUILD_ARTIFACT_NAME -D artifacts
+          gh run download $env:RUN_ID -R shivammathur/php-windows-builder -n $env:BUILD_ARTIFACT_NAME -D .
+          Get-ChildItem -Path $PWD -Filter 'php-*.zip' -File | Select-Object Name, Length | Format-Table -AutoSize
 
       - name: Download baseline results
         continue-on-error: true
@@ -125,71 +125,173 @@ jobs:
           New-Item -Path baseline-results -ItemType Directory -Force | Out-Null
           gh run download $env:RUN_ID -R shivammathur/php-windows-builder -n $env:BASELINE_RESULTS_ARTIFACT_NAME -D baseline-results
 
-      - name: Install WinDbg
+      - name: Get Cache Key
+        id: cache-key
+        shell: pwsh
+        run: |
+          $artifactDirectory = $(pwd).Path
+          $zip = Get-ChildItem -Path $artifactDirectory -Filter 'php-*.zip' -File |
+            Where-Object { $_.Name -match "^php-(.+?)-(?:nts-)?Win32-v[sc]\d+-$env:PHP_ARCH\.zip$" } |
+            Select-Object -First 1
+          if ($null -eq $zip) {
+            throw "Unable to determine PHP version from build artifacts in $artifactDirectory"
+          }
+          $phpVersion = [regex]::Match($zip.Name, '^php-(.+?)-(?:nts-)?Win32-v[sc]\d+-').Groups[1].Value
+
+          Import-Module (Join-Path $(pwd).Path '\builder\php\BuildPhp') -Force
+          $cacheInfo = Get-DepsCacheInfo -PhpVersion $phpVersion -Arch $env:PHP_ARCH -LibsBuildRuns $env:LIBS_BUILD_RUNS -IncludeDefaultRunsKey
+          Set-Content -Path packages.txt -Value ($cacheInfo.Packages -join "`n")
+          Add-Content -Value "php-version=$phpVersion" -Path $env:GITHUB_OUTPUT
+          Add-Content -Value "cache-key=$($cacheInfo.CacheKey)" -Path $env:GITHUB_OUTPUT
+          Add-Content -Value "cache-dir=$($cacheInfo.CacheDir)" -Path $env:GITHUB_OUTPUT
+
+      - name: Cache Deps
+        id: cache-deps
+        uses: actions/cache@v5
+        continue-on-error: true
+        with:
+          path: ${{ steps.cache-key.outputs.cache-dir }}
+          key: ${{ steps.cache-key.outputs.cache-key }}-${{ hashFiles('packages.txt') }}
+
+      - name: Enable PHP crash dumps
         shell: pwsh
         continue-on-error: true
         run: |
-          winget install --id Microsoft.WinDbg --source winget --accept-source-agreements --accept-package-agreements --disable-interactivity
+          $dumpDir = Join-Path $(pwd).Path "crash-dumps-$env:PHP_ARCH-$env:PHP_TS-$env:PHP_OPCACHE-$env:PHP_TEST_TYPE"
+          New-Item -Path $dumpDir -ItemType Directory -Force | Out-Null
+          foreach ($imageName in @('php.exe', 'php-cli-server.exe')) {
+            $key = "HKCU:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\$imageName"
+            New-Item -Path $key -Force | Out-Null
+            New-ItemProperty -Path $key -Name DumpFolder -Value $dumpDir -PropertyType ExpandString -Force | Out-Null
+            New-ItemProperty -Path $key -Name DumpCount -Value 8 -PropertyType DWord -Force | Out-Null
+            New-ItemProperty -Path $key -Name DumpType -Value 2 -PropertyType DWord -Force | Out-Null
+          }
+          Write-Host "PHP crash dumps: $dumpDir"
+          try {
+            $toolDir = Join-Path $env:RUNNER_TEMP 'procdump'
+            New-Item -Path $toolDir -ItemType Directory -Force | Out-Null
+            $zip = Join-Path $toolDir 'procdump.zip'
+            Invoke-WebRequest -Uri 'https://download.sysinternals.com/files/Procdump.zip' -OutFile $zip
+            Expand-Archive -Path $zip -DestinationPath $toolDir -Force
+            $procdump = @(
+              (Join-Path $toolDir 'procdump64.exe'),
+              (Join-Path $toolDir 'procdump.exe')
+            ) | Where-Object { Test-Path -Path $_ } | Select-Object -First 1
+            if ($null -ne $procdump) {
+              & $procdump -accepteula -mp -i $dumpDir | Out-Host
+            }
+          } catch {
+            Write-Warning "Unable to enable ProcDump postmortem dumps: $_"
+          }
 
-      - name: Download ProcDump
+      - name: Install CLI server listener
         shell: pwsh
         run: |
-          $toolDir = Join-Path $PWD 'tools\procdump'
-          New-Item -Path $toolDir -ItemType Directory -Force | Out-Null
-          $zip = Join-Path $toolDir 'Procdump.zip'
-          Invoke-WebRequest -Uri 'https://download.sysinternals.com/files/Procdump.zip' -OutFile $zip
-          Expand-Archive -Path $zip -DestinationPath $toolDir -Force
-          Get-ChildItem $toolDir -Filter 'procdump*.exe' | Select-Object Name, FullName | Format-Table -AutoSize
-
-      - name: Run artifact repro
-        id: repro
-        shell: pwsh
-        run: |
-          $pkg = Get-AppxPackage Microsoft.WinDbg -ErrorAction SilentlyContinue
-          $candidates = New-Object System.Collections.Generic.List[string]
-          if ($pkg) {
-            Get-ChildItem $pkg.InstallLocation -Recurse -Filter cdb.exe -File -ErrorAction SilentlyContinue |
-              Select-Object -ExpandProperty FullName |
-              ForEach-Object { $candidates.Add($_) }
-          }
-          $command = Get-Command cdb.exe -ErrorAction SilentlyContinue
-          if ($command) {
-            $candidates.Add($command.Source)
-          }
-          $cdb = $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
-          if ($null -eq $cdb) {
-            Write-Warning 'cdb.exe was not found. Dump analysis will be skipped if ProcDump captures a crash.'
-            $cdb = ''
-          }
-
-          .\scripts\repro-vs18-cli-server-dump.ps1 `
+          .\scripts\install-vs18-cli-server-listener.ps1 `
             -BuilderRepoPath (Join-Path $PWD 'builder') `
-            -ArtifactsDir (Join-Path $PWD 'artifacts') `
-            -ResultsDir (Join-Path $PWD 'baseline-results') `
-            -OutputDir (Join-Path $PWD 'repro-output') `
-            -PhpVersion $env:PHP_VERSION `
-            -Arch $env:PHP_ARCH `
-            -Ts $env:PHP_TS `
-            -Opcache $env:PHP_OPCACHE `
-            -TestType $env:PHP_TEST_TYPE `
-            -SourceRepository $env:PHP_SRC_REPOSITORY `
-            -SourceRef $env:PHP_SRC_REF `
-            -ProcDumpPath (Join-Path $PWD 'tools\procdump\procdump.exe') `
-            -CdbPath $cdb `
-            -RunFullSuite ([System.Convert]::ToBoolean($env:RUN_FULL_SUITE)) `
-            -StressIterations ([int]$env:STRESS_ITERATIONS)
+            -DebugFilter $env:DEBUG_FILTER
 
-      - name: Upload repro artifacts
+      - name: Test PHP
+        shell: pwsh
+        continue-on-error: true
+        env:
+          DEPS_DIR: ${{ steps.cache-key.outputs.cache-dir }}
+          DEPS_CACHE_HIT: ${{ steps.cache-deps.outputs.cache-hit }}
+          LIBS_BUILD_RUNS: ${{ env.LIBS_BUILD_RUNS }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_PHP_CLI_SERVER_DEBUG_FILTER: ${{ env.DEBUG_FILTER }}
+        run: |
+          Import-Module (Join-Path $(pwd).Path '\builder\php\BuildPhp') -Force
+          Invoke-PhpTests -PhpVersion ${{ steps.cache-key.outputs.php-version }} `
+                          -Arch $env:PHP_ARCH `
+                          -Ts $env:PHP_TS `
+                          -Opcache $env:PHP_OPCACHE `
+                          -TestType $env:PHP_TEST_TYPE `
+                          -SourceRepository $env:PHP_SRC_REPOSITORY `
+                          -SourceRef $env:PHP_SRC_REF
+
+      - name: Inspect PHP crash dumps
         if: always()
-        uses: actions/upload-artifact@v4
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $dumpDir = Join-Path $(pwd).Path "crash-dumps-$env:PHP_ARCH-$env:PHP_TS-$env:PHP_OPCACHE-$env:PHP_TEST_TYPE"
+          $testLog = Join-Path $(pwd).Path "test-$env:PHP_ARCH-$env:PHP_TS-$env:PHP_OPCACHE-$env:PHP_TEST_TYPE.log"
+          $procdump = @(
+            (Join-Path $env:RUNNER_TEMP 'procdump\procdump64.exe'),
+            (Join-Path $env:RUNNER_TEMP 'procdump\procdump.exe')
+          ) | Where-Object { Test-Path -Path $_ } | Select-Object -First 1
+          if ($null -ne $procdump) {
+            & $procdump -accepteula -u | Out-Host
+          }
+          $dumps = @(Get-ChildItem -Path $dumpDir -Filter '*.dmp' -File -Recurse -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 8)
+          if ($dumps.Count -eq 0) {
+            Write-Host 'No PHP crash dumps found.'
+            exit 0
+          }
+
+          $debuggerArch = if ($env:PHP_ARCH -eq 'x86') { 'x86' } else { 'x64' }
+          $debugger = @(
+            (Get-Command cdb.exe -ErrorAction SilentlyContinue).Source,
+            "$(${env:ProgramFiles(x86)})\Windows Kits\10\Debuggers\$debuggerArch\cdb.exe",
+            "$env:ProgramFiles\Windows Kits\10\Debuggers\$debuggerArch\cdb.exe",
+            "$(${env:ProgramFiles(x86)})\Windows Kits\10\Debuggers\x64\cdb.exe",
+            "$env:ProgramFiles\Windows Kits\10\Debuggers\x64\cdb.exe"
+          ) | Where-Object { $_ -and (Test-Path -Path $_) } | Select-Object -First 1
+
+          $symbolDir = Join-Path $dumpDir 'symbols'
+          $symbolPaths = New-Object System.Collections.Generic.List[string]
+          $debugPack = Get-ChildItem -Path $(pwd).Path -Filter 'php-debug-pack-*.zip' -File |
+            Where-Object {
+              $_.Name -match "-$env:PHP_ARCH\.zip$" -and
+              (($env:PHP_TS -eq 'nts') -eq ($_.Name -match '-nts-Win32-'))
+            } |
+            Select-Object -First 1
+          if ($null -ne $debugPack) {
+            Expand-Archive -Path $debugPack.FullName -DestinationPath $symbolDir -Force
+            Get-ChildItem -Path $symbolDir -Filter '*.pdb' -File -Recurse |
+              Select-Object -ExpandProperty DirectoryName -Unique |
+              ForEach-Object { $symbolPaths.Add($_) }
+          }
+          $symbolPaths.Add("srv*$(Join-Path $dumpDir 'symcache')*https://msdl.microsoft.com/download/symbols")
+
+          $summary = @('', '===== PHP crash dumps =====')
+          foreach ($dump in $dumps) {
+            $summary += "Dump: $($dump.FullName) ($([Math]::Round($dump.Length / 1MB, 2)) MB)"
+            if ($null -eq $debugger) {
+              $summary += 'cdb.exe was not found; dump uploaded for offline analysis.'
+              continue
+            }
+
+            $stackFile = Join-Path $dumpDir ($dump.BaseName + '.stack.txt')
+            $debugOutput = & $debugger -z $dump.FullName -y ($symbolPaths -join ';') -c '!analyze -v; .ecxr; kpn; q' 2>&1 | Out-String -Width 300
+            Set-Content -Path $stackFile -Value $debugOutput
+            $summary += "Stack: $stackFile"
+            $summary += $debugOutput
+          }
+
+          $summaryText = $summary -join "`n"
+          Write-Host $summaryText
+          Add-Content -Path $testLog -Value $summaryText
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        continue-on-error: true
         with:
-          name: vs18-cli-server-dump-repro
+          name: test-results-${{ env.PHP_ARCH }}-${{ env.PHP_TS }}-${{ env.PHP_OPCACHE }}-${{ env.PHP_TEST_TYPE }}
           path: |
-            repro-output/**
+            test-${{ env.PHP_ARCH }}-${{ env.PHP_TS }}-${{ env.PHP_OPCACHE }}-${{ env.PHP_TEST_TYPE }}.xml
+            test-${{ env.PHP_ARCH }}-${{ env.PHP_TS }}-${{ env.PHP_OPCACHE }}-${{ env.PHP_TEST_TYPE }}.log
+            crash-dumps-${{ env.PHP_ARCH }}-${{ env.PHP_TS }}-${{ env.PHP_OPCACHE }}-${{ env.PHP_TEST_TYPE }}/**
             baseline-results/**
 
       - name: Fail if no dump was captured
-        if: always() && steps.repro.conclusion == 'success' && env.FAIL_IF_NO_DUMP == 'true' && steps.repro.outputs.dump_found != 'true'
+        if: always() && env.FAIL_IF_NO_DUMP == 'true'
         shell: pwsh
         run: |
-          throw 'No crash dump was captured.'
+          $dumpDir = Join-Path $(pwd).Path "crash-dumps-$env:PHP_ARCH-$env:PHP_TS-$env:PHP_OPCACHE-$env:PHP_TEST_TYPE"
+          $dumps = @(Get-ChildItem -Path $dumpDir -Filter '*.dmp' -File -Recurse -ErrorAction SilentlyContinue)
+          if ($dumps.Count -eq 0) {
+            throw 'No crash dump was captured.'
+          }
