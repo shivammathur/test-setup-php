@@ -293,6 +293,124 @@ function php_cli_server_debug_attach(?int $pid, string $doc_root)
     Write-Host "Patched CLI server helper for live ProcDump capture: $Path"
 }
 
+function Set-RunTestsWorkerDumpCapture {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Path,
+        [Parameter(Mandatory = $true)]
+        [string] $DumpDir,
+        [Parameter(Mandatory = $true)]
+        [string] $ProcDumpExe,
+        [Parameter(Mandatory = $true)]
+        [string] $DebugLogPath
+    )
+
+    $rawContent = Get-Content -Path $Path -Raw
+    $newline = if ($rawContent.Contains("`r`n")) { "`r`n" } else { "`n" }
+    $content = ConvertTo-Lf -Text $rawContent
+    if ($content -match 'buildphp_worker_recovery_attach_procdump') {
+        Write-Host "Worker ProcDump patch already present in $Path"
+        return
+    }
+
+    $phpProcDumpPath = ConvertTo-PhpSingleQuotedLiteral -Text $ProcDumpExe
+    $phpDumpDir = ConvertTo-PhpSingleQuotedLiteral -Text $DumpDir
+    $phpDebugLogPath = ConvertTo-PhpSingleQuotedLiteral -Text $DebugLogPath
+
+    $helper = ConvertTo-Lf -Text @'
+    function buildphp_worker_recovery_attach_procdump($proc)
+    {
+        if (PHP_OS_FAMILY !== 'Windows') {
+            return;
+        }
+
+        $procdump = __WORKER_PROCDUMP_PATH__;
+        $dumpDir = __WORKER_DUMP_DIR__;
+        $logPath = __WORKER_PROCDUMP_LOG__;
+        if (!$procdump || !is_file($procdump)) {
+            @file_put_contents($logPath, date('c') . " skip missing ProcDump" . PHP_EOL, FILE_APPEND);
+            return;
+        }
+
+        if (!is_dir($dumpDir) && !@mkdir($dumpDir, 0777, true) && !is_dir($dumpDir)) {
+            @file_put_contents($logPath, date('c') . " skip missing dump dir " . $dumpDir . PHP_EOL, FILE_APPEND);
+            return;
+        }
+
+        $status = @proc_get_status($proc);
+        $pid = is_array($status) && isset($status['pid']) ? (int) $status['pid'] : 0;
+        if ($pid <= 0) {
+            @file_put_contents($logPath, date('c') . " skip missing worker pid" . PHP_EOL, FILE_APPEND);
+            return;
+        }
+
+        $descriptorspec = [
+            0 => ['file', 'NUL', 'r'],
+            1 => ['file', 'NUL', 'a'],
+            2 => ['file', 'NUL', 'a'],
+        ];
+
+        $attach = @proc_open(
+            [
+                $procdump,
+                '-accepteula',
+                '-e',
+                '1',
+                '-ma',
+                '-x',
+                $dumpDir,
+                (string) $pid,
+            ],
+            $descriptorspec,
+            $pipes,
+            null,
+            null,
+            [
+                "suppress_errors" => true,
+                'create_new_console' => true,
+            ]
+        );
+
+        @file_put_contents(
+            $logPath,
+            date('c') . " attach worker pid=" . $pid . " handle=" . (is_resource($attach) ? 'resource' : 'null') . PHP_EOL,
+            FILE_APPEND
+        );
+    }
+
+'@
+    $helper = $helper.Replace('__WORKER_PROCDUMP_PATH__', $phpProcDumpPath)
+    $helper = $helper.Replace('__WORKER_DUMP_DIR__', $phpDumpDir)
+    $helper = $helper.Replace('__WORKER_PROCDUMP_LOG__', $phpDebugLogPath)
+
+    $startWorkerMarker = '    function buildphp_worker_recovery_start_worker('
+    if (-not $content.Contains($startWorkerMarker)) {
+        throw "Unable to locate buildphp_worker_recovery_start_worker() in $Path"
+    }
+    $content = $content.Replace($startWorkerMarker, $helper + $startWorkerMarker)
+
+    $oldRegister = ConvertTo-Lf -Text @'
+        $workerProcs[$workerID] = $proc;
+        $workerSocks[$workerID] = $workerSock;
+
+        return true;
+'@
+    $newRegister = ConvertTo-Lf -Text @'
+        $workerProcs[$workerID] = $proc;
+        $workerSocks[$workerID] = $workerSock;
+        buildphp_worker_recovery_attach_procdump($proc);
+
+        return true;
+'@
+    if (-not $content.Contains($oldRegister)) {
+        throw "Unable to patch worker registration block in $Path"
+    }
+    $content = $content.Replace($oldRegister, $newRegister)
+
+    Set-Content -Path $Path -Value (Restore-Newlines -Text $content -Newline $newline) -NoNewline
+    Write-Host "Patched run-tests worker spawn for ProcDump capture: $Path"
+}
+
 function Get-TestRunParams {
     param(
         [Parameter(Mandatory = $true)]
@@ -531,6 +649,13 @@ Set-CliServerDumpCapture `
     -ProcDumpExe $ProcDumpPath `
     -DebugFilter 'bug67198,php_cli_server_017,php_cli_server_019,bug65066_422,bug67429_1,ghsa-4w77-75f9-2c8w' `
     -DebugLogPath (Join-Path $dumpDir 'cli-server-debug.log')
+
+$runTestsPath = Join-Path $reproRoot 'tests\run-tests.php'
+Set-RunTestsWorkerDumpCapture `
+    -Path $runTestsPath `
+    -DumpDir $dumpDir `
+    -ProcDumpExe $ProcDumpPath `
+    -DebugLogPath (Join-Path $OutputDir 'worker-procdump.log')
 
 Write-Section 'Preparing run settings'
 $settings = Get-TestSettings -PhpVersion $PhpVersion
