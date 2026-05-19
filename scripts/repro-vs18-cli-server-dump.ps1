@@ -682,7 +682,7 @@ Set-CliServerDumpCapture `
     -DumpDir $dumpDir `
     -ProcDumpExe $ProcDumpPath `
     -DebugFilter 'bug67198,php_cli_server_017,php_cli_server_019,bug65066_422,bug67429_1,ghsa-4w77-75f9-2c8w' `
-    -DebugLogPath (Join-Path $dumpDir 'cli-server-debug.log')
+    -DebugLogPath (Join-Path $OutputDir 'cli-server-debug.log')
 
 Write-Section 'Preparing run settings'
 $settings = Get-TestSettings -PhpVersion $PhpVersion
