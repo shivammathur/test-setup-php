@@ -97,6 +97,20 @@ function Set-CliServerDumpCapture {
     }
 
     $debugFunctions = ConvertTo-Lf -Text @'
+function php_cli_server_debug_log(string $message): void
+{
+    $log_file = getenv('PHP_CLI_SERVER_DEBUG_LOG');
+    if (!$log_file) {
+        return;
+    }
+
+    @file_put_contents(
+        $log_file,
+        date('c') . " " . $message . PHP_EOL,
+        FILE_APPEND
+    );
+}
+
 function php_cli_server_debug_matches_filter(string $test_script, string $filter): bool
 {
     $test_name = basename($test_script, '.php');
@@ -113,17 +127,21 @@ function php_cli_server_debug_matches_filter(string $test_script, string $filter
 function php_cli_server_debug_prepare(string $doc_root): ?array
 {
     if (PHP_OS_FAMILY !== "Windows") {
+        php_cli_server_debug_log('skip: non-Windows');
         return null;
     }
 
     $procdump = getenv('PHP_CLI_SERVER_PROCDUMP');
     if (!$procdump || !is_file($procdump)) {
+        php_cli_server_debug_log('skip: ProcDump missing');
         return null;
     }
 
     $test_script = (string) ($_SERVER['PHP_SELF'] ?? '');
     $filter = (string) getenv('PHP_CLI_SERVER_DEBUG_FILTER');
+    php_cli_server_debug_log('prepare: self=' . $test_script . ' filter=' . $filter);
     if ($filter !== '' && !php_cli_server_debug_matches_filter($test_script, $filter)) {
+        php_cli_server_debug_log('skip: filter mismatch');
         return null;
     }
 
@@ -132,9 +150,11 @@ function php_cli_server_debug_prepare(string $doc_root): ?array
         $dump_dir = sys_get_temp_dir();
     }
     if (!is_dir($dump_dir) && !@mkdir($dump_dir, 0777, true) && !is_dir($dump_dir)) {
+        php_cli_server_debug_log('skip: dump dir unavailable ' . $dump_dir);
         return null;
     }
 
+    php_cli_server_debug_log('prepare: armed for doc_root=' . $doc_root . ' dump_dir=' . $dump_dir);
     return [
         'procdump' => $procdump,
         'dump_dir' => $dump_dir,
@@ -144,6 +164,7 @@ function php_cli_server_debug_prepare(string $doc_root): ?array
 function php_cli_server_debug_attach(?int $pid, string $doc_root)
 {
     if ($pid === null) {
+        php_cli_server_debug_log('skip: missing PID');
         return null;
     }
 
@@ -159,7 +180,8 @@ function php_cli_server_debug_attach(?int $pid, string $doc_root)
         2 => ['file', $null_device, 'a'],
     ];
 
-    return @proc_open(
+    php_cli_server_debug_log('attach: monitoring pid=' . $pid);
+    $handle = @proc_open(
         [
             $debug['procdump'],
             '-accepteula',
@@ -176,6 +198,9 @@ function php_cli_server_debug_attach(?int $pid, string $doc_root)
         null,
         ["suppress_errors" => true]
     );
+
+    php_cli_server_debug_log('attach: proc_open=' . (is_resource($handle) ? 'resource' : 'null'));
+    return $handle;
 }
 
 '@
@@ -308,6 +333,34 @@ function Reset-TestEnvironment {
     $env:PHP_CLI_SERVER_PROCDUMP = $ProcDumpPath
     $env:PHP_CLI_SERVER_DEBUG_FILTER = 'bug67198,php_cli_server_017,php_cli_server_019,bug65066_422,bug67429_1,ghsa-4w77-75f9-2c8w'
     $env:PHP_CLI_SERVER_DUMP_DIR = $DumpDir
+    $env:PHP_CLI_SERVER_DEBUG_LOG = Join-Path $DumpDir 'cli-server-debug.log'
+}
+
+function Stop-ReproProcesses {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Root
+    )
+
+    $phpBin = (Join-Path $Root 'phpbin').ToLowerInvariant()
+    $processNames = @('php.exe', 'php-cgi.exe', 'phpdbg.exe', 'procdump.exe', 'procdump64.exe')
+    $processes = @(Get-CimInstance Win32_Process -ErrorAction Ignore | Where-Object { $processNames -contains $_.Name })
+
+    foreach ($process in $processes) {
+        $shouldStop = $false
+        if ($process.Name -like 'procdump*.exe') {
+            $shouldStop = $true
+        } elseif ($process.ExecutablePath) {
+            $shouldStop = $process.ExecutablePath.ToLowerInvariant().StartsWith($phpBin)
+        }
+
+        if ($shouldStop) {
+            Stop-Process -Id $process.ProcessId -Force -ErrorAction Ignore
+        }
+    }
+
+    Start-Sleep -Milliseconds 300
+    Remove-Item (Join-Path $Root 'tests\run-test-info.php') -Force -ErrorAction Ignore
 }
 
 function Invoke-TestBatch {
@@ -328,6 +381,7 @@ function Invoke-TestBatch {
 
     Set-Location (Join-Path $Root 'tests')
     for ($iteration = 1; $iteration -le $Iterations; $iteration++) {
+        Stop-ReproProcesses -Root $Root
         Reset-TestEnvironment -Root $Root -DumpDir $DumpDir
         Remove-Item (Join-Path $DumpDir '*') -Force -Recurse -ErrorAction Ignore
 
@@ -343,8 +397,13 @@ function Invoke-TestBatch {
         $params = Get-TestRunParams -Root $Root -TestListFile $testListFile -Settings $Settings
 
         Write-Section "$Name iteration $iteration"
-        & (Join-Path $Root 'phpbin\php.exe') @params 2>&1 | Tee-Object -FilePath $logFile | Out-Host
-        $exitCode = $LASTEXITCODE
+        try {
+            & (Join-Path $Root 'phpbin\php.exe') @params 2>&1 | Tee-Object -FilePath $logFile | Out-Host
+            $exitCode = $LASTEXITCODE
+        } finally {
+            Stop-ReproProcesses -Root $Root
+        }
+
         $dumps = @(Get-ChildItem $DumpDir -Filter '*.dmp' -File -Recurse -ErrorAction Ignore | Sort-Object LastWriteTime -Descending)
         if ($dumps.Count -gt 0) {
             return [PSCustomObject]@{
@@ -521,3 +580,4 @@ if ($env:GITHUB_OUTPUT) {
 Set-Location $repoRoot
 Write-Section 'Summary'
 Get-Content $summaryFile | Out-Host
+$global:LASTEXITCODE = 0
