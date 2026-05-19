@@ -518,15 +518,20 @@ function Enable-SilentProcessExitDumpCapture {
 
     $ifeo = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\$ImageName"
     $spe = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\$ImageName"
+    $wer = "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\$ImageName"
 
     New-Item -Path $ifeo -Force | Out-Null
     New-Item -Path $spe -Force | Out-Null
+    New-Item -Path $wer -Force | Out-Null
     New-ItemProperty -Path $ifeo -Name GlobalFlag -Value 0x200 -PropertyType DWord -Force | Out-Null
     New-ItemProperty -Path $spe -Name ReportingMode -Value 2 -PropertyType DWord -Force | Out-Null
     New-ItemProperty -Path $spe -Name DumpType -Value 2 -PropertyType DWord -Force | Out-Null
     New-ItemProperty -Path $spe -Name LocalDumpFolder -Value $DumpDir -PropertyType ExpandString -Force | Out-Null
+    New-ItemProperty -Path $wer -Name DumpFolder -Value $DumpDir -PropertyType ExpandString -Force | Out-Null
+    New-ItemProperty -Path $wer -Name DumpType -Value 2 -PropertyType DWord -Force | Out-Null
+    New-ItemProperty -Path $wer -Name DumpCount -Value 32 -PropertyType DWord -Force | Out-Null
 
-    Write-Host "Enabled Silent Process Exit dumps for $ImageName in $DumpDir"
+    Write-Host "Enabled Silent Process Exit and WER LocalDumps for $ImageName in $DumpDir"
     return $true
 }
 
@@ -542,9 +547,11 @@ function Disable-SilentProcessExitDumpCapture {
 
     $ifeo = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\$ImageName"
     $spe = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\$ImageName"
+    $wer = "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\$ImageName"
     Remove-Item -Path $ifeo -Recurse -Force -ErrorAction Ignore
     Remove-Item -Path $spe -Recurse -Force -ErrorAction Ignore
-    Write-Host "Disabled Silent Process Exit dumps for $ImageName"
+    Remove-Item -Path $wer -Recurse -Force -ErrorAction Ignore
+    Write-Host "Disabled Silent Process Exit and WER LocalDumps for $ImageName"
 }
 
 function Stop-ReproProcesses {
