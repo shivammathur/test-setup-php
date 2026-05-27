@@ -89,7 +89,7 @@ jobs:
 
           $serverJob = $null
           $mockUser = 'curlntlm'
-          $mockPass = 'Ntlm-Repro-22157!'
+          $mockPass = 'Ntlm22157!'
 
           try {
             if ([string]::IsNullOrWhiteSpace($realUrl)) {
