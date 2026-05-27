@@ -1,0 +1,263 @@
+name: Official ZTS x64 curl NTLM repro
+
+on:
+  workflow_dispatch:
+    inputs:
+      ews_url:
+        description: Optional real Exchange EWS URL. Empty uses a local Windows NTLM listener.
+        required: false
+        default: ""
+      soap_action:
+        description: SOAPAction header value for real EWS mode.
+        required: false
+        default: xxx
+      expected_status:
+        description: Expected final HTTP status.
+        required: false
+        default: "200"
+
+permissions:
+  contents: read
+
+jobs:
+  official-zts-x64:
+    name: PHP ${{ matrix.php }} official ZTS x64
+    runs-on: windows-2022
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        php:
+          - 8.5.5
+          - 8.5.6
+
+    steps:
+      - name: Download official PHP.net ZTS x64 build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = '${{ matrix.php }}'
+          $zipName = "php-$version-Win32-vs17-x64.zip"
+          $zip = Join-Path $env:RUNNER_TEMP $zipName
+          $phpRoot = Join-Path $env:RUNNER_TEMP "php-$version"
+          $urls = @(
+            "https://downloads.php.net/~windows/releases/$zipName",
+            "https://downloads.php.net/~windows/releases/archives/$zipName"
+          )
+
+          foreach ($url in $urls) {
+            try {
+              Write-Host "Downloading $url"
+              Invoke-WebRequest -Uri $url -OutFile $zip
+              break
+            } catch {
+              if ($url -eq $urls[-1]) {
+                throw
+              }
+            }
+          }
+
+          Expand-Archive -Path $zip -DestinationPath $phpRoot -Force
+          "PHP_ROOT=$phpRoot" >> $env:GITHUB_ENV
+
+          & "$phpRoot\php.exe" -v
+          & "$phpRoot\php.exe" -n -d "extension_dir=$phpRoot\ext" -d extension=curl -r @'
+          $cv = curl_version();
+          echo "curl ", $cv["version"], PHP_EOL;
+          echo "NTLM=", var_export($cv["feature_list"]["NTLM"] ?? null, true), PHP_EOL;
+          echo "SSPI=", var_export($cv["feature_list"]["SSPI"] ?? null, true), PHP_EOL;
+          echo "protocols=", implode(",", $cv["protocols"]), PHP_EOL;
+          '@
+
+      - name: Run issue 22157 curl NTLM POST test
+        shell: pwsh
+        env:
+          EWS_USERPWD: ${{ secrets.EWS_USERPWD }}
+          EWS_REQUEST_XML: ${{ secrets.EWS_REQUEST_XML }}
+          EWS_REQUEST_XML_B64: ${{ secrets.EWS_REQUEST_XML_B64 }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $php = Join-Path $env:PHP_ROOT 'php.exe'
+          $script = Join-Path $env:RUNNER_TEMP 'issue-22157.php'
+          $realUrl = '${{ inputs.ews_url }}'
+          $soapAction = '${{ inputs.soap_action }}'
+          $expectedStatus = [int]'${{ inputs.expected_status }}'
+          if ([string]::IsNullOrWhiteSpace($soapAction)) {
+            $soapAction = 'xxx'
+          }
+
+          $serverJob = $null
+          $mockUser = 'curlntlm'
+          $mockPass = 'Ntlm-Repro-22157!'
+
+          try {
+            if ([string]::IsNullOrWhiteSpace($realUrl)) {
+              Write-Host 'Using local Windows HttpListener NTLM endpoint.'
+              net user $mockUser /delete 2>$null | Out-Null
+              net user $mockUser $mockPass /add /expires:never | Out-Host
+
+              $location = 'http://127.0.0.1:18080/EWS/Exchange.asmx'
+              $userpwd = $env:COMPUTERNAME + '\' + $mockUser + ':' + $mockPass
+              $requestXml = '<xml/>'
+
+              $serverJob = Start-Job -ScriptBlock {
+                param($prefix)
+
+                $listener = [System.Net.HttpListener]::new()
+                $listener.Prefixes.Add($prefix)
+                $listener.AuthenticationSchemes = [System.Net.AuthenticationSchemes]::Ntlm
+                $listener.Start()
+                Write-Output "NTLM listener started at $prefix"
+
+                while ($listener.IsListening) {
+                  $context = $listener.GetContext()
+                  $request = $context.Request
+                  $reader = [System.IO.StreamReader]::new($request.InputStream)
+                  $body = $reader.ReadToEnd()
+                  Write-Output "Authenticated $($request.HttpMethod) $($request.RawUrl) as $($context.User.Identity.Name); body bytes=$($body.Length)"
+
+                  $bytes = [System.Text.Encoding]::UTF8.GetBytes('OK')
+                  $context.Response.StatusCode = 200
+                  $context.Response.ContentType = 'text/xml'
+                  $context.Response.ContentLength64 = $bytes.Length
+                  $context.Response.OutputStream.Write($bytes, 0, $bytes.Length)
+                  $context.Response.Close()
+                }
+              } -ArgumentList 'http://127.0.0.1:18080/'
+
+              $ready = $false
+              for ($i = 0; $i -lt 30; $i++) {
+                if ($serverJob.State -ne 'Running') {
+                  Receive-Job $serverJob | Out-Host
+                  throw 'NTLM listener stopped before it became ready.'
+                }
+
+                try {
+                  Invoke-WebRequest -Uri 'http://127.0.0.1:18080/' -UseBasicParsing -TimeoutSec 1 | Out-Null
+                } catch {
+                  $response = $_.Exception.Response
+                  if ($response -and [int]$response.StatusCode -eq 401) {
+                    $ready = $true
+                    break
+                  }
+                }
+
+                Start-Sleep -Seconds 1
+              }
+
+              if (-not $ready) {
+                Receive-Job $serverJob | Out-Host
+                throw 'Timed out waiting for NTLM listener.'
+              }
+            } else {
+              Write-Host 'Using real EWS endpoint from workflow input.'
+              $location = $realUrl
+              $userpwd = $env:EWS_USERPWD
+              if ([string]::IsNullOrWhiteSpace($userpwd)) {
+                throw 'Real EWS mode requires an EWS_USERPWD repository secret.'
+              }
+
+              if (-not [string]::IsNullOrWhiteSpace($env:EWS_REQUEST_XML_B64)) {
+                $requestXml = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($env:EWS_REQUEST_XML_B64))
+              } else {
+                $requestXml = $env:EWS_REQUEST_XML
+              }
+
+              if ([string]::IsNullOrWhiteSpace($requestXml)) {
+                throw 'Real EWS mode requires EWS_REQUEST_XML_B64 or EWS_REQUEST_XML repository secret.'
+              }
+            }
+
+            $userName = $userpwd.Split(':', 2)[0]
+            Write-Host "::add-mask::$userpwd"
+            Write-Host "::add-mask::$userName"
+
+            $env:TEST_LOCATION = $location
+            $env:TEST_USERPWD = $userpwd
+            $env:TEST_REQUEST_XML = $requestXml
+            $env:TEST_SOAP_ACTION = $soapAction
+            $env:EXPECTED_STATUS = [string]$expectedStatus
+
+            @'
+          <?php
+          $location = getenv('TEST_LOCATION');
+          $headers = [
+              'Method: POST',
+              'Connection: Keep-Alive',
+              'User-Agent: PHP-SOAP-CURL',
+              'Content-Type: text/xml; charset=utf-8',
+              'SOAPAction: ' . getenv('TEST_SOAP_ACTION'),
+              'Expect: 100-continue',
+          ];
+          $request = getenv('TEST_REQUEST_XML');
+          $options = [
+              CURLOPT_SSL_VERIFYPEER => true,
+              CURLOPT_RETURNTRANSFER => true,
+              CURLOPT_HEADER => true,
+              CURLOPT_HTTPHEADER => $headers,
+              CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+              CURLOPT_HTTPAUTH => CURLAUTH_NTLM,
+              CURLOPT_USERPWD => getenv('TEST_USERPWD'),
+          ];
+          $options[CURLOPT_HEADER] = true;
+          $options[CURLOPT_POST] = true;
+          $options[CURLOPT_POSTFIELDS] = $request;
+
+          $streamVerboseHandle = fopen('php://temp', 'w+');
+
+          $ch = curl_init($location);
+          curl_setopt_array($ch, $options);
+          curl_setopt($ch, CURLOPT_VERBOSE, true);
+          curl_setopt($ch, CURLOPT_STDERR, $streamVerboseHandle);
+          $response = curl_exec($ch);
+          $errno = curl_errno($ch);
+          $error = curl_error($ch);
+          $status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+          rewind($streamVerboseHandle);
+          $verboseLog = stream_get_contents($streamVerboseHandle);
+
+          $scrub = static function ($value) {
+              if (!is_string($value)) {
+                  return $value;
+              }
+              $value = preg_replace('/Authorization: NTLM [A-Za-z0-9+\/=]+/i', 'Authorization: NTLM [redacted]', $value);
+              $value = preg_replace("/Server auth using NTLM with user '[^']*'/", "Server auth using NTLM with user '[redacted]'", $value);
+              return $value;
+          };
+
+          echo "Verbose log:\n";
+          var_dump($scrub($verboseLog));
+          echo "Response:\n";
+          var_dump($scrub(is_string($response) ? substr($response, 0, 2000) : $response));
+          echo "curl_errno=$errno\n";
+          echo "curl_error=$error\n";
+          echo "http_status=$status\n";
+
+          $expectedStatus = (int) getenv('EXPECTED_STATUS');
+          if ($errno !== 0) {
+              exit(10);
+          }
+          if ($status !== $expectedStatus) {
+              exit(11);
+          }
+          if (!str_contains($verboseLog, 'Server auth using NTLM') && !str_contains($verboseLog, 'Authorization: NTLM')) {
+              fwrite(STDERR, "NTLM was not used according to the verbose log.\n");
+              exit(12);
+          }
+          '@ | Set-Content -LiteralPath $script -Encoding ASCII
+
+            & $php -n -d "extension_dir=$env:PHP_ROOT\ext" -d extension=curl $script
+            if ($LASTEXITCODE -ne 0) {
+              throw "Issue 22157 repro failed with exit code $LASTEXITCODE"
+            }
+          } finally {
+            if ($serverJob) {
+              Stop-Job $serverJob -ErrorAction SilentlyContinue
+              Receive-Job $serverJob -ErrorAction SilentlyContinue | Out-Host
+              Remove-Job $serverJob -Force -ErrorAction SilentlyContinue
+            }
+            if ([string]::IsNullOrWhiteSpace($realUrl)) {
+              net user $mockUser /delete 2>$null | Out-Null
+            }
+          }
