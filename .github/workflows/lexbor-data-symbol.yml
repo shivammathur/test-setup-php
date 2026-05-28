@@ -1,0 +1,210 @@
+name: Lexbor data symbol import test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  data-symbol:
+    name: ${{ matrix.label }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: global-AC_DEFINE
+            builder-run: '26596073911'
+            source-repository: luthermonson/php-src
+            source-ref: fix/uri-lexbor-static-windows
+            arch: x64
+            ts: nts
+          - label: scoped-CFLAGS_URI
+            builder-run: '26598125206'
+            source-repository: shivammathur/php-src
+            source-ref: fix/uri-lexbor-static-cflags
+            arch: x64
+            ts: nts
+
+    steps:
+      - name: Checkout matching PHP source for Lexbor headers
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ matrix.source-repository }}
+          ref: ${{ matrix.source-ref }}
+          path: php-src
+          sparse-checkout: ext/lexbor
+          sparse-checkout-cone-mode: false
+
+      - name: Download php-windows-builder artifact
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh run download ${{ matrix.builder-run }} `
+            --repo shivammathur/php-windows-builder `
+            --name artifacts `
+            --dir artifacts
+          Get-ChildItem artifacts -File | Sort-Object Name | Select-Object Name, Length
+
+      - name: Extract matching PHP and devel packs
+        id: packs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $arch = '${{ matrix.arch }}'
+          $ts = '${{ matrix.ts }}'
+          $tsPattern = if ($ts -eq 'nts') { '-nts-' } else { '-Win32-' }
+
+          $phpZip = Get-ChildItem artifacts -Filter 'php-*.zip' -File |
+            Where-Object {
+              $_.Name -notmatch '-src\.zip$' -and
+              $_.Name -match "-Win32-v[sc]\d+-$arch\.zip$" -and
+              (($ts -eq 'nts') -eq ($_.Name -match '-nts-'))
+            } |
+            Select-Object -First 1
+
+          $develZip = Get-ChildItem artifacts -Filter 'php-devel-pack-*.zip' -File |
+            Where-Object {
+              $_.Name -match "-Win32-v[sc]\d+-$arch\.zip$" -and
+              (($ts -eq 'nts') -eq ($_.Name -match '-nts-'))
+            } |
+            Select-Object -First 1
+
+          if ($null -eq $phpZip) {
+            throw "No PHP artifact found for arch=$arch ts=$ts"
+          }
+          if ($null -eq $develZip) {
+            throw "No PHP devel artifact found for arch=$arch ts=$ts"
+          }
+
+          Write-Host "Selected PHP: $($phpZip.Name)"
+          Write-Host "Selected devel pack: $($develZip.Name)"
+
+          Expand-Archive -LiteralPath $phpZip.FullName -DestinationPath php-build -Force
+          Expand-Archive -LiteralPath $develZip.FullName -DestinationPath php-devel -Force
+
+          $php = Get-ChildItem php-build -Recurse -Filter php.exe -File | Select-Object -First 1
+          if ($null -eq $php) {
+            throw "php.exe not found"
+          }
+
+          Add-Content $env:GITHUB_OUTPUT "php=$($php.FullName)"
+          Add-Content $env:GITHUB_OUTPUT "php-root=$($php.Directory.FullName)"
+          Add-Content $env:GITHUB_OUTPUT "devel-root=$((Resolve-Path php-devel).Path)"
+
+      - name: Locate headers and import library
+        id: locate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $phpRoot = '${{ steps.packs.outputs.php-root }}'
+          $develRoot = '${{ steps.packs.outputs.devel-root }}'
+
+          Write-Host "Devel pack files:"
+          Get-ChildItem $develRoot -Recurse -File |
+            Select-Object -First 80 FullName |
+            ForEach-Object { $_.FullName }
+
+          $phpHeader = Get-ChildItem $develRoot -Recurse -File -Filter php.h |
+            Select-Object -First 1
+          if ($null -eq $phpHeader) {
+            throw "php.h not found in devel pack"
+          }
+
+          $includeRoot = $phpHeader.Directory.Parent.FullName
+          $configHeader = Get-ChildItem $develRoot -Recurse -File -Filter config.w32.h |
+            Select-Object -First 1
+          if ($null -ne $configHeader) {
+            Write-Host "config.w32.h: $($configHeader.FullName)"
+            Select-String -Path $configHeader.FullName -Pattern 'LEXBOR_STATIC' -SimpleMatch |
+              ForEach-Object { Write-Host $_.Line }
+          }
+
+          $phpLib = @(
+            Get-ChildItem $develRoot -Recurse -File -Filter '*.lib'
+            Get-ChildItem $phpRoot -Recurse -File -Filter '*.lib'
+          ) | Sort-Object FullName
+
+          Write-Host "Import libraries:"
+          $phpLib | ForEach-Object { Write-Host $_.FullName }
+
+          $phpLib = $phpLib |
+            Where-Object { $_.Name -in @('php8.lib', 'php.lib') } |
+            Select-Object -First 1
+
+          if ($null -eq $phpLib) {
+            throw "PHP import library not found"
+          }
+
+          Write-Host "include-root=$includeRoot"
+          Write-Host "php-lib=$($phpLib.FullName)"
+
+          Add-Content $env:GITHUB_OUTPUT "include-root=$includeRoot"
+          Add-Content $env:GITHUB_OUTPUT "php-lib=$($phpLib.FullName)"
+
+      - name: Build shared Lexbor data consumer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $includeRoot = '${{ steps.locate.outputs.include-root }}'
+          $phpLib = '${{ steps.locate.outputs.php-lib }}'
+          $sourceLexbor = Join-Path $PWD 'php-src\ext\lexbor'
+
+          if (-not (Test-Path (Join-Path $sourceLexbor 'lexbor\encoding\res.h'))) {
+            throw "Lexbor source headers not found at $sourceLexbor"
+          }
+
+          $source = @'
+          #include "php.h"
+          #include "lexbor/encoding/res.h"
+
+          __declspec(dllexport) const char *lexbor_data_probe(void)
+          {
+              return (const char *) lxb_encoding_res_map[0].name;
+          }
+          '@
+
+          Set-Content -Path lexbor_data_probe.c -Value $source -Encoding ascii
+
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if ([string]::IsNullOrWhiteSpace($vs)) {
+            throw "Visual Studio with VC tools not found"
+          }
+
+          $vcvars = Join-Path $vs 'VC\Auxiliary\Build\vcvars64.bat'
+          $includeArgs = @(
+            "/I`"$includeRoot`"",
+            "/I`"$includeRoot\main`"",
+            "/I`"$includeRoot\Zend`"",
+            "/I`"$includeRoot\TSRM`"",
+            "/I`"$includeRoot\win32`"",
+            "/I`"$includeRoot\ext`"",
+            "/I`"$includeRoot\ext\lexbor`"",
+            "/I`"$sourceLexbor`""
+          ) -join ' '
+          $defineArgs = @(
+            '/DWIN32',
+            '/D_WINDOWS',
+            '/DZEND_WIN32',
+            '/DPHP_WIN32',
+            '/DZEND_DEBUG=0',
+            '/DNDEBUG'
+          ) -join ' '
+
+          $cmd = "`"$vcvars`" && cl /nologo /LD /MD $defineArgs $includeArgs lexbor_data_probe.c /link /NOLOGO /OUT:lexbor_data_probe.dll `"$phpLib`""
+          Write-Host $cmd
+          cmd /d /s /c $cmd
+          if ($LASTEXITCODE -ne 0) {
+            throw "Building shared Lexbor data consumer failed"
+          }
+
+          $dumpCmd = "`"$vcvars`" && dumpbin /imports lexbor_data_probe.dll | findstr /i `"lexbor lxb_encoding_res_map php`""
+          Write-Host $dumpCmd
+          cmd /d /s /c $dumpCmd
+          if ($LASTEXITCODE -ne 0) {
+            throw "Unable to inspect shared Lexbor data consumer imports"
+          }

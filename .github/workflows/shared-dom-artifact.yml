@@ -1,0 +1,132 @@
+name: Shared DOM artifact test
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.build.label }} ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+          - label: global-AC_DEFINE
+            builder-run: '26596073911'
+          - label: scoped-CFLAGS_URI
+            builder-run: '26598125206'
+        arch: [x64, x86]
+        ts: [nts, ts]
+
+    steps:
+      - name: Checkout test code
+        uses: actions/checkout@v6
+
+      - name: Download php-windows-builder artifact
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh run download ${{ matrix.build.builder-run }} `
+            --repo shivammathur/php-windows-builder `
+            --name artifacts `
+            --dir artifacts
+          Get-ChildItem artifacts -File | Sort-Object Name | Select-Object Name, Length
+
+      - name: Extract matching PHP build
+        id: php
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $arch = '${{ matrix.arch }}'
+          $ts = '${{ matrix.ts }}'
+
+          $zip = Get-ChildItem artifacts -Filter 'php-*.zip' -File |
+            Where-Object {
+              $_.Name -notmatch '-src\.zip$' -and
+              $_.Name -match "-Win32-v[sc]\d+-$arch\.zip$" -and
+              (($ts -eq 'nts') -eq ($_.Name -match '-nts-'))
+            } |
+            Select-Object -First 1
+
+          if ($null -eq $zip) {
+            throw "No PHP artifact found for arch=$arch ts=$ts"
+          }
+
+          Write-Host "Selected $($zip.Name)"
+          $extract = Join-Path $PWD 'php-build'
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath $extract -Force
+
+          $php = Get-ChildItem $extract -Recurse -Filter php.exe -File | Select-Object -First 1
+          if ($null -eq $php) {
+            throw "php.exe not found in $($zip.Name)"
+          }
+
+          $root = $php.Directory.FullName
+          $extDir = Join-Path $root 'ext'
+          $domDll = Join-Path $extDir 'php_dom.dll'
+
+          if (-not (Test-Path $domDll)) {
+            throw "php_dom.dll not found at $domDll"
+          }
+
+          Add-Content $env:GITHUB_OUTPUT "php=$($php.FullName)"
+          Add-Content $env:GITHUB_OUTPUT "root=$root"
+          Add-Content $env:GITHUB_OUTPUT "ext-dir=$extDir"
+          Add-Content $env:GITHUB_OUTPUT "dom-dll=$domDll"
+
+      - name: Verify DOM is shared
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $php = '${{ steps.php.outputs.php }}'
+          & $php -n -r "if (extension_loaded('dom')) { fwrite(STDERR, 'dom is built in, expected shared'.PHP_EOL); exit(1); }"
+          if ($LASTEXITCODE -ne 0) {
+            throw "DOM was loaded without php_dom.dll"
+          }
+
+      - name: Verify static Lexbor module
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $php = '${{ steps.php.outputs.php }}'
+          $extDir = '${{ steps.php.outputs.ext-dir }}'
+          $lexborDll = Join-Path $extDir 'php_lexbor.dll'
+
+          if (Test-Path $lexborDll) {
+            throw "Lexbor should be static, but php_lexbor.dll exists at $lexborDll"
+          }
+
+          & $php -n -r "if (!extension_loaded('lexbor')) { fwrite(STDERR, 'lexbor static module is not loaded'.PHP_EOL); exit(1); }"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Lexbor static module was not loaded"
+          }
+
+          & $php -n --ri lexbor
+          if ($LASTEXITCODE -ne 0) {
+            throw "Unable to read Lexbor module info"
+          }
+
+      - name: Run shared DOM userland test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $php = '${{ steps.php.outputs.php }}'
+          $extDir = '${{ steps.php.outputs.ext-dir }}'
+
+          & $php -n -d "extension_dir=$extDir" -d extension=dom tests/shared-dom-userland.php
+          if ($LASTEXITCODE -ne 0) {
+            throw "Shared DOM userland test failed"
+          }
+
+      - name: Show DOM extension info
+        shell: pwsh
+        run: |
+          $php = '${{ steps.php.outputs.php }}'
+          $extDir = '${{ steps.php.outputs.ext-dir }}'
+          & $php -n -d "extension_dir=$extDir" -d extension=dom --ri dom
