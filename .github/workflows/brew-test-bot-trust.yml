@@ -1,9 +1,9 @@
-name: Brew test-bot tap trust
+name: Brew test-bot PR 22507 tap trust
 on:
   workflow_dispatch:
   push:
     branches:
-      - test/brew-test-bot-trust-config-home
+      - test/brew-pr-22507-trust
 
 permissions:
   contents: read
@@ -11,7 +11,7 @@ permissions:
 env:
   TAP: shivammathur/ci-trust-test
   UPSTREAM_BREW_REF: 43039a4500e6eca03c829a269d7b14aac08c0a24
-  FIXED_BREW_REF: fix/test-bot-trust-config-home
+  PR_22507_BREW_REF: test-bot-sandbox-only-flags
 
 jobs:
   upstream:
@@ -97,8 +97,8 @@ jobs:
           grep -F "The following taps are not trusted:" test-bot.log
           grep -F "$TAP" test-bot.log
 
-  fixed:
-    name: shivammathur/brew fix
+  pr_22507:
+    name: Homebrew/brew PR 22507
     runs-on: macos-latest
     timeout-minutes: 30
     steps:
@@ -141,14 +141,13 @@ jobs:
             git -C "$core_repo" clean -fd
           fi
 
-      - name: Use shivammathur/brew branch
+      - name: Use Homebrew/brew PR 22507 branch
         run: |
           set -euxo pipefail
           brew_repo="$(brew --repo)"
-          git -C "$brew_repo" remote add shivammathur https://github.com/shivammathur/brew || \
-            git -C "$brew_repo" remote set-url shivammathur https://github.com/shivammathur/brew
-          git -C "$brew_repo" fetch --force shivammathur "$FIXED_BREW_REF"
-          git -C "$brew_repo" checkout --force -B "$FIXED_BREW_REF" FETCH_HEAD
+          git -C "$brew_repo" remote set-url origin https://github.com/Homebrew/brew
+          git -C "$brew_repo" fetch --force origin "$PR_22507_BREW_REF"
+          git -C "$brew_repo" checkout --force -B "$PR_22507_BREW_REF" FETCH_HEAD
           brew --version
 
       - name: Create third-party tap
@@ -168,7 +167,15 @@ jobs:
           git -C "$tap_dir" commit -m init
           git -C "$tap_dir" remote add origin "https://github.com/${tap_owner}/homebrew-${tap_repo}"
 
-      - name: Run minimal test-bot setup
+      - name: Run minimal test-bot setup and assert trust failure
         env:
           HOMEBREW_DEVELOPER: "1"
-        run: brew test-bot --only-setup --fail-fast --tap="$TAP"
+        run: |
+          set -euxo pipefail
+          if brew test-bot --only-setup --fail-fast --tap="$TAP" 2>&1 | tee test-bot.log; then
+            echo "Expected Homebrew/brew PR 22507 branch to fail brew doctor."
+            exit 1
+          fi
+
+          grep -F "The following taps are not trusted:" test-bot.log
+          grep -F "$TAP" test-bot.log
