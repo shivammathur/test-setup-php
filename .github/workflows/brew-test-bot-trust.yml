@@ -1,0 +1,174 @@
+name: Brew test-bot tap trust
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - test/brew-test-bot-trust-config-home
+
+permissions:
+  contents: read
+
+env:
+  TAP: shivammathur/ci-trust-test
+  UPSTREAM_BREW_REF: 43039a4500e6eca03c829a269d7b14aac08c0a24
+  FIXED_BREW_REF: fix/test-bot-trust-config-home
+
+jobs:
+  upstream:
+    name: Upstream Homebrew/brew
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@main
+        with:
+          stable: false
+
+      - name: Prepare minimal Homebrew state
+        run: |
+          set -euxo pipefail
+
+          while IFS= read -r formula; do
+            if [[ "$formula" == */*/* && "$formula" != homebrew/* ]]; then
+              brew uninstall --formula --ignore-dependencies --force "$formula" || true
+            fi
+          done < <(brew list --formula --full-name)
+
+          while IFS= read -r cask; do
+            if [[ "$cask" == */*/* && "$cask" != homebrew/* ]]; then
+              brew uninstall --cask --force "$cask" || true
+            fi
+          done < <(brew list --cask --full-name)
+
+          while IFS= read -r tap; do
+            if [[ "$tap" != homebrew/* ]]; then
+              brew untap --force "$tap" || true
+            fi
+          done < <(brew tap)
+
+          rm -rf "$(brew --cellar)/openssl@1.1"
+          rm -f "$(brew --prefix)/bin/openssl"
+          rm -rf "$(brew --prefix)/opt/openssl@1.1"
+          while IFS= read -r symlink; do
+            [[ -e "$symlink" ]] || rm -f "$symlink"
+          done < <(find "$(brew --prefix)/bin" "$(brew --prefix)/opt" -type l)
+
+          if core_repo="$(brew --repo homebrew/core 2>/dev/null)"; then
+            git -C "$core_repo" reset --hard
+            git -C "$core_repo" clean -fd
+          fi
+
+      - name: Use upstream Homebrew/brew
+        run: |
+          set -euxo pipefail
+          brew_repo="$(brew --repo)"
+          git -C "$brew_repo" remote set-url origin https://github.com/Homebrew/brew
+          git -C "$brew_repo" fetch --force origin '+refs/heads/main:refs/remotes/origin/main'
+          git -C "$brew_repo" checkout --force "$UPSTREAM_BREW_REF"
+          brew --version
+
+      - name: Create third-party tap
+        run: |
+          set -euxo pipefail
+          tap_owner="${TAP%%/*}"
+          tap_repo="${TAP#*/}"
+          tap_dir="$(brew --repo)/Library/Taps/${tap_owner}/homebrew-${tap_repo}"
+
+          rm -rf "$tap_dir"
+          mkdir -p "$tap_dir"
+          git -c init.defaultBranch=main -C "$tap_dir" init
+          git -C "$tap_dir" config user.name "Brew Test Bot"
+          git -C "$tap_dir" config user.email "1589480+BrewTestBot@users.noreply.github.com"
+          printf '# CI trust tap\n' > "$tap_dir/README.md"
+          git -C "$tap_dir" add README.md
+          git -C "$tap_dir" commit -m init
+          git -C "$tap_dir" remote add origin "https://github.com/${tap_owner}/homebrew-${tap_repo}"
+
+      - name: Run minimal test-bot setup and assert trust failure
+        env:
+          HOMEBREW_DEVELOPER: "1"
+        run: |
+          set -euxo pipefail
+          if brew test-bot --only-setup --fail-fast --tap="$TAP" 2>&1 | tee test-bot.log; then
+            echo "Expected upstream Homebrew/brew to fail brew doctor."
+            exit 1
+          fi
+
+          grep -F "The following taps are not trusted:" test-bot.log
+          grep -F "$TAP" test-bot.log
+
+  fixed:
+    name: shivammathur/brew fix
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@main
+        with:
+          stable: false
+
+      - name: Prepare minimal Homebrew state
+        run: |
+          set -euxo pipefail
+
+          while IFS= read -r formula; do
+            if [[ "$formula" == */*/* && "$formula" != homebrew/* ]]; then
+              brew uninstall --formula --ignore-dependencies --force "$formula" || true
+            fi
+          done < <(brew list --formula --full-name)
+
+          while IFS= read -r cask; do
+            if [[ "$cask" == */*/* && "$cask" != homebrew/* ]]; then
+              brew uninstall --cask --force "$cask" || true
+            fi
+          done < <(brew list --cask --full-name)
+
+          while IFS= read -r tap; do
+            if [[ "$tap" != homebrew/* ]]; then
+              brew untap --force "$tap" || true
+            fi
+          done < <(brew tap)
+
+          rm -rf "$(brew --cellar)/openssl@1.1"
+          rm -f "$(brew --prefix)/bin/openssl"
+          rm -rf "$(brew --prefix)/opt/openssl@1.1"
+          while IFS= read -r symlink; do
+            [[ -e "$symlink" ]] || rm -f "$symlink"
+          done < <(find "$(brew --prefix)/bin" "$(brew --prefix)/opt" -type l)
+
+          if core_repo="$(brew --repo homebrew/core 2>/dev/null)"; then
+            git -C "$core_repo" reset --hard
+            git -C "$core_repo" clean -fd
+          fi
+
+      - name: Use shivammathur/brew branch
+        run: |
+          set -euxo pipefail
+          brew_repo="$(brew --repo)"
+          git -C "$brew_repo" remote add shivammathur https://github.com/shivammathur/brew || \
+            git -C "$brew_repo" remote set-url shivammathur https://github.com/shivammathur/brew
+          git -C "$brew_repo" fetch --force shivammathur "$FIXED_BREW_REF"
+          git -C "$brew_repo" checkout --force -B "$FIXED_BREW_REF" FETCH_HEAD
+          brew --version
+
+      - name: Create third-party tap
+        run: |
+          set -euxo pipefail
+          tap_owner="${TAP%%/*}"
+          tap_repo="${TAP#*/}"
+          tap_dir="$(brew --repo)/Library/Taps/${tap_owner}/homebrew-${tap_repo}"
+
+          rm -rf "$tap_dir"
+          mkdir -p "$tap_dir"
+          git -c init.defaultBranch=main -C "$tap_dir" init
+          git -C "$tap_dir" config user.name "Brew Test Bot"
+          git -C "$tap_dir" config user.email "1589480+BrewTestBot@users.noreply.github.com"
+          printf '# CI trust tap\n' > "$tap_dir/README.md"
+          git -C "$tap_dir" add README.md
+          git -C "$tap_dir" commit -m init
+          git -C "$tap_dir" remote add origin "https://github.com/${tap_owner}/homebrew-${tap_repo}"
+
+      - name: Run minimal test-bot setup
+        env:
+          HOMEBREW_DEVELOPER: "1"
+        run: brew test-bot --only-setup --fail-fast --tap="$TAP"
