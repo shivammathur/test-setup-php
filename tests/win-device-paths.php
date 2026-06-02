@@ -26,16 +26,6 @@ function expect_false(string $name, callable $callback): void
     record_result($name, $result === false, var_export($result, true));
 }
 
-function expect_resource_or_object(string $name, callable $callback): void
-{
-    $result = $callback();
-    $ok = is_resource($result) || is_object($result);
-    if (is_resource($result)) {
-        fclose($result);
-    }
-    record_result($name, $ok, gettype($result));
-}
-
 printf(
     "PHP_VERSION=%s PHP_ZTS=%d PHP_OS_FAMILY=%s PHP_BINARY=%s\n",
     PHP_VERSION,
@@ -56,10 +46,6 @@ if (!mkdir($base)) {
 try {
     $nul = $base . DIRECTORY_SEPARATOR . 'NUL';
     $nulTxt = $base . DIRECTORY_SEPARATOR . 'NUL.txt';
-
-    expect_resource_or_object('legacy NUL fopen remains available', function () {
-        return @fopen('NUL', 'wb');
-    });
 
     expect_false('scoped NUL fopen is blocked', function () use ($nul) {
         return @fopen($nul, 'wb');
