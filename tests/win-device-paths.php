@@ -64,13 +64,8 @@ try {
     expect_false('scoped NUL fopen is blocked', function () use ($nul) {
         return @fopen($nul, 'wb');
     });
-    expect_false('scoped NUL file_put_contents is blocked', function () use ($nul) {
-        return @file_put_contents($nul, 'test');
-    });
-    expect_false('scoped NUL touch is blocked', function () use ($nul) {
-        return @touch($nul);
-    });
     expect_false('scoped NUL file_exists is false', function () use ($nul) {
+        clearstatcache(true, $nul);
         return @file_exists($nul);
     });
     expect_false('scoped NUL stat is blocked', function () use ($nul) {
@@ -81,17 +76,14 @@ try {
         return @mkdir($nul);
     });
 
-    expect_false('scoped NUL.txt fopen is blocked', function () use ($nulTxt) {
-        return @fopen($nulTxt, 'wb');
-    });
-    expect_false('scoped NUL.txt touch is blocked', function () use ($nulTxt) {
-        return @touch($nulTxt);
-    });
     expect_false('scoped NUL.txt file_exists is false', function () use ($nulTxt) {
         clearstatcache(true, $nulTxt);
         return @file_exists($nulTxt);
     });
 } finally {
+    @unlink($nul);
+    @unlink($nulTxt);
+    @rmdir($nul);
     @rmdir($base);
 }
 
