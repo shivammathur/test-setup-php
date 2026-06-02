@@ -1,6 +1,9 @@
 name: Windows device artifact test
 
 on:
+  push:
+    branches:
+      - test/win-devices-artifacts-26816639133
   workflow_dispatch:
     inputs:
       run_id:
