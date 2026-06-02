@@ -1,0 +1,78 @@
+name: PHP 22207 OpenLDAP sysconf test
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ldaps-sysconf:
+    name: PHP ${{ matrix.php-version }}
+    runs-on: windows-2022
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php-version: 8.4.21
+            php-url: https://downloads.php.net/~windows/releases/archives/php-8.4.21-Win32-vs17-x64.zip
+            expected-certificate-verify-failure: true
+          - php-version: 8.4.22
+            php-url: https://downloads.php.net/~windows/releases/php-8.4.22-Win32-vs17-x64.zip
+            expected-certificate-verify-failure: false
+
+    steps:
+      - name: Checkout test code
+        uses: actions/checkout@v6
+
+      - name: Download PHP build
+        id: php
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = '${{ matrix.php-url }}'
+          $zip = Join-Path $PWD 'php.zip'
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          Expand-Archive -LiteralPath $zip -DestinationPath php-build -Force
+
+          $php = Get-ChildItem php-build -Recurse -Filter php.exe -File |
+            Select-Object -First 1
+          if ($null -eq $php) {
+            throw "php.exe not found in $url"
+          }
+
+          $root = $php.Directory.FullName
+          $ext = Join-Path $root 'ext'
+          if (-not (Test-Path (Join-Path $ext 'php_ldap.dll'))) {
+            throw "php_ldap.dll not found in $ext"
+          }
+          if (-not (Test-Path (Join-Path $ext 'php_openssl.dll'))) {
+            throw "php_openssl.dll not found in $ext"
+          }
+
+          Add-Content $env:GITHUB_OUTPUT "php=$($php.FullName)"
+          Add-Content $env:GITHUB_OUTPUT "root=$root"
+          Add-Content $env:GITHUB_OUTPUT "ext=$ext"
+
+      - name: Show PHP build
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $php = '${{ steps.php.outputs.php }}'
+          $root = '${{ steps.php.outputs.root }}'
+          $ext = '${{ steps.php.outputs.ext }}'
+          $env:PATH = "$root;$env:PATH"
+          & $php -n -d "extension_dir=$ext" -d extension=openssl -d extension=ldap -v
+          & $php -n -d "extension_dir=$ext" -d extension=openssl -d extension=ldap -m
+          & $php -n -d "extension_dir=$ext" -d extension=openssl -d extension=ldap --ri ldap
+
+      - name: Run LDAPS ldap.conf repro
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\tests\run-openldap-sysconf-repro.ps1 `
+            -Php '${{ steps.php.outputs.php }}' `
+            -ExtensionDir '${{ steps.php.outputs.ext }}' `
+            -ExpectedCertificateVerifyFailure '${{ matrix.expected-certificate-verify-failure }}'
