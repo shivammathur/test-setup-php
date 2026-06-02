@@ -47,6 +47,13 @@ try {
     $nul = $base . DIRECTORY_SEPARATOR . 'NUL';
     $nulTxt = $base . DIRECTORY_SEPARATOR . 'NUL.txt';
 
+    $legacy = @fopen('NUL', 'wb');
+    $legacyOk = is_resource($legacy);
+    record_result('bare NUL fopen works', $legacyOk, gettype($legacy));
+    if ($legacyOk) {
+        fclose($legacy);
+    }
+
     expect_false('scoped NUL fopen is blocked', function () use ($nul) {
         return @fopen($nul, 'wb');
     });
