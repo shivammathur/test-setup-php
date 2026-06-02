@@ -19,6 +19,10 @@ permissions:
   actions: read
   contents: read
 
+env:
+  BUILDER_RUN_ID: ${{ github.event.inputs.run_id || '26816639133' }}
+  BUILDER_ARTIFACT_NAME: ${{ github.event.inputs.artifact_name || 'artifacts' }}
+
 jobs:
   device-paths:
     name: ${{ matrix.arch }} ${{ matrix.sapi }}
@@ -54,8 +58,8 @@ jobs:
         with:
           github-token: ${{ github.token }}
           repository: shivammathur/php-windows-builder
-          run-id: ${{ inputs.run_id }}
-          name: ${{ inputs.artifact_name }}
+          run-id: ${{ env.BUILDER_RUN_ID }}
+          name: ${{ env.BUILDER_ARTIFACT_NAME }}
           path: artifacts
 
       - name: Extract PHP build
