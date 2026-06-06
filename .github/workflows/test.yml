@@ -7,20 +7,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04]
+        os: [windows-latest]
     steps:
       - uses: shivammathur/setup-php@v2
-        continue-on-error: true
         with:
-          php-version: 8.5.5
-
-      - uses: shivammathur/setup-php@v2
-        continue-on-error: true
-        with:
-          php-version: '8.5-debug'
-
-      - uses: shivammathur/setup-php@v2
-        continue-on-error: true
-        with:
-          php-version: '8.5.0-debug'
+          php-version: 8.6
 
