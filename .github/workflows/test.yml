@@ -15,38 +15,78 @@ jobs:
         lscpu
         grep -m1 '^flags' /proc/cpuinfo
 
-    - name: Check x86-64-v3 CPU flags
+    - name: Check x86-64-v3 support
       shell: bash
       run: |
-        required=(
-          sse3 ssse3 sse4_1 sse4_2 popcnt cx16
-          avx avx2 bmi1 bmi2 f16c fma movbe osxsave
-        )
-
-        flags="$(grep -m1 '^flags' /proc/cpuinfo)"
-
-        missing=0
-        for f in "${required[@]}"; do
-          if ! grep -qw "$f" <<< "$flags"; then
-            echo "missing: $f"
-            missing=1
+        flags="$(grep -m1 '^flags' /proc/cpuinfo | cut -d: -f2-)"
+    
+        has() {
+          grep -qw "$1" <<< "$flags"
+        }
+    
+        missing=()
+    
+        require() {
+          if ! has "$1"; then
+            missing+=("$1")
           fi
-        done
-
-        if grep -qw lzcnt <<< "$flags" || grep -qw abm <<< "$flags"; then
-          :
+        }
+    
+        require_any() {
+          local name="$1"
+          shift
+    
+          for f in "$@"; do
+            if has "$f"; then
+              return 0
+            fi
+          done
+    
+          missing+=("$name")
+        }
+    
+        # x86-64-v2 baseline features
+        require_any "sse3/pni" sse3 pni
+        require ssse3
+        require sse4_1
+        require sse4_2
+        require popcnt
+        require cx16
+        require lahf_lm
+    
+        # x86-64-v3 features
+        require avx
+        require avx2
+        require bmi1
+        require bmi2
+        require f16c
+        require fma
+        require movbe
+        require xsave
+        require_any "lzcnt/abm" lzcnt abm
+    
+        if [ "${#missing[@]}" -eq 0 ]; then
+          echo "x86-64-v3 supported"
         else
-          echo "missing: lzcnt/abm"
-          missing=1
-        fi
-
-        if [ "$missing" -eq 0 ]; then
-          echo "x86-64-v3 appears supported"
-        else
-          echo "x86-64-v3 not supported on this runner"
+          echo "x86-64-v3 not supported"
+          printf 'Missing: %s\n' "${missing[@]}"
           exit 1
         fi
 
+    - name: Check x86-64-v4 support
+      shell: bash
+      run: |
+        flags="$(grep -m1 '^flags' /proc/cpuinfo | cut -d: -f2-)"
+    
+        for f in avx512f avx512bw avx512cd avx512dq avx512vl; do
+          if ! grep -qw "$f" <<< "$flags"; then
+            echo "x86-64-v4 not supported, missing: $f"
+            exit 1
+          fi
+        done
+    
+        echo "x86-64-v4 supported"
+  
     - name: Compile and run x86-64-v3 test
       run: |
         cat > /tmp/v3.c <<'EOF'
