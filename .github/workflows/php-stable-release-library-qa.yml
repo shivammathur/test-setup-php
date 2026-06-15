@@ -1,0 +1,111 @@
+name: PHP stable release library QA
+
+on:
+  push:
+    branches:
+      - test/php-stable-release-library-qa
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: php-stable-release-library-qa-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    name: Resolve latest stable PHP releases
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.releases.outputs.matrix }}
+    steps:
+      - name: Resolve versions from php.net
+        id: releases
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          releases="$(curl -fsSL https://www.php.net/releases/active.php)"
+          matrix='[]'
+          for minor in 8.2 8.3 8.4 8.5; do
+            version="$(jq -r --arg minor "$minor" '.["8"][$minor].version // empty' <<< "$releases")"
+            date="$(jq -r --arg minor "$minor" '.["8"][$minor].date // empty' <<< "$releases")"
+            if [ -z "$version" ]; then
+              echo "::error::Unable to resolve latest stable PHP $minor from php.net active releases"
+              exit 1
+            fi
+
+            case "$minor" in
+              8.2|8.3) vs="vs16" ;;
+              8.4|8.5) vs="vs17" ;;
+              *) echo "::error::No Visual Studio mapping for PHP $minor"; exit 1 ;;
+            esac
+
+            item="$(jq -n \
+              --arg minor "$minor" \
+              --arg version "$version" \
+              --arg date "$date" \
+              --arg vs "$vs" \
+              '{minor: $minor, php_version: $version, date: $date, vs: $vs, runner: "windows-2022"}')"
+            matrix="$(jq --argjson item "$item" '. + [$item]' <<< "$matrix")"
+          done
+
+          echo "Selected stable releases:"
+          jq -r '.[] | "- PHP \(.php_version) (\(.minor), \(.date), \(.vs))"' <<< "$matrix"
+
+          {
+            echo "matrix<<JSON"
+            jq -c '{include: .}' <<< "$matrix"
+            echo "JSON"
+          } >> "$GITHUB_OUTPUT"
+
+  test:
+    name: PHP ${{ matrix.php_version }}
+    needs: discover
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - name: Checkout tests
+        uses: actions/checkout@v6
+
+      - name: Download official Windows release zips
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = '${{ matrix.php_version }}'
+          $vs = '${{ matrix.vs }}'
+          $baseUrl = 'https://downloads.php.net/~windows/releases'
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+
+          foreach ($arch in @('x64', 'x86')) {
+            foreach ($threadSafety in @('nts', 'ts')) {
+              $threadPart = if ($threadSafety -eq 'nts') { 'nts-' } else { '' }
+              $name = "php-$version-${threadPart}Win32-$vs-$arch.zip"
+              $url = "$baseUrl/$name"
+              Write-Host "Downloading $url"
+              Invoke-WebRequest -Uri $url -OutFile (Join-Path 'artifacts' $name)
+            }
+          }
+
+          Get-ChildItem -Path artifacts -File | Select-Object Name, Length | Format-Table -AutoSize
+
+      - name: Run SQLite, AVIF, and SASL tests
+        shell: pwsh
+        run: |
+          ./tests/run-artifact-suite.ps1 `
+            -ArtifactsDirectory artifacts `
+            -ReportsDirectory reports `
+            -RunId 'stable-${{ matrix.php_version }}' `
+            -RunTitle 'PHP stable ${{ matrix.php_version }}'
+
+      - name: Upload library QA reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: stable-library-qa-${{ matrix.php_version }}
+          path: reports
+          if-no-files-found: warn
