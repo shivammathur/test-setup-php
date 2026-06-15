@@ -2,6 +2,8 @@
 
 . /etc/os-release
 
+packages=(unixodbc-dev libmagickcore-dev libxmlrpc-epi-dev)
+
 printf 'runner=%s\n' "${RUNNER_NAME:-unknown}"
 printf 'image=%s\n' "${ImageOS:-unknown}"
 printf 'os=%s\n' "$PRETTY_NAME"
@@ -9,41 +11,35 @@ printf 'arch=%s\n' "$(dpkg --print-architecture)"
 printf '\n'
 
 sudo apt-get update
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates gnupg software-properties-common
-sudo add-apt-repository -y ppa:ondrej/php
-sudo apt-get update
 
-printf '\nlibgd policy after adding ondrej/php:\n'
-apt-cache policy libgd-dev libgd3
+printf 'Package status before installing anything:\n'
+for package in "${packages[@]}"; do
+  if dpkg-query -W -f='${binary:Package}\t${Version}\t${Status}\n' "$package" 2>/dev/null | grep -q 'install ok installed'; then
+    printf '%s\tinstalled\t' "$package"
+    dpkg-query -W -f='${Version}\n' "$package"
+  else
+    printf '%s\tnot-installed\n' "$package"
+  fi
+done
 
-printf '\nlibgd dependency metadata after adding ondrej/php:\n'
-apt-cache depends libgd3 libgd-dev
-
-before=$(mktemp)
-after=$(mktemp)
-new_names=$(mktemp)
-dpkg-query -W -f='${binary:Package}\t${Version}\n' | sort > "$before"
-
-printf '\nInstalling libgd-dev from ondrej/php:\n'
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libgd-dev
-
-dpkg-query -W -f='${binary:Package}\t${Version}\n' | sort > "$after"
-comm -13 "$before" "$after" | tee /tmp/new-packages.tsv
-cut -f1 /tmp/new-packages.tsv > "$new_names"
-
-printf '\nnewly_installed_packages='
-tr '\n' ' ' < "$new_names"
-printf '\n'
-
-printf '\nnewly_installed_count=%s\n' "$(wc -l < "$new_names" | xargs)"
+printf '\nApt candidates:\n'
+for package in "${packages[@]}"; do
+  printf '\n== %s ==\n' "$package"
+  apt-cache policy "$package"
+done
 
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
   {
     printf '### %s\n\n' "${RUNNER_NAME:-runner}"
-    printf 'Installed `libgd-dev` from `ondrej/php` on `%s`.\n\n' "$PRETTY_NAME"
-    printf 'New packages:\n\n'
-    printf '```text\n'
-    cat /tmp/new-packages.tsv
-    printf '```\n'
+    printf '`%s` `%s`\n\n' "$PRETTY_NAME" "$(dpkg --print-architecture)"
+    printf '| Package | Runner status | Version |\n'
+    printf '| --- | --- | --- |\n'
+    for package in "${packages[@]}"; do
+      if dpkg-query -W -f='${binary:Package}\t${Version}\t${Status}\n' "$package" 2>/dev/null | grep -q 'install ok installed'; then
+        printf '| `%s` | installed | `%s` |\n' "$package" "$(dpkg-query -W -f='${Version}' "$package")"
+      else
+        printf '| `%s` | not installed |  |\n' "$package"
+      fi
+    done
   } >> "$GITHUB_STEP_SUMMARY"
 fi
