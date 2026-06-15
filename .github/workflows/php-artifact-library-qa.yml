@@ -1,0 +1,172 @@
+name: PHP artifact library QA
+
+on:
+  push:
+    branches:
+      - test/php-artifact-sqlite-avif-sasl-qa
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: Optional comma-separated php-windows-builder run IDs. Defaults to the latest 5 completed source-build runs.
+        required: false
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: php-artifact-library-qa-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  SOURCE_REPOSITORY: shivammathur/php-windows-builder
+  SOURCE_WORKFLOW: test-php-libs-from-source.yml
+  SOURCE_GITHUB_TOKEN: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+
+jobs:
+  discover:
+    name: Discover source-build runs
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.discover.outputs.matrix }}
+    steps:
+      - name: Resolve latest runs and artifact metadata
+        id: discover
+        shell: bash
+        env:
+          GH_TOKEN: ${{ env.SOURCE_GITHUB_TOKEN }}
+          REQUESTED_RUNS: ${{ inputs.runs }}
+        run: |
+          set -euo pipefail
+
+          repo="${SOURCE_REPOSITORY}"
+          workflow="${SOURCE_WORKFLOW}"
+          workflow_id="$(gh api "repos/${repo}/actions/workflows/${workflow}" --jq '.id')"
+
+          requested="${REQUESTED_RUNS:-}"
+          if [ -n "${requested//[[:space:]]/}" ]; then
+            runs='[]'
+            IFS=',' read -r -a run_ids <<< "${requested}"
+            for raw_id in "${run_ids[@]}"; do
+              id="${raw_id//[[:space:]]/}"
+              if ! [[ "${id}" =~ ^[0-9]+$ ]]; then
+                echo "::error::Invalid run id '${raw_id}'"
+                exit 1
+              fi
+              run="$(gh api "repos/${repo}/actions/runs/${id}")"
+              runs="$(jq --argjson run "${run}" '. + [$run]' <<< "${runs}")"
+            done
+          else
+            runs="$(gh api "repos/${repo}/actions/workflows/${workflow}/runs?per_page=20&status=completed" --jq '.workflow_runs[:5]')"
+          fi
+
+          count="$(jq 'length' <<< "${runs}")"
+          if [ "${count}" -ne 5 ]; then
+            echo "::error::Expected exactly 5 source-build runs, found ${count}"
+            jq -r '.[]? | "\(.id) \(.display_title // .name) \(.status)/\(.conclusion)"' <<< "${runs}"
+            exit 1
+          fi
+
+          wrong_workflow="$(jq -r --argjson workflow_id "${workflow_id}" '.[] | select(.workflow_id != $workflow_id) | "\(.id) \(.display_title // .name)"' <<< "${runs}")"
+          if [ -n "${wrong_workflow}" ]; then
+            echo "::error::The selected runs must come from ${workflow}"
+            echo "${wrong_workflow}"
+            exit 1
+          fi
+
+          unfinished_or_failed="$(jq -r '.[] | select(.status != "completed" or .conclusion != "success") | "\(.id) \(.display_title // .name) \(.status)/\(.conclusion)"' <<< "${runs}")"
+          if [ -n "${unfinished_or_failed}" ]; then
+            echo "::error::All selected source-build runs must be completed successfully"
+            echo "${unfinished_or_failed}"
+            exit 1
+          fi
+
+          resolve_runner() {
+            local title="$1"
+            if [[ "${title}" =~ PHP-([0-9]+)\.([0-9]+) ]]; then
+              local major="${BASH_REMATCH[1]}"
+              local minor="${BASH_REMATCH[2]}"
+              if [ "${major}" -gt 8 ] || { [ "${major}" -eq 8 ] && [ "${minor}" -ge 6 ]; }; then
+                echo "windows-2025-vs2026"
+              else
+                echo "windows-2022"
+              fi
+            elif [[ "${title}" =~ master ]]; then
+              echo "windows-2025-vs2026"
+            else
+              echo "windows-2022"
+            fi
+          }
+
+          matrix='[]'
+          while IFS= read -r run; do
+            id="$(jq -r '.id' <<< "${run}")"
+            title="$(jq -r '.display_title // .name' <<< "${run}")"
+            created_at="$(jq -r '.created_at' <<< "${run}")"
+            artifact="$(gh api "repos/${repo}/actions/runs/${id}/artifacts?per_page=100" --jq '.artifacts[] | select(.name == "artifacts" and .expired == false)' | jq -s '.[0] // empty')"
+            if [ -z "${artifact}" ]; then
+              echo "::error::Run ${id} (${title}) does not have an unexpired artifact named artifacts"
+              exit 1
+            fi
+
+            artifact_id="$(jq -r '.id' <<< "${artifact}")"
+            artifact_size="$(jq -r '.size_in_bytes' <<< "${artifact}")"
+            runner="$(resolve_runner "${title}")"
+            item="$(jq -n \
+              --arg run_id "${id}" \
+              --arg title "${title}" \
+              --arg created_at "${created_at}" \
+              --arg artifact_id "${artifact_id}" \
+              --arg artifact_size "${artifact_size}" \
+              --arg runner "${runner}" \
+              '{run_id: ($run_id | tonumber), title: $title, created_at: $created_at, artifact_id: ($artifact_id | tonumber), artifact_size: ($artifact_size | tonumber), runner: $runner}')"
+            matrix="$(jq --argjson item "${item}" '. + [$item]' <<< "${matrix}")"
+          done < <(jq -c '.[]' <<< "${runs}")
+
+          echo "Selected runs:"
+          jq -r '.[] | "- \(.run_id) \(.title) [\(.runner)] artifact=\(.artifact_id) size=\(.artifact_size)"' <<< "${matrix}"
+
+          {
+            echo "matrix<<JSON"
+            jq -c '{include: .}' <<< "${matrix}"
+            echo "JSON"
+          } >> "${GITHUB_OUTPUT}"
+
+  test:
+    name: ${{ matrix.title }} (${{ matrix.run_id }})
+    needs: discover
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - name: Checkout tests
+        uses: actions/checkout@v6
+
+      - name: Download PHP build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ env.SOURCE_GITHUB_TOKEN }}
+          repository: ${{ env.SOURCE_REPOSITORY }}
+          run-id: ${{ matrix.run_id }}
+          name: artifacts
+          path: artifacts
+
+      - name: Run SQLite, AVIF, and SASL tests
+        shell: pwsh
+        run: |
+          ./tests/run-artifact-suite.ps1 `
+            -ArtifactsDirectory artifacts `
+            -ReportsDirectory reports `
+            -RunId '${{ matrix.run_id }}' `
+            -RunTitle '${{ matrix.title }}'
+
+      - name: Upload library QA reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: library-qa-${{ matrix.run_id }}
+          path: reports
+          if-no-files-found: warn
