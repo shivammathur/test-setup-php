@@ -8,9 +8,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04]
+        cache: [true, false]
     steps:
     - uses: shivammathur/setup-php@verbose
       with:
         php-version: 8.6
       env:
-        use_package_cache: false
+        use_package_cache: ${{ matrix.cache }}
+    - run: php -v && php -m && php -i    
