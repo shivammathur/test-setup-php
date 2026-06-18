@@ -23,7 +23,7 @@ jobs:
             extension_ref: 2.9.3
           - label: pecl_http
             extension_name: http
-            extension_url: https://pecl.php.net/http
+            extension_url: https://pecl.php.net/pecl_http
             extension_ref: 4.3.1
           - label: yar
             extension_name: yar
@@ -61,6 +61,7 @@ jobs:
           php-build-artifact-name: artifacts
           php-build-artifact-token: ${{ github.token }}
           php-libs-stability: staging
+          apply-patches: true
           run-tests: false
           build-directory: C:\build
         env:
@@ -206,7 +207,8 @@ jobs:
             if ($LASTEXITCODE -ne 0) {
               throw "$Label php -m failed for $env:EXTENSION_LABEL"
             }
-            if ($modules -notmatch "(?m)^$([regex]::Escape($env:EXTENSION_NAME))$") {
+            $moduleLines = @($modules -split "\r?\n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' })
+            if ($moduleLines -notcontains $env:EXTENSION_NAME) {
               throw "$Label did not load $env:EXTENSION_NAME"
             }
 
