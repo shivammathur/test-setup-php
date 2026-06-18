@@ -105,7 +105,9 @@ jobs:
 
             $namePattern = "^php-$([regex]::Escape($env:PHP_VERSION))(?:[\.-].*)?-Win32-$([regex]::Escape($env:VS_VERSION))-x64\.zip$"
             $zips = @(Get-ChildItem -LiteralPath $artifactRoot -Recurse -File -Filter 'php-*.zip' | Where-Object {
-              $_.Name -notmatch '^php-(devel-pack|debug-pack|test-pack)-' -and $_.Name -match $namePattern
+              $_.Name -notmatch '^php-(devel-pack|debug-pack|test-pack)-' -and
+              $_.Name -notmatch '-nts-Win32-' -and
+              $_.Name -match $namePattern
             })
             if ($zips.Count -ne 1) {
               $found = ($zips | ForEach-Object Name) -join ', '
