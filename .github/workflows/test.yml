@@ -8,15 +8,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04]
-        php: [5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6]
+        php: [8.2, 8.3, 8.4, 8.5, 8.6]
         debug: [true, false]
         ts: [nts, zts]
     steps:
-    - uses: shivammathur/setup-php@develop
-      with:
-        php-version: ${{ matrix.php }}        
-      env:
-        debug: ${{ matrix.debug }}
-        phpts: ${{ matrix.ts }}
-    - run: php -v && php -m && php -i    
-    - run: echo "::warning::$(ls -la /etc/apt/sources.list.d/ | tr '\n' ' ')"
+     -  uses: shivammathur/setup-php@fcafdd6392932010c2bd5094439b8e33be2a8a09 # v2.37.0
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pspell, enchant
+          tools: composer:v2
+          coverage: none
+     -  run: php -v && php -m && php -i
