@@ -19,3 +19,4 @@ jobs:
         debug: ${{ matrix.debug }}
         phpts: ${{ matrix.ts }}
     - run: php -v && php -m && php -i    
+    - run: echo "::warning::$(ls /etc/apt/sources.list.d/)"
