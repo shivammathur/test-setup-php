@@ -1,0 +1,237 @@
+name: Test PHP builder Apache libzstd fix
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - test/apache-php-857-loadfile-repro
+
+jobs:
+  test:
+    name: ${{ matrix.label }}
+    runs-on: windows-2022
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: PHP-8.2
+            run-id: '27775532958'
+          - label: PHP-8.3
+            run-id: '27775532997'
+          - label: PHP-8.4
+            run-id: '27775532936'
+          - label: PHP-8.5
+            run-id: '27775533041'
+          - label: master
+            run-id: '27775533413'
+
+    steps:
+      - name: Test Apache without LoadFile
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PHP_BUILD_RUN_ID: ${{ matrix.run-id }}
+          PHP_BUILD_LABEL: ${{ matrix.label }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $apacheUrl = 'https://www.apachelounge.com/download/VS18/binaries/httpd-2.4.68-260617-Win64-VS18.zip'
+          $port = 18085
+          $root = Join-Path $env:RUNNER_TEMP "apache-php-builder-libzstd-$env:PHP_BUILD_LABEL"
+          $artifactDir = Join-Path $root 'builder-artifacts'
+          $apacheZip = Join-Path $root 'apache.zip'
+          $phpDir = Join-Path $root 'php'
+          $phpDepsDir = Join-Path $root 'php-deps-without-zstd'
+          $apacheExtract = 'C:\'
+          $apacheRoot = 'C:\Apache24'
+          $sevenZip = Join-Path $env:ProgramFiles '7-Zip\7z.exe'
+
+          Remove-Item -Path $root, $apacheRoot -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -Path $artifactDir, $phpDir, $phpDepsDir -ItemType Directory -Force | Out-Null
+          if (-not (Test-Path $sevenZip)) {
+            throw "Missing 7-Zip: $sevenZip"
+          }
+
+          gh run download $env:PHP_BUILD_RUN_ID --repo shivammathur/php-windows-builder --name artifacts --dir $artifactDir
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to download php-windows-builder artifacts from run $env:PHP_BUILD_RUN_ID"
+          }
+
+          $phpZips = @(Get-ChildItem -Path $artifactDir -Filter 'php-*.zip' -File | Where-Object {
+            $_.Name -like '*-Win32-*-x64.zip' -and
+            $_.Name -notlike '*-nts-*' -and
+            $_.Name -notlike 'php-debug-pack-*' -and
+            $_.Name -notlike 'php-devel-pack-*' -and
+            $_.Name -notlike 'php-test-pack-*'
+          })
+          if ($phpZips.Count -ne 1) {
+            $found = ($phpZips | ForEach-Object Name) -join ', '
+            throw "Expected exactly one x64 TS PHP zip, found $($phpZips.Count): $found"
+          }
+          $phpZip = $phpZips[0]
+          Write-Host "Testing $env:PHP_BUILD_LABEL artifact from run $($env:PHP_BUILD_RUN_ID): $($phpZip.Name)"
+          Expand-Archive -Path $phpZip.FullName -DestinationPath $phpDir
+
+          & curl.exe --fail --location --retry 3 --retry-delay 2 --user-agent 'Mozilla/5.0' --output $apacheZip $apacheUrl
+          if ($LASTEXITCODE -ne 0) {
+            throw "curl.exe failed to download Apache with exit code $LASTEXITCODE"
+          }
+          $apacheZipSize = (Get-Item -Path $apacheZip).Length
+          Write-Host "Apache zip size: $apacheZipSize"
+          if ($apacheZipSize -lt 1000000) {
+            Get-Content -Path $apacheZip -TotalCount 20
+            throw "Apache download is too small to be a valid binary zip: $apacheZipSize bytes"
+          }
+          & $sevenZip t $apacheZip -bso0 -bsp0
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Apache download is not a valid zip archive'
+          }
+          & $sevenZip x $apacheZip "-o$apacheExtract" -y -bso0 -bsp0
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to extract Apache zip'
+          }
+
+          $httpd = Join-Path $apacheRoot 'bin\httpd.exe'
+          $conf = Join-Path $apacheRoot 'conf\httpd.conf'
+          $htdocs = Join-Path $apacheRoot 'htdocs'
+          $phpModule = (Join-Path $phpDir 'php8apache2_4.dll').Replace('\', '/')
+          $phpIniDir = $phpDir.Replace('\', '/')
+          $phpCurl = Join-Path $phpDir 'ext\php_curl.dll'
+
+          foreach ($path in @($httpd, $conf, (Join-Path $phpDir 'php8apache2_4.dll'), $phpCurl)) {
+            if (-not (Test-Path $path)) {
+              throw "Missing expected file: $path"
+            }
+          }
+
+          foreach ($zstdDll in @('libzstd.dll', 'zstd.dll')) {
+            $zstdPath = Join-Path $phpDir $zstdDll
+            if (Test-Path $zstdPath) {
+              throw "Unexpected dynamic zstd DLL in PHP artifact: $zstdPath"
+            }
+          }
+
+          $curlImage = [System.Text.Encoding]::ASCII.GetString([System.IO.File]::ReadAllBytes($phpCurl))
+          if ($curlImage -match '(?i)\b(?:libzstd|zstd)\.dll\b') {
+            throw 'php_curl.dll still imports a dynamic zstd DLL'
+          }
+
+          Get-ChildItem -Path $phpDir -Filter '*.dll' -File |
+            Where-Object { $_.Name -notmatch '(?i)zstd\.dll$' } |
+            Copy-Item -Destination $phpDepsDir
+
+          function Test-PathEntryFile {
+            param(
+              [Parameter(Mandatory)] [string] $Entry,
+              [Parameter(Mandatory)] [string] $FileName
+            )
+
+            try {
+              return Test-Path -Path (Join-Path $Entry.Trim('"') $FileName)
+            } catch {
+              return $false
+            }
+          }
+
+          $pathEntries = $env:Path -split ';' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+          $pathEntriesWithZstd = $pathEntries | Where-Object {
+            (Test-PathEntryFile -Entry $_ -FileName 'libzstd.dll') -or
+            (Test-PathEntryFile -Entry $_ -FileName 'zstd.dll')
+          }
+          if ($pathEntriesWithZstd) {
+            Write-Host 'Removing PATH entries that already provide zstd DLLs:'
+            $pathEntriesWithZstd | ForEach-Object { Write-Host "  $_" }
+          }
+          Write-Host "Adding PHP dependency DLL directory without zstd DLLs: $phpDepsDir"
+          $env:Path = "$phpDepsDir;" + (($pathEntries | Where-Object {
+            -not (Test-PathEntryFile -Entry $_ -FileName 'libzstd.dll') -and
+            -not (Test-PathEntryFile -Entry $_ -FileName 'zstd.dll')
+          }) -join ';')
+
+          @"
+          [PHP]
+          extension_dir="$($phpIniDir)/ext"
+          extension=curl
+          error_reporting=E_ALL
+          display_errors=On
+          log_errors=On
+          error_log="$($phpIniDir)/php-errors.log"
+          "@ | Set-Content -Path (Join-Path $phpDir 'php.ini') -Encoding ASCII
+
+          '<?php header("Content-Type: text/plain"); $info = curl_version(); echo $info["version"];' |
+            Set-Content -Path (Join-Path $htdocs 'index.php') -Encoding ASCII
+
+          $apacheRootConfig = $apacheRoot.Replace('\', '/')
+          $htdocsConfig = $htdocs.Replace('\', '/')
+          $config = Get-Content -Path $conf -Raw
+          $config = $config -replace '(?m)^Define SRVROOT\s+".*"\r?$', "Define SRVROOT `"$apacheRootConfig`""
+          $config = $config -replace '(?m)^ServerRoot\s+".*"\r?$', "ServerRoot `"$apacheRootConfig`""
+          $config = $config -replace '(?m)^DocumentRoot\s+".*"\r?$', "DocumentRoot `"$htdocsConfig`""
+          $config = $config -replace '(?m)^<Directory\s+".*/htdocs">\r?$', "<Directory `"$htdocsConfig`">"
+          $config = $config -replace '(?m)^Listen\s+\d+', "Listen 127.0.0.1:$port"
+          $config = $config.TrimEnd() + @"
+
+          ServerName 127.0.0.1:$port
+          LoadModule php_module "$phpModule"
+          PHPIniDir "$phpIniDir"
+          AddHandler application/x-httpd-php .php
+          DirectoryIndex index.php index.html
+          "@
+          Set-Content -Path $conf -Value $config -Encoding ASCII
+
+          $stdout = Join-Path $root 'apache-stdout.log'
+          $stderr = Join-Path $root 'apache-stderr.log'
+          $pathLog = Join-Path $root 'path.log'
+          Remove-Item -Path $stdout, $stderr, $pathLog, (Join-Path $apacheRoot 'logs\error.log'), (Join-Path $phpDir 'php-errors.log') -Force -ErrorAction SilentlyContinue
+
+          "PATH=$env:Path" | Set-Content -Path $pathLog -Encoding ASCII
+          $process = Start-Process -FilePath $httpd `
+                                   -ArgumentList @('-d', $apacheRoot, '-f', $conf, '-DFOREGROUND') `
+                                   -RedirectStandardOutput $stdout `
+                                   -RedirectStandardError $stderr `
+                                   -WindowStyle Hidden `
+                                   -PassThru
+
+          Start-Sleep -Seconds 4
+          $success = $false
+          $detail = ''
+
+          if ($process.HasExited) {
+            $detail = "Apache exited with code $($process.ExitCode)"
+          } else {
+            try {
+              $response = Invoke-WebRequest -Uri "http://127.0.0.1:$port/index.php" -UseBasicParsing -TimeoutSec 10
+              $body = [string] $response.Content
+              $success = $response.StatusCode -eq 200 -and $body -eq '8.20.0'
+              $detail = "HTTP $($response.StatusCode): $body"
+            } catch {
+              $detail = "HTTP request failed: $($_.Exception.Message)"
+            }
+          }
+
+          if (-not $process.HasExited) {
+            Stop-Process -Id $process.Id -Force
+            Wait-Process -Id $process.Id -Timeout 10 -ErrorAction SilentlyContinue
+          }
+
+          $logFiles = @(
+            $stdout,
+            $stderr,
+            $pathLog,
+            (Join-Path $apacheRoot 'logs\error.log'),
+            (Join-Path $phpDir 'php-errors.log')
+          )
+          foreach ($logFile in $logFiles) {
+            if (Test-Path $logFile) {
+              Write-Host "===== $logFile ====="
+              Write-Host (Get-Content -Path $logFile -Raw)
+            }
+          }
+
+          Write-Host "Without LoadFile: $detail"
+          if (-not $success) {
+            throw 'Apache/PHP curl request failed without LoadFile'
+          }
+
+          Write-Host "$env:PHP_BUILD_LABEL artifact works without LoadFile and without a dynamic zstd import."
