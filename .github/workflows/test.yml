@@ -11,18 +11,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { php: '5.6', extensions: 'dio,facedetect,geoip,gmagick,inotify,lua,mcrypt,phalcon3,ps,radius,recode,stomp,xhprof,yac,zstd' }
-          - { php: '7.0', extensions: 'dio,facedetect,geoip,gmagick,inotify,lua,mcrypt,phalcon3,pinba,ps,radius,recode,stomp,tideways,vips,yac' }
-          - { php: '7.1', extensions: 'dio,facedetect,geoip,gmagick,inotify,lua,mcrypt,phalcon3,pinba,ps,radius,recode,stomp,tideways,vips,yac' }
-          - { php: '7.2', extensions: 'dio,facedetect,geoip,gmagick,inotify,lua,phalcon3,phalcon4,pinba,ps,radius,recode,stomp,tideways,vips,yac' }
-          - { php: '7.3', extensions: 'dio,facedetect,geoip,gmagick,inotify,lua,phalcon3,phalcon4,pinba,ps,radius,recode,stomp,tideways,vips,yac' }
-          - { php: '7.4', extensions: 'dio,facedetect,geoip,gmagick,inotify,lua,pinba,ps,radius,stomp,tideways,vips,yac' }
-          - { php: '8.0', extensions: 'dio,facedetect,gmagick,inotify,pinba,propro,ps,stomp,tideways,vips,yac' }
-          - { php: '8.1', extensions: 'dio,facedetect,gmagick,inotify,pinba,propro,ps,stomp,tideways,vips,yac' }
-          - { php: '8.2', extensions: 'dio,gmagick,inotify,openswoole,pinba,propro,ps,stomp,tideways,vips,yac' }
-          - { php: '8.3', extensions: 'dio,gmagick,inotify,openswoole,pinba,ps,stomp,vips,yac' }
-          - { php: '8.4', extensions: 'dio,gmagick,inotify,openswoole,ps,stomp,vips,yac' }
-          - { php: '8.5', extensions: 'dio,gmagick,inotify,ps,stomp,vips,yac' }
+          - { php: '5.6', extensions: ':imagick,dio,facedetect,geoip,gmagick,inotify,lua,mcrypt,phalcon3,ps,radius,recode,stomp,xhprof,yac,zstd' }
+          - { php: '7.0', extensions: ':imagick,dio,facedetect,geoip,gmagick,inotify,lua,mcrypt,phalcon3,pinba,ps,radius,recode,stomp,tideways,vips,yac' }
+          - { php: '7.1', extensions: ':imagick,dio,facedetect,geoip,gmagick,inotify,lua,mcrypt,phalcon3,pinba,ps,radius,recode,stomp,tideways,vips,yac' }
+          - { php: '7.2', extensions: ':imagick,dio,facedetect,geoip,gmagick,inotify,lua,phalcon3,phalcon4,pinba,ps,radius,recode,stomp,tideways,vips,yac' }
+          - { php: '7.3', extensions: ':imagick,dio,facedetect,geoip,gmagick,inotify,lua,phalcon3,phalcon4,pinba,ps,radius,recode,stomp,tideways,vips,yac' }
+          - { php: '7.4', extensions: ':imagick,dio,facedetect,geoip,gmagick,inotify,lua,pinba,ps,radius,stomp,tideways,vips,yac' }
+          - { php: '8.0', extensions: ':imagick,dio,facedetect,gmagick,inotify,pinba,ps,stomp,tideways,vips,yac' }
+          - { php: '8.1', extensions: ':imagick,dio,facedetect,gmagick,inotify,pinba,ps,stomp,tideways,vips,yac' }
+          - { php: '8.2', extensions: ':imagick,dio,gmagick,inotify,openswoole,pinba,ps,stomp,tideways,vips,yac' }
+          - { php: '8.3', extensions: ':imagick,dio,gmagick,inotify,openswoole,pinba,ps,stomp,vips,yac' }
+          - { php: '8.4', extensions: ':imagick,dio,gmagick,inotify,openswoole,ps,stomp,vips,yac' }
+          - { php: '8.5', extensions: ':imagick,dio,gmagick,inotify,ps,stomp,vips,yac' }
     env:
       fail-fast: false
     steps:
