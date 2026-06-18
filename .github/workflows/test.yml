@@ -9,14 +9,13 @@ jobs:
       matrix:
         os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04]
         php: [5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6]
-        #debug: [true, false]
-        #ts: [nts, zts]
+        debug: [true, false]
+        ts: [nts, zts]
     steps:
     - uses: shivammathur/setup-php@develop
       with:
         php-version: ${{ matrix.php }}        
       env:
-        use_package_cache: false
-        #debug: ${{ matrix.debug }}
-        #phpts: ${{ matrix.ts }}
+        debug: ${{ matrix.debug }}
+        phpts: ${{ matrix.ts }}
     - run: php -v && php -m && php -i    
