@@ -1,21 +1,61 @@
-name: Test
+name: ondrej-only extensions
+
 on:
+  workflow_dispatch:
   push:
+    branches: [main]
+
+permissions:
+  contents: read
+
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
+  extensions:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04]
-        php: [8.2, 8.3, 8.4, 8.5, 8.6]
-        debug: [true, false]
-        ts: [nts, zts]
+        include:
+          - { php: '5.6', extensions: 'dio,facedetect,geoip,gmagick,inotify,lua,mcrypt,phalcon3,ps,radius,recode,stomp,xhprof,yac,zstd' }
+          - { php: '7.0', extensions: 'dio,facedetect,geoip,gmagick,inotify,lua,mcrypt,phalcon3,pinba,ps,radius,recode,stomp,tideways,vips,yac' }
+          - { php: '7.1', extensions: 'dio,facedetect,geoip,gmagick,inotify,lua,mcrypt,phalcon3,pinba,ps,radius,recode,stomp,tideways,vips,yac' }
+          - { php: '7.2', extensions: 'dio,facedetect,geoip,gmagick,inotify,lua,phalcon3,phalcon4,pinba,ps,radius,recode,stomp,tideways,vips,yac' }
+          - { php: '7.3', extensions: 'dio,facedetect,geoip,gmagick,inotify,lua,phalcon3,phalcon4,pinba,ps,radius,recode,stomp,tideways,vips,yac' }
+          - { php: '7.4', extensions: 'dio,facedetect,geoip,gmagick,inotify,lua,pinba,ps,radius,stomp,tideways,vips,yac' }
+          - { php: '8.0', extensions: 'dio,facedetect,gmagick,inotify,pinba,propro,ps,stomp,tideways,vips,yac' }
+          - { php: '8.1', extensions: 'dio,facedetect,gmagick,inotify,pinba,propro,ps,stomp,tideways,vips,yac' }
+          - { php: '8.2', extensions: 'dio,gmagick,inotify,openswoole,pinba,propro,ps,stomp,tideways,vips,yac' }
+          - { php: '8.3', extensions: 'dio,gmagick,inotify,openswoole,pinba,ps,stomp,vips,yac' }
+          - { php: '8.4', extensions: 'dio,gmagick,inotify,openswoole,ps,stomp,vips,yac' }
+          - { php: '8.5', extensions: 'dio,gmagick,inotify,ps,stomp,vips,yac' }
+    env:
+      fail-fast: false
     steps:
-     -  uses: shivammathur/setup-php@verbose
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: pspell, enchant
-          tools: composer:v2
+          extensions: ${{ matrix.extensions }}
           coverage: none
-     -  run: php -v && php -m && php -i
+
+      - name: Report which extensions loaded
+        run: |
+          php -v
+          loaded="$(php -m | tr '[:upper:]' '[:lower:]')"
+          {
+            echo "## PHP ${{ matrix.php }}"
+            echo "| extension | status |"
+            echo "|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          IFS=',' read -ra exts <<< "${{ matrix.extensions }}"
+          for e in "${exts[@]}"; do
+            mod="$e"
+            case "$e" in phalcon[0-9]) mod="phalcon" ;; esac
+            if grep -qx "$mod" <<< "$loaded"; then
+              echo "loaded: $e"
+              echo "| $e | ✅ loaded |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "MISSING: $e"
+              echo "| $e | ❌ missing |" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
