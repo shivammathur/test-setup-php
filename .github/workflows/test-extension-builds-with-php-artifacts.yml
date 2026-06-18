@@ -1,0 +1,231 @@
+name: Test extension builds with PHP artifacts
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - test/apache-php-857-loadfile-repro
+    paths:
+      - .github/workflows/test-extension-builds-with-php-artifacts.yml
+
+jobs:
+  test:
+    name: ${{ matrix.extension.label }} PHP ${{ matrix.php.version }}
+    runs-on: windows-2022
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        extension:
+          - label: solr
+            extension_name: solr
+            extension_url: https://github.com/php/pecl-search_engine-solr
+            extension_ref: 2.9.3
+          - label: pecl_http
+            extension_name: http
+            extension_url: https://github.com/m6w6/ext-http
+            extension_ref: v4.3.1
+          - label: yar
+            extension_name: yar
+            extension_url: https://github.com/shivammathur/yar
+            extension_ref: 49625c175872cf8159b7f1f1c50972004dc31ff5
+          - label: oauth
+            extension_name: oauth
+            extension_url: https://github.com/php/pecl-web_services-oauth
+            extension_ref: 2.0.13
+        php:
+          - version: '8.2'
+            run_id: '27775532958'
+            vs: vs16
+          - version: '8.3'
+            run_id: '27775532997'
+            vs: vs16
+          - version: '8.4'
+            run_id: '27775532936'
+            vs: vs17
+          - version: '8.5'
+            run_id: '27775533041'
+            vs: vs17
+
+    steps:
+      - name: Build extension from PHP builder artifact
+        uses: shivammathur/php-windows-builder/extension@feature/extension-php-build-artifacts
+        with:
+          extension-url: ${{ matrix.extension.extension_url }}
+          extension-ref: ${{ matrix.extension.extension_ref }}
+          php-version: ${{ matrix.php.version }}
+          arch: x64
+          ts: ts
+          php-build-artifact-repository: shivammathur/php-windows-builder
+          php-build-artifact-run-id: ${{ matrix.php.run_id }}
+          php-build-artifact-name: artifacts
+          php-build-artifact-token: ${{ github.token }}
+          php-libs-stability: staging
+          run-tests: false
+          build-directory: C:\build
+        env:
+          artifact-naming-scheme: pecl
+          auto-detect-args: true
+          auto-detect-libs: true
+
+      - name: Test extension with builder and stable PHP
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PHP_BUILD_RUN_ID: ${{ matrix.php.run_id }}
+          PHP_VERSION: ${{ matrix.php.version }}
+          VS_VERSION: ${{ matrix.php.vs }}
+          EXTENSION_LABEL: ${{ matrix.extension.label }}
+          EXTENSION_NAME: ${{ matrix.extension.extension_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $extensionArtifacts = Join-Path $env:GITHUB_WORKSPACE 'artifacts'
+          $extensionZip = Get-ChildItem -Path $extensionArtifacts -Filter '*.zip' -File | Where-Object {
+            $_.Directory.Name -ne 'logs'
+          } | Select-Object -First 1
+          if (-not $extensionZip) {
+            throw "Could not find extension artifact zip in $extensionArtifacts"
+          }
+
+          $extensionExtract = Join-Path $env:RUNNER_TEMP "extension-$env:EXTENSION_LABEL-$env:PHP_VERSION"
+          Remove-Item -Path $extensionExtract -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -Path $extensionExtract -ItemType Directory -Force | Out-Null
+          Expand-Archive -Path $extensionZip.FullName -DestinationPath $extensionExtract -Force
+
+          function Get-BuilderPhpZip {
+            $artifactRoot = Join-Path $env:RUNNER_TEMP "php-build-artifacts-$env:PHP_BUILD_RUN_ID"
+            if (-not(Test-Path $artifactRoot)) {
+              New-Item -Path $artifactRoot -ItemType Directory -Force | Out-Null
+              gh run download $env:PHP_BUILD_RUN_ID --repo shivammathur/php-windows-builder --name artifacts --dir $artifactRoot
+              if ($LASTEXITCODE -ne 0) {
+                throw "Failed to download PHP builder artifact run $env:PHP_BUILD_RUN_ID"
+              }
+            }
+
+            $namePattern = "^php-$([regex]::Escape($env:PHP_VERSION))(?:[\.-].*)?-Win32-$([regex]::Escape($env:VS_VERSION))-x64\.zip$"
+            $zips = @(Get-ChildItem -LiteralPath $artifactRoot -Recurse -File -Filter 'php-*.zip' | Where-Object {
+              $_.Name -notmatch '^php-(devel-pack|debug-pack|test-pack)-' -and $_.Name -match $namePattern
+            })
+            if ($zips.Count -ne 1) {
+              $found = ($zips | ForEach-Object Name) -join ', '
+              throw "Expected one PHP builder runtime zip matching $namePattern, found $($zips.Count): $found"
+            }
+            return $zips[0].FullName
+          }
+
+          function Get-StablePhpZip {
+            $releases = Invoke-RestMethod -Uri 'https://windows.php.net/downloads/releases/releases.json'
+            $release = $releases.PSObject.Properties[$env:PHP_VERSION].Value
+            $stableVersion = $release.version
+            if ([string]::IsNullOrWhiteSpace($stableVersion)) {
+              throw "Could not determine latest stable PHP $env:PHP_VERSION from releases.json"
+            }
+
+            $zipName = "php-$stableVersion-Win32-$env:VS_VERSION-x64.zip"
+            $destination = Join-Path $env:RUNNER_TEMP $zipName
+            foreach ($baseUrl in @('https://windows.php.net/downloads/releases', 'https://windows.php.net/downloads/releases/archives')) {
+              & curl.exe --fail --location --retry 3 --retry-delay 2 --output $destination "$baseUrl/$zipName"
+              if ($LASTEXITCODE -eq 0) {
+                return $destination
+              }
+            }
+            throw "Failed to download latest stable PHP zip: $zipName"
+          }
+
+          function Add-ExtensionLine {
+            param(
+              [Parameter(Mandatory)] [string[]] $Lines,
+              [Parameter(Mandatory)] [string] $Name
+            )
+
+            if ($Lines -notcontains "extension=$Name") {
+              return $Lines + "extension=$Name"
+            }
+            return $Lines
+          }
+
+          function Test-ExtensionLoad {
+            param(
+              [Parameter(Mandatory)] [string] $PhpZip,
+              [Parameter(Mandatory)] [string] $Label
+            )
+
+            $safeLabel = $Label -replace '[^A-Za-z0-9_.-]', '-'
+            $phpDir = Join-Path $env:RUNNER_TEMP "php-$env:EXTENSION_LABEL-$env:PHP_VERSION-$safeLabel"
+            Remove-Item -Path $phpDir -Recurse -Force -ErrorAction SilentlyContinue
+            New-Item -Path $phpDir -ItemType Directory -Force | Out-Null
+            Expand-Archive -Path $PhpZip -DestinationPath $phpDir -Force
+
+            $phpExe = Join-Path $phpDir 'php.exe'
+            $phpIni = Join-Path $phpDir 'php.ini'
+            $phpExtDir = Join-Path $phpDir 'ext'
+            if (-not(Test-Path $phpExe)) {
+              throw "Missing php.exe in $phpDir"
+            }
+
+            $packageDlls = @(Get-ChildItem -Path $extensionExtract -Filter '*.dll' -File -Recurse)
+            if ($packageDlls.Count -eq 0) {
+              throw "No DLLs found in extension package $($extensionZip.Name)"
+            }
+
+            foreach ($dll in $packageDlls) {
+              if ($dll.Name -like 'php_*.dll') {
+                Copy-Item -Path $dll.FullName -Destination $phpExtDir -Force
+              } else {
+                Copy-Item -Path $dll.FullName -Destination $phpDir -Force
+              }
+            }
+
+            $extensionNames = @($packageDlls | Where-Object { $_.Name -like 'php_*.dll' } | ForEach-Object {
+              $_.BaseName -replace '^php_', ''
+            } | Sort-Object {
+              if ($_ -eq $env:EXTENSION_NAME) { 1 } else { 0 }
+            }, {
+              $_
+            })
+
+            $iniLines = @(
+              '[PHP]'
+              "extension_dir=$phpExtDir"
+              'error_reporting=E_ALL'
+              'display_errors=On'
+            )
+            if ((Test-Path (Join-Path $phpExtDir 'php_curl.dll')) -and ($extensionNames -notcontains 'curl')) {
+              $iniLines = Add-ExtensionLine -Lines $iniLines -Name 'curl'
+            }
+            foreach ($extensionName in $extensionNames) {
+              $iniLines = Add-ExtensionLine -Lines $iniLines -Name $extensionName
+            }
+            $iniLines | Set-Content -Path $phpIni -Encoding ASCII
+
+            $modules = (& $phpExe -c $phpIni -m 2>&1) | Out-String
+            $modules | Tee-Object -FilePath (Join-Path $phpDir 'php-m.txt')
+            if ($LASTEXITCODE -ne 0) {
+              throw "$Label php -m failed for $env:EXTENSION_LABEL"
+            }
+            if ($modules -notmatch "(?m)^$([regex]::Escape($env:EXTENSION_NAME))$") {
+              throw "$Label did not load $env:EXTENSION_NAME"
+            }
+
+            $info = (& $phpExe -c $phpIni --ri $env:EXTENSION_NAME 2>&1) | Out-String
+            $info | Tee-Object -FilePath (Join-Path $phpDir "$env:EXTENSION_NAME-ri.txt")
+            if ($LASTEXITCODE -ne 0) {
+              throw "$Label php --ri $env:EXTENSION_NAME failed"
+            }
+
+            Write-Host "$Label loaded $env:EXTENSION_NAME from $($extensionZip.Name)"
+          }
+
+          Test-ExtensionLoad -PhpZip (Get-BuilderPhpZip) -Label 'php-windows-builder'
+          Test-ExtensionLoad -PhpZip (Get-StablePhpZip) -Label 'latest-stable'
+
+      - name: Upload extension smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: extension-smoke-${{ matrix.extension.label }}-${{ matrix.php.version }}
+          if-no-files-found: ignore
+          path: |
+            artifacts
+            ${{ runner.temp }}\php-${{ matrix.extension.label }}-${{ matrix.php.version }}-*
