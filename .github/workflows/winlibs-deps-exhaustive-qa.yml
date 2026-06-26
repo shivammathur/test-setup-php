@@ -1,0 +1,80 @@
+name: Winlibs dependency exhaustive QA
+
+on:
+  push:
+    branches:
+      - winlibs-deps-exhaustive-qa
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: winlibs-deps-exhaustive-qa-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  SOURCE_REPOSITORY: shivammathur/php-windows-builder
+  SOURCE_GITHUB_TOKEN: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+
+jobs:
+  test:
+    name: ${{ matrix.php }} artifact QA
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: "8.2"
+            run_id: 28210572357
+            title: "Build PHP from source PHP-8.2"
+            runner: windows-2022
+          - php: "8.3"
+            run_id: 28210572138
+            title: "Build PHP from source PHP-8.3"
+            runner: windows-2022
+          - php: "8.4"
+            run_id: 28210572127
+            title: "Build PHP from source PHP-8.4"
+            runner: windows-2022
+          - php: "8.5"
+            run_id: 28210572154
+            title: "Build PHP from source PHP-8.5"
+            runner: windows-2022
+          - php: "master"
+            run_id: 28210572141
+            title: "Build PHP from source master"
+            runner: windows-2025-vs2026
+
+    steps:
+      - name: Checkout tests
+        uses: actions/checkout@v4
+
+      - name: Download PHP build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ env.SOURCE_GITHUB_TOKEN }}
+          repository: ${{ env.SOURCE_REPOSITORY }}
+          run-id: ${{ matrix.run_id }}
+          name: artifacts
+          path: artifacts
+
+      - name: Run exhaustive Winlibs dependency suite
+        shell: pwsh
+        run: |
+          ./scripts/run-winlibs-deps-suite.ps1 `
+            -ArtifactsDirectory artifacts `
+            -ReportsDirectory reports `
+            -RunId '${{ matrix.run_id }}' `
+            -RunTitle '${{ matrix.title }}' `
+            -PhpTarget '${{ matrix.php }}'
+
+      - name: Upload exhaustive QA reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: winlibs-deps-exhaustive-qa-${{ matrix.php }}-${{ matrix.run_id }}
+          path: reports
+          if-no-files-found: warn
