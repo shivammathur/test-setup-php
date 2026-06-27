@@ -1,0 +1,637 @@
+name: Benchmark zlib PHP builds
+run-name: "Benchmark zlib-rs and zlib-ng against zlib 1.3.2"
+
+on:
+  push:
+    branches:
+      - feature/zlib-ng-benchmark
+  workflow_dispatch:
+    inputs:
+      zlib_rs_php82_run:
+        description: php-windows-builder run ID for PHP-8.2 built with zlib-rs
+        required: true
+        default: "28398864406"
+      zlib_rs_php83_run:
+        description: php-windows-builder run ID for PHP-8.3 built with zlib-rs
+        required: true
+        default: "28398864503"
+      zlib_rs_php84_run:
+        description: php-windows-builder run ID for PHP-8.4 built with zlib-rs
+        required: true
+        default: "28398864528"
+      zlib_rs_php85_run:
+        description: php-windows-builder run ID for PHP-8.5 built with zlib-rs
+        required: true
+        default: "28398864590"
+      zlib_rs_master_run:
+        description: php-windows-builder run ID for master built with zlib-rs
+        required: true
+        default: "28398864548"
+      zlib_ng_php82_run:
+        description: php-windows-builder run ID for PHP-8.2 built with zlib-ng
+        required: true
+        default: "28302451004"
+      zlib_ng_php83_run:
+        description: php-windows-builder run ID for PHP-8.3 built with zlib-ng
+        required: true
+        default: "28302451011"
+      zlib_ng_php84_run:
+        description: php-windows-builder run ID for PHP-8.4 built with zlib-ng
+        required: true
+        default: "28302451228"
+      zlib_ng_php85_run:
+        description: php-windows-builder run ID for PHP-8.5 built with zlib-ng
+        required: true
+        default: "28302451055"
+      zlib_ng_master_run:
+        description: php-windows-builder run ID for master built with zlib-ng
+        required: true
+        default: "28302451174"
+      zlib_php82_run:
+        description: php-windows-builder run ID for PHP-8.2 built with zlib 1.3.2
+        required: true
+        default: "28210572357"
+      zlib_php83_run:
+        description: php-windows-builder run ID for PHP-8.3 built with zlib 1.3.2
+        required: true
+        default: "28210572138"
+      zlib_php84_run:
+        description: php-windows-builder run ID for PHP-8.4 built with zlib 1.3.2
+        required: true
+        default: "28210572127"
+      zlib_php85_run:
+        description: php-windows-builder run ID for PHP-8.5 built with zlib 1.3.2
+        required: true
+        default: "28210572154"
+      zlib_master_run:
+        description: php-windows-builder run ID for master built with zlib 1.3.2
+        required: true
+        default: "28210572141"
+      payload_mb:
+        description: Payload size in MiB used by each benchmark iteration
+        required: true
+        default: "8"
+      iterations:
+        description: Iterations per benchmark repeat
+        required: true
+        default: "12"
+      repeats:
+        description: Repeats per benchmark feature; median is reported
+        required: true
+        default: "7"
+
+permissions:
+  actions: read
+  contents: read
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  benchmark:
+    name: PHP ${{ matrix.php }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: "8.2"
+            runner: windows-2022
+            zlib_rs_run: ${{ inputs.zlib_rs_php82_run || '28398864406' }}
+            zlib_ng_run: ${{ inputs.zlib_ng_php82_run || '28302451004' }}
+            zlib_run: ${{ inputs.zlib_php82_run || '28210572357' }}
+          - php: "8.3"
+            runner: windows-2022
+            zlib_rs_run: ${{ inputs.zlib_rs_php83_run || '28398864503' }}
+            zlib_ng_run: ${{ inputs.zlib_ng_php83_run || '28302451011' }}
+            zlib_run: ${{ inputs.zlib_php83_run || '28210572138' }}
+          - php: "8.4"
+            runner: windows-2022
+            zlib_rs_run: ${{ inputs.zlib_rs_php84_run || '28398864528' }}
+            zlib_ng_run: ${{ inputs.zlib_ng_php84_run || '28302451228' }}
+            zlib_run: ${{ inputs.zlib_php84_run || '28210572127' }}
+          - php: "8.5"
+            runner: windows-2022
+            zlib_rs_run: ${{ inputs.zlib_rs_php85_run || '28398864590' }}
+            zlib_ng_run: ${{ inputs.zlib_ng_php85_run || '28302451055' }}
+            zlib_run: ${{ inputs.zlib_php85_run || '28210572154' }}
+          - php: "master"
+            runner: windows-2025-vs2026
+            zlib_rs_run: ${{ inputs.zlib_rs_master_run || '28398864548' }}
+            zlib_ng_run: ${{ inputs.zlib_ng_master_run || '28302451174' }}
+            zlib_run: ${{ inputs.zlib_master_run || '28210572141' }}
+    runs-on: ${{ matrix.runner }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PHP_VERSION_LABEL: ${{ matrix.php }}
+      ZLIB_RS_RUN: ${{ matrix.zlib_rs_run }}
+      ZLIB_NG_RUN: ${{ matrix.zlib_ng_run }}
+      ZLIB_RUN: ${{ matrix.zlib_run }}
+      PAYLOAD_MB: ${{ inputs.payload_mb || '8' }}
+      ITERATIONS: ${{ inputs.iterations || '12' }}
+      REPEATS: ${{ inputs.repeats || '7' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download PHP artifacts
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path artifacts\zlib-rs, artifacts\zlib-ng, artifacts\zlib | Out-Null
+
+          gh run download $env:ZLIB_RS_RUN `
+            --repo shivammathur/php-windows-builder `
+            --name artifacts `
+            --dir artifacts\zlib-rs
+
+          gh run download $env:ZLIB_NG_RUN `
+            --repo shivammathur/php-windows-builder `
+            --name artifacts `
+            --dir artifacts\zlib-ng
+
+          gh run download $env:ZLIB_RUN `
+            --repo shivammathur/php-windows-builder `
+            --name artifacts `
+            --dir artifacts\zlib
+
+          Get-ChildItem artifacts -Recurse -Filter 'php-*.zip' |
+            Sort-Object FullName |
+            ForEach-Object { $_.FullName }
+
+      - name: Expand PHP builds
+        id: builds
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Expand-BuildSet {
+            param(
+              [Parameter(Mandatory)] [string] $Label,
+              [Parameter(Mandatory)] [string] $Source
+            )
+
+            $zips = @(Get-ChildItem $Source -Recurse -File -Filter 'php-*.zip' | Sort-Object Name)
+            if ($zips.Count -lt 4) {
+              throw "Expected at least four PHP zip artifacts for $Label, found $($zips.Count)"
+            }
+
+            foreach ($zip in $zips) {
+              $target = Join-Path "expanded\$Label" ([IO.Path]::GetFileNameWithoutExtension($zip.Name))
+              New-Item -ItemType Directory -Force -Path $target | Out-Null
+              Expand-Archive -Path $zip.FullName -DestinationPath $target -Force
+            }
+          }
+
+          function Select-BenchmarkPhp {
+            param([Parameter(Mandatory)] [string] $Label)
+
+            $php = Get-ChildItem "expanded\$Label" -Recurse -File -Filter php.exe |
+              Where-Object { $_.Directory.Name -match '-nts-Win32-vs\d+-x64$' } |
+              Select-Object -First 1
+
+            if ($null -eq $php) {
+              throw "Could not find x64 NTS php.exe for $Label"
+            }
+
+            return $php.FullName
+          }
+
+          Expand-BuildSet -Label zlib-rs -Source artifacts\zlib-rs
+          Expand-BuildSet -Label zlib-ng -Source artifacts\zlib-ng
+          Expand-BuildSet -Label zlib -Source artifacts\zlib
+
+          $zlibRsPhp = Select-BenchmarkPhp -Label zlib-rs
+          $zlibNgPhp = Select-BenchmarkPhp -Label zlib-ng
+          $zlibPhp = Select-BenchmarkPhp -Label zlib
+
+          "ZLIB_RS_PHP=$zlibRsPhp" | Add-Content -Path $env:GITHUB_ENV
+          "ZLIB_NG_PHP=$zlibNgPhp" | Add-Content -Path $env:GITHUB_ENV
+          "ZLIB_PHP=$zlibPhp" | Add-Content -Path $env:GITHUB_ENV
+          "zlib-rs-php=$zlibRsPhp" | Add-Content -Path $env:GITHUB_OUTPUT
+          "zlib-ng-php=$zlibNgPhp" | Add-Content -Path $env:GITHUB_OUTPUT
+          "zlib-php=$zlibPhp" | Add-Content -Path $env:GITHUB_OUTPUT
+
+      - name: Smoke test zlib support
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Invoke-Php {
+            param(
+              [Parameter(Mandatory)] [string] $Php,
+              [Parameter(Mandatory)] [string[]] $PhpArgs
+            )
+
+            $phpDir = Split-Path -Parent $Php
+            $oldPath = $env:PATH
+            Push-Location $phpDir
+            try {
+              $env:PATH = "$phpDir;$phpDir\ext;$oldPath"
+              $args = @('-n', '-d', 'memory_limit=-1', '-d', 'extension_dir=ext')
+              if (Test-Path (Join-Path $phpDir 'ext\php_zlib.dll')) {
+                $args += @('-d', 'extension=php_zlib.dll')
+              }
+              & $Php @args @PhpArgs
+              if ($LASTEXITCODE -ne 0) {
+                throw "$Php exited with $LASTEXITCODE"
+              }
+            } finally {
+              Pop-Location
+              $env:PATH = $oldPath
+            }
+          }
+
+          $phpFiles = @(Get-ChildItem expanded -Recurse -File -Filter php.exe | Sort-Object FullName)
+          if ($phpFiles.Count -lt 12) {
+            throw "Expected at least twelve php.exe files across zlib-rs, zlib-ng, and zlib builds, found $($phpFiles.Count)"
+          }
+
+          foreach ($php in $phpFiles) {
+            Write-Host "Smoke testing $($php.FullName)"
+            Invoke-Php -Php $php.FullName -PhpArgs @((Resolve-Path scripts\zlib-benchmark.php), '--mode=smoke')
+          }
+
+      - name: Capture zlib version info
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path results | Out-Null
+
+          function Invoke-PhpInfo {
+            param([Parameter(Mandatory)] [string] $Php)
+
+            $phpDir = Split-Path -Parent $Php
+            $oldPath = $env:PATH
+            Push-Location $phpDir
+            try {
+              $env:PATH = "$phpDir;$phpDir\ext;$oldPath"
+              $args = @('-n', '-d', 'extension_dir=ext')
+              if (Test-Path (Join-Path $phpDir 'ext\php_zlib.dll')) {
+                $args += @('-d', 'extension=php_zlib.dll')
+              }
+              & $Php @args -i
+              if ($LASTEXITCODE -ne 0) {
+                throw "$Php -i exited with $LASTEXITCODE"
+              }
+            } finally {
+              Pop-Location
+              $env:PATH = $oldPath
+            }
+          }
+
+          "### PHP $env:PHP_VERSION_LABEL zlib info" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+
+          $builds = @(
+            [pscustomobject]@{ Name = 'zlib-rs'; Run = $env:ZLIB_RS_RUN; Php = $env:ZLIB_RS_PHP; Slug = 'zlib-rs' },
+            [pscustomobject]@{ Name = 'zlib-ng'; Run = $env:ZLIB_NG_RUN; Php = $env:ZLIB_NG_PHP; Slug = 'zlib-ng' },
+            [pscustomobject]@{ Name = 'zlib 1.3.2'; Run = $env:ZLIB_RUN; Php = $env:ZLIB_PHP; Slug = 'zlib' }
+          )
+
+          foreach ($build in $builds) {
+            $info = @(Invoke-PhpInfo -Php $build.Php)
+            $info | Set-Content -Path "results\$($build.Slug)-phpinfo.txt"
+            $lines = $info | Select-String -Pattern 'ZLib Support|Compiled Version|Linked Version|zlib.output_compression'
+
+            "$($build.Name) run: $($build.Run)" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+            "" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+            '```' | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+            ($lines | ForEach-Object { $_.Line }) | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+            '```' | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+            "" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          }
+
+      - name: Run benchmarks
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Invoke-Benchmark {
+            param(
+              [Parameter(Mandatory)] [string] $Php,
+              [Parameter(Mandatory)] [string] $Output
+            )
+
+            $phpDir = Split-Path -Parent $Php
+            $oldPath = $env:PATH
+            Push-Location $phpDir
+            try {
+              $env:PATH = "$phpDir;$phpDir\ext;$oldPath"
+              $args = @('-n', '-d', 'memory_limit=-1', '-d', 'extension_dir=ext')
+              if (Test-Path (Join-Path $phpDir 'ext\php_zlib.dll')) {
+                $args += @('-d', 'extension=php_zlib.dll')
+              }
+              & $Php @args (Resolve-Path $env:GITHUB_WORKSPACE\scripts\zlib-benchmark.php) `
+                '--mode=benchmark' `
+                "--payload-mb=$env:PAYLOAD_MB" `
+                "--iterations=$env:ITERATIONS" `
+                "--repeats=$env:REPEATS" `
+                "--output=$Output"
+              if ($LASTEXITCODE -ne 0) {
+                throw "$Php benchmark exited with $LASTEXITCODE"
+              }
+            } finally {
+              Pop-Location
+              $env:PATH = $oldPath
+            }
+          }
+
+          Invoke-Benchmark -Php $env:ZLIB_PHP -Output "$env:GITHUB_WORKSPACE\results\zlib.json"
+          Invoke-Benchmark -Php $env:ZLIB_NG_PHP -Output "$env:GITHUB_WORKSPACE\results\zlib-ng.json"
+          Invoke-Benchmark -Php $env:ZLIB_RS_PHP -Output "$env:GITHUB_WORKSPACE\results\zlib-rs.json"
+
+      - name: Run zlib-py style benchmarks
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Invoke-ZlibPyStyle {
+            param(
+              [Parameter(Mandatory)] [string] $Php,
+              [Parameter(Mandatory)] [string[]] $PhpArgs
+            )
+
+            $phpDir = Split-Path -Parent $Php
+            $oldPath = $env:PATH
+            Push-Location $phpDir
+            try {
+              $env:PATH = "$phpDir;$phpDir\ext;$oldPath"
+              $args = @('-n', '-d', 'memory_limit=-1', '-d', 'extension_dir=ext')
+              if (Test-Path (Join-Path $phpDir 'ext\php_zlib.dll')) {
+                $args += @('-d', 'extension=php_zlib.dll')
+              }
+              & $Php @args (Resolve-Path $env:GITHUB_WORKSPACE\scripts\zlib-py-style-benchmark.php) @PhpArgs
+              if ($LASTEXITCODE -ne 0) {
+                throw "$Php zlib-py style benchmark exited with $LASTEXITCODE"
+              }
+            } finally {
+              Pop-Location
+              $env:PATH = $oldPath
+            }
+          }
+
+          $fixture = "$env:GITHUB_WORKSPACE\results\zlib-py-style-fixtures.json"
+          Invoke-ZlibPyStyle -Php $env:ZLIB_PHP -PhpArgs @(
+            '--mode=fixtures',
+            "--output=$fixture"
+          )
+
+          Invoke-ZlibPyStyle -Php $env:ZLIB_PHP -PhpArgs @(
+            '--mode=benchmark',
+            "--fixture=$fixture",
+            "--output=$env:GITHUB_WORKSPACE\results\zlib-py-style-zlib.json"
+          )
+
+          Invoke-ZlibPyStyle -Php $env:ZLIB_NG_PHP -PhpArgs @(
+            '--mode=benchmark',
+            "--fixture=$fixture",
+            "--output=$env:GITHUB_WORKSPACE\results\zlib-py-style-zlib-ng.json"
+          )
+
+          Invoke-ZlibPyStyle -Php $env:ZLIB_RS_PHP -PhpArgs @(
+            '--mode=benchmark',
+            "--fixture=$fixture",
+            "--output=$env:GITHUB_WORKSPACE\results\zlib-py-style-zlib-rs.json"
+          )
+
+      - name: Compare benchmark results
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function New-FeatureMap {
+            param([Parameter(Mandatory)] $Document)
+
+            $map = @{}
+            foreach ($feature in $Document.features) {
+              $map[$feature.name] = $feature
+            }
+            return $map
+          }
+
+          function Get-DeltaPercent {
+            param(
+              [Parameter(Mandatory)] $Current,
+              [Parameter(Mandatory)] $Baseline
+            )
+
+            return (($Current.mib_per_second / $Baseline.mib_per_second) - 1) * 100
+          }
+
+          $zlib = Get-Content results\zlib.json -Raw | ConvertFrom-Json
+          $zlibNg = Get-Content results\zlib-ng.json -Raw | ConvertFrom-Json
+          $zlibRs = Get-Content results\zlib-rs.json -Raw | ConvertFrom-Json
+
+          $zlibFeatures = New-FeatureMap -Document $zlib
+          $zlibNgFeatures = New-FeatureMap -Document $zlibNg
+          $zlibRsFeatures = New-FeatureMap -Document $zlibRs
+
+          $rows = foreach ($feature in $zlib.features) {
+            if (-not $zlibNgFeatures.ContainsKey($feature.name)) {
+              throw "Missing zlib-ng result for feature $($feature.name)"
+            }
+            if (-not $zlibRsFeatures.ContainsKey($feature.name)) {
+              throw "Missing zlib-rs result for feature $($feature.name)"
+            }
+
+            $base = $zlibFeatures[$feature.name]
+            $ng = $zlibNgFeatures[$feature.name]
+            $rs = $zlibRsFeatures[$feature.name]
+
+            [pscustomobject]@{
+              php = $env:PHP_VERSION_LABEL
+              feature = $feature.name
+              zlib_mib_s = [math]::Round($base.mib_per_second, 2)
+              zlib_ng_mib_s = [math]::Round($ng.mib_per_second, 2)
+              zlib_rs_mib_s = [math]::Round($rs.mib_per_second, 2)
+              zlib_ng_vs_zlib_percent = [math]::Round((Get-DeltaPercent -Current $ng -Baseline $base), 2)
+              zlib_rs_vs_zlib_percent = [math]::Round((Get-DeltaPercent -Current $rs -Baseline $base), 2)
+              zlib_rs_vs_zlib_ng_percent = [math]::Round((Get-DeltaPercent -Current $rs -Baseline $ng), 2)
+              zlib_seconds = [math]::Round($base.seconds, 6)
+              zlib_ng_seconds = [math]::Round($ng.seconds, 6)
+              zlib_rs_seconds = [math]::Round($rs.seconds, 6)
+            }
+          }
+
+          $rows | ConvertTo-Json -Depth 4 | Set-Content -Path results\comparison.json
+          $rows | Export-Csv -NoTypeInformation -Path results\comparison.csv
+
+          function Format-Delta {
+            param([Parameter(Mandatory)] [double] $Value)
+
+            if ($Value -ge 0) {
+              return "+$Value%"
+            }
+            return "$Value%"
+          }
+
+          "### PHP $env:PHP_VERSION_LABEL zlib benchmark" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "zlib-rs run: $env:ZLIB_RS_RUN" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "zlib-ng run: $env:ZLIB_NG_RUN" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "zlib 1.3.2 run: $env:ZLIB_RUN" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "| Feature | zlib 1.3.2 MiB/s | zlib-ng MiB/s | zlib-ng vs zlib | zlib-rs MiB/s | zlib-rs vs zlib | zlib-rs vs zlib-ng |" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "| --- | ---: | ---: | ---: | ---: | ---: | ---: |" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          foreach ($row in $rows) {
+            "| $($row.feature) | $($row.zlib_mib_s) | $($row.zlib_ng_mib_s) | $(Format-Delta $row.zlib_ng_vs_zlib_percent) | $($row.zlib_rs_mib_s) | $(Format-Delta $row.zlib_rs_vs_zlib_percent) | $(Format-Delta $row.zlib_rs_vs_zlib_ng_percent) |" |
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          }
+          "" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+
+      - name: Compare zlib-py style benchmark results
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function New-FeatureMap {
+            param([Parameter(Mandatory)] $Document)
+
+            $map = @{}
+            foreach ($feature in $Document.features) {
+              $map[$feature.name] = $feature
+            }
+            return $map
+          }
+
+          function New-RatioMap {
+            param([Parameter(Mandatory)] $Document)
+
+            $map = @{}
+            foreach ($ratio in $Document.ratios) {
+              $map[$ratio.name] = $ratio
+            }
+            return $map
+          }
+
+          function Get-DeltaPercent {
+            param(
+              [Parameter(Mandatory)] $Current,
+              [Parameter(Mandatory)] $Baseline
+            )
+
+            return (($Current.mib_per_second / $Baseline.mib_per_second) - 1) * 100
+          }
+
+          function Get-Average {
+            param(
+              [Parameter(Mandatory)] [array] $Rows,
+              [Parameter(Mandatory)] [string] $Property
+            )
+
+            return ($Rows | Measure-Object -Property $Property -Average).Average
+          }
+
+          function Format-Delta {
+            param([Parameter(Mandatory)] [double] $Value)
+
+            if ($Value -ge 0) {
+              return "+$Value%"
+            }
+            return "$Value%"
+          }
+
+          $zlib = Get-Content results\zlib-py-style-zlib.json -Raw | ConvertFrom-Json
+          $zlibNg = Get-Content results\zlib-py-style-zlib-ng.json -Raw | ConvertFrom-Json
+          $zlibRs = Get-Content results\zlib-py-style-zlib-rs.json -Raw | ConvertFrom-Json
+
+          $zlibFeatures = New-FeatureMap -Document $zlib
+          $zlibNgFeatures = New-FeatureMap -Document $zlibNg
+          $zlibRsFeatures = New-FeatureMap -Document $zlibRs
+
+          $rows = foreach ($feature in $zlib.features) {
+            if (-not $zlibNgFeatures.ContainsKey($feature.name)) {
+              throw "Missing zlib-ng zlib-py style result for feature $($feature.name)"
+            }
+            if (-not $zlibRsFeatures.ContainsKey($feature.name)) {
+              throw "Missing zlib-rs zlib-py style result for feature $($feature.name)"
+            }
+
+            $base = $zlibFeatures[$feature.name]
+            $ng = $zlibNgFeatures[$feature.name]
+            $rs = $zlibRsFeatures[$feature.name]
+
+            [pscustomobject]@{
+              php = $env:PHP_VERSION_LABEL
+              group = $feature.group
+              feature = $feature.name
+              size_label = $feature.size_label
+              size = $feature.size
+              level = $feature.level
+              iterations = $feature.iterations
+              zlib_mib_s = [math]::Round($base.mib_per_second, 2)
+              zlib_ng_mib_s = [math]::Round($ng.mib_per_second, 2)
+              zlib_rs_mib_s = [math]::Round($rs.mib_per_second, 2)
+              zlib_ng_vs_zlib_percent = [math]::Round((Get-DeltaPercent -Current $ng -Baseline $base), 2)
+              zlib_rs_vs_zlib_percent = [math]::Round((Get-DeltaPercent -Current $rs -Baseline $base), 2)
+              zlib_rs_vs_zlib_ng_percent = [math]::Round((Get-DeltaPercent -Current $rs -Baseline $ng), 2)
+              zlib_ms = [math]::Round(($base.seconds * 1000), 4)
+              zlib_ng_ms = [math]::Round(($ng.seconds * 1000), 4)
+              zlib_rs_ms = [math]::Round(($rs.seconds * 1000), 4)
+              zlib_output_bytes = $base.output_bytes
+              zlib_ng_output_bytes = $ng.output_bytes
+              zlib_rs_output_bytes = $rs.output_bytes
+            }
+          }
+
+          $summaryRows = foreach ($group in ($rows | Group-Object group | Sort-Object Name)) {
+            $groupRows = @($group.Group)
+            [pscustomobject]@{
+              php = $env:PHP_VERSION_LABEL
+              group = $group.Name
+              cases = $groupRows.Count
+              zlib_ng_vs_zlib_percent = [math]::Round((Get-Average -Rows $groupRows -Property zlib_ng_vs_zlib_percent), 2)
+              zlib_rs_vs_zlib_percent = [math]::Round((Get-Average -Rows $groupRows -Property zlib_rs_vs_zlib_percent), 2)
+              zlib_rs_vs_zlib_ng_percent = [math]::Round((Get-Average -Rows $groupRows -Property zlib_rs_vs_zlib_ng_percent), 2)
+            }
+          }
+
+          $zlibRatios = New-RatioMap -Document $zlib
+          $zlibNgRatios = New-RatioMap -Document $zlibNg
+          $zlibRsRatios = New-RatioMap -Document $zlibRs
+
+          $ratioRows = foreach ($ratio in $zlib.ratios) {
+            if (-not $zlibNgRatios.ContainsKey($ratio.name)) {
+              throw "Missing zlib-ng ratio result for $($ratio.name)"
+            }
+            if (-not $zlibRsRatios.ContainsKey($ratio.name)) {
+              throw "Missing zlib-rs ratio result for $($ratio.name)"
+            }
+
+            $ng = $zlibNgRatios[$ratio.name]
+            $rs = $zlibRsRatios[$ratio.name]
+
+            [pscustomobject]@{
+              php = $env:PHP_VERSION_LABEL
+              feature = $ratio.name
+              size_label = $ratio.size_label
+              level = $ratio.level
+              zlib_output_bytes = $ratio.output_bytes
+              zlib_ng_output_bytes = $ng.output_bytes
+              zlib_rs_output_bytes = $rs.output_bytes
+              zlib_ng_output_delta_bytes = $ng.output_bytes - $ratio.output_bytes
+              zlib_rs_output_delta_bytes = $rs.output_bytes - $ratio.output_bytes
+              zlib_ng_matches_zlib = ($ng.output_bytes -eq $ratio.output_bytes)
+              zlib_rs_matches_zlib = ($rs.output_bytes -eq $ratio.output_bytes)
+            }
+          }
+
+          $rows | ConvertTo-Json -Depth 5 | Set-Content -Path results\zlib-py-style-comparison.json
+          $rows | Export-Csv -NoTypeInformation -Path results\zlib-py-style-comparison.csv
+          $summaryRows | ConvertTo-Json -Depth 5 | Set-Content -Path results\zlib-py-style-summary.json
+          $summaryRows | Export-Csv -NoTypeInformation -Path results\zlib-py-style-summary.csv
+          $ratioRows | ConvertTo-Json -Depth 5 | Set-Content -Path results\zlib-py-style-ratios.json
+          $ratioRows | Export-Csv -NoTypeInformation -Path results\zlib-py-style-ratios.csv
+
+          "### PHP $env:PHP_VERSION_LABEL zlib-py style benchmark" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "| Group | Cases | zlib-ng vs zlib | zlib-rs vs zlib | zlib-rs vs zlib-ng |" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "| --- | ---: | ---: | ---: | ---: |" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          foreach ($row in $summaryRows) {
+            "| $($row.group) | $($row.cases) | $(Format-Delta $row.zlib_ng_vs_zlib_percent) | $(Format-Delta $row.zlib_rs_vs_zlib_percent) | $(Format-Delta $row.zlib_rs_vs_zlib_ng_percent) |" |
+              Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          }
+          "" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "Full case-level timings are in ``zlib-py-style-comparison.csv``. Compression-size comparisons are in ``zlib-py-style-ratios.csv``." | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          foreach ($skip in $zlibRs.skipped) {
+            "Skipped $($skip.name): $($skip.reason)." | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          }
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v7
+        with:
+          name: zlib-benchmark-${{ matrix.php }}
+          path: results
