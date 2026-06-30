@@ -1,0 +1,951 @@
+name: zlib-rs extension compatibility QA
+
+on:
+  push:
+    branches:
+      - feature/zlib-rs-extension-compat-qa
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: zlib-rs-extension-compat-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: true
+
+env:
+  PHP_ARTIFACT_REPOSITORY: shivammathur/php-windows-builder
+  PHP_ARTIFACT_TOKEN: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+  WINLIB_ARTIFACT_REPOSITORY: shivammathur/winlib-builder
+  WINLIB_ARTIFACT_TOKEN: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+
+jobs:
+  source-build-and-test-extensions:
+    name: source build/test ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.2", "8.3", "8.4", "8.5"]
+        arch: [x64, x86]
+        ts: [nts, ts]
+        include:
+          - php: "8.2"
+            php_run_id: "28419878594"
+            zlib_run_id: "28398623591"
+            runner: windows-2022
+            vs: vs16
+            pecl: "true"
+          - php: "8.3"
+            php_run_id: "28419879650"
+            zlib_run_id: "28398623591"
+            runner: windows-2022
+            vs: vs16
+            pecl: "true"
+          - php: "8.4"
+            php_run_id: "28419880744"
+            zlib_run_id: "28418483280"
+            runner: windows-2022
+            vs: vs17
+            pecl: "true"
+          - php: "8.5"
+            php_run_id: "28419881882"
+            zlib_run_id: "28418483280"
+            runner: windows-2022
+            vs: vs17
+            pecl: "true"
+    env:
+      artifact-naming-scheme: pecl
+      auto-detect-args: "true"
+      auto-detect-libs: "true"
+      MEMC_SERVER_HOST: 127.0.0.1
+      MEMC_SERVER_PORT: "11211"
+    steps:
+      - name: Checkout QA
+        uses: actions/checkout@v4
+
+      - name: Download zlib-rs PHP artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ env.PHP_ARTIFACT_TOKEN }}
+          repository: ${{ env.PHP_ARTIFACT_REPOSITORY }}
+          run-id: ${{ matrix.php_run_id }}
+          name: artifacts
+          path: php-artifacts
+
+      - name: Download zlib-rs dependency artifact
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ env.WINLIB_ARTIFACT_TOKEN }}
+          repository: ${{ env.WINLIB_ARTIFACT_REPOSITORY }}
+          run-id: ${{ matrix.zlib_run_id }}
+          name: zlib-0.6.4-${{ matrix.vs }}-${{ matrix.arch }}
+          path: zlib-rs-deps\zlib-0.6.4-${{ matrix.vs }}-${{ matrix.arch }}
+
+      - name: Verify zlib-rs dependency artifact
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path (Join-Path $env:GITHUB_WORKSPACE 'zlib-rs-deps') 'zlib-0.6.4-${{ matrix.vs }}-${{ matrix.arch }}'
+          $include = Join-Path $root 'include'
+          $lib = Join-Path $root 'lib'
+          $zlibHeader = Join-Path $include 'zlib.h'
+          $zlibLibs = @(Get-ChildItem -LiteralPath $lib -File -ErrorAction SilentlyContinue | Where-Object {
+            $_.Name -in @('zlib.lib', 'zlib_a.lib')
+          })
+
+          if (!(Test-Path -LiteralPath $include -PathType Container)) {
+            throw "zlib-rs artifact is missing include directory: $include"
+          }
+          if (!(Test-Path -LiteralPath $lib -PathType Container)) {
+            throw "zlib-rs artifact is missing lib directory: $lib"
+          }
+          if (!(Test-Path -LiteralPath $zlibHeader -PathType Leaf)) {
+            throw "zlib-rs artifact is missing zlib.h: $zlibHeader"
+          }
+          if ($zlibLibs.Count -eq 0) {
+            throw "zlib-rs artifact is missing zlib.lib or zlib_a.lib in $lib"
+          }
+
+          "PHP_LIBS_ARTIFACT_PATH=$root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Start memcached test daemons
+        id: memcached_setup
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/setup-memcached-windows.ps1 `
+            -Action start `
+            -Ports 11211,11212 `
+            -ServerRoot memcached-server `
+            -LogsDirectory memcached-logs `
+            -Architecture '${{ matrix.arch }}'
+
+      - name: Check memcached test daemons before memcache
+        id: memcache_server_check
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/setup-memcached-windows.ps1 `
+            -Action check `
+            -Ports 11211,11212 `
+            -ServerRoot memcached-server `
+            -LogsDirectory memcached-logs
+
+      - name: Build and test memcache
+        id: memcache
+        continue-on-error: true
+        timeout-minutes: 15
+        uses: shivammathur/php-windows-builder/extension@feature/extension-php-build-artifacts
+        with:
+          extension-url: https://pecl.php.net/package/memcache
+          extension-ref: "8.2"
+          php-version: ${{ matrix.php }}
+          php-build-artifact-path: ${{ github.workspace }}\php-artifacts
+          php-libs-stability: stable
+          apply-patches: "true"
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+          args: "--enable-memcache"
+          libs: "zlib"
+          run-tests: "true"
+          test-runner-args: "-d open_basedir= -d output_buffering=0 -q --offline --show-diff --show-slow 1000 --set-timeout 30 -g FAIL,XFAIL,BORK,WARN,LEAK,SKIP"
+          test-opcache-mode: "off"
+          test-workers: "1"
+          save-vs-cache: "true"
+          build-directory: build\memcache
+
+      - name: Collect memcache artifacts
+        id: collect_memcache
+        if: always()
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/collect-source-extension-artifact.ps1 `
+            -Package memcache `
+            -Artifact memcache `
+            -Ref "8.2" `
+            -PhpTarget '${{ matrix.php }}' `
+            -Arch '${{ matrix.arch }}' `
+            -Ts '${{ matrix.ts }}' `
+            -Vs '${{ matrix.vs }}' `
+            -BuildDirectory build\memcache
+
+      - name: Restart memcached test daemons before memcached
+        id: memcached_server_check
+        if: always()
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/setup-memcached-windows.ps1 `
+            -Action start `
+            -Ports 11211,11212 `
+            -ServerRoot memcached-server `
+            -LogsDirectory memcached-logs `
+            -Architecture '${{ matrix.arch }}'
+
+      - name: Build and test memcached
+        id: memcached
+        continue-on-error: true
+        timeout-minutes: 5
+        uses: shivammathur/php-windows-builder/extension@feature/extension-php-build-artifacts
+        with:
+          extension-url: https://pecl.php.net/package/memcached
+          extension-ref: "3.4.0"
+          php-version: ${{ matrix.php }}
+          php-build-artifact-path: ${{ github.workspace }}\php-artifacts
+          php-libs-stability: stable
+          apply-patches: "true"
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+          args: "--enable-memcached --enable-memcached-session --enable-memcached-json"
+          libs: "zlib"
+          run-tests: "true"
+          test-runner-args: "-d open_basedir= -d output_buffering=0 -q --offline --show-diff --show-slow 1000 --set-timeout 30 -g FAIL,XFAIL,BORK,WARN,LEAK,SKIP"
+          test-opcache-mode: "off"
+          test-workers: "1"
+          save-vs-cache: "true"
+          build-directory: build\memcached
+
+      - name: Collect memcached artifacts
+        id: collect_memcached
+        if: always()
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/collect-source-extension-artifact.ps1 `
+            -Package memcached `
+            -Artifact memcached `
+            -Ref "3.4.0" `
+            -PhpTarget '${{ matrix.php }}' `
+            -Arch '${{ matrix.arch }}' `
+            -Ts '${{ matrix.ts }}' `
+            -Vs '${{ matrix.vs }}' `
+            -BuildDirectory build\memcached
+
+      - name: Build and test oauth
+        id: oauth
+        continue-on-error: true
+        uses: shivammathur/php-windows-builder/extension@feature/extension-php-build-artifacts
+        with:
+          extension-url: https://pecl.php.net/package/oauth
+          extension-ref: "2.0.10"
+          php-version: ${{ matrix.php }}
+          php-build-artifact-path: ${{ github.workspace }}\php-artifacts
+          php-libs-stability: stable
+          apply-patches: "true"
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+          args: "--enable-oauth"
+          libs: "zlib"
+          run-tests: "true"
+          test-opcache-mode: "off"
+          test-workers: "4"
+          save-vs-cache: "true"
+          build-directory: build\oauth
+
+      - name: Collect oauth artifacts
+        id: collect_oauth
+        if: always()
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/collect-source-extension-artifact.ps1 `
+            -Package oauth `
+            -Artifact oauth `
+            -Ref "2.0.10" `
+            -PhpTarget '${{ matrix.php }}' `
+            -Arch '${{ matrix.arch }}' `
+            -Ts '${{ matrix.ts }}' `
+            -Vs '${{ matrix.vs }}' `
+            -BuildDirectory build\oauth
+
+      - name: Build and test xdebug
+        id: xdebug
+        continue-on-error: true
+        uses: shivammathur/php-windows-builder/extension@feature/extension-php-build-artifacts
+        with:
+          extension-url: https://pecl.php.net/package/xdebug
+          extension-ref: "3.5.3"
+          php-version: ${{ matrix.php }}
+          php-build-artifact-path: ${{ github.workspace }}\php-artifacts
+          php-libs-stability: stable
+          apply-patches: "true"
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+          args: "--with-xdebug"
+          libs: "zlib"
+          run-tests: "true"
+          test-opcache-mode: "off"
+          test-workers: "4"
+          save-vs-cache: "true"
+          build-directory: build\xdebug
+
+      - name: Collect xdebug artifacts
+        id: collect_xdebug
+        if: always()
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/collect-source-extension-artifact.ps1 `
+            -Package xdebug `
+            -Artifact xdebug `
+            -Ref "3.5.3" `
+            -PhpTarget '${{ matrix.php }}' `
+            -Arch '${{ matrix.arch }}' `
+            -Ts '${{ matrix.ts }}' `
+            -Vs '${{ matrix.vs }}' `
+            -BuildDirectory build\xdebug
+
+      - name: Build and test raphf
+        id: raphf
+        continue-on-error: true
+        uses: shivammathur/php-windows-builder/extension@feature/extension-php-build-artifacts
+        with:
+          extension-url: https://pecl.php.net/package/raphf
+          extension-ref: "2.0.2"
+          php-version: ${{ matrix.php }}
+          php-build-artifact-path: ${{ github.workspace }}\php-artifacts
+          php-libs-stability: stable
+          apply-patches: "true"
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+          args: "--enable-raphf"
+          libs: ""
+          run-tests: "true"
+          test-opcache-mode: "off"
+          test-workers: "4"
+          save-vs-cache: "true"
+          build-directory: build\raphf
+
+      - name: Collect raphf artifacts
+        id: collect_raphf
+        if: always()
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/collect-source-extension-artifact.ps1 `
+            -Package raphf `
+            -Artifact raphf `
+            -Ref "2.0.2" `
+            -PhpTarget '${{ matrix.php }}' `
+            -Arch '${{ matrix.arch }}' `
+            -Ts '${{ matrix.ts }}' `
+            -Vs '${{ matrix.vs }}' `
+            -BuildDirectory build\raphf
+
+      - name: Build and test pecl_http
+        id: pecl_http
+        continue-on-error: true
+        uses: shivammathur/php-windows-builder/extension@feature/extension-php-build-artifacts
+        with:
+          extension-url: https://pecl.php.net/package/pecl_http
+          extension-ref: "4.3.1"
+          php-version: ${{ matrix.php }}
+          php-build-artifact-path: ${{ github.workspace }}\php-artifacts
+          php-libs-stability: stable
+          apply-patches: "true"
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+          args: "--enable-http"
+          libs: "zlib"
+          run-tests: "true"
+          test-opcache-mode: "off"
+          test-workers: "4"
+          save-vs-cache: "true"
+          build-directory: build\pecl_http
+
+      - name: Collect pecl_http artifacts
+        id: collect_pecl_http
+        if: always()
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/collect-source-extension-artifact.ps1 `
+            -Package pecl_http `
+            -Artifact http `
+            -Ref "4.3.1" `
+            -PhpTarget '${{ matrix.php }}' `
+            -Arch '${{ matrix.arch }}' `
+            -Ts '${{ matrix.ts }}' `
+            -Vs '${{ matrix.vs }}' `
+            -BuildDirectory build\pecl_http
+
+      - name: Build and test solr
+        id: solr
+        continue-on-error: true
+        uses: shivammathur/php-windows-builder/extension@feature/extension-php-build-artifacts
+        with:
+          extension-url: https://github.com/php/pecl-search_engine-solr
+          extension-ref: "2.9.3"
+          php-version: ${{ matrix.php }}
+          php-build-artifact-path: ${{ github.workspace }}\php-artifacts
+          php-libs-stability: stable
+          apply-patches: "true"
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+          args: "--enable-solr"
+          libs: "zlib"
+          run-tests: "true"
+          test-opcache-mode: "off"
+          test-workers: "4"
+          save-vs-cache: "true"
+          build-directory: build\solr
+
+      - name: Collect solr artifacts
+        id: collect_solr
+        if: always()
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/collect-source-extension-artifact.ps1 `
+            -Package solr `
+            -Artifact solr `
+            -Ref "2.9.3" `
+            -PhpTarget '${{ matrix.php }}' `
+            -Arch '${{ matrix.arch }}' `
+            -Ts '${{ matrix.ts }}' `
+            -Vs '${{ matrix.vs }}' `
+            -BuildDirectory build\solr
+
+      - name: Build and test ssh2
+        id: ssh2
+        continue-on-error: true
+        uses: shivammathur/php-windows-builder/extension@feature/extension-php-build-artifacts
+        with:
+          extension-url: https://pecl.php.net/package/ssh2
+          extension-ref: "1.5.0"
+          php-version: ${{ matrix.php }}
+          php-build-artifact-path: ${{ github.workspace }}\php-artifacts
+          php-libs-stability: stable
+          apply-patches: "true"
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+          args: "--with-ssh2"
+          libs: "zlib"
+          run-tests: "true"
+          test-opcache-mode: "off"
+          test-workers: "4"
+          save-vs-cache: "true"
+          build-directory: build\ssh2
+
+      - name: Collect ssh2 artifacts
+        id: collect_ssh2
+        if: always()
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/collect-source-extension-artifact.ps1 `
+            -Package ssh2 `
+            -Artifact ssh2 `
+            -Ref "1.5.0" `
+            -PhpTarget '${{ matrix.php }}' `
+            -Arch '${{ matrix.arch }}' `
+            -Ts '${{ matrix.ts }}' `
+            -Vs '${{ matrix.vs }}' `
+            -BuildDirectory build\ssh2
+
+      - name: Build and test xlswriter
+        id: xlswriter
+        continue-on-error: true
+        uses: shivammathur/php-windows-builder/extension@feature/extension-php-build-artifacts
+        with:
+          extension-url: https://pecl.php.net/package/xlswriter
+          extension-ref: "2.0.3"
+          php-version: ${{ matrix.php }}
+          php-build-artifact-path: ${{ github.workspace }}\php-artifacts
+          php-libs-stability: stable
+          apply-patches: "true"
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+          args: "--enable-xlswriter"
+          libs: "zlib"
+          run-tests: "true"
+          test-opcache-mode: "off"
+          test-workers: "4"
+          save-vs-cache: "true"
+          build-directory: build\xlswriter
+
+      - name: Collect xlswriter artifacts
+        id: collect_xlswriter
+        if: always()
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/collect-source-extension-artifact.ps1 `
+            -Package xlswriter `
+            -Artifact xlswriter `
+            -Ref "2.0.3" `
+            -PhpTarget '${{ matrix.php }}' `
+            -Arch '${{ matrix.arch }}' `
+            -Ts '${{ matrix.ts }}' `
+            -Vs '${{ matrix.vs }}' `
+            -BuildDirectory build\xlswriter
+
+      - name: Build and test zip
+        id: zip
+        continue-on-error: true
+        uses: shivammathur/php-windows-builder/extension@feature/extension-php-build-artifacts
+        with:
+          extension-url: https://pecl.php.net/package/zip
+          extension-ref: "1.22.8"
+          php-version: ${{ matrix.php }}
+          php-build-artifact-path: ${{ github.workspace }}\php-artifacts
+          php-libs-stability: stable
+          apply-patches: "true"
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+          args: "--with-zip"
+          libs: "zlib,libzip"
+          run-tests: "true"
+          test-opcache-mode: "off"
+          test-workers: "4"
+          save-vs-cache: "true"
+          build-directory: build\zip
+
+      - name: Collect zip artifacts
+        id: collect_zip
+        if: always()
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/collect-source-extension-artifact.ps1 `
+            -Package zip `
+            -Artifact zip `
+            -Ref "1.22.8" `
+            -PhpTarget '${{ matrix.php }}' `
+            -Arch '${{ matrix.arch }}' `
+            -Ts '${{ matrix.ts }}' `
+            -Vs '${{ matrix.vs }}' `
+            -BuildDirectory build\zip
+
+      - name: Stop memcached test daemons
+        if: always()
+        shell: pwsh
+        run: |
+          ./scripts/setup-memcached-windows.ps1 `
+            -Action stop `
+            -Ports 11211,11212 `
+            -ServerRoot memcached-server `
+            -LogsDirectory memcached-logs
+
+      - name: Upload memcached test daemon logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zlib-rs-memcached-logs-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: memcached-logs
+          if-no-files-found: warn
+
+      - name: Upload source extension artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zlib-rs-source-extensions-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: source-extension-artifacts
+          if-no-files-found: error
+
+      - name: Upload source build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zlib-rs-source-build-logs-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: build\**\build-*.txt
+          if-no-files-found: warn
+
+      - name: Summarize source build/test failures
+        if: always()
+        shell: pwsh
+        run: |
+          $infraFailures = @()
+          $buildFailures = @()
+          $upstreamTestFailures = @()
+          if ('${{ steps.memcached_setup.outcome }}' -ne 'success') { $infraFailures += 'memcached setup' }
+          if ('${{ steps.memcache_server_check.outcome }}' -ne 'success') { $infraFailures += 'memcached check before memcache' }
+          if ('${{ steps.memcached_server_check.outcome }}' -ne 'success') { $infraFailures += 'memcached check before memcached' }
+
+          $extensions = @(
+            @{ Name = 'memcache'; Step = '${{ steps.memcache.outcome }}'; Collect = '${{ steps.collect_memcache.outcome }}' },
+            @{ Name = 'memcached'; Step = '${{ steps.memcached.outcome }}'; Collect = '${{ steps.collect_memcached.outcome }}' },
+            @{ Name = 'oauth'; Step = '${{ steps.oauth.outcome }}'; Collect = '${{ steps.collect_oauth.outcome }}' },
+            @{ Name = 'xdebug'; Step = '${{ steps.xdebug.outcome }}'; Collect = '${{ steps.collect_xdebug.outcome }}' },
+            @{ Name = 'raphf'; Step = '${{ steps.raphf.outcome }}'; Collect = '${{ steps.collect_raphf.outcome }}' },
+            @{ Name = 'pecl_http'; Step = '${{ steps.pecl_http.outcome }}'; Collect = '${{ steps.collect_pecl_http.outcome }}' },
+            @{ Name = 'solr'; Step = '${{ steps.solr.outcome }}'; Collect = '${{ steps.collect_solr.outcome }}' },
+            @{ Name = 'ssh2'; Step = '${{ steps.ssh2.outcome }}'; Collect = '${{ steps.collect_ssh2.outcome }}' },
+            @{ Name = 'xlswriter'; Step = '${{ steps.xlswriter.outcome }}'; Collect = '${{ steps.collect_xlswriter.outcome }}' },
+            @{ Name = 'zip'; Step = '${{ steps.zip.outcome }}'; Collect = '${{ steps.collect_zip.outcome }}' }
+          )
+
+          foreach ($extension in $extensions) {
+            if ($extension.Collect -ne 'success') {
+              $buildFailures += "$($extension.Name) (artifact was not collected)"
+            } elseif ($extension.Step -ne 'success') {
+              $upstreamTestFailures += $extension.Name
+            }
+          }
+
+          "### Source build/test summary" >> $env:GITHUB_STEP_SUMMARY
+          if ($infraFailures.Count -eq 0 -and $buildFailures.Count -eq 0 -and $upstreamTestFailures.Count -eq 0) {
+            "All source extension builds and upstream tests passed for PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}." >> $env:GITHUB_STEP_SUMMARY
+            exit 0
+          }
+
+          if ($infraFailures.Count -gt 0) {
+            "Infrastructure failures for PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}:" >> $env:GITHUB_STEP_SUMMARY
+            foreach ($failure in $infraFailures) {
+              "- $failure" >> $env:GITHUB_STEP_SUMMARY
+            }
+          }
+          if ($buildFailures.Count -gt 0) {
+            "Build/artifact failures for PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}:" >> $env:GITHUB_STEP_SUMMARY
+            foreach ($failure in $buildFailures) {
+              "- $failure" >> $env:GITHUB_STEP_SUMMARY
+            }
+          }
+          if ($upstreamTestFailures.Count -gt 0) {
+            "Upstream PHPT failures reported separately for PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}; built DLLs were collected and will be validated by the smoke job:" >> $env:GITHUB_STEP_SUMMARY
+            foreach ($failure in $upstreamTestFailures) {
+              "- $failure" >> $env:GITHUB_STEP_SUMMARY
+            }
+          }
+
+          if ($infraFailures.Count -gt 0 -or $buildFailures.Count -gt 0) {
+            throw "Source extension build/artifact failures: infra=[$($infraFailures -join ', ')] build=[$($buildFailures -join ', ')] upstream_phpt=[$($upstreamTestFailures -join ', ')]"
+          }
+
+          exit 0
+
+  stock-zlib-memcached-x86-baseline:
+    name: stock-zlib memcached baseline ${{ matrix.php }} x86 ${{ matrix.ts }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.2", "8.3", "8.4", "8.5"]
+        ts: [nts, ts]
+        include:
+          - php: "8.2"
+            runner: windows-2022
+            vs: vs16
+          - php: "8.3"
+            runner: windows-2022
+            vs: vs16
+          - php: "8.4"
+            runner: windows-2022
+            vs: vs17
+          - php: "8.5"
+            runner: windows-2022
+            vs: vs17
+    env:
+      artifact-naming-scheme: pecl
+      auto-detect-args: "true"
+      auto-detect-libs: "true"
+      MEMC_SERVER_HOST: 127.0.0.1
+      MEMC_SERVER_PORT: "11211"
+    steps:
+      - name: Checkout QA
+        uses: actions/checkout@v4
+
+      - name: Start memcached test daemons
+        id: memcached_setup
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/setup-memcached-windows.ps1 `
+            -Action start `
+            -Ports 11211,11212 `
+            -ServerRoot memcached-server `
+            -LogsDirectory memcached-logs `
+            -Architecture x86
+
+      - name: Build and test memcached against stock zlib
+        id: memcached
+        continue-on-error: true
+        timeout-minutes: 5
+        uses: shivammathur/php-windows-builder/extension@feature/extension-php-build-artifacts
+        with:
+          extension-url: https://pecl.php.net/package/memcached
+          extension-ref: "3.4.0"
+          php-version: ${{ matrix.php }}
+          php-libs-stability: stable
+          apply-patches: "true"
+          arch: x86
+          ts: ${{ matrix.ts }}
+          args: "--enable-memcached --enable-memcached-session --enable-memcached-json"
+          libs: "zlib"
+          run-tests: "true"
+          test-runner-args: "-d open_basedir= -d output_buffering=0 -q --offline --show-diff --show-slow 1000 --set-timeout 30 -g FAIL,XFAIL,BORK,WARN,LEAK,SKIP"
+          test-opcache-mode: "off"
+          test-workers: "1"
+          save-vs-cache: "true"
+          build-directory: build\stock-memcached
+
+      - name: Collect stock-zlib memcached artifacts
+        id: collect_memcached
+        if: always()
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/collect-source-extension-artifact.ps1 `
+            -Package stock-zlib-memcached `
+            -Artifact memcached `
+            -Ref "3.4.0" `
+            -PhpTarget '${{ matrix.php }}' `
+            -Arch x86 `
+            -Ts '${{ matrix.ts }}' `
+            -Vs '${{ matrix.vs }}' `
+            -BuildDirectory build\stock-memcached `
+            -DestinationRoot stock-zlib-baseline-artifacts
+
+      - name: Stop memcached test daemons
+        if: always()
+        shell: pwsh
+        run: |
+          ./scripts/setup-memcached-windows.ps1 `
+            -Action stop `
+            -Ports 11211,11212 `
+            -ServerRoot memcached-server `
+            -LogsDirectory memcached-logs
+
+      - name: Upload stock-zlib memcached logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stock-zlib-memcached-logs-${{ matrix.php }}-x86-${{ matrix.ts }}
+          path: |
+            memcached-logs
+            build\stock-memcached\build-*.txt
+          if-no-files-found: warn
+
+      - name: Upload stock-zlib memcached artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stock-zlib-memcached-artifact-${{ matrix.php }}-x86-${{ matrix.ts }}
+          path: stock-zlib-baseline-artifacts
+          if-no-files-found: warn
+
+      - name: Summarize stock-zlib memcached baseline
+        if: always()
+        shell: pwsh
+        run: |
+          $infraFailures = @()
+          $upstreamFailure = $false
+          if ('${{ steps.memcached_setup.outcome }}' -ne 'success') { $infraFailures += 'memcached setup' }
+          if ('${{ steps.collect_memcached.outcome }}' -ne 'success') { $infraFailures += 'collect stock-zlib memcached artifact' }
+          if ('${{ steps.memcached.outcome }}' -ne 'success' -and '${{ steps.collect_memcached.outcome }}' -eq 'success') { $upstreamFailure = $true }
+
+          "### Stock-zlib x86 memcached PHPT baseline" >> $env:GITHUB_STEP_SUMMARY
+          if ($infraFailures.Count -gt 0) {
+            "Infrastructure/build failures for stock-zlib PHP ${{ matrix.php }} x86 ${{ matrix.ts }}:" >> $env:GITHUB_STEP_SUMMARY
+            foreach ($failure in $infraFailures) {
+              "- $failure" >> $env:GITHUB_STEP_SUMMARY
+            }
+            throw "Stock-zlib memcached baseline could not be produced: infra=[$($infraFailures -join ', ')]"
+          }
+
+          if ($upstreamFailure) {
+            "The stock-zlib x86 memcached PHPT suite failed after the DLL was built and collected. This is an informational baseline for comparing the zlib-rs x86 memcached failures." >> $env:GITHUB_STEP_SUMMARY
+            exit 0
+          }
+
+          "The stock-zlib x86 memcached PHPT suite passed for PHP ${{ matrix.php }} x86 ${{ matrix.ts }}." >> $env:GITHUB_STEP_SUMMARY
+
+  smoke-tests:
+    name: smoke ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}
+    needs: source-build-and-test-extensions
+    if: always()
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ["8.2", "8.3", "8.4", "8.5"]
+        arch: [x64, x86]
+        ts: [nts, ts]
+        include:
+          - php: "8.2"
+            php_run_id: "28419878594"
+            runner: windows-2022
+            vs: vs16
+            pecl: "true"
+          - php: "8.3"
+            php_run_id: "28419879650"
+            runner: windows-2022
+            vs: vs16
+            pecl: "true"
+          - php: "8.4"
+            php_run_id: "28419880744"
+            runner: windows-2022
+            vs: vs17
+            pecl: "true"
+          - php: "8.5"
+            php_run_id: "28419881882"
+            runner: windows-2022
+            vs: vs17
+            pecl: "true"
+    steps:
+      - name: Checkout QA
+        uses: actions/checkout@v4
+
+      - name: Download zlib-rs PHP artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ env.PHP_ARTIFACT_TOKEN }}
+          repository: ${{ env.PHP_ARTIFACT_REPOSITORY }}
+          run-id: ${{ matrix.php_run_id }}
+          name: artifacts
+          path: php-artifacts
+
+      - name: Download source extension artifacts
+        id: source_artifacts
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: zlib-rs-source-extensions-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: source-extension-artifacts
+
+      - name: Run source-built extension smoke and zlib QA
+        id: source_smoke
+        if: steps.source_artifacts.outcome == 'success'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          ./scripts/run-zlib-extension-compat-suite.ps1 `
+            -Mode source `
+            -PhpArtifactsDirectory php-artifacts `
+            -ExtensionArtifactsDirectory source-extension-artifacts `
+            -ReportsDirectory reports/source `
+            -PhpTarget '${{ matrix.php }}' `
+            -PhpRunId '${{ matrix.php_run_id }}' `
+            -Arch '${{ matrix.arch }}' `
+            -Ts '${{ matrix.ts }}' `
+            -Vs '${{ matrix.vs }}'
+
+      - name: Run PECL binary smoke and zlib QA
+        id: pecl_smoke
+        if: matrix.pecl == 'true'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $allowedMissingPackages = @()
+          $allowedMissingPackages = @($allowedMissingPackages | Sort-Object -Unique)
+          "Allowed Windows PECL package gaps for this lane: $($allowedMissingPackages -join ',')"
+
+          $allowedExternalPeclLoadFailures = @()
+          if ('${{ matrix.arch }}' -eq 'x86' -and '${{ matrix.php }}' -in @('8.4', '8.5')) {
+            $allowedExternalPeclLoadFailures += 'solr'
+          }
+          $allowedExternalPeclLoadFailures = @($allowedExternalPeclLoadFailures | Sort-Object -Unique)
+          "Allowed external Windows PECL load failures for this lane: $($allowedExternalPeclLoadFailures -join ',')"
+
+          ./scripts/run-zlib-extension-compat-suite.ps1 `
+            -Mode pecl `
+            -PhpArtifactsDirectory php-artifacts `
+            -ReportsDirectory reports/pecl `
+            -PhpTarget '${{ matrix.php }}' `
+            -PhpRunId '${{ matrix.php_run_id }}' `
+            -Arch '${{ matrix.arch }}' `
+            -Ts '${{ matrix.ts }}' `
+            -Vs '${{ matrix.vs }}' `
+            -AllowedMissingPackages "$($allowedMissingPackages -join ',')" `
+            -AllowedExternalPeclLoadFailures "$($allowedExternalPeclLoadFailures -join ',')"
+
+      - name: Upload smoke reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zlib-rs-extension-smoke-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: reports
+          if-no-files-found: warn
+
+      - name: Summarize smoke failures
+        if: always()
+        shell: pwsh
+        run: |
+          $failures = @()
+          $reports = @(Get-ChildItem -LiteralPath reports -Recurse -Filter 'zlib-extension-compat.json' -File -ErrorAction SilentlyContinue)
+          foreach ($report in $reports) {
+            $data = Get-Content -LiteralPath $report.FullName -Raw | ConvertFrom-Json
+            foreach ($result in @($data.results | Where-Object { $_.status -eq 'fail' })) {
+              $failures += [PSCustomObject]@{
+                Mode = $data.context.mode
+                Feature = $result.name
+                Message = $result.message
+              }
+            }
+          }
+          $skipped = @()
+          $externalPeclLoadFailures = @()
+          $runReports = @(Get-ChildItem -LiteralPath reports -Recurse -Filter 'run.txt' -File -ErrorAction SilentlyContinue)
+          foreach ($runReport in $runReports) {
+            $lines = @(Get-Content -LiteralPath $runReport.FullName)
+            $mode = (($lines | Where-Object { $_ -match '^mode=' } | Select-Object -First 1) -replace '^mode=', '')
+            $skippedLine = (($lines | Where-Object { $_ -match '^skipped=' } | Select-Object -First 1) -replace '^skipped=', '')
+            if (![string]::IsNullOrWhiteSpace($skippedLine)) {
+              $skipped += [PSCustomObject]@{
+                Mode = $mode
+                Modules = $skippedLine
+              }
+            }
+            $externalLoadFailures = @(
+              $lines |
+                Where-Object { $_ -match '^external_pecl_load_failure=' } |
+                ForEach-Object { $_ -replace '^external_pecl_load_failure=', '' }
+            )
+            if ($externalLoadFailures.Count -gt 0) {
+              $externalPeclLoadFailures += [PSCustomObject]@{
+                Mode = $mode
+                Modules = ($externalLoadFailures -join ',')
+              }
+            }
+          }
+
+          "### Smoke summary" >> $env:GITHUB_STEP_SUMMARY
+          if ('${{ steps.source_artifacts.outcome }}' -ne 'success') {
+            "- Source extension artifacts were not available for PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}." >> $env:GITHUB_STEP_SUMMARY
+          }
+          if ('${{ steps.source_smoke.outcome }}' -ne 'success') {
+            "- Source smoke step failed for PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}." >> $env:GITHUB_STEP_SUMMARY
+          }
+          if ('${{ steps.pecl_smoke.outcome }}' -ne 'success') {
+            "- PECL smoke step failed for PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}." >> $env:GITHUB_STEP_SUMMARY
+          }
+
+          if ($failures.Count -gt 0) {
+            "" >> $env:GITHUB_STEP_SUMMARY
+            "| Mode | Feature | Message |" >> $env:GITHUB_STEP_SUMMARY
+            "| --- | --- | --- |" >> $env:GITHUB_STEP_SUMMARY
+            foreach ($failure in $failures) {
+              "| $($failure.Mode) | $($failure.Feature) | $($failure.Message) |" >> $env:GITHUB_STEP_SUMMARY
+            }
+          }
+          if ($skipped.Count -gt 0) {
+            "" >> $env:GITHUB_STEP_SUMMARY
+            "| Mode | Skipped modules | Reason |" >> $env:GITHUB_STEP_SUMMARY
+            "| --- | --- | --- |" >> $env:GITHUB_STEP_SUMMARY
+            foreach ($skip in $skipped) {
+              "| $($skip.Mode) | $($skip.Modules) | Published Windows PECL binary is unavailable or not loadable for this PHP/arch lane. |" >> $env:GITHUB_STEP_SUMMARY
+            }
+          }
+          if ($externalPeclLoadFailures.Count -gt 0) {
+            "" >> $env:GITHUB_STEP_SUMMARY
+            "| Mode | External PECL load failures | Reason |" >> $env:GITHUB_STEP_SUMMARY
+            "| --- | --- | --- |" >> $env:GITHUB_STEP_SUMMARY
+            foreach ($failure in $externalPeclLoadFailures) {
+              "| $($failure.Mode) | $($failure.Modules) | Published Windows PECL binary imports a runtime DLL that is not available as a matching PHP SDK dependency for this lane; zlib QA continued without it. |" >> $env:GITHUB_STEP_SUMMARY
+            }
+          }
+
+          if (
+            '${{ steps.source_artifacts.outcome }}' -ne 'success' -or
+            '${{ steps.source_smoke.outcome }}' -ne 'success' -or
+            '${{ steps.pecl_smoke.outcome }}' -ne 'success' -or
+            $failures.Count -gt 0
+          ) {
+            throw 'Smoke failures were detected. See the job summary and uploaded reports.'
+          }
