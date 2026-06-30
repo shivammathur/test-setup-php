@@ -1,0 +1,131 @@
+name: setup-php PECL gap check
+
+on:
+  push:
+    branches:
+      - feature/setup-php-pecl-gap-check
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup-php-extension-gap:
+    name: setup-php ${{ matrix.php }} ${{ matrix.extension }}
+    runs-on: windows-2022
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: "8.4"
+            extension: http
+            module: http
+            original_gap: "zlib-rs PECL x64/x86 skipped http"
+          - php: "8.4"
+            extension: solr
+            module: solr
+            original_gap: "zlib-rs PECL x86 skipped solr; setup-php Windows path is x64 only"
+          - php: "8.5"
+            extension: http
+            module: http
+            original_gap: "zlib-rs PECL x64/x86 skipped http"
+          - php: "8.5"
+            extension: solr
+            module: solr
+            original_gap: "zlib-rs PECL x86 skipped solr; setup-php Windows path is x64 only"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ${{ matrix.extension }} with setup-php
+        id: setup_php
+        continue-on-error: true
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.extension }}
+          coverage: none
+          tools: none
+
+      - name: Probe extension load
+        id: probe
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $reports = Join-Path $env:GITHUB_WORKSPACE 'setup-php-pecl-gap-reports'
+          New-Item -ItemType Directory -Force -Path $reports | Out-Null
+
+          $module = '${{ matrix.module }}'
+          $phpVersion = '${{ matrix.php }}'
+          $extension = '${{ matrix.extension }}'
+          $runReport = Join-Path $reports 'run.txt'
+          @(
+            "php=$phpVersion",
+            "setup_php_windows_arch=x64",
+            "extension=$extension",
+            "module=$module",
+            "original_gap=${{ matrix.original_gap }}",
+            "setup_php_outcome=${{ steps.setup_php.outcome }}"
+          ) | Set-Content -LiteralPath $runReport -Encoding ASCII
+
+          $php = Get-Command php -ErrorAction SilentlyContinue
+          if ($null -eq $php) {
+            "php executable was not found after setup-php." | Tee-Object -FilePath (Join-Path $reports 'probe.txt')
+            "present=false" >> $env:GITHUB_OUTPUT
+            exit 1
+          }
+
+          & php -v *>&1 | Tee-Object -FilePath (Join-Path $reports 'php-v.txt')
+          $modules = @(& php -m *>&1)
+          $modules | Tee-Object -FilePath (Join-Path $reports 'php-m.txt')
+          $moduleSet = @($modules | ForEach-Object { "$_".ToLowerInvariant() })
+          $present = $moduleSet -contains $module.ToLowerInvariant()
+          "present=$($present.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+          "present=$present" | Add-Content -LiteralPath $runReport -Encoding ASCII
+
+          $ri = @(& php --ri $module *>&1)
+          $riExit = $LASTEXITCODE
+          $ri | Tee-Object -FilePath (Join-Path $reports "ri-$module.txt")
+          "ri_exit=$riExit" >> $env:GITHUB_OUTPUT
+          "ri_exit=$riExit" | Add-Content -LiteralPath $runReport -Encoding ASCII
+
+          if (!$present -or $riExit -ne 0) {
+            exit 1
+          }
+
+      - name: Summarize setup-php comparison
+        shell: pwsh
+        run: |
+          $setupOutcome = '${{ steps.setup_php.outcome }}'
+          $probeOutcome = '${{ steps.probe.outcome }}'
+          $present = '${{ steps.probe.outputs.present }}'
+          $riExit = '${{ steps.probe.outputs.ri_exit }}'
+          $reproduced = !($setupOutcome -eq 'success' -and $probeOutcome -eq 'success')
+
+          "### setup-php PECL comparison" >> $env:GITHUB_STEP_SUMMARY
+          "- PHP: ${{ matrix.php }}" >> $env:GITHUB_STEP_SUMMARY
+          "- setup-php Windows architecture: x64" >> $env:GITHUB_STEP_SUMMARY
+          "- Extension: ${{ matrix.extension }}" >> $env:GITHUB_STEP_SUMMARY
+          "- Original PECL gap: ${{ matrix.original_gap }}" >> $env:GITHUB_STEP_SUMMARY
+          "- setup-php outcome: $setupOutcome" >> $env:GITHUB_STEP_SUMMARY
+          "- probe outcome: $probeOutcome" >> $env:GITHUB_STEP_SUMMARY
+          "- module present: $present" >> $env:GITHUB_STEP_SUMMARY
+          "- php --ri exit code: $riExit" >> $env:GITHUB_STEP_SUMMARY
+          "- gap reproduced in setup-php: $($reproduced.ToString().ToLowerInvariant())" >> $env:GITHUB_STEP_SUMMARY
+
+          $reports = Join-Path $env:GITHUB_WORKSPACE 'setup-php-pecl-gap-reports'
+          $runReport = Join-Path $reports 'run.txt'
+          if (Test-Path -LiteralPath $runReport) {
+            "reproduced=$($reproduced.ToString().ToLowerInvariant())" | Add-Content -LiteralPath $runReport -Encoding ASCII
+          }
+
+      - name: Upload probe reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: setup-php-pecl-gap-${{ matrix.php }}-x64-${{ matrix.extension }}
+          path: setup-php-pecl-gap-reports
+          if-no-files-found: warn
