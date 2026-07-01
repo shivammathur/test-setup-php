@@ -120,6 +120,17 @@ jobs:
           Expand-Php -Label baseline -SourceRoot (Join-Path (Get-Location) 'downloads/baseline')
           Expand-Php -Label bzip2_rs -SourceRoot (Join-Path (Get-Location) 'downloads/bzip2-rs')
 
+      - name: Collect runner system information
+        shell: pwsh
+        run: |
+          scripts/collect-system-info.ps1 `
+            -PhpRef '${{ matrix.php.ref }}' `
+            -Arch '${{ matrix.arch }}' `
+            -ThreadSafety '${{ matrix.ts }}' `
+            -BaselineRun '${{ matrix.php.baseline-run }}' `
+            -Bzip2RsRun '${{ matrix.php.bzip2-rs-run }}' `
+            -Output results/system.json
+
       - name: Run benchmarks
         shell: pwsh
         run: |
@@ -158,6 +169,17 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $baseline = Get-Content results/baseline.json -Raw | ConvertFrom-Json
           $candidate = Get-Content results/bzip2-rs.json -Raw | ConvertFrom-Json
+          $system = Get-Content results/system.json -Raw | ConvertFrom-Json
+
+          function Format-MdCell {
+            param([object] $Value)
+
+            if ($null -eq $Value) {
+              return ''
+            }
+
+            return ([string] $Value).Replace('|', '\|')
+          }
 
           $baselineByName = @{}
           foreach ($item in $baseline.benchmarks) {
@@ -171,6 +193,21 @@ jobs:
           $lines += "| --- | ---: | --- | --- |"
           $lines += "| baseline | ${{ matrix.php.baseline-run }} | ${{ steps.php.outputs.baseline_zip }} | $($baseline.php_version) |"
           $lines += "| bzip2-rs | ${{ matrix.php.bzip2-rs-run }} | ${{ steps.php.outputs.bzip2_rs_zip }} | $($candidate.php_version) |"
+          $lines += ''
+          $lines += '## Runner system'
+          $lines += ''
+          $lines += '| Field | Value |'
+          $lines += '| --- | --- |'
+          $lines += "| Runner | $(Format-MdCell $system.runner.name) |"
+          $lines += "| Runner image | $(Format-MdCell "$($system.runner.image_os) $($system.runner.image_version)") |"
+          $lines += "| Machine | $(Format-MdCell "$($system.machine.manufacturer) $($system.machine.model)") |"
+          $lines += "| Processor | $(Format-MdCell $system.processor.name) |"
+          $lines += "| Cores / logical processors | $($system.processor.cores) / $($system.processor.logical_processors) |"
+          $lines += "| Max clock | $($system.processor.max_clock_speed_mhz) MHz |"
+          $lines += "| Memory | $($system.machine.total_physical_memory_gb) GB |"
+          $lines += "| OS | $(Format-MdCell "$($system.os.caption) $($system.os.version) $($system.os.architecture)") |"
+          $lines += ''
+          $lines += '## Results'
           $lines += ''
           $lines += "| Benchmark | Baseline median ms | bzip2-rs median ms | bzip2-rs / baseline |"
           $lines += "| --- | ---: | ---: | ---: |"
