@@ -249,6 +249,128 @@ jobs:
             Invoke-Php -Php $php.FullName -PhpArgs @((Resolve-Path scripts\zlib-benchmark.php), '--mode=smoke')
           }
 
+      - name: Capture runner system info
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path results | Out-Null
+
+          function Test-Intrinsic {
+            param([Parameter(Mandatory)] [string] $TypeName)
+
+            $type = [type]::GetType($TypeName, $false)
+            if ($null -eq $type) {
+              foreach ($assembly in [AppDomain]::CurrentDomain.GetAssemblies()) {
+                $type = $assembly.GetType($TypeName, $false)
+                if ($null -ne $type) {
+                  break
+                }
+              }
+            }
+
+            if ($null -eq $type) {
+              return $false
+            }
+
+            $property = $type.GetProperty('IsSupported', [System.Reflection.BindingFlags]::Public -bor [System.Reflection.BindingFlags]::Static)
+            if ($null -eq $property) {
+              return $false
+            }
+
+            return [bool] $property.GetValue($null)
+          }
+
+          $cpu = Get-CimInstance Win32_Processor | Select-Object -First 1 `
+            Name,
+            Manufacturer,
+            Description,
+            NumberOfCores,
+            NumberOfLogicalProcessors,
+            MaxClockSpeed,
+            L2CacheSize,
+            L3CacheSize,
+            SocketDesignation,
+            ProcessorId
+
+          $system = Get-CimInstance Win32_ComputerSystem | Select-Object -First 1 `
+            Manufacturer,
+            Model,
+            SystemType,
+            TotalPhysicalMemory,
+            HypervisorPresent
+
+          $os = Get-CimInstance Win32_OperatingSystem | Select-Object -First 1 `
+            Caption,
+            Version,
+            BuildNumber,
+            OSArchitecture,
+            LastBootUpTime
+
+          $intrinsics = [ordered]@{}
+          foreach ($intrinsic in @(
+            'System.Runtime.Intrinsics.X86.Sse2',
+            'System.Runtime.Intrinsics.X86.Sse3',
+            'System.Runtime.Intrinsics.X86.Ssse3',
+            'System.Runtime.Intrinsics.X86.Sse41',
+            'System.Runtime.Intrinsics.X86.Sse42',
+            'System.Runtime.Intrinsics.X86.Avx',
+            'System.Runtime.Intrinsics.X86.Avx2',
+            'System.Runtime.Intrinsics.X86.Bmi1',
+            'System.Runtime.Intrinsics.X86.Bmi2',
+            'System.Runtime.Intrinsics.X86.AvxVnni',
+            'System.Runtime.Intrinsics.X86.Avx512F',
+            'System.Runtime.Intrinsics.X86.Avx512BW',
+            'System.Runtime.Intrinsics.X86.Avx512DQ',
+            'System.Runtime.Intrinsics.X86.Avx512Vbmi'
+          )) {
+            $intrinsics[$intrinsic.Split('.')[-1]] = Test-Intrinsic -TypeName $intrinsic
+          }
+
+          $metadata = [ordered]@{
+            php = $env:PHP_VERSION_LABEL
+            github = [ordered]@{
+              run_id = $env:GITHUB_RUN_ID
+              run_attempt = $env:GITHUB_RUN_ATTEMPT
+              job = $env:GITHUB_JOB
+              workflow = $env:GITHUB_WORKFLOW
+              ref = $env:GITHUB_REF
+              sha = $env:GITHUB_SHA
+            }
+            runner = [ordered]@{
+              label = '${{ matrix.runner }}'
+              os = $env:RUNNER_OS
+              arch = $env:RUNNER_ARCH
+              name = $env:RUNNER_NAME
+              image_os = $env:ImageOS
+              image_version = $env:ImageVersion
+            }
+            cpu = $cpu
+            system = $system
+            os = $os
+            dotnet_intrinsics = $intrinsics
+            benchmark = [ordered]@{
+              payload_mb = $env:PAYLOAD_MB
+              iterations = $env:ITERATIONS
+              repeats = $env:REPEATS
+              zlib_rs_run = $env:ZLIB_RS_RUN
+              zlib_ng_run = $env:ZLIB_NG_RUN
+              zlib_run = $env:ZLIB_RUN
+            }
+          }
+
+          $metadata | ConvertTo-Json -Depth 8 | Set-Content -Path results\system-info.json
+
+          "### PHP $env:PHP_VERSION_LABEL runner system info" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "| Field | Value |" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "| --- | --- |" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "| Runner | ${{ matrix.runner }} / $env:RUNNER_ARCH / $env:ImageOS $env:ImageVersion |" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "| CPU | $($cpu.Name) |" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "| Cores / logical processors | $($cpu.NumberOfCores) / $($cpu.NumberOfLogicalProcessors) |" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "| Max clock | $($cpu.MaxClockSpeed) MHz |" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "| L2 / L3 cache | $($cpu.L2CacheSize) KB / $($cpu.L3CacheSize) KB |" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "| SIMD support | SSE2=$($intrinsics.Sse2), SSE4.2=$($intrinsics.Sse42), AVX=$($intrinsics.Avx), AVX2=$($intrinsics.Avx2), AVX512F=$($intrinsics.Avx512F) |" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+          "" | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+
       - name: Capture zlib version info
         run: |
           $ErrorActionPreference = 'Stop'
