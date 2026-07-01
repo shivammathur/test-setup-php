@@ -1,0 +1,205 @@
+name: libbzip2 PHP Artifact Benchmark
+run-name: "libbzip2 benchmark ${{ github.ref_name }}"
+
+on:
+  push:
+    branches:
+      - benchmark/bzip2-rs
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  benchmark:
+    name: ${{ matrix.php.ref }} ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: ${{ matrix.php.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        php:
+          - ref: PHP-8.2
+            baseline-run: 28419878594
+            bzip2-rs-run: 28494817634
+            runner: windows-2022
+          - ref: PHP-8.3
+            baseline-run: 28419879650
+            bzip2-rs-run: 28494817954
+            runner: windows-2022
+          - ref: PHP-8.4
+            baseline-run: 28419880744
+            bzip2-rs-run: 28494817713
+            runner: windows-2022
+          - ref: PHP-8.5
+            baseline-run: 28419881882
+            bzip2-rs-run: 28494817819
+            runner: windows-2022
+          - ref: master
+            baseline-run: 28419883019
+            bzip2-rs-run: 28494817956
+            runner: windows-2025-vs2026
+        arch: [x64, x86]
+        ts: [nts, ts]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download baseline PHP artifacts
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.php.baseline-run }}
+          name: artifacts
+          path: downloads/baseline
+          github-token: ${{ secrets.GH_TOKEN || github.token }}
+
+      - name: Download bzip2-rs PHP artifacts
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.php.bzip2-rs-run }}
+          name: artifacts
+          path: downloads/bzip2-rs
+          github-token: ${{ secrets.GH_TOKEN || github.token }}
+
+      - name: Select and extract PHP builds
+        id: php
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $arch = '${{ matrix.arch }}'
+          $ts = '${{ matrix.ts }}'
+
+          function Get-PhpZip {
+            param(
+              [Parameter(Mandatory)] [string] $Root,
+              [Parameter(Mandatory)] [string] $Arch,
+              [Parameter(Mandatory)] [string] $Ts
+            )
+
+            $zips = Get-ChildItem -Path $Root -Filter 'php-*.zip' -File -Recurse | Where-Object {
+              $_.Name -notmatch '^php-(debug|devel)-pack-' -and
+              $_.Name -match "^php-.+-Win32-v[cs]\d+-$Arch\.zip$" -and
+              (($Ts -eq 'nts' -and $_.Name -match '-nts-') -or ($Ts -eq 'ts' -and $_.Name -notmatch '-nts-'))
+            }
+
+            if (@($zips).Count -ne 1) {
+              Write-Host "Matching zips under ${Root}:"
+              $zips | ForEach-Object { Write-Host "  $($_.FullName)" }
+              throw "Expected exactly one PHP zip for $Arch/$Ts under $Root; found $(@($zips).Count)"
+            }
+
+            return $zips[0]
+          }
+
+          function Expand-Php {
+            param(
+              [Parameter(Mandatory)] [string] $Label,
+              [Parameter(Mandatory)] [string] $SourceRoot
+            )
+
+            $zip = Get-PhpZip -Root $SourceRoot -Arch $arch -Ts $ts
+            $destination = Join-Path (Join-Path (Get-Location) 'php') $Label
+            New-Item -ItemType Directory -Force -Path $destination | Out-Null
+            Expand-Archive -LiteralPath $zip.FullName -DestinationPath $destination -Force
+
+            $php = Join-Path $destination 'php.exe'
+            if (-not (Test-Path -LiteralPath $php)) {
+              throw "php.exe missing after extracting $($zip.FullName)"
+            }
+
+            "$($Label)_zip=$($zip.Name)" | Add-Content -Path $env:GITHUB_OUTPUT
+            "$($Label)_php=$php" | Add-Content -Path $env:GITHUB_OUTPUT
+            Write-Host "${Label}: $($zip.Name)"
+          }
+
+          New-Item -ItemType Directory -Force -Path php, results | Out-Null
+          Expand-Php -Label baseline -SourceRoot (Join-Path (Get-Location) 'downloads/baseline')
+          Expand-Php -Label bzip2_rs -SourceRoot (Join-Path (Get-Location) 'downloads/bzip2-rs')
+
+      - name: Run benchmarks
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Invoke-Benchmark {
+            param(
+              [Parameter(Mandatory)] [string] $Label,
+              [Parameter(Mandatory)] [string] $Php,
+              [Parameter(Mandatory)] [string] $Output
+            )
+
+            $extensionDir = Join-Path (Split-Path -Parent $Php) 'ext'
+            & $Php -n `
+              -d "extension_dir=$extensionDir" `
+              -d extension=bz2 `
+              -d extension=zip `
+              benchmarks/libbzip2.php `
+              --label $Label `
+              --php-ref '${{ matrix.php.ref }}' `
+              --arch '${{ matrix.arch }}' `
+              --ts '${{ matrix.ts }}' `
+              --output $Output
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "$Label benchmark failed with exit code $LASTEXITCODE"
+            }
+          }
+
+          Invoke-Benchmark -Label baseline -Php '${{ steps.php.outputs.baseline_php }}' -Output results/baseline.json
+          Invoke-Benchmark -Label bzip2-rs -Php '${{ steps.php.outputs.bzip2_rs_php }}' -Output results/bzip2-rs.json
+
+      - name: Compare benchmark results
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $baseline = Get-Content results/baseline.json -Raw | ConvertFrom-Json
+          $candidate = Get-Content results/bzip2-rs.json -Raw | ConvertFrom-Json
+
+          $baselineByName = @{}
+          foreach ($item in $baseline.benchmarks) {
+            $baselineByName[$item.name] = $item
+          }
+
+          $lines = @()
+          $lines += "# libbzip2 benchmark: ${{ matrix.php.ref }} ${{ matrix.arch }} ${{ matrix.ts }}"
+          $lines += ''
+          $lines += "| Build | Run | Zip | PHP |"
+          $lines += "| --- | ---: | --- | --- |"
+          $lines += "| baseline | ${{ matrix.php.baseline-run }} | ${{ steps.php.outputs.baseline_zip }} | $($baseline.php_version) |"
+          $lines += "| bzip2-rs | ${{ matrix.php.bzip2-rs-run }} | ${{ steps.php.outputs.bzip2_rs_zip }} | $($candidate.php_version) |"
+          $lines += ''
+          $lines += "| Benchmark | Baseline median ms | bzip2-rs median ms | bzip2-rs / baseline |"
+          $lines += "| --- | ---: | ---: | ---: |"
+
+          foreach ($item in $candidate.benchmarks) {
+            if (-not $baselineByName.ContainsKey($item.name)) {
+              continue
+            }
+
+            $base = $baselineByName[$item.name]
+            if ($base.skipped -or $item.skipped) {
+              $lines += "| $($item.name) | skipped | skipped | n/a |"
+              continue
+            }
+
+            $ratio = [double] $item.median_ms / [double] $base.median_ms
+            $baseMedian = ([double] $base.median_ms).ToString('0.000')
+            $candidateMedian = ([double] $item.median_ms).ToString('0.000')
+            $ratioValue = $ratio.ToString('0.000')
+            $lines += "| $($item.name) | $baseMedian | $candidateMedian | $ratioValue |"
+          }
+
+          $lines += ''
+          $lines += 'Ratios below 1.000 are faster for bzip2-rs; ratios above 1.000 are faster for the baseline build.'
+          Set-Content -Path results/summary.md -Value $lines -Encoding utf8
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ($lines -join "`n")
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v7
+        with:
+          name: libbzip2-benchmark-${{ matrix.php.ref }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: results/*
