@@ -1,6 +1,8 @@
 param(
   [Parameter(Mandatory = $true)]
-  [string]$ArtifactsDir
+  [string]$ArtifactsDir,
+
+  [switch]$AllowNonOpenSsl4
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,7 +13,7 @@ New-Item -ItemType Directory -Path $workDir -Force | Out-Null
 
 $runtimeZips = Get-ChildItem -Path $artifactsPath -Filter 'php-*.zip' -File |
   Where-Object {
-    $_.Name -match '^php-\d+\.\d+\.\d+(?:-[^-]+)?(?:-nts)?-Win32-vs18-(x64|x86)\.zip$'
+    $_.Name -match '^php-\d+\.\d+\.\d+(?:-[^-]+)?(?:-nts)?-Win32-vs1[78]-(x64|x86)\.zip$'
   } |
   Sort-Object Name
 
@@ -48,11 +50,18 @@ foreach ($zip in $runtimeZips) {
     throw "php -m failed for $($zip.Name)"
   }
 
-  & $php -n `
-    -d "extension_dir=$extDir" `
-    -d extension=openssl `
-    -d error_reporting=-1 `
+  $testArgs = @(
+    '-n',
+    '-d', "extension_dir=$extDir",
+    '-d', 'extension=openssl',
+    '-d', 'error_reporting=-1',
     $testScript
+  )
+  if ($AllowNonOpenSsl4) {
+    $testArgs += '--allow-non-openssl4'
+  }
+
+  & $php @testArgs
   if ($LASTEXITCODE -ne 0) {
     throw "OpenSSL smoke test failed for $($zip.Name)"
   }

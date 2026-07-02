@@ -167,7 +167,11 @@ function test_ec_behavior(): void {
     $gY = hex2bin('02BB3A02D4AAADACAE24817A4CA3A1B014B5270432DB27D2');
     $order = hex2bin('BDB6F4FE3E8B1D9E0DA8C0D40FC962195DFAE76F56564677');
     $custom = @openssl_pkey_new(['ec' => ['p' => $p, 'a' => $a, 'b' => $b, 'order' => $order, 'g_x' => $gX, 'g_y' => $gY, 'd' => $d]]);
-    ok($custom === false, 'OpenSSL 4 rejects EC custom params without crashing');
+    if (OPENSSL_VERSION_NUMBER >= 0x40000000) {
+        ok($custom === false, 'OpenSSL 4 rejects EC custom params without crashing');
+    } else {
+        ok($custom === false || $custom instanceof OpenSSLAsymmetricKey, 'EC custom params call returns cleanly');
+    }
 }
 
 function bmp_cn_cert(): string {
@@ -311,7 +315,12 @@ if (($argv[1] ?? null) === '--tls-server') {
 }
 
 ok(extension_loaded('openssl'), 'openssl extension is loaded');
-ok(OPENSSL_VERSION_NUMBER >= 0x40000000, 'OpenSSL 4 runtime is active: ' . OPENSSL_VERSION_TEXT);
+$requireOpenSsl4 = !in_array('--allow-non-openssl4', $argv, true);
+if ($requireOpenSsl4) {
+    ok(OPENSSL_VERSION_NUMBER >= 0x40000000, 'OpenSSL 4 runtime is active: ' . OPENSSL_VERSION_TEXT);
+} else {
+    ok(OPENSSL_VERSION_NUMBER > 0, 'OpenSSL runtime is active: ' . OPENSSL_VERSION_TEXT);
+}
 
 test_x509_csr_and_crypto();
 test_ec_behavior();

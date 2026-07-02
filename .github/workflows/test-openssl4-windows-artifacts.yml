@@ -4,10 +4,18 @@ on:
   push:
   workflow_dispatch:
     inputs:
+      source:
+        description: Artifact source, either builder or release
+        required: true
+        default: "builder"
       run-id:
         description: php-windows-builder run ID containing the merged artifacts
-        required: true
+        required: false
         default: "28561349625"
+      php-version:
+        description: PHP release version when source is release
+        required: false
+        default: "8.5.8"
 
 permissions:
   actions: read
@@ -18,12 +26,16 @@ jobs:
     name: OpenSSL userland artifact checks
     runs-on: windows-2025-vs2026
     env:
+      PHP_ARTIFACT_SOURCE: ${{ inputs.source || 'builder' }}
       PHP_WINDOWS_BUILDER_RUN_ID: ${{ inputs.run-id || '28561349625' }}
+      PHP_VERSION: ${{ inputs.php-version || '8.5.8' }}
+      RELEASE_BASE_URL: https://downloads.php.net/~windows/releases
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Download PHP artifacts
+      - name: Download PHP builder artifacts
+        if: env.PHP_ARTIFACT_SOURCE == 'builder'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -34,6 +46,29 @@ jobs:
             --dir artifacts
           Get-ChildItem -Path artifacts -File | Sort-Object Name | Format-Table Name, Length
 
+      - name: Download PHP release artifacts
+        if: env.PHP_ARTIFACT_SOURCE == 'release'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path artifacts -Force | Out-Null
+          $zips = @(
+            "php-$env:PHP_VERSION-Win32-vs17-x64.zip",
+            "php-$env:PHP_VERSION-Win32-vs17-x86.zip",
+            "php-$env:PHP_VERSION-nts-Win32-vs17-x64.zip",
+            "php-$env:PHP_VERSION-nts-Win32-vs17-x86.zip"
+          )
+          foreach ($zip in $zips) {
+            $url = "$env:RELEASE_BASE_URL/$zip"
+            Write-Host "Downloading $url"
+            Invoke-WebRequest -Uri $url -OutFile "artifacts\$zip"
+          }
+          Get-ChildItem -Path artifacts -File | Sort-Object Name | Format-Table Name, Length
+
       - name: Test OpenSSL userland behavior
         shell: pwsh
-        run: .\.github\scripts\Test-OpenSslArtifacts.ps1 -ArtifactsDir artifacts
+        run: |
+          if ($env:PHP_ARTIFACT_SOURCE -eq 'release') {
+            .\.github\scripts\Test-OpenSslArtifacts.ps1 -ArtifactsDir artifacts -AllowNonOpenSsl4
+          } else {
+            .\.github\scripts\Test-OpenSslArtifacts.ps1 -ArtifactsDir artifacts
+          }
