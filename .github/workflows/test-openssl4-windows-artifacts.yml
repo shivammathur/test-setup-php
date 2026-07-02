@@ -1,0 +1,39 @@
+name: Test OpenSSL 4 Windows PHP artifacts
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      run-id:
+        description: php-windows-builder run ID containing the merged artifacts
+        required: true
+        default: "28561349625"
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  openssl-userland:
+    name: OpenSSL userland artifact checks
+    runs-on: windows-2025-vs2026
+    env:
+      PHP_WINDOWS_BUILDER_RUN_ID: ${{ inputs.run-id || '28561349625' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download PHP artifacts
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "$env:PHP_WINDOWS_BUILDER_RUN_ID" `
+            --repo shivammathur/php-windows-builder `
+            --name artifacts `
+            --dir artifacts
+          Get-ChildItem -Path artifacts -File | Sort-Object Name | Format-Table Name, Length
+
+      - name: Test OpenSSL userland behavior
+        shell: pwsh
+        run: .\.github\scripts\Test-OpenSslArtifacts.ps1 -ArtifactsDir artifacts
