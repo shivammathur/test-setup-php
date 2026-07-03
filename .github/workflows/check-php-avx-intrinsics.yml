@@ -1,0 +1,220 @@
+name: Check PHP AVX intrinsics
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: scan ${{ matrix.build.label }}
+    runs-on: windows-2025
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+          - label: normal
+            asset: php-8.5.9-dev-nts-Win32-vs17-x64.zip
+          - label: avx
+            asset: php-8.5.9-dev-nts-Win32-vs17-x64-AVX.zip
+
+    steps:
+      - name: Download PHP build
+        shell: pwsh
+        env:
+          ASSET: ${{ matrix.build.asset }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $url = "https://github.com/shivammathur/php-builder-windows/releases/download/php8.5/$env:ASSET"
+          $zip = Join-Path $env:RUNNER_TEMP $env:ASSET
+          $extract = Join-Path $env:RUNNER_TEMP 'php'
+
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath $extract -Force
+
+          $phpExe = Get-ChildItem -Path $extract -Recurse -Filter php.exe -File | Select-Object -First 1
+          if (-not $phpExe) {
+            throw "php.exe was not found in $env:ASSET"
+          }
+
+          "PHP_DIR=$($phpExe.Directory.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Scan binaries for AVX-family instructions
+        shell: pwsh
+        env:
+          BUILD_LABEL: ${{ matrix.build.label }}
+          ASSET: ${{ matrix.build.asset }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Escape-GitHubMessage([string] $value) {
+            return $value.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+          }
+
+          function Find-Disassembler {
+            $command = Get-Command llvm-objdump -ErrorAction SilentlyContinue
+            if ($command) {
+              return [pscustomobject]@{ Kind = 'llvm-objdump'; Path = $command.Source }
+            }
+
+            $knownPaths = @(
+              "$env:ProgramFiles\LLVM\bin\llvm-objdump.exe",
+              "${env:ProgramFiles(x86)}\LLVM\bin\llvm-objdump.exe",
+              'C:\msys64\clang64\bin\llvm-objdump.exe',
+              'C:\msys64\mingw64\bin\llvm-objdump.exe'
+            )
+
+            foreach ($path in $knownPaths) {
+              if (Test-Path $path) {
+                return [pscustomobject]@{ Kind = 'llvm-objdump'; Path = $path }
+              }
+            }
+
+            $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+            if (Test-Path $vswhere) {
+              $install = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+              if ($install) {
+                $msvcTools = Join-Path $install 'VC\Tools\MSVC'
+                $dumpbin = Get-ChildItem -Path $msvcTools -Filter dumpbin.exe -Recurse -ErrorAction SilentlyContinue |
+                  Where-Object { $_.FullName -match '\\bin\\Hostx64\\x64\\dumpbin\.exe$' } |
+                  Sort-Object FullName |
+                  Select-Object -Last 1
+
+                if ($dumpbin) {
+                  return [pscustomobject]@{ Kind = 'dumpbin'; Path = $dumpbin.FullName }
+                }
+              }
+            }
+
+            throw 'Could not find llvm-objdump or dumpbin on the runner'
+          }
+
+          function Invoke-Disassembler($tool, [string] $file) {
+            if ($tool.Kind -eq 'llvm-objdump') {
+              & $tool.Path -d --x86-asm-syntax=intel --no-show-raw-insn $file 2>$null
+            } else {
+              & $tool.Path /disasm:nobytes $file 2>$null
+            }
+          }
+
+          function Add-FeatureHit([hashtable] $features, [string] $line) {
+            if ($line -match '\b(?:zmm\d+|k[0-7]|v(?:pternlog|popcnt|pmadd52|permi2|permt2|compress|expand|scatter|broadcastm|pmullq|psraq|psllvq|psrlvq|psravq|psllvw|psrlvw)[a-z0-9.]*)\b') {
+              $features['AVX-512'] = $true
+            }
+
+            if ($line -match '\b(?:vp[a-z0-9.]+|vpbroadcast[a-z0-9.]*|vperm2i128|vextracti128|vinserti128|vpgather[a-z0-9.]*|vpsllv[a-z0-9.]*|vpsrlv[a-z0-9.]*|vpsrav[a-z0-9.]*|vpermd|vpermps|ymm\d+)\b') {
+              $features['AVX2/AVX-256'] = $true
+            }
+
+            if ($line -match '\b(?:vzeroupper|vzeroall|v(?:add|sub|mul|div|max|min|sqrt|rsqrt|rcp|and|andn|or|xor|mov|blend|broadcast|perm|insert|extract|shuffle|shuf|unpck|pack|test|cmp|comi|ucomi|cvt|fmadd|fmsub|fnmadd|fnmsub)[a-z0-9.]*|ymm\d+)\b') {
+              $features['AVX/FMA'] = $true
+            }
+          }
+
+          function Get-DisassembledInstruction([string] $line) {
+            if ($line -notmatch '^\s*[0-9a-fA-F]+:\s+(?<instruction>.+)$') {
+              return $null
+            }
+
+            return (($Matches.instruction -split '\s+#\s+', 2)[0]).Trim()
+          }
+
+          function Test-AvxInstruction([string] $instruction) {
+            if ($instruction -notmatch '^(?<mnemonic>[a-z][a-z0-9.]+)\b') {
+              return $false
+            }
+
+            $mnemonic = $Matches.mnemonic.ToLowerInvariant()
+            return $mnemonic -match '^v(?:add|sub|mul|div|max|min|sqrt|rsqrt|rcp|and|andn|or|xor|mov|zero|blend|broadcast|perm|insert|extract|shuffle|shuf|unpck|pack|test|cmp|comi|ucomi|cvt|fmadd|fmsub|fnmadd|fnmsub|gather|scatter|p[a-z0-9]+)' -or
+              $instruction -match '\b[yz]mm\d+\b|\{?k[0-7]\}?'
+          }
+
+          $tool = Find-Disassembler
+          $phpDir = $env:PHP_DIR
+          $report = Join-Path $env:RUNNER_TEMP "avx-intrinsic-report-$env:BUILD_LABEL.txt"
+          $candidatePattern = '^\s*[0-9a-fA-F]+:\s+(?:v[a-z][a-z0-9.]*\b|.*\b[yz]mm\d+\b|.*\{?k[0-7]\}?)'
+
+          $binaries = Get-ChildItem -Path $phpDir -Recurse -Include *.exe,*.dll -File | Sort-Object FullName
+          $features = @{}
+          $filesWithHits = New-Object System.Collections.Generic.List[string]
+          $lines = New-Object System.Collections.Generic.List[string]
+
+          $lines.Add("Build: $env:BUILD_LABEL")
+          $lines.Add("Asset: $env:ASSET")
+          $lines.Add("PHP dir: $phpDir")
+          $lines.Add("Disassembler: $($tool.Kind) ($($tool.Path))")
+          $lines.Add("Binaries scanned: $($binaries.Count)")
+          $lines.Add('')
+
+          foreach ($binary in $binaries) {
+            $hitLines = New-Object System.Collections.Generic.List[string]
+            $hitCount = 0
+
+            $candidates = Invoke-Disassembler $tool $binary.FullName | Select-String -Pattern $candidatePattern
+
+            foreach ($candidate in $candidates) {
+              $line = $candidate.Line
+              $instruction = Get-DisassembledInstruction $line
+              if (-not $instruction) {
+                continue
+              }
+
+              if (Test-AvxInstruction $instruction) {
+                $hitCount++
+                Add-FeatureHit $features $instruction
+
+                if ($hitLines.Count -lt 25) {
+                  $hitLines.Add($line.Trim())
+                }
+              }
+            }
+
+            if ($hitCount -gt 0) {
+              $relative = [System.IO.Path]::GetRelativePath($phpDir, $binary.FullName)
+              $filesWithHits.Add($relative)
+              $lines.Add("## $relative")
+              $lines.Add("Hits saved: $($hitLines.Count) of $hitCount")
+              foreach ($hitLine in $hitLines) {
+                $lines.Add($hitLine)
+              }
+              $lines.Add('')
+            }
+          }
+
+          if ($features.Count -gt 0) {
+            $featureList = ($features.Keys | Sort-Object) -join ', '
+          } else {
+            $featureList = 'none'
+          }
+
+          $lines.Insert(5, "Detected feature classes: $featureList")
+          $lines | Set-Content -Path $report -Encoding utf8
+
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Value "## $env:BUILD_LABEL"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Value ""
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Value "- Asset: ``$env:ASSET``"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Value "- Binaries scanned: $($binaries.Count)"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Value "- Detected feature classes: $featureList"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Value "- Binaries with hits: $($filesWithHits.Count)"
+
+          if ($filesWithHits.Count -gt 0) {
+            $sample = ($filesWithHits | Select-Object -First 12) -join ', '
+            $message = Escape-GitHubMessage("$env:ASSET contains AVX-family instructions ($featureList) in $($filesWithHits.Count) binaries. Sample: $sample. Full report is uploaded as an artifact.")
+            Write-Host "::warning title=$env:BUILD_LABEL PHP build contains AVX-family instructions::$message"
+          } else {
+            $message = Escape-GitHubMessage("$env:ASSET has no AVX-family instruction hits in $($binaries.Count) scanned binaries.")
+            Write-Host "::notice title=$env:BUILD_LABEL PHP build has no AVX-family instruction hits::$message"
+          }
+
+      - name: Upload scan report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: avx-intrinsic-report-${{ matrix.build.label }}
+          path: ${{ runner.temp }}/avx-intrinsic-report-${{ matrix.build.label }}.txt
+          if-no-files-found: error
