@@ -1,32 +1,73 @@
-name: ondrej-only extensions
+name: Windows CPU intrinsics
 
 on:
-  push:
+  workflow_dispatch:
 
 jobs:
-  extensions:
+  check-intrinsics:
     runs-on: windows-latest
     strategy:
-      fail-fast: false
       matrix:
-        php: [8.2, 8.3, 8.4, 8.5]
-    env:
-      fail-fast: false
+        runs: [1,1,1,1,1,1,1,1,1,1,1,1]
     steps:
-      - name: Setup PHP
-        uses: shivammathur/setup-php@verbose
-        with:
-          php-version: ${{ matrix.php }}
-          extensions: http, yar, solr, scoutapm, oauth
-        env:
-          update: true
-
-      - name: Report which extensions loaded
+      - name: Check CPU intrinsic support
+        shell: pwsh
         run: |
-          php -v
-          php -m
-          php -r "if(! extension_loaded('http')) {throw new Exception('http not found');}"
-          php -r "if(! extension_loaded('yar')) {throw new Exception('yar not found');}"
-          php -r "if(! extension_loaded('solr')) {throw new Exception('solr not found');}"
-          php -r "if(! extension_loaded('scoutapm')) {throw new Exception('scoutapm not found');}"
-          php -r "if(! extension_loaded('oauth')) {throw new Exception('oauth not found');}"
+          $ErrorActionPreference = 'Stop'
+
+          $zip = "$env:RUNNER_TEMP\coreinfo.zip"
+          $dir = "$env:RUNNER_TEMP\coreinfo"
+
+          Invoke-WebRequest `
+            -Uri "https://download.sysinternals.com/files/Coreinfo.zip" `
+            -OutFile $zip
+
+          Expand-Archive -Path $zip -DestinationPath $dir -Force
+
+          $coreinfo = Join-Path $dir "coreinfo64.exe"
+          $output = & $coreinfo -accepteula -f
+
+          $featuresToCheck = @(
+            "SSE", "SSE2", "SSE3", "SSSE3",
+            "SSE4.1", "SSE4.2",
+            "AES", "FMA", "F16C",
+            "AVX", "AVX2",
+            "BMI1", "BMI2",
+            "AVX512F", "AVX512DQ", "AVX512IFMA",
+            "AVX512PF", "AVX512ER", "AVX512CD",
+            "AVX512BW", "AVX512VL", "AVX512VBMI",
+            "AVX512VNNI", "AVX512VBMI2", "AVX512BITALG",
+            "AVX512VPOPCNTDQ"
+          )
+
+          $support = @{}
+
+          foreach ($line in $output) {
+            if ($line -match '^\s*(?<feature>[A-Z0-9_.]+)\s+(?<mark>[\*\-])\s+') {
+              $support[$matches.feature] = ($matches.mark -eq '*')
+            }
+          }
+
+          $supported = @()
+          $unsupported = @()
+
+          foreach ($feature in $featuresToCheck) {
+            if ($support.ContainsKey($feature) -and $support[$feature]) {
+              $supported += $feature
+            } else {
+              $unsupported += $feature
+            }
+          }
+
+          function Escape-GitHubMessage([string] $value) {
+            return $value.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+          }
+
+          $supportedMsg = Escape-GitHubMessage($supported -join ', ')
+          $unsupportedMsg = Escape-GitHubMessage($unsupported -join ', ')
+
+          Write-Host "::warning title=Windows runner supported CPU intrinsics::$supportedMsg"
+          Write-Host "::warning title=Windows runner unsupported CPU intrinsics::$unsupportedMsg"
+
+          Write-Host "Full Coreinfo output:"
+          $output
