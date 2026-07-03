@@ -1,14 +1,14 @@
 name: Windows CPU intrinsics
 
 on:
-  workflow_dispatch:
-
+  push:
 jobs:
   check-intrinsics:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         runs: [1,1,1,1,1,1,1,1,1,1,1,1]
+        os: [windows-2022, windows-2025, windows-2025-vs2026]
     steps:
       - name: Check CPU intrinsic support
         shell: pwsh
