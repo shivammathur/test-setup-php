@@ -1,0 +1,66 @@
+name: Audit PHP runtime libraries
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: ${{ matrix.source }} PHP ${{ matrix.php }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-22.04
+          - ubuntu-24.04
+          - ubuntu-26.04
+          - ubuntu-22.04-arm
+          - ubuntu-24.04-arm
+          - ubuntu-26.04-arm
+        source:
+          - php-builder
+          - ondrej
+        php:
+          - '5.6'
+          - '7.0'
+          - '7.1'
+          - '7.2'
+          - '7.3'
+          - '7.4'
+          - '8.0'
+          - '8.1'
+          - '8.2'
+          - '8.3'
+          - '8.4'
+          - '8.5'
+          - '8.6'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Checkout php-ubuntu
+        uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-ubuntu
+          path: php-ubuntu
+
+      - name: Audit runtime libraries
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          SOURCE: ${{ matrix.source }}
+        run: bash "$GITHUB_WORKSPACE/.github/workflows/scripts/audit-runtime-libraries.sh"
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-${{ matrix.source }}-${{ matrix.os }}-${{ matrix.php }}
+          path: ${{ runner.temp }}/runtime-library-audit
+          if-no-files-found: error
