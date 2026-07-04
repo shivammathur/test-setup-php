@@ -45,11 +45,11 @@ package_owner() {
   local path=$1
   local owner resolved
 
-  owner="$(dpkg-query -S "$path" 2>/dev/null | head -n 1 || true)"
+  owner="$(dpkg-query -S "$path" 2>/dev/null | grep -v '^diversion ' | head -n 1 || true)"
   if [[ -z $owner ]]; then
     resolved="$(readlink -f "$path" 2>/dev/null || true)"
     if [[ -n $resolved && $resolved != "$path" ]]; then
-      owner="$(dpkg-query -S "$resolved" 2>/dev/null | head -n 1 || true)"
+      owner="$(dpkg-query -S "$resolved" 2>/dev/null | grep -v '^diversion ' | head -n 1 || true)"
     fi
   fi
 
