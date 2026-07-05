@@ -1,73 +1,22 @@
-name: Windows CPU intrinsics
-
+name: Runner workflow
 on:
   push:
 jobs:
-  check-intrinsics:
-    runs-on: ${{ matrix.os }}
+  run:
+    name: Run
+    runs-on: ${{ matrix.operating-system }}
     strategy:
+      fail-fast: false
       matrix:
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-        os: [windows-2022, windows-2025, windows-2025-vs2026]
+        operating-system: [ubuntu-26.04, ubuntu-24.04, ubuntu-22.04, ubuntu-26.04-arm, ubuntu-24.04-arm, ubuntu-22.04-arm]
+        php-versions: ['8.6']
     steps:
-      - name: Check CPU intrinsic support
-        shell: pwsh
+      - name: Setup PHP with extensions and custom config
+        uses: shivammathur/setup-php@v2
+        env:
+          php-version: ${{ matrix.php-versions }}
+
+      - name: Testing PHP version
         run: |
-          $ErrorActionPreference = 'Stop'
-
-          $zip = "$env:RUNNER_TEMP\coreinfo.zip"
-          $dir = "$env:RUNNER_TEMP\coreinfo"
-
-          Invoke-WebRequest `
-            -Uri "https://download.sysinternals.com/files/Coreinfo.zip" `
-            -OutFile $zip
-
-          Expand-Archive -Path $zip -DestinationPath $dir -Force
-
-          $coreinfo = Join-Path $dir "coreinfo64.exe"
-          $output = & $coreinfo -accepteula -f
-
-          $featuresToCheck = @(
-            "SSE", "SSE2", "SSE3", "SSSE3",
-            "SSE4.1", "SSE4.2",
-            "AES", "FMA", "F16C",
-            "AVX", "AVX2",
-            "BMI1", "BMI2",
-            "AVX512F", "AVX512DQ", "AVX512IFMA",
-            "AVX512PF", "AVX512ER", "AVX512CD",
-            "AVX512BW", "AVX512VL", "AVX512VBMI",
-            "AVX512VNNI", "AVX512VBMI2", "AVX512BITALG",
-            "AVX512VPOPCNTDQ"
-          )
-
-          $support = @{}
-
-          foreach ($line in $output) {
-            if ($line -match '^\s*(?<feature>[A-Z0-9_.]+)\s+(?<mark>[\*\-])\s+') {
-              $support[$matches.feature] = ($matches.mark -eq '*')
-            }
-          }
-
-          $supported = @()
-          $unsupported = @()
-
-          foreach ($feature in $featuresToCheck) {
-            if ($support.ContainsKey($feature) -and $support[$feature]) {
-              $supported += $feature
-            } else {
-              $unsupported += $feature
-            }
-          }
-
-          function Escape-GitHubMessage([string] $value) {
-            return $value.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
-          }
-
-          $supportedMsg = Escape-GitHubMessage($supported -join ', ')
-          $unsupportedMsg = Escape-GitHubMessage($unsupported -join ', ')
-
-          Write-Host "::warning title=Windows runner supported CPU intrinsics::$supportedMsg"
-          Write-Host "::warning title=Windows runner unsupported CPU intrinsics::$unsupportedMsg"
-
-          Write-Host "Full Coreinfo output:"
-          $output
+          php -v
+          php -m
