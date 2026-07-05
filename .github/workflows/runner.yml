@@ -1,0 +1,102 @@
+name: Runner workflow
+run-name: Runner PHP ${{ inputs['php-version'] || '8.6' }} optional extensions
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      php-version:
+        description: PHP version to test
+        default: '8.6'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  PHP_VERSION: '8.6'
+
+jobs:
+  get-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Generate matrix
+        id: matrix
+        env:
+          PHP_VERSION: ${{ inputs['php-version'] || env.PHP_VERSION }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          import os
+          import sys
+
+          operating_systems = [
+              "ubuntu-26.04",
+              "ubuntu-24.04",
+              "ubuntu-22.04",
+              "ubuntu-26.04-arm",
+              "ubuntu-24.04-arm",
+              "ubuntu-22.04-arm",
+          ]
+          extensions_by_version = {
+              "5.6": "gearman,gnupg,grpc,http,lz4,mailparse,oauth,protobuf,propro,psr,raphf,rdkafka,rrd,smbclient,solr,ssh2,swoole,uopz,uploadprogress,uuid",
+              "7.0": "decimal,gearman,gnupg,grpc,http,lz4,mailparse,oauth,pq,protobuf,propro,psr,raphf,rdkafka,rrd,smbclient,solr,ssh2,swoole,uopz,uploadprogress,uuid,xhprof,xlswriter,zstd",
+              "7.1": "decimal,excimer,gearman,gnupg,grpc,http,lz4,mailparse,oauth,pq,protobuf,propro,psr,raphf,rdkafka,rrd,smbclient,solr,ssh2,swoole,uopz,uploadprogress,uuid,xhprof,xlswriter,zstd",
+              "7.2": "decimal,excimer,gearman,gnupg,grpc,http,lz4,mailparse,maxminddb,mcrypt,oauth,pq,protobuf,propro,psr,raphf,rdkafka,rrd,smbclient,solr,ssh2,swoole,uopz,uploadprogress,uuid,xhprof,xlswriter,zstd",
+              "7.3": "decimal,excimer,gearman,gnupg,grpc,http,lz4,mailparse,maxminddb,mcrypt,oauth,pq,protobuf,propro,psr,raphf,rdkafka,rrd,smbclient,solr,ssh2,swoole,uopz,uploadprogress,uuid,xhprof,xlswriter,zstd",
+              "7.4": "decimal,excimer,gearman,gnupg,grpc,http,lz4,mailparse,maxminddb,mcrypt,oauth,phalcon,pq,protobuf,propro,psr,raphf,rdkafka,rrd,smbclient,solr,ssh2,swoole,uopz,uploadprogress,uuid,xhprof,xlswriter,zstd",
+              "8.0": "decimal,excimer,gearman,gnupg,grpc,http,lz4,mailparse,maxminddb,mcrypt,oauth,opentelemetry,phalcon,pq,protobuf,psr,raphf,rdkafka,rrd,smbclient,solr,ssh2,swoole,uopz,uploadprogress,uuid,xhprof,xlswriter,xmlrpc,zstd",
+              "8.1": "decimal,excimer,gearman,gnupg,grpc,http,lz4,mailparse,maxminddb,mcrypt,oauth,opentelemetry,phalcon,pq,protobuf,psr,raphf,rdkafka,rrd,smbclient,solr,ssh2,swoole,uopz,uploadprogress,uuid,xhprof,xlswriter,xmlrpc,zstd",
+              "8.2": "decimal,excimer,gearman,gnupg,grpc,http,lz4,mailparse,maxminddb,mcrypt,oauth,opentelemetry,phalcon,pq,protobuf,psr,raphf,rdkafka,rrd,smbclient,solr,ssh2,swoole,uopz,uploadprogress,uuid,xhprof,xlswriter,xmlrpc,zstd",
+              "8.3": "decimal,excimer,gearman,gnupg,grpc,http,lz4,mailparse,maxminddb,mcrypt,oauth,opentelemetry,phalcon,pq,protobuf,psr,raphf,rdkafka,rrd,smbclient,solr,ssh2,swoole,uopz,uploadprogress,uuid,xhprof,xlswriter,xmlrpc,zstd",
+              "8.4": "decimal,excimer,gearman,gnupg,grpc,http,lz4,mailparse,maxminddb,mcrypt,oauth,opentelemetry,phalcon,pq,protobuf,psr,raphf,rdkafka,rrd,smbclient,solr,ssh2,swoole,uopz,uploadprogress,uuid,xhprof,xlswriter,xmlrpc,zstd",
+              "8.5": "decimal,excimer,gearman,gnupg,grpc,http,lz4,mailparse,maxminddb,mcrypt,oauth,opentelemetry,pq,protobuf,psr,raphf,rdkafka,smbclient,solr,ssh2,swoole,uopz,uploadprogress,uuid,xhprof,xlswriter,xmlrpc,zstd",
+              "8.6": "decimal,excimer,gearman,gnupg,grpc,http,lz4,mailparse,maxminddb,mcrypt,oauth,opentelemetry,pq,protobuf,psr,raphf,rdkafka,smbclient,solr,ssh2,uopz,uploadprogress,uuid,xhprof,xlswriter,xmlrpc,zstd",
+          }
+          extension_dependencies = {
+              "pq": ["raphf"],
+          }
+          php_version = os.environ["PHP_VERSION"]
+          if php_version not in extensions_by_version:
+              print(f"Unsupported PHP version: {php_version}", file=sys.stderr)
+              sys.exit(1)
+
+          include = []
+          for operating_system in operating_systems:
+              for extension in extensions_by_version[php_version].split(","):
+                  setup_extensions = extension_dependencies.get(extension, []) + [extension]
+                  include.append(
+                      {
+                          "operating-system": operating_system,
+                          "php-version": php_version,
+                          "extension": extension,
+                          "setup-extensions": ",".join(setup_extensions),
+                      }
+                  )
+          print(f"matrix={json.dumps({'include': include}, separators=(',', ':'))}")
+          PY
+
+  run:
+    name: PHP ${{ matrix.php-version }} ${{ matrix.extension }} on ${{ matrix.operating-system }}
+    needs: get-matrix
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.get-matrix.outputs.matrix) }}
+    steps:
+      - name: Setup PHP with extension
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: ${{ matrix.setup-extensions }}
+
+      - name: Testing PHP version
+        env:
+          EXTENSION: ${{ matrix.extension }}
+        run: |
+          php -v
+          php -m
+          php -r 'exit(extension_loaded(getenv("EXTENSION")) ? 0 : 1);'
