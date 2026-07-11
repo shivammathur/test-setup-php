@@ -1,0 +1,27 @@
+[
+    uuid(7A450E22-79A2-48B6-B0E2-EA9E4B82910B),
+    helpstring("PHP out-of-process COM test library"),
+    version(1.0)
+]
+library ComLocalTest
+{
+    importlib("stdole2.tlb");
+
+    [
+        object,
+        uuid(5DDF232A-5A86-45C7-A88D-6A629386E3C5),
+        dual,
+        oleautomation
+    ]
+    interface IByRefTest : IDispatch
+    {
+        [id(1)] HRESULT ClientToWindow([in, out] LONG* x, [in, out] LONG* y);
+        [id(2)] HRESULT Quit();
+    }
+
+    [uuid(125BC02C-583E-4C90-87D5-F5A4298B2B22)]
+    coclass ByRefTest
+    {
+        [default] interface IByRefTest;
+    }
+}
