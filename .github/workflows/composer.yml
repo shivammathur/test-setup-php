@@ -1,4 +1,4 @@
-name: Diagnose COM automation on Windows Server 2025
+name: Stress COM automation with exact failing artifacts
 
 on:
   workflow_dispatch:
@@ -7,50 +7,58 @@ permissions:
   contents: read
 
 jobs:
-  diagnose:
-    name: ${{ matrix.os }} / ${{ matrix.toolset }} / ${{ matrix.thread-safety }}
+  prepare-exact-artifacts:
+    name: Prepare exact php-windows-builder artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and select x86 artifacts from failing run
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          mkdir exact
+          gh api repos/shivammathur/php-windows-builder/actions/artifacts/8244423670/zip > original.zip
+          unzip -j original.zip \
+            'php-8.6.0-dev-nts-Win32-vs18-x86.zip' \
+            'php-8.6.0-dev-Win32-vs18-x86.zip' \
+            'php-test-pack-8.6.0-dev.zip' \
+            -d exact
+          sha256sum exact/*
+
+      - name: Upload selected artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: exact-x86-php
+          path: exact
+          if-no-files-found: error
+
+  stress:
+    name: stress / ${{ matrix.os }} / ${{ matrix.thread-safety }}
+    needs: prepare-exact-artifacts
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: windows-2022
-            toolset: vs17
-            thread-safety: nts
-          - os: windows-2022
-            toolset: vs17
-            thread-safety: ts
-          - os: windows-2025-vs2026
-            toolset: vs17
-            thread-safety: nts
-          - os: windows-2025-vs2026
-            toolset: vs17
-            thread-safety: ts
-          - os: windows-2025-vs2026
-            toolset: vs18
-            thread-safety: nts
-          - os: windows-2025-vs2026
-            toolset: vs18
-            thread-safety: ts
+        os: [windows-2022, windows-2025-vs2026]
+        thread-safety: [nts, ts]
 
     steps:
       - name: Checkout diagnostic branch
         uses: actions/checkout@v6
 
-      - name: Download x86 PHP master and test pack
+      - name: Download exact x86 artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: exact-x86-php
+          path: exact
+
+      - name: Extract PHP and tests
         id: php
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
           $threadPart = if ('${{ matrix.thread-safety }}' -eq 'nts') { '-nts' } else { '' }
-          $asset = "php-master${threadPart}-Win32-${{ matrix.toolset }}-x86.zip"
-          $base = 'https://github.com/shivammathur/php-builder-windows/releases/download/php8.6'
-          Invoke-WebRequest -Uri "$base/$asset" -OutFile php.zip
-          Invoke-WebRequest -Uri "$base/php-test-pack-master.zip" -OutFile tests.zip
-          Expand-Archive -Path php.zip -DestinationPath php
-          Expand-Archive -Path tests.zip -DestinationPath php-tests
-
+          Expand-Archive -Path "exact/php-8.6.0-dev${threadPart}-Win32-vs18-x86.zip" -DestinationPath php
+          Expand-Archive -Path exact/php-test-pack-8.6.0-dev.zip -DestinationPath php-tests
           $phpDir = (Resolve-Path php).Path
           $testDir = (Resolve-Path php-tests).Path
           @(
@@ -60,41 +68,80 @@ jobs:
             'display_errors=1'
             'error_reporting=-1'
           ) | Set-Content -Path "$phpDir\php.ini" -Encoding ASCII
-
           "php-dir=$phpDir" | Add-Content -Path $env:GITHUB_OUTPUT
           "test-dir=$testDir" | Add-Content -Path $env:GITHUB_OUTPUT
-          & "$phpDir\php.exe" -n -d "extension_dir=$phpDir\ext" -d extension=php_com_dotnet.dll --version
-          & "$phpDir\php.exe" -n -d "extension_dir=$phpDir\ext" -d extension=php_com_dotnet.dll -m
+          & "$phpDir\php.exe" --version
 
-      - name: Capture OS, policy, registration, and binary diagnostics
+      - name: Capture system diagnostics
+        shell: pwsh
+        run: ./scripts/diagnose-system.ps1 -OutputDirectory results
+
+      - name: Run serial, parallel, COM-suite, and loaded stress scenarios
         shell: pwsh
         run: |
-          ./scripts/diagnose-system.ps1 -OutputDirectory results
-
-      - name: Exercise direct PHP COM lifecycle
-        shell: pwsh
-        continue-on-error: true
-        run: |
-          $php = '${{ steps.php.outputs.php-dir }}\php.exe'
-          $ext = '${{ steps.php.outputs.php-dir }}\ext'
-          & $php -n -d "extension_dir=$ext" -d extension=php_com_dotnet.dll tests/com-probe.php 100 2>&1 |
-            Tee-Object -FilePath results/direct-com-probe.log
-          Get-Process -Name iexplore -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-          Start-Sleep -Seconds 2
-
-      - name: Run exact PHPT and cleanup/retry variants
-        shell: pwsh
-        run: |
-          ./scripts/run-phpt-variants.ps1 `
+          ./scripts/run-com-stress.ps1 `
             -PhpDirectory '${{ steps.php.outputs.php-dir }}' `
             -TestPackDirectory '${{ steps.php.outputs.test-dir }}' `
-            -Iterations 12 `
             -OutputDirectory results
 
-      - name: Upload diagnostic results
+      - name: Upload stress results
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: com-dotnet-${{ matrix.os }}-${{ matrix.toolset }}-${{ matrix.thread-safety }}
+          name: stress-${{ matrix.os }}-${{ matrix.thread-safety }}
           path: results
           if-no-files-found: error
+
+  full-harness:
+    name: full harness / windows-2025-vs2026 / ${{ matrix.thread-safety }}
+    needs: prepare-exact-artifacts
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        thread-safety: [nts, ts]
+
+    steps:
+      - name: Checkout diagnostic branch
+        uses: actions/checkout@v6
+
+      - name: Checkout exact php-windows-builder revision
+        uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: 7bebc7aff39268142ba333afdd82205341d12246
+          path: builder
+
+      - name: Download exact x86 artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: exact-x86-php
+          path: exact
+
+      - name: Run php-windows-builder extension harness
+        continue-on-error: true
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          LIBS_BUILD_RUNS: 29138064666,29136397714,29135514456,29136462937
+        run: |
+          Copy-Item exact/* .
+          Import-Module (Join-Path $(pwd).Path 'builder\php\BuildPhp') -Force
+          Invoke-PhpTests -PhpVersion 8.6.0-dev `
+                          -Arch x86 `
+                          -Ts '${{ matrix.thread-safety }}' `
+                          -Opcache nocache `
+                          -TestType ext `
+                          -SourceRepository php/php-src `
+                          -SourceRef master
+
+      - name: Upload full harness results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: full-harness-${{ matrix.thread-safety }}
+          path: |
+            test-x86-${{ matrix.thread-safety }}-nocache-ext.xml
+            test-x86-${{ matrix.thread-safety }}-nocache-ext.log
+          if-no-files-found: warn
