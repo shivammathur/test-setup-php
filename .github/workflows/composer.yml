@@ -1,0 +1,100 @@
+name: Diagnose COM automation on Windows Server 2025
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: ${{ matrix.os }} / ${{ matrix.toolset }} / ${{ matrix.thread-safety }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            toolset: vs17
+            thread-safety: nts
+          - os: windows-2022
+            toolset: vs17
+            thread-safety: ts
+          - os: windows-2025-vs2026
+            toolset: vs17
+            thread-safety: nts
+          - os: windows-2025-vs2026
+            toolset: vs17
+            thread-safety: ts
+          - os: windows-2025-vs2026
+            toolset: vs18
+            thread-safety: nts
+          - os: windows-2025-vs2026
+            toolset: vs18
+            thread-safety: ts
+
+    steps:
+      - name: Checkout diagnostic branch
+        uses: actions/checkout@v6
+
+      - name: Download x86 PHP master and test pack
+        id: php
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $threadPart = if ('${{ matrix.thread-safety }}' -eq 'nts') { '-nts' } else { '' }
+          $asset = "php-master${threadPart}-Win32-${{ matrix.toolset }}-x86.zip"
+          $base = 'https://github.com/shivammathur/php-builder-windows/releases/download/php8.6'
+          Invoke-WebRequest -Uri "$base/$asset" -OutFile php.zip
+          Invoke-WebRequest -Uri "$base/php-test-pack-master.zip" -OutFile tests.zip
+          Expand-Archive -Path php.zip -DestinationPath php
+          Expand-Archive -Path tests.zip -DestinationPath php-tests
+
+          $phpDir = (Resolve-Path php).Path
+          $testDir = (Resolve-Path php-tests).Path
+          @(
+            '[PHP]'
+            "extension_dir=$phpDir\ext"
+            'extension=php_com_dotnet.dll'
+            'display_errors=1'
+            'error_reporting=-1'
+          ) | Set-Content -Path "$phpDir\php.ini" -Encoding ASCII
+
+          "php-dir=$phpDir" | Add-Content -Path $env:GITHUB_OUTPUT
+          "test-dir=$testDir" | Add-Content -Path $env:GITHUB_OUTPUT
+          & "$phpDir\php.exe" -n -d "extension_dir=$phpDir\ext" -d extension=php_com_dotnet.dll --version
+          & "$phpDir\php.exe" -n -d "extension_dir=$phpDir\ext" -d extension=php_com_dotnet.dll -m
+
+      - name: Capture OS, policy, registration, and binary diagnostics
+        shell: pwsh
+        run: |
+          ./scripts/diagnose-system.ps1 -OutputDirectory results
+
+      - name: Exercise direct PHP COM lifecycle
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $php = '${{ steps.php.outputs.php-dir }}\php.exe'
+          $ext = '${{ steps.php.outputs.php-dir }}\ext'
+          & $php -n -d "extension_dir=$ext" -d extension=php_com_dotnet.dll tests/com-probe.php 100 2>&1 |
+            Tee-Object -FilePath results/direct-com-probe.log
+          Get-Process -Name iexplore -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 2
+
+      - name: Run exact PHPT and cleanup/retry variants
+        shell: pwsh
+        run: |
+          ./scripts/run-phpt-variants.ps1 `
+            -PhpDirectory '${{ steps.php.outputs.php-dir }}' `
+            -TestPackDirectory '${{ steps.php.outputs.test-dir }}' `
+            -Iterations 12 `
+            -OutputDirectory results
+
+      - name: Upload diagnostic results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: com-dotnet-${{ matrix.os }}-${{ matrix.toolset }}-${{ matrix.thread-safety }}
+          path: results
+          if-no-files-found: error
