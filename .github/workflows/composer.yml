@@ -1,4 +1,4 @@
-name: Validate sequential COM conflict fix
+name: Probe Windows runner COM capacity
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ jobs:
     name: Prepare exact php-windows-builder artifacts
     runs-on: ubuntu-latest
     steps:
-      - name: Download and select x86 artifacts from failing run
+      - name: Download exact x86 NTS artifact from failing run
         env:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
@@ -19,135 +19,68 @@ jobs:
           gh api repos/shivammathur/php-windows-builder/actions/artifacts/8244423670/zip > original.zip
           unzip -j original.zip \
             'php-8.6.0-dev-nts-Win32-vs18-x86.zip' \
-            'php-8.6.0-dev-Win32-vs18-x86.zip' \
-            'php-test-pack-8.6.0-dev.zip' \
             -d exact
           sha256sum exact/*
 
-      - name: Upload selected artifacts
+      - name: Upload selected artifact
         uses: actions/upload-artifact@v7
         with:
           name: exact-x86-php
           path: exact
           if-no-files-found: error
 
-  validate-conflict:
-    name: conflict validation / ${{ matrix.thread-safety }}
+  probe-runner:
+    name: probe / ${{ matrix.os }} / replica-${{ matrix.replica }}
     needs: prepare-exact-artifacts
-    runs-on: windows-2025-vs2026
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     strategy:
       fail-fast: false
+      max-parallel: 6
       matrix:
-        thread-safety: [nts, ts]
+        os: [windows-2022, windows-2025, windows-2025-vs2026]
+        replica: [1, 2]
 
     steps:
       - name: Checkout diagnostic branch
         uses: actions/checkout@v6
 
-      - name: Download exact x86 artifacts
+      - name: Download exact x86 PHP artifact
         uses: actions/download-artifact@v8
         with:
           name: exact-x86-php
           path: exact
 
-      - name: Extract PHP and tests
+      - name: Extract PHP
         id: php
         shell: pwsh
         run: |
-          $threadPart = if ('${{ matrix.thread-safety }}' -eq 'nts') { '-nts' } else { '' }
-          Expand-Archive -Path "exact/php-8.6.0-dev${threadPart}-Win32-vs18-x86.zip" -DestinationPath php
-          Expand-Archive -Path exact/php-test-pack-8.6.0-dev.zip -DestinationPath php-tests
+          Expand-Archive -Path exact/php-8.6.0-dev-nts-Win32-vs18-x86.zip -DestinationPath php
           $phpDir = (Resolve-Path php).Path
-          $testDir = (Resolve-Path php-tests).Path
           @(
             '[PHP]'
             "extension_dir=$phpDir\ext"
             'extension=php_com_dotnet.dll'
-            'display_errors=1'
+            'display_errors=0'
+            'log_errors=0'
             'error_reporting=-1'
           ) | Set-Content -Path "$phpDir\php.ini" -Encoding ASCII
           "php-dir=$phpDir" | Add-Content -Path $env:GITHUB_OUTPUT
-          "test-dir=$testDir" | Add-Content -Path $env:GITHUB_OUTPUT
-          & "$phpDir\php.exe" --version
+          & "$phpDir\php.exe" -c "$phpDir\php.ini" --version
+          & "$phpDir\php.exe" -c "$phpDir\php.ini" -m | Select-String com_dotnet
 
-      - name: Validate CONFLICTS all under COM and synthetic load
+      - name: Probe hardware, load thresholds, HRESULTs, and timing
         shell: pwsh
         run: |
-          ./scripts/validate-conflicts.ps1 `
+          ./scripts/probe-runner-capacity.ps1 `
             -PhpDirectory '${{ steps.php.outputs.php-dir }}' `
-            -TestPackDirectory '${{ steps.php.outputs.test-dir }}' `
-            -OutputDirectory results
+            -OutputDirectory results `
+            -Replica ${{ matrix.replica }}
 
-      - name: Upload validation results
+      - name: Upload probe results
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: conflict-validation-${{ matrix.thread-safety }}
+          name: runner-probe-${{ matrix.os }}-${{ matrix.replica }}
           path: results
-          if-no-files-found: error
-
-  full-harness-conflict:
-    name: full harness with conflict / ${{ matrix.thread-safety }}
-    needs: prepare-exact-artifacts
-    runs-on: windows-2025-vs2026
-    timeout-minutes: 120
-    strategy:
-      fail-fast: false
-      matrix:
-        thread-safety: [nts, ts]
-
-    steps:
-      - name: Checkout diagnostic branch
-        uses: actions/checkout@v6
-
-      - name: Checkout exact php-windows-builder revision
-        uses: actions/checkout@v6
-        with:
-          repository: shivammathur/php-windows-builder
-          ref: 7bebc7aff39268142ba333afdd82205341d12246
-          path: builder
-
-      - name: Download exact x86 artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: exact-x86-php
-          path: exact
-
-      - name: Build test pack with bug64130 serialized
-        shell: pwsh
-        run: |
-          Expand-Archive exact/php-test-pack-8.6.0-dev.zip -DestinationPath patched-pack
-          $test = 'patched-pack/ext/com_dotnet/tests/bug64130.phpt'
-          $content = Get-Content -LiteralPath $test -Raw
-          if ($content -notmatch '(?m)^--CONFLICTS--$') {
-            $content = $content.Replace("--SKIPIF--", "--CONFLICTS--`nall`n--SKIPIF--")
-            Set-Content -LiteralPath $test -Value $content -NoNewline -Encoding UTF8
-          }
-          Compress-Archive -Path patched-pack/* -DestinationPath php-test-pack-8.6.0-dev.zip
-          $threadPart = if ('${{ matrix.thread-safety }}' -eq 'nts') { '-nts' } else { '' }
-          Copy-Item "exact/php-8.6.0-dev${threadPart}-Win32-vs18-x86.zip" .
-
-      - name: Run full php-windows-builder extension harness
-        continue-on-error: true
-        shell: pwsh
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
-          LIBS_BUILD_RUNS: 29138064666,29136397714,29135514456,29136462937
-        run: |
-          Import-Module (Join-Path $(pwd).Path 'builder\php\BuildPhp') -Force
-          Invoke-PhpTests -PhpVersion 8.6.0-dev `
-                          -Arch x86 `
-                          -Ts '${{ matrix.thread-safety }}' `
-                          -Opcache nocache `
-                          -TestType ext
-
-      - name: Upload full harness results
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: full-harness-conflict-${{ matrix.thread-safety }}
-          path: |
-            test-x86-${{ matrix.thread-safety }}-nocache-ext.xml
-            test-x86-${{ matrix.thread-safety }}-nocache-ext.log
           if-no-files-found: error
