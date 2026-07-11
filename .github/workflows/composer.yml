@@ -1,4 +1,4 @@
-name: Validate local COM replacement server
+name: Validate local COM server in full harness
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ jobs:
     name: Prepare exact php-windows-builder artifacts
     runs-on: ubuntu-latest
     steps:
-      - name: Download exact x86 artifacts from failing run
+      - name: Download exact artifacts from failing run
         env:
           GH_TOKEN: ${{ secrets.PAT }}
         run: |
@@ -19,6 +19,7 @@ jobs:
           gh api repos/shivammathur/php-windows-builder/actions/artifacts/8244423670/zip > original.zip
           unzip -j original.zip \
             'php-8.6.0-dev-nts-Win32-vs18-x86.zip' \
+            'php-8.6.0-dev-Win32-vs18-x86.zip' \
             'php-test-pack-8.6.0-dev.zip' \
             -d exact
           sha256sum exact/*
@@ -26,71 +27,109 @@ jobs:
       - name: Upload selected artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: exact-x86-php-tests
+          name: exact-x86-full-harness
           path: exact
           if-no-files-found: error
 
-  replacement-stress:
-    name: local server / ${{ matrix.os }} / replica-${{ matrix.replica }}
+  full-harness:
+    name: full j6 / ${{ matrix.thread-safety }} / replica-${{ matrix.replica }}
     needs: prepare-exact-artifacts
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       max-parallel: 4
       matrix:
-        os: [windows-2022, windows-2025-vs2026]
+        thread-safety: [nts, ts]
         replica: [1, 2]
 
     steps:
       - name: Checkout diagnostic branch
         uses: actions/checkout@v6
 
+      - name: Checkout exact php-windows-builder revision
+        uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: 7bebc7aff39268142ba333afdd82205341d12246
+          path: builder
+
       - name: Download exact artifacts
         uses: actions/download-artifact@v8
         with:
-          name: exact-x86-php-tests
+          name: exact-x86-full-harness
           path: exact
 
-      - name: Extract exact PHP and unmodified test pack
-        id: php
+      - name: Prepare unmodified exact artifacts
         shell: pwsh
         run: |
-          Expand-Archive exact/php-8.6.0-dev-nts-Win32-vs18-x86.zip -DestinationPath php
-          Expand-Archive exact/php-test-pack-8.6.0-dev.zip -DestinationPath php-tests
-          $phpDir = (Resolve-Path php).Path
-          $testDir = (Resolve-Path php-tests).Path
-          @(
-            '[PHP]'
-            "extension_dir=$phpDir\ext"
-            'extension=php_com_dotnet.dll'
-            'display_errors=1'
-            'error_reporting=-1'
-          ) | Set-Content -Path "$phpDir\php.ini" -Encoding ASCII
-          "php-dir=$phpDir" | Add-Content -Path $env:GITHUB_OUTPUT
-          "test-dir=$testDir" | Add-Content -Path $env:GITHUB_OUTPUT
+          Copy-Item exact/* .
+          $config = Get-Content -LiteralPath 'builder/php/BuildPhp/config/tests.config.json' -Raw | ConvertFrom-Json
+          if ($config.'8.6'.workers -ne '-j6') {
+            throw "Expected the unchanged builder worker setting to be -j6, got $($config.'8.6'.workers)"
+          }
 
-      - name: Build 32-bit local COM test server
-        shell: pwsh
-        run: ./scripts/build-com-local-server.ps1 -OutputDirectory com-local-server
-
-      - name: Validate unmodified PHPT under saturated six-worker load
+      - name: Build and register 32-bit local COM test server
         shell: pwsh
         run: |
-          ./scripts/validate-com-local-server.ps1 `
-            -PhpDirectory '${{ steps.php.outputs.php-dir }}' `
-            -TestPackDirectory '${{ steps.php.outputs.test-dir }}' `
-            -ServerDirectory com-local-server `
-            -OutputDirectory results `
-            -Iterations 20
+          ./scripts/build-com-local-server.ps1 -OutputDirectory com-local-server
+          & ./com-local-server/comlocal.exe /RegServer
+          if ($LASTEXITCODE -ne 0) {
+            throw "COM server registration failed with exit code $LASTEXITCODE"
+          }
 
-      - name: Upload local server diagnostics
+      - name: Run exact full extension harness at j6
+        id: test
+        continue-on-error: true
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          LIBS_BUILD_RUNS: 29138064666,29136397714,29135514456,29136462937
+        run: |
+          Import-Module (Join-Path $(pwd).Path 'builder\php\BuildPhp') -Force
+          Invoke-PhpTests -PhpVersion 8.6.0-dev `
+                          -Arch x86 `
+                          -Ts '${{ matrix.thread-safety }}' `
+                          -Opcache nocache `
+                          -TestType ext
+
+      - name: Verify full suite and bug64130
+        shell: pwsh
+        run: |
+          $xmlPath = 'test-x86-${{ matrix.thread-safety }}-nocache-ext.xml'
+          [xml]$document = Get-Content -LiteralPath $xmlPath -Raw
+          $root = $document.testsuites
+          if ([int]$root.failures -ne 0 -or [int]$root.errors -ne 0) {
+            throw "Full harness reported failures=$($root.failures) errors=$($root.errors)"
+          }
+          $case = @($document.SelectNodes('//testcase') | Where-Object { $_.name -match 'bug64130\.phpt' })
+          if ($case.Count -ne 1) {
+            throw "Expected one bug64130 JUnit testcase, found $($case.Count)"
+          }
+          if ($case[0].failure -or $case[0].error -or $case[0].skipped) {
+            throw 'bug64130 did not run and pass normally.'
+          }
+          if ('${{ steps.test.outcome }}' -ne 'success') {
+            throw 'Invoke-PhpTests returned a failing outcome.'
+          }
+          Write-Host "bug64130 ran normally at j6 and passed in $($case[0].time) seconds"
+
+      - name: Stop and unregister local COM server
+        if: always()
+        shell: pwsh
+        run: |
+          & ./com-local-server/comlocal.exe /Shutdown 2>$null
+          Start-Sleep -Milliseconds 500
+          & ./com-local-server/comlocal.exe /UnregServer
+
+      - name: Upload full harness results
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: local-com-server-${{ matrix.os }}-${{ matrix.replica }}
+          name: full-harness-local-com-${{ matrix.thread-safety }}-${{ matrix.replica }}
           path: |
+            test-x86-${{ matrix.thread-safety }}-nocache-ext.xml
+            test-x86-${{ matrix.thread-safety }}-nocache-ext.log
             com-local-server/comlocal.exe
             com-local-server/comlocal.tlb
-            results
           if-no-files-found: error
