@@ -74,3 +74,6 @@ $output = Join-Path $OutputDirectory 'system-diagnostics.txt'
         Select-Object Id, ProcessName, StartTime, Path
 } 2>&1 | Tee-Object -FilePath $output
 
+# Registry probes intentionally query values that may not exist. Do not leak a
+# native-command miss into the workflow step's exit status.
+$global:LASTEXITCODE = 0
