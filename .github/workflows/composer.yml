@@ -1,4 +1,4 @@
-name: Stress COM automation with exact failing artifacts
+name: Validate sequential COM conflict fix
 
 on:
   workflow_dispatch:
@@ -31,15 +31,14 @@ jobs:
           path: exact
           if-no-files-found: error
 
-  stress:
-    name: stress / ${{ matrix.os }} / ${{ matrix.thread-safety }}
+  validate-conflict:
+    name: conflict validation / ${{ matrix.thread-safety }}
     needs: prepare-exact-artifacts
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-2025-vs2026
     timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2022, windows-2025-vs2026]
         thread-safety: [nts, ts]
 
     steps:
@@ -72,28 +71,24 @@ jobs:
           "test-dir=$testDir" | Add-Content -Path $env:GITHUB_OUTPUT
           & "$phpDir\php.exe" --version
 
-      - name: Capture system diagnostics
-        shell: pwsh
-        run: ./scripts/diagnose-system.ps1 -OutputDirectory results
-
-      - name: Run serial, parallel, COM-suite, and loaded stress scenarios
+      - name: Validate CONFLICTS all under COM and synthetic load
         shell: pwsh
         run: |
-          ./scripts/run-com-stress.ps1 `
+          ./scripts/validate-conflicts.ps1 `
             -PhpDirectory '${{ steps.php.outputs.php-dir }}' `
             -TestPackDirectory '${{ steps.php.outputs.test-dir }}' `
             -OutputDirectory results
 
-      - name: Upload stress results
+      - name: Upload validation results
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: stress-${{ matrix.os }}-${{ matrix.thread-safety }}
+          name: conflict-validation-${{ matrix.thread-safety }}
           path: results
           if-no-files-found: error
 
-  full-harness:
-    name: full harness / windows-2025-vs2026 / ${{ matrix.thread-safety }}
+  full-harness-conflict:
+    name: full harness with conflict / ${{ matrix.thread-safety }}
     needs: prepare-exact-artifacts
     runs-on: windows-2025-vs2026
     timeout-minutes: 120
@@ -119,29 +114,40 @@ jobs:
           name: exact-x86-php
           path: exact
 
-      - name: Run php-windows-builder extension harness
+      - name: Build test pack with bug64130 serialized
+        shell: pwsh
+        run: |
+          Expand-Archive exact/php-test-pack-8.6.0-dev.zip -DestinationPath patched-pack
+          $test = 'patched-pack/ext/com_dotnet/tests/bug64130.phpt'
+          $content = Get-Content -LiteralPath $test -Raw
+          if ($content -notmatch '(?m)^--CONFLICTS--$') {
+            $content = $content.Replace("--SKIPIF--", "--CONFLICTS--`nall`n--SKIPIF--")
+            Set-Content -LiteralPath $test -Value $content -NoNewline -Encoding UTF8
+          }
+          Compress-Archive -Path patched-pack/* -DestinationPath php-test-pack-8.6.0-dev.zip
+          $threadPart = if ('${{ matrix.thread-safety }}' -eq 'nts') { '-nts' } else { '' }
+          Copy-Item "exact/php-8.6.0-dev${threadPart}-Win32-vs18-x86.zip" .
+
+      - name: Run full php-windows-builder extension harness
         continue-on-error: true
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
           LIBS_BUILD_RUNS: 29138064666,29136397714,29135514456,29136462937
         run: |
-          Copy-Item exact/* .
           Import-Module (Join-Path $(pwd).Path 'builder\php\BuildPhp') -Force
           Invoke-PhpTests -PhpVersion 8.6.0-dev `
                           -Arch x86 `
                           -Ts '${{ matrix.thread-safety }}' `
                           -Opcache nocache `
-                          -TestType ext `
-                          -SourceRepository php/php-src `
-                          -SourceRef master
+                          -TestType ext
 
       - name: Upload full harness results
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: full-harness-${{ matrix.thread-safety }}
+          name: full-harness-conflict-${{ matrix.thread-safety }}
           path: |
             test-x86-${{ matrix.thread-safety }}-nocache-ext.xml
             test-x86-${{ matrix.thread-safety }}-nocache-ext.log
-          if-no-files-found: warn
+          if-no-files-found: error
