@@ -1,4 +1,4 @@
-name: Validate three-worker full PHP harness
+name: Attempt to restore removed IE feature
 
 on:
   workflow_dispatch:
@@ -7,110 +7,27 @@ permissions:
   contents: read
 
 jobs:
-  prepare-exact-artifacts:
-    name: Prepare exact php-windows-builder artifacts
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download exact artifacts from failing run
-        env:
-          GH_TOKEN: ${{ secrets.PAT }}
-        run: |
-          mkdir exact
-          gh api repos/shivammathur/php-windows-builder/actions/artifacts/8244423670/zip > original.zip
-          unzip -j original.zip \
-            'php-8.6.0-dev-nts-Win32-vs18-x86.zip' \
-            'php-8.6.0-dev-Win32-vs18-x86.zip' \
-            'php-test-pack-8.6.0-dev.zip' \
-            -d exact
-          sha256sum exact/*
-
-      - name: Upload selected artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: exact-x86-full-harness
-          path: exact
-          if-no-files-found: error
-
-  full-harness:
-    name: full harness / j3 / ${{ matrix.thread-safety }} / replica-${{ matrix.replica }}
-    needs: prepare-exact-artifacts
-    runs-on: windows-2025-vs2026
-    timeout-minutes: 120
+  feature-restore:
+    name: IE feature restore / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
-      max-parallel: 4
       matrix:
-        thread-safety: [nts, ts]
-        replica: [1, 2]
+        os: [windows-2022, windows-2025-vs2026]
 
     steps:
       - name: Checkout diagnostic branch
         uses: actions/checkout@v6
 
-      - name: Checkout exact php-windows-builder revision
-        uses: actions/checkout@v6
-        with:
-          repository: shivammathur/php-windows-builder
-          ref: 7bebc7aff39268142ba333afdd82205341d12246
-          path: builder
-
-      - name: Download exact artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: exact-x86-full-harness
-          path: exact
-
-      - name: Configure three workers without modifying tests
+      - name: Inventory and attempt supported IE installation paths
         shell: pwsh
-        run: |
-          Copy-Item exact/* .
-          $configPath = 'builder/php/BuildPhp/config/tests.config.json'
-          $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
-          $config.'8.6'.workers = '-j3'
-          $config | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $configPath -Encoding utf8
-          if ((Get-Content -LiteralPath $configPath -Raw) -match 'CONFLICTS') {
-            throw 'Unexpected test modification marker in runner configuration.'
-          }
+        run: ./scripts/attempt-ie-feature-restore.ps1 -OutputDirectory results
 
-      - name: Run exact full extension harness at j3
-        id: test
-        continue-on-error: true
-        shell: pwsh
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
-          LIBS_BUILD_RUNS: 29138064666,29136397714,29135514456,29136462937
-        run: |
-          Import-Module (Join-Path $(pwd).Path 'builder\php\BuildPhp') -Force
-          Invoke-PhpTests -PhpVersion 8.6.0-dev `
-                          -Arch x86 `
-                          -Ts '${{ matrix.thread-safety }}' `
-                          -Opcache nocache `
-                          -TestType ext
-
-      - name: Verify bug64130 ran and passed
-        shell: pwsh
-        run: |
-          $xmlPath = 'test-x86-${{ matrix.thread-safety }}-nocache-ext.xml'
-          [xml]$document = Get-Content -LiteralPath $xmlPath -Raw
-          $root = $document.testsuites
-          if ([int]$root.failures -ne 0 -or [int]$root.errors -ne 0) {
-            throw "Full harness reported failures=$($root.failures) errors=$($root.errors)"
-          }
-          $case = @($document.SelectNodes('//testcase') | Where-Object { $_.name -match 'bug64130\.phpt' })
-          if ($case.Count -ne 1) {
-            throw "Expected one bug64130 JUnit testcase, found $($case.Count)"
-          }
-          if ($case[0].failure -or $case[0].error -or $case[0].skipped) {
-            throw 'bug64130 did not run and pass normally.'
-          }
-          Write-Host "bug64130 ran and passed in $($case[0].time) seconds"
-
-      - name: Upload full harness results
+      - name: Upload feature restore diagnostics
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: full-harness-j3-${{ matrix.thread-safety }}-${{ matrix.replica }}
-          path: |
-            test-x86-${{ matrix.thread-safety }}-nocache-ext.xml
-            test-x86-${{ matrix.thread-safety }}-nocache-ext.log
+          name: ie-feature-restore-${{ matrix.os }}
+          path: results
           if-no-files-found: error
