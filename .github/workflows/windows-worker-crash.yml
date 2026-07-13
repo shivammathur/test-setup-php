@@ -1,0 +1,82 @@
+name: Diagnose Windows PHP worker crashes
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  diagnose:
+    name: x86 nts opcache production steps
+    runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      LIBS_BUILD_RUNS: 29220678034,29236909227,29220678062,29220678078,29220678159,29220678163,29220678209,29220679126,29220679152,29220679161,29220679169,29220679179,29220679229,29220679234,29220679242,29220679362,29220679622,29220680381,29220680497,29220680535,29220680596,29220680650,29220680675,29256247853,29220680696,29220680957,29221677398,29221677413,29221677414,29221677422,29221677426,29221677429,29221677448,29221677488,29221804361,29221804381,29221804580,29222435556,29222435590,29222440977
+    steps:
+      - name: Checkout PHP Windows builder
+        uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: feature/windows-sbom-artifacts
+
+      - name: Download failing PHP artifacts
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: 29256444691
+          name: artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get Cache Key
+        id: cache-key
+        shell: pwsh
+        run: |
+          $artifactDirectory = $(pwd).Path
+          $zip = Get-ChildItem -Path $artifactDirectory -Filter "php-*.zip" -File |
+            Where-Object { $_.Name -match "^php-(.+?)-(?:nts-)?Win32-v[sc]\d+-x86\.zip$" } |
+            Select-Object -First 1
+          $phpVersion = [regex]::Match($zip.Name, '^php-(.+?)-(?:nts-)?Win32-v[sc]\d+-').Groups[1].Value
+          Import-Module (Join-Path $(pwd).Path '\php\BuildPhp') -Force
+          $cacheInfo = Get-DepsCacheInfo -PhpVersion $phpVersion -Arch 'x86' -LibsBuildRuns $env:LIBS_BUILD_RUNS -IncludeDefaultRunsKey
+          Set-Content -Path packages.txt -Value ($cacheInfo.Packages -join "`n")
+          Add-Content -Value "php-version=$phpVersion" -Path $env:GITHUB_OUTPUT
+          Add-Content -Value "cache-key=$($cacheInfo.CacheKey)" -Path $env:GITHUB_OUTPUT
+          Add-Content -Value "cache-dir=$($cacheInfo.CacheDir)" -Path $env:GITHUB_OUTPUT
+
+      - name: Cache Deps
+        id: cache-deps
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.cache-key.outputs.cache-dir }}
+          key: ${{ steps.cache-key.outputs.cache-key }}-${{ hashFiles('packages.txt') }}
+
+      - name: Reproduce worker crash
+        continue-on-error: true
+        shell: pwsh
+        env:
+          DEPS_DIR: ${{ steps.cache-key.outputs.cache-dir }}
+          DEPS_CACHE_HIT: ${{ steps.cache-deps.outputs.cache-hit }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $env:GITHUB_REPOSITORY = 'shivammathur/php-windows-builder'
+          Import-Module (Join-Path $(pwd).Path '\php\BuildPhp') -Force
+          Invoke-PhpTests -PhpVersion ${{ steps.cache-key.outputs.php-version }} `
+                          -Arch x86 `
+                          -Ts nts `
+                          -Opcache opcache `
+                          -TestType php `
+                          -SourceRepository 'shivammathur/php-src' `
+                          -SourceRef 'feature/win32-sbom-redist-8.3'
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-worker-crash-production-steps
+          path: |
+            test-*.log
+            test-*.xml
+          if-no-files-found: warn
