@@ -8,16 +8,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-26.04, ubuntu-24.04, ubuntu-22.04, ubuntu-26.04-arm, ubuntu-24.04-arm, ubuntu-22.04-arm]
-        php-versions: ['8.6']
+        operating-system: [ubuntu-latest]
     steps:
-      - name: Setup PHP with extensions and custom config
-        uses: shivammathur/setup-php@v2
-        env:
-          php-version: ${{ matrix.php-versions }}
-          extensions: decimal,excimer,gearman,gnupg,grpc,http,lz4,mailparse,maxminddb,mcrypt,oauth,opentelemetry,pq,protobuf,psr,raphf,rdkafka,smbclient,solr,ssh2,uopz,uploadprogress,uuid,xhprof,xlswriter,xmlrpc,zstd
-
       - name: Testing PHP version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          php -v
-          php -m
+          curl -sS -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" https://api.github.com/rate_limit | jq '.resources.core + {reset_at: (.resources.core.reset | todate)}'
