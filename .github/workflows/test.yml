@@ -1,6 +1,9 @@
 name: Tools develop workflow
 on:
+  workflow_dispatch:
   push:
+  schedule:
+    - cron: '15 4 * * *'
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }}
@@ -15,10 +18,10 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-24.04-arm, ubuntu-24.04, ubuntu-22.04, windows-latest, macos-latest]
-        php-versions: ['8.3']
+        php-versions: ['8.2']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         timeout-minutes: 30
@@ -47,6 +50,7 @@ jobs:
           phpcbf --version
           phpcpd --version
           phpDocumentor --version
+          phpspec -V
           phpstan -V
           codeception -V
           cs2pr version
@@ -91,7 +95,7 @@ jobs:
         php-versions: ['8.0']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         timeout-minutes: 30
@@ -154,13 +158,13 @@ jobs:
         php-versions: ['8.0']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: behat:3.6, infection:0.20.x, churn:1.5, flex:v2, phan:4.0, php-cs-fixer:2.18, phpcs:3.5.x, phpcbf:3.5, phpcpd:v6.x, phpDocumentor:3.1, phpspec:7.0, phpstan:0.12, phpmd:2.9, cs2pr:1.4, phpunit:9.5, phpunit-bridge:5, phpunit-polyfills:1.0, psalm:4.4, phing:2.x, phinx:0.12, phive:0.14, deployer:v6, composer:2.0.x, symfony-cli, vapor-cli:1.68
+          tools: behat:3.6, infection:0.20.x, churn:1.5, flex:v2, phan:4.0, php-cs-fixer:2.18, phpcs:3.5.x, phpcbf:3.5, phpcpd:v6.x, phpDocumentor:3.1, phpspec:7.0, phpstan:0.12, phpmd:2.9, cs2pr:1.4, phpunit:9.5, phpunit-bridge:5, phpunit-polyfills:1.0, psalm:4.4, phing:2.x, phinx:0.12, phive:0.14, deployer:v6, composer:2.0.x, symfony-cli, vapor-cli:1.11
       - name: Run simple-phpunit install
         run: simple-phpunit install
       - name: Test action side effects
@@ -216,7 +220,7 @@ jobs:
         php-versions: ['5.5']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         timeout-minutes: 30
@@ -268,7 +272,7 @@ jobs:
         php-versions: ['8.0']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         timeout-minutes: 30
