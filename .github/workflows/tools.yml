@@ -1,6 +1,9 @@
 name: Tools develop workflow
 on:
+  workflow_dispatch:
   push:
+  schedule:
+    - cron: '15 3 * * *'
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   BLACKFIRE_SERVER_ID: ${{ secrets.BLACKFIRE_SERVER_ID }}
@@ -15,16 +18,16 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-24.04-arm, ubuntu-24.04, ubuntu-22.04, windows-latest, macos-latest]
-        php-versions: ['8.2']
+        php-versions: ['8.3']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: behat, blackfire, churn, composer-require-checker, composer-normalize, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpspec, phpmd, cs2pr, codeception, phpunit, phpunit-bridge, phpunit-polyfills, psalm, phing, phinx, phive, deployer, protoc, pecl, phpdoc, phpize, php-config, rector, symfony, vapor-cli
+          tools: behat, blackfire, churn, composer-require-checker, composer-normalize, flex, phan, infection, php-cs-fixer, phpcs, phpcbf, phpcpd, phpstan, phpmd, cs2pr, codeception, phpunit, phpunit-bridge, phpunit-polyfills, pie, psalm, phing, phinx, phive, deployer, protoc, pecl, phpdoc, phpize, php-config, rector, symfony, vapor-cli
       - name: Run simple-phpunit install
         run: simple-phpunit install
       - name: Test action side effects
@@ -47,11 +50,11 @@ jobs:
           phpcbf --version
           phpcpd --version
           phpDocumentor --version
-          phpspec -V
           phpstan -V
           codeception -V
           cs2pr version
           phpunit --version
+          pie -V
           psalm -v
           phing -v
           phinx -V
@@ -92,13 +95,13 @@ jobs:
         php-versions: ['8.0']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: behat:3.6.1, churn:1.6.0, infection:0.20.0, flex:2.1.6, phan:4.0.2, php-cs-fixer:2.18.0, phpcs:3.5.2, phpcbf:3.5.8, phpcpd:6.0.3, phpDocumentor:3.1.2 ,phpspec:7.0.1, phpstan:0.12.68, phpmd:2.9.1, cs2pr:1.4.0, phpunit:9.5.1, phpunit-bridge:5.2.12, phpunit-polyfills:1.0.0, psalm:4.4.1, phing:2.16.3, phinx:0.12.4, phive:0.14.5, deployer:6.8.0, composer:2.2.1, pecl:1.2.3, rector:0.13.8, symfony, vapor-cli:1.11.1
+          tools: behat:3.6.1, churn:1.6.0, infection:0.20.0, flex:2.1.6, phan:4.0.2, php-cs-fixer:2.18.0, phpcs:3.5.2, phpcbf:3.5.8, phpcpd:6.0.3, phpDocumentor:3.1.2 ,phpspec:7.0.1, phpstan:0.12.68, phpmd:2.9.1, cs2pr:1.4.0, phpunit:9.5.1, phpunit-bridge:5.2.12, phpunit-polyfills:1.0.0, psalm:4.4.1, phing:2.16.3, phinx:0.12.4, phive:0.14.5, deployer:6.8.0, composer:2.2.28, pecl:1.2.3, rector:0.13.8, symfony, vapor-cli:1.11.1
       - name: Run simple-phpunit install
         run: simple-phpunit install
       - name: Test action side effects
@@ -152,16 +155,16 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-24.04, ubuntu-22.04, windows-latest, macos-latest]
-        php-versions: ['8.0']
+        php-versions: ['8.1']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: behat:3.6, infection:0.20.x, churn:1.5, flex:v2, phan:4.0, php-cs-fixer:2.18, phpcs:3.5.x, phpcbf:3.5, phpcpd:v6.x, phpDocumentor:3.1, phpspec:7.0, phpstan:0.12, phpmd:2.9, cs2pr:1.4, phpunit:9.5, phpunit-bridge:5, phpunit-polyfills:1.0, psalm:4.4, phing:2.x, phinx:0.12, phive:0.14, deployer:v6, composer:2.0.x, symfony-cli, vapor-cli:1.11
+          tools: behat:3.20, infection:0.20.x, churn:1.5, flex:v2, phan:4.0, php-cs-fixer:3.4, phpcs:3.5.x, phpcbf:3.5, phpcpd:v6.x, phpDocumentor:3.1, phpspec:7.2, phpstan:0.12, phpmd:2.9, cs2pr:1.4, phpunit:9.5, phpunit-bridge:5, phpunit-polyfills:1.0, psalm:4.4, phing:2.x, phinx:0.12, phive:0.14, deployer:v6, composer:2.9.x, symfony-cli, vapor-cli:1.11
       - name: Run simple-phpunit install
         run: simple-phpunit install
       - name: Test action side effects
@@ -213,11 +216,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, ubuntu-22.04, windows-latest, macos-15]
-        php-versions: ['5.5']
+        operating-system: [ubuntu-24.04, ubuntu-22.04, windows-latest, macos-15-intel]
+        php-versions: ['5.6']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         timeout-minutes: 30
@@ -269,13 +272,13 @@ jobs:
         php-versions: ['8.0']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         timeout-minutes: 30
         with:
           php-version: ${{ matrix.php-versions }}
-          tools: composer:v1, php-cs-fixer:100.100.100, phpcs:^3.5.8, phpcbf:>=3.5.8, phpcpd:<=6.0.3, phpstan:^0.12.68, invalid:1.2.3, invalid, prestissimo:100.100.100, hirak/prestissimo, symfony/flex
+          tools: composer:v1, php-cs-fixer:100.100.100, phpcs:^3.5.8, phpcbf:>=3.5.8, phpcpd:<=6.0.3, phpstan:^0.12.68, invalid:1.2.3, invalid, prestissimo:100.100.100
       - name: Test action side effects
         run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
       - name: Testing Tools
@@ -286,7 +289,3 @@ jobs:
           phpcbf --version
           phpcpd --version
           phpstan -V
-      - name: Test flex
-        run: composer global show symfony/flex
-      - name: Test prestissimo
-        run: composer global show hirak/prestissimo

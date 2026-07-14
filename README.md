@@ -4,5 +4,5 @@
 - [X] Checks setting base php.ini.
 - [X] Checks adding values to php.ini.
 - [X] Checks coverage driver setup.
-- [X] Checks composer and other tools setup.
+- [X] Checks composer and other tools' setup.
 - [X] Checks action side effects.
