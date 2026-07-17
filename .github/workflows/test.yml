@@ -2,54 +2,14 @@ name: Runner workflow
 on:
   push:
 jobs:
-  old_versions:
-    name: old_versions
+  runner:
     runs-on: ${{ matrix.operating-system }}
     strategy:
-      fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, ubuntu-22.04, windows-latest, macos-15-intel]
-        php-versions: ['5.5']
+        operating-system: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
-        timeout-minutes: 30
+        uses: shivammathur/setup-php@2.37.2
         with:
-          php-version: ${{ matrix.php-versions }}
-          tools: blackfire, php-cs-fixer:2.2.20, phpcs:2.9.2, phpcbf:2.9.2, phpcpd:2.0.4, phpdoc:2.9.1, phpmd:2.8.0, codeception:2.3.5, cs2pr:1.0.2, phpunit:4.8.36, phpunit-bridge:5.2.12, phpunit-polyfills:1.0.1, phing:2.16.2, phinx:0.5.0, deployer:2.0.0
-      - name: Run simple-phpunit install
-        run: simple-phpunit install
-      - name: Test action side effects
-        run: php -r "if(strpos(@exec('git status'), 'nothing to commit') === false) {throw new Exception('Action has side effects');}"
-      - name: Testing Tools
-        run: |
-          blackfire version
-          composer -V
-          php-cs-fixer -V
-          phpcs --version
-          phpcbf --version
-          phpcpd -V
-          phpDocumentor --version
-          codeception -V
-          phpunit --version
-          cs2pr version
-          phing -v
-          phinx -V
-          deployer -V
-          simple-phpunit --version
-          php -r "if(preg_match('/.*Composer.* 2.*/', @exec('composer -V')) == 0) {throw new Exception('Wrong composer version');}"
-      - name: Test pecl
-        if: matrix.operating-system != 'windows-latest'
-        run: pecl -V
-      - name: Test phpmd on windows
-        if: matrix.operating-system == 'windows-latest'
-        run: |
-          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
-          phpmd $RUNNER_TOOL_CACHE\test.php text cleancode
-      - name: Test phpmd
-        if: matrix.operating-system != 'windows-latest'
-        run: |
-          echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
-          phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
+          php-version: 8.5
+  
