@@ -1,0 +1,157 @@
+name: PHP SDK isolated FCGI runtime comparison
+run-name: Compare isolated FCGI worker artifacts
+
+on:
+  push:
+    branches:
+      - benchmark/pgo-isolated-fcgi-runtime
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  benchmark:
+    name: ${{ matrix.php.comparison }} ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: ${{ matrix.php.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        php:
+          - comparison: PHP-8.5-unpatched
+            ref: PHP-8.5
+            runner: windows-2022
+            baseline-run: 29715397329
+            candidate-run: 29721117199
+          - comparison: PHP-8.5-single-process
+            ref: PHP-8.5
+            runner: windows-2022
+            baseline-run: 29718361138
+            candidate-run: 29721117199
+          - comparison: PHP-8.5-patched-control
+            ref: PHP-8.5
+            runner: windows-2022
+            baseline-run: 29716257433
+            candidate-run: 29721117199
+          - comparison: master-unpatched
+            ref: master
+            runner: windows-2025
+            baseline-run: 29715397349
+            candidate-run: 29721118618
+          - comparison: master-single-process
+            ref: master
+            runner: windows-2025
+            baseline-run: 29718362244
+            candidate-run: 29721118618
+        arch:
+          - x64
+          - x86
+        ts:
+          - nts
+          - ts
+
+    steps:
+      - name: Checkout benchmark
+        uses: actions/checkout@v7
+
+      - name: Download baseline artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: artifacts
+          path: downloads/baseline
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.php.baseline-run }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download candidate artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: artifacts
+          path: downloads/candidate
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.php.candidate-run }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract matching PHP runtimes
+        id: php
+        shell: pwsh
+        env:
+          PHP_ARCH: ${{ matrix.arch }}
+          PHP_TS: ${{ matrix.ts }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Get-RuntimeZip {
+            param(
+              [string] $Directory,
+              [string] $Arch,
+              [string] $ThreadSafety
+            )
+
+            $matches = @(
+              Get-ChildItem -LiteralPath $Directory -Filter 'php-*.zip' -File |
+                Where-Object {
+                  ($_.Name -match '^php-\d+\.\d+') -and
+                  ($_.Name -like "*-Win32-*-$Arch.zip") -and
+                  (
+                    (($ThreadSafety -eq 'nts') -and ($_.Name -like '*-nts-*')) -or
+                    (($ThreadSafety -eq 'ts') -and ($_.Name -notlike '*-nts-*'))
+                  )
+                }
+            )
+
+            if ($matches.Count -ne 1) {
+              throw "Expected one $Arch $ThreadSafety PHP runtime ZIP in '$Directory'; found $($matches.Count): $($matches.Name -join ', ')"
+            }
+
+            return $matches[0]
+          }
+
+          $baselineZip = Get-RuntimeZip -Directory 'downloads/baseline' -Arch $env:PHP_ARCH -ThreadSafety $env:PHP_TS
+          $candidateZip = Get-RuntimeZip -Directory 'downloads/candidate' -Arch $env:PHP_ARCH -ThreadSafety $env:PHP_TS
+
+          Expand-Archive -LiteralPath $baselineZip.FullName -DestinationPath 'runtime/baseline'
+          Expand-Archive -LiteralPath $candidateZip.FullName -DestinationPath 'runtime/candidate'
+
+          $baselinePhp = (Resolve-Path 'runtime/baseline/php.exe').Path
+          $candidatePhp = (Resolve-Path 'runtime/candidate/php.exe').Path
+
+          "baseline_php=$baselinePhp" >> $env:GITHUB_OUTPUT
+          "candidate_php=$candidatePhp" >> $env:GITHUB_OUTPUT
+
+      - name: Run paired runtime benchmarks
+        shell: pwsh
+        run: |
+          ./scripts/run-comparison.ps1 `
+            -BaselinePhp '${{ steps.php.outputs.baseline_php }}' `
+            -CandidatePhp '${{ steps.php.outputs.candidate_php }}' `
+            -OutputDirectory 'results' `
+            -Samples 9 | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+      - name: Record artifact provenance
+        if: always()
+        shell: pwsh
+        run: |
+          @(
+            ''
+            '## Artifact provenance'
+            ''
+            '- PHP ref: `${{ matrix.php.ref }}`'
+            '- Comparison: `${{ matrix.php.comparison }}`'
+            '- Architecture: `${{ matrix.arch }}`'
+            '- Thread safety: `${{ matrix.ts }}`'
+            '- Baseline builder run: `${{ matrix.php.baseline-run }}`'
+            '- Candidate builder run: `${{ matrix.php.candidate-run }}`'
+          ) | Tee-Object -FilePath 'results/provenance.md' |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pgo-runtime-${{ matrix.php.comparison }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: results
+          if-no-files-found: error
