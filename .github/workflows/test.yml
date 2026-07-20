@@ -27,6 +27,6 @@ jobs:
           coverage: pcov
 
       - run: |    
-          php -r "if(! extension_loaded('krb5')) {throw new Exception('krb5 not found');}"
+          php -r "if(! extension_loaded('pcov')) {throw new Exception('pcov not found');}"
       
   
