@@ -1,0 +1,118 @@
+name: PHP 8.5.8 official vs isolated FCGI PGO
+run-name: Benchmark PHP 8.5.8 official and isolated-worker builds
+
+on:
+  push:
+    branches:
+      - benchmark/php-8.5.8-isolated-fcgi
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  benchmark:
+    name: PHP 8.5.8 ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: windows-2022
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - x64
+          - x86
+        ts:
+          - nts
+          - ts
+
+    steps:
+      - name: Checkout benchmark
+        uses: actions/checkout@v7
+
+      - name: Download isolated-worker artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: artifacts
+          path: downloads/candidate
+          repository: shivammathur/php-windows-builder
+          run-id: 29728843569
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download official PHP 8.5.8
+        id: php
+        shell: pwsh
+        env:
+          PHP_ARCH: ${{ matrix.arch }}
+          PHP_TS: ${{ matrix.ts }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $threadSafety = if ($env:PHP_TS -eq 'nts') { 'nts-' } else { '' }
+          $archiveName = "php-8.5.8-${threadSafety}Win32-vs17-$($env:PHP_ARCH).zip"
+          $archiveUrl = "https://downloads.php.net/~windows/releases/archives/$archiveName"
+          New-Item -ItemType Directory -Force -Path 'downloads/official' | Out-Null
+          curl.exe --fail --location --retry 5 --retry-all-errors `
+            --output "downloads/official/$archiveName" $archiveUrl
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to download $archiveUrl"
+          }
+
+          $candidateMatches = @(
+            Get-ChildItem -LiteralPath 'downloads/candidate' -Filter $archiveName -File
+          )
+          if ($candidateMatches.Count -ne 1) {
+            throw "Expected one candidate $archiveName; found $($candidateMatches.Count)"
+          }
+
+          $officialHash = (Get-FileHash -Algorithm SHA256 -LiteralPath "downloads/official/$archiveName").Hash.ToLowerInvariant()
+          $candidateHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $candidateMatches[0].FullName).Hash.ToLowerInvariant()
+          Expand-Archive -LiteralPath "downloads/official/$archiveName" -DestinationPath 'runtime/official'
+          Expand-Archive -LiteralPath $candidateMatches[0].FullName -DestinationPath 'runtime/candidate'
+
+          "official_php=$((Resolve-Path 'runtime/official/php.exe').Path)" >> $env:GITHUB_OUTPUT
+          "candidate_php=$((Resolve-Path 'runtime/candidate/php.exe').Path)" >> $env:GITHUB_OUTPUT
+          "archive_name=$archiveName" >> $env:GITHUB_OUTPUT
+          "archive_url=$archiveUrl" >> $env:GITHUB_OUTPUT
+          "official_sha256=$officialHash" >> $env:GITHUB_OUTPUT
+          "candidate_sha256=$candidateHash" >> $env:GITHUB_OUTPUT
+
+      - name: Run paired runtime benchmarks
+        shell: pwsh
+        run: |
+          ./scripts/run-comparison.ps1 `
+            -BaselinePhp '${{ steps.php.outputs.official_php }}' `
+            -CandidatePhp '${{ steps.php.outputs.candidate_php }}' `
+            -OutputDirectory 'results' `
+            -Samples 15 | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+
+      - name: Record provenance
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path 'results' | Out-Null
+          $processor = Get-CimInstance Win32_Processor | Select-Object -First 1
+          @(
+            ''
+            '## Artifact provenance'
+            ''
+            '- PHP version: `8.5.8`'
+            '- Architecture: `${{ matrix.arch }}`'
+            '- Thread safety: `${{ matrix.ts }}`'
+            '- Official archive: `${{ steps.php.outputs.archive_url }}`'
+            '- Official SHA-256: `${{ steps.php.outputs.official_sha256 }}`'
+            '- Candidate builder run: `29728843569`'
+            '- Candidate SHA-256: `${{ steps.php.outputs.candidate_sha256 }}`'
+            ('- Processor: `{0}`' -f $processor.Name.Trim())
+            ('- Logical processors: `{0}`' -f $processor.NumberOfLogicalProcessors)
+            ('- Runner image: `{0} {1}`' -f $env:ImageOS, $env:ImageVersion)
+          ) | Tee-Object -FilePath 'results/provenance.md' |
+            Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: php-8.5.8-${{ matrix.arch }}-${{ matrix.ts }}
+          path: results
+          if-no-files-found: error
