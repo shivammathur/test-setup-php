@@ -2,31 +2,22 @@ name: Runner workflow
 on:
   push:
 jobs:
-  tests:
-    name: "Unit Tests (PHP)"
-    runs-on: ${{ matrix.os }}
-
+  runner:
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
-        php-version:
-          - "8.1"
-          - "8.2"
-          - "8.3"
-          - "8.4"
-          - "8.5"
-
+        operating-system: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04, ubuntu-22.04-arm, ubuntu-24.04-arm, ubuntu-26.04-arm]
+        php: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6']
     steps:
-      - name: "Install PHP with extensions"
+      - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-version }}
-          coverage: pcov
-
-      - run: |    
-          php -r "if(! extension_loaded('pcov')) {throw new Exception('pcov not found');}"
+          php-version: ${{ matrix.php }}
+          extensions: krb5
+      - run: |
+          php -v
+          php -m
+          php -r "if(! extension_loaded('krb5')) {throw new Exception('krb5 not found');}"
       
   
