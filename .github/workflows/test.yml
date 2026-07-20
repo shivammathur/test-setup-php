@@ -5,13 +5,15 @@ jobs:
   runner:
     runs-on: ${{ matrix.operating-system }}
     strategy:
+      fail-fast: false
       matrix:
-        operating-system: [ubuntu-26.04, ubuntu-24.04, ubuntu-22.04, ubuntu-26.04-arm, ubuntu-24.04-arm, ubuntu-22.04-arm]
-        php: ['8.6']
+        operating-system: [ubuntu-latest]
+        php: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6']
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@2.37.2
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-      - run: php -v    
+          extensions: krb5
+      - run: php -v && php -m
   
