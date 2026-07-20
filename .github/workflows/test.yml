@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: "Install PHP with extensions"
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@more-verbose
         with:
           php-version: ${{ matrix.php-version }}
           coverage: pcov
