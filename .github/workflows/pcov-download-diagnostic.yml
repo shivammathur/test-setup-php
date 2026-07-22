@@ -1,0 +1,52 @@
+name: PCOV download response diagnostic
+
+on:
+  push:
+    branches:
+      - fix/pcov-download-response-debug
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: pcov ${{ matrix.php }} attempt ${{ matrix.run }}
+    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        php:
+          - '7.1'
+          - '7.2'
+          - '7.3'
+          - '7.4'
+          - '8.0'
+          - '8.1'
+          - '8.2'
+          - '8.3'
+          - '8.4'
+          - '8.5'
+          - '8.6'
+        run: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+
+    steps:
+      - name: Checkout diagnostic script
+        uses: actions/checkout@v7
+
+      - name: Probe PCOV download
+        shell: pwsh
+        run: >-
+          ./.github/scripts/diagnose-pcov-download.ps1
+          -PhpVersion '${{ matrix.php }}'
+          -Run ${{ matrix.run }}
+
+      - name: Upload HTTP diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pcov-http-${{ matrix.php }}-${{ matrix.run }}
+          path: ${{ runner.temp }}/pcov-http-${{ matrix.php }}-${{ matrix.run }}/
+          if-no-files-found: error
+          retention-days: 7
