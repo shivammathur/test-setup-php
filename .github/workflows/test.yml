@@ -1,0 +1,38 @@
+name: Tool checksum happy path
+
+on:
+  workflow_dispatch:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  checksum:
+    name: ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.operating-system }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system:
+          - ubuntu-24.04
+          - windows-latest
+          - macos-latest
+    steps:
+      - name: Install checksum-pinned tools
+        uses: kmaeda-rakus/setup-php@add-tool-checksum-verification
+        with:
+          php-version: '8.3'
+          tools: >-
+            composer:2.9.8@sha256:59b2c50e10cafa0d8efc19ede9a326d782f096c674a26baf98cf042ce23de890,
+            phpunit:11.5.44@sha512:506351cf6cdce4b96900592efd0feb7abf0d8e75f2bd7d6fdd0bd8f5980942bc7103aed29489c36f920f3af3706968b839a08220b0fd3f62abe7eb21f856f881
+
+      - name: Verify installed versions
+        run: |
+          composer --version
+          phpunit --version
+          # shellcheck disable=SC2016
+          php -r '$version = shell_exec("composer --version"); if (!str_contains($version, "Composer version 2.9.8")) { throw new RuntimeException($version); }'
+          # shellcheck disable=SC2016
+          php -r '$version = shell_exec("phpunit --version"); if (!str_starts_with($version, "PHPUnit 11.5.44")) { throw new RuntimeException($version); }'
