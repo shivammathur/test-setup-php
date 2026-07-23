@@ -1,0 +1,354 @@
+name: Tool checksum complete test
+
+on:
+  workflow_dispatch:
+  push:
+
+permissions:
+  contents: read
+
+env:
+  COMPOSER_SHA256: 59b2c50e10cafa0d8efc19ede9a326d782f096c674a26baf98cf042ce23de890
+  PHPUNIT_SHA512: 506351cf6cdce4b96900592efd0feb7abf0d8e75f2bd7d6fdd0bd8f5980942bc7103aed29489c36f920f3af3706968b839a08220b0fd3f62abe7eb21f856f881
+  BAD_SHA256: '0000000000000000000000000000000000000000000000000000000000000000'
+  BAD_SHA384: '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+  BAD_SHA512: '00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+
+jobs:
+  happy-path:
+    name: Happy path / ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.operating-system }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system:
+          - ubuntu-24.04
+          - windows-latest
+          - macos-latest
+    steps:
+      - name: Install SHA-256 and SHA-512 pinned tools
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            composer:2.9.8@SHA256:${{ env.COMPOSER_SHA256 }},
+            phpunit:11.5.44@sha512:${{ env.PHPUNIT_SHA512 }}
+
+      - name: Verify downloaded tools
+        run: |
+          composer --version
+          phpunit --version
+          # shellcheck disable=SC2016
+          php -r '$version = shell_exec("composer --version 2>&1"); if (!str_contains($version, "Composer version 2.9.8")) { fwrite(STDERR, $version); exit(1); }'
+          # shellcheck disable=SC2016
+          php -r '$version = shell_exec("phpunit --version 2>&1"); if (!str_starts_with($version, "PHPUnit 11.5.44")) { fwrite(STDERR, $version); exit(1); }'
+
+      - name: Corrupt installed tools
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          printf '%s\n' 'corrupted installed composer' | sudo tee "$(command -v composer)" >/dev/null
+          printf '%s\n' 'corrupted installed phpunit' | sudo tee "$(command -v phpunit)" >/dev/null
+
+      - name: Corrupt installed tools
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $toolDirectory = Split-Path (Get-Command php -ErrorAction Stop).Source
+          foreach ($tool in @('composer', 'phpunit')) {
+            $path = Join-Path $toolDirectory $tool
+            if (-not (Test-Path $path -PathType Leaf)) {
+              throw "Could not locate installed $tool at $path"
+            }
+            Set-Content -Path $path -Value "corrupted installed $tool" -NoNewline
+          }
+
+      - name: Restore tools from verified cache
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            composer:2.9.8@sha256:${{ env.COMPOSER_SHA256 }},
+            phpunit:11.5.44@SHA512:${{ env.PHPUNIT_SHA512 }}
+
+      - name: Verify cached tools
+        run: |
+          # shellcheck disable=SC2016
+          php -r '$version = shell_exec("composer --version 2>&1"); if (!str_contains($version, "Composer version 2.9.8")) { fwrite(STDERR, $version); exit(1); }'
+          # shellcheck disable=SC2016
+          php -r '$version = shell_exec("phpunit --version 2>&1"); if (!str_starts_with($version, "PHPUnit 11.5.44")) { fwrite(STDERR, $version); exit(1); }'
+
+  poisoned-cache:
+    name: Poisoned cache / ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.operating-system }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system:
+          - ubuntu-24.04
+          - windows-latest
+          - macos-latest
+    steps:
+      - name: Prepare isolated tool directory
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          tools_dir="${RUNNER_TEMP}/setup-php-tools"
+          mkdir -p "$tools_dir"
+          echo "SETUP_PHP_TOOLS_DIR=$tools_dir" >> "$GITHUB_ENV"
+
+      - name: Seed a valid tool and cache entry
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            composer:2.9.8@sha256:${{ env.COMPOSER_SHA256 }},
+            phpunit:11.5.44@sha512:${{ env.PHPUNIT_SHA512 }}
+
+      - name: Poison the PHPUnit cache entry
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          cache_dir="${RUNNER_TOOL_CACHE}/setup-php/tools"
+          cache_count="$(find "$cache_dir" -maxdepth 1 -type f -name 'phpunit-*' | wc -l | tr -d ' ')"
+          test "$cache_count" -eq 1
+          cache_file="$(find "$cache_dir" -maxdepth 1 -type f -name 'phpunit-*' -print -quit)"
+          printf '%s\n' 'poisoned cache' | sudo tee "$cache_file" >/dev/null
+
+      - name: Poison the PHPUnit cache entry
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cacheFiles = @(Get-ChildItem -Path $env:TEMP -Filter 'phpunit-*' -File)
+          if ($cacheFiles.Count -ne 1) {
+            throw "Expected one PHPUnit cache entry, found $($cacheFiles.Count)"
+          }
+          Set-Content -Path $cacheFiles[0].FullName -Value 'poisoned cache' -NoNewline
+
+      - name: Reject the poisoned cache entry
+        id: reject-poisoned-cache
+        continue-on-error: true
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            composer:2.9.8@sha256:${{ env.COMPOSER_SHA256 }},
+            phpunit:11.5.44@sha512:${{ env.PHPUNIT_SHA512 }}
+        env:
+          fail-fast: true
+
+      - name: Require poisoned cache rejection
+        if: always() && steps.reject-poisoned-cache.outcome != 'failure'
+        run: |
+          echo "The poisoned cache entry was not rejected"
+          exit 1
+
+      - name: Verify installed tool was preserved
+        run: |
+          # shellcheck disable=SC2016
+          php -r '$version = shell_exec("phpunit --version 2>&1"); if (!str_starts_with($version, "PHPUnit 11.5.44")) { fwrite(STDERR, $version); exit(1); }'
+
+      - name: Verify poisoned cache entry was removed
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          cache_dir="${RUNNER_TOOL_CACHE}/setup-php/tools"
+          cache_count="$(find "$cache_dir" -maxdepth 1 -type f -name 'phpunit-*' | wc -l | tr -d ' ')"
+          test "$cache_count" -eq 0
+
+      - name: Verify poisoned cache entry was removed
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cacheFiles = @(Get-ChildItem -Path $env:TEMP -Filter 'phpunit-*' -File)
+          if ($cacheFiles.Count -ne 0) {
+            throw "Expected the poisoned cache entry to be removed"
+          }
+
+  rejected-download:
+    name: Rejected download / ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.operating-system }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system:
+          - ubuntu-24.04
+          - windows-latest
+          - macos-latest
+    steps:
+      - name: Prepare isolated tool directory
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          tools_dir="${RUNNER_TEMP}/setup-php-tools"
+          mkdir -p "$tools_dir"
+          echo "SETUP_PHP_TOOLS_DIR=$tools_dir" >> "$GITHUB_ENV"
+
+      - name: Install known-good tools
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            composer:2.9.8@sha256:${{ env.COMPOSER_SHA256 }},
+            phpunit:11.5.44@sha512:${{ env.PHPUNIT_SHA512 }}
+
+      - name: Reject a bad PHPUnit download without fail-fast
+        id: nonfatal-phpunit-mismatch
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            composer:2.9.8@sha256:${{ env.COMPOSER_SHA256 }},
+            phpunit:11.5.43@sha512:${{ env.BAD_SHA512 }}
+
+      - name: Verify nonfatal mismatch preserved PHPUnit
+        run: |
+          # shellcheck disable=SC2016
+          php -r '$version = shell_exec("phpunit --version 2>&1"); if (!str_starts_with($version, "PHPUnit 11.5.44")) { fwrite(STDERR, $version); exit(1); }'
+
+      - name: Reject a bad PHPUnit download with fail-fast
+        id: fatal-phpunit-mismatch
+        continue-on-error: true
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            composer:2.9.8@sha256:${{ env.COMPOSER_SHA256 }},
+            phpunit:11.5.43@sha512:${{ env.BAD_SHA512 }}
+        env:
+          fail-fast: true
+
+      - name: Require fail-fast mismatch failure
+        if: always() && steps.fatal-phpunit-mismatch.outcome != 'failure'
+        run: |
+          echo "The fail-fast PHPUnit mismatch did not fail"
+          exit 1
+
+      - name: Verify fatal mismatch preserved PHPUnit
+        run: |
+          # shellcheck disable=SC2016
+          php -r '$version = shell_exec("phpunit --version 2>&1"); if (!str_starts_with($version, "PHPUnit 11.5.44")) { fwrite(STDERR, $version); exit(1); }'
+
+      - name: Reject a bad Composer download without fail-fast
+        id: composer-mismatch
+        continue-on-error: true
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: composer:2.9.7@sha256:${{ env.BAD_SHA256 }}
+
+      - name: Require Composer mismatch failure
+        if: always() && steps.composer-mismatch.outcome != 'failure'
+        run: |
+          echo "The Composer mismatch did not fail"
+          exit 1
+
+      - name: Verify Composer mismatch preserved both tools
+        run: |
+          # shellcheck disable=SC2016
+          php -r '$version = shell_exec("composer --version 2>&1"); if (!str_contains($version, "Composer version 2.9.8")) { fwrite(STDERR, $version); exit(1); }'
+          # shellcheck disable=SC2016
+          php -r '$version = shell_exec("phpunit --version 2>&1"); if (!str_starts_with($version, "PHPUnit 11.5.44")) { fwrite(STDERR, $version); exit(1); }'
+
+      - name: Verify bad downloads were not cached
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          cache_dir="${RUNNER_TOOL_CACHE}/setup-php/tools"
+          composer_count="$(find "$cache_dir" -maxdepth 1 -type f -name 'composer-*' | wc -l | tr -d ' ')"
+          phpunit_count="$(find "$cache_dir" -maxdepth 1 -type f -name 'phpunit-*' | wc -l | tr -d ' ')"
+          test "$composer_count" -eq 1
+          test "$phpunit_count" -eq 1
+
+      - name: Verify bad downloads were not cached
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $composerCache = @(Get-ChildItem -Path $env:TEMP -Filter 'composer-*' -File)
+          $phpunitCache = @(Get-ChildItem -Path $env:TEMP -Filter 'phpunit-*' -File)
+          if ($composerCache.Count -ne 1 -or $phpunitCache.Count -ne 1) {
+            throw "Unexpected cache entries: composer=$($composerCache.Count), phpunit=$($phpunitCache.Count)"
+          }
+
+  invalid-input:
+    name: Invalid input / ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.operating-system }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system:
+          - ubuntu-24.04
+          - windows-latest
+          - macos-latest
+    steps:
+      - name: Reject malformed checksum syntax
+        id: malformed-checksum
+        continue-on-error: true
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: composer:2.9.8@sha256${{ env.COMPOSER_SHA256 }}
+        env:
+          fail-fast: true
+
+      - name: Require malformed syntax rejection
+        if: always() && steps.malformed-checksum.outcome != 'failure'
+        run: |
+          echo "Malformed checksum syntax was not rejected"
+          exit 1
+
+      - name: Reject an invalid checksum
+        id: invalid-checksum
+        continue-on-error: true
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            composer:2.9.8@sha256:${{ env.COMPOSER_SHA256 }},
+            phpunit:11.5.44@sha512:not-a-hash
+        env:
+          fail-fast: true
+
+      - name: Require invalid checksum rejection
+        if: always() && steps.invalid-checksum.outcome != 'failure'
+        run: |
+          echo "The invalid checksum was not rejected"
+          exit 1
+
+      - name: Reject an unsupported checksum algorithm
+        id: unsupported-algorithm
+        continue-on-error: true
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: composer:2.9.8@sha384:${{ env.BAD_SHA384 }}
+        env:
+          fail-fast: true
+
+      - name: Require unsupported algorithm rejection
+        if: always() && steps.unsupported-algorithm.outcome != 'failure'
+        run: |
+          echo "The unsupported checksum algorithm was not rejected"
+          exit 1
+
+      - name: Reject checksum pinning for a Composer package
+        id: unsupported-tool-type
+        continue-on-error: true
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+          tools: >-
+            composer:2.9.8@sha256:${{ env.COMPOSER_SHA256 }},
+            phinx:0.16.10@sha256:${{ env.BAD_SHA256 }}
+        env:
+          fail-fast: true
+
+      - name: Require unsupported tool type rejection
+        if: always() && steps.unsupported-tool-type.outcome != 'failure'
+        run: |
+          echo "Checksum pinning for a Composer package was not rejected"
+          exit 1
