@@ -21,7 +21,7 @@ jobs:
           - macos-latest
     steps:
       - name: Install checksum-pinned tools
-        uses: kmaeda-rakus/setup-php@add-tool-checksum-verification
+        uses: shivammathur/setup-php@fix/tool-checksum-verification
         with:
           php-version: '8.3'
           tools: >-
