@@ -7,15 +7,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [windows-latest]
-        php: ['7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6']
-        runs: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        operating-system: [ubuntu-latest, windows-latest]
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php }}
-          extensions: pcov
+          tools: cpx
         env:
           fail-fast: true
       - run: |
