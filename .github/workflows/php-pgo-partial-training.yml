@@ -1,0 +1,62 @@
+name: PHP PGO partial training comparison
+
+on:
+  push:
+    branches:
+      - test/php-pgo-partial-training-20260807
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HOMEBREW_NO_ANALYTICS: "1"
+  HOMEBREW_NO_AUTO_UPDATE: "1"
+  HOMEBREW_NO_ENV_HINTS: "1"
+  HOMEBREW_NO_INSTALL_CLEANUP: "1"
+  HOMEBREW_NO_AUTOREMOVE: "1"
+  TAP_COMMIT: 5a5d23587785d6e2dd85c27661ff86b1d55a49b7
+
+jobs:
+  compare:
+    name: ${{ matrix.architecture }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x86_64-linux
+            runner: ubuntu-24.04
+          - architecture: arm64-linux
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: ghcr.io/homebrew/brew:main
+      options: --user root
+    timeout-minutes: 150
+    steps:
+      - name: Check out the test
+        uses: actions/checkout@v7
+
+      - name: Prepare the Homebrew user workspace
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/results" "$RUNNER_TEMP/php-pgo-comparison"
+          uname -a > "$GITHUB_WORKSPACE/results/runner-start.txt"
+          chown -R linuxbrew:linuxbrew "$GITHUB_WORKSPACE" "$RUNNER_TEMP/php-pgo-comparison"
+
+      - name: Build, bottle, validate, and benchmark both variants
+        env:
+          TEST_ARCHITECTURE: ${{ matrix.architecture }}
+        run: runuser --user linuxbrew -- env HOME=/home/linuxbrew "$GITHUB_WORKSPACE/scripts/run-pgo-comparison.sh"
+
+      - name: Publish comparison summary
+        if: always() && hashFiles('results/summary.md') != ''
+        run: cat results/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload bottles and raw results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: php-pgo-${{ matrix.architecture }}
+          path: results
+          if-no-files-found: error
+          retention-days: 7

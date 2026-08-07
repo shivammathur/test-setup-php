@@ -1,0 +1,11 @@
+diff --git a/Formula/php.rb b/Formula/php.rb
+--- a/Formula/php.rb
++++ b/Formula/php.rb
+@@ -298,6 +298,7 @@ class Php < Formula
+           ENV.append key, "-Wno-profile-instr-unprofiled"
+         else
+           ENV.append key, "-fprofile-correction"
++          ENV.append key, "-fprofile-partial-training"
+           # GCC 13's tracer pass crashes on session.c under -fprofile-use (https://github.com/php/php-src/issues/18807)
+           ENV.append key, "-fno-tracer"
+         end
