@@ -1,0 +1,87 @@
+name: Test PIE SQLSRV on PHP 8.5
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Set up PHP 8.5 and PIE
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          tools: pie
+          coverage: none
+
+      - name: Verify PHP and PIE
+        run: |
+          php --version
+          pie --version
+
+      - name: Confirm extensions are not preloaded
+        run: |
+          $modules = php -m
+          $modules
+          if ($modules -match '^(sqlsrv|pdo_sqlsrv)$') {
+            throw 'sqlsrv or pdo_sqlsrv was loaded before PIE installation'
+          }
+
+      - name: Install sqlsrv with PIE
+        id: install_sqlsrv
+        continue-on-error: true
+        run: pie install microsoft/sqlsrv
+
+      - name: Install pdo_sqlsrv with PIE
+        id: install_pdo_sqlsrv
+        continue-on-error: true
+        run: pie install microsoft/pdo_sqlsrv
+
+      - name: Show PIE build output
+        if: always() && (steps.install_sqlsrv.outcome == 'failure' || steps.install_pdo_sqlsrv.outcome == 'failure')
+        run: |
+          Get-ChildItem $env:RUNNER_TEMP -Filter 'pie_*' | ForEach-Object {
+            $_.FullName
+            Get-Content $_.FullName
+          }
+
+      - name: Inspect installed DLLs
+        if: always()
+        run: |
+          $extensionDir = php -r "echo ini_get('extension_dir');"
+          "Extension directory: $extensionDir"
+          Get-ChildItem $extensionDir -Filter '*sqlsrv*.dll' | Format-List FullName, Length
+
+      - name: List loaded extensions
+        if: always()
+        run: php -m
+
+      - name: Verify sqlsrv
+        id: verify_sqlsrv
+        if: always()
+        continue-on-error: true
+        run: php --ri sqlsrv
+
+      - name: Verify pdo_sqlsrv
+        id: verify_pdo_sqlsrv
+        if: always()
+        continue-on-error: true
+        run: php --ri pdo_sqlsrv
+
+      - name: Check results
+        if: always()
+        run: |
+          if ('${{ steps.install_sqlsrv.outcome }}' -ne 'success') {
+            throw 'PIE failed to install sqlsrv'
+          }
+          if ('${{ steps.install_pdo_sqlsrv.outcome }}' -ne 'success') {
+            throw 'PIE failed to install pdo_sqlsrv'
+          }
+          if ('${{ steps.verify_sqlsrv.outcome }}' -ne 'success') {
+            throw 'sqlsrv is not loaded'
+          }
+          if ('${{ steps.verify_pdo_sqlsrv.outcome }}' -ne 'success') {
+            throw 'pdo_sqlsrv is not loaded'
+          }
