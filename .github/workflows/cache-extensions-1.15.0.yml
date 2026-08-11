@@ -1,4 +1,4 @@
-name: Cache extensions 1.15.0 seed and job scope
+name: Cache extensions 1.15.0 cross-workflow restore
 
 on:
   push:
@@ -9,148 +9,11 @@ permissions:
   contents: read
 
 env:
-  CACHE_BUSTER: cache-extensions-1.15.0-${{ github.run_id }}-${{ github.run_attempt }}
+  CACHE_BUSTER: cache-extensions-1.15.0-31447419082-1
 
 jobs:
-  scope-seed:
-    name: Seed job scope (${{ matrix.case.name }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        case:
-          - name: default
-            jobs: 'false'
-            workflows: 'false'
-            job_hit: 'false'
-          - name: jobs
-            jobs: 'true'
-            workflows: 'false'
-            job_hit: 'true'
-          - name: workflows
-            jobs: 'false'
-            workflows: 'true'
-            job_hit: 'false'
-          - name: both
-            jobs: 'true'
-            workflows: 'true'
-            job_hit: 'true'
-    steps:
-      - name: Configure sharing flags
-        if: matrix.case.name != 'default'
-        shell: bash
-        run: |
-          printf '%s=%s\n' 'share-cache-across-jobs' '${{ matrix.case.jobs }}' >> "$GITHUB_ENV"
-          printf '%s=%s\n' 'share-cache-across-workflows' '${{ matrix.case.workflows }}' >> "$GITHUB_ENV"
-
-      - name: Compute cache metadata
-        id: metadata
-        uses: shivammathur/cache-extensions@1.15.0
-        with:
-          php-version: '5.4'
-          extensions: ':opcache'
-          key: ${{ env.CACHE_BUSTER }}-jobs-${{ matrix.case.name }}
-
-      - name: Verify v1 matches 1.15.0 defaults
-        if: matrix.case.name == 'default'
-        id: rolling
-        uses: shivammathur/cache-extensions@v1
-        with:
-          php-version: '5.4'
-          extensions: ':opcache'
-          key: ${{ env.CACHE_BUSTER }}-jobs-${{ matrix.case.name }}
-
-      - name: Compute 1.14.6 default metadata
-        if: matrix.case.name == 'default'
-        id: previous
-        uses: shivammathur/cache-extensions@1.14.6
-        with:
-          php-version: '5.4'
-          extensions: ':opcache'
-          key: ${{ env.CACHE_BUSTER }}-jobs-${{ matrix.case.name }}
-
-      - name: Compare rolling and previous metadata
-        if: matrix.case.name == 'default'
-        shell: bash
-        run: |
-          test '${{ steps.metadata.outputs.key }}' = '${{ steps.rolling.outputs.key }}'
-          test '${{ steps.metadata.outputs.dir }}' = '${{ steps.rolling.outputs.dir }}'
-          test '${{ steps.metadata.outputs.key }}' = '${{ steps.previous.outputs.key }}'
-          test '${{ steps.metadata.outputs.dir }}' = '${{ steps.previous.outputs.dir }}'
-
-      - name: Create scope marker
-        shell: bash
-        run: |
-          mkdir -p '${{ runner.temp }}/job-scope-marker'
-          printf '%s\n' '${{ matrix.case.name }}' > '${{ runner.temp }}/job-scope-marker/value'
-
-      - name: Save scoped marker
-        uses: actions/cache/save@v5
-        with:
-          path: ${{ runner.temp }}/job-scope-marker
-          key: ${{ steps.metadata.outputs.key }}
-
-  scope-restore:
-    name: Restore job scope (${{ matrix.case.name }})
-    needs: scope-seed
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        case:
-          - name: default
-            jobs: 'false'
-            workflows: 'false'
-            job_hit: 'false'
-          - name: jobs
-            jobs: 'true'
-            workflows: 'false'
-            job_hit: 'true'
-          - name: workflows
-            jobs: 'false'
-            workflows: 'true'
-            job_hit: 'false'
-          - name: both
-            jobs: 'true'
-            workflows: 'true'
-            job_hit: 'true'
-    steps:
-      - name: Configure sharing flags
-        if: matrix.case.name != 'default'
-        shell: bash
-        run: |
-          printf '%s=%s\n' 'share-cache-across-jobs' '${{ matrix.case.jobs }}' >> "$GITHUB_ENV"
-          printf '%s=%s\n' 'share-cache-across-workflows' '${{ matrix.case.workflows }}' >> "$GITHUB_ENV"
-
-      - name: Compute cache metadata
-        id: metadata
-        uses: shivammathur/cache-extensions@1.15.0
-        with:
-          php-version: '5.4'
-          extensions: ':opcache'
-          key: ${{ env.CACHE_BUSTER }}-jobs-${{ matrix.case.name }}
-
-      - name: Look up scoped marker
-        id: restore
-        uses: actions/cache/restore@v5
-        with:
-          path: ${{ runner.temp }}/job-scope-marker
-          key: ${{ steps.metadata.outputs.key }}
-          lookup-only: true
-
-      - name: Verify job-scope behavior
-        shell: bash
-        run: |
-          expected='${{ matrix.case.job_hit }}'
-          actual='${{ steps.restore.outputs.cache-hit }}'
-          if [ "$expected" = 'true' ]; then
-            test "$actual" = 'true'
-          else
-            test "$actual" != 'true'
-          fi
-
   workflow-cache:
-    name: Seed workflow scope (${{ matrix.case.name }})
+    name: Restore workflow scope (${{ matrix.case.name }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -159,15 +22,19 @@ jobs:
           - name: default
             jobs: 'false'
             workflows: 'false'
+            workflow_hit: 'false'
           - name: jobs
             jobs: 'true'
             workflows: 'false'
+            workflow_hit: 'false'
           - name: workflows
             jobs: 'false'
             workflows: 'true'
+            workflow_hit: 'true'
           - name: both
             jobs: 'true'
             workflows: 'true'
+            workflow_hit: 'true'
     steps:
       - name: Configure sharing flags
         if: matrix.case.name != 'default'
@@ -184,91 +51,21 @@ jobs:
           extensions: ':opcache'
           key: ${{ env.CACHE_BUSTER }}-workflows-${{ matrix.case.name }}
 
-      - name: Create workflow marker
-        shell: bash
-        run: |
-          mkdir -p '${{ runner.temp }}/workflow-scope-marker'
-          printf '%s\n' '${{ matrix.case.name }}' > '${{ runner.temp }}/workflow-scope-marker/value'
-
-      - name: Save workflow marker
-        uses: actions/cache/save@v5
-        with:
-          path: ${{ runner.temp }}/workflow-scope-marker
-          key: ${{ steps.metadata.outputs.key }}
-
-  extension-seed:
-    name: Seed extension cache (${{ matrix.operating-system }})
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-    steps:
-      - name: Compute extension cache metadata
-        id: metadata
-        uses: shivammathur/cache-extensions@1.15.0
-        with:
-          php-version: '8.4'
-          extensions: memcached
-          key: ${{ env.CACHE_BUSTER }}-extensions
-        env:
-          RUNNER: cache-extensions-1.15.0
-
-      - name: Setup PHP with memcached
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: memcached
-
-      - name: Verify memcached
-        shell: bash
-        run: |
-          php -r "exit(extension_loaded('memcached') ? 0 : 1);"
-
-      - name: Save extension cache
-        uses: actions/cache/save@v5
-        with:
-          path: ${{ steps.metadata.outputs.dir }}
-          key: ${{ steps.metadata.outputs.key }}
-
-  extension-restore:
-    name: Restore extension cache (${{ matrix.operating-system }})
-    needs: extension-seed
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-    steps:
-      - name: Compute extension cache metadata
-        id: metadata
-        uses: shivammathur/cache-extensions@v1
-        with:
-          php-version: '8.4'
-          extensions: memcached
-          key: ${{ env.CACHE_BUSTER }}-extensions
-        env:
-          RUNNER: cache-extensions-1.15.0
-
-      - name: Restore extension cache
+      - name: Look up workflow marker
         id: restore
         uses: actions/cache/restore@v5
         with:
-          path: ${{ steps.metadata.outputs.dir }}
+          path: ${{ runner.temp }}/workflow-scope-marker
           key: ${{ steps.metadata.outputs.key }}
-          fail-on-cache-miss: true
+          lookup-only: true
 
-      - name: Verify extension cache hit
-        shell: bash
-        run: test '${{ steps.restore.outputs.cache-hit }}' = 'true'
-
-      - name: Setup PHP with cached memcached
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: memcached
-
-      - name: Verify cached memcached
+      - name: Verify workflow-scope behavior
         shell: bash
         run: |
-          php -r "exit(extension_loaded('memcached') ? 0 : 1);"
+          expected='${{ matrix.case.workflow_hit }}'
+          actual='${{ steps.restore.outputs.cache-hit }}'
+          if [ "$expected" = 'true' ]; then
+            test "$actual" = 'true'
+          else
+            test "$actual" != 'true'
+          fi
