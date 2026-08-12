@@ -1,0 +1,61 @@
+name: Cloud CLI extension matrix
+
+on:
+  push:
+
+jobs:
+  extensions:
+    name: ${{ matrix.os }} / PHP ${{ matrix.php-version }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        php-version:
+          - '8.2'
+          - '8.3'
+          - '8.4'
+          - '8.5'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up default PHP
+        uses: shivammathur/setup-php@main
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+          tools: none
+
+      - name: Inspect default extensions
+        shell: bash
+        run: |
+          php inspect-extensions.php default > default.json
+          cat default.json
+
+      - name: Disable shared extensions
+        uses: shivammathur/setup-php@main
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: none
+          coverage: none
+          tools: none
+
+      - name: Inspect extensions after none
+        shell: bash
+        run: |
+          php inspect-extensions.php none > none.json
+          cat none.json
+
+      - name: Upload extension inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: extensions-${{ runner.os }}-${{ matrix.php-version }}
+          path: |
+            default.json
+            none.json
+
