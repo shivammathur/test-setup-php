@@ -23,11 +23,6 @@ $extensions = [
     'zlib',
 ];
 
-$staticCommand = escapeshellarg(PHP_BINARY)
-    .' -n -r '
-    .escapeshellarg('echo json_encode(array_map("strtolower", get_loaded_extensions()));');
-$staticExtensions = json_decode((string) shell_exec($staticCommand), true, 512, JSON_THROW_ON_ERROR);
-$staticExtensions = array_fill_keys($staticExtensions, true);
 $extensionDir = (string) ini_get('extension_dir');
 $suffix = PHP_SHLIB_SUFFIX;
 
@@ -39,25 +34,10 @@ foreach ($extensions as $extension) {
     ];
     $moduleFiles = array_values(array_filter($moduleCandidates, 'is_file'));
     $loaded = extension_loaded($extension);
-    $static = isset($staticExtensions[strtolower($extension)]);
-
-    if ($static) {
-        $classification = 'static';
-    } elseif ($loaded && $moduleFiles !== []) {
-        $classification = 'shared-loaded';
-    } elseif ($loaded) {
-        $classification = 'loaded-without-matching-module-file';
-    } elseif ($moduleFiles !== []) {
-        $classification = 'shared-disabled';
-    } else {
-        $classification = 'unavailable';
-    }
 
     $results[$extension] = [
         'loaded' => $loaded,
-        'static' => $static,
         'module_files' => $moduleFiles,
-        'classification' => $classification,
     ];
 }
 

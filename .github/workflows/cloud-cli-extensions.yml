@@ -35,7 +35,9 @@ jobs:
         shell: bash
         run: |
           php inspect-extensions.php default > default.json
+          php -n inspect-extensions.php static > static.json
           cat default.json
+          cat static.json
 
       - name: Disable shared extensions
         uses: shivammathur/setup-php@main
@@ -58,4 +60,4 @@ jobs:
           path: |
             default.json
             none.json
-
+            static.json
