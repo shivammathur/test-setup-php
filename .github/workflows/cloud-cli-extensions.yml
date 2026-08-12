@@ -53,6 +53,29 @@ jobs:
           php inspect-extensions.php none > none.json
           cat none.json
 
+      - name: Set up Laravel Cloud CLI with minimal shared extensions
+        uses: shivammathur/setup-php@main
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: none, dom, iconv, sockets, tokenizer
+          coverage: none
+          tools: laravel/cloud-cli
+
+      - name: Verify Laravel Cloud CLI
+        shell: bash
+        run: |
+          php inspect-extensions.php cloud > cloud.json
+          php -r '
+            $required = ["dom", "iconv", "sockets", "tokenizer"];
+            $missing = array_values(array_filter($required, fn ($extension) => !extension_loaded($extension)));
+            if ($missing !== []) {
+                fwrite(STDERR, "Missing extensions: ".implode(", ", $missing).PHP_EOL);
+                exit(1);
+            }
+          '
+          cloud --version
+          cat cloud.json
+
       - name: Upload extension inventory
         uses: actions/upload-artifact@v4
         with:
@@ -61,3 +84,4 @@ jobs:
             default.json
             none.json
             static.json
+            cloud.json
