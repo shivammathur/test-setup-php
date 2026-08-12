@@ -1,0 +1,120 @@
+name: PR 1106 Cloud CLI smoke test
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: ${{ matrix.os }} / PHP ${{ matrix.php-version }} / ${{ matrix.mode }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+        php-version:
+          - '8.2'
+          - '8.5'
+        mode:
+          - default
+          - none
+
+    steps:
+      - name: Set up pinned Cloud CLI with default extensions
+        if: matrix.mode == 'default'
+        uses: damiantw/setup-php@laravel-cloud
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+          tools: cloud-cli:0.5.0
+
+      - name: Set up Cloud CLI after disabling shared extensions
+        if: matrix.mode == 'none'
+        uses: damiantw/setup-php@laravel-cloud
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: none
+          coverage: none
+          tools: laravel-cloud
+
+      - name: Verify required extensions
+        shell: php {0}
+        run: |
+          <?php
+          $required = [
+              'curl', 'date', 'dom', 'filter', 'iconv', 'json', 'libxml',
+              'mbstring', 'openssl', 'phar', 'session', 'sockets',
+              'tokenizer', 'zlib',
+          ];
+          $missing = array_values(array_filter(
+              $required,
+              static fn (string $extension): bool => ! extension_loaded($extension),
+          ));
+          if ($missing !== []) {
+              fwrite(STDERR, 'Missing extensions: '.implode(', ', $missing).PHP_EOL);
+              exit(1);
+          }
+
+      - name: Verify canonical command and basic behavior on Unix
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          command -v cloud
+          test "$(cloud --version)" = 'Cloud v0.5.0'
+          cloud list --raw | tee cloud-commands.txt
+          grep -Eq '^auth($|[[:space:]])' cloud-commands.txt
+          cloud auth --help > cloud-auth-help.txt
+          cloud application:list --help > cloud-application-list-help.txt
+          test -s cloud-auth-help.txt
+          test -s cloud-application-list-help.txt
+
+      - name: Verify canonical command and basic behavior on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-Command cloud
+          $version = cloud --version
+          if($version.Trim() -ne 'Cloud v0.5.0') {
+            throw "Unexpected cloud version: $version"
+          }
+          $commands = cloud list --raw
+          $commands | Set-Content cloud-commands.txt
+          if(-not ($commands -match '^auth(?:\s|$)')) {
+            throw 'The auth command is missing'
+          }
+          cloud auth --help | Set-Content cloud-auth-help.txt
+          cloud application:list --help | Set-Content cloud-application-list-help.txt
+          if((Get-Item cloud-auth-help.txt).Length -eq 0) {
+            throw 'The auth help output is empty'
+          }
+          if((Get-Item cloud-application-list-help.txt).Length -eq 0) {
+            throw 'The application:list help output is empty'
+          }
+
+      - name: Verify cloud-cli alias on Unix
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          command -v cloud-cli
+          test "$(cloud-cli --version)" = 'Cloud v0.5.0'
+          cloud-cli list --raw | tee cloud-cli-commands.txt
+          grep -Eq '^auth($|[[:space:]])' cloud-cli-commands.txt
+
+      - name: Verify cloud-cli alias on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-Command cloud-cli
+          $version = cloud-cli --version
+          if($version.Trim() -ne 'Cloud v0.5.0') {
+            throw "Unexpected cloud-cli version: $version"
+          }
+          cloud-cli list --raw | Tee-Object -FilePath cloud-cli-commands.txt
+          $commands = Get-Content cloud-cli-commands.txt
+          if(-not ($commands -match '^auth(?:\s|$)')) {
+            throw 'The auth command is missing from cloud-cli output'
+          }
