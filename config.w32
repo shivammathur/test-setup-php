@@ -1,0 +1,10 @@
+ARG_ENABLE("extra-path-fixture", "Extra path fixture support", "no");
+
+if (PHP_EXTRA_PATH_FIXTURE != "no") {
+    if (CHECK_HEADER_ADD_INCLUDE("fixture.h", "CFLAGS_EXTRA_PATH_FIXTURE") &&
+        CHECK_LIB("fixture.lib", "extra_path_fixture")) {
+        EXTENSION("extra_path_fixture", "extra_path_fixture.c", PHP_EXTRA_PATH_FIXTURE_SHARED);
+    } else {
+        ERROR("fixture.h or fixture.lib not found");
+    }
+}

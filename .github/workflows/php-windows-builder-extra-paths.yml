@@ -1,0 +1,91 @@
+name: Test php-windows-builder extra paths
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build-extension:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Enable Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build external static library
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dependency\lib -Force | Out-Null
+          cl.exe /nologo /c /O2 /I dependency\include /Fo:dependency\lib\fixture.obj dependency\src\fixture.c
+          if ($LASTEXITCODE -ne 0) {
+            throw "cl.exe failed with exit code $LASTEXITCODE"
+          }
+          lib.exe /nologo /OUT:dependency\lib\fixture.lib dependency\lib\fixture.obj
+          if ($LASTEXITCODE -ne 0) {
+            throw "lib.exe failed with exit code $LASTEXITCODE"
+          }
+          Get-Item dependency\include\fixture.h, dependency\lib\fixture.lib | Format-List FullName, Length
+
+      - name: Build PHP extension with external include and library paths
+        uses: php/php-windows-builder/extension@v1
+        with:
+          extension-ref: test
+          php-version: '8.4'
+          arch: x64
+          ts: nts
+          args: >-
+            --enable-extra-path-fixture
+            --with-extra-includes="${{ github.workspace }}\dependency\include"
+            --with-extra-libs="${{ github.workspace }}\dependency\lib"
+
+      - name: Verify configure arguments and packaged extension
+        shell: pwsh
+        run: |
+          $task = Get-ChildItem build -Recurse -Filter task.bat | Select-Object -First 1
+          if ($null -eq $task) {
+            throw 'Generated task.bat was not found'
+          }
+          $taskContent = Get-Content $task.FullName -Raw
+          $expectedInclude = "--with-extra-includes=`"$env:GITHUB_WORKSPACE\dependency\include`""
+          $expectedLib = "--with-extra-libs=`"$env:GITHUB_WORKSPACE\dependency\lib`""
+          if (-not $taskContent.Contains($expectedInclude)) {
+            throw "Missing configure argument: $expectedInclude"
+          }
+          if (-not $taskContent.Contains($expectedLib)) {
+            throw "Missing configure argument: $expectedLib"
+          }
+          $taskContent
+
+          $package = Get-ChildItem artifacts -File -Filter '*.zip' | Select-Object -First 1
+          if ($null -eq $package) {
+            throw 'Extension package was not produced'
+          }
+          New-Item -ItemType Directory -Path packaged-extension -Force | Out-Null
+          Expand-Archive -LiteralPath $package.FullName -DestinationPath packaged-extension -Force
+
+          $dll = Get-ChildItem packaged-extension -File -Filter '*.dll' | Select-Object -First 1
+          $pdb = Get-ChildItem packaged-extension -File -Filter '*.pdb' | Select-Object -First 1
+          if ($null -eq $dll -or $null -eq $pdb) {
+            throw 'Packaged DLL or PDB was not found'
+          }
+
+          $php = Get-ChildItem build -Recurse -File -Filter php.exe |
+            Where-Object { $_.Directory.Name -eq 'php-bin' } |
+            Select-Object -First 1
+          if ($null -eq $php) {
+            throw 'Build PHP executable was not found'
+          }
+
+          $output = & $php.FullName -n -d "extension=$($dll.FullName)" -r 'echo extra_path_fixture_add(20, 22);'
+          if ($LASTEXITCODE -ne 0 -or $output.Trim() -ne '42') {
+            throw "Packaged extension verification failed: $output"
+          }
+
+          dumpbin.exe /dependents $dll.FullName
+          Get-Item $package.FullName, $dll.FullName, $pdb.FullName | Format-List FullName, Length
+          "Packaged extension returned: $output"
