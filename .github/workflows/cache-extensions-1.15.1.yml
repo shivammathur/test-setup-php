@@ -1,0 +1,290 @@
+name: Cache extensions 1.15.1 release validation
+
+on:
+  push:
+    branches:
+      - test/cache-extensions-1.15.1-20260819
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PHP_VERSION: '8.1'
+  VERSIONED_EXTENSIONS: redis-5.3.7, memcached-3.3.0
+  UNVERSIONED_EXTENSIONS: redis, memcached
+  CACHE_BUSTER: cache-extensions-1.15.1-${{ github.run_id }}-${{ github.run_attempt }}
+
+jobs:
+  metadata-compatibility:
+    name: Verify 1.15.0 compatibility and v1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compute 1.15.0 metadata
+        id: previous
+        uses: shivammathur/cache-extensions@1.15.0
+        with:
+          php-version: '5.4'
+          extensions: ${{ env.VERSIONED_EXTENSIONS }}
+          key: ${{ env.CACHE_BUSTER }}-compatibility
+
+      - name: Compute 1.15.1 metadata
+        id: release
+        uses: shivammathur/cache-extensions@1.15.1
+        with:
+          php-version: '5.4'
+          extensions: ${{ env.VERSIONED_EXTENSIONS }}
+          key: ${{ env.CACHE_BUSTER }}-compatibility
+
+      - name: Compute v1 metadata
+        id: rolling
+        uses: shivammathur/cache-extensions@v1
+        with:
+          php-version: '5.4'
+          extensions: ${{ env.VERSIONED_EXTENSIONS }}
+          key: ${{ env.CACHE_BUSTER }}-compatibility
+
+      - name: Compute metadata for another extension version
+        id: alternate
+        uses: shivammathur/cache-extensions@1.15.1
+        with:
+          php-version: '5.4'
+          extensions: redis-6.0.2, memcached-3.3.0
+          key: ${{ env.CACHE_BUSTER }}-compatibility
+
+      - name: Verify metadata compatibility and version isolation
+        shell: bash
+        run: |
+          test '${{ steps.release.outputs.key }}' = '${{ steps.previous.outputs.key }}'
+          test '${{ steps.release.outputs.dir }}' = '${{ steps.previous.outputs.dir }}'
+          test '${{ steps.release.outputs.key }}' = '${{ steps.rolling.outputs.key }}'
+          test '${{ steps.release.outputs.dir }}' = '${{ steps.rolling.outputs.dir }}'
+          test '${{ steps.release.outputs.key }}' != '${{ steps.alternate.outputs.key }}'
+
+  seed:
+    name: Seed / ${{ matrix.os-name }} / ${{ matrix.variant }}
+    runs-on: ${{ matrix.operating-system }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-24.04, windows-2022, macos-15-intel]
+        variant: [release, previous]
+        include:
+          - operating-system: ubuntu-24.04
+            os-name: Linux
+            memcached-libs: libmemcached-dev libevent-dev
+          - operating-system: windows-2022
+            os-name: Windows
+            memcached-libs: ''
+          - operating-system: macos-15-intel
+            os-name: macOS
+            memcached-libs: libmemcached libevent
+    steps:
+      - name: Compute 1.15.1 versioned cache metadata
+        if: matrix.variant == 'release'
+        id: release
+        uses: shivammathur/cache-extensions@1.15.1
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.VERSIONED_EXTENSIONS }}
+          key: ${{ env.CACHE_BUSTER }}-${{ matrix.variant }}
+        env:
+          share-cache-across-jobs: true
+
+      - name: Compute 1.15.0 workaround cache metadata
+        if: matrix.variant == 'previous'
+        id: previous
+        uses: shivammathur/cache-extensions@1.15.0
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.UNVERSIONED_EXTENSIONS }}
+          key: ${{ env.CACHE_BUSTER }}-${{ matrix.variant }}
+        env:
+          share-cache-across-jobs: true
+
+      - name: Setup exact extensions using versioned cache support
+        if: matrix.variant == 'release'
+        uses: shivammathur/test-setup-php@4d44d106aa5df23cc9938c884ef439d419d9938c
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.VERSIONED_EXTENSIONS }}
+          coverage: none
+        env:
+          fail-fast: true
+          MEMCACHED_LIBS: ${{ matrix.memcached-libs }}
+
+      - name: Setup exact extensions using previous workaround
+        if: matrix.variant == 'previous'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.VERSIONED_EXTENSIONS }}
+          coverage: none
+        env:
+          fail-fast: true
+          MEMCACHED_LIBS: ${{ matrix.memcached-libs }}
+
+      - name: Verify exact extension versions and protected files
+        shell: php {0}
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          <?php
+          $expected = ['redis' => '5.3.7', 'memcached' => '3.3.0'];
+          foreach ($expected as $extension => $version) {
+              $actual = phpversion($extension);
+              if ($actual !== $version) {
+                  throw new RuntimeException("Expected $extension $version, got ".var_export($actual, true));
+              }
+          }
+          if (getenv('VARIANT') === 'release') {
+              $cacheDirectory = ini_get('extension_dir').DIRECTORY_SEPARATOR.'.setup-php-cache';
+              foreach ($expected as $extension => $version) {
+                  $cached = $cacheDirectory.DIRECTORY_SEPARATOR."$extension-$version";
+                  if (!is_file($cached)) {
+                      throw new RuntimeException("Missing protected extension cache: $cached");
+                  }
+              }
+          }
+
+      - name: Save 1.15.1 versioned extension cache
+        if: matrix.variant == 'release'
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ steps.release.outputs.dir }}
+          key: ${{ steps.release.outputs.key }}
+
+      - name: Save 1.15.0 workaround extension cache
+        if: matrix.variant == 'previous'
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ steps.previous.outputs.dir }}
+          key: ${{ steps.previous.outputs.key }}
+
+  restore:
+    name: Restore / ${{ matrix.os-name }} / ${{ matrix.variant }}
+    needs: seed
+    runs-on: ${{ matrix.operating-system }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-24.04, windows-2022, macos-15-intel]
+        variant: [release, previous]
+        include:
+          - operating-system: ubuntu-24.04
+            os-name: Linux
+            memcached-libs: libmemcached-dev libevent-dev
+          - operating-system: windows-2022
+            os-name: Windows
+            memcached-libs: ''
+          - operating-system: macos-15-intel
+            os-name: macOS
+            memcached-libs: libmemcached libevent
+    steps:
+      - name: Compute 1.15.1 versioned cache metadata
+        if: matrix.variant == 'release'
+        id: release
+        uses: shivammathur/cache-extensions@1.15.1
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.VERSIONED_EXTENSIONS }}
+          key: ${{ env.CACHE_BUSTER }}-${{ matrix.variant }}
+        env:
+          share-cache-across-jobs: true
+
+      - name: Compute 1.15.0 workaround cache metadata
+        if: matrix.variant == 'previous'
+        id: previous
+        uses: shivammathur/cache-extensions@1.15.0
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.UNVERSIONED_EXTENSIONS }}
+          key: ${{ env.CACHE_BUSTER }}-${{ matrix.variant }}
+        env:
+          share-cache-across-jobs: true
+
+      - name: Restore 1.15.1 versioned extension cache
+        if: matrix.variant == 'release'
+        id: restore-release
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ steps.release.outputs.dir }}
+          key: ${{ steps.release.outputs.key }}
+          fail-on-cache-miss: true
+
+      - name: Restore 1.15.0 workaround extension cache
+        if: matrix.variant == 'previous'
+        id: restore-previous
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ steps.previous.outputs.dir }}
+          key: ${{ steps.previous.outputs.key }}
+          fail-on-cache-miss: true
+
+      - name: Verify cache hit
+        shell: bash
+        run: |
+          if [ '${{ matrix.variant }}' = 'release' ]; then
+            test '${{ steps.restore-release.outputs.cache-hit }}' = 'true'
+          else
+            test '${{ steps.restore-previous.outputs.cache-hit }}' = 'true'
+          fi
+
+      - name: Verify protected cache before setup
+        if: matrix.variant == 'release'
+        shell: pwsh
+        run: |
+          $cacheDirectory = Join-Path '${{ steps.release.outputs.dir }}' '.setup-php-cache'
+          @('redis-5.3.7', 'memcached-3.3.0') | ForEach-Object {
+            $cached = Join-Path $cacheDirectory $_
+            if(-not(Test-Path -LiteralPath $cached -PathType Leaf)) {
+              throw "Missing protected extension cache before setup: $cached"
+            }
+          }
+
+      - name: Setup exact extensions from the versioned cache
+        if: matrix.variant == 'release'
+        uses: shivammathur/test-setup-php@4d44d106aa5df23cc9938c884ef439d419d9938c
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.VERSIONED_EXTENSIONS }}
+          coverage: none
+        env:
+          fail-fast: true
+          MEMCACHED_LIBS: ${{ matrix.memcached-libs }}
+
+      - name: Setup exact extensions from the previous workaround cache
+        if: matrix.variant == 'previous'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.VERSIONED_EXTENSIONS }}
+          coverage: none
+        env:
+          fail-fast: true
+          MEMCACHED_LIBS: ${{ matrix.memcached-libs }}
+
+      - name: Verify restored exact extension versions and protected files
+        shell: php {0}
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          <?php
+          $expected = ['redis' => '5.3.7', 'memcached' => '3.3.0'];
+          foreach ($expected as $extension => $version) {
+              $actual = phpversion($extension);
+              if ($actual !== $version) {
+                  throw new RuntimeException("Expected restored $extension $version, got ".var_export($actual, true));
+              }
+          }
+          if (getenv('VARIANT') === 'release') {
+              $cacheDirectory = ini_get('extension_dir').DIRECTORY_SEPARATOR.'.setup-php-cache';
+              foreach ($expected as $extension => $version) {
+                  $cached = $cacheDirectory.DIRECTORY_SEPARATOR."$extension-$version";
+                  if (!is_file($cached)) {
+                      throw new RuntimeException("Missing restored protected extension cache: $cached");
+                  }
+              }
+          }
