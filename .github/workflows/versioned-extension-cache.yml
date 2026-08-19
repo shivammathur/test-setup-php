@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-24.04, windows-2022, macos-15-intel]
-        variant: [fixed, v2]
+        variant: [develop, v2]
         include:
           - operating-system: ubuntu-24.04
             os-name: Linux
@@ -35,20 +35,8 @@ jobs:
             memcached-libs: libmemcached libevent
 
     steps:
-      - name: Compute fixed cache metadata
-        if: matrix.variant == 'fixed'
-        id: metadata-fixed
-        uses: shivammathur/cache-extensions@fix/versioned-extension-dependencies
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-          extensions: ${{ env.EXTENSIONS }}
-          key: versioned-extension-cache-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.variant }}
-        env:
-          share-cache-across-jobs: true
-
-      - name: Compute v2 cache metadata
-        if: matrix.variant == 'v2'
-        id: metadata-v2
+      - name: Compute cache metadata
+        id: metadata
         uses: shivammathur/cache-extensions@v1
         with:
           php-version: ${{ env.PHP_VERSION }}
@@ -64,9 +52,9 @@ jobs:
           "milliseconds=$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())" |
             Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-      - name: Setup PHP using fixed branches
-        if: matrix.variant == 'fixed'
-        uses: shivammathur/test-setup-php@test/versioned-extension-cache-20260819
+      - name: Setup PHP using develop
+        if: matrix.variant == 'develop'
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ env.PHP_VERSION }}
           extensions: ${{ env.EXTENSIONS }}
@@ -106,8 +94,8 @@ jobs:
                   throw new RuntimeException("Expected $extension $version, got ".var_export($actual, true));
               }
           }
-          if (getenv('VARIANT') === 'fixed') {
-              $cacheDirectory = ini_get('extension_dir').DIRECTORY_SEPARATOR.'.setup-php-cache';
+          if (getenv('VARIANT') === 'develop') {
+              $cacheDirectory = ini_get('extension_dir');
               foreach ($expected as $extension => $version) {
                   $cached = $cacheDirectory.DIRECTORY_SEPARATOR."$extension-$version";
                   if (!is_file($cached)) {
@@ -116,19 +104,11 @@ jobs:
               }
           }
 
-      - name: Save fixed extension cache
-        if: matrix.variant == 'fixed'
+      - name: Save extension cache
         uses: actions/cache/save@v5
         with:
-          path: ${{ steps.metadata-fixed.outputs.dir }}
-          key: ${{ steps.metadata-fixed.outputs.key }}
-
-      - name: Save v2 extension cache
-        if: matrix.variant == 'v2'
-        uses: actions/cache/save@v5
-        with:
-          path: ${{ steps.metadata-v2.outputs.dir }}
-          key: ${{ steps.metadata-v2.outputs.key }}
+          path: ${{ steps.metadata.outputs.dir }}
+          key: ${{ steps.metadata.outputs.key }}
 
   restore:
     name: Restore / ${{ matrix.os-name }} / ${{ matrix.variant }}
@@ -139,7 +119,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-24.04, windows-2022, macos-15-intel]
-        variant: [fixed, v2]
+        variant: [develop, v2]
         include:
           - operating-system: ubuntu-24.04
             os-name: Linux
@@ -152,20 +132,8 @@ jobs:
             memcached-libs: libmemcached libevent
 
     steps:
-      - name: Compute fixed cache metadata
-        if: matrix.variant == 'fixed'
-        id: metadata-fixed
-        uses: shivammathur/cache-extensions@fix/versioned-extension-dependencies
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-          extensions: ${{ env.EXTENSIONS }}
-          key: versioned-extension-cache-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.variant }}
-        env:
-          share-cache-across-jobs: true
-
-      - name: Compute v2 cache metadata
-        if: matrix.variant == 'v2'
-        id: metadata-v2
+      - name: Compute cache metadata
+        id: metadata
         uses: shivammathur/cache-extensions@v1
         with:
           php-version: ${{ env.PHP_VERSION }}
@@ -174,29 +142,19 @@ jobs:
         env:
           share-cache-across-jobs: true
 
-      - name: Restore fixed extension cache
-        if: matrix.variant == 'fixed'
-        id: restore-fixed
+      - name: Restore extension cache
+        id: restore
         uses: actions/cache/restore@v5
         with:
-          path: ${{ steps.metadata-fixed.outputs.dir }}
-          key: ${{ steps.metadata-fixed.outputs.key }}
-          fail-on-cache-miss: true
-
-      - name: Restore v2 extension cache
-        if: matrix.variant == 'v2'
-        id: restore-v2
-        uses: actions/cache/restore@v5
-        with:
-          path: ${{ steps.metadata-v2.outputs.dir }}
-          key: ${{ steps.metadata-v2.outputs.key }}
+          path: ${{ steps.metadata.outputs.dir }}
+          key: ${{ steps.metadata.outputs.key }}
           fail-on-cache-miss: true
 
       - name: Verify protected cache before setup
-        if: matrix.variant == 'fixed'
+        if: matrix.variant == 'develop'
         shell: pwsh
         run: |
-          $cacheDirectory = Join-Path '${{ steps.metadata-fixed.outputs.dir }}' '.setup-php-cache'
+          $cacheDirectory = '${{ steps.metadata.outputs.dir }}'
           @('redis-5.3.7', 'memcached-3.3.0') | ForEach-Object {
             $cached = Join-Path $cacheDirectory $_
             if(-not(Test-Path -LiteralPath $cached -PathType Leaf)) {
@@ -211,9 +169,9 @@ jobs:
           "milliseconds=$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())" |
             Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-      - name: Setup PHP using fixed branches
-        if: matrix.variant == 'fixed'
-        uses: shivammathur/test-setup-php@test/versioned-extension-cache-20260819
+      - name: Setup PHP using develop
+        if: matrix.variant == 'develop'
+        uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ env.PHP_VERSION }}
           extensions: ${{ env.EXTENSIONS }}
@@ -253,8 +211,8 @@ jobs:
                   throw new RuntimeException("Expected $extension $version, got ".var_export($actual, true));
               }
           }
-          if (getenv('VARIANT') === 'fixed') {
-              $cacheDirectory = ini_get('extension_dir').DIRECTORY_SEPARATOR.'.setup-php-cache';
+          if (getenv('VARIANT') === 'develop') {
+              $cacheDirectory = ini_get('extension_dir');
               foreach ($expected as $extension => $version) {
                   $cached = $cacheDirectory.DIRECTORY_SEPARATOR."$extension-$version";
                   if (!is_file($cached)) {
