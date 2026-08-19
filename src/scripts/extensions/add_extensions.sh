@@ -204,6 +204,50 @@ pecl_install() {
   fi
 }
 
+# Function to preserve an installed versioned PECL extension in the extension cache.
+cache_pecl_extension() {
+  local extension=$1
+  local extension_version=$2
+  local extension_file="${ext_dir:?}/$extension.so"
+  local cache_dir="${ext_dir:?}/.setup-php-cache"
+  if [ -n "$extension_version" ] && [ -e "$extension_file" ]; then
+    sudo mkdir -p "$cache_dir"
+    sudo cp "$extension_file" "$cache_dir/$extension-$extension_version"
+  fi
+}
+
+# Function to restore and verify a cached versioned PECL extension.
+restore_pecl_extension() {
+  local extension=$1
+  local extension_version=$2
+  local prefix=$3
+  local extension_file="${ext_dir:?}/$extension.so"
+  local cached_file="${ext_dir:?}/.setup-php-cache/$extension-$extension_version"
+  local original_file=''
+  local restored_version=''
+  [ -e "$cached_file" ] || return 1
+  if [ -e "$extension_file" ]; then
+    original_file=$(mktemp "/tmp/setup-php-$extension.XXXXXX")
+    sudo cp "$extension_file" "$original_file"
+  fi
+  disable_extension_helper "$extension" >/dev/null 2>&1
+  if sudo cp "$cached_file" "$extension_file"; then
+    enable_extension "$extension" "$prefix"
+    restored_version=$(php -r "echo phpversion('$extension');")
+    if check_extension "$extension" && [ "${restored_version/-/}" = "$extension_version" ]; then
+      [ -n "$original_file" ] && rm -f "$original_file"
+      return 0
+    fi
+  fi
+  disable_extension_helper "$extension" >/dev/null 2>&1
+  if [ -n "$original_file" ]; then
+    sudo cp "$original_file" "$extension_file"
+    rm -f "$original_file"
+    enable_extension "$extension" "$prefix"
+  fi
+  return 1
+}
+
 # Function to install a specific version of PECL extension.
 add_pecl_extension() {
   local extension=$1
@@ -213,13 +257,22 @@ add_pecl_extension() {
   if [[ $pecl_version =~ .*(alpha|beta|rc|snapshot|preview).* ]]; then
     pecl_version=$(get_pecl_version "$extension" "$pecl_version")
   fi
+  local requested_version=$pecl_version
   ext_version=$(php -r "echo phpversion('$extension');")
+  if [ -n "$requested_version" ] && [ "${ext_version/-/}" != "$requested_version" ]; then
+    restore_pecl_extension "$extension" "$requested_version" "$prefix" || true
+    ext_version=$(php -r "echo phpversion('$extension');")
+  fi
   if check_extension "$extension" && [[ -z "$pecl_version" || (-n "$pecl_version" && "${ext_version/-/}" == "$pecl_version") ]]; then
+    cache_pecl_extension "$extension" "$requested_version"
     add_log "${tick:?}" "$extension" "Enabled"
   else
     [ -n "$pecl_version" ] && pecl_version="-$pecl_version"
     pecl_install "$extension$pecl_version" || ( [ "${fail_fast:?}" = "false" ] && add_extension "$extension" "$(get_extension_prefix "$extension")" >/dev/null 2>&1)
     extension_version="$(php -r "echo phpversion('$extension');")"
+    if [ -n "$requested_version" ] && [ "${extension_version/-/}" = "$requested_version" ]; then
+      cache_pecl_extension "$extension" "$requested_version"
+    fi
     [ -n "$extension_version" ] && extension_version="-$extension_version"
     add_extension_log "$extension$extension_version" "Installed and enabled"
   fi

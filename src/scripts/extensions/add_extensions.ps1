@@ -85,6 +85,92 @@ Function Add-ExtensionFromGithub {
   }
 }
 
+# Function to get the loaded version of an extension.
+Function Get-LoadedExtensionVersion {
+  Param (
+    [Parameter(Position = 0, Mandatory = $true)]
+    [ValidateNotNull()]
+    [ValidateLength(1, [int]::MaxValue)]
+    [string]
+    $extension
+  )
+  $extensionVersion = php -r "echo phpversion('$extension') ?: '';" 2>$null
+  if($LASTEXITCODE -ne 0) {
+    return ''
+  }
+  return "$extensionVersion".Trim()
+}
+
+# Function to preserve an installed versioned extension in the extension cache.
+Function Save-VersionedExtension {
+  Param (
+    [Parameter(Position = 0, Mandatory = $true)]
+    [ValidateNotNull()]
+    [ValidateLength(1, [int]::MaxValue)]
+    [string]
+    $extension,
+    [Parameter(Position = 1, Mandatory = $true)]
+    [ValidateNotNull()]
+    [ValidateLength(1, [int]::MaxValue)]
+    [string]
+    $extensionVersion
+  )
+  $extensionFile = "$ext_dir\php_$extension.dll"
+  $cacheDirectory = "$ext_dir\.setup-php-cache"
+  if(Test-Path $extensionFile) {
+    New-Item $cacheDirectory -Type Directory -Force >$null 2>&1
+    Copy-Item $extensionFile "$cacheDirectory\$extension-$extensionVersion" -Force
+  }
+}
+
+# Function to restore and verify a cached versioned extension.
+Function Restore-VersionedExtension {
+  Param (
+    [Parameter(Position = 0, Mandatory = $true)]
+    [ValidateNotNull()]
+    [ValidateLength(1, [int]::MaxValue)]
+    [string]
+    $extension,
+    [Parameter(Position = 1, Mandatory = $true)]
+    [ValidateNotNull()]
+    [ValidateLength(1, [int]::MaxValue)]
+    [string]
+    $extensionVersion
+  )
+  $extensionFile = "$ext_dir\php_$extension.dll"
+  $cachedFile = "$ext_dir\.setup-php-cache\$extension-$extensionVersion"
+  $originalFile = ''
+  if(-not(Test-Path $cachedFile)) {
+    return $false
+  }
+  if(Test-Path $extensionFile) {
+    $originalFile = [IO.Path]::GetTempFileName()
+    Copy-Item $extensionFile $originalFile -Force
+  }
+  try {
+    if((Get-LoadedExtensionVersion $extension) -ne '') {
+      Disable-ExtensionHelper $extension >$null 2>&1
+    }
+    Copy-Item $cachedFile $extensionFile -Force
+    Enable-Extension $extension >$null 2>&1
+    if((Get-LoadedExtensionVersion $extension) -eq $extensionVersion) {
+      if($originalFile -ne '') {
+        Remove-Item $originalFile -Force
+      }
+      return $true
+    }
+  } catch { }
+  if((Get-LoadedExtensionVersion $extension) -ne '') {
+    Disable-ExtensionHelper $extension >$null 2>&1
+  }
+  if($originalFile -ne '') {
+    Copy-Item $originalFile $extensionFile -Force
+    Remove-Item $originalFile -Force
+    Enable-Extension $extension >$null 2>&1
+  }
+  return $false
+}
+
 # Function to add PHP extensions.
 Function Add-Extension {
   Param (
@@ -108,6 +194,26 @@ Function Add-Extension {
     $extension_info = Get-PhpExtension -Path $php_dir | Where-Object { $_.Name -eq $extension -or $_.Handle -eq $extension }
     $deps_dir = "$ext_dir\$extension-vc$($installed.VCVersion)-$arch"
     New-Item $deps_dir -Type Directory -Force > $null 2>&1
+    if($extension_version -ne '') {
+      if($null -ne $extension_info -and $extension_info.State -ne 'Builtin') {
+        Enable-Extension $extension_info.Handle >$null 2>&1
+      }
+      $loadedVersion = Get-LoadedExtensionVersion $extension
+      if($loadedVersion -eq $extension_version) {
+        Save-VersionedExtension $extension $extension_version
+        Add-Log $tick $extension "Enabled"
+        return
+      }
+      if(Restore-VersionedExtension $extension $extension_version) {
+        Save-VersionedExtension $extension $extension_version
+        Add-Log $tick $extension "Enabled"
+        return
+      }
+      if($loadedVersion -ne '') {
+        Disable-ExtensionHelper $extension >$null 2>&1
+      }
+      $extension_info = $null
+    }
     if ($null -ne $extension_info) {
       switch ($extension_info.State) {
         'Builtin' {
@@ -142,6 +248,13 @@ Function Add-Extension {
         }
         Install-PhpExtension @params
         Set-ExtensionPrerequisites $extension
+        if($extension_version -ne '') {
+          $installedExtensionVersion = Get-LoadedExtensionVersion $extension
+          if($installedExtensionVersion -ne $extension_version) {
+            throw "Installed $extension version $installedExtensionVersion instead of $extension_version"
+          }
+          Save-VersionedExtension $extension $extension_version
+        }
       }
       Add-Log $tick $extension "Installed and enabled"
     }
