@@ -1,0 +1,372 @@
+{
+  "backward-compatibility-check": {
+    "type": "composer",
+    "repository": "roave/backward-compatibility-check",
+    "scope": "scoped"
+  },
+  "box": {
+    "type": "phar",
+    "repository": "box-project/box",
+    "packagist": "humbug/box",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "version_prefix": "",
+    "version_parameter": "--version"
+  },
+  "churn": {
+    "type": "phar",
+    "repository": "bmitch/churn-php",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "version_prefix": "",
+    "version_parameter": "-V"
+  },
+  "composer-dependency-analyser": {
+    "type": "composer",
+    "repository": "shipmonk/composer-dependency-analyser",
+    "scope": "scoped"
+  },
+  "composer-unused": {
+    "type": "phar",
+    "repository": "composer-unused/composer-unused",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "version_prefix": "",
+    "version_parameter": "-V"
+  },
+  "composer-normalize": {
+    "type": "phar",
+    "repository": "ergebnis/composer-normalize",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "version_prefix": "",
+    "version_parameter": "diagnose"
+  },
+  "cpx": {
+    "type": "phar",
+    "repository": "laravel/cpx",
+    "extension": "",
+    "domain": "https://github.com",
+    "version_prefix": "v",
+    "version_parameter": "--version"
+  },
+  "cs2pr": {
+    "type": "phar",
+    "repository": "staabm/annotate-pull-request-from-checkstyle",
+    "extension": "",
+    "domain": "https://github.com",
+    "version_prefix": "",
+    "version_parameter": "-V"
+  },
+  "easy-coding-standard": {
+    "type": "composer",
+    "alias": "ecs",
+    "repository": "symplify/easy-coding-standard",
+    "scope": "scoped"
+  },
+  "infection": {
+    "type": "phar",
+    "repository": "infection/infection",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "version_prefix": "",
+    "version_parameter": "-V"
+  },
+  "name-collision-detector": {
+    "type": "composer",
+    "repository": "shipmonk/name-collision-detector",
+    "scope": "scoped"
+  },
+  "phan": {
+    "type": "phar",
+    "repository": "phan/phan",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "version_prefix": "",
+    "version_parameter": "-v"
+  },
+  "parallel-lint": {
+    "type": "phar",
+    "repository": "php-parallel-lint/PHP-Parallel-Lint",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "version_prefix": "v",
+    "version_parameter": "--version"
+  },
+  "php-cs-fixer": {
+    "type": "phar",
+    "repository": "PHP-CS-Fixer/PHP-CS-Fixer",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "fetch_latest": "true",
+    "version_prefix": "v",
+    "version_parameter": "-V"
+  },
+  "php-scoper": {
+    "type": "phar",
+    "repository": "humbug/php-scoper",
+    "packagist": "humbug/php-scoper",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "version_prefix": "",
+    "version_parameter": "--version"
+  },
+  "phpcbf": {
+    "type": "phar",
+    "repository": "PHPCSStandards/PHP_CodeSniffer",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "version_prefix": "",
+    "version_parameter": "--version"
+  },
+  "phpcs": {
+    "type": "phar",
+    "repository": "PHPCSStandards/PHP_CodeSniffer",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "version_prefix": "",
+    "version_parameter": "--version"
+  },
+  "phpDocumentor": {
+    "type": "phar",
+    "repository": "phpDocumentor/phpDocumentor",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "alias": "phpdoc",
+    "version_prefix": "v",
+    "version_parameter": "--version"
+  },
+  "phpmd": {
+    "type": "phar",
+    "repository": "phpmd/phpmd",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "version_prefix": "",
+    "version_parameter": "--version"
+  },
+  "phpspec": {
+    "type": "phar",
+    "repository": "phpspec/phpspec",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "version_prefix": "",
+    "version_parameter": "-V"
+  },
+  "phpstan": {
+    "type": "phar",
+    "repository": "phpstan/phpstan",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "version_prefix": "",
+    "version_parameter": "-V"
+  },
+  "pie": {
+    "type": "phar",
+    "repository": "php/pie",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "version_prefix": "",
+    "version_parameter": "-V"
+  },
+  "pint": {
+    "type": "phar",
+    "repository": "laravel/pint",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "version_prefix": "v",
+    "version_parameter": "-V"
+  },
+  "psalm": {
+    "type": "phar",
+    "repository": "vimeo/psalm",
+    "extension": ".phar",
+    "domain": "https://github.com",
+    "version_prefix": "",
+    "version_parameter": "-v"
+  },
+  "behat": {
+    "type": "composer",
+    "repository": "behat/behat",
+    "scope": "scoped"
+  },
+  "codeception": {
+    "type": "composer",
+    "repository": "codeception/codeception",
+    "scope": "scoped"
+  },
+  "automatic-composer-prefetcher": {
+    "type": "composer",
+    "alias": "composer-prefetcher",
+    "repository": "narrowspark/automatic-composer-prefetcher",
+    "scope": "global"
+  },
+  "composer-require-checker": {
+    "type": "composer",
+    "repository": "maglnet/composer-require-checker",
+    "scope": "scoped"
+  },
+  "flex": {
+    "type": "composer",
+    "repository": "symfony/flex",
+    "scope": "global"
+  },
+  "phinx": {
+    "type": "composer",
+    "repository": "robmorgan/phinx",
+    "scope": "scoped"
+  },
+  "phplint": {
+    "type": "composer",
+    "repository": "overtrue/phplint",
+    "scope": "scoped"
+  },
+  "phpunit-bridge": {
+    "alias": "simple-phpunit",
+    "type": "composer",
+    "repository": "symfony/phpunit-bridge",
+    "scope": "global"
+  },
+  "phpunit-polyfills": {
+    "type": "composer",
+    "repository": "yoast/phpunit-polyfills",
+    "scope": "global"
+  },
+  "prestissimo": {
+    "type": "composer",
+    "repository": "hirak/prestissimo",
+    "scope": "global"
+  },
+  "vapor-cli": {
+    "type": "composer",
+    "alias": "vapor",
+    "repository": "laravel/vapor-cli",
+    "scope": "scoped"
+  },
+  "cloud-cli": {
+    "type": "composer",
+    "alias": "laravel-cloud",
+    "repository": "laravel/cloud-cli",
+    "scope": "scoped"
+  },
+  "rector": {
+    "type": "composer",
+    "repository": "rector/rector",
+    "scope": "scoped"
+  },
+  "blackfire": {
+    "type": "custom-package",
+    "alias": "blackfire-agent"
+  },
+  "grpc_php_plugin": {
+    "type": "custom-package",
+    "repository": "grpc/grpc",
+    "domain": "https://github.com",
+    "version_prefix": "v"
+  },
+  "mago": {
+    "type": "custom-package",
+    "repository": "carthage-software/mago",
+    "domain": "https://github.com",
+    "version_prefix": ""
+  },
+  "protoc": {
+    "type": "custom-package",
+    "repository": "protocolbuffers/protobuf",
+    "domain": "https://github.com",
+    "version_prefix": "v"
+  },
+  "symfony-cli": {
+    "alias": "symfony",
+    "type": "custom-package",
+    "repository": "symfony-cli/symfony-cli",
+    "domain": "https://github.com",
+    "version_prefix": "v",
+    "version_parameter": "-V"
+  },
+  "blackfire-player": {
+    "type": "custom-function",
+    "domain": "https://get.blackfire.io",
+    "function": "blackfire_player",
+    "version_prefix": "v",
+    "version_parameter": "-V"
+  },
+  "castor": {
+    "type": "custom-function",
+    "domain": "https://github.com",
+    "repository": "jolicode/castor",
+    "function": "castor",
+    "version_prefix": "v",
+    "version_parameter": "-V"
+  },
+  "composer": {
+    "type": "custom-function",
+    "domain": "https://getcomposer.org",
+    "repository": "composer/composer",
+    "function": "composer"
+  },
+  "deployer": {
+    "type": "custom-function",
+    "domain": "https://deployer.org",
+    "repository": "deployphp/deployer",
+    "function": "deployer",
+    "version_prefix": "v",
+    "version_parameter": "-V"
+  },
+  "pecl": {
+    "type": "custom-function",
+    "function": "pecl"
+  },
+  "phing": {
+    "type": "custom-function",
+    "domain": "https://www.phing.info",
+    "repository": "phingofficial/phing",
+    "function": "phing",
+    "extension": ".phar",
+    "version_prefix": "",
+    "version_parameter": "-v"
+  },
+  "phive": {
+    "type": "custom-function",
+    "repository": "phar-io/phive",
+    "domain": "https://github.com",
+    "function": "phive",
+    "version_prefix": "",
+    "version_parameter": "status"
+  },
+  "phpcpd": {
+    "type": "custom-function",
+    "repository": "sebastianbergmann/phpcpd",
+    "domain": "https://phar.phpunit.de",
+    "function": "phpcpd",
+    "version_prefix": "",
+    "version_parameter": "--version"
+  },
+  "phpunit": {
+    "type": "custom-function",
+    "repository": "sebastianbergmann/phpunit",
+    "packagist": "phpunit/phpunit",
+    "domain": "https://phar.phpunit.de",
+    "function": "phpunit",
+    "version_prefix": "",
+    "version_parameter": "--version"
+  },
+  "phpize": {
+    "type": "custom-function",
+    "function": "dev_tools",
+    "alias": "php-config"
+  },
+  "php-config": {
+    "type": "custom-function",
+    "function": "dev_tools"
+  },
+  "wp-cli": {
+    "type": "custom-function",
+    "function": "wp_cli",
+    "repository": "wp-cli/wp-cli",
+    "domain": "https://github.com",
+    "alias": "wp",
+    "extension": ".phar",
+    "version_parameter": "--version",
+    "version_prefix": "v"
+  }
+}

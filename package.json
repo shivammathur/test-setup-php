@@ -1,0 +1,82 @@
+{
+  "name": "setup-php",
+  "version": "2.37.2",
+  "private": false,
+  "description": "Setup PHP for use with GitHub Actions",
+  "main": "lib/install.js",
+  "types": "lib/install.d.ts",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__",
+    "src": "src"
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint **/src/*.ts **/__tests__/*.ts --cache --fix",
+    "format": "prettier --write **/src/*.ts **/__tests__/*.ts && git add -f __tests__/ ",
+    "format-check": "prettier --check **/src/*.ts **/__tests__/*.ts",
+    "release": "ncc build -m -o dist && git add -f dist/",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shivammathur/setup-php.git"
+  },
+  "keywords": [
+    "actions",
+    "php",
+    "setup"
+  ],
+  "author": "shivammathur",
+  "license": "MIT",
+  "dependencies": {
+    "@actions/exec": "^2.0.0",
+    "compare-versions": "^6.1.1"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^2.1.0",
+    "@eslint/js": "^10.0.1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.1.1",
+    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/parser": "^8.65.0",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "@vercel/ncc": "^0.44.1",
+    "eslint": "^10.7.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-import-x": "^4.17.1",
+    "eslint-plugin-jest": "^29.15.5",
+    "eslint-plugin-prettier": "^5.5.6",
+    "globals": "^17.7.0",
+    "jest": "^30.4.2",
+    "jest-circus": "^30.4.2",
+    "nock": "^14.0.16",
+    "prettier": "^3.9.6",
+    "simple-git-hooks": "^2.13.1",
+    "ts-jest": "^29.4.11",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
+  },
+  "overrides": {
+    "@babel/core": "^7.29.7",
+    "js-yaml": "^4.2.0",
+    "test-exclude": "^7.0.1",
+    "glob": "^13.0.6",
+    "minimatch": "^10.2.1"
+  },
+  "bugs": {
+    "url": "https://github.com/shivammathur/setup-php/issues"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npm run format && npm run lint && npm run test && npm run build && npm run release"
+  },
+  "allowScripts": {
+    "fsevents@2.3.3": true,
+    "simple-git-hooks@2.13.1": true,
+    "unrs-resolver@1.11.1": true
+  }
+}

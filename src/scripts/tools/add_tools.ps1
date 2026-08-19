@@ -1,0 +1,441 @@
+# Variables
+$composer_home = "$env:APPDATA\Composer"
+$composer_bin = "$composer_home\vendor\bin"
+$composer_json = "$composer_home\composer.json"
+$composer_lock = "$composer_home\composer.lock"
+$skip_composer_github_auth = $false
+
+# Function to configure composer.
+Function Edit-ComposerConfig() {
+  Param(
+    [Parameter(Position = 0, Mandatory = $true)]
+    [ValidateNotNull()]
+    [ValidateLength(1, [int]::MaxValue)]
+    [string]
+    $tool_path
+  )
+  Copy-Item $tool_path -Destination "$tool_path.phar"
+  php -r "try {`$p=new Phar('$tool_path.phar', 0);exit(0);} catch(Exception `$e) {exit(1);}"
+  if ($? -eq $False) {
+    Add-Log "$cross" "composer" "Could not download composer"
+    Write-Error "Could not download composer" -ErrorAction Stop
+  }
+  New-Item -ItemType Directory -Path $composer_bin -Force > $null 2>&1
+  if (-not(Test-Path $composer_json)) {
+    Set-Content -Path $composer_json -Value "{}"
+  }
+  Get-ToolVersion "composer" $null | Out-Null
+  Set-ComposerEnv
+  Add-Path $composer_bin
+  Set-ComposerAuth
+}
+
+# Function to update auth.json.
+Function Update-AuthJson {
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory)][string[]] $ComposerAuth
+  )
+  if (Test-Path $composer_home\auth.json) {
+    try {
+      $existing = Get-Content $composer_home\auth.json -Raw | ConvertFrom-Json
+    } catch {
+      $existing = [PSCustomObject]@{}
+    }
+  } else {
+    $existing = [PSCustomObject]@{}
+  }
+  foreach ($fragment in $ComposerAuth) {
+    $piece = ('{' + $fragment + '}') | ConvertFrom-Json
+    foreach ($prop in $piece.PSObject.Properties) {
+      if ($prop.Name -eq 'http-basic') {
+        if (-not $existing.'http-basic') {
+          $existing | Add-Member -MemberType NoteProperty -Name 'http-basic' -Value ([PSCustomObject]@{}) -Force
+        }
+        foreach ($domainProp in $prop.Value.PSObject.Properties) {
+          $existing.'http-basic' | Add-Member -MemberType NoteProperty -Name $domainProp.Name -Value $domainProp.Value -Force
+        }
+      } else {
+        $existing | Add-Member -MemberType NoteProperty -Name $prop.Name -Value $prop.Value -Force
+      }
+    }
+  }
+  Set-Content -Path $composer_home\auth.json -Value ($existing | ConvertTo-Json -Depth 5)
+}
+
+function Test-GitHubPublicAccess {
+  param(
+    [Parameter(Mandatory=$true)]
+    [string]$Token
+  )
+  try {
+    Invoke-RestMethod -Uri 'https://api.github.com/' -Headers @{ Authorization = "token $Token" } -ErrorAction Stop | Out-Null
+    return $true
+  } catch {
+    return $false
+  }
+}
+
+Function Write-ComposerGhAuthNoOpWarning() {
+  $message = (Get-Content (Join-Path $src 'configs\composer-gh-auth-warn') -Raw).Trim().Replace('%s', $composer_version)
+  if($env:fail_fast -eq 'true') {
+    Add-Log "$cross" "composer" $message
+  } else {
+    Write-Output "::warning::$message"
+  }
+}
+
+# Function to setup authentication in composer.
+Function Set-ComposerAuth() {
+  $token = if ($env:COMPOSER_TOKEN) { $env:COMPOSER_TOKEN } else { $env:GITHUB_TOKEN }
+  if(Test-Path env:COMPOSER_AUTH_JSON) {
+    if(Test-Json -JSON $env:COMPOSER_AUTH_JSON) {
+      Set-Content -Path $composer_home\auth.json -Value $env:COMPOSER_AUTH_JSON
+    } else {
+      Add-Log "$cross" "composer" "Could not parse COMPOSER_AUTH_JSON as valid JSON"
+    }
+  }
+  if($skip_composer_github_auth) {
+    Write-ComposerGhAuthNoOpWarning
+  }
+  $composer_auth = @()
+  if(Test-Path env:PACKAGIST_TOKEN) {
+    $composer_auth += '"http-basic": {"repo.packagist.com": { "username": "token", "password": "' + $env:PACKAGIST_TOKEN + '"}}'
+  }
+  $write_token = $true
+  if ($token) {
+    if ($skip_composer_github_auth) {
+      $write_token = $false
+    }
+    if ($env:GITHUB_SERVER_URL -ne "https://github.com" -and -not(Test-GitHubPublicAccess $token)) {
+      $write_token = $false
+    }
+    if($write_token) {
+      $composer_auth += '"github-oauth": {"github.com": "' + $token + '"}'
+    }
+  }
+  if($composer_auth.length) {
+    Update-AuthJson $composer_auth
+  }
+}
+
+# Function to set composer environment variables.
+Function Set-ComposerEnv() {
+  if ($env:COMPOSER_PROCESS_TIMEOUT) {
+    (Get-Content $src\configs\composer.env -Raw) -replace '(?m)^COMPOSER_PROCESS_TIMEOUT=.*$', "COMPOSER_PROCESS_TIMEOUT=$env:COMPOSER_PROCESS_TIMEOUT" | Set-Content $src\configs\composer.env
+  }
+  Add-EnvPATH $src\configs\composer.env
+  if($env:COMPOSER_ALLOW_PLUGINS) {
+    $env:COMPOSER_ALLOW_PLUGINS -split '\s*,\s*' | Where-Object { $_ } | ForEach-Object {
+      & composer global config --no-plugins "allow-plugins.$_" true > $null 2>&1
+    }
+  }
+}
+
+# Function to identify latest-like URLs that should bypass the persistent cache.
+Function Test-MutableToolUrl() {
+  Param(
+    [Parameter(Position = 0, Mandatory = $true)]
+    [string]
+    $Url
+  )
+  $mutableUrlRegex = '(^|[/?#._=-])(latest|stable|preview|snapshot|nightly|master)([/?#._=-]|$)|/releases/latest/download/'
+  $versionLikeRegex = '(^|[^0-9])[0-9]+\.[0-9]+([.-][0-9A-Za-z]+)*'
+  return ($Url -match $mutableUrlRegex) -or (($Url -match '\.phar([?#].*)?$') -and -not ($Url -match $versionLikeRegex))
+}
+
+# Function to verify the checksum of a file.
+Function Test-ToolChecksum() {
+  Param(
+    [Parameter(Position = 0, Mandatory = $true)]
+    [string]
+    $Path,
+    [Parameter(Position = 1, Mandatory = $true)]
+    [string]
+    $Checksum
+  )
+  $checksum_parts = $Checksum -split ':'
+  $actual_checksum = (Get-FileHash -Path $Path -Algorithm $checksum_parts[0]).Hash
+  return $actual_checksum -eq $checksum_parts[1]
+}
+
+# Function to extract tool version.
+Function Get-ToolVersion() {
+  Param (
+    [Parameter(Position = 0, Mandatory = $true)]
+    $tool,
+    [Parameter(Position = 1, Mandatory = $false)]
+    $param
+  )
+  $alp = "[a-zA-Z0-9\.]"
+  $version_regex = "[0-9]+((\.{1}$alp+)+)(\.{0})(-$alp+){0,1}"
+  if($tool -eq 'composer') {
+    $composer_branch_alias = Select-String -Pattern "const\sBRANCH_ALIAS_VERSION" -Path $bin_dir\composer -Raw | Select-String -Pattern $version_regex | ForEach-Object { $_.matches.Value }
+    if ($composer_branch_alias) {
+      $composer_version = $composer_branch_alias + '+' + (Select-String -Pattern "const\sVERSION" -Path $bin_dir\composer -Raw | Select-String -Pattern "[a-zA-Z0-9]+" -AllMatches | ForEach-Object { $_.matches[2].Value })
+    } else {
+      $composer_version = Select-String -Pattern "const\sVERSION" -Path $bin_dir\composer -Raw | Select-String -Pattern $version_regex | ForEach-Object { $_.matches.Value }
+    }
+    Set-Variable -Name 'composer_version' -Value $composer_version -Scope Global
+    return "$composer_version"
+  }
+  if($null -ne $param) {
+    return . $tool $param 2> $null | ForEach-Object { $_ -replace "composer $version_regex", '' } | Select-String -Pattern $version_regex | Select-Object -First 1 | ForEach-Object { $_.matches.Value }
+  }
+}
+
+# Helper function to configure tools.
+Function Add-ToolsHelper() {
+  Param (
+    [Parameter(Position = 0, Mandatory = $true)]
+    [ValidateNotNull()]
+    $tool
+  )
+  $extensions = @();
+  if($tool -eq "box") {
+    $extensions += @('iconv', 'mbstring', 'phar', 'sodium')
+  } elseif($tool -eq "codeception") {
+    $extensions += @('json', 'mbstring')
+    Copy-Item $env:codeception_bin\codecept.bat -Destination $env:codeception_bin\codeception.bat
+  } elseif($tool -eq "composer") {
+    Edit-ComposerConfig $bin_dir\$tool
+  } elseif($tool -eq "cs2pr") {
+    (Get-Content $bin_dir/cs2pr).replace('exit(9)', 'exit(0)') | Set-Content $bin_dir/cs2pr
+  } elseif($tool -eq "deployer") {
+    Copy-Item $bin_dir\deployer.bat -Destination $bin_dir\dep.bat
+  } elseif($tool -eq "phan") {
+    $extensions += @('fileinfo', 'ast')
+  } elseif($tool -eq "phinx") {
+    $extensions += @('mbstring')
+  } elseif($tool -eq "phive") {
+    $extensions += @('curl', 'mbstring', 'xml')
+  } elseif($tool -match "phpc(df|s)") {
+    $extensions += @('tokenizer', 'xmlwriter', 'simplexml')
+  } elseif($tool -match "php-cs-fixer") {
+    $extensions += @('json', 'tokenizer')
+  } elseif($tool -eq "phpDocumentor") {
+    $extensions+=('ctype', 'hash', 'json', 'fileinfo', 'iconv', 'mbstring', 'simplexml', 'xml')
+    Add-Extension fileinfo >$null 2>&1
+    Copy-Item $bin_dir\phpDocumentor.bat -Destination $bin_dir\phpdoc.bat
+  } elseif($tool -eq "phpunit") {
+    $extensions += @('dom', 'json', 'libxml', 'mbstring', 'xml', 'xmlwriter')
+  } elseif($tool -eq "phpunit-bridge") {
+    $extensions += @('dom', 'pdo', 'tokenizer', 'xmlwriter')
+  } elseif($tool -eq "cloud-cli") {
+    $extensions += @('sockets')
+    Copy-Item $env:cloud_cli_bin\cloud.bat -Destination $env:cloud_cli_bin\cloud-cli.bat
+  } elseif($tool -eq "vapor-cli") {
+    $extensions += @('fileinfo', 'json', 'mbstring', 'zip', 'simplexml')
+    Copy-Item $env:vapor_cli_bin\vapor.bat -Destination $env:vapor_cli_bin\vapor-cli.bat
+  } elseif($tool -eq "wp-cli") {
+    Copy-Item $bin_dir\wp-cli.bat -Destination $bin_dir\wp.bat
+  }
+  foreach($extension in $extensions) {
+    Add-Extension $extension >$null 2>&1
+  }
+}
+
+# Function to add tools.
+Function Add-Tool() {
+  Param (
+    [Parameter(Position = 0, Mandatory = $true)]
+    [ValidateNotNull()]
+    $urls,
+    [Parameter(Position = 1, Mandatory = $true)]
+    [ValidateNotNull()]
+    $tool,
+    [Parameter(Position = 2, Mandatory = $false)]
+    $ver_param,
+    [Parameter(Position = 3, Mandatory = $false)]
+    $skip_composer_github_auth,
+    [Parameter(Position = 4, Mandatory = $false)]
+    $checksum
+  )
+  $checksum_regex = '^sha(256|512):[0-9a-fA-F]+$'
+  if("$ver_param" -match $checksum_regex) {
+    $checksum = $ver_param
+    $ver_param = $null
+  } elseif("$skip_composer_github_auth" -match $checksum_regex) {
+    $checksum = $skip_composer_github_auth
+    $skip_composer_github_auth = $null
+  }
+  if($tool -eq "composer") {
+    $script:skip_composer_github_auth = $skip_composer_github_auth -eq 'true'
+  }
+  $urls = $urls -split ','
+  $tool_path = "$bin_dir\$tool"
+  $is_exe = ((($urls[0] | Split-Path -Extension).ToLowerInvariant()) -eq '.exe')
+  if ($is_exe) { $tool_path = "$tool_path.exe" }
+  $tool_ext = if ($is_exe) { '.exe' } else { '' }
+  $url_stream = [System.IO.MemoryStream]::New([System.Text.Encoding]::UTF8.GetBytes($urls[0]))
+  $cache_key = (Get-FileHash -InputStream $url_stream -Algorithm SHA256).Hash.Substring(0, 16)
+  $cache_path = "$env:TEMP\$tool-$cache_key$tool_ext"
+  $use_cache = -not (Test-MutableToolUrl $urls[0])
+  $status_code = 200
+  if ($use_cache -and (Test-Path $cache_path -PathType Leaf)) {
+    if($checksum -and -not(Test-ToolChecksum $cache_path $checksum)) {
+      Remove-Item $cache_path -Force -ErrorAction SilentlyContinue
+      $status_code = 'checksum_mismatch'
+    } else {
+      Copy-Item $cache_path -Destination $tool_path -Force
+    }
+  } else {
+    $backup_path = "$tool_path.bak"
+    if (Test-Path $tool_path) { Copy-Item $tool_path -Destination $backup_path -Force }
+    foreach ($url in $urls){
+      try {
+        $status_code = (Invoke-WebRequest -Passthru -Uri $url -OutFile $tool_path).StatusCode
+      } catch {
+        if($url -match '.*github.com.*releases.*latest.*') {
+          try {
+            $url = $url.replace("releases/latest/download", "releases/download/" + ([regex]::match((Get-File -Url ($url.split('/release')[0] + "/releases")).Content, "([0-9]+\.[0-9]+\.[0-9]+)/" + ($url.Substring($url.LastIndexOf("/") + 1))).Groups[0].Value).split('/')[0])
+            $status_code = (Invoke-WebRequest -Passthru -Uri $url -OutFile $tool_path).StatusCode
+          } catch {
+            $status_code = 0
+          }
+        } else {
+          $status_code = 0
+        }
+      }
+      if($status_code -eq 200 -and (Test-Path $tool_path)) {
+        break
+      }
+    }
+    if($status_code -eq 200 -and (Test-Path $tool_path)) {
+      if($checksum -and -not(Test-ToolChecksum $tool_path $checksum)) {
+        Remove-Item @($tool_path, $cache_path) -Force -ErrorAction SilentlyContinue
+        $status_code = 'checksum_mismatch'
+      } elseif($use_cache) {
+        Copy-Item $tool_path -Destination $cache_path -Force
+      }
+    }
+    if ($status_code -ne 200 -and (Test-Path $backup_path)) {
+      Copy-Item $backup_path -Destination $tool_path -Force
+    }
+    Remove-Item $backup_path -Force -ErrorAction SilentlyContinue
+  }
+
+  if($status_code -eq 'checksum_mismatch') {
+    if($tool -eq "composer") {
+      $env:fail_fast = 'true'
+    }
+    Add-Log $cross $tool "Checksum verification failed for $tool"
+    return
+  }
+
+  $escaped_tool = [regex]::Escape($tool)
+  if (((Get-ChildItem -Path $bin_dir/* | Where-Object Name -Match "^$escaped_tool(\.exe|\.phar)?$").Count -gt 0)) {
+    $bat_content = @()
+    $bat_content += "@ECHO off"
+    $bat_content += "setlocal DISABLEDELAYEDEXPANSION"
+    $bat_content += "SET BIN_TARGET=%~dp0/" + $tool
+    $bat_content += "php %BIN_TARGET% %*"
+    Set-Content -Path $bin_dir\$tool.bat -Value $bat_content
+    Add-ToolsHelper $tool
+    Add-ToProfile $current_profile $tool "New-Alias $tool $bin_dir\$tool.bat" >$null 2>&1
+    $tool_version = Get-ToolVersion $tool $ver_param
+    Add-Log $tick $tool "Added $tool $tool_version"
+  } else {
+    if($tool -eq "composer") {
+      $env:fail_fast = 'true'
+    }
+    Add-Log $cross $tool "Could not add $tool"
+  }
+}
+
+Function Add-ComposerToolHelper() {
+  Param (
+    [Parameter(Position = 0, Mandatory = $true)]
+    [string]
+    $tool,
+    [Parameter(Position = 1, Mandatory = $true)]
+    [string]
+    $release,
+    [Parameter(Position = 2, Mandatory = $true)]
+    [string]
+    $prefix,
+    [Parameter(Position = 3, Mandatory = $true)]
+    [string]
+    $scope,
+    [Parameter(Position = 4, Mandatory = $false)]
+    [string]
+    $composer_args
+  )
+  $tool_version = $release.split(':')[1]
+  if($NULL -eq $tool_version) {
+    $tool_version = '*'
+  }
+  if($scope -eq 'global') {
+    if(Test-Path $composer_lock) {
+      Remove-Item -Path $composer_lock -Force
+    }
+    if((composer global show $prefix$tool $tool_version -a 2>&1 | findstr '^type *: *composer-plugin') -and ($composer_args -ne '')) {
+      composer global config --no-plugins allow-plugins."$prefix$tool" true >$null 2>&1
+    }
+    composer global require $prefix$release $composer_args >$null 2>&1
+    return composer global show $prefix$tool 2>&1 | findstr '^versions'
+  } else {
+    $release_stream = [System.IO.MemoryStream]::New([System.Text.Encoding]::ASCII.GetBytes($release))
+    $scoped_dir_suffix = (Get-FileHash -InputStream $release_stream -Algorithm sha256).Hash
+    $scoped_dir = "$composer_bin\_tools\$tool-$scoped_dir_suffix"
+    $unix_scoped_dir = $scoped_dir.replace('\', '/')
+    if(-not(Test-Path $scoped_dir)) {
+      New-Item -ItemType Directory -Force -Path $scoped_dir > $null 2>&1
+      Set-Content -Path $scoped_dir\composer.json -Value "{}"
+      if((composer show $prefix$tool $tool_version -d $unix_scoped_dir -a 2>&1 | findstr '^type *: *composer-plugin') -and ($composer_args -ne '')) {
+        composer config -d $unix_scoped_dir --no-plugins allow-plugins."$prefix$tool" true >$null 2>&1
+      }
+      composer require $prefix$release -d $unix_scoped_dir $composer_args >$null 2>&1
+    }
+    [System.Environment]::SetEnvironmentVariable(($tool.replace('-', '_') + '_bin'), "$scoped_dir\vendor\bin")
+    Add-Path $scoped_dir\vendor\bin
+    return composer show $prefix$tool -d $unix_scoped_dir 2>&1 | findstr '^versions'
+  }
+}
+
+# Function to setup a tool using composer.
+Function Add-ComposerTool() {
+  Param (
+    [Parameter(Position = 0, Mandatory = $true)]
+    [ValidateNotNull()]
+    [ValidateLength(1, [int]::MaxValue)]
+    [string]
+    $tool,
+    [Parameter(Position = 1, Mandatory = $true)]
+    [ValidateNotNull()]
+    [ValidateLength(1, [int]::MaxValue)]
+    [string]
+    $release,
+    [Parameter(Position = 2, Mandatory = $true)]
+    [ValidateNotNull()]
+    [ValidateLength(1, [int]::MaxValue)]
+    [string]
+    $prefix,
+    [Parameter(Position = 3, Mandatory = $true)]
+    [ValidateNotNull()]
+    [ValidateLength(1, [int]::MaxValue)]
+    [string]
+    $scope
+  )
+  $composer_args = ""
+  if($composer_version.split('.')[0] -ne "1") {
+    $composer_args = "--ignore-platform-req=ext-*"
+    if($tool -match "prestissimo|composer-prefetcher") {
+      Write-Output "::warning:: Skipping $tool, as it does not support Composer $composer_version. Specify composer:v1 in tools to use $tool"
+      Add-Log $cross $tool "Skipped"
+      Return
+    }
+  }
+  Enable-PhpExtension -Extension curl, mbstring, openssl -Path $php_dir
+  $log = Add-ComposerToolHelper $tool $release $prefix $scope $composer_args
+  if(Test-Path $composer_bin\composer) {
+    Copy-Item -Path "$bin_dir\composer" -Destination "$composer_bin\composer" -Force
+  }
+  Add-ToolsHelper $tool
+  if($log) {
+    $tool_version = Get-ToolVersion "Write-Output" "$log"
+    Add-Log $tick $tool "Added $tool $tool_version"
+  } else {
+    Add-Log $cross $tool "Could not setup $tool"
+  }
+}

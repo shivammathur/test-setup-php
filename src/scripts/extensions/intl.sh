@@ -1,0 +1,28 @@
+# Function to install ICU
+install_icu() {
+  icu=$1
+  if [ "$(php -i | grep "ICU version =>" | sed -e "s|.*=> s*||")" != "$icu" ]; then
+    get -q -n /tmp/icu.tar.zst "https://github.com/shivammathur/icu-intl/releases/download/icu4c/icu4c-$icu$arch_suffix.tar.zst"
+    sudo tar -I zstd -xf /tmp/icu.tar.zst -C /usr/local
+    sudo cp -r /usr/local/icu/lib/* /usr/lib/"$(uname -m)"-linux-gnu/
+  fi
+}
+
+# Function to add ext-intl with the given version of ICU
+add_intl() {
+  icu=$(echo "$1" | cut -d'-' -f 2)
+  supported_version=$(get -s -n "" https://api.github.com/repos/shivammathur/icu-intl/releases/tags/intl-"$icu" | grep -Po "php${version?}-intl-$icu" | head -n 1)
+  [ -z "$supported_version" ] && supported_version=$(get -s -n "" https://github.com/shivammathur/icu-intl/releases/expanded_assets/intl-"$icu" | grep -Po "php$version-intl-$icu" | head -n 1)
+  if [ "php$version-intl-$icu" != "$supported_version" ]; then
+    add_log "${cross:?}" "intl" "ICU $icu is not supported for PHP $version"
+  else
+    [ "${ts:?}" = 'zts' ] && suffix='-zts'
+    install_icu "$icu" >/dev/null 2>&1
+    get -q -n "${ext_dir:?}/intl.so" "https://github.com/shivammathur/icu-intl/releases/download/intl-$icu/php${version:?}-intl-$icu$suffix$arch_suffix.so"
+    enable_extension intl extension
+    add_extension_log intl "Installed and enabled with ICU $icu"
+  fi
+}
+
+arch="$(uname -m)"
+[[ "$arch" = 'arm64' || "$arch" = 'aarch64' ]] && arch_suffix='-arm64' || arch_suffix=''

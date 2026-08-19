@@ -1,0 +1,78 @@
+# GitHub Action for Phalcon with PostgreSQL
+## Notes
+## Make sure you have .env.example or .env file in your project
+## and you have loaded Dotenv (https://github.com/vlucas/phpdotenv)
+name: Testing Phalcon with PostgreSQL
+on: [push, pull_request]
+jobs:
+  phalcon:
+    name: Phalcon (PHP ${{ matrix.php-versions }})
+    runs-on: ubuntu-latest
+    env:
+      DB_ADAPTER: pgsql
+      DB_HOST: 127.0.0.1
+      DB_NAME: vokuro
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      CODECEPTION_URL: 127.0.0.1
+      CODECEPTION_PORT: 8888
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vokuro
+        ports:
+          - 5432/tcp
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 3
+    strategy:
+      fail-fast: false
+      matrix:
+        php-versions: ['7.2', '7.3', '7.4']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Docs: https://github.com/shivammathur/setup-php
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: mbstring, dom, zip, phalcon4, pgsql
+          coverage: xdebug
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist --optimize-autoloader --no-security-blocking
+
+      - name: Prepare the application
+        run: |
+          php -r "file_exists('.env') || copy('.env.example', '.env');"
+          mkdir -p var/cache/acl var/cache/metaData var/cache/session var/cache/volt var/logs
+          chmod -R 777 var/cache var/logs
+
+      - name: Run Migration
+        run: |
+          vendor/bin/phinx migrate
+          vendor/bin/phinx seed:run
+        env:
+          DB_PORT: ${{ job.services.postgres.ports['5432'] }}
+
+      - name: Run Tests
+        run: |
+          (cd public && nohup php -S $CODECEPTION_URL:$CODECEPTION_PORT > vokuro.log 2>&1 &)
+          vendor/bin/codecept build
+          vendor/bin/codecept run
+        env:
+          DB_PORT: ${{ job.services.postgres.ports['5432'] }}
