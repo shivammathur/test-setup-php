@@ -1,0 +1,196 @@
+name: OpenLDAP userland regression
+
+on:
+  workflow_dispatch:
+  push:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  ldap-userland:
+    name: ${{ matrix.php.php_ref }} ${{ matrix.arch }} ${{ matrix.thread_safety }}
+    runs-on: ${{ matrix.php.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - x64
+          - x86
+        thread_safety:
+          - nts
+          - ts
+        php:
+          - php_ref: PHP-8.2
+            runner: windows-2022
+            baseline_run: "32032299635"
+            new_run: "32216785927"
+          - php_ref: PHP-8.3
+            runner: windows-2022
+            baseline_run: "32032299378"
+            new_run: "32217476862"
+          - php_ref: PHP-8.4
+            runner: windows-2022
+            baseline_run: "32032299564"
+            new_run: "32216786586"
+          - php_ref: PHP-8.5
+            runner: windows-2022
+            baseline_run: "32032299996"
+            new_run: "32217477014"
+          - php_ref: master
+            runner: windows-2025
+            baseline_run: "32032299465"
+            new_run: "32216785796"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download PHP artifacts
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_REPO: shivammathur/php-windows-builder
+          BASELINE_RUN: ${{ matrix.php.baseline_run }}
+          NEW_RUN: ${{ matrix.php.new_run }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          gh run download $env:BASELINE_RUN --repo $env:ARTIFACT_REPO --name artifacts --dir artifacts/baseline
+          gh run download $env:NEW_RUN --repo $env:ARTIFACT_REPO --name artifacts --dir artifacts/new
+
+      - name: Generate TLS certificate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path tls | Out-Null
+          $openssl = Get-Command openssl -ErrorAction Stop
+          & $openssl.Source req -x509 -newkey rsa:2048 -nodes -sha256 `
+            -keyout tls/server.key -out tls/server.crt -days 1 `
+            -subj "/CN=localhost"
+
+      - name: Run pure PHP LDAP suite
+        shell: pwsh
+        env:
+          PHP_REF: ${{ matrix.php.php_ref }}
+          ARCH: ${{ matrix.arch }}
+          THREAD_SAFETY: ${{ matrix.thread_safety }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Select-PhpZip([string] $Root, [string] $Arch, [string] $ThreadSafety) {
+            $zips = Get-ChildItem -Path $Root -Recurse -File -Filter 'php-*.zip'
+            $archPattern = [regex]::Escape($Arch)
+            if ($ThreadSafety -eq 'nts') {
+              $matches = @($zips | Where-Object { $_.Name -match '^php-\d' -and $_.Name -match "-nts-Win32-v[sc]\d+-$archPattern\.zip$" })
+            } else {
+              $matches = @($zips | Where-Object { $_.Name -match '^php-\d' -and $_.Name -match "-Win32-v[sc]\d+-$archPattern\.zip$" -and $_.Name -notmatch "-nts-" })
+            }
+            if ($matches.Count -ne 1) {
+              $names = ($zips | ForEach-Object { $_.FullName }) -join [Environment]::NewLine
+              throw "Expected exactly one PHP $Arch $ThreadSafety zip in $Root, found $($matches.Count). Available:`n$names"
+            }
+            Write-Host "Selected PHP artifact: $($matches[0].Name)"
+            return $matches[0].FullName
+          }
+
+          function Assert-PhpZipSelector {
+            $scratch = Join-Path ([IO.Path]::GetTempPath()) "php-zip-select-$([Guid]::NewGuid())"
+            New-Item -ItemType Directory -Force -Path $scratch | Out-Null
+            try {
+              @(
+                'php-8.2.34-dev-nts-Win32-vs16-x64.zip',
+                'php-8.2.34-dev-nts-Win32-vs16-x86.zip',
+                'php-8.2.34-dev-Win32-vs16-x64.zip',
+                'php-8.2.34-dev-Win32-vs16-x86.zip',
+                'php-debug-pack-8.2.34-dev-nts-Win32-vs16-x64.zip',
+                'php-devel-pack-8.2.34-dev-nts-Win32-vs16-x64.zip',
+                'php-test-pack-8.2.34-dev.zip'
+              ) | ForEach-Object {
+                New-Item -ItemType File -Force -Path (Join-Path $scratch $_) | Out-Null
+              }
+              $x64Nts = Split-Path -Leaf (Select-PhpZip -Root $scratch -Arch x64 -ThreadSafety nts)
+              $x86Nts = Split-Path -Leaf (Select-PhpZip -Root $scratch -Arch x86 -ThreadSafety nts)
+              $x64Ts = Split-Path -Leaf (Select-PhpZip -Root $scratch -Arch x64 -ThreadSafety ts)
+              if ($x64Nts -ne 'php-8.2.34-dev-nts-Win32-vs16-x64.zip' -or
+                  $x86Nts -ne 'php-8.2.34-dev-nts-Win32-vs16-x86.zip' -or
+                  $x64Ts -ne 'php-8.2.34-dev-Win32-vs16-x64.zip') {
+                throw "PHP zip selector self-check failed: x64 nts=$x64Nts, x86 nts=$x86Nts, x64 ts=$x64Ts"
+              }
+            } finally {
+              Remove-Item -Recurse -Force $scratch
+            }
+          }
+
+          function Expand-Php([string] $Kind, [string] $Zip) {
+            $dest = Join-Path $PWD "php-$Kind"
+            if (Test-Path $dest) {
+              Remove-Item -Recurse -Force $dest
+            }
+            Expand-Archive -Path $Zip -DestinationPath $dest -Force
+            $php = Get-ChildItem -Path $dest -Recurse -Filter php.exe | Select-Object -First 1
+            if (-not $php) {
+              throw "php.exe not found after extracting $Zip"
+            }
+            $phpDir = $php.Directory.FullName
+            $ini = Join-Path $phpDir 'php.ini'
+            @(
+              "extension_dir=`"$phpDir\ext`"",
+              "extension=openssl",
+              "extension=ldap",
+              "error_reporting=E_ALL",
+              "display_errors=1",
+              "default_socket_timeout=5"
+            ) | Set-Content -Encoding ASCII -Path $ini
+            return @{
+              Php = $php.FullName
+              Dir = $phpDir
+              Ini = $ini
+            }
+          }
+
+          Assert-PhpZipSelector
+
+          $baselineZip = Select-PhpZip -Root artifacts/baseline -Arch $env:ARCH -ThreadSafety $env:THREAD_SAFETY
+          $newZip = Select-PhpZip -Root artifacts/new -Arch $env:ARCH -ThreadSafety $env:THREAD_SAFETY
+          $baseline = Expand-Php -Kind baseline -Zip $baselineZip
+          $new = Expand-Php -Kind new -Zip $newZip
+          $originalPath = $env:PATH
+
+          New-Item -ItemType Directory -Force -Path summaries | Out-Null
+          $common = @(
+            "--php-ref", $env:PHP_REF,
+            "--arch", $env:ARCH,
+            "--thread-safety", $env:THREAD_SAFETY,
+            "--cert", (Resolve-Path tls/server.crt).Path,
+            "--key", (Resolve-Path tls/server.key).Path
+          )
+
+          $env:PATH = "$($baseline.Dir);$originalPath"
+          & $baseline.Php -c $baseline.Ini tests/ldap_userland_suite.php @common `
+            --label baseline --expected-vendor-major 206 --out "summaries/baseline-$env:PHP_REF-$env:ARCH-$env:THREAD_SAFETY.json"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Baseline LDAP suite failed"
+          }
+
+          $env:PATH = "$($new.Dir);$originalPath"
+          & $new.Php -c $new.Ini tests/ldap_userland_suite.php @common `
+            --label new --expected-vendor-version 20700 --out "summaries/new-$env:PHP_REF-$env:ARCH-$env:THREAD_SAFETY.json"
+          if ($LASTEXITCODE -ne 0) {
+            throw "New LDAP suite failed"
+          }
+
+          & $new.Php -c $new.Ini tests/compare_ldap_summaries.php `
+            "summaries/baseline-$env:PHP_REF-$env:ARCH-$env:THREAD_SAFETY.json" `
+            "summaries/new-$env:PHP_REF-$env:ARCH-$env:THREAD_SAFETY.json"
+          if ($LASTEXITCODE -ne 0) {
+            throw "OpenLDAP 2.7 comparison failed"
+          }
+
+      - name: Upload LDAP summaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ldap-summary-${{ matrix.php.php_ref }}-${{ matrix.arch }}-${{ matrix.thread_safety }}
+          path: summaries/**
