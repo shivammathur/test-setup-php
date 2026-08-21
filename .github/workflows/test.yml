@@ -15,6 +15,8 @@ jobs:
         with:
           extensions: rrd
           php-version: ${{ matrix.php }}
+        env:
+          fail-fast: true
       - run: |
           php -r "if(! extension_loaded('rrd')) {throw new Exception('rrd not found');}"
           php -r "echo phpversion('rrd');"
