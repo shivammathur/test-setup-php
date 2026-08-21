@@ -1,0 +1,221 @@
+name: Test rrd package runtimes
+run-name: Test rrd-2.0.3 and rrd-2.0.4 package runtimes
+
+on:
+  workflow_dispatch:
+  push:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  runtime:
+    name: rrd-${{ matrix.package_version }} / PHP ${{ matrix.php_version }} / x64 NTS
+    runs-on: windows-2022
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { package_kind: published, package_version: 2.0.3, php_version: "7.3", vs: vc15, artifact_run: "" }
+          - { package_kind: published, package_version: 2.0.3, php_version: "7.4", vs: vc15, artifact_run: "" }
+          - { package_kind: published, package_version: 2.0.3, php_version: "8.0", vs: vs16, artifact_run: "" }
+          - { package_kind: published, package_version: 2.0.3, php_version: "8.1", vs: vs16, artifact_run: "" }
+          - { package_kind: published, package_version: 2.0.3, php_version: "8.2", vs: vs16, artifact_run: "" }
+          - { package_kind: published, package_version: 2.0.3, php_version: "8.3", vs: vs16, artifact_run: "" }
+          - { package_kind: published, package_version: 2.0.3, php_version: "8.4", vs: vs17, artifact_run: "" }
+          - { package_kind: published, package_version: 2.0.3, php_version: "8.5", vs: vs17, artifact_run: "" }
+          - { package_kind: artifact, package_version: 2.0.4, php_version: "7.2", vs: vc15, artifact_run: "32449338740" }
+          - { package_kind: artifact, package_version: 2.0.4, php_version: "7.3", vs: vc15, artifact_run: "32449338740" }
+          - { package_kind: artifact, package_version: 2.0.4, php_version: "7.4", vs: vc15, artifact_run: "32449338740" }
+          - { package_kind: artifact, package_version: 2.0.4, php_version: "8.0", vs: vs16, artifact_run: "32448019230" }
+          - { package_kind: artifact, package_version: 2.0.4, php_version: "8.1", vs: vs16, artifact_run: "32448019230" }
+          - { package_kind: artifact, package_version: 2.0.4, php_version: "8.2", vs: vs16, artifact_run: "32448019230" }
+          - { package_kind: artifact, package_version: 2.0.4, php_version: "8.3", vs: vs16, artifact_run: "32448019230" }
+          - { package_kind: artifact, package_version: 2.0.4, php_version: "8.4", vs: vs17, artifact_run: "32448020407" }
+          - { package_kind: artifact, package_version: 2.0.4, php_version: "8.5", vs: vs17, artifact_run: "32448020407" }
+
+    steps:
+      - name: Setup clean PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php_version }}
+          coverage: none
+          tools: none
+        env:
+          phpts: nts
+
+      - name: Download rrd package
+        id: package
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_KIND: ${{ matrix.package_kind }}
+          PACKAGE_VERSION: ${{ matrix.package_version }}
+          PHP_VERSION: ${{ matrix.php_version }}
+          VS_VERSION: ${{ matrix.vs }}
+          ARTIFACT_RUN: ${{ matrix.artifact_run }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path downloads | Out-Null
+          $name = "php_rrd-$env:PACKAGE_VERSION-$env:PHP_VERSION-nts-$env:VS_VERSION-x64.zip"
+
+          if ($env:PACKAGE_KIND -eq 'published') {
+              $url = "https://windows.php.net/downloads/pecl/releases/rrd/$env:PACKAGE_VERSION/$name"
+              $package = Join-Path $PWD "downloads\$name"
+              Write-Host "Downloading $url"
+              Invoke-WebRequest -Uri $url -OutFile $package
+          } else {
+              gh run download $env:ARTIFACT_RUN `
+                --repo shivammathur/php-windows-builder `
+                --name "rrd-$env:PACKAGE_VERSION" `
+                --dir downloads/workflow-artifact
+              if ($LASTEXITCODE -ne 0) {
+                  throw "Failed to download workflow artifact from run $env:ARTIFACT_RUN"
+              }
+
+              $matches = @(Get-ChildItem downloads/workflow-artifact -Recurse -File -Filter $name |
+                Where-Object { $_.FullName -notmatch '[\\/]logs[\\/]' })
+              if ($matches.Count -ne 1) {
+                  $available = (Get-ChildItem downloads/workflow-artifact -Recurse -File -Filter '*.zip' |
+                    ForEach-Object { $_.FullName }) -join [Environment]::NewLine
+                  throw "Expected one $name package, found $($matches.Count). Available:`n$available"
+              }
+              $package = $matches[0].FullName
+          }
+
+          Write-Host "Selected package: $package"
+          "path=$package" >> $env:GITHUB_OUTPUT
+
+      - name: Test package in clean PHP installation
+        shell: pwsh
+        env:
+          PACKAGE_KIND: ${{ matrix.package_kind }}
+          PACKAGE_VERSION: ${{ matrix.package_version }}
+          PHP_VERSION: ${{ matrix.php_version }}
+          PACKAGE_PATH: ${{ steps.package.outputs.path }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $phpExe = (Get-Command php -ErrorAction Stop).Source
+          $phpRoot = Split-Path -Parent $phpExe
+          $extensionDir = Join-Path $phpRoot 'ext'
+          $packageDir = Join-Path $PWD 'package'
+          New-Item -ItemType Directory -Force -Path $packageDir | Out-Null
+          Expand-Archive -LiteralPath $env:PACKAGE_PATH -DestinationPath $packageDir -Force
+
+          $extension = Get-ChildItem $packageDir -Recurse -File -Filter php_rrd.dll |
+            Select-Object -First 1
+          if (-not $extension) {
+              throw "php_rrd.dll is missing from $env:PACKAGE_PATH"
+          }
+          Copy-Item $extension.FullName -Destination $extensionDir -Force
+
+          Get-ChildItem $packageDir -Recurse -File -Filter '*.dll' |
+            Where-Object { $_.Name -ne 'php_rrd.dll' } |
+            ForEach-Object {
+              Copy-Item $_.FullName -Destination $phpRoot -Force
+              Write-Host "Installed package DLL: $($_.Name)"
+            }
+
+          $librrd = Get-ChildItem $phpRoot -File -Filter 'librrd-*.dll' |
+            Select-Object -First 1
+          if (-not $librrd) {
+              throw "librrd DLL is missing from $env:PACKAGE_PATH"
+          }
+
+          $programFilesX86 = [Environment]::GetFolderPath('ProgramFilesX86')
+          $vswhere = Join-Path $programFilesX86 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $vsPath = & $vswhere -latest -products * `
+            -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+            -property installationPath
+          $dumpbin = Get-ChildItem "$vsPath\VC\Tools\MSVC" -Recurse -File -Filter dumpbin.exe |
+            Where-Object { $_.FullName -match 'Hostx64[\\/]x64[\\/]dumpbin\.exe$' } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if (-not $dumpbin) {
+              throw 'dumpbin.exe was not found'
+          }
+
+          $binaries = @(
+              (Join-Path $extensionDir 'php_rrd.dll')
+              $librrd.FullName
+          )
+          $importedDlls = [System.Collections.Generic.HashSet[String]]::new(
+              [System.StringComparer]::OrdinalIgnoreCase
+          )
+          foreach ($binary in $binaries) {
+              Write-Host "Imports for $binary"
+              $dumpbinOutput = @(& $dumpbin.FullName /nologo /dependents $binary)
+              if ($LASTEXITCODE -ne 0) {
+                  throw "dumpbin failed for $binary"
+              }
+              $dumpbinOutput | ForEach-Object { Write-Host $_ }
+              foreach ($line in $dumpbinOutput) {
+                  if ($line -match '^\s+([A-Za-z0-9_.-]+\.dll)\s*$') {
+                      [void] $importedDlls.Add($Matches[1])
+                  }
+              }
+          }
+
+          $searchDirectories = @($phpRoot, "$env:SystemRoot\System32", $env:SystemRoot)
+          $missingImports = @()
+          foreach ($import in ($importedDlls | Sort-Object)) {
+              if ($import -match '^api-ms-win-') {
+                  continue
+              }
+              $found = $searchDirectories | ForEach-Object {
+                  $candidate = Join-Path $_ $import
+                  if (Test-Path $candidate) {
+                      $candidate
+                  }
+              } | Select-Object -First 1
+              if ($found) {
+                  Write-Host "Runtime dependency present: $import -> $found"
+              } else {
+                  Write-Host "Runtime dependency MISSING: $import"
+                  $missingImports += $import
+              }
+          }
+
+          $env:PATH = "$phpRoot;$env:SystemRoot\System32;$env:SystemRoot"
+          $phpOutput = @(& $phpExe -n `
+            -d "extension_dir=$extensionDir" `
+            -d extension=php_rrd.dll `
+            -r 'echo extension_loaded("rrd") ? "RRD_LOADED:" . rrd_version() : "RRD_NOT_LOADED";' 2>&1)
+          $phpExitCode = $LASTEXITCODE
+          $phpOutput | ForEach-Object { Write-Host $_ }
+          $loaded = ($phpOutput -join [Environment]::NewLine) -match 'RRD_LOADED:'
+
+          New-Item -ItemType Directory -Force -Path summaries | Out-Null
+          $summary = [ordered]@{
+              package = "rrd-$env:PACKAGE_VERSION"
+              package_kind = $env:PACKAGE_KIND
+              php = $env:PHP_VERSION
+              php_executable = $phpExe
+              package_path = $env:PACKAGE_PATH
+              librrd = $librrd.Name
+              imported_dlls = @($importedDlls | Sort-Object)
+              missing_dlls = $missingImports
+              php_exit_code = $phpExitCode
+              extension_loaded = $loaded
+              php_output = $phpOutput
+          }
+          $summaryPath = "summaries\rrd-$env:PACKAGE_VERSION-php-$env:PHP_VERSION.json"
+          $summary | ConvertTo-Json -Depth 4 | Set-Content -Encoding UTF8 $summaryPath
+          Get-Content $summaryPath
+
+          if ($missingImports.Count -ne 0) {
+              throw "Missing runtime imports: $($missingImports -join ', ')"
+          }
+          if ($phpExitCode -ne 0 -or -not $loaded) {
+              throw 'php_rrd.dll did not load in the clean PHP installation'
+          }
+
+      - name: Upload runtime summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rrd-${{ matrix.package_version }}-runtime-php-${{ matrix.php_version }}
+          path: summaries/**
+          if-no-files-found: warn
