@@ -1,0 +1,164 @@
+name: Benchmark PHP PR 23227 ZTS on Windows
+
+run-name: Benchmark PR 23227 ZTS (${{ inputs.baseline-run-id || '32955992976' }} vs ${{ inputs.pr-run-id || '32955802516' }})
+
+on:
+  push:
+    branches:
+      - benchmark/php-pr-23227-zts
+  workflow_dispatch:
+    inputs:
+      baseline-run-id:
+        description: php-windows-builder run containing the merge-base builds
+        required: true
+      pr-run-id:
+        description: php-windows-builder run containing the PR builds
+        required: true
+      iterations:
+        description: Measured repetitions per benchmark
+        required: false
+        default: "9"
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  benchmark:
+    name: Benchmark ${{ matrix.arch }} ZTS
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86]
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 90
+    steps:
+      - name: Checkout benchmark harness
+        uses: actions/checkout@v6
+
+      - name: Checkout matching php-src benchmark scripts
+        uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-src
+          ref: feature/pr-23227-tls-review
+          path: php-src
+          fetch-depth: 1
+
+      - name: Download merge-base build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: artifacts
+          path: baseline-artifacts
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ inputs.baseline-run-id || '32955992976' }}
+          github-token: ${{ secrets.PAT }}
+
+      - name: Download PR build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: artifacts
+          path: pr-artifacts
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ inputs.pr-run-id || '32955802516' }}
+          github-token: ${{ secrets.PAT }}
+
+      - name: Extract matching ZTS runtimes
+        id: runtimes
+        shell: pwsh
+        env:
+          BENCH_ARCH: ${{ matrix.arch }}
+        run: |
+          function Expand-ZtsRuntime {
+            param(
+              [string]$ArtifactRoot,
+              [string]$Destination
+            )
+
+            $runtime = Get-ChildItem $ArtifactRoot -Filter '*.zip' -File -Recurse |
+              Where-Object {
+                $_.Name -match ("^php-.+-Win32-v(?:s|c)\d+-{0}\.zip$" -f $env:BENCH_ARCH) -and
+                $_.Name -notmatch '(?:-nts-|devel|debug|test|src)'
+              } |
+              Sort-Object FullName |
+              Select-Object -First 1
+
+            if ($null -eq $runtime) {
+              Get-ChildItem $ArtifactRoot -File -Recurse | Select-Object -ExpandProperty FullName
+              throw "Could not find the $env:BENCH_ARCH ZTS runtime archive in $ArtifactRoot"
+            }
+
+            New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+            Expand-Archive -LiteralPath $runtime.FullName -DestinationPath $Destination -Force
+            $php = Get-ChildItem $Destination -Filter php.exe -File -Recurse |
+              Select-Object -First 1 -ExpandProperty FullName
+            if ([string]::IsNullOrWhiteSpace($php)) {
+              throw "Could not find php.exe after extracting $($runtime.Name)"
+            }
+
+            return $php
+          }
+
+          $baselinePhp = Expand-ZtsRuntime -ArtifactRoot baseline-artifacts -Destination (Join-Path $env:RUNNER_TEMP "php-baseline-$env:BENCH_ARCH")
+          $prPhp = Expand-ZtsRuntime -ArtifactRoot pr-artifacts -Destination (Join-Path $env:RUNNER_TEMP "php-pr-$env:BENCH_ARCH")
+
+          "baseline-php=$baselinePhp" | Add-Content -Path $env:GITHUB_OUTPUT
+          "pr-php=$prPhp" | Add-Content -Path $env:GITHUB_OUTPUT
+
+      - name: Verify ZTS runtimes and JIT
+        shell: pwsh
+        env:
+          BASELINE_PHP: ${{ steps.runtimes.outputs.baseline-php }}
+          PR_PHP: ${{ steps.runtimes.outputs.pr-php }}
+        run: |
+          foreach ($php in @($env:BASELINE_PHP, $env:PR_PHP)) {
+            $meta = & $php -n -r "echo PHP_VERSION, ' ', PHP_ZTS ? 'ZTS' : 'NTS', PHP_EOL;"
+            if ($LASTEXITCODE -ne 0 -or $meta -notmatch 'ZTS') {
+              throw "Invalid ZTS runtime: $php ($meta)"
+            }
+
+            $phpDir = Split-Path -Parent $php
+            $opcache = Get-ChildItem $phpDir -Filter php_opcache.dll -File -Recurse |
+              Select-Object -First 1 -ExpandProperty FullName
+
+            $jitArgs = @('-n')
+            if (![string]::IsNullOrWhiteSpace($opcache)) {
+              $jitArgs += @('-d', "zend_extension=$opcache")
+            }
+            $jitArgs += @(
+              '-d', 'opcache.enable_cli=1',
+              '-d', 'opcache.jit_buffer_size=128M',
+              '-d', 'opcache.jit=tracing',
+              '-r', "`$s=opcache_get_status(false); echo (int)(`$s['jit']['on'] ?? false);"
+            )
+
+            $jit = & $php @jitArgs
+            if ($LASTEXITCODE -ne 0 -or $jit -ne '1') {
+              throw "JIT did not activate for $php ($jit)"
+            }
+
+            Write-Host "$meta JIT=on"
+          }
+
+      - name: Run interleaved benchmarks
+        shell: pwsh
+        env:
+          BENCH_ARCH: ${{ matrix.arch }}
+          BASELINE_PHP: ${{ steps.runtimes.outputs.baseline-php }}
+          PR_PHP: ${{ steps.runtimes.outputs.pr-php }}
+          BENCHMARK_ITERATIONS: ${{ inputs.iterations || '9' }}
+        run: |
+          & .github/scripts/benchmark-php-pr-23227.ps1 `
+            -BaselinePhp $env:BASELINE_PHP `
+            -PrPhp $env:PR_PHP `
+            -Arch $env:BENCH_ARCH `
+            -Iterations ([int]$env:BENCHMARK_ITERATIONS) `
+            -PhpSrcRoot (Join-Path $PWD.Path 'php-src') `
+            -OutputDirectory (Join-Path $env:RUNNER_TEMP "benchmark-$env:BENCH_ARCH")
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: php-pr-23227-zts-benchmark-${{ matrix.arch }}
+          path: ${{ runner.temp }}/benchmark-${{ matrix.arch }}/*
+          if-no-files-found: ignore
