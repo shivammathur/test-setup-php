@@ -1,0 +1,62 @@
+name: setup-php develop on larger macOS runners
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HOMEBREW_NO_AUTO_UPDATE: 1
+
+jobs:
+  cache:
+    name: PHP 8.0 (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - runner: macos-latest-large
+            architecture: x86_64
+          - runner: macos-15-large
+            architecture: x86_64
+          - runner: macos-26-large
+            architecture: x86_64
+          - runner: macos-latest-xlarge
+            architecture: arm64
+          - runner: macos-14-xlarge
+            architecture: arm64
+          - runner: macos-15-xlarge
+            architecture: arm64
+          - runner: macos-26-xlarge
+            architecture: arm64
+          - runner: xcode-27-xlarge
+            architecture: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - name: Inspect runner
+        shell: bash
+        run: |
+          test "$(uname -m)" = "${{ matrix.architecture }}"
+          sw_vers
+          brew --version
+
+      - name: Setup PHP with php-darwin cache
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: "8.0"
+          coverage: none
+          tools: none
+
+      - name: Validate PHP and Homebrew
+        shell: bash
+        run: |
+          php -r 'exit(version_compare(PHP_VERSION, "8.0", ">=") && version_compare(PHP_VERSION, "8.1", "<") ? 0 : 1);'
+          brew config >/dev/null
+          brew info --json=v2 shivammathur/php/php@8.0 >/dev/null
+          brew list --versions shivammathur/php/php@8.0
+          brew linkage --test shivammathur/php/php@8.0
+          php --version
