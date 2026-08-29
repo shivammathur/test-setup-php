@@ -1,0 +1,211 @@
+name: setup-php develop with php-darwin
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: PHP 5.6 to 8.6 on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        runner:
+          - macos-14
+          - macos-15-intel
+    env:
+      HOMEBREW_DEVELOPER: 1
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_AUTOREMOVE: 1
+      HOMEBREW_NO_ENV_HINTS: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+      PHP_DARWIN_SHOW_LOG: true
+    steps:
+      - name: Checkout test scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Prepare runner without Homebrew PHP
+        shell: bash
+        env:
+          RUNNER_LABEL: ${{ matrix.runner }}
+        run: bash scripts/prepare.sh
+
+      - name: Install PHP 5.6
+        uses: shivammathur/setup-php@develop
+        timeout-minutes: 2
+        with:
+          php-version: "5.6"
+          coverage: none
+          tools: none
+          github-token: ""
+
+      - name: Verify and remove PHP 5.6
+        shell: bash
+        run: bash scripts/verify.sh 5.6
+
+      - name: Install PHP 7.0
+        uses: shivammathur/setup-php@develop
+        timeout-minutes: 2
+        with:
+          php-version: "7.0"
+          coverage: none
+          tools: none
+          github-token: ""
+
+      - name: Verify and remove PHP 7.0
+        shell: bash
+        run: bash scripts/verify.sh 7.0
+
+      - name: Install PHP 7.1
+        uses: shivammathur/setup-php@develop
+        timeout-minutes: 2
+        with:
+          php-version: "7.1"
+          coverage: none
+          tools: none
+          github-token: ""
+
+      - name: Verify and remove PHP 7.1
+        shell: bash
+        run: bash scripts/verify.sh 7.1
+
+      - name: Install PHP 7.2
+        uses: shivammathur/setup-php@develop
+        timeout-minutes: 2
+        with:
+          php-version: "7.2"
+          coverage: none
+          tools: none
+          github-token: ""
+
+      - name: Verify and remove PHP 7.2
+        shell: bash
+        run: bash scripts/verify.sh 7.2
+
+      - name: Install PHP 7.3
+        uses: shivammathur/setup-php@develop
+        timeout-minutes: 2
+        with:
+          php-version: "7.3"
+          coverage: none
+          tools: none
+          github-token: ""
+
+      - name: Verify and remove PHP 7.3
+        shell: bash
+        run: bash scripts/verify.sh 7.3
+
+      - name: Install PHP 7.4
+        uses: shivammathur/setup-php@develop
+        timeout-minutes: 2
+        with:
+          php-version: "7.4"
+          coverage: none
+          tools: none
+          github-token: ""
+
+      - name: Verify and remove PHP 7.4
+        shell: bash
+        run: bash scripts/verify.sh 7.4
+
+      - name: Install PHP 8.0
+        uses: shivammathur/setup-php@develop
+        timeout-minutes: 2
+        with:
+          php-version: "8.0"
+          coverage: none
+          tools: none
+          github-token: ""
+
+      - name: Verify and remove PHP 8.0
+        shell: bash
+        run: bash scripts/verify.sh 8.0
+
+      - name: Install PHP 8.1
+        uses: shivammathur/setup-php@develop
+        timeout-minutes: 2
+        with:
+          php-version: "8.1"
+          coverage: none
+          tools: none
+          github-token: ""
+
+      - name: Verify and remove PHP 8.1
+        shell: bash
+        run: bash scripts/verify.sh 8.1
+
+      - name: Install PHP 8.2
+        uses: shivammathur/setup-php@develop
+        timeout-minutes: 2
+        with:
+          php-version: "8.2"
+          coverage: none
+          tools: none
+          github-token: ""
+
+      - name: Verify and remove PHP 8.2
+        shell: bash
+        run: bash scripts/verify.sh 8.2
+
+      - name: Install PHP 8.3
+        uses: shivammathur/setup-php@develop
+        timeout-minutes: 2
+        with:
+          php-version: "8.3"
+          coverage: none
+          tools: none
+          github-token: ""
+
+      - name: Verify and remove PHP 8.3
+        shell: bash
+        run: bash scripts/verify.sh 8.3
+
+      - name: Install PHP 8.4
+        uses: shivammathur/setup-php@develop
+        timeout-minutes: 2
+        with:
+          php-version: "8.4"
+          coverage: none
+          tools: none
+          github-token: ""
+
+      - name: Verify and remove PHP 8.4
+        shell: bash
+        run: bash scripts/verify.sh 8.4
+
+      - name: Install PHP 8.5
+        uses: shivammathur/setup-php@develop
+        timeout-minutes: 2
+        with:
+          php-version: "8.5"
+          coverage: none
+          tools: none
+          github-token: ""
+
+      - name: Verify and remove PHP 8.5
+        shell: bash
+        run: bash scripts/verify.sh 8.5
+
+      - name: Install PHP 8.6
+        uses: shivammathur/setup-php@develop
+        timeout-minutes: 2
+        with:
+          php-version: "8.6"
+          coverage: none
+          tools: none
+          github-token: ""
+
+      - name: Verify and remove PHP 8.6
+        shell: bash
+        run: bash scripts/verify.sh 8.6
+
+      - name: Verify Homebrew integrity
+        shell: bash
+        run: bash scripts/finish.sh
