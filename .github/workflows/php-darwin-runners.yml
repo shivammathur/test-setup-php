@@ -1,0 +1,104 @@
+name: php-darwin runner compatibility
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: PHP 8.5 release/nts on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - macos-26-intel
+          - macos-26
+          - macos-latest
+          - macos-15
+          - macos-15-intel
+          - macos-14
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_ENV_HINTS: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+      PHP_DARWIN_TIMING_LOG: ${{ github.workspace }}/php-darwin-timing.log
+    steps:
+      - name: Inspect runner and remove Homebrew PHP
+        shell: bash
+        env:
+          RUNNER_LABEL: ${{ matrix.runner }}
+        run: |
+          sw_vers
+          runner_arch=$(uname -m)
+          expected_arch=arm64
+          case "$RUNNER_LABEL" in *-intel) expected_arch=x86_64 ;; esac
+          printf 'Runner label %s resolved to %s\n' "$RUNNER_LABEL" "$runner_arch"
+          [ "$runner_arch" = "$expected_arch" ]
+
+          installed_php_formulae=()
+          while IFS= read -r installed_formula; do
+            [[ "$installed_formula" =~ ^php(@[0-9]+\.[0-9]+)?(-debug)?(-zts)?$ ]] && \
+              installed_php_formulae+=("$installed_formula")
+          done < <(brew list --formula)
+          if [ "${#installed_php_formulae[@]}" -gt 0 ]; then
+            brew uninstall --force --ignore-dependencies "${installed_php_formulae[@]}"
+          fi
+          if brew list --formula | grep -Eq '^php(@[0-9]+\.[0-9]+)?(-debug)?(-zts)?$'; then
+            printf 'A Homebrew PHP formula remained before the cache test\n' >&2
+            exit 1
+          fi
+          printf 'Confirmed that no Homebrew PHP formula is installed\n'
+
+      - name: Fetch readable standalone installer
+        shell: bash
+        run: |
+          curl --retry 3 --retry-all-errors -fsSL \
+            https://raw.githubusercontent.com/shivammathur/php-darwin/0e13a2ad4acd7bc865e38e99e16e4cadd60cb0df/scripts/install.sh \
+            -o "$RUNNER_TEMP/php-darwin-install.sh"
+          if grep -Eq 'base64|PHP_DARWIN_PAYLOAD|PHP_DARWIN_CLIENT|gzip -d' \
+            "$RUNNER_TEMP/php-darwin-install.sh"; then
+            printf 'Installer contains an encoded payload\n' >&2
+            exit 1
+          fi
+          bash -n "$RUNNER_TEMP/php-darwin-install.sh"
+
+      - name: Install PHP archive
+        shell: bash
+        run: bash -e "$RUNNER_TEMP/php-darwin-install.sh" 8.5 release nts
+
+      - name: Verify PHP, timing, and Homebrew
+        shell: bash
+        run: |
+          cat "$PHP_DARWIN_TIMING_LOG"
+          metric() {
+            awk -F= -v key="$1" '$1 == key { value=$2 } END { if (value == "") exit 1; print value }' \
+              "$PHP_DARWIN_TIMING_LOG"
+          }
+          fetch_seconds=$(metric release.fetch_seconds)
+          installer_seconds=$(metric installer.total_seconds)
+          fetch_target=$(metric target.fetch_seconds)
+          install_target=$(metric target.install_seconds)
+          post_fetch_seconds=$((installer_seconds - fetch_seconds))
+          [ "$fetch_seconds" -le "$fetch_target" ]
+          [ "$post_fetch_seconds" -le "$((install_target + 1))" ]
+
+          php -v
+          php -r "if (strpos(PHP_VERSION, '8.5.') !== 0 || PHP_ZTS) { exit(1); }"
+          php -m >/dev/null
+          php-config --version
+          pecl version
+          brew list --versions php
+          brew missing php
+          brew linkage --test php
+          brew config
+          brew cleanup --dry-run >/dev/null 2>&1
+
+          brew install hello
+          "$(brew --prefix hello)/bin/hello" | grep -F 'Hello, world!'
+          brew uninstall --force hello
