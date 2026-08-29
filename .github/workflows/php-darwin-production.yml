@@ -1,0 +1,111 @@
+name: setup-php php-darwin production
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: PHP 8.5 on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - macos-26-intel
+          - macos-26
+          - macos-latest
+          - macos-15
+          - macos-15-intel
+          - macos-14
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_AUTOREMOVE: 1
+      HOMEBREW_NO_ENV_HINTS: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+      PHP_DARWIN_SHOW_LOG: true
+    steps:
+      - name: Prepare runner without Homebrew PHP
+        shell: bash
+        env:
+          RUNNER_LABEL: ${{ matrix.runner }}
+        run: |
+          sw_vers
+          runner_arch=$(uname -m)
+          expected_arch=arm64
+          case "$RUNNER_LABEL" in *-intel) expected_arch=x86_64 ;; esac
+          printf 'Runner label %s resolved to %s\n' "$RUNNER_LABEL" "$runner_arch"
+          [ "$runner_arch" = "$expected_arch" ]
+
+          installed_php_formulae=()
+          while IFS= read -r installed_formula; do
+            [[ "$installed_formula" =~ ^php(@[0-9]+\.[0-9]+)?(-debug)?(-zts)?$ ]] && \
+              installed_php_formulae+=("$installed_formula")
+          done < <(brew list --formula)
+          if [ "${#installed_php_formulae[@]}" -gt 0 ]; then
+            brew uninstall --force --ignore-dependencies "${installed_php_formulae[@]}"
+          fi
+          if brew list --formula | grep -Eq '^php(@[0-9]+\.[0-9]+)?(-debug)?(-zts)?$'; then
+            printf 'A Homebrew PHP formula remained before setup-php\n' >&2
+            exit 1
+          fi
+
+          brew_prefix=$(brew --prefix)
+          sentinel="$brew_prefix/etc/php-darwin-preserve-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          printf 'preserve-existing-homebrew-state\n' > "$sentinel"
+          chmod 0444 "$sentinel"
+          printf 'PHP_DARWIN_SENTINEL=%s\n' "$sentinel" >> "$GITHUB_ENV"
+          date +%s > "$RUNNER_TEMP/php-darwin-job-started"
+
+      - name: Install PHP 8.5 through setup-php
+        uses: shivammathur/setup-php@feature/macos-php-cache
+        timeout-minutes: 2
+        with:
+          php-version: '8.5'
+          tools: none
+          github-token: ''
+
+      - name: Verify cache path and Homebrew integrity
+        shell: bash
+        run: |
+          php -v
+          php -r "if (strpos(PHP_VERSION, '8.5.') !== 0 || PHP_ZTS) { exit(1); }"
+          php -m >/dev/null
+          php-config --version
+          pecl version
+
+          brew list --versions php
+          receipt=$(brew --prefix php)/INSTALL_RECEIPT.json
+          job_started=$(< "$RUNNER_TEMP/php-darwin-job-started")
+          jq -e --argjson started "$job_started" '.time < $started' "$receipt"
+          brew missing php
+          brew linkage --test php
+          brew config
+          brew cleanup --dry-run >/dev/null 2>&1
+          [ "$(< "$PHP_DARWIN_SENTINEL")" = preserve-existing-homebrew-state ]
+          [ "$(stat -f '%Lp' "$PHP_DARWIN_SENTINEL")" = 444 ]
+
+          tap_path=$(brew --repository shivammathur/php)
+          [ -d "$tap_path/.git" ]
+          brew tap | grep -Fxq shivammathur/php
+          [ "$(git -C "$tap_path" remote get-url origin)" = \
+            https://github.com/shivammathur/homebrew-php ]
+          [ "$(git -C "$tap_path" symbolic-ref --short HEAD)" = main ]
+
+          brew fetch --retry hello
+          brew install hello
+          "$(brew --prefix hello)/bin/hello" | grep -F 'Hello, world!'
+          brew uninstall --force hello
+
+          doctor_log="$RUNNER_TEMP/php-darwin-brew-doctor.log"
+          if ! brew doctor > "$doctor_log" 2>&1; then
+            if grep -Eq '^(Error:|.*broken)' "$doctor_log"; then
+              cat "$doctor_log"
+              exit 1
+            fi
+          fi
