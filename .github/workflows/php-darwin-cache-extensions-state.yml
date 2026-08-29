@@ -1,0 +1,62 @@
+name: php-darwin after cache-extensions
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: Direct PHP 8.0 after cache-extensions
+    runs-on: macos-15-intel
+    timeout-minutes: 10
+    env:
+      extensions: xml, opcache, xdebug, pcov, gd
+      key: cache-v5
+    steps:
+      - name: Setup cache environment
+        id: cache-env
+        uses: shivammathur/cache-extensions@de3c642a5fce0ef91581a1c9831e229f525196d6 # v1
+        with:
+          php-version: "8.0"
+          extensions: ${{ env.extensions }}
+          key: ${{ env.key }}
+
+      - name: Cache extensions
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
+        with:
+          path: ${{ steps.cache-env.outputs.dir }}
+          key: ${{ steps.cache-env.outputs.key }}
+          restore-keys: ${{ steps.cache-env.outputs.key }}
+
+      - name: Inspect prepared Homebrew state
+        shell: bash
+        run: |
+          brew list --versions zlib-ng-compat || true
+          brew tap-info --installed --json=v1 | jq -r '.[] | [.name, .installed, .trusted] | @tsv'
+          tap_path=$(brew --repository shivammathur/php)
+          printf 'php tap: %s\n' "$tap_path"
+          if [ -d "$tap_path/.git" ]; then
+            printf 'php tap type: git\n'
+          elif [ -d "$tap_path" ]; then
+            printf 'php tap type: directory\n'
+          else
+            printf 'php tap type: absent\n'
+          fi
+
+      - name: Setup PHP 8.0 with traced php-darwin installer
+        uses: shivammathur/setup-php@fix/cache-debug
+        with:
+          php-version: "8.0"
+          extensions: ${{ env.extensions }}
+          ini-values: post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata
+
+      - name: Verify cached installation
+        shell: bash
+        run: |
+          php -v
+          brew list --versions php@8.0
+          brew missing php@8.0
+          brew linkage --test php@8.0
