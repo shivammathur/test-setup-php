@@ -1,0 +1,66 @@
+name: php-darwin non-Git tap compatibility
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: PHP 8.3 on macos-15-intel
+    runs-on: macos-15-intel
+    timeout-minutes: 10
+    env:
+      HOMEBREW_DEVELOPER: 1
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_AUTOREMOVE: 1
+      HOMEBREW_NO_ENV_HINTS: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+      PHP_DARWIN_SHOW_LOG: true
+    steps:
+      - name: Create the non-Git runner tap state
+        shell: bash
+        run: |
+          tap_path=$(brew --repository shivammathur/php)
+          if [ -e "$tap_path" ] || [ -L "$tap_path" ]; then
+            mv "$tap_path" "$RUNNER_TEMP/original-shivammathur-php-tap"
+          fi
+          mkdir -p "$tap_path/Formula"
+          printf 'class Placeholder < Formula; end\n' > "$tap_path/Formula/placeholder.rb"
+          [ -d "$tap_path" ]
+          [ ! -e "$tap_path/.git" ]
+          printf 'Using non-Git runner tap at %s\n' "$tap_path"
+
+      - name: Install PHP 8.3 through setup-php develop
+        uses: shivammathur/setup-php@develop
+        timeout-minutes: 2
+        with:
+          php-version: "8.3"
+          coverage: none
+          tools: none
+          github-token: ""
+
+      - name: Verify PHP and Homebrew
+        shell: bash
+        run: |
+          php -r 'if (strpos(PHP_VERSION, "8.3.") !== 0 || PHP_ZTS) { exit(1); }'
+          php -m >/dev/null
+          php-config --version
+          pecl version
+          brew list --versions php@8.3
+          brew missing php@8.3
+          brew linkage --test php@8.3
+          tap_path=$(brew --repository shivammathur/php)
+          [ -d "$tap_path/.git" ]
+          brew tap-info --json=v1 shivammathur/php | jq -e '
+            length == 1 and .[0].name == "shivammathur/php" and
+            .[0].installed and .[0].trusted
+          '
+          [ "$(git -C "$tap_path" remote get-url origin)" = \
+            https://github.com/shivammathur/homebrew-php ]
+          [ "$(git -C "$tap_path" symbolic-ref --short HEAD)" = main ]
+          brew config
+          brew cleanup --dry-run >/dev/null 2>&1
