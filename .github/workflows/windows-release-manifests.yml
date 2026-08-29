@@ -1,0 +1,72 @@
+name: Windows release manifests
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '7.2'
+            phpts: nts
+          - php: '8.4'
+            phpts: ts
+    steps:
+      - name: Remove pre-installed PHP
+        shell: pwsh
+        run: |
+          if (Test-Path C:\tools\php) {
+            Move-Item C:\tools\php C:\tools\php-before-manifest-test
+          }
+
+      - name: Setup PHP from release manifest
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+        env:
+          debug: true
+          phpts: ${{ matrix.phpts }}
+
+      - name: Verify PHP and debug symbols
+        shell: pwsh
+        run: |
+          php --version
+          if (-not (Test-Path C:\tools\php\php.pdb)) {
+            throw 'php.pdb was not installed'
+          }
+          if (-not (Get-ChildItem C:\tools\php\ext\php_*.pdb)) {
+            throw 'Extension debug symbols were not installed'
+          }
+
+      - name: Verify official archive fallback
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $actionRoot = Join-Path (Split-Path $env:RUNNER_WORKSPACE -Parent) '_actions\shivammathur\setup-php\develop'
+          $scriptPath = Join-Path $actionRoot 'src\scripts\win32.ps1'
+          $tokens = $null
+          $errors = $null
+          $ast = [System.Management.Automation.Language.Parser]::ParseFile($scriptPath, [ref]$tokens, [ref]$errors)
+          $function = $ast.Find({
+            param($node)
+            $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Get-File'
+          }, $true)
+          Invoke-Expression $function.Extent.Text
+
+          $manifest = Invoke-RestMethod "https://github.com/shivammathur/php-builder-windows/releases/download/php${{ matrix.php }}/manifest.json"
+          $asset = $manifest.stable.php.'${{ matrix.phpts }}'.x64
+          $archive = Join-Path $env:RUNNER_TEMP $asset
+          Get-File `
+            -Url "https://127.0.0.1:1/$asset" `
+            -FallbackUrl "https://downloads.php.net/~windows/releases/archives/$asset" `
+            -OutFile $archive `
+            -Retries 1 `
+            -TimeoutSec 10
+          Expand-Archive -Path $archive -DestinationPath (Join-Path $env:RUNNER_TEMP 'fallback-php') -Force
