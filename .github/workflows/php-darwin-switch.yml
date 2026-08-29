@@ -1,0 +1,32 @@
+name: Test php-darwin cache replacement
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  switch:
+    runs-on: macos-latest
+    steps:
+      - name: Install cached PHP 8.3
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.3'
+
+      - name: Verify PHP 8.3 and PATH state
+        run: |
+          test "$(php -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;')" = '8.3'
+          ! grep -Eq '/opt/homebrew/opt/php(@[0-9]+\.[0-9]+)?/bin' "$GITHUB_PATH"
+
+      - name: Replace PHP 8.3 with cached PHP 7.4
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '7.4'
+
+      - name: Verify PHP 7.4 replaced PHP 8.3
+        run: |
+          test "$(php -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;')" = '7.4'
+          test "$(php-config --version | cut -d. -f1,2)" = '7.4'
