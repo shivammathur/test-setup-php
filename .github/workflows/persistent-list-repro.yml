@@ -1,0 +1,208 @@
+name: PR 23227 persistent PostgreSQL repro
+
+on:
+  push:
+    branches:
+      - test/php-pr-23227-persistent-list
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - revision: base
+            ref: ec93b0b941dc6ed7280184216d2d8d59f173e224
+            expected-connections: 0
+          - revision: pr
+            ref: 3ed3ddddda480f10f1dfd9267325fa6ca0c210cc
+            expected-connections: 1
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repro
+        uses: actions/checkout@v6
+
+      - name: Checkout php-src
+        uses: actions/checkout@v6
+        with:
+          repository: php/php-src
+          ref: ${{ matrix.ref }}
+          path: php-src
+          fetch-depth: 1
+
+      - name: Checkout PHP Windows builder
+        uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          path: builder
+          fetch-depth: 1
+
+      - name: Add Apache shutdown observation point
+        shell: pwsh
+        run: git -C php-src apply ../persistent-list-repro.patch
+
+      - name: Build ZTS PHP
+        shell: pwsh
+        run: |
+          Import-Module "$env:GITHUB_WORKSPACE\builder\php\BuildPhp" -Force
+          Push-Location php-src
+          try {
+            $env:SBOM = 'false'
+            Invoke-PhpBuild -Arch x64 -Ts ts
+          } finally {
+            Pop-Location
+          }
+
+      - name: Run Apache pg_pconnect shutdown probe
+        shell: pwsh
+        env:
+          EXPECTED_CONNECTIONS: ${{ matrix.expected-connections }}
+          REVISION: ${{ matrix.revision }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = Get-ChildItem php-src\artifacts\php-*-Win32-*-x64.zip |
+            Where-Object Name -NotMatch '^(php-debug|php-devel|php-test-pack)' |
+            Select-Object -First 1
+          if (-not $archive) {
+            throw 'PHP binary archive not found'
+          }
+
+          $runtime = Join-Path $env:GITHUB_WORKSPACE 'php-runtime'
+          $state = Join-Path $env:GITHUB_WORKSPACE 'apache-repro'
+          $documentRoot = Join-Path $env:GITHUB_WORKSPACE 'www'
+          New-Item -ItemType Directory -Force -Path $runtime, $state, $documentRoot | Out-Null
+          Expand-Archive -LiteralPath $archive.FullName -DestinationPath $runtime
+          Copy-Item persistent-pg.php (Join-Path $documentRoot 'index.php')
+
+          $phpApache = Get-ChildItem $runtime -Filter php*apache2_4.dll -Recurse | Select-Object -First 1
+          $phpDll = Get-ChildItem $runtime -Filter php*ts.dll -Recurse | Select-Object -First 1
+          $pgsql = Get-ChildItem $runtime -Filter php_pgsql.dll -Recurse | Select-Object -First 1
+          if (-not $phpApache -or -not $phpDll -or -not $pgsql) {
+            throw 'Required Apache ZTS or pgsql binaries were not built'
+          }
+
+          $phpRoot = $phpApache.Directory.FullName
+          $extensionDir = $pgsql.Directory.FullName
+          @(
+            ('extension_dir="{0}"' -f ($extensionDir -replace '\\', '/'))
+            'extension=pgsql'
+            'display_errors=1'
+            'log_errors=1'
+          ) | Set-Content (Join-Path $phpRoot 'php.ini') -Encoding ASCII
+
+          Set-Service postgresql-x64-17 -StartupType Manual
+          Start-Service postgresql-x64-17
+          $env:PGPASSWORD = 'root'
+          $psql = Join-Path $env:PGBIN 'psql.exe'
+          & $psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 -c 'SELECT 1' | Write-Host
+          if ($LASTEXITCODE -ne 0) {
+            throw 'PostgreSQL did not become ready'
+          }
+
+          $apacheRoot = 'C:\tools\Apache24'
+          $httpd = Join-Path $apacheRoot 'bin\httpd.exe'
+          $config = Join-Path $state 'httpd.conf'
+          $pidFile = Join-Path $state 'httpd.pid'
+          $errorLog = Join-Path $state 'error.log'
+          $marker = Join-Path $state 'module-shutdown-complete'
+          $release = Join-Path $state 'release-shutdown'
+          $serviceName = "PHPPR23227$env:REVISION"
+
+          $baseConfig = Get-Content (Join-Path $apacheRoot 'conf\httpd.conf')
+          $baseConfig = $baseConfig -replace '^\s*Listen\s+80\s*$', 'Listen 127.0.0.1:8080'
+          $baseConfig | Set-Content $config -Encoding ASCII
+          @(
+            ('LoadFile "{0}"' -f ($phpDll.FullName -replace '\\', '/'))
+            ('LoadModule php_module "{0}"' -f ($phpApache.FullName -replace '\\', '/'))
+            ('PHPIniDir "{0}"' -f ($phpRoot -replace '\\', '/'))
+            'AddHandler application/x-httpd-php .php'
+            ('DocumentRoot "{0}"' -f ($documentRoot -replace '\\', '/'))
+            ('<Directory "{0}">' -f ($documentRoot -replace '\\', '/'))
+            '    Require all granted'
+            '</Directory>'
+            ('PidFile "{0}"' -f ($pidFile -replace '\\', '/'))
+            ('ErrorLog "{0}"' -f ($errorLog -replace '\\', '/'))
+            'ServerName 127.0.0.1:8080'
+          ) | Add-Content $config -Encoding ASCII
+
+          $env:PATH = "$phpRoot;$extensionDir;$env:PATH"
+          $env:PHP_PERSISTENT_LIST_REPRO_MARKER = $marker
+          $env:PHP_PERSISTENT_LIST_REPRO_RELEASE = $release
+          & $httpd -k install -n $serviceName -f $config
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Could not install the temporary Apache service'
+          }
+          $shutdown = $null
+
+          try {
+            $serviceKey = "HKLM:\SYSTEM\CurrentControlSet\Services\$serviceName"
+            New-ItemProperty -Path $serviceKey -Name Environment -PropertyType MultiString -Force -Value @(
+              "PATH=$env:PATH"
+              "PHP_PERSISTENT_LIST_REPRO_MARKER=$marker"
+              "PHP_PERSISTENT_LIST_REPRO_RELEASE=$release"
+            ) | Out-Null
+            Start-Service $serviceName
+
+            $response = $null
+            for ($attempt = 0; $attempt -lt 60; $attempt++) {
+              try {
+                $response = Invoke-WebRequest http://127.0.0.1:8080/index.php -TimeoutSec 2
+                break
+              } catch {
+                Start-Sleep -Milliseconds 500
+              }
+            }
+            if (-not $response -or $response.Content -notmatch 'PERSISTENT_CONNECTION_READY') {
+              throw 'Apache did not execute the pg_pconnect userland script'
+            }
+            Write-Host $response.Content
+
+            $before = (& $psql -h 127.0.0.1 -U postgres -d postgres -tA -c `
+              "SELECT count(*) FROM pg_stat_activity WHERE application_name = 'php_pr_23227_repro'").Trim()
+            Write-Host "PERSISTENT_CONNECTIONS_BEFORE_SHUTDOWN=$before"
+            if ($before -ne '1') {
+              throw "Expected one live persistent connection before shutdown, got $before"
+            }
+
+            $shutdown = Start-Process -FilePath $httpd `
+              -ArgumentList '-k', 'shutdown', '-n', $serviceName -PassThru
+            for ($attempt = 0; $attempt -lt 120 -and -not (Test-Path $marker); $attempt++) {
+              Start-Sleep -Milliseconds 250
+            }
+            if (-not (Test-Path $marker)) {
+              throw 'Apache did not reach PHP module shutdown observation point'
+            }
+
+            $after = (& $psql -h 127.0.0.1 -U postgres -d postgres -tA -c `
+              "SELECT count(*) FROM pg_stat_activity WHERE application_name = 'php_pr_23227_repro'").Trim()
+            Write-Host "PERSISTENT_CONNECTIONS_AFTER_SHUTDOWN=$after"
+            if ($after -ne $env:EXPECTED_CONNECTIONS) {
+              throw "Expected $env:EXPECTED_CONNECTIONS persistent connection(s) after PHP module shutdown for $env:REVISION, got $after"
+            }
+          } finally {
+            New-Item -ItemType File -Force -Path $release | Out-Null
+            for ($attempt = 0; $attempt -lt 60; $attempt++) {
+              $service = Get-Service $serviceName -ErrorAction SilentlyContinue
+              if (-not $service -or $service.Status -eq 'Stopped') {
+                break
+              }
+              Start-Sleep -Milliseconds 250
+            }
+            $service = Get-Service $serviceName -ErrorAction SilentlyContinue
+            if ($service -and $service.Status -ne 'Stopped') {
+              Stop-Service $serviceName -Force
+            }
+            if ($shutdown -and -not $shutdown.HasExited) {
+              $shutdown.WaitForExit(5000) | Out-Null
+            }
+            & $httpd -k uninstall -n $serviceName
+            if (Test-Path $errorLog) {
+              Get-Content $errorLog | Write-Host
+            }
+          }

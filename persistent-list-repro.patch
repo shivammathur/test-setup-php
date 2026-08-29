@@ -1,0 +1,33 @@
+diff --git a/sapi/apache2handler/sapi_apache2.c b/sapi/apache2handler/sapi_apache2.c
+--- a/sapi/apache2handler/sapi_apache2.c
++++ b/sapi/apache2handler/sapi_apache2.c
+@@ -428,1 +428,24 @@ static apr_status_t php_apache_server_shutdown(void *tmp)
++#ifdef PHP_WIN32
++static void php_apache_persistent_list_repro_wait(void)
++{
++	const char *marker = getenv("PHP_PERSISTENT_LIST_REPRO_MARKER");
++	const char *release = getenv("PHP_PERSISTENT_LIST_REPRO_RELEASE");
++	FILE *file;
++
++	if (!marker || !release) {
++		return;
++	}
++	file = fopen(marker, "w");
++	if (file) {
++		fputs("PHP_MODULE_SHUTDOWN_COMPLETE\n", file);
++		fclose(file);
++	}
++	for (unsigned int attempt = 0;
++			attempt < 1200 && GetFileAttributesA(release) == INVALID_FILE_ATTRIBUTES;
++			attempt++) {
++		Sleep(50);
++	}
++}
++#endif
++
+ static apr_status_t php_apache_child_shutdown(void *tmp)
+@@ -431,1 +454,4 @@ static apr_status_t php_apache_child_shutdown(void *tmp)
++#ifdef PHP_WIN32
++	php_apache_persistent_list_repro_wait();
++#endif
+ #if defined(ZTS) && !defined(PHP_WIN32)
