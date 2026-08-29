@@ -1,0 +1,227 @@
+name: php-darwin setup integration
+
+on:
+  workflow_dispatch:
+    inputs:
+      authenticated:
+        description: Use the repository PAT for a private-package validation run
+        default: false
+        required: false
+        type: boolean
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  installer-smoke:
+    name: Standalone installer / macos-26-intel / zts / release
+    runs-on: macos-26-intel
+    timeout-minutes: 5
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_ENV_HINTS: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+      PHP_DARWIN_TIMING_LOG: ${{ github.workspace }}/php-darwin-timing.log
+    steps:
+      - name: Clean existing PHP
+        shell: bash
+        run: |
+          if brew list --versions php-zts >/dev/null 2>&1; then
+            brew uninstall --force --ignore-dependencies php-zts
+          fi
+
+      - name: Fetch installer
+        shell: bash
+        run: |
+          curl --retry 3 --retry-all-errors -fsSL \
+            https://cdn.jsdelivr.net/gh/shivammathur/php-darwin@main/scripts/install.sh \
+            -o "$RUNNER_TEMP/php-darwin-install.sh"
+
+      - name: Install package
+        shell: bash
+        run: bash "$RUNNER_TEMP/php-darwin-install.sh" 8.5 release zts
+
+      - name: Verify installation
+        shell: bash
+        run: |
+          brew_prefix=$(brew --prefix)
+          php -v
+          php -r "if (strpos(PHP_VERSION, '8.5.') !== 0 || !PHP_ZTS) { exit(1); }"
+          [ "$(pear config-get php_dir)" = "$brew_prefix/share/pear" ]
+          [ -d "$brew_prefix/lib/php/pecl" ]
+          pecl version
+          brew missing php-zts
+          tap_path=$(brew --repository shivammathur/php)
+          [ -d "$tap_path/.git" ]
+          brew tap | grep -Fxq shivammathur/php
+          [ "$(git -C "$tap_path" remote get-url origin)" = \
+            https://github.com/shivammathur/homebrew-php ]
+          [ "$(git -C "$tap_path" symbolic-ref --short HEAD)" = main ]
+
+  install:
+    name: ${{ matrix.os }} / ${{ matrix.ts }} / ${{ matrix.build }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix:
+        os: [macos-15, macos-15-intel, macos-26, macos-26-intel]
+        ts: [nts, zts]
+        build: [release, debug]
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_ENV_HINTS: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+      PHP_DARWIN_SHOW_LOG: true
+      PHP_DARWIN_TIMING_LOG: ${{ github.workspace }}/php-darwin-timing.log
+    steps:
+      - name: Prepare Homebrew
+        shell: bash
+        env:
+          EXPECTED_BUILD: ${{ matrix.build }}
+          EXPECTED_TS: ${{ matrix.ts }}
+        run: |
+          formula=php
+          [ "$EXPECTED_BUILD" = release ] || formula=php-debug
+          [ "$EXPECTED_TS" = nts ] || formula="$formula-zts"
+          if brew list --versions "$formula" >/dev/null 2>&1; then
+            brew uninstall --force --ignore-dependencies "$formula"
+          fi
+          brew install hello
+          brew_prefix=$(brew --prefix)
+          sentinel="$brew_prefix/etc/php-darwin-preserve-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          printf 'preserve-existing-homebrew-state\n' > "$sentinel"
+          chmod 0444 "$sentinel"
+          printf 'PHP_DARWIN_SENTINEL=%s\n' "$sentinel" >> "$GITHUB_ENV"
+          brew list --formula | LC_ALL=C sort -u > "$RUNNER_TEMP/php-darwin-formulae-before"
+          (brew missing || true) | LC_ALL=C sort -u > "$RUNNER_TEMP/php-darwin-missing-before"
+          date +%s > "$RUNNER_TEMP/php-darwin-started"
+
+      - name: Install PHP 8.5
+        uses: shivammathur/setup-php@feature/macos-php-cache
+        timeout-minutes: 2
+        with:
+          php-version: '8.5'
+          github-token: ${{ inputs.authenticated && secrets.PAT || '' }}
+        env:
+          debug: ${{ matrix.build == 'debug' }}
+          phpts: ${{ matrix.ts }}
+
+      - name: Verify fast install and PHP configuration
+        shell: bash
+        env:
+          EXPECTED_BUILD: ${{ matrix.build }}
+          EXPECTED_TS: ${{ matrix.ts }}
+        run: |
+          elapsed=$(($(date +%s) - $(< "$RUNNER_TEMP/php-darwin-started")))
+          printf 'setup-php completed in %s seconds\n' "$elapsed"
+          [ -s "$PHP_DARWIN_TIMING_LOG" ]
+          cat "$PHP_DARWIN_TIMING_LOG"
+          metric() {
+            awk -F= -v key="$1" '$1 == key { value=$2 } END { if (value == "") exit 1; print value }' \
+              "$PHP_DARWIN_TIMING_LOG"
+          }
+          fetch_seconds=$(metric registry.total_seconds)
+          installer_seconds=$(metric installer.total_seconds)
+          target_fetch_seconds=$(metric target.fetch_seconds)
+          target_install_seconds=$(metric target.install_seconds)
+          target_setup_seconds=$(metric target.setup_seconds)
+          install_seconds=$((installer_seconds - fetch_seconds))
+          printf 'php-darwin fetch completed in %s seconds (limit: %s)\n' \
+            "$fetch_seconds" "$target_fetch_seconds"
+          printf 'php-darwin extraction and configuration completed in %s seconds (limit: %s)\n' \
+            "$install_seconds" "$target_install_seconds"
+          [ "$fetch_seconds" -le "$target_fetch_seconds" ]
+          [ "$install_seconds" -le "$target_install_seconds" ]
+          [ "$elapsed" -le "$target_setup_seconds" ]
+          php -v
+          php-config --version
+          php -r "if (strpos(PHP_VERSION, '8.5.') !== 0) { exit(1); }"
+          brew_prefix=$(brew --prefix)
+          [ "$(pear config-get php_dir)" = "$brew_prefix/share/pear" ]
+          [ -d "$brew_prefix/lib/php/pecl" ]
+          pecl version
+          php_info=$(php -i)
+          if [ "$EXPECTED_TS" = zts ]; then
+            grep -Eq '^Thread Safety => (enabled|yes)$' <<< "$php_info"
+          else
+            grep -Eq '^Thread Safety => (disabled|no)$' <<< "$php_info"
+          fi
+          if [ "$EXPECTED_BUILD" = debug ]; then
+            grep -Eq '^Debug Build => (yes|enabled)$' <<< "$php_info"
+          else
+            grep -Eq '^Debug Build => (no|disabled)$' <<< "$php_info"
+          fi
+
+      - name: Verify Homebrew remains functional
+        shell: bash
+        env:
+          EXPECTED_BUILD: ${{ matrix.build }}
+          EXPECTED_TS: ${{ matrix.ts }}
+        run: |
+          formula=php
+          [ "$EXPECTED_BUILD" = release ] || formula=php-debug
+          [ "$EXPECTED_TS" = nts ] || formula="$formula-zts"
+          brew list --versions "$formula"
+          receipt="$(brew --prefix "$formula")/INSTALL_RECEIPT.json"
+          started=$(< "$RUNNER_TEMP/php-darwin-started")
+          jq -e --argjson started "$started" '.time < $started' "$receipt"
+          brew info --installed --json=v2 | jq -e --arg formula "$formula" \
+            'any(.formulae[]; .name == $formula and (.installed | length > 0))'
+          missing=$(brew missing "$formula" 2>&1)
+          missing_status=$?
+          [ "$missing_status" -eq 0 ] || [ -n "$missing" ]
+          [ -z "$missing" ]
+          brew linkage --test "$formula"
+          brew list --formula | LC_ALL=C sort -u > "$RUNNER_TEMP/php-darwin-formulae-after"
+          comm -13 "$RUNNER_TEMP/php-darwin-formulae-before" \
+            "$RUNNER_TEMP/php-darwin-formulae-after" > "$RUNNER_TEMP/php-darwin-formulae-new"
+          printf '%s\n' "$formula" >> "$RUNNER_TEMP/php-darwin-formulae-new"
+          LC_ALL=C sort -u "$RUNNER_TEMP/php-darwin-formulae-new" \
+            -o "$RUNNER_TEMP/php-darwin-formulae-new"
+          brew info --installed --json=v2 > "$RUNNER_TEMP/php-darwin-formula-info.json"
+          jq -e --rawfile installed "$RUNNER_TEMP/php-darwin-formulae-new" '
+            ($installed | split("\n") | map(select(length > 0))) as $installed |
+            all(.formulae[] | select(.name as $name | $installed | index($name));
+              .keg_only or (.linked_keg | type == "string" and length > 0))
+          ' "$RUNNER_TEMP/php-darwin-formula-info.json"
+          jq -e --arg formula "$formula" '
+            [.formulae[] |
+              select((.name | test("^php(@[0-9]+\\.[0-9]+)?(-debug)?(-zts)?$")) and
+                (.linked_keg | type == "string" and length > 0)) |
+              .name] == [$formula]
+          ' "$RUNNER_TEMP/php-darwin-formula-info.json"
+          (brew missing || true) | LC_ALL=C sort -u > "$RUNNER_TEMP/php-darwin-missing-after"
+          new_missing=$(comm -13 "$RUNNER_TEMP/php-darwin-missing-before" \
+            "$RUNNER_TEMP/php-darwin-missing-after")
+          [ -z "$new_missing" ]
+          brew config
+          brew cleanup --dry-run >/dev/null 2>&1
+          tap_path=$(brew --repository shivammathur/php)
+          [ -d "$tap_path/.git" ]
+          brew tap | grep -Fxq shivammathur/php
+          [ "$(git -C "$tap_path" remote get-url origin)" = \
+            https://github.com/shivammathur/homebrew-php ]
+          [ "$(git -C "$tap_path" symbolic-ref --short HEAD)" = main ]
+          [ "$(git -C "$tap_path" config branch.main.remote)" = origin ]
+          [ "$(git -C "$tap_path" config branch.main.merge)" = refs/heads/main ]
+          [ "$(< "$PHP_DARWIN_SENTINEL")" = preserve-existing-homebrew-state ]
+          [ "$(stat -f '%Lp' "$PHP_DARWIN_SENTINEL")" = 444 ]
+          "$(brew --prefix hello)/bin/hello" | grep -F 'Hello, world!'
+          brew unlink "$formula"
+          brew link --overwrite --force "$formula"
+          php -r "if (strpos(PHP_VERSION, '8.5.') !== 0) { exit(1); }"
+          brew uninstall --force hello
+          brew install hello
+          "$(brew --prefix hello)/bin/hello" | grep -F 'Hello, world!'
+          doctor_log="$RUNNER_TEMP/brew-doctor.log"
+          if ! brew doctor > "$doctor_log" 2>&1; then
+            if grep -Eq '^(Error:|.*broken)' "$doctor_log"; then
+              cat "$doctor_log"
+              exit 1
+            fi
+          fi
