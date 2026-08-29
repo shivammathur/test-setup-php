@@ -1,0 +1,39 @@
+name: php-darwin with preinstalled ARM64 runner state
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: PHP 8.0 on unmodified macos-14
+    runs-on: macos-14
+    timeout-minutes: 10
+    steps:
+      - name: Inspect Homebrew state
+        shell: bash
+        run: |
+          uname -m
+          sw_vers
+          brew --version
+          brew list --formula | grep -E '^php(@[0-9]+\.[0-9]+)?(-debug)?(-zts)?$' || true
+          brew tap-info --installed --json=v1 | jq -r '.[] | [.name, .installed, .trusted] | @tsv'
+
+      - name: Install PHP 8.0 cache with diagnostics
+        shell: bash
+        run: |
+          curl --retry 3 --retry-all-errors -fsSL \
+            https://github.com/shivammathur/php-darwin/releases/download/php-8.0/install.sh \
+            -o /tmp/php-darwin-install.sh
+          bash -e /tmp/php-darwin-install.sh 8.0 release nts
+
+      - name: Verify cached installation
+        shell: bash
+        run: |
+          php -v
+          brew list --versions php@8.0
+          brew missing php@8.0
+          brew linkage --test php@8.0
