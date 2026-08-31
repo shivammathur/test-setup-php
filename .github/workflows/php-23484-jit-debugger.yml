@@ -1,0 +1,484 @@
+name: PHP GH-23484 JIT debugger repro
+
+on:
+  push:
+    branches:
+      - test/php-23484-jit-debugger-20260831
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PHP_VERSION: 8.5.10
+  PHP_ZIP: php-8.5.10-nts-Win32-vs17-x64.zip
+  PHP_DEBUG_ZIP: php-debug-pack-8.5.10-nts-Win32-vs17-x64.zip
+
+jobs:
+  reproduce:
+    name: Windows 2022 / IIS / NTS x64 / tracing JIT
+    runs-on: windows-2022
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout reproducer
+        uses: actions/checkout@v6
+
+      - name: Set diagnostic paths
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 'php-23484'
+          "REPRO_ROOT=$root" >> $env:GITHUB_ENV
+          "PHP_DIR=$(Join-Path $root 'php')" >> $env:GITHUB_ENV
+          "SITE_DIR=$(Join-Path $root 'site')" >> $env:GITHUB_ENV
+          "DUMP_DIR=$(Join-Path $root 'diagnostics')" >> $env:GITHUB_ENV
+          "TOOL_DIR=$(Join-Path $root 'tools')" >> $env:GITHUB_ENV
+          "SOURCE_DIR=$(Join-Path $root 'php-src')" >> $env:GITHUB_ENV
+
+      - name: Install IIS FastCGI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $features = @(
+            'IIS-WebServerRole',
+            'IIS-WebServer',
+            'IIS-CommonHttpFeatures',
+            'IIS-StaticContent',
+            'IIS-DefaultDocument',
+            'IIS-ApplicationDevelopment',
+            'IIS-CGI'
+          )
+          foreach ($feature in $features) {
+            if ((Get-WindowsOptionalFeature -Online -FeatureName $feature).State -ne 'Enabled') {
+              Enable-WindowsOptionalFeature -Online -FeatureName $feature -All -NoRestart | Out-Null
+            }
+          }
+          Import-Module WebAdministration
+          Start-Service WAS -ErrorAction SilentlyContinue
+          Start-Service W3SVC -ErrorAction SilentlyContinue
+
+      - name: Download official PHP, symbols, source, and ProcDump
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path $env:REPRO_ROOT, $env:PHP_DIR, $env:SITE_DIR, $env:DUMP_DIR, $env:TOOL_DIR | Out-Null
+
+          $phpArchive = Join-Path $env:REPRO_ROOT $env:PHP_ZIP
+          $debugArchive = Join-Path $env:REPRO_ROOT $env:PHP_DEBUG_ZIP
+          $procDumpArchive = Join-Path $env:TOOL_DIR 'procdump.zip'
+          & curl.exe -fL --retry 5 --retry-all-errors -o $phpArchive "https://windows.php.net/downloads/releases/$env:PHP_ZIP"
+          & curl.exe -fL --retry 5 --retry-all-errors -o $debugArchive "https://windows.php.net/downloads/releases/$env:PHP_DEBUG_ZIP"
+          & curl.exe -fL --retry 5 --retry-all-errors -o $procDumpArchive 'https://download.sysinternals.com/files/Procdump.zip'
+          if ($LASTEXITCODE -ne 0) {
+            throw 'One or more diagnostic downloads failed.'
+          }
+
+          Expand-Archive -LiteralPath $phpArchive -DestinationPath $env:PHP_DIR -Force
+          Expand-Archive -LiteralPath $debugArchive -DestinationPath (Join-Path $env:DUMP_DIR 'symbols') -Force
+          Expand-Archive -LiteralPath $procDumpArchive -DestinationPath (Join-Path $env:TOOL_DIR 'procdump') -Force
+          git clone --depth 1 --branch "php-$env:PHP_VERSION" https://github.com/php/php-src.git $env:SOURCE_DIR
+
+          $phpExe = Join-Path $env:PHP_DIR 'php.exe'
+          $version = & $phpExe -n -r 'echo PHP_VERSION;'
+          $threadSafety = & $phpExe -n -r "echo PHP_ZTS ? 'ts' : 'nts';"
+          Write-Host "PHP version=$version thread_safety=$threadSafety"
+          if ($version -ne $env:PHP_VERSION -or $threadSafety -ne 'nts') {
+            throw "Expected PHP $env:PHP_VERSION NTS, got $version $threadSafety."
+          }
+
+      - name: Locate CDB and configure PHP
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $cdb = @(
+            (Get-Command cdb.exe -ErrorAction SilentlyContinue).Source,
+            "$(${env:ProgramFiles(x86)})\Windows Kits\10\Debuggers\x64\cdb.exe",
+            "$env:ProgramFiles\Windows Kits\10\Debuggers\x64\cdb.exe"
+          ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
+          if (-not $cdb) {
+            throw 'cdb.exe is required for the debugger trace but was not found.'
+          }
+          "CDB_PATH=$cdb" >> $env:GITHUB_ENV
+          Write-Host "CDB: $cdb"
+
+          $extensionDir = (Join-Path $env:PHP_DIR 'ext').Replace('\', '/')
+          $phpExe = Join-Path $env:PHP_DIR 'php.exe'
+          $modules = @(& $phpExe -n -m)
+          if ($modules -contains 'Zend OPcache') {
+            $opcacheLoader = '; Zend OPcache is built into PHP 8.5 on Windows'
+          } else {
+            $opcacheDll = @(
+              (Join-Path $env:PHP_DIR 'ext\php_opcache.dll'),
+              (Join-Path $env:PHP_DIR 'php_opcache.dll')
+            ) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+            if (-not $opcacheDll) {
+              throw 'Zend OPcache is neither built in nor available as php_opcache.dll.'
+            }
+            $opcachePath = $opcacheDll.Replace('\', '/')
+            $opcacheLoader = "zend_extension=`"$opcachePath`""
+          }
+          $errorLog = (Join-Path $env:DUMP_DIR 'php-errors.log').Replace('\', '/')
+          $ini = @"
+          [PHP]
+          extension_dir="$extensionDir"
+          $opcacheLoader
+          date.timezone=UTC
+          display_errors=1
+          display_startup_errors=1
+          html_errors=0
+          log_errors=1
+          error_log="$errorLog"
+          memory_limit=512M
+          max_execution_time=120
+          output_buffering=0
+          cgi.force_redirect=0
+          cgi.fix_pathinfo=1
+          fastcgi.impersonate=1
+          fastcgi.logging=0
+
+          [opcache]
+          opcache.enable=1
+          opcache.enable_cli=0
+          opcache.memory_consumption=512
+          opcache.interned_strings_buffer=32
+          opcache.max_accelerated_files=32531
+          opcache.validate_timestamps=0
+          opcache.file_update_protection=0
+          opcache.jit=tracing
+          opcache.jit_buffer_size=512M
+          opcache.jit_hot_loop=0
+          opcache.jit_hot_func=2
+          opcache.jit_hot_return=0
+          opcache.jit_hot_side_exit=1
+          opcache.jit_max_side_traces=64
+          opcache.jit_debug=28672
+          opcache.log_verbosity_level=4
+          "@
+          $ini.Trim() | Set-Content -LiteralPath (Join-Path $env:PHP_DIR 'php.ini') -Encoding ASCII
+
+          Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'repro\index.php') -Destination $env:SITE_DIR
+          Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'repro\gh21710.inc') -Destination $env:SITE_DIR
+          & icacls.exe $env:REPRO_ROOT '/grant' 'IIS_IUSRS:(OI)(CI)M' '/T' '/C' | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to grant the IIS worker access to the repro tree.'
+          }
+
+      - name: Configure IIS and arm full dump capture
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $siteName = 'Php23484'
+          $poolName = 'Php23484Pool'
+          $appCmd = Join-Path $env:windir 'System32\inetsrv\appcmd.exe'
+          $phpCgi = Join-Path $env:PHP_DIR 'php-cgi.exe'
+
+          & $appCmd add site "/name:$siteName" '/bindings:http/*:8085:' "/physicalPath:$env:SITE_DIR" | Out-Null
+          & $appCmd add apppool "/name:$poolName" | Out-Null
+          & $appCmd set apppool $poolName /processModel.maxProcesses:1 /failure.rapidFailProtection:false /recycling.periodicRestart.time:00:00:00 | Out-Null
+          & $appCmd set app "/app.name:$siteName/" "/applicationPool:$poolName" | Out-Null
+          & $appCmd set config $siteName -section:system.webServer/handlers /accessPolicy:Read,Script /commit:apphost | Out-Null
+          & $appCmd set config -section:system.webServer/fastCgi "/+[fullPath='$phpCgi',maxInstances='1',instanceMaxRequests='100000']" /commit:apphost | Out-Null
+          & $appCmd set config -section:system.webServer/fastCgi "/+[fullPath='$phpCgi'].environmentVariables.[name='PHPRC',value='$env:PHP_DIR']" /commit:apphost | Out-Null
+          & $appCmd set config -section:system.webServer/fastCgi "/+[fullPath='$phpCgi'].environmentVariables.[name='PHP_FCGI_MAX_REQUESTS',value='100000']" /commit:apphost | Out-Null
+          & $appCmd set config -section:system.webServer/fastCgi "/+[fullPath='$phpCgi'].environmentVariables.[name='USE_ZEND_ALLOC',value='0']" /commit:apphost | Out-Null
+          & $appCmd set config -section:system.webServer/fastCgi "/+[fullPath='$phpCgi'].environmentVariables.[name='call_user_func',value='call_user_func']" /commit:apphost | Out-Null
+          & $appCmd set config $siteName -section:system.webServer/handlers "/+[name='PHP-23484-FastCGI',path='*.php',verb='GET,HEAD,POST',modules='FastCgiModule',scriptProcessor='$phpCgi',resourceType='Either',requireAccess='Script']" /commit:apphost | Out-Null
+
+          $werKey = 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\php-cgi.exe'
+          New-Item -Path $werKey -Force | Out-Null
+          New-ItemProperty -Path $werKey -Name DumpFolder -Value $env:DUMP_DIR -PropertyType ExpandString -Force | Out-Null
+          New-ItemProperty -Path $werKey -Name DumpCount -Value 8 -PropertyType DWord -Force | Out-Null
+          New-ItemProperty -Path $werKey -Name DumpType -Value 2 -PropertyType DWord -Force | Out-Null
+
+          $procDump = Join-Path $env:TOOL_DIR 'procdump\procdump64.exe'
+          $stdout = Join-Path $env:DUMP_DIR 'procdump.stdout.log'
+          $stderr = Join-Path $env:DUMP_DIR 'procdump.stderr.log'
+          $listener = Start-Process -FilePath $procDump -ArgumentList @('-accepteula', '-ma', '-e', '1', '-w', 'php-cgi.exe', $env:DUMP_DIR) -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
+          "PROCDUMP_PID=$($listener.Id)" >> $env:GITHUB_ENV
+          Start-Sleep -Seconds 2
+          if ($listener.HasExited) {
+            Get-Content -LiteralPath $stdout -ErrorAction SilentlyContinue | Write-Host
+            Get-Content -LiteralPath $stderr -ErrorAction SilentlyContinue | Write-Host
+            throw "ProcDump listener exited before php-cgi.exe started (exit $($listener.ExitCode))."
+          }
+
+      - name: Reproduce stale JIT metadata across requests
+        id: repro
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $requestLog = Join-Path $env:DUMP_DIR 'requests.log'
+          $baseUrl = 'http://127.0.0.1:8085/index.php'
+          $crashed = $false
+
+          foreach ($request in 1..400) {
+            $value = if (($request % 2) -eq 1) { 0 } else { 1 }
+            $url = "${baseUrl}?request=$request&value=$value"
+            $body = Join-Path $env:DUMP_DIR "response-$request.txt"
+            $status = & curl.exe -sS --max-time 20 -o $body -w '%{http_code}' $url 2>&1
+            $statusText = $status -join ' '
+            $line = "request=$request value=$value status=$statusText workers=$(@(Get-Process php-cgi -ErrorAction SilentlyContinue).Id -join ',')"
+            $line | Tee-Object -FilePath $requestLog -Append | Write-Host
+
+            if ($statusText -match 'URL rejected|Bad hostname') {
+              throw "The request URL is invalid: $url ($statusText)"
+            }
+            if ($request -eq 1 -and (Test-Path -LiteralPath $body)) {
+              Get-Content -LiteralPath $body | Write-Host
+            }
+
+            $dumps = @(Get-ChildItem -LiteralPath $env:DUMP_DIR -Filter '*.dmp' -File -ErrorAction SilentlyContinue)
+            if ($dumps.Count -gt 0) {
+              $crashed = $true
+              Write-Host "Crash dump captured after request $request."
+              break
+            }
+            Start-Sleep -Milliseconds 40
+          }
+
+          Start-Sleep -Seconds 5
+          if (Test-Path env:PROCDUMP_PID) {
+            Stop-Process -Id ([int] $env:PROCDUMP_PID) -Force -ErrorAction SilentlyContinue
+          }
+          Get-Content -LiteralPath (Join-Path $env:DUMP_DIR 'procdump.stdout.log') -ErrorAction SilentlyContinue | Write-Host
+          Get-Content -LiteralPath (Join-Path $env:DUMP_DIR 'procdump.stderr.log') -ErrorAction SilentlyContinue | Write-Host
+
+          $dumpCount = @(Get-ChildItem -LiteralPath $env:DUMP_DIR -Filter '*.dmp' -File -ErrorAction SilentlyContinue).Count
+          if (-not $crashed -and $dumpCount -eq 0) {
+            Write-Host 'The minimal IIS workload stayed healthy; continuing with the independently verified Laravel workload.'
+          }
+
+      - name: Prepare stock Laravel fallback workload
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (@(Get-ChildItem -LiteralPath $env:DUMP_DIR -Filter '*.dmp' -File -ErrorAction SilentlyContinue).Count -gt 0) {
+            Write-Host 'A dump already exists from IIS; Laravel setup is unnecessary.'
+            exit 0
+          }
+
+          $phpExe = Join-Path $env:PHP_DIR 'php.exe'
+          $extensionDir = (Join-Path $env:PHP_DIR 'ext').Replace('\', '/')
+          $builtInModules = @(& $phpExe -n -m)
+          $extensionLines = New-Object System.Collections.Generic.List[string]
+          foreach ($extension in @('fileinfo', 'mbstring', 'openssl', 'pdo_sqlite', 'sqlite3')) {
+            if ($builtInModules -contains $extension) {
+              continue
+            }
+            $dll = Join-Path $env:PHP_DIR "ext\php_$extension.dll"
+            if (-not (Test-Path -LiteralPath $dll)) {
+              throw "Laravel requires $extension, but $dll is missing."
+            }
+            $extensionLines.Add("extension=$extension")
+          }
+
+          $commonIni = @"
+          [PHP]
+          extension_dir="$extensionDir"
+          date.timezone=UTC
+          memory_limit=-1
+          $($extensionLines -join "`n")
+          "@
+          $composerIni = Join-Path $env:PHP_DIR 'composer.ini'
+          $commonIni.Trim() | Set-Content -LiteralPath $composerIni -Encoding ASCII
+
+          $composer = Join-Path $env:TOOL_DIR 'composer.phar'
+          & curl.exe -fL --retry 5 --retry-all-errors -o $composer 'https://getcomposer.org/download/latest-stable/composer.phar'
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Composer download failed.'
+          }
+
+          $laravelDir = Join-Path $env:REPRO_ROOT 'laravel'
+          & $phpExe -c $composerIni $composer create-project 'laravel/laravel:^13.0' $laravelDir --no-interaction --prefer-dist --no-progress 2>&1 |
+            Tee-Object -FilePath (Join-Path $env:DUMP_DIR 'composer-create-project.log') | Write-Host
+          if ($LASTEXITCODE -ne 0) {
+            throw "composer create-project failed with exit code $LASTEXITCODE."
+          }
+          & $phpExe -c $composerIni $composer "--working-dir=$laravelDir" dump-autoload -o --no-interaction 2>&1 |
+            Tee-Object -FilePath (Join-Path $env:DUMP_DIR 'composer-dump-autoload.log') | Write-Host
+          if ($LASTEXITCODE -ne 0) {
+            throw "composer dump-autoload failed with exit code $LASTEXITCODE."
+          }
+
+          $laravelErrorLog = (Join-Path $env:DUMP_DIR 'laravel-php-errors.log').Replace('\', '/')
+          $laravelIni = @"
+          $($commonIni.Trim())
+          display_errors=1
+          display_startup_errors=1
+          html_errors=0
+          log_errors=1
+          error_log="$laravelErrorLog"
+
+          [opcache]
+          opcache.enable=1
+          opcache.enable_cli=1
+          opcache.memory_consumption=256
+          opcache.interned_strings_buffer=16
+          opcache.max_accelerated_files=20000
+          opcache.validate_timestamps=0
+          opcache.file_update_protection=0
+          opcache.jit=tracing
+          opcache.jit_buffer_size=64M
+          opcache.jit_debug=28672
+          "@
+          $laravelIniPath = Join-Path $env:PHP_DIR 'laravel.ini'
+          $laravelIni.Trim() | Set-Content -LiteralPath $laravelIniPath -Encoding ASCII
+
+          $modules = @(& $phpExe -c $laravelIniPath -m)
+          foreach ($required in @('fileinfo', 'mbstring', 'openssl', 'pdo_sqlite', 'sqlite3', 'Zend OPcache')) {
+            if ($modules -notcontains $required) {
+              throw "Required Laravel runtime module is not loaded: $required"
+            }
+          }
+          Copy-Item -LiteralPath (Join-Path $laravelDir 'composer.lock') -Destination (Join-Path $env:DUMP_DIR 'laravel-composer.lock')
+          "LARAVEL_DIR=$laravelDir" >> $env:GITHUB_ENV
+          "LARAVEL_INI=$laravelIniPath" >> $env:GITHUB_ENV
+
+      - name: Reproduce with Laravel under ProcDump
+        if: always()
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          if (@(Get-ChildItem -LiteralPath $env:DUMP_DIR -Filter '*.dmp' -File -ErrorAction SilentlyContinue).Count -gt 0) {
+            Write-Host 'Using the dump already captured by the IIS workload.'
+            exit 0
+          }
+          if (-not (Test-Path env:LARAVEL_DIR) -or -not (Test-Path -LiteralPath $env:LARAVEL_DIR)) {
+            throw 'Laravel workload was not prepared.'
+          }
+
+          $werKey = 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\php.exe'
+          New-Item -Path $werKey -Force | Out-Null
+          New-ItemProperty -Path $werKey -Name DumpFolder -Value $env:DUMP_DIR -PropertyType ExpandString -Force | Out-Null
+          New-ItemProperty -Path $werKey -Name DumpCount -Value 8 -PropertyType DWord -Force | Out-Null
+          New-ItemProperty -Path $werKey -Name DumpType -Value 2 -PropertyType DWord -Force | Out-Null
+
+          $procDump = Join-Path $env:TOOL_DIR 'procdump\procdump64.exe'
+          $procDumpOut = Join-Path $env:DUMP_DIR 'procdump-laravel.stdout.log'
+          $procDumpErr = Join-Path $env:DUMP_DIR 'procdump-laravel.stderr.log'
+          $listener = Start-Process -FilePath $procDump -ArgumentList @('-accepteula', '-ma', '-e', '1', '-w', 'php.exe', $env:DUMP_DIR) -RedirectStandardOutput $procDumpOut -RedirectStandardError $procDumpErr -PassThru
+          Start-Sleep -Seconds 2
+          if ($listener.HasExited) {
+            throw "Laravel ProcDump listener exited early with $($listener.ExitCode)."
+          }
+
+          $phpExe = Join-Path $env:PHP_DIR 'php.exe'
+          $publicDir = Join-Path $env:LARAVEL_DIR 'public'
+          $serverOut = Join-Path $env:DUMP_DIR 'laravel-server.stdout.log'
+          $serverErr = Join-Path $env:DUMP_DIR 'laravel-server.stderr.log'
+          $server = Start-Process -FilePath $phpExe -ArgumentList @('-c', $env:LARAVEL_INI, '-S', '127.0.0.1:8086', '-t', $publicDir) -WorkingDirectory $env:LARAVEL_DIR -RedirectStandardOutput $serverOut -RedirectStandardError $serverErr -PassThru
+          Write-Host "Laravel server pid=$($server.Id)"
+
+          $requestLog = Join-Path $env:DUMP_DIR 'laravel-requests.log'
+          $response = Join-Path $env:DUMP_DIR 'laravel-last-response.html'
+          foreach ($request in 1..150) {
+            $status = & curl.exe -sS --max-time 20 -o $response -w '%{http_code}' "http://127.0.0.1:8086/?request=$request" 2>&1
+            $statusText = $status -join ' '
+            "request=$request status=$statusText server_running=$(-not $server.HasExited)" | Tee-Object -FilePath $requestLog -Append | Write-Host
+
+            $dumps = @(Get-ChildItem -LiteralPath $env:DUMP_DIR -Filter '*.dmp' -File -ErrorAction SilentlyContinue)
+            if ($dumps.Count -gt 0) {
+              Write-Host "Laravel crash dump captured after request $request."
+              break
+            }
+            if ($server.HasExited) {
+              Write-Host "Laravel server exited with code $($server.ExitCode); waiting for dump finalization."
+              Start-Sleep -Seconds 5
+              break
+            }
+            Start-Sleep -Milliseconds 40
+          }
+
+          Start-Sleep -Seconds 5
+          Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
+          Stop-Process -Id $listener.Id -Force -ErrorAction SilentlyContinue
+          Get-Content -LiteralPath $serverErr -Tail 300 -ErrorAction SilentlyContinue | Write-Host
+          Get-Content -LiteralPath $procDumpOut -ErrorAction SilentlyContinue | Write-Host
+          Get-Content -LiteralPath $procDumpErr -ErrorAction SilentlyContinue | Write-Host
+
+          if (@(Get-ChildItem -LiteralPath $env:DUMP_DIR -Filter '*.dmp' -File -ErrorAction SilentlyContinue).Count -eq 0) {
+            throw 'Neither the minimal IIS workload nor stock Laravel reproduced the PHP 8.5.10 crash.'
+          }
+
+      - name: Generate complete CDB trace
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $dumps = @(Get-ChildItem -LiteralPath $env:DUMP_DIR -Filter '*.dmp' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime)
+          if ($dumps.Count -eq 0) {
+            Write-Host 'No dump is available for debugger analysis.'
+            exit 0
+          }
+
+          $symbolDirs = @(Get-ChildItem -LiteralPath (Join-Path $env:DUMP_DIR 'symbols') -Filter '*.pdb' -File -Recurse | Select-Object -ExpandProperty DirectoryName -Unique)
+          $symbolPath = (@($symbolDirs) + "srv*$(Join-Path $env:DUMP_DIR 'symcache')*https://msdl.microsoft.com/download/symbols") -join ';'
+          $sourcePath = $env:SOURCE_DIR
+          $commands = @(
+            '.lines -e',
+            '.reload /f',
+            'version',
+            'vertarget',
+            '.lastevent',
+            'lm',
+            'lmvm php8',
+            '!analyze -v',
+            '.exr -1',
+            '.ecxr',
+            'r',
+            'kvn 100',
+            'kp 100',
+            '~* kpn 100',
+            'dv /t /v',
+            'ub @rip L40',
+            'u @rip L80',
+            'dps @rsp L100',
+            '!address @rip',
+            '!gle',
+            'q'
+          ) -join '; '
+
+          foreach ($dump in $dumps) {
+            $trace = Join-Path $env:DUMP_DIR ($dump.BaseName + '.cdb.txt')
+            Write-Host "Analyzing $($dump.FullName)"
+            $output = & $env:CDB_PATH -z $dump.FullName -y $symbolPath -srcpath $sourcePath -c $commands 2>&1 | Out-String -Width 500
+            $output | Set-Content -LiteralPath $trace
+            $output | Write-Host
+          }
+
+      - name: Collect environment and event diagnostics
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $phpExe = Join-Path $env:PHP_DIR 'php.exe'
+          & $phpExe -c (Join-Path $env:PHP_DIR 'php.ini') -d opcache.enable_cli=1 -i 2>&1 | Set-Content -LiteralPath (Join-Path $env:DUMP_DIR 'phpinfo.txt')
+          & $phpExe -c (Join-Path $env:PHP_DIR 'php.ini') -d opcache.enable_cli=1 -r '$s = opcache_get_status(false); var_export($s["jit"] ?? null);' 2>&1 | Set-Content -LiteralPath (Join-Path $env:DUMP_DIR 'jit-status.txt')
+          Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = (Get-Date).AddHours(-1) } -ErrorAction SilentlyContinue |
+            Where-Object { $_.ProviderName -in @('Application Error', 'Windows Error Reporting') -and $_.Message -match 'php-cgi\.exe|php8\.dll' } |
+            Select-Object TimeCreated, ProviderName, Id, LevelDisplayName, Message |
+            Format-List | Out-String -Width 500 | Set-Content -LiteralPath (Join-Path $env:DUMP_DIR 'windows-events.txt')
+          Get-ChildItem -LiteralPath $env:DUMP_DIR -Recurse | Select-Object FullName, Length, LastWriteTime | Format-Table -AutoSize | Out-String -Width 500 | Write-Host
+
+      - name: Upload debugger diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: php-8.5.10-gh-23484-debugger-trace
+          path: ${{ env.DUMP_DIR }}/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Require a captured crash
+        if: always()
+        shell: pwsh
+        run: |
+          $dumps = @(Get-ChildItem -LiteralPath $env:DUMP_DIR -Filter '*.dmp' -File -ErrorAction SilentlyContinue)
+          $traces = @(Get-ChildItem -LiteralPath $env:DUMP_DIR -Filter '*.cdb.txt' -File -ErrorAction SilentlyContinue)
+          if ($dumps.Count -eq 0 -or $traces.Count -eq 0) {
+            throw "Expected at least one full dump and CDB trace; found dumps=$($dumps.Count), traces=$($traces.Count)."
+          }
+          Write-Host "Captured $($dumps.Count) full dump(s) and $($traces.Count) complete CDB trace(s)."
