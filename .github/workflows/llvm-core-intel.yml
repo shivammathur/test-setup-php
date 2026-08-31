@@ -1,0 +1,52 @@
+name: Test core-intel LLVM 23.1.0 bottle
+
+on:
+  push:
+    branches:
+      - test/core-intel-llvm-23.1.0
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  test:
+    name: Install and smoke-test LLVM on Sonoma Intel
+    runs-on: macos-14-x86_64
+    timeout-minutes: 30
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+    steps:
+      - name: Verify runner
+        run: |
+          test "$(uname -m)" = "x86_64"
+          test "$(sw_vers -productVersion | cut -d. -f1)" = "14"
+
+      - name: Tap core-intel at current main
+        run: |
+          brew tap shivammathur/core-intel
+          tap_dir="$(brew --repo shivammathur/core-intel)"
+          git -C "$tap_dir" fetch origin main
+          git -C "$tap_dir" checkout --detach origin/main
+
+      - name: Install LLVM from its Sonoma bottle
+        run: |
+          brew fetch --force --bottle-tag=sonoma shivammathur/core-intel/llvm
+          if brew list --versions shivammathur/core-intel/llvm >/dev/null 2>&1; then
+            brew reinstall --force-bottle shivammathur/core-intel/llvm
+          else
+            brew install --force-bottle shivammathur/core-intel/llvm
+          fi
+
+      - name: Verify bottle and toolchain
+        run: |
+          llvm_prefix="$(brew --prefix shivammathur/core-intel/llvm)"
+          test "$("$llvm_prefix/bin/llvm-config" --version)" = "23.1.0"
+          file "$llvm_prefix/bin/clang" | grep -q x86_64
+          brew info --json=v2 shivammathur/core-intel/llvm |
+            jq -e '.formulae[0].installed[-1].poured_from_bottle == true'
+
+          work_dir="$(mktemp -d)"
+          printf '#include <stdio.h>\nint main(void) { puts("LLVM bottle works"); return 0; }\n' > "$work_dir/test.c"
+          "$llvm_prefix/bin/clang" "$work_dir/test.c" -o "$work_dir/test"
+          test "$("$work_dir/test")" = "LLVM bottle works"
