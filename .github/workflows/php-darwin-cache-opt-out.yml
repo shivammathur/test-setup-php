@@ -1,0 +1,38 @@
+name: Test php-darwin cache opt-out
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-15-intel
+    steps:
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@main
+
+      - name: Remove PHP
+        run: brew uninstall --ignore-dependencies php || true
+
+      - name: Install PHP 8.6 build dependency
+        run: brew install --build-from-source re2c
+
+      - name: Set up PHP without the package cache
+        timeout-minutes: 30
+        uses: shivammathur/setup-php@develop
+        env:
+          debug: true
+          phpts: nts
+          update: true
+          use_package_cache: false
+        with:
+          php-version: '8.6'
+
+      - name: Verify Homebrew installation
+        run: |
+          php -r "if (strpos(PHP_VERSION, '8.6.') !== 0) { throw new Exception(PHP_VERSION); }"
+          brew list --versions php@8.6-debug
+          test ! -e '/usr/local/var/php-darwin/php_8.6-nts-debug+darwin_x86_64.json'
