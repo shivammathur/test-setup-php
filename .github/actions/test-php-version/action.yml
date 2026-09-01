@@ -1,0 +1,48 @@
+name: Test php-darwin through setup-php
+description: Install and validate one cached PHP version
+
+inputs:
+  php-version:
+    description: PHP minor version
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Clear PHP ${{ inputs.php-version }} fallback marker
+      shell: bash
+      run: sudo rm -f /tmp/update_dependencies
+
+    - name: Set up PHP ${{ inputs.php-version }}
+      uses: shivammathur/setup-php@develop
+      with:
+        php-version: ${{ inputs.php-version }}
+        extensions: none
+        coverage: none
+        tools: none
+      env:
+        fail-fast: true
+        update: true
+
+    - name: Validate PHP ${{ inputs.php-version }} cache and Homebrew
+      shell: bash
+      env:
+        PHP_VERSION: ${{ inputs.php-version }}
+      run: |
+        php -r 'exit(strpos(PHP_VERSION, getenv("PHP_VERSION") . ".") === 0 ? 0 : 1);'
+        formula="php@$PHP_VERSION"
+        [ "$PHP_VERSION" != 8.5 ] || formula=php
+        brew list --versions "$formula"
+        if missing=$(brew missing "$formula" 2>&1); then
+          missing_status=0
+        else
+          missing_status=$?
+        fi
+        [ "$missing_status" -eq 0 ] && [ -z "$missing" ] || {
+          printf 'brew missing exited %s for %s:\n%s\n' "$missing_status" "$formula" "$missing" >&2
+          exit 1
+        }
+        [ ! -e /tmp/update_dependencies ] || {
+          printf 'setup-php fell back to Homebrew for PHP %s\n' "$PHP_VERSION" >&2
+          exit 1
+        }

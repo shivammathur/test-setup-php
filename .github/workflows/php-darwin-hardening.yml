@@ -1,0 +1,113 @@
+name: Test hardened php-darwin installer
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HOMEBREW_DEVELOPER: 1
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_ENV_HINTS: 1
+  use_package_cache: true
+
+jobs:
+  install:
+    name: PHP 8.5 standalone installer on macOS 14
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - name: Fetch standalone installer
+        run: |
+          curl --retry 3 --retry-all-errors -fsSL \
+            'https://raw.githubusercontent.com/shivammathur/php-darwin/main/scripts/install.sh' \
+            -o "$RUNNER_TEMP/php-darwin-install.sh"
+          bash -n "$RUNNER_TEMP/php-darwin-install.sh"
+
+      - name: Record initial Homebrew tap trust
+        id: trust
+        run: |
+          trust_json=$(brew trust --json=v1)
+          trusted=$(jq -er '
+            if (.taps | type) != "array" then error("invalid taps")
+            elif (.taps | index("shivammathur/php")) != null then "true"
+            else "false" end
+          ' <<< "$trust_json")
+          printf 'before=%s\n' "$trusted" >> "$GITHUB_OUTPUT"
+
+      - name: Install PHP 8.5 from the release cache
+        run: bash "$RUNNER_TEMP/php-darwin-install.sh" 8.5 release nts
+
+      - name: Validate PHP, Homebrew, and preserved trust
+        env:
+          TAP_TRUST_BEFORE: ${{ steps.trust.outputs.before }}
+        run: |
+          php -r 'exit(strpos(PHP_VERSION, "8.5.") === 0 ? 0 : 1);'
+          brew list --versions php
+          if missing=$(brew missing php 2>&1); then
+            missing_status=0
+          else
+            missing_status=$?
+          fi
+          [ "$missing_status" -eq 0 ] && [ -z "$missing" ] || {
+            printf 'brew missing exited %s:\n%s\n' "$missing_status" "$missing" >&2
+            exit 1
+          }
+          trust_json=$(brew trust --json=v1)
+          tap_trust_after=$(jq -er '
+            if (.taps | type) != "array" then error("invalid taps")
+            elif (.taps | index("shivammathur/php")) != null then "true"
+            else "false" end
+          ' <<< "$trust_json")
+          [ "$tap_trust_after" = "$TAP_TRUST_BEFORE" ]
+
+  setup-php:
+    name: PHP 5.6-8.6 through setup-php develop
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.6'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '5.6'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '7.0'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '7.1'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '7.2'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '7.3'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '7.4'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.0'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.1'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.2'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.3'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.4'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.5'
