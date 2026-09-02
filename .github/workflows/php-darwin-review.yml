@@ -1,0 +1,29 @@
+name: Test php-darwin review fixes
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    runs-on: macos-14
+    timeout-minutes: 15
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_ENV_HINTS: 1
+    steps:
+      - name: Fetch standalone installer
+        run: curl --retry 3 --retry-all-errors -fsSL https://raw.githubusercontent.com/shivammathur/php-darwin/a44a3a9/scripts/install.sh -o install.sh
+
+      - name: Install PHP 8.5 cache
+        run: bash install.sh 8.5 release nts
+
+      - name: Validate PHP and Homebrew
+        run: |
+          test "$(php -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;')" = 8.5
+          brew list --versions php
+          brew missing php
+          brew formula shivammathur/php/php >/dev/null
+          brew info --installed --json=v2 php | jq -e 'any(.formulae[]; .name == "php" and (.installed | length > 0))' >/dev/null
