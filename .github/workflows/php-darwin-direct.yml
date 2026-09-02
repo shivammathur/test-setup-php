@@ -1,0 +1,117 @@
+name: Test php-darwin release installer
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HOMEBREW_DEVELOPER: 1
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_ENV_HINTS: 1
+
+jobs:
+  install:
+    name: PHP 8.5 release cache on macOS 14
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - name: Fetch standalone installer from the PHP 8.5 release
+        run: |
+          curl --retry 3 --retry-all-errors -fsSL \
+            'https://github.com/shivammathur/php-darwin/releases/download/php-8.5/install.sh' \
+            -o "$RUNNER_TEMP/php-darwin-install.sh"
+          bash -n "$RUNNER_TEMP/php-darwin-install.sh"
+
+      - name: Install PHP 8.5 from the release cache
+        run: |
+          start=$SECONDS
+          bash "$RUNNER_TEMP/php-darwin-install.sh" 8.5 release nts
+          printf 'php-darwin install completed in %ss\n' "$((SECONDS - start))"
+
+      - name: Validate cached PHP and Homebrew
+        run: |
+          php -n -r 'exit(strpos(PHP_VERSION, "8.5.") === 0 ? 0 : 1);'
+          brew list --versions php
+          if missing=$(brew missing shivammathur/php/php 2>&1); then
+            missing_status=0
+          else
+            missing_status=$?
+          fi
+          [ "$missing_status" -eq 0 ] && [ -z "$missing" ] || {
+            printf 'brew missing exited %s:\n%s\n' "$missing_status" "$missing" >&2
+            exit 1
+          }
+          brew unlink shivammathur/php/php
+          brew link --overwrite --force shivammathur/php/php
+          php -n -r 'exit(strpos(PHP_VERSION, "8.5.") === 0 ? 0 : 1);'
+
+      - name: Update and upgrade Homebrew
+        run: |
+          unset HOMEBREW_NO_AUTO_UPDATE
+          brew update
+          brew uninstall --force xcodes
+          brew upgrade
+          php -n -r 'exit(strpos(PHP_VERSION, "8.5.") === 0 ? 0 : 1);'
+          brew missing shivammathur/php/php
+
+  setup-php:
+    name: PHP 5.6-8.6 through setup-php develop
+    needs: install
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.6'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '5.6'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '7.0'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '7.1'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '7.2'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '7.3'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '7.4'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.0'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.1'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.2'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.3'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.4'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.5'
+
+      - name: Update and upgrade Homebrew after setup-php cache installs
+        run: |
+          unset HOMEBREW_NO_AUTO_UPDATE
+          brew update
+          brew uninstall --force xcodes
+          brew upgrade
+          php -n -r 'exit(strpos(PHP_VERSION, "8.5.") === 0 ? 0 : 1);'
+          brew missing shivammathur/php/php
