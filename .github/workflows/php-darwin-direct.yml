@@ -52,6 +52,7 @@ jobs:
         run: |
           unset HOMEBREW_NO_AUTO_UPDATE
           brew update
+          brew uninstall --force xcodes
           brew upgrade
           php -n -r 'exit(strpos(PHP_VERSION, "8.5.") === 0 ? 0 : 1);'
           brew missing shivammathur/php/php
