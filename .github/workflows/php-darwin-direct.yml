@@ -56,3 +56,62 @@ jobs:
           brew upgrade
           php -n -r 'exit(strpos(PHP_VERSION, "8.5.") === 0 ? 0 : 1);'
           brew missing shivammathur/php/php
+
+  setup-php:
+    name: PHP 5.6-8.6 through setup-php develop
+    needs: install
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.6'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '5.6'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '7.0'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '7.1'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '7.2'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '7.3'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '7.4'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.0'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.1'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.2'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.3'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.4'
+      - uses: ./.github/actions/test-php-version
+        with:
+          php-version: '8.5'
+
+      - name: Update and upgrade Homebrew after setup-php cache installs
+        run: |
+          unset HOMEBREW_NO_AUTO_UPDATE
+          brew update
+          brew uninstall --force xcodes
+          brew upgrade
+          php -n -r 'exit(strpos(PHP_VERSION, "8.5.") === 0 ? 0 : 1);'
+          brew missing shivammathur/php/php
