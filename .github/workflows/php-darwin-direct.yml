@@ -1,0 +1,57 @@
+name: Test php-darwin release installer
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  HOMEBREW_DEVELOPER: 1
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_ENV_HINTS: 1
+
+jobs:
+  install:
+    name: PHP 8.5 release cache on macOS 14
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - name: Fetch standalone installer from the PHP 8.5 release
+        run: |
+          curl --retry 3 --retry-all-errors -fsSL \
+            'https://github.com/shivammathur/php-darwin/releases/download/php-8.5/install.sh' \
+            -o "$RUNNER_TEMP/php-darwin-install.sh"
+          bash -n "$RUNNER_TEMP/php-darwin-install.sh"
+
+      - name: Install PHP 8.5 from the release cache
+        run: |
+          start=$SECONDS
+          bash "$RUNNER_TEMP/php-darwin-install.sh" 8.5 release nts
+          printf 'php-darwin install completed in %ss\n' "$((SECONDS - start))"
+
+      - name: Validate cached PHP and Homebrew
+        run: |
+          php -n -r 'exit(strpos(PHP_VERSION, "8.5.") === 0 ? 0 : 1);'
+          brew list --versions php
+          if missing=$(brew missing shivammathur/php/php 2>&1); then
+            missing_status=0
+          else
+            missing_status=$?
+          fi
+          [ "$missing_status" -eq 0 ] && [ -z "$missing" ] || {
+            printf 'brew missing exited %s:\n%s\n' "$missing_status" "$missing" >&2
+            exit 1
+          }
+          brew unlink shivammathur/php/php
+          brew link --overwrite --force shivammathur/php/php
+          php -n -r 'exit(strpos(PHP_VERSION, "8.5.") === 0 ? 0 : 1);'
+
+      - name: Update and upgrade Homebrew
+        run: |
+          unset HOMEBREW_NO_AUTO_UPDATE
+          brew update
+          brew upgrade
+          php -n -r 'exit(strpos(PHP_VERSION, "8.5.") === 0 ? 0 : 1);'
+          brew missing shivammathur/php/php
