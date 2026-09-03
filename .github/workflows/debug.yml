@@ -31,10 +31,13 @@ jobs:
         run: |
           set -ex
           sed -i '' '/"php-darwin"/s# >/dev/null 2>&1##' setup-php/src/scripts/darwin.sh
+          sed -i '' '/add_php /s# >/dev/null 2>&1##' setup-php/src/scripts/darwin.sh
           bash -x setup-php/src/scripts/darwin.sh 8.0 production
 
       - name: Confirm the php-darwin cache was used
-        run: test -f /opt/homebrew/var/php-darwin/php_8.0-nts-release+darwin_arm64.json
+        run: |
+          find /opt/homebrew/var/php-darwin -maxdepth 1 -type f -print 2>/dev/null || true
+          test -f /opt/homebrew/var/php-darwin/php_8.0-nts-release+darwin_arm64.json
 
       - name: Validate Homebrew after install
         run: |
