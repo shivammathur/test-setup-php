@@ -1,6 +1,9 @@
 name: Debug php-darwin PHP 8.0 fallback
 
 on:
+  push:
+    branches:
+      - test/php-darwin-8.0-fallback
   workflow_dispatch:
 
 permissions:
