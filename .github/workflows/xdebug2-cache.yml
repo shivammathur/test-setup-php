@@ -33,7 +33,7 @@ jobs:
           test "${cached_version%%.*}" = 3
 
       - name: Request Xdebug 2 from setup-php
-        uses: shivammathur/setup-php@fix/xdebug2-cached-version
+        uses: shivammathur/setup-php@develop
         with:
           php-version: '7.4'
           coverage: xdebug2
