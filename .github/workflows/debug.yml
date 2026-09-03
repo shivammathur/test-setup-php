@@ -1,0 +1,30 @@
+name: Debug php-darwin PHP 8.0 fallback
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    runs-on: macos-15
+    timeout-minutes: 15
+    env:
+      HOMEBREW_DEVELOPER: 1
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+      HOMEBREW_NO_INSTALL_FROM_API: 1
+    steps:
+      - name: Download release installer
+        run: curl --retry 3 -fsSL https://github.com/shivammathur/php-darwin/releases/download/php-8.0/install.sh -o /tmp/php-darwin-install.sh
+
+      - name: Install PHP 8.0 from cache with tracing
+        run: |
+          set -ex
+          bash -x /tmp/php-darwin-install.sh 8.0 release nts
+
+      - name: Validate Homebrew after install
+        run: |
+          brew update
+          brew upgrade
