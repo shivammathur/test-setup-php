@@ -1,0 +1,117 @@
+name: PHP 5 ARM64 validation
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php-version }} on arm64
+    runs-on: macos-15
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['5.3', '5.4', '5.5']
+    env:
+      PHP_VERSION: ${{ matrix.php-version }}
+    steps:
+      - name: Check isolated arm64 runner
+        run: |
+          test "$(uname -m)" = "arm64"
+          /usr/bin/arch -x86_64 /usr/bin/true
+          test ! -e /opt/local
+
+      - name: Setup PHP, extensions, and Composer
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: imagick, msgpack-0.5.7
+          tools: composer:2.2
+        env:
+          fail-fast: true
+
+      - name: Validate PHP and bundled extensions
+        run: |
+          test "$(uname -m)" = "arm64"
+          file -L "$(command -v php)" | grep -q x86_64
+          php --ini
+          php -v
+          modules="$(php -m 2>&1)"
+          printf '%s\n' "$modules"
+          if grep -Eq '^PHP (Warning|Startup|Deprecated|Notice)' <<< "$modules"; then
+            echo "PHP emitted a startup message" >&2
+            exit 1
+          fi
+          php -r "if (strpos(phpversion(), '$PHP_VERSION') !== 0) { throw new Exception('Wrong PHP version'); }"
+          sudo /opt/local/sbin/php-fpm"${PHP_VERSION/./}" -t
+          php -r '$image = imagecreatetruecolor(2, 2); if ($image === false) { throw new Exception("GD failed"); }'
+          php -r 'if (gmp_strval(gmp_add("2", "3")) !== "5") { throw new Exception("GMP failed"); }'
+          php -r '$db = new SQLite3(":memory:"); if ($db->querySingle("SELECT 2 + 3") !== 5) { throw new Exception("SQLite failed"); }'
+          php -r '$file = tempnam(sys_get_temp_dir(), "zip"); unlink($file); $zip = new ZipArchive(); if ($zip->open($file, ZipArchive::CREATE) !== true || !$zip->addFromString("test", "ok") || !$zip->close()) { throw new Exception("ZIP failed"); } unlink($file);'
+          php -r '$xml = new DOMDocument(); $xml->loadXML("<root/>"); $style = new DOMDocument(); $style->loadXML("<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"><xsl:template match=\"/\"><ok/></xsl:template></xsl:stylesheet>"); $xsl = new XSLTProcessor(); $xsl->importStylesheet($style); if (strpos($xsl->transformToXML($xml), "<ok/>") === false) { throw new Exception("XSL failed"); }'
+          php -r 'if (extension_loaded("yaml")) { $parsed = yaml_parse("key: value"); if ($parsed["key"] !== "value") { throw new Exception("YAML failed"); } }'
+
+      - name: Validate Imagick and PECL paths
+        run: |
+          extension_dir="$(php -r 'echo ini_get("extension_dir");')"
+          for extension in imagick msgpack; do
+            php -r "if (!extension_loaded('$extension')) { throw new Exception('$extension not loaded'); }"
+            test -f "$extension_dir/$extension.so"
+            file -L "$extension_dir/$extension.so" | grep -q x86_64
+          done
+          file -L /opt/local/bin/convert | grep -q x86_64
+          php -r '$formats = Imagick::queryFormats("HEI*"); if (!in_array("HEIC", $formats, true) && !in_array("HEIF", $formats, true)) { throw new Exception("HEIC/HEIF support not found"); }'
+          /opt/local/bin/convert -list format | grep -Eq '^[[:space:]]*HEI(C|F)'
+
+      - name: Validate Composer and HTTPS
+        env:
+          COMPOSER_HOME: ${{ runner.temp }}/composer
+        run: |
+          composer --version
+          composer_version="$(composer --version | sed -n 's/^Composer version \([^ ]*\).*/\1/p')"
+          [[ "$composer_version" == 2.2.* ]]
+          php -r '$curl = curl_init("https://repo.packagist.org/packages.json"); curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); $body = curl_exec($curl); if ($body === false || curl_getinfo($curl, CURLINFO_HTTP_CODE) !== 200) { throw new Exception(curl_error($curl)); }'
+          php -r 'if (file_get_contents("https://repo.packagist.org/packages.json") === false) { throw new Exception("HTTPS failed"); }'
+          mkdir -p "$RUNNER_TEMP/composer-project"
+          cd "$RUNNER_TEMP/composer-project"
+          composer require --no-interaction --no-progress psr/log:1.1.4
+          test -f vendor/psr/log/Psr/Log/LoggerInterface.php
+
+      - name: Audit x86_64 dependency closure
+        run: |
+          report="$RUNNER_TEMP/dependency-audit"
+          mkdir -p "$report"
+          : > "$report/dependencies.txt"
+          : > "$report/missing.txt"
+          : > "$report/wrong-architecture.txt"
+          for directory in /opt/local/bin /opt/local/sbin /opt/local/lib /opt/local/libexec; do
+            [[ -d "$directory" ]] || continue
+            find "$directory" -type f \( -perm -111 -o -name '*.dylib' -o -name '*.so' \) -print
+          done | sort -u | while IFS= read -r file_path; do
+            description="$(file "$file_path")"
+            [[ "$description" == *Mach-O* ]] || continue
+            if [[ "$description" != *x86_64* && "$description" != *universal* ]]; then
+              printf '%s\t%s\n' "$file_path" "$description" >> "$report/wrong-architecture.txt"
+            fi
+            otool -L "$file_path" 2>/dev/null | awk '/^[[:space:]]+\/opt\/local\// {print $1}' >> "$report/dependencies.txt"
+          done
+          sort -u -o "$report/dependencies.txt" "$report/dependencies.txt"
+          while IFS= read -r dependency; do
+            if [[ ! -e "$dependency" ]]; then
+              printf '%s\n' "$dependency" >> "$report/missing.txt"
+            elif ! file -L "$dependency" | grep -Eq 'x86_64|universal binary'; then
+              printf '%s\t%s\n' "$dependency" "$(file -L "$dependency")" >> "$report/wrong-architecture.txt"
+            fi
+          done < "$report/dependencies.txt"
+          test ! -s "$report/missing.txt"
+          test ! -s "$report/wrong-architecture.txt"
+          echo "Audited $(wc -l < "$report/dependencies.txt" | tr -d ' ') /opt/local dependencies"
+
+      - name: Upload dependency audit
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: php${{ matrix.php-version }}-arm64-dependency-audit
+          path: ${{ runner.temp }}/dependency-audit
+          if-no-files-found: error
