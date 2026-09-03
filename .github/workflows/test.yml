@@ -7,16 +7,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04]
-        php: [8.3]
+        operating-system: [macos-latest]
+        php: [5.3, 5.4, 5.5]
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          tools: phpstan:1, phpcs, phpcbf, phplint, cs2pr
+          extensions: geos
       - run: |
-          phplint -V
           php -v
           php -m
       
