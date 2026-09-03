@@ -1,4 +1,4 @@
-name: Debug php-darwin PHP 8.0 fallback
+name: Debug setup-php PHP 8.0 fallback
 
 on:
   push:
@@ -19,13 +19,22 @@ jobs:
       HOMEBREW_NO_INSTALL_CLEANUP: 1
       HOMEBREW_NO_INSTALL_FROM_API: 1
     steps:
-      - name: Download release installer
-        run: curl --retry 3 -fsSL https://github.com/shivammathur/php-darwin/releases/download/php-8.0/install.sh -o /tmp/php-darwin-install.sh
+      - name: Checkout setup-php develop
+        uses: actions/checkout@v4
+        with:
+          repository: shivammathur/setup-php
+          ref: develop
+          path: setup-php
+          persist-credentials: false
 
-      - name: Install PHP 8.0 from cache with tracing
+      - name: Run setup-php PHP installation with cache output
         run: |
           set -ex
-          bash -x /tmp/php-darwin-install.sh 8.0 release nts
+          sed -i '' '/"php-darwin"/s# >/dev/null 2>&1##' setup-php/src/scripts/darwin.sh
+          bash -x setup-php/src/scripts/darwin.sh 8.0 production
+
+      - name: Confirm the php-darwin cache was used
+        run: test -f /opt/homebrew/var/php-darwin/php_8.0-nts-release+darwin_arm64.json
 
       - name: Validate Homebrew after install
         run: |
