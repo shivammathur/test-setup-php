@@ -1,0 +1,45 @@
+name: Test cached Xdebug 2 fallback
+
+on:
+  push:
+    branches:
+      - test/xdebug2-cached-version-20260903
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  xdebug2:
+    name: Replace cached Xdebug 3 with Xdebug 2
+    runs-on: macos-latest
+    timeout-minutes: 30
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_ENV_HINTS: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+    steps:
+      - name: Install the PHP 7.4 cache
+        run: |
+          curl --retry 3 --retry-delay 1 --retry-all-errors -fsSL \
+            https://github.com/shivammathur/php-darwin/releases/download/php-7.4/install.sh | \
+            bash -s -- 7.4 release nts
+
+          extension_dir=$(php-config --extension-dir)
+          test -f "$extension_dir/xdebug.so"
+          php -r 'exit(extension_loaded("xdebug") ? 1 : 0);'
+          cached_version=$(php -n -d "zend_extension=$extension_dir/xdebug.so" \
+            -r 'echo phpversion("xdebug");')
+          test "${cached_version%%.*}" = 3
+
+      - name: Request Xdebug 2 from setup-php
+        uses: shivammathur/setup-php@fix/xdebug2-cached-version
+        with:
+          php-version: '7.4'
+          coverage: xdebug2
+
+      - name: Verify the requested Xdebug version
+        run: |
+          test "$(php -r 'echo phpversion("xdebug");')" = 2.9.8
+          brew list --versions xdebug2@7.4 | grep -Eq '^xdebug2@7\.4 2\.9\.8'
+          php -v
