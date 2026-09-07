@@ -7,15 +7,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-26]
-        php: [8.6]
+        operating-system: [ubuntu-latest]
+        include:
+          - php-version: 8.5
+            pie-version: latest
+          - php-version: 8.5
+            pie-version: 1.5.0-rc.2  
+          
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php }}
-          extensions: csv
+          tools: pie:${{ matrix.pie-version }}
       - run: |
+          sudo pie install symfony/deepclone
           php -v
           php -m
       
