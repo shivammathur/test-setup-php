@@ -3,23 +3,24 @@ on:
   push:
 jobs:
   runner:
-    runs-on: ${{ matrix.operating-system }}
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
+        php-version:
+          - 8.5
+          - 8.6
         include:
-          - operating-system: ubuntu-latest
-            php-version: 8.5
+          - php-version: 8.5
             pie-version: latest
-          - operating-system: ubuntu-latest
-            php-version: 8.6
+          - php-version: 8.6
             pie-version: 1.5.0-rc.2  
           
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@verbose
         with:
-          php-version: ${{ matrix.php }}
+          php-version: ${{ matrix.php-version }}
           tools: pie:${{ matrix.pie-version }}
       - run: |
           sudo pie install symfony/deepclone
