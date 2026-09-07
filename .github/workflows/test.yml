@@ -7,13 +7,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [macos-latest]
-        php: [7.0]
+        operating-system: [macos-26]
+        php: [8.3]
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
-          php-version: ${{ matrix.php }}
+          php-version: 8.3
           extensions: geos
       - run: |
           php -v
