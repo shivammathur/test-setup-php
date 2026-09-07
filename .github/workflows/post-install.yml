@@ -1,0 +1,110 @@
+name: PHP 7.0-8.5 rebuilt bottle validation
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: ${{ matrix.variant.formula }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15, macos-26]
+        variant:
+          - {"formula":"php-debug-zts","version":"8.5","full_version":"8.5.10","revision":"1","suffix":"-debug-zts","debug":"true","phpts":"zts","pear_directory":"pear","shared_extensions":""}
+          - {"formula":"php-debug","version":"8.5","full_version":"8.5.10","revision":"1","suffix":"-debug","debug":"true","phpts":"nts","pear_directory":"pear","shared_extensions":""}
+          - {"formula":"php-zts","version":"8.5","full_version":"8.5.10","revision":"1","suffix":"-zts","debug":"false","phpts":"zts","pear_directory":"pear","shared_extensions":""}
+          - {"formula":"php","version":"8.5","full_version":"8.5.10","revision":"1","suffix":"","debug":"false","phpts":"nts","pear_directory":"pear","shared_extensions":""}
+          - {"formula":"php@7.0-debug-zts","version":"7.0","full_version":"7.0.33","revision":"7","suffix":"-debug-zts","debug":"true","phpts":"zts","pear_directory":"pear@7.0-debug-zts","shared_extensions":"opcache"}
+          - {"formula":"php@7.0-debug","version":"7.0","full_version":"7.0.33","revision":"17","suffix":"-debug","debug":"true","phpts":"nts","pear_directory":"pear@7.0-debug","shared_extensions":"opcache"}
+          - {"formula":"php@7.0-zts","version":"7.0","full_version":"7.0.33","revision":"8","suffix":"-zts","debug":"false","phpts":"zts","pear_directory":"pear@7.0-zts","shared_extensions":"opcache"}
+          - {"formula":"php@7.0","version":"7.0","full_version":"7.0.33","revision":"18","suffix":"","debug":"false","phpts":"nts","pear_directory":"pear@7.0","shared_extensions":"opcache"}
+          - {"formula":"php@7.1-debug-zts","version":"7.1","full_version":"7.1.33","revision":"7","suffix":"-debug-zts","debug":"true","phpts":"zts","pear_directory":"pear@7.1-debug-zts","shared_extensions":"opcache"}
+          - {"formula":"php@7.1-debug","version":"7.1","full_version":"7.1.33","revision":"16","suffix":"-debug","debug":"true","phpts":"nts","pear_directory":"pear@7.1-debug","shared_extensions":"opcache"}
+          - {"formula":"php@7.1-zts","version":"7.1","full_version":"7.1.33","revision":"7","suffix":"-zts","debug":"false","phpts":"zts","pear_directory":"pear@7.1-zts","shared_extensions":"opcache"}
+          - {"formula":"php@7.1","version":"7.1","full_version":"7.1.33","revision":"16","suffix":"","debug":"false","phpts":"nts","pear_directory":"pear@7.1","shared_extensions":"opcache"}
+          - {"formula":"php@7.2-debug-zts","version":"7.2","full_version":"7.2.34","revision":"7","suffix":"-debug-zts","debug":"true","phpts":"zts","pear_directory":"pear@7.2-debug-zts","shared_extensions":"opcache"}
+          - {"formula":"php@7.2-debug","version":"7.2","full_version":"7.2.34","revision":"17","suffix":"-debug","debug":"true","phpts":"nts","pear_directory":"pear@7.2-debug","shared_extensions":"opcache"}
+          - {"formula":"php@7.2-zts","version":"7.2","full_version":"7.2.34","revision":"7","suffix":"-zts","debug":"false","phpts":"zts","pear_directory":"pear@7.2-zts","shared_extensions":"opcache"}
+          - {"formula":"php@7.2","version":"7.2","full_version":"7.2.34","revision":"17","suffix":"","debug":"false","phpts":"nts","pear_directory":"pear@7.2","shared_extensions":"opcache"}
+          - {"formula":"php@7.3-debug-zts","version":"7.3","full_version":"7.3.33","revision":"7","suffix":"-debug-zts","debug":"true","phpts":"zts","pear_directory":"pear@7.3-debug-zts","shared_extensions":"opcache"}
+          - {"formula":"php@7.3-debug","version":"7.3","full_version":"7.3.33","revision":"15","suffix":"-debug","debug":"true","phpts":"nts","pear_directory":"pear@7.3-debug","shared_extensions":"opcache"}
+          - {"formula":"php@7.3-zts","version":"7.3","full_version":"7.3.33","revision":"7","suffix":"-zts","debug":"false","phpts":"zts","pear_directory":"pear@7.3-zts","shared_extensions":"opcache"}
+          - {"formula":"php@7.3","version":"7.3","full_version":"7.3.33","revision":"15","suffix":"","debug":"false","phpts":"nts","pear_directory":"pear@7.3","shared_extensions":"opcache"}
+          - {"formula":"php@7.4-debug-zts","version":"7.4","full_version":"7.4.33","revision":"7","suffix":"-debug-zts","debug":"true","phpts":"zts","pear_directory":"pear@7.4-debug-zts","shared_extensions":"opcache"}
+          - {"formula":"php@7.4-debug","version":"7.4","full_version":"7.4.33","revision":"15","suffix":"-debug","debug":"true","phpts":"nts","pear_directory":"pear@7.4-debug","shared_extensions":"opcache"}
+          - {"formula":"php@7.4-zts","version":"7.4","full_version":"7.4.33","revision":"7","suffix":"-zts","debug":"false","phpts":"zts","pear_directory":"pear@7.4-zts","shared_extensions":"opcache"}
+          - {"formula":"php@7.4","version":"7.4","full_version":"7.4.33","revision":"14","suffix":"","debug":"false","phpts":"nts","pear_directory":"pear@7.4","shared_extensions":"opcache"}
+          - {"formula":"php@8.0-debug-zts","version":"8.0","full_version":"8.0.30","revision":"8","suffix":"-debug-zts","debug":"true","phpts":"zts","pear_directory":"pear@8.0-debug-zts","shared_extensions":"opcache"}
+          - {"formula":"php@8.0-debug","version":"8.0","full_version":"8.0.30","revision":"11","suffix":"-debug","debug":"true","phpts":"nts","pear_directory":"pear@8.0-debug","shared_extensions":"opcache"}
+          - {"formula":"php@8.0-zts","version":"8.0","full_version":"8.0.30","revision":"8","suffix":"-zts","debug":"false","phpts":"zts","pear_directory":"pear@8.0-zts","shared_extensions":"opcache"}
+          - {"formula":"php@8.0","version":"8.0","full_version":"8.0.30","revision":"11","suffix":"","debug":"false","phpts":"nts","pear_directory":"pear@8.0","shared_extensions":"opcache"}
+          - {"formula":"php@8.1-debug-zts","version":"8.1","full_version":"8.1.34","revision":"2","suffix":"-debug-zts","debug":"true","phpts":"zts","pear_directory":"pear@8.1-debug-zts","shared_extensions":"opcache"}
+          - {"formula":"php@8.1-debug","version":"8.1","full_version":"8.1.34","revision":"2","suffix":"-debug","debug":"true","phpts":"nts","pear_directory":"pear@8.1-debug","shared_extensions":"opcache"}
+          - {"formula":"php@8.1-zts","version":"8.1","full_version":"8.1.34","revision":"2","suffix":"-zts","debug":"false","phpts":"zts","pear_directory":"pear@8.1-zts","shared_extensions":"opcache"}
+          - {"formula":"php@8.1","version":"8.1","full_version":"8.1.34","revision":"2","suffix":"","debug":"false","phpts":"nts","pear_directory":"pear@8.1","shared_extensions":"opcache"}
+          - {"formula":"php@8.2-debug-zts","version":"8.2","full_version":"8.2.33","revision":"1","suffix":"-debug-zts","debug":"true","phpts":"zts","pear_directory":"pear@8.2-debug-zts","shared_extensions":"opcache"}
+          - {"formula":"php@8.2-debug","version":"8.2","full_version":"8.2.33","revision":"1","suffix":"-debug","debug":"true","phpts":"nts","pear_directory":"pear@8.2-debug","shared_extensions":"opcache"}
+          - {"formula":"php@8.2-zts","version":"8.2","full_version":"8.2.33","revision":"1","suffix":"-zts","debug":"false","phpts":"zts","pear_directory":"pear@8.2-zts","shared_extensions":"opcache"}
+          - {"formula":"php@8.2","version":"8.2","full_version":"8.2.33","revision":"1","suffix":"","debug":"false","phpts":"nts","pear_directory":"pear@8.2","shared_extensions":"opcache"}
+          - {"formula":"php@8.3-debug-zts","version":"8.3","full_version":"8.3.33","revision":"1","suffix":"-debug-zts","debug":"true","phpts":"zts","pear_directory":"pear@8.3-debug-zts","shared_extensions":"opcache"}
+          - {"formula":"php@8.3-debug","version":"8.3","full_version":"8.3.33","revision":"1","suffix":"-debug","debug":"true","phpts":"nts","pear_directory":"pear@8.3-debug","shared_extensions":"opcache"}
+          - {"formula":"php@8.3-zts","version":"8.3","full_version":"8.3.33","revision":"1","suffix":"-zts","debug":"false","phpts":"zts","pear_directory":"pear@8.3-zts","shared_extensions":"opcache"}
+          - {"formula":"php@8.3","version":"8.3","full_version":"8.3.33","revision":"1","suffix":"","debug":"false","phpts":"nts","pear_directory":"pear@8.3","shared_extensions":"opcache"}
+          - {"formula":"php@8.4-debug-zts","version":"8.4","full_version":"8.4.25","revision":"1","suffix":"-debug-zts","debug":"true","phpts":"zts","pear_directory":"pear@8.4-debug-zts","shared_extensions":"opcache"}
+          - {"formula":"php@8.4-debug","version":"8.4","full_version":"8.4.25","revision":"1","suffix":"-debug","debug":"true","phpts":"nts","pear_directory":"pear@8.4-debug","shared_extensions":"opcache"}
+          - {"formula":"php@8.4-zts","version":"8.4","full_version":"8.4.25","revision":"1","suffix":"-zts","debug":"false","phpts":"zts","pear_directory":"pear@8.4-zts","shared_extensions":"opcache"}
+          - {"formula":"php@8.4","version":"8.4","full_version":"8.4.25","revision":"1","suffix":"","debug":"false","phpts":"nts","pear_directory":"pear@8.4","shared_extensions":"opcache"}
+    env:
+      PHP_FORMULA: ${{ matrix.variant.formula }}
+      PHP_VERSION: ${{ matrix.variant.version }}
+      PHP_FULL_VERSION: ${{ matrix.variant.full_version }}
+      PHP_REVISION: ${{ matrix.variant.revision }}
+      PHP_SUFFIX: ${{ matrix.variant.suffix }}
+      PHP_EXPECT_DEBUG: ${{ matrix.variant.debug }}
+      PHP_EXPECT_ZTS: ${{ matrix.variant.phpts }}
+      PHP_PEAR_DIRECTORY: ${{ matrix.variant.pear_directory }}
+      PHP_SHARED_EXTENSIONS: ${{ matrix.variant.shared_extensions }}
+      EXPECTED_TAP_COMMIT: 92592eeae09505d0a09b4db763f62e67bd153422
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_FROM_API: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Ensure a fresh bottle installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          if brew list --formula --versions "$PHP_FORMULA"; then
+            brew uninstall --force "$PHP_FORMULA"
+          fi
+
+      - name: Install PHP through setup-php verbose
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: ${{ matrix.variant.version }}
+          coverage: none
+          tools: none
+        env:
+          debug: ${{ matrix.variant.debug }}
+          phpts: ${{ matrix.variant.phpts }}
+          update: 'true'
+          fail-fast: 'true'
+
+      - name: Verify bottle, post-install configuration, and channels
+        shell: bash
+        run: bash tests/post-install.sh
+
+      - name: Preserve validation evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ matrix.variant.formula }}-${{ matrix.os }}-validation
+          path: validation-logs/
+          if-no-files-found: warn
