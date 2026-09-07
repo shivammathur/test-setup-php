@@ -1,0 +1,83 @@
+name: PHP 5.6 rebuilt bottle validation
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: ${{ matrix.variant.formula }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15-arm64, macos-26]
+        variant:
+          - formula: php@5.6
+            revision: '16'
+            suffix: ''
+            debug: 'false'
+            phpts: nts
+          - formula: php@5.6-debug
+            revision: '16'
+            suffix: '-debug'
+            debug: 'true'
+            phpts: nts
+          - formula: php@5.6-zts
+            revision: '8'
+            suffix: '-zts'
+            debug: 'false'
+            phpts: zts
+          - formula: php@5.6-debug-zts
+            revision: '7'
+            suffix: '-debug-zts'
+            debug: 'true'
+            phpts: zts
+    env:
+      PHP_FORMULA: ${{ matrix.variant.formula }}
+      PHP_REVISION: ${{ matrix.variant.revision }}
+      PHP_SUFFIX: ${{ matrix.variant.suffix }}
+      PHP_EXPECT_DEBUG: ${{ matrix.variant.debug }}
+      PHP_EXPECT_ZTS: ${{ matrix.variant.phpts }}
+      EXPECTED_TAP_COMMIT: de9dbf4bb4d4caa30e0cd08f4fce5945740aab32
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_FROM_API: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Ensure a fresh bottle installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_TAP_COMMIT" != REPLACE_AFTER_PUBLICATION
+          if brew list --formula --versions "$PHP_FORMULA"; then
+            brew uninstall --force "$PHP_FORMULA"
+          fi
+
+      - name: Install PHP through setup-php verbose
+        uses: shivammathur/setup-php@verbose
+        with:
+          php-version: '5.6'
+          coverage: none
+          tools: none
+        env:
+          debug: ${{ matrix.variant.debug }}
+          phpts: ${{ matrix.variant.phpts }}
+          update: 'true'
+          fail-fast: 'true'
+
+      - name: Verify bottle, post-install configuration, and channels
+        shell: bash
+        run: bash tests/php56-post-install.sh
+
+      - name: Preserve validation evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ matrix.variant.formula }}-${{ matrix.os }}-validation
+          path: validation-logs/
+          if-no-files-found: warn
