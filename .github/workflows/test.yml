@@ -7,11 +7,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
         include:
-          - php-version: 8.5
+          - operating-system: ubuntu-latest
+            php-version: 8.5
             pie-version: latest
-          - php-version: 8.6
+          - operating-system: ubuntu-latest
+            php-version: 8.6
             pie-version: 1.5.0-rc.2  
           
     steps:
