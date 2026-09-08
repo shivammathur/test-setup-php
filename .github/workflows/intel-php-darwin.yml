@@ -18,8 +18,12 @@ jobs:
     runs-on: macos-15-intel
     timeout-minutes: 60
     steps:
-      - name: Remove unused runner taps
+      - name: Remove preinstalled PHP and unused runner taps
         run: |
+          for formula in php php@8.5; do
+            brew list --formula "$formula" >/dev/null 2>&1 || continue
+            brew uninstall --force --ignore-dependencies "$formula"
+          done
           taps=$(brew tap | grep -Ev '^homebrew/core$' || true)
           [ -z "$taps" ] || brew untap --force $taps
 
