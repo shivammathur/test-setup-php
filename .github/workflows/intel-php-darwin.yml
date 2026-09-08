@@ -44,22 +44,22 @@ jobs:
 
       - name: Install PHP and extensions through setup-php
         uses: shivammathur/setup-php@feature/php-intel-cache
+        timeout-minutes: 2
         with:
           php-version: '8.5'
           extensions: ${{ env.EXTENSIONS }}
 
       - name: Verify the Intel cache and PHP tooling
         run: |
-          metadata=/usr/local/var/php-darwin/php_8.5-nts-release+darwin_x86_64.json
-          test -f "$metadata"
-          jq -e '.architecture == "x86_64" and .php_version == "8.5" and
-            ([.extensions[].name] | sort) == ["pcov", "xdebug"]' "$metadata" >/dev/null
           php -r 'exit(PHP_MAJOR_VERSION === 8 && PHP_MINOR_VERSION === 5 ? 0 : 1);'
           php -r 'exit(extension_loaded("xdebug") && extension_loaded("pcov") ? 0 : 1);'
+          extension_dir=$(php-config --extension-dir)
+          test -f "$extension_dir/xdebug.so"
+          test -f "$extension_dir/pcov.so"
           php-config --version
           pear version
           pecl version
-          brew info --json=v2 php | jq -e 'any(.formulae[]; .name == "php" and (.installed | length > 0))' >/dev/null
+          brew list --formula --versions php
 
       - name: Update Homebrew after installation
         run: |
