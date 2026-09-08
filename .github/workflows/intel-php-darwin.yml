@@ -1,0 +1,88 @@
+name: Test Intel php-darwin cache
+
+on:
+  workflow_dispatch:
+  push:
+
+permissions:
+  contents: read
+
+env:
+  EXTENSIONS: xdebug, pcov
+  HOMEBREW_DEVELOPER: '1'
+  use_package_cache: 'true'
+
+jobs:
+  setup-php:
+    name: Install PHP 8.5 on macOS 15 Intel
+    runs-on: macos-15-intel
+    timeout-minutes: 15
+    steps:
+      - name: Remove preinstalled PHP and unused runner taps
+        run: |
+          php_formulae=()
+          while IFS= read -r formula; do
+            [[ "$formula" =~ ^php(@[0-9]+\.[0-9]+)?(-debug)?(-zts)?$ ]] && php_formulae+=("$formula")
+          done < <(brew list --formula)
+          [ "${#php_formulae[@]}" -eq 0 ] || brew uninstall --force --ignore-dependencies "${php_formulae[@]}"
+          brew tap | grep -Ev '^homebrew/core$' | while IFS= read -r tap_name; do
+            brew untap --force "$tap_name"
+          done || true
+          date +%s > "${RUNNER_TEMP:?}/php-darwin-started-at.txt"
+
+      - name: Configure the extension cache
+        id: cache-env
+        uses: shivammathur/cache-extensions@de3c642a5fce0ef91581a1c9831e229f525196d6 # v1
+        with:
+          php-version: '8.5'
+          extensions: ${{ env.EXTENSIONS }}
+          key: php-darwin-intel-production-v1
+
+      - name: Restore cached extensions
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
+        with:
+          path: ${{ steps.cache-env.outputs.dir }}
+          key: ${{ steps.cache-env.outputs.key }}
+          restore-keys: ${{ steps.cache-env.outputs.key }}
+
+      - name: Install PHP and extensions through setup-php
+        uses: shivammathur/setup-php@develop
+        timeout-minutes: 2
+        with:
+          php-version: '8.5'
+          extensions: ${{ env.EXTENSIONS }}
+
+      - name: Verify the Intel cache and PHP tooling
+        run: |
+          php -r 'exit(PHP_MAJOR_VERSION === 8 && PHP_MINOR_VERSION === 5 ? 0 : 1);'
+          php -r 'exit(extension_loaded("xdebug") && extension_loaded("pcov") ? 0 : 1);'
+          extension_dir=$(php-config --extension-dir)
+          test -f "$extension_dir/xdebug.so"
+          test -f "$extension_dir/pcov.so"
+          php-config --version
+          pear version
+          pecl version
+          pecl config-get php_ini
+          brew list --formula --versions php
+          tap_path=$(brew --repository shivammathur/php)
+          snapshot_commit=$(git -C "$tap_path" config --get php-darwin.snapshot-commit)
+          test "$snapshot_commit" = "$(git -C "$tap_path" rev-parse HEAD)"
+          manifest=$(curl -fsSL https://github.com/shivammathur/php-darwin/releases/download/php-8.5/php-8.5-manifest.json)
+          test "$snapshot_commit" = "$(jq -r '.homebrew_php_commit' <<< "$manifest")"
+          brew info --installed --json=v2 > "${RUNNER_TEMP:?}/php-darwin-installed.json"
+          jq -e --argjson started_at "$(cat "${RUNNER_TEMP:?}/php-darwin-started-at.txt")" '
+            all(.formulae[].installed[] | select((.time // 0) >= $started_at);
+              .poured_from_bottle == true)
+          ' "${RUNNER_TEMP:?}/php-darwin-installed.json" >/dev/null
+          pecl list > "${RUNNER_TEMP:?}/php-darwin-pecl-packages.txt"
+          if awk 'tolower($1) == "xdebug" || tolower($1) == "pcov" { found=1 } END { exit !found }' \
+            "${RUNNER_TEMP:?}/php-darwin-pecl-packages.txt"; then
+            echo 'setup-php rebuilt a cached extension with PECL' >&2
+            exit 1
+          fi
+
+      - name: Update Homebrew after installation
+        run: |
+          brew update
+          php -r 'exit(PHP_MAJOR_VERSION === 8 && PHP_MINOR_VERSION === 5 ? 0 : 1);'
+          brew config >/dev/null
