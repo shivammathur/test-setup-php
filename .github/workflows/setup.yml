@@ -1,5 +1,5 @@
 name: Verify macOS cache through setup-php
-on: workflow_dispatch
+on: [push, workflow_dispatch]
 permissions:
   contents: read
 env:
