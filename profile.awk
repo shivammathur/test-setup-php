@@ -4,4 +4,4 @@
 /^filter_status=\$\?$/ { print "printf 'EXTRACT listed\\n' >&2" }
 /^extract_status=\$\?$/ { print "printf 'EXTRACT unpacked\\n' >&2" }
 /^done < "\$archive_members"$/ { print "printf 'EXTRACT permissions ready\\n' >&2" }
-/^php_darwin_install_cleanup\(\) \{$/ { print "  printf 'PHASE cleanup\\n' >&2" }
+/^  cleanup_status=\$\?$/ { print "  printf 'PHASE cleanup\\n' >&2" }
