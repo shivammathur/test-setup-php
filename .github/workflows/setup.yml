@@ -1,0 +1,71 @@
+name: Verify macOS cache through setup-php
+on: workflow_dispatch
+permissions:
+  contents: read
+env:
+  HOMEBREW_NO_AUTO_UPDATE: '1'
+  PHP_VERSION: '8.3'
+  use_package_cache: 'true'
+jobs:
+  setup:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    env:
+      PHP_DARWIN_REQUIRE_CACHE: 'true'
+      PHP_DARWIN_REQUIRE_XDEBUG: 'true'
+      PHP_DARWIN_REQUIRE_PCOV: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-darwin
+          ref: fix/macos-cache-runtime
+      - run: bash scripts/cleanup-taps.sh
+      - run: bash scripts/prepare-e2e.sh
+      - uses: shivammathur/cache-extensions@v1
+        id: extensions
+        with:
+          php-version: '8.3'
+          extensions: xdebug, pcov
+          key: cache-runtime
+      - uses: actions/cache@v5
+        with:
+          path: ${{ steps.extensions.outputs.dir }}
+          key: ${{ steps.extensions.outputs.key }}
+      - uses: shivammathur/setup-php@fix/macos-cache-runtime
+        with:
+          php-version: '8.3'
+          extensions: xdebug, pcov
+          tools: none
+      - run: bash scripts/test-setup-php.sh
+      - run: brew update
+  cache-failure:
+    runs-on: macos-15-intel
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start a cache service outage and save Homebrew state
+        run: bash start-outage.sh
+      - uses: shivammathur/setup-php@fix/macos-cache-runtime
+        id: php
+        continue-on-error: true
+        with:
+          php-version: '8.3'
+          tools: none
+      - name: Verify bounded retries, hard failure, and rollback
+        env:
+          INSTALL_OUTCOME: ${{ steps.php.outcome }}
+        run: |
+          test "$INSTALL_OUTCOME" = failure
+          test "$(cat "$RUNNER_TEMP/cache-request-count")" = 3
+          test ! -e /tmp/update_dependencies
+          brew list --versions > "$RUNNER_TEMP/brew-after"
+          diff -u "$RUNNER_TEMP/brew-before" "$RUNNER_TEMP/brew-after"
+          brew trust --json=v1 | jq -S . > "$RUNNER_TEMP/trust-after"
+          diff -u "$RUNNER_TEMP/trust-before" "$RUNNER_TEMP/trust-after"
+          php -n -r 'echo PHP_VERSION;' > "$RUNNER_TEMP/php-after" || true
+          diff -u "$RUNNER_TEMP/php-before" "$RUNNER_TEMP/php-after"
+          echo 'Three failed cache requests; setup-php failed without Homebrew fallback; original PHP restored'
