@@ -1,0 +1,26 @@
+name: macOS cache runtime
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  profile:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch the published PHP 8.3 installer
+        run: curl -fsSL https://github.com/shivammathur/php-darwin/releases/download/php-8.3/install.sh -o original.sh
+      - name: Instrument installer phases
+        run: awk -f profile.awk original.sh > install.sh
+      - name: Install PHP with phase logs
+        run: time bash install.sh 8.3 release nts
+      - name: Check runtime and Homebrew
+        run: |
+          php -v
+          php -m
+          brew missing shivammathur/php/php@8.3
+          pecl config-show
