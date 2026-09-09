@@ -3,10 +3,11 @@ on:
   push:
 jobs:
   runner:
-    runs-on: macos-15-intel
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [macos-latest, macos-15-intel]
         php-version:
           - 8.2
           - 8.3
