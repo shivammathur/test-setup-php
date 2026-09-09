@@ -1,0 +1,101 @@
+name: Verify lean Homebrew cache archives
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+env:
+  PHP_VERSION: '8.3'
+  HOMEBREW_DEVELOPER: '1'
+  HOMEBREW_NO_AUTO_UPDATE: '1'
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        run: |
+          value=$(jq -c '{include:[.assets[] | select(.build=="release" and .thread_safety=="nts") |
+            . + {runner:(if .architecture=="arm64" then "macos-15" else "macos-15-intel" end)}]}' source-manifest.json)
+          echo "value=$value" >> "$GITHUB_OUTPUT"
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-darwin
+          ref: cc4a2021a736c6766dd101d32fec125295135729
+      - run: bash scripts/validate.sh
+  repack:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      SOURCE_ASSET: ${{ matrix.download }}
+      SOURCE_SHA256: ${{ matrix.sha256 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-darwin
+          ref: cc4a2021a736c6766dd101d32fec125295135729
+      - name: Fetch the existing release archive
+        run: curl -fSL --retry 2 "https://github.com/shivammathur/php-darwin/releases/download/php-$PHP_VERSION/$SOURCE_ASSET" -o "$RUNNER_TEMP/source.tar.zst"
+      - name: Repack and verify every retained file without building anything
+        run: bash scripts/repack.sh "$RUNNER_TEMP/source.tar.zst" "$SOURCE_SHA256" "$RUNNER_TEMP/repacked"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: repacked-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/repacked
+          compression-level: 0
+          overwrite: true
+  homebrew:
+    needs: [plan, validate, repack]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      ARCH: ${{ matrix.architecture }}
+      BUILD: release
+      TS: nts
+      ARCHIVE_DIR: ${{ github.workspace }}/repacked
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-darwin
+          ref: cc4a2021a736c6766dd101d32fec125295135729
+      - uses: actions/download-artifact@v4
+        with:
+          name: repacked-${{ matrix.architecture }}
+          path: repacked
+      - run: bash scripts/cleanup-taps.sh
+      - name: Prepare Homebrew preservation fixtures
+        run: |
+          echo "TEST_STARTED_AT=$(date +%s)" >> "$GITHUB_ENV"
+          bash scripts/test-install.sh prepare
+      - name: Install the repacked archive
+        run: time bash scripts/test-install.sh install
+      - name: Validate runtime and PEAR preservation
+        run: bash scripts/test-install.sh runtime
+      - name: Verify receipts, linkage, unlink/relink, services, cleanup and doctor
+        run: bash scripts/test-install.sh homebrew
+      - name: Verify a same-version reinstall
+        run: |
+          bash scripts/test-install.sh install
+          php -v
+          brew missing shivammathur/php/php@8.3
+      - name: Verify no source builds occurred
+        run: |
+          brew info --installed --json=v2 > "$RUNNER_TEMP/receipts.json"
+          jq -e --argjson start "$TEST_STARTED_AT" 'all(.formulae[].installed[];
+            (.time // 0) < $start or .poured_from_bottle==true)' "$RUNNER_TEMP/receipts.json"
+      - name: Verify Homebrew update and upgrade planning without installing packages
+        run: |
+          brew update
+          HOMEBREW_NO_AUTO_UPDATE=1 brew upgrade --dry-run
+          brew missing shivammathur/php/php@8.3
+          php -v
