@@ -3,6 +3,22 @@ on: [push, workflow_dispatch]
 permissions:
   contents: read
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-darwin
+          ref: fix/macos-cache-runtime
+          path: cache
+      - run: bash cache/scripts/validate.sh
+      - uses: actions/checkout@v4
+        with:
+          repository: shivammathur/setup-php
+          ref: fix/macos-cache-runtime
+          path: setup-php
+      - run: bash test-cache-policy.sh setup-php/src/scripts/darwin.sh
   profile:
     strategy:
       fail-fast: false
@@ -12,8 +28,15 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch the published PHP 8.3 installer
-        run: curl -fsSL https://github.com/shivammathur/php-darwin/releases/download/php-8.3/install.sh -o original.sh
+      - uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-darwin
+          ref: fix/macos-cache-runtime
+          path: cache
+      - name: Generate the updated installer with the published manifest
+        run: |
+          curl -fsSL https://github.com/shivammathur/php-darwin/releases/download/php-8.3/php-8.3-manifest.json -o manifest.json
+          PHP_DARWIN_RELEASE_MANIFEST="$PWD/manifest.json" bash cache/scripts/generate-install.sh "$PWD/original.sh"
       - name: Instrument installer phases
         run: awk -f profile.awk original.sh > install.sh
       - name: Install PHP with phase logs
