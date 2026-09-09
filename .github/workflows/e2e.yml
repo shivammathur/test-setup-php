@@ -1,0 +1,79 @@
+name: Verify every repacked PHP release through setup-php
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+env:
+  HOMEBREW_DEVELOPER: '1'
+  HOMEBREW_NO_AUTO_UPDATE: '1'
+  use_package_cache: 'true'
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - id: plan
+        run: |
+          matrix=$(jq -c '{include:.}' expected.json)
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+  setup-php:
+    needs: plan
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      PHP_VERSION: ${{ matrix.version }}
+      PHP_DARWIN_REQUIRE_CACHE: 'true'
+      PHP_DARWIN_REQUIRE_XDEBUG: 'true'
+      PHP_DARWIN_REQUIRE_PCOV: ${{ contains(matrix.extensions, 'pcov') }}
+      EXPECTED_METADATA_SHA256: ${{ matrix.metadata_sha256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: cc4a2021a736c6766dd101d32fec125295135729
+          persist-credentials: false
+      - name: Remove unused taps
+        run: bash scripts/cleanup-taps.sh
+      - name: Prepare a PHP-free runner
+        run: bash scripts/prepare-e2e.sh
+      - name: Configure extension cache
+        id: extensions
+        uses: shivammathur/cache-extensions@de3c642a5fce0ef91581a1c9831e229f525196d6
+        with:
+          php-version: ${{ matrix.version }}
+          extensions: ${{ matrix.extensions }}
+          key: php-darwin-repack-e2e
+      - name: Restore extension cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ steps.extensions.outputs.dir }}
+          key: ${{ steps.extensions.outputs.key }}
+      - name: Install PHP using setup-php develop
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.version }}
+          extensions: ${{ matrix.extensions }}
+          tools: none
+      - name: Verify the repacked cache, coverage extensions and absence of source builds
+        run: |
+          bash scripts/test-setup-php.sh
+          . scripts/lib.sh
+          arch=$(php_darwin_normalize_arch "$(uname -m)") || exit 1
+          asset=$(php_darwin_asset "$PHP_VERSION" release nts "$arch") || exit 1
+          metadata=$(php_darwin_metadata_path "$asset") || exit 1
+          prefix=$(brew --prefix) || exit 1
+          actual=$(php_darwin_sha256 "$prefix/$metadata") || exit 1
+          [ "$actual" = "$EXPECTED_METADATA_SHA256" ] || php_darwin_die 'setup-php used a different archive from the tested repack'
+      - name: Verify Homebrew operations without installing packages
+        run: |
+          . scripts/lib.sh
+          formula=$(php_darwin_formula "$PHP_VERSION" release nts) || exit 1
+          brew linkage --test "$formula"
+          brew update
+          brew upgrade --dry-run
+          brew missing "$formula"
+          php -v
