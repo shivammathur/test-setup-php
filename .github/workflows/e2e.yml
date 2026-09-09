@@ -29,7 +29,7 @@ jobs:
       PHP_DARWIN_REQUIRE_CACHE: 'true'
       PHP_DARWIN_REQUIRE_XDEBUG: 'true'
       PHP_DARWIN_REQUIRE_PCOV: ${{ contains(matrix.extensions, 'pcov') }}
-      EXPECTED_METADATA_SHA256: ${{ matrix.metadata_sha256 }}
+      EXPECTED_INSTALLER_SHA256: ${{ matrix.installer_sha256 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -62,12 +62,11 @@ jobs:
         run: |
           bash scripts/test-setup-php.sh
           . scripts/lib.sh
-          arch=$(php_darwin_normalize_arch "$(uname -m)") || exit 1
-          asset=$(php_darwin_asset "$PHP_VERSION" release nts "$arch") || exit 1
-          metadata=$(php_darwin_metadata_path "$asset") || exit 1
-          prefix=$(brew --prefix) || exit 1
-          actual=$(php_darwin_sha256 "$prefix/$metadata") || exit 1
-          [ "$actual" = "$EXPECTED_METADATA_SHA256" ] || php_darwin_die 'setup-php used a different archive from the tested repack'
+          # run_script retains its downloaded installer here. That verified
+          # script embeds the exact candidate archive hashes and checks them
+          # before extraction; the embedded installation metadata is temporary.
+          actual=$(php_darwin_sha256 /tmp/install.sh) || exit 1
+          [ "$actual" = "$EXPECTED_INSTALLER_SHA256" ] || php_darwin_die 'setup-php did not use the tested release installer'
       - name: Verify Homebrew operations without installing packages
         run: |
           . scripts/lib.sh
