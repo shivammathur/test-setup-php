@@ -1,0 +1,181 @@
+name: Verbosity matrix
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  ACTION_COMMIT: 1c22856079b29b5a06684e0f59a3da36e5851c64
+
+jobs:
+  verbosity:
+    name: ${{ matrix.os }} / ${{ matrix.mode.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+        mode:
+          - name: unset
+            lower: '{}'
+            upper: '{}'
+            debug_lower: '{"RUNNER_DEBUG":"1"}'
+            debug_upper: '{"RUNNER_DEBUG":"1"}'
+          - name: empty
+            lower: '{"verbose":""}'
+            upper: '{"VERBOSE":""}'
+            debug_lower: '{"verbose":"","RUNNER_DEBUG":"1"}'
+            debug_upper: '{"VERBOSE":"","RUNNER_DEBUG":"1"}'
+          - name: 'false'
+            lower: '{"verbose":"false"}'
+            upper: '{"VERBOSE":"false"}'
+            debug_lower: '{"verbose":"false","RUNNER_DEBUG":"1"}'
+            debug_upper: '{"VERBOSE":"false","RUNNER_DEBUG":"1"}'
+          - name: 'true'
+            lower: '{"verbose":"true"}'
+            upper: '{"VERBOSE":"true"}'
+            debug_lower: '{"verbose":"true","RUNNER_DEBUG":"1"}'
+            debug_upper: '{"VERBOSE":"true","RUNNER_DEBUG":"1"}'
+          - name: v
+            lower: '{"verbose":"v"}'
+            upper: '{"VERBOSE":"v"}'
+            debug_lower: '{"verbose":"v","RUNNER_DEBUG":"1"}'
+            debug_upper: '{"VERBOSE":"v","RUNNER_DEBUG":"1"}'
+          - name: vv
+            lower: '{"verbose":"vv"}'
+            upper: '{"VERBOSE":"vv"}'
+            debug_lower: '{"verbose":"vv","RUNNER_DEBUG":"1"}'
+            debug_upper: '{"VERBOSE":"vv","RUNNER_DEBUG":"1"}'
+          - name: vvv
+            lower: '{"verbose":"vvv"}'
+            upper: '{"VERBOSE":"vvv"}'
+            debug_lower: '{"verbose":"vvv","RUNNER_DEBUG":"1"}'
+            debug_upper: '{"VERBOSE":"vvv","RUNNER_DEBUG":"1"}'
+          - name: invalid
+            lower: '{"verbose":"invalid"}'
+            upper: '{"VERBOSE":"invalid"}'
+            debug_lower: '{"verbose":"invalid","RUNNER_DEBUG":"1"}'
+            debug_upper: '{"VERBOSE":"invalid","RUNNER_DEBUG":"1"}'
+    env:
+      TEST_OS: ${{ matrix.os }}
+      TEST_MODE: ${{ matrix.mode.name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Snapshot action sources
+        run: node verify.cjs before
+
+      - name: PHP / lower
+        id: lower
+        uses: shivammathur/setup-php@1c22856079b29b5a06684e0f59a3da36e5851c64
+        with:
+          php-version: '8.4'
+          tools: composer
+          coverage: none
+          ini-values: post_max_size=256M
+        env: ${{ fromJSON(matrix.mode.lower) }}
+      - name: Verify / lower
+        run: node verify.cjs after lower
+        env:
+          CASE_ENV: ${{ matrix.mode.lower }}
+          PHP_VERSION: ${{ steps.lower.outputs.php-version }}
+
+      - name: PHP / upper
+        id: upper
+        uses: shivammathur/setup-php@1c22856079b29b5a06684e0f59a3da36e5851c64
+        with:
+          php-version: '8.4'
+          tools: composer
+          coverage: none
+          ini-values: post_max_size=256M
+        env: ${{ fromJSON(matrix.mode.upper) }}
+      - name: Verify / upper
+        run: node verify.cjs after upper
+        env:
+          CASE_ENV: ${{ matrix.mode.upper }}
+          PHP_VERSION: ${{ steps.upper.outputs.php-version }}
+
+      - name: PHP / debug-lower
+        id: debug_lower
+        uses: shivammathur/setup-php@1c22856079b29b5a06684e0f59a3da36e5851c64
+        with:
+          php-version: '8.4'
+          tools: composer
+          coverage: none
+          ini-values: post_max_size=256M
+        env: ${{ fromJSON(matrix.mode.debug_lower) }}
+      - name: Verify / debug-lower
+        run: node verify.cjs after debug-lower
+        env:
+          CASE_ENV: ${{ matrix.mode.debug_lower }}
+          PHP_VERSION: ${{ steps.debug_lower.outputs.php-version }}
+
+      - name: PHP / debug-upper
+        id: debug_upper
+        uses: shivammathur/setup-php@1c22856079b29b5a06684e0f59a3da36e5851c64
+        with:
+          php-version: '8.4'
+          tools: composer
+          coverage: none
+          ini-values: post_max_size=256M
+        env: ${{ fromJSON(matrix.mode.debug_upper) }}
+      - name: Verify / debug-upper
+        run: node verify.cjs after debug-upper
+        env:
+          CASE_ENV: ${{ matrix.mode.debug_upper }}
+          PHP_VERSION: ${{ steps.debug_upper.outputs.php-version }}
+
+      - name: PHP / reset
+        id: reset
+        uses: shivammathur/setup-php@1c22856079b29b5a06684e0f59a3da36e5851c64
+        with:
+          php-version: '8.4'
+          tools: composer
+          coverage: none
+          ini-values: post_max_size=256M
+        env:
+          verbose: 'false'
+          RUNNER_DEBUG: '0'
+          SETUP_PHP_TRACE: '2'
+      - name: Verify / reset
+        run: node verify.cjs after reset
+        env:
+          CASE_ENV: '{"verbose":"false","RUNNER_DEBUG":"0","SETUP_PHP_TRACE":"2"}'
+          PHP_VERSION: ${{ steps.reset.outputs.php-version }}
+
+      - name: Save assertions
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: verbosity-${{ matrix.os }}-${{ matrix.mode.name }}
+          path: results/
+          if-no-files-found: error
+
+  logs:
+    name: Verify all action logs
+    if: always()
+    needs: verbosity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Check executed paths and trace levels in every configuration
+        run: node verify-logs.cjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Save log assertions
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: verbosity-log-assertions
+          path: log-results.json
+          if-no-files-found: error
