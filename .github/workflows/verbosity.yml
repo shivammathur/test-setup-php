@@ -9,7 +9,7 @@ permissions:
   actions: read
 
 env:
-  ACTION_COMMIT: ce41f035b779cf13cd6bbfa68019de1af6809439
+  ACTION_COMMIT: e0ea08c0304d5e371c185300a0a109b3d1d8d5e1
 
 jobs:
   verbosity:
@@ -77,7 +77,7 @@ jobs:
 
       - name: PHP / lower
         id: lower
-        uses: shivammathur/setup-php@ce41f035b779cf13cd6bbfa68019de1af6809439
+        uses: shivammathur/setup-php@e0ea08c0304d5e371c185300a0a109b3d1d8d5e1
         with:
           php-version: '8.4'
           tools: composer
@@ -92,7 +92,7 @@ jobs:
 
       - name: PHP / upper
         id: upper
-        uses: shivammathur/setup-php@ce41f035b779cf13cd6bbfa68019de1af6809439
+        uses: shivammathur/setup-php@e0ea08c0304d5e371c185300a0a109b3d1d8d5e1
         with:
           php-version: '8.4'
           tools: composer
@@ -107,7 +107,7 @@ jobs:
 
       - name: PHP / debug-lower
         id: debug_lower
-        uses: shivammathur/setup-php@ce41f035b779cf13cd6bbfa68019de1af6809439
+        uses: shivammathur/setup-php@e0ea08c0304d5e371c185300a0a109b3d1d8d5e1
         with:
           php-version: '8.4'
           tools: composer
@@ -122,7 +122,7 @@ jobs:
 
       - name: PHP / debug-upper
         id: debug_upper
-        uses: shivammathur/setup-php@ce41f035b779cf13cd6bbfa68019de1af6809439
+        uses: shivammathur/setup-php@e0ea08c0304d5e371c185300a0a109b3d1d8d5e1
         with:
           php-version: '8.4'
           tools: composer
@@ -137,7 +137,7 @@ jobs:
 
       - name: PHP / reset
         id: reset
-        uses: shivammathur/setup-php@ce41f035b779cf13cd6bbfa68019de1af6809439
+        uses: shivammathur/setup-php@e0ea08c0304d5e371c185300a0a109b3d1d8d5e1
         with:
           php-version: '8.4'
           tools: composer
@@ -173,7 +173,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: shivammathur/setup-php
-          ref: ce41f035b779cf13cd6bbfa68019de1af6809439
+          ref: e0ea08c0304d5e371c185300a0a109b3d1d8d5e1
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
