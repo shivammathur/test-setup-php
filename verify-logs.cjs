@@ -32,7 +32,7 @@ async function get(url, json = true) {
       for (let index = 0; index < lines.length; index++) {
         const line = lines[index];
         if (line.includes('[debug]') || line.startsWith('+') || line.startsWith('DEBUG:')) continue;
-        const match = line.match(/\b(?:bash|pwsh)(?:\.exe)?\s+(.+[\\/]src(?:-verbose-[A-Za-z0-9]+)?[\\/]scripts[\\/]run\.(?:sh|ps1))\s*$/i);
+        const match = line.match(/\b(?:bash|pwsh)(?:\.exe)?"?\s+(.+[\\/]src(?:-verbose-[A-Za-z0-9]+)?[\\/]scripts[\\/]run\.(?:sh|ps1))\s*$/i);
         if (match) commands.push({index, path: match[1]});
       }
       assert.equal(commands.length, 5, 'Expected five real action executions');
