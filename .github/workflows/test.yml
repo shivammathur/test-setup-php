@@ -8,8 +8,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        ext: ["", "-2.5.2"]
         php-version:
+          - 8.0
           - 8.1
           - 8.2
           - 8.3
@@ -22,7 +22,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-version }}
-          extensions: mongodb${{ matrix.ext }}
+          extensions: mongodb
       - run: |
           php -r "echo phpversion('mongodb');"
           php -v
