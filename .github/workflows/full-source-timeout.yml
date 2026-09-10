@@ -1,0 +1,72 @@
+name: PHP and five dependencies from source with real timeout
+on:
+  push:
+    branches: [fix/brew-full-source-timeout-20260910]
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  CANDIDATE_SHA: 68a5222a8d935851c7d7f653041f2c1b25aaa228
+jobs:
+  source:
+    name: ${{ matrix.os }} / PHP and five dependencies from source
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15, macos-26]
+    env:
+      RUNNER_LABEL: ${{ matrix.os }}
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_FROM_API: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: '1'
+      HOMEBREW_NO_ANALYTICS: '1'
+      HOMEBREW_DEVELOPER: '1'
+      HOMEBREW_GIT_PATH: /usr/bin/git
+      HOMEBREW_TEMP: /private/tmp/setup-php-full-source-builds
+      HOMEBREW_LOGS: ${{ github.workspace }}/evidence/homebrew-logs
+    steps:
+      - name: Checkout orphan test branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ env.CANDIDATE_SHA }}
+          path: candidate
+          persist-credentials: false
+      - name: Prepare source fallback and timeout injection
+        run: python3 ci/prepare.py
+      - name: Build dependencies and PHP; trigger 30-minute timeout; retry
+        id: php
+        uses: ./action-under-test
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, openssl, pdo_sqlite, sodium, zip
+          coverage: none
+          tools: composer
+          ini-values: memory_limit=256M, date.timezone=UTC
+        env:
+          update: 'true'
+          verbose: 'true'
+      - name: Verify six source installations, real timeout and retry cleanup
+        if: ${{ always() && steps.php.outcome != 'skipped' }}
+        env:
+          ACTION_OUTCOME: ${{ steps.php.outcome }}
+          PHP_OUTPUT: ${{ steps.php.outputs.php-version }}
+        run: python3 ci/verify.py
+      - name: Collect source build state and artifacts
+        if: always()
+        run: python3 ci/collect.py
+      - name: Upload source build evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ matrix.os }}-full-source-timeout
+          path: evidence
+          if-no-files-found: error
+          retention-days: 14
