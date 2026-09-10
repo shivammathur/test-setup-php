@@ -50,6 +50,7 @@ PHP_FAULT
     cp bin/"php", fixture_state/"php-attempt-#{attempt}.bin"
     record.call("php-artifact", { "version" => Utils.safe_popen_read(bin/"php", "-n", "-v") })
     if attempt == 1
+      cp_r logs, fixture_state/"php-first-build-logs"
       record.call("stall")
       system "/bin/bash", (fixture_state/"stall.sh").to_s, fixture_state.to_s
       raise "The source watchdog failed to terminate the injected stall"
@@ -60,7 +61,12 @@ PHP_FAULT
     (evidence / "formulas").mkdir(exist_ok=True)
     (evidence / "formulas" / (name + "-original.rb")).write_text(original)
     (evidence / "formulas" / (name + "-source.rb")).write_text(patched)
-    path.write_text(patched)
+    if os.access(path, os.W_OK):
+        path.write_text(patched)
+    else:
+        # setup-php extracts downloaded taps with sudo; modify only this formula.
+        subprocess.run(["sudo", "tee", str(path)], input=patched, text=True,
+                       stdout=subprocess.DEVNULL, check=True)
     subprocess.run(["/usr/bin/ruby", "-c", str(path)], check=True)
     manifest.append({"formula": name, "path": str(path), "original_sha256": hashlib.sha256(original.encode()).hexdigest()})
 

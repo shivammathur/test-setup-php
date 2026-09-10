@@ -9,10 +9,10 @@ import subprocess
 workspace = Path(os.environ["GITHUB_WORKSPACE"])
 evidence = workspace / "evidence"
 state = Path(os.environ["HOMEBREW_TEMP"]) / "timeout-state"
+assert os.environ["ACTION_OUTCOME"] == "success", "PHP installation did not recover; inspect the build logs"
 events = (evidence / "events.log").read_text().splitlines()
 builds = [json.loads(line) for line in (state / "builds.jsonl").read_text().splitlines()]
 stderr = (evidence / "brew-stderr.log").read_text()
-assert os.environ["ACTION_OUTCOME"] == "success", "PHP installation did not recover"
 assert events.count("cache-forced-failure") == 1
 assert any("install --only-dependencies" in event for event in events)
 assert any("install --skip-link" in event for event in events)
