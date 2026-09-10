@@ -1,0 +1,102 @@
+name: macOS cache and Homebrew timeout validation
+on:
+  push:
+    branches: [fix/brew-source-timeout-20260910]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: brew-source-timeout-${{ github.ref }}
+  cancel-in-progress: false
+env:
+  CANDIDATE_SHA: 68a5222a8d935851c7d7f653041f2c1b25aaa228
+jobs:
+  macos:
+    name: ${{ matrix.os }} / ${{ matrix.scenario }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: macos-14, scenario: cache}
+          - {os: macos-15, scenario: cache}
+          - {os: macos-26, scenario: cache}
+          - {os: macos-15-intel, scenario: cache}
+          - {os: macos-14, scenario: brew-bottle}
+          - {os: macos-15, scenario: brew-bottle}
+          - {os: macos-26, scenario: brew-bottle}
+          - {os: macos-14, scenario: brew-source}
+          - {os: macos-15, scenario: brew-source}
+          - {os: macos-26, scenario: brew-source}
+          - {os: macos-15-intel, scenario: intel-exit}
+    env:
+      TEST_SCENARIO: ${{ matrix.scenario }}
+      RUNNER_LABEL: ${{ matrix.os }}
+      TEST_EVENTS: ${{ github.workspace }}/evidence/events.log
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: '1'
+      HOMEBREW_NO_ANALYTICS: '1'
+    steps:
+      - name: Checkout test harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ env.CANDIDATE_SHA }}
+          path: candidate
+          persist-credentials: false
+      - name: Set up Node.js
+        if: matrix.scenario == 'cache'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Prepare evidence directory
+        run: mkdir -p evidence
+      - name: Install test dependencies
+        if: matrix.scenario == 'cache'
+        working-directory: candidate
+        run: npm ci --ignore-scripts
+      - name: Run all regression tests and type checks
+        if: matrix.scenario == 'cache'
+        working-directory: candidate
+        run: |
+          npm test -- --runInBand --json --outputFile ../evidence/jest.json
+          npx tsc -p tsconfig.test.json
+          npm run build
+      - name: Prepare scenario and observe the install path
+        run: python3 ci/instrument.py
+      - name: Check real Homebrew source success, timeout and retry cleanup
+        if: matrix.scenario == 'cache' && matrix.os != 'macos-15-intel'
+        run: python3 ci/real-watchdog.py
+      - name: Install PHP using the candidate
+        id: php
+        continue-on-error: ${{ matrix.scenario == 'intel-exit' }}
+        uses: ./action-under-test
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, openssl, pdo_sqlite
+          coverage: none
+          tools: composer
+          ini-values: memory_limit=256M, date.timezone=UTC
+        env:
+          update: 'true'
+          verbose: 'true'
+      - name: Verify path, outcome, PHP and dependency artifacts
+        if: ${{ always() && steps.php.outcome != 'skipped' }}
+        env:
+          ACTION_OUTCOME: ${{ steps.php.outcome }}
+          PHP_OUTPUT: ${{ steps.php.outputs.php-version }}
+        run: python3 ci/verify.py
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ matrix.os }}-${{ matrix.scenario }}
+          path: evidence
+          if-no-files-found: error
+          retention-days: 14
