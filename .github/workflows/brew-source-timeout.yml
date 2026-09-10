@@ -3,6 +3,12 @@ on:
   push:
     branches: [fix/brew-source-timeout-20260910]
   workflow_dispatch:
+    inputs:
+      scope:
+        description: Scenarios to run
+        type: choice
+        default: all
+        options: [all, sources]
 permissions:
   contents: read
 concurrency:
@@ -18,18 +24,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - {os: macos-14, scenario: cache}
-          - {os: macos-15, scenario: cache}
-          - {os: macos-26, scenario: cache}
-          - {os: macos-15-intel, scenario: cache}
-          - {os: macos-14, scenario: brew-bottle}
-          - {os: macos-15, scenario: brew-bottle}
-          - {os: macos-26, scenario: brew-bottle}
-          - {os: macos-14, scenario: brew-source}
-          - {os: macos-15, scenario: brew-source}
-          - {os: macos-26, scenario: brew-source}
-          - {os: macos-15-intel, scenario: intel-exit}
+        os: [macos-14, macos-15, macos-26, macos-15-intel]
+        scenario: ${{ fromJSON(inputs.scope == 'sources' && '["brew-source"]' || '["cache","brew-bottle","brew-source","intel-exit"]') }}
+        exclude:
+          - {os: macos-15-intel, scenario: brew-bottle}
+          - {os: macos-15-intel, scenario: brew-source}
+          - {os: macos-14, scenario: intel-exit}
+          - {os: macos-15, scenario: intel-exit}
+          - {os: macos-26, scenario: intel-exit}
     env:
       TEST_SCENARIO: ${{ matrix.scenario }}
       RUNNER_LABEL: ${{ matrix.os }}
@@ -86,6 +88,8 @@ jobs:
         env:
           update: 'true'
           verbose: 'true'
+          # Permit the deliberately unbottled core dependency on current ARM runners.
+          HOMEBREW_DEVELOPER: ${{ matrix.scenario == 'brew-source' && '1' || '' }}
       - name: Verify path, outcome, PHP and dependency artifacts
         if: ${{ always() && steps.php.outcome != 'skipped' }}
         env:

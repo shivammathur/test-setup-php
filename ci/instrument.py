@@ -89,6 +89,7 @@ manifest = {
     "original_darwin_sha256": hashlib.sha256(original.encode()).hexdigest(),
     "bottle_timeout": os.environ.get("SETUP_PHP_BREW_INACTIVITY_TIMEOUT", "180"),
     "source_timeout": os.environ.get("SETUP_PHP_BREW_SOURCE_INACTIVITY_TIMEOUT", "1800"),
+    "source_fixture_developer_mode": scenario == "brew-source",
     "fault": "none" if scenario == "cache" else "setup_cached_versions returns 37",
 }
 (evidence / "instrumentation.json").write_text(json.dumps(manifest, indent=2))
