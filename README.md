@@ -2,6 +2,8 @@
 
 Candidate: `shivammathur/setup-php@68a5222a8d935851c7d7f653041f2c1b25aaa228` (`fix/brew-source-timeout`).
 
+[Completed validation results](VALIDATION.md): all 11 scenarios passed across the initial matrix and source-fixture rerun.
+
 This is a new orphan test branch. All 11 scenarios are dispatched together by default. A manual dispatch with `scope=sources` reruns the three ARM source scenarios together.
 
 | Runner | Cache | Cache failure -> Homebrew bottle | Missing dependency bottle -> source | Cache failure -> exit |
