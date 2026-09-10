@@ -1,0 +1,159 @@
+{
+  "candidate": "68a5222a8d935851c7d7f653041f2c1b25aaa228",
+  "test_commit": "5fa09138ec8668db2dcc95103a2e2789ddab0893",
+  "run": "https://github.com/shivammathur/test-setup-php/actions/runs/34472933163",
+  "bottle_inactivity_seconds": 180,
+  "source_inactivity_seconds": 1800,
+  "runners": [
+    {
+      "runner": "macos-14",
+      "architecture": "arm64",
+      "source_formulas": [
+        "argon2",
+        "libsodium",
+        "libzip",
+        "oniguruma",
+        "pcre2",
+        "php@8.4"
+      ],
+      "php_source_attempts": 2,
+      "timeout_exit_status": 124,
+      "stall_seconds": 1802,
+      "surviving_pids": [],
+      "outcome": "success",
+      "php_version": "8.4.25",
+      "runtime_dependency_checks": true,
+      "sapis_checked": [
+        "php-cgi",
+        "phpdbg",
+        "php-fpm"
+      ],
+      "source_versions": {
+        "argon2": "20190702",
+        "libsodium": "1.0.22",
+        "libzip": "1.11.4",
+        "oniguruma": "6.9.10",
+        "pcre2": "10.48",
+        "php@8.4": "8.4.25"
+      },
+      "installed_artifact_sha256": {
+        "argon2/libargon2.1.dylib": "e2303261cef03ad60350c587dcfdba2ac6c8fbd1a4710ee830c7003ccd97123f",
+        "libsodium/libsodium.26.dylib": "6c6b889d584107fa4a758457236142e620d46b5fda554ce49cce0fabe4cef295",
+        "libzip/libzip.5.5.dylib": "4052fe11280ba2e0cd1f24ccab21af2ce182c00949e891e8edd23090a7cade47",
+        "oniguruma/libonig.5.dylib": "421596b00cdfedfcc3c934756303b876bbd78fad8fc7e823c2cff1debeb4616c",
+        "pcre2/libpcre2-16.0.dylib": "dd014fa2a7f56420b8a1008ff5e85c63ceb75b585bb9427e853dd2258f3dcfd9",
+        "pcre2/libpcre2-8.0.dylib": "660fa5a5ba00d59344d364dc555742d03cb27c7c0b9e9cd0139d38fafab0517a",
+        "pcre2/libpcre2-32.0.dylib": "73a45cb56a46e3cd882d4b2849ae930639e5123102c8e4cbd616df06c8c28ff8",
+        "pcre2/libpcre2-posix.3.dylib": "03e815476d38b6aae3382ff1cac0f27730754c145c88889b32cc10bef0e926a1",
+        "php@8.4/php": "3a4ad7fe01db74620541d0c0690b106d2582d6d32950c8e69a06dcbbf10b98c9",
+        "php@8.4/php-cgi": "f9516c811d2ca805b3056242bef3e235692c6c43b76c55fd4c1abf006836784b",
+        "php@8.4/phpdbg": "0c50480fc4c4a4b50cd6941eeb961808f6066e1f0134651e90b7088926d05582",
+        "php@8.4/php-fpm": "f9d22f26082afdba7ecb5bd90301e40bc5b7e9c4c12718ca658ec3c20d5518f4"
+      },
+      "php_attempt_sha256": {
+        "php-attempt-1.bin": "0f1d4021b2f12a3ac579ca307d0f78a0713d84f95e458722202576307c2cf400",
+        "php-attempt-2.bin": "0f1d4021b2f12a3ac579ca307d0f78a0713d84f95e458722202576307c2cf400"
+      }
+    },
+    {
+      "runner": "macos-15",
+      "architecture": "arm64",
+      "source_formulas": [
+        "argon2",
+        "libsodium",
+        "libzip",
+        "oniguruma",
+        "pcre2",
+        "php@8.4"
+      ],
+      "php_source_attempts": 2,
+      "timeout_exit_status": 124,
+      "stall_seconds": 1802,
+      "surviving_pids": [],
+      "outcome": "success",
+      "php_version": "8.4.25",
+      "runtime_dependency_checks": true,
+      "sapis_checked": [
+        "php-cgi",
+        "phpdbg",
+        "php-fpm"
+      ],
+      "source_versions": {
+        "argon2": "20190702",
+        "libsodium": "1.0.22",
+        "libzip": "1.11.4",
+        "oniguruma": "6.9.10",
+        "pcre2": "10.48",
+        "php@8.4": "8.4.25"
+      },
+      "installed_artifact_sha256": {
+        "argon2/libargon2.1.dylib": "44cdd208d4f930f3137356f35ae469b8bcadfbf2691328d1734306799e9ac478",
+        "libsodium/libsodium.26.dylib": "a2715bac02535218ef939f05f6ad7f6ac1e6ca2dca6d7605492b8ca657ef62d2",
+        "libzip/libzip.5.5.dylib": "250e51e301fd7c43a49e7ea06968938a9046d34b9150c54bdcaeb3582bcd61e1",
+        "oniguruma/libonig.5.dylib": "b61ae38844ec96923fdf803c046f997ed262e1d93634dc0b5d533dec43295c3c",
+        "pcre2/libpcre2-16.0.dylib": "e1f2759460f2142377f7b4642139dfb9fe06c35f9326055c23b51d5b72a594ee",
+        "pcre2/libpcre2-8.0.dylib": "2e7a432d5bd37a42b634779bffcb2c118d0f5fb10ce6fb7f9e967a90533f3bec",
+        "pcre2/libpcre2-32.0.dylib": "408d1869a3abf82be737c312162982ae1c51efd4ee69a142a1e3087f68a16ddd",
+        "pcre2/libpcre2-posix.3.dylib": "666304062d7b5319f042b8c08e2c5b6b11c7dff5f7d121ecbcb94067394192b0",
+        "php@8.4/php": "e2ea42b16cd4cad5680f6508a096bf4551d3a61b7cfc467a5d88ba3fac3b203d",
+        "php@8.4/php-cgi": "13c76c3c973ea34d63cabe5bc484b7caee5c36b5be871fa48ed3558acccd5e7b",
+        "php@8.4/phpdbg": "780b8337f3a6ee9603387011ee1e59b790aaff1f42c34a72a1e4608f4431107a",
+        "php@8.4/php-fpm": "d33664730e3c6507dca2965ffc936a1c20cf062f582cc72334f5a59c0dbb539f"
+      },
+      "php_attempt_sha256": {
+        "php-attempt-1.bin": "2170afadaad8fd2a734330dc04f08716496c369a2e00d4387bcdb9e041a0cf29",
+        "php-attempt-2.bin": "2170afadaad8fd2a734330dc04f08716496c369a2e00d4387bcdb9e041a0cf29"
+      }
+    },
+    {
+      "runner": "macos-26",
+      "architecture": "arm64",
+      "source_formulas": [
+        "argon2",
+        "libsodium",
+        "libzip",
+        "oniguruma",
+        "pcre2",
+        "php@8.4"
+      ],
+      "php_source_attempts": 2,
+      "timeout_exit_status": 124,
+      "stall_seconds": 1800,
+      "surviving_pids": [],
+      "outcome": "success",
+      "php_version": "8.4.25",
+      "runtime_dependency_checks": true,
+      "sapis_checked": [
+        "php-cgi",
+        "phpdbg",
+        "php-fpm"
+      ],
+      "source_versions": {
+        "argon2": "20190702",
+        "libsodium": "1.0.22",
+        "libzip": "1.11.4",
+        "oniguruma": "6.9.10",
+        "pcre2": "10.48",
+        "php@8.4": "8.4.25"
+      },
+      "installed_artifact_sha256": {
+        "argon2/libargon2.1.dylib": "497381a21f6195257290fa4e6231946311b4de282609079217bc06eca1deb53d",
+        "libsodium/libsodium.26.dylib": "ce9e7a069715bdc755074f74a78d80a5f107ca0e73f00bcbdd8690720e67f0bd",
+        "libzip/libzip.5.5.dylib": "a725e02d00b5e6afe39c59179355f01491b751867d322f741c3056ede5c780fe",
+        "oniguruma/libonig.5.dylib": "194d0a0c6ba9fe9bb594a25d341510805e020339605be9baf42c5a96a22973cf",
+        "pcre2/libpcre2-16.0.dylib": "91f681c6755bda152bef3b343ea278ec92054b95cbdf2c66589f4921ca03adf5",
+        "pcre2/libpcre2-8.0.dylib": "6b698ffc744550e149829d94045912448b8ac4b692cb267dce9fc2f3ed60659d",
+        "pcre2/libpcre2-32.0.dylib": "bd1168d78e5fec1940ffc51f979bb32b72abf4bdde11738694bfc238ea4b5925",
+        "pcre2/libpcre2-posix.3.dylib": "f0e63f74a04b5da43053ce6bf02d00cf9ea4d1d0f37b0adad2c44776add85bdb",
+        "php@8.4/php": "a94d8f22aa87690545670b5de44b6bb6df4ac66d630fddf453454c111335b419",
+        "php@8.4/php-cgi": "f4980984f4d494c398c74d64cba4abef3547d26bb9eb01f4fbf800b62524156c",
+        "php@8.4/phpdbg": "e08ada071009bcc0eeb3da18fc05bd6e2117ba5fdbb1b2b6d210c0a83102e728",
+        "php@8.4/php-fpm": "c6512e2b1600dc7867eff6b2a3d3c50ab4667584954f87a8b868ba19ea93a224"
+      },
+      "php_attempt_sha256": {
+        "php-attempt-1.bin": "2a0231b946d0dae5e69546cba2934c080dba73d94ff68b568988b007126d3bee",
+        "php-attempt-2.bin": "2a0231b946d0dae5e69546cba2934c080dba73d94ff68b568988b007126d3bee"
+      }
+    }
+  ]
+}

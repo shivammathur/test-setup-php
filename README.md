@@ -1,5 +1,7 @@
 # Full PHP source build and production timeout validation
 
+**Passed on all three ARM runners.** See [validation results](VALIDATION.md) and [artifact hashes](validation.json).
+
 This new orphan branch tests `shivammathur/setup-php@68a5222a8d935851c7d7f653041f2c1b25aaa228` on macOS 14, 15 and 26 ARM in parallel.
 
 The disposable action reports a cache failure, then uses its normal Homebrew installation path. After the taps are refreshed, the fixture removes bottle definitions for **Argon2, libsodium, libzip, oniguruma, PCRE2 and PHP 8.4**. Existing copies of the five dependencies are removed. Developer mode permits the injected missing core bottles; Homebrew uses the system Git while PCRE2 is absent.
