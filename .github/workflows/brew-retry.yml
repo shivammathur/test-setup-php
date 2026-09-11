@@ -1,0 +1,106 @@
+name: Brew retry regression
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  watchdog:
+    name: Watchdog (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, macos-15-intel]
+    steps:
+      - name: Checkout test cases
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Checkout exact develop fix
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 0c6410c6709d6e7cfd54e89079beef1c650039b8
+          path: setup-php
+          persist-credentials: false
+      - name: Verify watchdog, retry limits, and failure propagation
+        run: python3 scripts/check-watchdog.py setup-php results
+      - name: Upload regression evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: watchdog-${{ matrix.os }}
+          path: results
+          if-no-files-found: error
+
+  install:
+    name: PHP ${{ matrix.php }} (${{ matrix.os }}, cache=${{ matrix.cache }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]
+        php: ['8.4', '8.5']
+        cache: ['true']
+        include:
+          - os: macos-15
+            php: '8.4'
+            cache: 'false'
+    env:
+      EXPECTED_PHP_VERSION: ${{ matrix.php }}
+      use_package_cache: ${{ matrix.cache }}
+      verbose: 'true'
+      update: 'true'
+    steps:
+      - name: Checkout test cases
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Remove preinstalled PHP to exercise installation
+        shell: bash
+        run: |
+          mkdir -p results
+          brew config > results/brew-before.txt
+          php_formulae=()
+          while IFS= read -r formula; do
+            if [[ "$formula" =~ ^php(@[0-9]+\.[0-9]+)?(-debug)?(-zts)?$ ]]; then
+              php_formulae+=("$formula")
+            fi
+          done < <(brew list --formula)
+          if [ "${#php_formulae[@]}" -gt 0 ]; then
+            brew uninstall --force --ignore-dependencies "${php_formulae[@]}"
+          fi
+      - name: Install PHP using the exact develop fix
+        uses: shivammathur/setup-php@0c6410c6709d6e7cfd54e89079beef1c650039b8
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: curl, openssl, gd, intl, zip, mbstring, opcache
+          coverage: none
+          tools: composer:v2
+          ini-values: memory_limit=256M, post_max_size=64M, opcache.enable_cli=1
+      - name: Verify PHP, extensions, configuration, and linked libraries
+        shell: bash
+        run: |
+          php -v 2>&1 | tee results/php-version.txt
+          if grep -Ei 'warning|fatal error|dyld.*(error|not loaded)' results/php-version.txt; then
+            exit 1
+          fi
+          php scripts/check-php.php | tee results/runtime.json
+          php --ini | tee results/php-ini.txt
+          composer --version | tee results/composer.txt
+          php-config --version | tee results/php-config.txt
+          otool -L "$(command -v php)" | tee results/linked-libraries.txt
+          brew info --installed --json=v2 > results/installed-formulae.json
+      - name: Upload installation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: php-${{ matrix.php }}-${{ matrix.os }}-cache-${{ matrix.cache }}
+          path: results
+          if-no-files-found: error
