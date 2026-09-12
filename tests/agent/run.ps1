@@ -3,26 +3,49 @@ $ErrorActionPreference = 'Stop'
 $root = (Get-Location).Path
 $report = New-Item reports -ItemType Directory -Force
 $include = @('net-snmp/win32','net-snmp/include','net-snmp/agent','net-snmp/agent/mibgroup','net-snmp','deps/include') | ForEach-Object { "/I$root/$_" }
-$libs = @('netsnmpagent.lib','netsnmpmibs.lib',"$root/native/lib/netsnmp.lib",'advapi32.lib','ws2_32.lib','kernel32.lib','user32.lib') + @(Get-ChildItem deps/lib/*.lib | ForEach-Object FullName)
+$env:INCLUDE = "$root/deps/include;$env:INCLUDE"
+$libs = @('netsnmpagent.lib','netsnmpmibs.lib','netsnmp.lib','advapi32.lib','ws2_32.lib','kernel32.lib','user32.lib') + @(Get-ChildItem deps/lib/*.lib | ForEach-Object FullName)
 $results = @()
-foreach ($kind in @('logging','vacm')) {
-    $file = if ($kind -eq 'logging') { 'agent/mibgroup/agent/nsLogging.c' } else { 'agent/mibgroup/mibII/vacm_vars.c' }
+$base = '2ef6429c7f820a25ddd653e8ee6ecd53f9208067'
+$cases = @(
+    @{ kind = 'logging'; file = 'agent/mibgroup/agent/nsLogging.c'; oldExit = -1073741819 },
+    @{ kind = 'vacm'; file = 'agent/mibgroup/mibII/vacm_vars.c'; oldExit = -1073741819 },
+    @{ kind = 'table'; file = 'agent/helpers/table.c'; oldExit = 0 },
+    @{ kind = 'parser'; file = 'snmplib/snmp_api.c'; oldExit = 0; rebuild = $true },
+    @{ kind = 'extend'; file = 'agent/mibgroup/agent/extend.c'; oldExit = -1073741819 }
+)
+
+function Build-LibSnmp {
+    Push-Location net-snmp/win32
+    try {
+        & nmake libsnmp
+        if ($LASTEXITCODE -ne 0) { throw 'Unable to rebuild libsnmp for parser regression.' }
+    } finally {
+        Pop-Location
+    }
+}
+
+foreach ($case in $cases) {
+    $kind = $case.kind
+    $file = $case.file
     foreach ($variant in @('fixed','old')) {
         if ($variant -eq 'old') {
-            $content = & git -C net-snmp show "2ef6429c7f820a25ddd653e8ee6ecd53f9208067:$file"
-            if ($LASTEXITCODE -ne 0) { throw 'Unable to retrieve negative-control source' }
-            [IO.File]::WriteAllText("$root/net-snmp/$file", ($content -join "`n") + "`n")
+            & cmd /d /c "git -C net-snmp show ${base}:$file > net-snmp\$($file.Replace('/', '\'))"
+            if ($LASTEXITCODE -ne 0) { throw "Unable to retrieve negative-control source: $file" }
         }
+        if ($case.rebuild) { Build-LibSnmp }
         $exe = "$root/reports/$kind-$variant.exe"
-        & cl /nologo /MD /O2 /DWIN32 /DNDEBUG /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS @include "tests/agent/$kind.c" "/Fe:$exe" /link "/LIBPATH:$root/net-snmp/win32/lib/release" @libs
+        $variantDefine = if ($variant -eq 'fixed') { '/DEXPECT_FIXED' } else { @() }
+        & cl /nologo /MD /O2 /DWIN32 /DNDEBUG /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS $variantDefine @include "tests/agent/$kind.c" "/Fe:$exe" /link "/LIBPATH:$root/net-snmp/win32/lib/release" @libs
         if ($LASTEXITCODE -ne 0) { throw "Harness compile failed: $kind/$variant" }
         $output = & $exe 2>&1
         $code = $LASTEXITCODE
-        $expected = if ($variant -eq 'fixed') { 0 } else { -1073741819 }
+        $expected = if ($variant -eq 'fixed') { 0 } else { $case.oldExit }
         if ($code -ne $expected) { throw "Unexpected result for $kind/$variant : $code expected $expected : $output" }
         $results += @{ case = "$kind/$variant"; exitCode = $code; expected = $expected; output = @($output | ForEach-Object { "$_" }); passed = $true }
         & git -C net-snmp restore $file
         if ($LASTEXITCODE -ne 0) { throw 'Unable to restore fixed source' }
+        if ($case.rebuild) { Build-LibSnmp }
     }
 }
 $binary = Get-Item native/bin/snmpd.exe
