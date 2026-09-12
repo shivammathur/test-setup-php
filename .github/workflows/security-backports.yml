@@ -1,0 +1,36 @@
+name: PHP security backport artifact tests
+on:
+  push:
+    branches: [test/net-snmp-agent-cves-20260912]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  artifacts:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            run: '34693818667'
+          - php: '8.3'
+            run: '34693822731'
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run }}
+          github-token: ${{ github.token }}
+          name: artifacts
+          path: artifacts
+      - name: Validate PHP runtime and merged security metadata
+        shell: pwsh
+        run: ./tests/security-backports.ps1 -ArtifactsDirectory artifacts -ReportsDirectory reports
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: security-backports-${{ matrix.php }}
+          path: reports
+          if-no-files-found: warn
