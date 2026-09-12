@@ -1138,6 +1138,8 @@ function assert_intl_userland_manifest(): void
         'locale_set_default',
     ], [
         'locale_add_likely_subtags',
+        'locale_get_display_keyword',
+        'locale_get_display_keyword_value',
         'locale_is_right_to_left',
         'locale_minimize_subtags',
     ]);
@@ -1202,7 +1204,7 @@ function assert_intl_userland_manifest(): void
     assert_class_method_manifest(IntlDatePatternGenerator::class, ['__construct', 'create', 'getBestPattern']);
     assert_class_method_manifest(MessageFormatter::class, ['__construct', 'create', 'format', 'formatMessage', 'getErrorCode', 'getErrorMessage', 'getLocale', 'getPattern', 'parse', 'parseMessage', 'setPattern']);
     assert_class_method_manifest(Normalizer::class, ['getRawDecomposition', 'isNormalized', 'normalize']);
-    assert_class_method_manifest(Locale::class, ['acceptFromHttp', 'canonicalize', 'composeLocale', 'filterMatches', 'getAllVariants', 'getDefault', 'getDisplayLanguage', 'getDisplayName', 'getDisplayRegion', 'getDisplayScript', 'getDisplayVariant', 'getKeywords', 'getPrimaryLanguage', 'getRegion', 'getScript', 'lookup', 'parseLocale', 'setDefault'], ['addLikelySubtags', 'isRightToLeft', 'minimizeSubtags']);
+    assert_class_method_manifest(Locale::class, ['acceptFromHttp', 'canonicalize', 'composeLocale', 'filterMatches', 'getAllVariants', 'getDefault', 'getDisplayLanguage', 'getDisplayName', 'getDisplayRegion', 'getDisplayScript', 'getDisplayVariant', 'getKeywords', 'getPrimaryLanguage', 'getRegion', 'getScript', 'lookup', 'parseLocale', 'setDefault'], ['addLikelySubtags', 'getDisplayKeyword', 'getDisplayKeywordValue', 'isRightToLeft', 'minimizeSubtags']);
     assert_class_method_manifest(IntlCalendar::class, intl_calendar_methods(), intl_calendar_optional_methods());
     assert_class_method_manifest(IntlGregorianCalendar::class, array_values(array_unique(array_merge(intl_calendar_methods(), ['getGregorianChange', 'isLeapYear', 'setGregorianChange']))), array_values(array_unique(array_merge(intl_calendar_optional_methods(), ['createFromDate', 'createFromDateTime']))));
     assert_class_method_manifest(IntlTimeZone::class, ['__construct', 'countEquivalentIDs', 'createDefault', 'createEnumeration', 'createTimeZone', 'createTimeZoneIDEnumeration', 'fromDateTimeZone', 'getCanonicalID', 'getDSTSavings', 'getDisplayName', 'getEquivalentID', 'getErrorCode', 'getErrorMessage', 'getGMT', 'getID', 'getIDForWindowsID', 'getOffset', 'getRawOffset', 'getRegion', 'getTZDataVersion', 'getUnknown', 'getWindowsID', 'hasSameRules', 'toDateTimeZone', 'useDaylightTime'], ['getIanaID']);
@@ -1944,6 +1946,21 @@ function test_intl_locale_grapheme_normalizer_char_idn(): void
         assert_contains('Latin', Locale::getDisplayScript('sr_Latn_RS', 'en_US'), 'Locale display script should include Latin');
         assert_true(is_string(Locale::getDisplayVariant('sl_IT_NEDIS', 'en_US')), 'Locale display variant should return a string');
         assert_contains('English', Locale::getDisplayName('en_US', 'en_US'), 'Locale display name should include English');
+        if (PHP_VERSION_ID >= 80600) {
+            assert_true(function_exists('locale_get_display_keyword'), 'PHP 8.6 should expose locale_get_display_keyword');
+            assert_true(function_exists('locale_get_display_keyword_value'), 'PHP 8.6 should expose locale_get_display_keyword_value');
+            $keyword = Locale::getDisplayKeyword('calendar', 'en_US');
+            assert_contains('Calendar', $keyword, 'Locale display keyword should localize calendar');
+            assert_same($keyword, locale_get_display_keyword('calendar', 'en_US'), 'Procedural display keyword should match Locale');
+            assert_same($keyword, Locale::getDisplayKeyword('calendar'), 'Display keyword should use the default locale');
+            foreach (['calendar' => ['gregorian', 'Gregorian'], 'collation' => ['phonebook', 'Phonebook']] as $key => [$value, $display]) {
+                $locale = 'de_DE@' . $key . '=' . $value;
+                $localized = Locale::getDisplayKeywordValue($locale, $key, 'en_US');
+                assert_contains($display, $localized, 'Locale display keyword value should localize ' . $value);
+                assert_same($localized, locale_get_display_keyword_value($locale, $key, 'en_US'), 'Procedural display keyword value should match Locale');
+                assert_same($localized, Locale::getDisplayKeywordValue($locale, $key), 'Display keyword value should use the default locale');
+            }
+        }
         assert_same(['POSIX'], Locale::getAllVariants('en_US_POSIX'), 'Locale variants should include POSIX');
         assert_true(Locale::filterMatches('de-DE', 'de'), 'Locale filter should match a broader locale range');
         assert_same('en_US', Locale::lookup(['en_US', 'fr_FR'], 'en-US-x-private'), 'Locale lookup should pick en_US');

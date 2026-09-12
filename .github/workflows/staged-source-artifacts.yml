@@ -20,17 +20,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - php: '8.2'
-            run: '34662231492'
-            runner: windows-2022
-          - php: '8.3'
-            run: '34662232785'
-            runner: windows-2022
           - php: '8.4'
-            run: '34662234238'
+            run: '34663616260'
             runner: windows-2022
           - php: '8.5'
-            run: '34662235702'
+            run: '34663617846'
             runner: windows-2022
           - php: 'master'
             run: '34662237294'
@@ -93,6 +87,24 @@ jobs:
           -ReportsDirectory reports/libraries
           -RunId '${{ matrix.run }}'
           -RunTitle 'Published staging dependencies from builder master'
+      - name: Verify security dependency runtimes in all four PHP variants
+        if: ${{ !cancelled() && steps.download.outcome == 'success' }}
+        shell: pwsh
+        run: |
+          New-Item reports/security -ItemType Directory -Force | Out-Null
+          $failed = $false
+          foreach ($arch in @('x64', 'x86')) {
+            foreach ($ts in @('nts', 'ts')) {
+              try {
+                ./tests/security-updates/php.ps1 -ArtifactsDirectory artifacts -Arch $arch -Ts $ts *>&1 |
+                  Tee-Object -FilePath "reports/security/$arch-$ts.log"
+              } catch {
+                $_ | Out-String | Add-Content "reports/security/$arch-$ts.log"
+                $failed = $true
+              }
+            }
+          }
+          if ($failed) { throw 'One or more PHP security dependency variants failed' }
       - name: Save artifact checksums
         if: ${{ !cancelled() && steps.download.outcome == 'success' }}
         shell: pwsh
