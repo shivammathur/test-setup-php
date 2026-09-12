@@ -83,6 +83,10 @@ main(void)
 
     netsnmp_free_request_data_sets(&invalid_request);
     netsnmp_free_request_data_sets(&valid_request);
+#ifdef EXPECT_FIXED
     puts("PASS: out-of-range GetBulk varbind is skipped by the next table handler");
+#else
+    puts("PASS negative control: out-of-range GetBulk varbind reaches the next table handler unprocessed");
+#endif
     return 0;
 }

@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: winlibs/winlib-builder
-          ref: 361a5e78e722b05c9c9004c776f04dc732b2a7e1
+          ref: 8bd7afe86150b76ca1d9879eba3853d99ab99d2d
           path: winlib-builder
       - name: Fetch matching OpenSSL
         shell: pwsh
@@ -34,7 +34,7 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           repository: winlibs/winlib-builder
-          run-id: 34691803484
+          run-id: 34693635929
           github-token: ${{ github.token }}
           name: net-snmp-5.7.3-5-vs16-${{ matrix.arch }}
           path: native

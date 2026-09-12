@@ -28,6 +28,10 @@ main(void)
         return 3;
 #endif
 
+#ifdef EXPECT_FIXED
     puts("PASS: malformed varbind is rejected without attaching an incomplete variable");
+#else
+    puts("PASS negative control: malformed varbind leaves an incomplete variable attached");
+#endif
     return 0;
 }
