@@ -1198,10 +1198,15 @@ function assert_intl_userland_manifest(): void
         'idn_to_utf8',
     ]);
 
+    if (PHP_VERSION_ID >= 80600) {
+        assert_class_method_manifest(IntlListFormatter::class, ['__construct', 'format', 'getErrorCode', 'getErrorMessage']);
+        assert_class_method_manifest(IntlNumberRangeFormatter::class, ['__construct', 'createFromSkeleton', 'format', 'getErrorCode', 'getErrorMessage']);
+    }
+
     assert_class_method_manifest(Collator::class, ['__construct', 'asort', 'compare', 'create', 'getAttribute', 'getErrorCode', 'getErrorMessage', 'getLocale', 'getSortKey', 'getStrength', 'setAttribute', 'setStrength', 'sort', 'sortWithSortKeys']);
     assert_class_method_manifest(NumberFormatter::class, ['__construct', 'create', 'format', 'formatCurrency', 'getAttribute', 'getErrorCode', 'getErrorMessage', 'getLocale', 'getPattern', 'getSymbol', 'getTextAttribute', 'parse', 'parseCurrency', 'setAttribute', 'setPattern', 'setSymbol', 'setTextAttribute']);
     assert_class_method_manifest(IntlDateFormatter::class, ['__construct', 'create', 'format', 'formatObject', 'getCalendar', 'getCalendarObject', 'getDateType', 'getErrorCode', 'getErrorMessage', 'getLocale', 'getPattern', 'getTimeType', 'getTimeZone', 'getTimeZoneId', 'isLenient', 'localtime', 'parse', 'setCalendar', 'setLenient', 'setPattern', 'setTimeZone'], ['parseToCalendar']);
-    assert_class_method_manifest(IntlDatePatternGenerator::class, ['__construct', 'create', 'getBestPattern']);
+    assert_class_method_manifest(IntlDatePatternGenerator::class, ['__construct', 'create', 'getBestPattern'], ['getSkeleton', 'getBaseSkeleton']);
     assert_class_method_manifest(MessageFormatter::class, ['__construct', 'create', 'format', 'formatMessage', 'getErrorCode', 'getErrorMessage', 'getLocale', 'getPattern', 'parse', 'parseMessage', 'setPattern']);
     assert_class_method_manifest(Normalizer::class, ['getRawDecomposition', 'isNormalized', 'normalize']);
     assert_class_method_manifest(Locale::class, ['acceptFromHttp', 'canonicalize', 'composeLocale', 'filterMatches', 'getAllVariants', 'getDefault', 'getDisplayLanguage', 'getDisplayName', 'getDisplayRegion', 'getDisplayScript', 'getDisplayVariant', 'getKeywords', 'getPrimaryLanguage', 'getRegion', 'getScript', 'lookup', 'parseLocale', 'setDefault'], ['addLikelySubtags', 'getDisplayKeyword', 'getDisplayKeywordValue', 'isRightToLeft', 'minimizeSubtags']);
@@ -1210,7 +1215,7 @@ function assert_intl_userland_manifest(): void
     assert_class_method_manifest(IntlTimeZone::class, ['__construct', 'countEquivalentIDs', 'createDefault', 'createEnumeration', 'createTimeZone', 'createTimeZoneIDEnumeration', 'fromDateTimeZone', 'getCanonicalID', 'getDSTSavings', 'getDisplayName', 'getEquivalentID', 'getErrorCode', 'getErrorMessage', 'getGMT', 'getID', 'getIDForWindowsID', 'getOffset', 'getRawOffset', 'getRegion', 'getTZDataVersion', 'getUnknown', 'getWindowsID', 'hasSameRules', 'toDateTimeZone', 'useDaylightTime'], ['getIanaID']);
     assert_class_method_manifest(ResourceBundle::class, ['__construct', 'count', 'create', 'get', 'getErrorCode', 'getErrorMessage', 'getIterator', 'getLocales']);
     assert_class_method_manifest(Transliterator::class, ['__construct', 'create', 'createFromRules', 'createInverse', 'getErrorCode', 'getErrorMessage', 'listIDs', 'transliterate']);
-    assert_class_method_manifest(Spoofchecker::class, ['__construct', 'areConfusable', 'isSuspicious', 'setAllowedLocales', 'setChecks', 'setRestrictionLevel'], ['setAllowedChars']);
+    assert_class_method_manifest(Spoofchecker::class, ['__construct', 'areConfusable', 'isSuspicious', 'setAllowedLocales', 'setChecks', 'setRestrictionLevel'], ['setAllowedChars', 'getSkeleton', 'getBidiSkeleton', 'areBidiConfusable']);
     assert_class_method_manifest(IntlBreakIterator::class, intl_break_iterator_methods());
     assert_class_method_manifest(IntlRuleBasedBreakIterator::class, array_values(array_unique(array_merge(intl_break_iterator_methods(), ['getBinaryRules', 'getRuleStatus', 'getRuleStatusVec', 'getRules']))));
     assert_class_method_manifest(IntlCodePointBreakIterator::class, array_values(array_unique(array_merge(array_diff(intl_break_iterator_methods(), ['__construct']), ['getLastCodePoint']))));
@@ -2159,6 +2164,19 @@ function test_intl_collator_number_message_date(): void
     $generator = IntlDatePatternGenerator::create('en_US');
     assert_true($generator instanceof IntlDatePatternGenerator, 'IntlDatePatternGenerator::create should return generator');
     assert_same('MMM d, y', $generator->getBestPattern('yMMMd'), 'IntlDatePatternGenerator should return best US pattern');
+    if (PHP_VERSION_ID >= 80600) {
+        assert_same('MMMdd', IntlDatePatternGenerator::getSkeleton('dd/MMM'), 'Date skeleton should preserve field width');
+        assert_same('MMMd', IntlDatePatternGenerator::getBaseSkeleton('dd/MMM'), 'Base date skeleton should normalize day width');
+        $list = new IntlListFormatter('en_US');
+        assert_same('red and blue', $list->format(['red', 'blue']), 'IntlListFormatter should join a localized list');
+        assert_same(U_ZERO_ERROR, $list->getErrorCode(), 'List formatter should report no error');
+        assert_same('U_ZERO_ERROR', $list->getErrorMessage(), 'List formatter error message should match its code');
+        $range = IntlNumberRangeFormatter::createFromSkeleton('measure-unit/length-meter', 'en_US', IntlNumberRangeFormatter::COLLAPSE_AUTO, IntlNumberRangeFormatter::IDENTITY_FALLBACK_SINGLE_VALUE);
+        assert_same('100–200 m', $range->format(100, 200), 'Range formatter should collapse the shared meter unit');
+        assert_same('5 m', $range->format(5, 5), 'Range formatter should collapse identical endpoints');
+        assert_same(U_ZERO_ERROR, $range->getErrorCode(), 'Range formatter should report no error');
+        assert_same('U_ZERO_ERROR', $range->getErrorMessage(), 'Range formatter error message should match its code');
+    }
 }
 
 function test_intl_calendar_timezone(): void
@@ -2420,6 +2438,20 @@ function test_intl_iterators_transliterator_spoof_resource_converter(): void
     assert_true(is_string(transliterator_get_error_message($transliterator)), 'transliterator_get_error_message should return string');
 
     $spoof = new Spoofchecker();
+    if (PHP_VERSION_ID >= 80600) {
+        assert_same($spoof->getSkeleton('c'), $spoof->getSkeleton("\u{0441}"), 'Confusable Cyrillic and Latin letters should share a skeleton');
+        assert_not_same($spoof->getSkeleton('abc'), $spoof->getSkeleton('xyz'), 'Unrelated identifiers should have different skeletons');
+        if (version_compare(INTL_ICU_VERSION, '74.0', '>=')) {
+            $first = "A1\u{05D0}";
+            $second = "A\u{05D0}1";
+            assert_same($spoof->getBidiSkeleton(Spoofchecker::LTR, $first), $spoof->getBidiSkeleton(Spoofchecker::LTR, $second), 'LTR confusables should share a bidi skeleton');
+            assert_not_same($spoof->getBidiSkeleton(Spoofchecker::RTL, $first), $spoof->getBidiSkeleton(Spoofchecker::RTL, $second), 'RTL ordering should distinguish these identifiers');
+            $bidiError = null;
+            assert_true($spoof->areBidiConfusable(Spoofchecker::LTR, $first, $second, $bidiError), 'Bidi spoof checking should detect LTR confusables');
+            assert_same(Spoofchecker::MIXED_SCRIPT_CONFUSABLE, $bidiError, 'Bidi spoof checking should identify mixed scripts');
+            assert_false($spoof->areBidiConfusable(Spoofchecker::RTL, $first, $second), 'Bidi spoof checking should respect RTL order');
+        }
+    }
     $spoofError = null;
     assert_true($spoof->isSuspicious('раураl', $spoofError), 'Spoofchecker should detect suspicious Cyrillic spoof text');
     assert_true(is_int($spoofError), 'Spoofchecker isSuspicious should set error code');
