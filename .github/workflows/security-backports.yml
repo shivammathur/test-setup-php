@@ -1,5 +1,5 @@
 name: Validate SNMP and ICU security backports
-run-name: SNMP and ICU security artifact QA
+run-name: Published staging SNMP and ICU artifact QA
 on:
   push:
     branches: [test/snmp-icu-security-20260912]
@@ -8,73 +8,6 @@ permissions:
   contents: read
   actions: read
 jobs:
-  native:
-    name: Native backport QA (${{ matrix.arch }})
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x64, x86]
-    runs-on: windows-2022
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/checkout@v6
-        with:
-          repository: winlibs/winlib-builder
-          ref: 01708e0bea5cd008949e3349edba322e0a762838
-          path: winlib-builder
-      - name: Download Net-SNMP build
-        uses: actions/download-artifact@v8
-        with:
-          repository: winlibs/winlib-builder
-          run-id: 34670349667
-          name: net-snmp-5.7.3-4-vs16-${{ matrix.arch }}
-          github-token: ${{ github.token }}
-          path: net-snmp
-      - name: Download ICU build
-        uses: actions/download-artifact@v8
-        with:
-          repository: winlibs/winlib-builder
-          run-id: 34670349607
-          name: ICU-71.1-2-vs16-${{ matrix.arch }}
-          github-token: ${{ github.token }}
-          path: icu
-      - name: Verify artifact source and vulnerability metadata
-        shell: pwsh
-        run: |
-          New-Item reports -ItemType Directory -Force | Out-Null
-          ./tests/verify-backport-metadata.ps1 -Arch '${{ matrix.arch }}' *>&1 | Tee-Object reports/artifact-metadata.log
-      - name: Set up VS16 compiler
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: ${{ matrix.arch }}
-          toolset: '14.29'
-      - name: Fetch matching OpenSSL dependency
-        shell: pwsh
-        run: ./winlib-builder/scripts/fetch-deps.ps1 -lib net-snmp -version 8.2 -vs vs16 -arch '${{ matrix.arch }}' -stability staging
-      - name: Verify Net-SNMP cache fix
-        shell: pwsh
-        run: |
-          New-Item reports -ItemType Directory -Force | Out-Null
-          ./tests/net-snmp/test-mib-index.ps1 -InstallRoot net-snmp -DependencyRoot deps *>&1 | Tee-Object reports/snmp-regression.log
-      - name: Verify ICU collation fix
-        if: ${{ !cancelled() }}
-        shell: pwsh
-        run: ./tests/icu-collation.ps1 -InstallRoot icu *>&1 | Tee-Object reports/icu-regression.log
-      - name: Verify SBOM and VEX generation
-        if: ${{ !cancelled() && matrix.arch == 'x64' }}
-        shell: pwsh
-        run: ./tests/test-fixed-vulnerabilities.ps1 -BuilderRoot winlib-builder *>&1 | Tee-Object reports/sbom-regression.log
-      - name: Save library artifact checksums
-        if: ${{ !cancelled() }}
-        shell: pwsh
-        run: Get-ChildItem net-snmp,icu -Recurse -File | Get-FileHash -Algorithm SHA256 | ConvertTo-Json | Set-Content reports/library-sha256.json
-      - name: Upload native QA evidence
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: native-${{ matrix.arch }}
-          path: reports
-          if-no-files-found: error
   php:
     name: PHP ${{ matrix.php }} backport QA
     strategy:
@@ -82,9 +15,9 @@ jobs:
       matrix:
         include:
           - php: '8.2'
-            run: '34670584656'
+            run: '34681407128'
           - php: '8.3'
-            run: '34670460576'
+            run: '34681408357'
     runs-on: windows-2022
     timeout-minutes: 100
     steps:
