@@ -1,6 +1,13 @@
 name: Native dependency and PHP runtime validation
 on:
   workflow_dispatch:
+  push:
+    branches: [test/staged-deps-source-20260912]
+    paths:
+      - .github/workflows/artifact-runtime.yml
+      - scripts/download-native-deps.ps1
+      - tests/pecl-native.py
+      - tests/security-updates/**
 permissions:
   contents: read
   actions: read

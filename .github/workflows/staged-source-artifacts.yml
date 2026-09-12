@@ -3,6 +3,12 @@ run-name: PHP source artifacts after dependency publication
 on:
   push:
     branches: [test/staged-deps-source-20260912]
+    paths:
+      - scripts/run-winlibs-deps-suite.ps1
+      - tests/winlibs-deps-exhaustive.php
+      - tests/php-artifact-library-suite.php
+      - tests/mock-ldap-sasl-server.php
+      - tests/run-artifact-suite.ps1
   workflow_dispatch:
 permissions:
   contents: read
