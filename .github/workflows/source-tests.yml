@@ -1,0 +1,57 @@
+name: Focused PHP 8.2 SNMP and Intl source tests
+on:
+  push:
+    branches: [test/snmp-icu-php82-source-20260912]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  test:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: e620aec811d7c39a7a3082c805b2b21e5e9cf203
+      - name: Download exact candidate PHP artifacts
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: 34670584656
+          github-token: ${{ github.token }}
+          name: artifacts
+      - name: Verify exact runtime archive hash
+        shell: pwsh
+        run: |
+          $archive = 'php-8.2.34-dev-nts-Win32-vs16-x64.zip'
+          $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne '2925e5a1c6f1e4f44d69f6c619ede8d9793ede6e6cc6437a0bf110106b4e135f') { throw 'Wrong PHP runtime archive.' }
+          @{ archive = $archive; sha256 = $hash; sourceRun = '34670584656' } | ConvertTo-Json | Set-Content artifact-identity.json
+      - name: Run affected extension source tests with opcache
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          LIBS_BUILD_RUNS: '34670349667,34670349607'
+        run: |
+          Import-Module ./php/BuildPhp -Force
+          Invoke-PhpTests -PhpVersion '8.2.34-dev' -Arch x64 -Ts nts -Opcache opcache -TestType ext -SourceRepository php/php-src -SourceRef '4fa25b04e76ccafda9a778f2ba2aaeb66fad1037' -TestDirectories @('ext/intl/tests', 'ext/snmp/tests') -FailOnError
+      - name: Require a complete passing JUnit report
+        shell: pwsh
+        run: |
+          [xml]$report = Get-Content test-x64-nts-opcache-ext.xml -Raw
+          $cases = $report.SelectNodes('//testcase')
+          $failures = $report.SelectNodes('//failure|//error')
+          if ($cases.Count -eq 0 -or $failures.Count -ne 0) { throw 'Missing or failing test results.' }
+          Write-Host "PASS: $($cases.Count) targeted source test cases; no failures."
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: php82-x64-nts-opcache-snmp-intl
+          path: |
+            artifact-identity.json
+            test-x64-nts-opcache-ext.xml
+            test-x64-nts-opcache-ext.log
+          if-no-files-found: error
