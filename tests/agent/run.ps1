@@ -26,7 +26,10 @@ foreach ($kind in @('logging','vacm')) {
     }
 }
 $binary = Get-Item native/bin/snmpd.exe
+$runtimeDlls = @(Get-ChildItem deps/bin -File -Filter '*.dll' -ErrorAction SilentlyContinue)
+if ($runtimeDlls.Count -eq 0) { throw 'Matching OpenSSL runtime DLLs were not fetched.' }
+Copy-Item $runtimeDlls.FullName native/bin -Force
 $output = & $binary.FullName -v 2>&1
 if ($LASTEXITCODE -ne 0 -or ($output -join "`n") -notmatch '5\.7\.3') { throw "Packaged snmpd version check failed: $output" }
-$hashes = Get-ChildItem native -Recurse -File | Where-Object { $_.Extension -in @('.lib','.exe') } | ForEach-Object { @{ file = $_.FullName.Substring($root.Length+1); sha256 = (Get-FileHash $_.FullName).Hash } }
+$hashes = Get-ChildItem native -Recurse -File | Where-Object { $_.Extension -in @('.lib','.exe','.dll') } | ForEach-Object { @{ file = $_.FullName.Substring($root.Length+1); sha256 = (Get-FileHash $_.FullName).Hash } }
 @{ arch = $Arch; cases = $results; binaries = @($hashes); packagedSnmpd = @($output | ForEach-Object { "$_" }) } | ConvertTo-Json -Depth 10 | Set-Content reports/agent-regressions.json
