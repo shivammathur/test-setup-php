@@ -1,0 +1,100 @@
+name: Validate staged dependency PHP source artifacts
+run-name: PHP source artifacts after dependency publication
+on:
+  push:
+    branches: [test/staged-deps-source-20260912]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  validate:
+    name: PHP ${{ matrix.php }} artifact QA
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            run: '34662231492'
+            runner: windows-2022
+          - php: '8.3'
+            run: '34662232785'
+            runner: windows-2022
+          - php: '8.4'
+            run: '34662234238'
+            runner: windows-2022
+          - php: '8.5'
+            run: '34662235702'
+            runner: windows-2022
+          - php: 'master'
+            run: '34662237294'
+            runner: windows-2025-vs2026
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v6
+      - name: Wait for the exact source build artifacts
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $repo = 'shivammathur/php-windows-builder'
+          $id = '${{ matrix.run }}'
+          $deadline = (Get-Date).AddMinutes(65)
+          while ((Get-Date) -lt $deadline) {
+            $run = gh api "repos/$repo/actions/runs/$id" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw 'Unable to inspect source run' }
+            if ($run.head_branch -ne 'master' -or $run.workflow_id -ne 251563593) { throw 'Unexpected source workflow/ref' }
+            $artifacts = gh api "repos/$repo/actions/runs/$id/artifacts" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw 'Unable to inspect source artifacts' }
+            $ready = @($artifacts.artifacts | Where-Object { $_.name -eq 'artifacts' -and -not $_.expired })
+            if ($ready.Count -eq 1) {
+              New-Item reports -ItemType Directory -Force | Out-Null
+              $run | ConvertTo-Json -Depth 30 | Set-Content reports/source-run.json
+              $ready[0] | ConvertTo-Json -Depth 20 | Set-Content reports/source-artifact.json
+              break
+            }
+            if ($run.status -eq 'completed') { throw "Source run completed without artifacts: $($run.conclusion)" }
+            Start-Sleep -Seconds 30
+          }
+          if ($ready.Count -ne 1) { throw 'Timed out waiting for source artifacts' }
+      - name: Download exact source build artifacts
+        id: download
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run }}
+          github-token: ${{ github.token }}
+          name: artifacts
+          path: artifacts
+      - name: Exercise Winlibs dependency APIs
+        if: ${{ !cancelled() && steps.download.outcome == 'success' }}
+        shell: pwsh
+        run: >-
+          ./scripts/run-winlibs-deps-suite.ps1
+          -ArtifactsDirectory artifacts
+          -ReportsDirectory reports/winlibs
+          -RunId '${{ matrix.run }}'
+          -RunTitle 'Published staging dependencies from builder master'
+          -PhpTarget '${{ matrix.php }}'
+      - name: Exercise SQLite AVIF and LDAP SASL
+        if: ${{ !cancelled() && steps.download.outcome == 'success' }}
+        shell: pwsh
+        run: >-
+          ./tests/run-artifact-suite.ps1
+          -ArtifactsDirectory artifacts
+          -ReportsDirectory reports/libraries
+          -RunId '${{ matrix.run }}'
+          -RunTitle 'Published staging dependencies from builder master'
+      - name: Save artifact checksums
+        if: ${{ !cancelled() && steps.download.outcome == 'success' }}
+        shell: pwsh
+        run: Get-ChildItem artifacts -Recurse -File | Get-FileHash -Algorithm SHA256 | ConvertTo-Json | Set-Content reports/artifact-sha256.json
+      - name: Upload all QA evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: qa-${{ matrix.php }}-${{ matrix.run }}
+          path: reports
+          if-no-files-found: error

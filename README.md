@@ -1,0 +1,1 @@
+Validate the exact PHP source artifacts built on php-windows-builder master after the September 12 Winlibs publication. Covers all five source branches and four architecture/thread-safety variants. Existing Winlibs API and SQLite/AVIF/LDAP SASL suites run independently and retain every report.
