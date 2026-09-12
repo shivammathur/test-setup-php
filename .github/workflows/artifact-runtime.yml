@@ -1,0 +1,296 @@
+name: Native dependency and PHP runtime validation
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  native:
+    name: ${{ matrix.library }} PHP ${{ matrix.php }} ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - library: librdkafka
+            php: '8.2'
+            arch: x64
+            vs: vs16
+            run: '34662486886'
+            ssl_run: '34644811210'
+            ssl_version: '3.0.22'
+            runner: windows-2022
+          - library: librdkafka
+            php: '8.2'
+            arch: x86
+            vs: vs16
+            run: '34662486886'
+            ssl_run: '34644811210'
+            ssl_version: '3.0.22'
+            runner: windows-2022
+          - library: librabbitmq-c
+            php: '8.2'
+            arch: x64
+            vs: vs16
+            run: '34662488236'
+            ssl_run: '34644811210'
+            ssl_version: '3.0.22'
+            runner: windows-2022
+          - library: librabbitmq-c
+            php: '8.2'
+            arch: x86
+            vs: vs16
+            run: '34662488236'
+            ssl_run: '34644811210'
+            ssl_version: '3.0.22'
+            runner: windows-2022
+          - library: librdkafka
+            php: '8.4'
+            arch: x64
+            vs: vs17
+            run: '34662489748'
+            ssl_run: '34644813969'
+            ssl_version: '3.0.22'
+            runner: windows-2022
+          - library: librdkafka
+            php: '8.4'
+            arch: x86
+            vs: vs17
+            run: '34662489748'
+            ssl_run: '34644813969'
+            ssl_version: '3.0.22'
+            runner: windows-2022
+          - library: librabbitmq-c
+            php: '8.4'
+            arch: x64
+            vs: vs17
+            run: '34662491309'
+            ssl_run: '34644813969'
+            ssl_version: '3.0.22'
+            runner: windows-2022
+          - library: librabbitmq-c
+            php: '8.4'
+            arch: x86
+            vs: vs17
+            run: '34662491309'
+            ssl_run: '34644813969'
+            ssl_version: '3.0.22'
+            runner: windows-2022
+          - library: librdkafka
+            php: '8.5'
+            arch: x64
+            vs: vs17
+            run: '34662492812'
+            ssl_run: '34644816848'
+            ssl_version: '3.5.8'
+            runner: windows-2022
+          - library: librdkafka
+            php: '8.5'
+            arch: x86
+            vs: vs17
+            run: '34662492812'
+            ssl_run: '34644816848'
+            ssl_version: '3.5.8'
+            runner: windows-2022
+          - library: librabbitmq-c
+            php: '8.5'
+            arch: x64
+            vs: vs17
+            run: '34662494373'
+            ssl_run: '34644816848'
+            ssl_version: '3.5.8'
+            runner: windows-2022
+          - library: librabbitmq-c
+            php: '8.5'
+            arch: x86
+            vs: vs17
+            run: '34662494373'
+            ssl_run: '34644816848'
+            ssl_version: '3.5.8'
+            runner: windows-2022
+          - library: librdkafka
+            php: '8.6'
+            arch: x64
+            vs: vs18
+            run: '34662496200'
+            ssl_run: '34644819318'
+            ssl_version: '4.0.2'
+            runner: windows-2025-vs2026
+          - library: librdkafka
+            php: '8.6'
+            arch: x86
+            vs: vs18
+            run: '34662496200'
+            ssl_run: '34644819318'
+            ssl_version: '4.0.2'
+            runner: windows-2025-vs2026
+          - library: librabbitmq-c
+            php: '8.6'
+            arch: x64
+            vs: vs18
+            run: '34662497984'
+            ssl_run: '34644819318'
+            ssl_version: '4.0.2'
+            runner: windows-2025-vs2026
+          - library: librabbitmq-c
+            php: '8.6'
+            arch: x86
+            vs: vs18
+            run: '34662497984'
+            ssl_run: '34644819318'
+            ssl_version: '4.0.2'
+            runner: windows-2025-vs2026
+          - library: librrd
+            php: '8.2'
+            arch: x64
+            vs: vs16
+            run: '34662771985'
+            ssl_run: ''
+            ssl_version: ''
+            runner: windows-2022
+          - library: librrd
+            php: '8.2'
+            arch: x86
+            vs: vs16
+            run: '34662771985'
+            ssl_run: ''
+            ssl_version: ''
+            runner: windows-2022
+          - library: librrd
+            php: '8.4'
+            arch: x64
+            vs: vs17
+            run: '34662921586'
+            ssl_run: ''
+            ssl_version: ''
+            runner: windows-2022
+          - library: librrd
+            php: '8.4'
+            arch: x86
+            vs: vs17
+            run: '34662921586'
+            ssl_run: ''
+            ssl_version: ''
+            runner: windows-2022
+          - library: librrd
+            php: '8.6'
+            arch: x64
+            vs: vs18
+            run: '34662923349'
+            ssl_run: ''
+            ssl_version: ''
+            runner: windows-2025-vs2026
+          - library: librrd
+            php: '8.6'
+            arch: x86
+            vs: vs18
+            run: '34662923349'
+            ssl_run: ''
+            ssl_version: ''
+            runner: windows-2025-vs2026
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          architecture: ${{ matrix.arch }}
+      - name: Download the exact build and dependency runtimes
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          ./scripts/download-native-deps.ps1
+          -Library '${{ matrix.library }}'
+          -RunId '${{ matrix.run }}'
+          -Php '${{ matrix.php }}'
+          -Vs '${{ matrix.vs }}'
+          -Arch '${{ matrix.arch }}'
+          -OpenSslRun '${{ matrix.ssl_run }}'
+      - name: Exercise library APIs
+        shell: pwsh
+        run: |
+          $arguments = @('tests/pecl-native.py', '${{ matrix.library }}', '--root', 'product', '--deps', 'deps', '--report', 'reports/native.json')
+          if ('${{ matrix.ssl_version }}') { $arguments += @('--openssl', '${{ matrix.ssl_version }}') }
+          python @arguments
+          if ($LASTEXITCODE -ne 0) { throw 'Native dependency validation failed' }
+      - name: Upload native results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-${{ matrix.library }}-${{ matrix.php }}-${{ matrix.arch }}
+          path: reports
+          if-no-files-found: error
+  php:
+    name: PHP ${{ matrix.php }} security library runtime
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            run: '34662231492'
+            runner: windows-2022
+          - php: '8.3'
+            run: '34662232785'
+            runner: windows-2022
+          - php: '8.4'
+            run: '34662234238'
+            runner: windows-2022
+          - php: '8.5'
+            run: '34662235702'
+            runner: windows-2022
+          - php: 'master'
+            run: '34662237294'
+            runner: windows-2025-vs2026
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v6
+      - name: Wait for PHP source artifacts
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $deadline = (Get-Date).AddMinutes(65)
+          while ((Get-Date) -lt $deadline) {
+            $run = gh api 'repos/shivammathur/php-windows-builder/actions/runs/${{ matrix.run }}' | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw 'Unable to inspect PHP run' }
+            $artifacts = gh api 'repos/shivammathur/php-windows-builder/actions/runs/${{ matrix.run }}/artifacts' | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw 'Unable to inspect PHP artifacts' }
+            $ready = @($artifacts.artifacts | Where-Object { $_.name -eq 'artifacts' -and -not $_.expired })
+            if ($ready.Count -eq 1) { break }
+            if ($run.status -eq 'completed') { throw "Build completed without artifacts: $($run.conclusion)" }
+            Start-Sleep -Seconds 30
+          }
+          if ($ready.Count -ne 1) { throw 'PHP artifact wait timed out' }
+      - uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run }}
+          github-token: ${{ github.token }}
+          name: artifacts
+          path: artifacts
+      - name: Verify versions crypto roundtrips and dependent extensions
+        shell: pwsh
+        run: |
+          New-Item reports -ItemType Directory -Force | Out-Null
+          $failed = $false
+          foreach ($arch in @('x64', 'x86')) {
+            foreach ($ts in @('nts', 'ts')) {
+              try {
+                ./tests/security-updates/php.ps1 -ArtifactsDirectory artifacts -Arch $arch -Ts $ts *>&1 |
+                  Tee-Object -FilePath "reports/$arch-$ts.log"
+              } catch {
+                $_ | Out-String | Add-Content "reports/$arch-$ts.log"
+                $failed = $true
+              }
+            }
+          }
+          if ($failed) { throw 'One or more PHP runtime variants failed' }
+      - name: Upload PHP runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: php-security-runtime-${{ matrix.php }}
+          path: reports
+          if-no-files-found: error
