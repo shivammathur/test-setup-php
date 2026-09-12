@@ -1,0 +1,61 @@
+name: Net-SNMP agent regression tests
+on:
+  push:
+    branches: [test/net-snmp-agent-cves-20260912]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  agent:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86]
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: winlibs/net-snmp
+          ref: c29ca8d86c9259ff25b19338fbb8ceb5eedcd5e9
+          fetch-depth: 0
+          path: net-snmp
+      - uses: actions/checkout@v6
+        with:
+          repository: winlibs/winlib-builder
+          ref: 361a5e78e722b05c9c9004c776f04dc732b2a7e1
+          path: winlib-builder
+      - name: Fetch matching OpenSSL
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./winlib-builder/scripts/fetch-deps.ps1 -lib net-snmp -version 8.2 -vs vs16 -arch ${{ matrix.arch }} -stability staging
+      - uses: actions/download-artifact@v8
+        with:
+          repository: winlibs/winlib-builder
+          run-id: 34691803484
+          github-token: ${{ github.token }}
+          name: net-snmp-5.7.3-5-vs16-${{ matrix.arch }}
+          path: native
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+          toolset: '14.29'
+      - name: Build agent support libraries from exact source
+        shell: cmd
+        run: |
+          cd net-snmp\win32
+          perl Configure --with-sdk --with-ssl --config=release --linktype=static --with-ipv6 --prefix=c:/usr
+          if errorlevel 1 exit /b 1
+          set INCLUDE=${{ github.workspace }}\deps\include;%INCLUDE%
+          nmake libagent netsnmpmibs
+      - name: Test fixed source and vulnerable negative controls
+        shell: pwsh
+        run: ./tests/agent/run.ps1 -Arch ${{ matrix.arch }}
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: agent-${{ matrix.arch }}
+          path: reports
+          if-no-files-found: warn
