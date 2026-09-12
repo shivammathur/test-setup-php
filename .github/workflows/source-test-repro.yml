@@ -1,0 +1,65 @@
+name: Recheck PHP master CGI source tests
+on:
+  push:
+    branches: [test/staged-deps-source-20260912]
+    paths:
+      - .github/workflows/source-test-repro.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  cgi:
+    name: CGI ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86, x64]
+        ts: [nts, ts]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: e620aec811d7c39a7a3082c805b2b21e5e9cf203
+          path: builder
+      - uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: '34662237294'
+          github-token: ${{ github.token }}
+          name: artifacts
+          path: artifacts
+      - name: Repeat the CGI source suite with the same PHP archives
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $workspace = (Get-Location).Path
+          Import-Module "$workspace/builder/php/BuildPhp" -Force
+          $reports = New-Item "$workspace/reports" -ItemType Directory -Force
+          $failed = $false
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            Push-Location "$workspace/artifacts"
+            try {
+              Invoke-PhpTests -PhpVersion '8.6.0-dev' -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}' -Opcache nocache -TestType php -TestDirectories @('sapi/cgi/tests') -FailOnError
+            } catch {
+              $_ | Out-String | Set-Content "$reports/attempt-$attempt-error.txt"
+              $failed = $true
+            } finally {
+              Set-Location "$workspace/artifacts"
+              Get-ChildItem 'test-*.xml','test-*.log' -ErrorAction SilentlyContinue | ForEach-Object {
+                Move-Item $_.FullName "$reports/attempt-$attempt-$($_.Name)" -Force
+              }
+              Pop-Location
+            }
+          }
+          if ($failed) { throw 'One or more CGI repetitions failed' }
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cgi-${{ matrix.arch }}-${{ matrix.ts }}
+          path: reports
+          if-no-files-found: error
