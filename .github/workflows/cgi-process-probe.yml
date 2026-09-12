@@ -1,0 +1,41 @@
+name: Diagnose PHP master CGI subprocess output
+on:
+  push:
+    branches: [test/staged-deps-source-20260912]
+    paths: [.github/workflows/cgi-process-probe.yml, tests/cgi-process-probe.php]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  probe:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86, x64]
+        ts: [nts, ts]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: '34662237294'
+          github-token: ${{ github.token }}
+          name: artifacts
+          path: artifacts
+      - name: Compare direct process execution and PHP shell wrappers
+        shell: pwsh
+        run: |
+          $suffix = if ('${{ matrix.ts }}' -eq 'nts') { '-nts' } else { '' }
+          Expand-Archive "artifacts/php-8.6.0-dev$suffix-Win32-vs18-${{ matrix.arch }}.zip" -DestinationPath product
+          New-Item reports -ItemType Directory -Force | Out-Null
+          ./product/php.exe -n ./tests/cgi-process-probe.php reports/process-results.json
+          if ($LASTEXITCODE -ne 0) { throw 'A CGI or CLI process lost output' }
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: process-${{ matrix.arch }}-${{ matrix.ts }}
+          path: reports
+          if-no-files-found: error
