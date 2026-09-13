@@ -1,0 +1,56 @@
+name: Validate PHP 8.6 libxml2 security artifacts
+run-name: Validate PHP run ${{ inputs.php_run }} with libxml2 2.15.4
+on:
+  workflow_dispatch:
+    inputs:
+      php_run:
+        description: Exact PHP source build run ID
+        required: true
+      builder_sha:
+        description: Exact PHP builder commit
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  validate:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify source build identity
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.php_run }}
+          BUILDER_SHA: ${{ inputs.builder_sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $run = gh api "repos/shivammathur/php-windows-builder/actions/runs/$env:SOURCE_RUN" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Could not read source run' }
+          if ($run.head_sha -ne $env:BUILDER_SHA -or $run.workflow_id -ne 251563593) { throw 'Unexpected source workflow or commit' }
+          $artifacts = gh api "repos/shivammathur/php-windows-builder/actions/runs/$env:SOURCE_RUN/artifacts" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Could not read artifact inventory' }
+          $selected = @($artifacts.artifacts | Where-Object { $_.name -eq 'artifacts' -and -not $_.expired })
+          if ($selected.Count -ne 1) { throw 'Expected one merged PHP artifact' }
+          New-Item reports -ItemType Directory -Force | Out-Null
+          $run | ConvertTo-Json -Depth 40 | Set-Content reports/source-run.json
+          $selected | ConvertTo-Json -Depth 30 | Set-Content reports/source-artifact.json
+      - name: Download exact PHP artifacts
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ inputs.php_run }}
+          github-token: ${{ github.token }}
+          name: artifacts
+          path: artifacts
+      - name: Validate all PHP runtime variants
+        shell: pwsh
+        run: ./scripts/test-libxml2-artifacts.ps1 -ArtifactsDirectory artifacts -ReportsDirectory reports/libxml2
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: libxml2-qa-${{ inputs.php_run }}
+          path: reports
+          if-no-files-found: error
