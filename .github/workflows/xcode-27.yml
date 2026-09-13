@@ -1,0 +1,27 @@
+name: Verify xcode-27 runner OS
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: xcode-27
+    timeout-minutes: 5
+    steps:
+      - name: Report macOS, architecture, and Xcode versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo '### xcode-27 runner environment'
+            echo '```text'
+            sw_vers
+            uname -smr
+            xcodebuild -version
+            xcrun --sdk macosx --show-sdk-version
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
