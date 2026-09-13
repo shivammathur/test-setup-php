@@ -1,0 +1,82 @@
+name: Reproduce and fix PHP libxml2 encoder double free
+run-name: Compare PHP runs ${{ inputs.baseline_run }} and ${{ inputs.fixed_run }}
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_run:
+        description: Exact unpatched PHP source build run ID
+        required: true
+      fixed_run:
+        description: Exact fixed PHP source build run ID
+        required: true
+      builder_sha:
+        description: Exact PHP builder commit
+        required: true
+      expected_libxml:
+        description: Expected libxml2 version
+        required: true
+        default: 2.15.4
+permissions:
+  contents: read
+  actions: read
+jobs:
+  validate:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify source build identities
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASELINE_RUN: ${{ inputs.baseline_run }}
+          FIXED_RUN: ${{ inputs.fixed_run }}
+          BUILDER_SHA: ${{ inputs.builder_sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item reports -ItemType Directory -Force | Out-Null
+          $sources = @(
+            @{ label = 'baseline'; run = $env:BASELINE_RUN; sha = 'ae62043aa340871abfeea8568565d23d8b42f35a' },
+            @{ label = 'fixed'; run = $env:FIXED_RUN; sha = '6f52a68e0ddab7bcb1cf42b225154882f2ccab17' }
+          )
+          foreach ($source in $sources) {
+            $run = gh api "repos/shivammathur/php-windows-builder/actions/runs/$($source.run)" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw "Could not read $($source.label) source run" }
+            if ($run.head_sha -ne $env:BUILDER_SHA -or $run.workflow_id -ne 251563593) { throw "Unexpected $($source.label) source workflow or builder commit" }
+            if ($run.display_title -ne "Build PHP from source $($source.sha)") { throw "Unexpected $($source.label) PHP source commit" }
+            $artifacts = gh api "repos/shivammathur/php-windows-builder/actions/runs/$($source.run)/artifacts" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw "Could not read $($source.label) artifact inventory" }
+            $selected = @($artifacts.artifacts | Where-Object { $_.name -eq 'artifacts' -and -not $_.expired })
+            if ($selected.Count -ne 1) { throw "Expected one merged $($source.label) PHP artifact" }
+            $run | ConvertTo-Json -Depth 40 | Set-Content "reports/$($source.label)-source-run.json"
+            $selected | ConvertTo-Json -Depth 30 | Set-Content "reports/$($source.label)-source-artifact.json"
+          }
+      - name: Download unpatched PHP artifacts
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ inputs.baseline_run }}
+          github-token: ${{ github.token }}
+          name: artifacts
+          path: artifacts/baseline
+      - name: Download fixed PHP artifacts
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ inputs.fixed_run }}
+          github-token: ${{ github.token }}
+          name: artifacts
+          path: artifacts/fixed
+      - name: Reproduce the unpatched double free in every runtime variant
+        shell: pwsh
+        run: ./scripts/test-libxml2-artifacts.ps1 -ArtifactsDirectory artifacts/baseline -ReportsDirectory reports/baseline -ExpectedLibxml '${{ inputs.expected_libxml }}' -ExpectedFailingCase html-output-failure-ownership -ExpectedFailureExitCode -1073740940
+      - name: Verify the fix in every runtime variant
+        shell: pwsh
+        run: ./scripts/test-libxml2-artifacts.ps1 -ArtifactsDirectory artifacts/fixed -ReportsDirectory reports/fixed -ExpectedLibxml '${{ inputs.expected_libxml }}'
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: libxml2-encoder-ownership-ab-${{ inputs.baseline_run }}-${{ inputs.fixed_run }}
+          path: reports
+          if-no-files-found: error
