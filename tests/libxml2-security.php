@@ -3,6 +3,12 @@ declare(strict_types=1);
 
 $results = [];
 $selectedTest = $argv[1] ?? null;
+$expectedLibxml = getenv('EXPECTED_LIBXML_VERSION') ?: '2.15.4';
+$expectedVersionParts = array_map('intval', explode('.', $expectedLibxml));
+if (count($expectedVersionParts) !== 3) {
+    throw new RuntimeException("Invalid expected libxml2 version: {$expectedLibxml}");
+}
+$expectedLibxmlNumeric = $expectedVersionParts[0] * 10000 + $expectedVersionParts[1] * 100 + $expectedVersionParts[2];
 function check(string $name, callable $test): void {
     global $results, $selectedTest;
     if ($selectedTest === '--list') {
@@ -23,7 +29,7 @@ function check(string $name, callable $test): void {
 }
 
 libxml_use_internal_errors(true);
-check('headers-and-runtime-version', fn() => LIBXML_VERSION === 21504 && LIBXML_DOTTED_VERSION === '2.15.4' && LIBXML_LOADED_VERSION === '21504');
+check('headers-and-runtime-version', fn() => LIBXML_VERSION === $expectedLibxmlNumeric && LIBXML_DOTTED_VERSION === $expectedLibxml && LIBXML_LOADED_VERSION === (string) $expectedLibxmlNumeric);
 check('extensions', fn() => count(array_filter(['dom', 'libxml', 'SimpleXML', 'xml', 'xmlreader', 'xmlwriter', 'xsl'], 'extension_loaded')) === 7);
 check('dom-xpath-namespaces', function () {
     $doc = new DOMDocument();
@@ -125,6 +131,6 @@ if ($selectedTest === '--list') {
     echo json_encode($results), "\n";
     exit(0);
 }
-$report = ['php' => PHP_VERSION, 'libxml_headers' => LIBXML_DOTTED_VERSION, 'libxml_runtime' => LIBXML_LOADED_VERSION, 'libxslt' => defined('LIBXSLT_DOTTED_VERSION') ? LIBXSLT_DOTTED_VERSION : null, 'tests' => $results];
+$report = ['php' => PHP_VERSION, 'expected_libxml' => $expectedLibxml, 'libxml_headers' => LIBXML_DOTTED_VERSION, 'libxml_runtime' => LIBXML_LOADED_VERSION, 'libxslt' => defined('LIBXSLT_DOTTED_VERSION') ? LIBXSLT_DOTTED_VERSION : null, 'tests' => $results];
 echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), "\n";
 exit(count(array_filter($results, fn($test) => $test['status'] === 'failed')) > 0 ? 1 : 0);

@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory)][string]$ArtifactsDirectory,
-    [Parameter(Mandatory)][string]$ReportsDirectory
+    [Parameter(Mandatory)][string]$ReportsDirectory,
+    [Parameter(Mandatory)][ValidatePattern('^\d+\.\d+\.\d+$')][string]$ExpectedLibxml
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -27,8 +28,9 @@ foreach ($zip in $zips) {
         }
         if ($xmlComponents.Count -eq 0) { throw 'Missing libxml2 inventory' }
         foreach ($component in $xmlComponents) {
-            if ($component.version -ne '2.15.4') { throw "Stale libxml2 component: $($component.version)" }
+            if ($component.version -ne $ExpectedLibxml) { throw "Unexpected libxml2 component: $($component.version), expected $ExpectedLibxml" }
         }
+        $env:EXPECTED_LIBXML_VERSION = $ExpectedLibxml
         $phpArguments = @('-n', '-d', "extension_dir=$root\ext", '-d', 'extension=xsl', (Join-Path $PSScriptRoot '../tests/libxml2-security.php'))
         $casesJson = & "$root\php.exe" @phpArguments '--list'
         if ($LASTEXITCODE -ne 0) { throw "PHP startup failed for $variant, exit $LASTEXITCODE" }

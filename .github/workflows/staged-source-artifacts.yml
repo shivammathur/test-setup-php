@@ -1,5 +1,5 @@
 name: Validate PHP 8.6 libxml2 security artifacts
-run-name: Validate PHP run ${{ inputs.php_run }} with libxml2 2.15.4
+run-name: Validate PHP run ${{ inputs.php_run }} with libxml2 ${{ inputs.expected_libxml }}
 on:
   workflow_dispatch:
     inputs:
@@ -9,6 +9,10 @@ on:
       builder_sha:
         description: Exact PHP builder commit
         required: true
+      expected_libxml:
+        description: Expected libxml2 version
+        required: true
+        default: 2.15.4
 permissions:
   contents: read
   actions: read
@@ -46,11 +50,11 @@ jobs:
           path: artifacts
       - name: Validate all PHP runtime variants
         shell: pwsh
-        run: ./scripts/test-libxml2-artifacts.ps1 -ArtifactsDirectory artifacts -ReportsDirectory reports/libxml2
+        run: ./scripts/test-libxml2-artifacts.ps1 -ArtifactsDirectory artifacts -ReportsDirectory reports/libxml2 -ExpectedLibxml '${{ inputs.expected_libxml }}'
       - name: Upload QA evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: libxml2-qa-${{ inputs.php_run }}
+          name: libxml2-qa-${{ inputs.php_run }}-${{ inputs.expected_libxml }}
           path: reports
           if-no-files-found: error
