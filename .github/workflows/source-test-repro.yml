@@ -1,0 +1,82 @@
+name: Recheck PHP candidate source tests
+run-name: Recheck PHP source tests from run ${{ inputs.php_run }}
+on:
+  workflow_dispatch:
+    inputs:
+      php_run:
+        description: Exact PHP source artifact run
+        required: true
+      tests:
+        description: Comma-separated repository-relative PHPT paths
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  recheck:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86]
+        ts: [nts, ts]
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: php/php-src
+          ref: ae62043aa340871abfeea8568565d23d8b42f35a
+          path: php-src
+      - name: Verify PHP artifact source
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.php_run }}
+        run: |
+          $run = gh api "repos/shivammathur/php-windows-builder/actions/runs/$env:SOURCE_RUN" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $run.head_sha -ne '04f63e493576e38714799d8be6f4975f942b3aea' -or $run.workflow_id -ne 251563593) { throw 'Unexpected source artifact provenance' }
+      - uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ inputs.php_run }}
+          github-token: ${{ github.token }}
+          name: artifacts
+          path: artifacts
+      - name: Recheck source tests in both OPcache modes
+        shell: pwsh
+        env:
+          TEST_PATHS: ${{ inputs.tests }}
+          TARGET_ARCH: ${{ matrix.arch }}
+          TARGET_TS: ${{ matrix.ts }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $suffix = if ($env:TARGET_TS -eq 'nts') { '-nts' } else { '' }
+          $name = "php-8.6.0-dev$suffix-Win32-vs18-$env:TARGET_ARCH.zip"
+          Expand-Archive "artifacts/$name" -DestinationPath runtime
+          $php = (Resolve-Path runtime/php.exe).Path
+          $env:TEST_PHP_EXECUTABLE = $php
+          $env:TEST_PHP_CGI_EXECUTABLE = (Resolve-Path runtime/php-cgi.exe).Path
+          $env:NO_INTERACTION = '1'
+          $env:REPORT_EXIT_STATUS = '1'
+          $cases = @($env:TEST_PATHS.Split(',') | ForEach-Object { $_.Trim() })
+          foreach ($case in $cases) {
+              if ($case -notmatch '^(?:ext|tests|sapi)/[A-Za-z0-9_./-]+\.phpt$' -or $case.Contains('..') -or -not (Test-Path "php-src/$case")) { throw "Invalid source test path: $case" }
+          }
+          New-Item reports -ItemType Directory | Out-Null
+          $reports = (Resolve-Path reports).Path
+          $failed = $false
+          Push-Location php-src
+          try {
+              foreach ($mode in @('0', '1')) {
+                  $env:TEST_PHP_JUNIT = "$reports/opcache-$mode.xml"
+                  & $php -n run-tests.php -n -q -d "opcache.enable_cli=$mode" -d opcache.jit=off @cases 2>&1 | Tee-Object "$reports/opcache-$mode.log"
+                  if ($LASTEXITCODE -ne 0) { $failed = $true }
+              }
+          } finally { Pop-Location }
+          if ($failed) { throw 'Focused source test recheck failed' }
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: source-recheck-${{ matrix.arch }}-${{ matrix.ts }}
+          path: reports
+          if-no-files-found: error
