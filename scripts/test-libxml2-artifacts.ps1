@@ -5,6 +5,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+$ExpectedRuntimeLibxml = $ExpectedLibxml -replace '-\d+$', ''
 New-Item $ReportsDirectory -ItemType Directory -Force | Out-Null
 $zips = @(Get-ChildItem $ArtifactsDirectory -Recurse -File | Where-Object { $_.Name -match '^php-[0-9].*-(?:nts-)?Win32-vs18-(?:x64|x86)\.zip$' })
 if ($zips.Count -ne 4) { throw "Expected four runtime archives, found $($zips.Count)" }
@@ -27,10 +28,16 @@ foreach ($zip in $zips) {
             $xmlComponents += @($bom.components | Where-Object { $_.name -eq 'libxml2' })
         }
         if ($xmlComponents.Count -eq 0) { throw 'Missing libxml2 inventory' }
-        foreach ($component in $xmlComponents) {
-            if ($component.version -ne $ExpectedLibxml) { throw "Unexpected libxml2 component: $($component.version), expected $ExpectedLibxml" }
+        $componentVersions = @($xmlComponents.version | Sort-Object -Unique)
+        $allowedVersions = @($ExpectedLibxml, $ExpectedRuntimeLibxml | Sort-Object -Unique)
+        $unexpectedVersions = @($componentVersions | Where-Object { $_ -notin $allowedVersions })
+        if ($unexpectedVersions.Count -gt 0) {
+            throw "Unexpected libxml2 component(s): $($unexpectedVersions -join ', '); expected $($allowedVersions -join ' or ')"
         }
-        $env:EXPECTED_LIBXML_VERSION = $ExpectedLibxml -replace '-\d+$', ''
+        foreach ($requiredVersion in $allowedVersions) {
+            if ($requiredVersion -notin $componentVersions) { throw "Missing libxml2 component $requiredVersion" }
+        }
+        $env:EXPECTED_LIBXML_VERSION = $ExpectedRuntimeLibxml
         $phpArguments = @('-n', '-d', "extension_dir=$root\ext", '-d', 'extension=xsl', (Join-Path $PSScriptRoot '../tests/libxml2-security.php'))
         $casesJson = & "$root\php.exe" @phpArguments '--list'
         if ($LASTEXITCODE -ne 0) { throw "PHP startup failed for $variant, exit $LASTEXITCODE" }
