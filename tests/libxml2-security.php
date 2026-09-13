@@ -2,8 +2,16 @@
 declare(strict_types=1);
 
 $results = [];
+$selectedTest = $argv[1] ?? null;
 function check(string $name, callable $test): void {
-    global $results;
+    global $results, $selectedTest;
+    if ($selectedTest === '--list') {
+        $results[] = $name;
+        return;
+    }
+    if ($selectedTest !== null && $selectedTest !== $name) {
+        return;
+    }
     try {
         if ($test() !== true) {
             throw new RuntimeException('Unexpected result');
@@ -113,6 +121,10 @@ check('xslt-transform', function () {
     return $proc->importStylesheet($xsl) && $proc->transformToXML($xml) === 'one;two;';
 });
 
+if ($selectedTest === '--list') {
+    echo json_encode($results), "\n";
+    exit(0);
+}
 $report = ['php' => PHP_VERSION, 'libxml_headers' => LIBXML_DOTTED_VERSION, 'libxml_runtime' => LIBXML_LOADED_VERSION, 'libxslt' => defined('LIBXSLT_DOTTED_VERSION') ? LIBXSLT_DOTTED_VERSION : null, 'tests' => $results];
 echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), "\n";
 exit(count(array_filter($results, fn($test) => $test['status'] === 'failed')) > 0 ? 1 : 0);

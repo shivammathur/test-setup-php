@@ -29,12 +29,23 @@ foreach ($zip in $zips) {
         foreach ($component in $xmlComponents) {
             if ($component.version -ne '2.15.4') { throw "Stale libxml2 component: $($component.version)" }
         }
-        $args = @('-n', '-d', "extension_dir=$root\ext", '-d', 'extension=xsl', (Join-Path $PSScriptRoot '../tests/libxml2-security.php'))
-        & "$root\php.exe" @args | Tee-Object -FilePath (Join-Path $ReportsDirectory "$variant.json")
-        if ($LASTEXITCODE -ne 0) { throw "Runtime tests failed for $variant" }
+        $phpArguments = @('-n', '-d', "extension_dir=$root\ext", '-d', 'extension=xsl', (Join-Path $PSScriptRoot '../tests/libxml2-security.php'))
+        $casesJson = & "$root\php.exe" @phpArguments '--list'
+        if ($LASTEXITCODE -ne 0) { throw "PHP startup failed for $variant, exit $LASTEXITCODE" }
+        $cases = @($casesJson | ConvertFrom-Json)
+        if ($cases.Count -ne 16) { throw "Expected 16 focused checks, found $($cases.Count)" }
+        $caseReports = @()
+        foreach ($case in $cases) {
+            $output = & "$root\php.exe" @phpArguments $case 2>&1
+            $exitCode = $LASTEXITCODE
+            $caseReports += [PSCustomObject]@{ test = $case; exitCode = $exitCode; output = ($output | Out-String) }
+            Write-Host "$variant $case exit=$exitCode"
+        }
+        $caseReports | ConvertTo-Json -Depth 20 | Set-Content (Join-Path $ReportsDirectory "$variant.json")
         Get-ChildItem $root -Recurse -File | Where-Object { $_.Extension -in '.dll', '.exe' } |
             Get-FileHash -Algorithm SHA256 | ConvertTo-Json | Set-Content (Join-Path $ReportsDirectory "$variant-binary-hashes.json")
         $xmlComponents | ConvertTo-Json -Depth 40 | Set-Content (Join-Path $ReportsDirectory "$variant-libxml-components.json")
+        if (@($caseReports | Where-Object { $_.exitCode -ne 0 }).Count -gt 0) { throw "Runtime tests failed for $variant" }
     } catch {
         $failed = $true
         $_ | Out-String | Set-Content (Join-Path $ReportsDirectory "$variant-error.txt")
