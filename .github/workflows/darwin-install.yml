@@ -1,0 +1,74 @@
+name: Verify macOS R2 fallback
+on: push
+permissions:
+  contents: read
+jobs:
+  install:
+    name: ${{ matrix.os }} PHP ${{ matrix.php }} forced R2
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15, macos-26, macos-latest, macos-15-intel, macos-26-intel, xcode-27]
+        php: ['7.4', '8.4', '8.6']
+        include:
+          - os: macos-14
+            php: '8.6'
+            prefer-mirror: 'true'
+          - os: macos-15-intel
+            php: '8.6'
+            prefer-mirror: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: fix/macos-install-fallback
+          path: setup-php
+          persist-credentials: false
+      - name: Simulate GitHub release download failures
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/mirror-test/bin"
+          cat > "$RUNNER_TEMP/mirror-test/bin/curl" <<'SH'
+          #!/usr/bin/env bash
+          for arg; do
+            case "$arg" in
+              https://github.com/shivammathur/php-darwin/releases/download/*)
+                printf '%s\n' "$arg" >> "$RUNNER_TEMP/mirror-test/blocked"
+                printf 'curl: simulated GitHub release outage\n' >&2
+                exit 22 ;;
+              https://artifacts.php-darwin.setup-php.com/*)
+                printf '%s\n' "$arg" >> "$RUNNER_TEMP/mirror-test/mirrored" ;;
+            esac
+          done
+          exec /usr/bin/curl "$@"
+          SH
+          chmod +x "$RUNNER_TEMP/mirror-test/bin/curl"
+          echo "$RUNNER_TEMP/mirror-test/bin" >> "$GITHUB_PATH"
+      - name: Install PHP through the mirror
+        uses: ./setup-php
+        with:
+          php-version: ${{ matrix.php }}
+        env:
+          PHP_DARWIN_PREFER_MIRROR: ${{ matrix.prefer-mirror || 'false' }}
+          verbose: 'true'
+          update: 'true'
+      - name: Verify mirror recovery and runtime
+        env:
+          PREFER_MIRROR: ${{ matrix.prefer-mirror || 'false' }}
+        shell: bash
+        run: |
+          cat "$RUNNER_TEMP/mirror-test/blocked"
+          cat "$RUNNER_TEMP/mirror-test/mirrored"
+          grep -q '/install.sh$' "$RUNNER_TEMP/mirror-test/blocked"
+          if [ "$PREFER_MIRROR" = true ]; then
+            ! grep -q '.tar.zst$' "$RUNNER_TEMP/mirror-test/blocked"
+          else
+            grep -q '.tar.zst$' "$RUNNER_TEMP/mirror-test/blocked"
+          fi
+          grep -q '/install.sh$' "$RUNNER_TEMP/mirror-test/mirrored"
+          grep -q '.tar.zst$' "$RUNNER_TEMP/mirror-test/mirrored"
+          php -v
+          php -m
+          php -r 'foreach (["curl", "dom", "mbstring", "openssl", "pdo", "zip"] as $ext) { if (!extension_loaded($ext)) { throw new Exception($ext); } }'
