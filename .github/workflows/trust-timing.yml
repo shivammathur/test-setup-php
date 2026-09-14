@@ -1,0 +1,170 @@
+name: Verify trust merge and measure complete macOS installs
+on: push
+permissions:
+  contents: read
+jobs:
+  install:
+    name: ${{ matrix.os }} PHP ${{ matrix.php }} ${{ matrix.implementation }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15, macos-26, macos-latest, macos-15-intel, macos-26-intel, xcode-27]
+        php: ['5.6', '7.4', '8.4', '8.6']
+        implementation: [after]
+        include:
+          - {os: macos-14, php: '8.4', implementation: before}
+          - {os: macos-15, php: '8.4', implementation: before}
+          - {os: macos-26, php: '8.4', implementation: before}
+          - {os: macos-latest, php: '8.4', implementation: before}
+          - {os: macos-15-intel, php: '8.4', implementation: before}
+          - {os: macos-26-intel, php: '8.4', implementation: before}
+          - {os: xcode-27, php: '8.4', implementation: before}
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      HOMEBREW_REQUIRE_TAP_TRUST: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: ${{ matrix.implementation == 'before' && '67697e652549d60565cabb4f7475458f05baae25' || '91e21b85e9dee9118736e248723ff7a2d83c9055' }}
+          persist-credentials: false
+      - name: Prepare installer comparison and existing trust fixture
+        shell: bash
+        env:
+          IMPLEMENTATION: ${{ matrix.implementation }}
+        run: |
+          curl -fsSL --retry 3 "https://artifacts.php-darwin.setup-php.com/php-$PHP_VERSION/manifest.json" -o "$RUNNER_TEMP/manifest.json"
+          PHP_DARWIN_RELEASE_MANIFEST="$RUNNER_TEMP/manifest.json" bash scripts/generate-install.sh "$RUNNER_TEMP/test-installer.sh"
+          mkdir -p "$RUNNER_TEMP/trust-config/homebrew"
+          chmod 700 "$RUNNER_TEMP/trust-config/homebrew"
+          echo '{"trustedtaps":["fixture/preserve"],"trustedformulae":["fixture/preserve/keep"],"trustedcasks":["fixture/preserve/app"],"trustedcommands":["fixture/preserve/command"]}' > "$RUNNER_TEMP/trust-config/homebrew/trust.json"
+          chmod 600 "$RUNNER_TEMP/trust-config/homebrew/trust.json"
+          echo "XDG_CONFIG_HOME=$RUNNER_TEMP/trust-config" >> "$GITHUB_ENV"
+          if [ "$IMPLEMENTATION" = after ]; then
+            XDG_CONFIG_HOME="$RUNNER_TEMP/trust-config" bash scripts/trust-store.sh snapshot "$(brew --prefix)"
+          fi
+          mkdir -p "$RUNNER_TEMP/timing/bin"
+          cat > "$RUNNER_TEMP/timing/bin/curl" <<'SH'
+          #!/usr/bin/env bash
+          output= replace=false next_output=false
+          for arg; do
+            if [ "$next_output" = true ]; then output=$arg; next_output=false; fi
+            case "$arg" in
+              -o) next_output=true ;;
+              https://github.com/shivammathur/php-darwin/releases/download/*/install.sh|https://artifacts.php-darwin.setup-php.com/*/install.sh) replace=true ;;
+            esac
+          done
+          /usr/bin/curl "$@" || exit $?
+          if [ "$replace" = true ] && [ -n "$output" ]; then
+            cp "$RUNNER_TEMP/test-installer.sh" "$output"
+          fi
+          SH
+          chmod +x "$RUNNER_TEMP/timing/bin/curl"
+          echo "$RUNNER_TEMP/timing/bin" >> "$GITHUB_PATH"
+          date +%s > "$RUNNER_TEMP/php-darwin-e2e-started-at.txt"
+      - name: Install PHP including downloads and Composer
+        uses: shivammathur/setup-php@9af3b52286fbc7a3f8e1fdcc34643ab10bcc7e0f
+        with:
+          php-version: ${{ matrix.php }}
+        env:
+          update: 'true'
+      - name: Verify actual cache, libraries, and native Homebrew trust
+        env:
+          PHP_DARWIN_REQUIRE_CACHE: 'true'
+        run: |
+          bash scripts/test-setup-php.sh
+          brew trust --json=v1 > "$RUNNER_TEMP/native-trust.json"
+          jq -e '.taps == ["fixture/preserve"] and (.formulae // .formulas | index("fixture/preserve/keep")) != null and .casks == ["fixture/preserve/app"] and .commands == ["fixture/preserve/command"]' "$RUNNER_TEMP/native-trust.json"
+          php -m
+          # shellcheck disable=SC2016
+          php -r 'foreach (["curl", "dom", "mbstring", "openssl", "pdo", "zip"] as $ext) { if (!extension_loaded($ext)) { throw new Exception($ext); } }'
+  compression:
+    name: ${{ matrix.os }} identical-content compression comparison
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: 91e21b85e9dee9118736e248723ff7a2d83c9055
+          persist-credentials: false
+      - name: Compare levels 4, 19, 22 and both extraction paths
+        shell: bash
+        run: |
+          arch=$(uname -m)
+          asset="php_8.6-nts-release+darwin_$arch.tar.zst"
+          url="https://artifacts.php-darwin.setup-php.com/php-8.6/$asset"
+          curl -fsSL --retry 3 "$url" -o "$RUNNER_TEMP/$asset"
+          curl -fsSL --retry 3 "$url.sha256" -o "$RUNNER_TEMP/$asset.sha256"
+          checksum=$(awk '{print $1}' "$RUNNER_TEMP/$asset.sha256")
+          python3 scripts/benchmark-extraction.py "$RUNNER_TEMP/$asset" "$checksum" --output "$RUNNER_TEMP/compression.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: compression-${{ matrix.os }}
+          path: ${{ runner.temp }}/compression.json
+          compression-level: 0
+  recovery:
+    name: ${{ matrix.os }} trust ${{ matrix.scenario }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]
+        scenario: [rollback-added, rollback-existing, cli-fallback]
+    env:
+      PHP_VERSION: '8.4'
+      HOMEBREW_REQUIRE_TAP_TRUST: '1'
+      SCENARIO: ${{ matrix.scenario }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: 91e21b85e9dee9118736e248723ff7a2d83c9055
+          persist-credentials: false
+      - name: Test rollback and compatibility fallback with actual Homebrew
+        shell: bash
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/recovery-config"
+          mkdir -p "$XDG_CONFIG_HOME/homebrew"
+          chmod 700 "$XDG_CONFIG_HOME/homebrew"
+          echo '{"trustedtaps":["fixture/preserve"],"trustedformulae":["fixture/preserve/keep"]}' > "$XDG_CONFIG_HOME/homebrew/trust.json"
+          chmod 600 "$XDG_CONFIG_HOME/homebrew/trust.json"
+          if [ "$SCENARIO" = rollback-existing ]; then
+            jq '.trustedformulae += ["shivammathur/php/php@8.4"]' "$XDG_CONFIG_HOME/homebrew/trust.json" > "$RUNNER_TEMP/original-trust.json"
+            cp "$RUNNER_TEMP/original-trust.json" "$XDG_CONFIG_HOME/homebrew/trust.json"
+          fi
+          cp "$XDG_CONFIG_HOME/homebrew/trust.json" "$RUNNER_TEMP/original-trust.json"
+          curl -fsSL --retry 3 'https://artifacts.php-darwin.setup-php.com/php-8.4/manifest.json' -o "$RUNNER_TEMP/manifest.json"
+          PHP_DARWIN_RELEASE_MANIFEST="$RUNNER_TEMP/manifest.json" bash scripts/generate-install.sh "$RUNNER_TEMP/recovery-install.sh"
+          if [ "$SCENARIO" = cli-fallback ]; then
+            touch "$XDG_CONFIG_HOME/homebrew/brew.env"
+            status=0
+            bash scripts/trust-store.sh snapshot "$(brew --prefix)" || status=$?
+            [ "$status" -eq 78 ]
+            bash "$RUNNER_TEMP/recovery-install.sh" 8.4
+            bash scripts/test-setup-php.sh
+          else
+            python3 - "$RUNNER_TEMP/recovery-install.sh" <<'PY'
+          import pathlib,sys
+          path=pathlib.Path(sys.argv[1])
+          source=path.read_text()
+          marker='php_darwin_set_phase runtime.verify'
+          assert source.count(marker)==1
+          path.write_text(source.replace(marker, marker+"\nphp_darwin_die 'injected failure after trust merge'"))
+          PY
+            if bash "$RUNNER_TEMP/recovery-install.sh" 8.4 > "$RUNNER_TEMP/recovery.log" 2>&1; then
+              echo 'Expected injected installation failure' >&2
+              exit 1
+            fi
+            cat "$RUNNER_TEMP/recovery.log"
+            grep -q 'injected failure after trust merge' "$RUNNER_TEMP/recovery.log"
+            jq -e --slurpfile expected "$RUNNER_TEMP/original-trust.json" '. == $expected[0]' "$XDG_CONFIG_HOME/homebrew/trust.json"
+            brew trust --json=v1
+          fi
