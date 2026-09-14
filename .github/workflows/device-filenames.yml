@@ -1,0 +1,40 @@
+name: Windows device filename behavior
+
+on:
+  push:
+    branches: [test/windows-device-filenames-20260915]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: ${{ matrix.os }} PHP 8.2 ${{ matrix.phpts }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-2025]
+        phpts: [ts, nts]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.2'
+          coverage: none
+          tools: none
+        env:
+          phpts: ${{ matrix.phpts }}
+      - name: Probe native Windows and PHP file behavior
+        shell: pwsh
+        run: ./tests/probe.ps1 -ExpectedTs '${{ matrix.phpts }}'
+      - name: Upload observations
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: observations-${{ matrix.os }}-${{ matrix.phpts }}
+          path: results/
+          if-no-files-found: error
+
