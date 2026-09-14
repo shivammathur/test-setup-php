@@ -3,7 +3,8 @@ on:
   push:
     paths: [scripts/compression.py, .github/workflows/compression.yml]
 env:
-  BENCH_TAG: install-compression-20260915-v2
+  BENCH_TAG: install-compression-20260915-v3
+  REUSE_TAG: install-compression-20260915-v2
 permissions:
   contents: read
 jobs:

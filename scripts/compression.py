@@ -47,7 +47,24 @@ def prepare():
             row = inventory.setdefault(group, {'files': 0, 'bytes': 0})
             row['files'] += 1
             row['bytes'] += member.size
-    run('zstd', '--ultra', '-22', '--long=27', '-T2', '-q', 'payload.tar', '-o', 'level22.tar.zst')
+    # Published archives may predate the current compression setting. Produce
+    # an explicit level-19 sample instead of labelling the original by config.
+    original.unlink()
+    run('zstd', '-19', '--long=27', '-T2', '-q', 'payload.tar', '-o', str(original))
+    reuse = os.environ.get('REUSE_TAG')
+    if reuse:
+        name = f'php-{version}-{arch}-level-22.tar.zst'
+        for attempt in range(20):
+            try:
+                run('gh', 'release', 'download', reuse, '--repo', os.environ['GITHUB_REPOSITORY'], '--pattern', name, '--clobber')
+                break
+            except subprocess.CalledProcessError:
+                if attempt == 19:
+                    raise
+                time.sleep(30)
+        shutil.move(name, 'level22.tar.zst')
+    else:
+        run('zstd', '--ultra', '-22', '--long=27', '-T2', '-q', 'payload.tar', '-o', 'level22.tar.zst')
     run('zstd', '-qd', 'level22.tar.zst', '-o', 'verify.tar')
     assert sha('verify.tar') == payload_sha
     samples = []
