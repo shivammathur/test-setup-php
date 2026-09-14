@@ -1,0 +1,83 @@
+name: Verify published macOS installers and R2 recovery
+on: push
+permissions:
+  contents: read
+jobs:
+  install:
+    name: ${{ matrix.os }} PHP ${{ matrix.php }} published
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15, macos-26, macos-latest, macos-15-intel, macos-26-intel, xcode-27]
+        php: ['7.4', '8.6']
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: 80b84d706d0ca00a066ba070c0350116b9d86034
+          persist-credentials: false
+      - name: Record install start
+        run: date +%s > "$RUNNER_TEMP/php-darwin-e2e-started-at.txt"
+      - name: Install PHP including downloads and Composer
+        uses: shivammathur/setup-php@9af3b52286fbc7a3f8e1fdcc34643ab10bcc7e0f
+        with:
+          php-version: ${{ matrix.php }}
+        env:
+          update: 'true'
+      - name: Verify published installer, cache provenance, and runtime
+        env:
+          PHP_DARWIN_REQUIRE_CACHE: 'true'
+        run: |
+          grep -q '^php_darwin_trust_store()' /tmp/install.sh
+          grep -q '^php_darwin_unlink_kegs()' /tmp/install.sh
+          curl -fsSL --retry 3 "https://artifacts.php-darwin.setup-php.com/php-$PHP_VERSION/install.sh" -o "$RUNNER_TEMP/published-installer.sh"
+          cmp /tmp/install.sh "$RUNNER_TEMP/published-installer.sh"
+          bash scripts/test-setup-php.sh
+          php -m
+          # shellcheck disable=SC2016
+          php -r 'foreach (["curl", "dom", "mbstring", "openssl", "pdo", "zip"] as $ext) { if (!extension_loaded($ext)) { throw new Exception($ext); } }'
+  recovery:
+    name: ${{ matrix.os }} published R2 ${{ matrix.failure }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]
+        failure: [missing, checksum]
+    env:
+      PHP_VERSION: '8.6'
+      FAILURE: ${{ matrix.failure }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: 80b84d706d0ca00a066ba070c0350116b9d86034
+          persist-credentials: false
+      - name: Verify archive fallback entirely inside the published installer
+        shell: bash
+        env:
+          PHP_DARWIN_REQUIRE_CACHE: 'true'
+          PHP_DARWIN_MIRROR_URL: https://artifacts.php-darwin.setup-php.com
+          HOMEBREW_REQUIRE_TAP_TRUST: '1'
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+          HOMEBREW_NO_INSTALL_CLEANUP: '1'
+        run: |
+          curl -fsSL --retry 3 https://github.com/shivammathur/php-darwin/releases/download/php-8.6/install.sh -o "$RUNNER_TEMP/published-installer.sh"
+          if [ "$FAILURE" = missing ]; then
+            export PHP_DARWIN_RELEASE_URL=https://github.com/shivammathur/php-darwin/releases/download/php-8.6/missing-recovery-fixture.tar.zst
+          else
+            export PHP_DARWIN_RELEASE_URL=https://github.com/shivammathur/php-darwin/releases/download/php-8.6/install.sh
+          fi
+          date +%s > "$RUNNER_TEMP/php-darwin-e2e-started-at.txt"
+          bash "$RUNNER_TEMP/published-installer.sh" 8.6 2>&1 | tee "$RUNNER_TEMP/recovery.log"
+          if [ "$FAILURE" = missing ]; then
+            grep -q 'HTTP 404' "$RUNNER_TEMP/recovery.log"
+          else
+            grep -q 'checksum mismatch' "$RUNNER_TEMP/recovery.log"
+          fi
+          bash scripts/test-setup-php.sh
