@@ -1,0 +1,114 @@
+name: Verify preserved files, recovery and older PHP with the final IO installer
+on:
+  push:
+    paths: [.github/workflows/state.yml]
+permissions:
+  contents: read
+jobs:
+  state:
+    name: ${{ matrix.os }} preserved state and slow HTTP errors
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+      HOMEBREW_REQUIRE_TAP_TRUST: '1'
+      PHP_DARWIN_TIMING: 'true'
+      PHP_VERSION: '8.6'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: 26623108c273a30aec92adf1a73f7cbede757483
+          persist-credentials: false
+      - name: Install and test preserved files through success and rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          source scripts/lib.sh
+          php_darwin_select_ruby
+          prefix=$(brew --prefix)
+          formula=$(php_darwin_formula 8.6 release nts)
+          pear=$(php_darwin_pear_path 8.6 "$formula")
+          curl -fsSL --retry 3 https://artifacts.php-darwin.setup-php.com/php-8.6/php-8.6-manifest.json -o "$RUNNER_TEMP/manifest.json"
+          PHP_DARWIN_RELEASE_MANIFEST="$RUNNER_TEMP/manifest.json" bash scripts/generate-install.sh "$RUNNER_TEMP/install.sh"
+          bash "$RUNNER_TEMP/install.sh" 8.6
+          printf 'user pear fixture\n' > "$prefix/$pear/user-fixture.php"
+          chmod 444 "$prefix/$pear/user-fixture.php"
+          cp "$prefix/etc/php/8.6/pear.conf" "$RUNNER_TEMP/pear.conf"
+          inode_before=$(stat -f '%i' "$prefix/$pear/user-fixture.php")
+          bash "$RUNNER_TEMP/install.sh" 8.6
+          test "$(stat -f '%i' "$prefix/$pear/user-fixture.php")" = "$inode_before"
+          test "$(stat -f '%Lp' "$prefix/$pear/user-fixture.php")" = 444
+          cmp "$prefix/etc/php/8.6/pear.conf" "$RUNNER_TEMP/pear.conf"
+          python3 - "$RUNNER_TEMP/install.sh" "$RUNNER_TEMP/rollback.sh" <<'PY'
+          import pathlib,sys
+          source=pathlib.Path(sys.argv[1]).read_text()
+          marker='runtime_verified=true'
+          assert source.count(marker)==1
+          pathlib.Path(sys.argv[2]).write_text(source.replace(marker, "php_darwin_die 'state rollback fixture'\n"+marker))
+          PY
+          if bash "$RUNNER_TEMP/rollback.sh" 8.6 > "$RUNNER_TEMP/rollback.log" 2>&1; then exit 1; fi
+          cat "$RUNNER_TEMP/rollback.log"
+          grep -q 'state rollback fixture' "$RUNNER_TEMP/rollback.log"
+          grep -q 'rollback ok' "$RUNNER_TEMP/rollback.log"
+          test "$(stat -f '%i' "$prefix/$pear/user-fixture.php")" = "$inode_before"
+          cmp "$prefix/etc/php/8.6/pear.conf" "$RUNNER_TEMP/pear.conf"
+          php -v
+          extension_dir=$(php-config --extension-dir)
+          php -n -d "zend_extension=$extension_dir/xdebug.so" -r 'if (!extension_loaded("xdebug")) exit(1);'
+      - name: Verify bounded failure and no duplicate requests
+        run: bash scripts/test-download.sh
+      - name: Verify final HTTP handling against the live R2 archive
+        shell: bash
+        run: |
+          export PHP_DARWIN_RELEASE_URL=https://github.com/shivammathur/php-darwin/releases/download/php-8.6/missing-io-fixture.tar.zst
+          export PHP_DARWIN_MIRROR_URL=https://artifacts.php-darwin.setup-php.com
+          PHP_DARWIN_VERIFY_RUNTIME=true bash "$RUNNER_TEMP/install.sh" 8.6 2>&1 | tee "$RUNNER_TEMP/recovery.log"
+          grep -q 'HTTP 404' "$RUNNER_TEMP/recovery.log"
+          grep -q 'name=download.r2' "$RUNNER_TEMP/recovery.log"
+          php -v
+  older:
+    name: ${{ matrix.os }} PHP ${{ matrix.php }} static validation
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15-intel]
+        php: ['5.6', '8.4']
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      PHP_DARWIN_TIMING: 'true'
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+      HOMEBREW_REQUIRE_TAP_TRUST: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: 26623108c273a30aec92adf1a73f7cbede757483
+          persist-credentials: false
+      - name: Prepare current manifest
+        run: |
+          curl -fsSL --retry 3 "https://artifacts.php-darwin.setup-php.com/php-$PHP_VERSION/php-$PHP_VERSION-manifest.json" -o "$RUNNER_TEMP/manifest.json"
+          PHP_DARWIN_RELEASE_MANIFEST="$RUNNER_TEMP/manifest.json" bash scripts/generate-install.sh "$RUNNER_TEMP/install.sh"
+          date +%s > "$RUNNER_TEMP/php-darwin-e2e-started-at.txt"
+      - name: Install PHP without executing PHP during validation
+        run: bash "$RUNNER_TEMP/install.sh" "$PHP_VERSION"
+      - name: Check runtime and every cached extension separately from install timing
+        env:
+          PHP_DARWIN_REQUIRE_CACHE: 'true'
+        run: |
+          bash scripts/test-setup-php.sh
+          php -m
+          extension_dir=$(php-config --extension-dir)
+          while IFS= read -r extension; do
+            type=extension
+            [ "$extension" != xdebug ] || type=zend_extension
+            php -n -d "$type=$extension_dir/$extension.so" -r "if (!extension_loaded('$extension')) exit(1);"
+          done < <(bash scripts/cached-extensions.sh "$PHP_VERSION")
