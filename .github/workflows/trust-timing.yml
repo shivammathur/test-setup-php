@@ -1,0 +1,105 @@
+name: Verify trust merge and measure complete macOS installs
+on: push
+permissions:
+  contents: read
+jobs:
+  install:
+    name: ${{ matrix.os }} PHP ${{ matrix.php }} ${{ matrix.implementation }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15, macos-26, macos-latest, macos-15-intel, macos-26-intel, xcode-27]
+        php: ['5.6', '7.4', '8.4', '8.6']
+        implementation: [after]
+        include:
+          - {os: macos-14, php: '8.4', implementation: before}
+          - {os: macos-15, php: '8.4', implementation: before}
+          - {os: macos-26, php: '8.4', implementation: before}
+          - {os: macos-latest, php: '8.4', implementation: before}
+          - {os: macos-15-intel, php: '8.4', implementation: before}
+          - {os: macos-26-intel, php: '8.4', implementation: before}
+          - {os: xcode-27, php: '8.4', implementation: before}
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      HOMEBREW_REQUIRE_TAP_TRUST: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: ${{ matrix.implementation == 'before' && '67697e652549d60565cabb4f7475458f05baae25' || '6d6bedce41acf50e1b3f5edc218edd6d14bf97f8' }}
+          persist-credentials: false
+      - name: Prepare installer comparison and existing trust fixture
+        shell: bash
+        env:
+          IMPLEMENTATION: ${{ matrix.implementation }}
+        run: |
+          curl -fsSL --retry 3 "https://artifacts.php-darwin.setup-php.com/php-$PHP_VERSION/php-$PHP_VERSION-manifest.json" -o "$RUNNER_TEMP/manifest.json"
+          PHP_DARWIN_RELEASE_MANIFEST="$RUNNER_TEMP/manifest.json" bash scripts/generate-install.sh "$RUNNER_TEMP/test-installer.sh"
+          mkdir -p "$RUNNER_TEMP/trust-config/homebrew"
+          chmod 700 "$RUNNER_TEMP/trust-config/homebrew"
+          echo '{"trustedtaps":["fixture/preserve"],"trustedformulae":["fixture/preserve/keep"],"trustedcasks":["fixture/preserve/app"],"trustedcommands":["fixture/preserve/command"]}' > "$RUNNER_TEMP/trust-config/homebrew/trust.json"
+          chmod 600 "$RUNNER_TEMP/trust-config/homebrew/trust.json"
+          echo "XDG_CONFIG_HOME=$RUNNER_TEMP/trust-config" >> "$GITHUB_ENV"
+          if [ "$IMPLEMENTATION" = after ]; then
+            probe_status=0
+            XDG_CONFIG_HOME="$RUNNER_TEMP/trust-config" bash scripts/trust-store.sh snapshot "$(brew --prefix)" || probe_status=$?
+            echo "Trust storage probe: $probe_status"
+            if [ "$probe_status" -eq 78 ]; then
+              brew --version
+              sed -n '1,570p' "$(brew --repository)/Library/Homebrew/trust.rb"
+            elif [ "$probe_status" -ne 0 ]; then
+              exit "$probe_status"
+            fi
+          fi
+          mkdir -p "$RUNNER_TEMP/timing/bin"
+          cp "$RUNNER_TEMP/test-installer.sh" "$RUNNER_TEMP/timing/test-installer.sh"
+          cat > "$RUNNER_TEMP/timing/bin/sudo" <<'SH'
+          #!/usr/bin/env bash
+          wrapper_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+          if [ "${1:-}" = curl ]; then
+            shift
+            exec /usr/bin/sudo "$wrapper_dir/curl" "$@"
+          fi
+          exec /usr/bin/sudo "$@"
+          SH
+          cat > "$RUNNER_TEMP/timing/bin/curl" <<'SH'
+          #!/usr/bin/env bash
+          fixture_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+          output= replace=false next_output=false
+          for arg; do
+            if [ "$next_output" = true ]; then output=$arg; next_output=false; fi
+            case "$arg" in
+              -o) next_output=true ;;
+              https://github.com/shivammathur/php-darwin/releases/download/*/install.sh|https://artifacts.php-darwin.setup-php.com/*/install.sh|https://cdn.jsdelivr.net/gh/shivammathur/php-darwin@main/scripts/install.sh|https://setup-php.com/php-darwin/install.sh) replace=true ;;
+            esac
+          done
+          /usr/bin/curl "$@" || exit $?
+          if [ "$replace" = true ] && [ -n "$output" ]; then
+            cp "$fixture_root/test-installer.sh" "$output"
+            touch "$fixture_root/bootstrap-replaced"
+          fi
+          SH
+          chmod +x "$RUNNER_TEMP/timing/bin/curl" "$RUNNER_TEMP/timing/bin/sudo"
+          echo "$RUNNER_TEMP/timing/bin" >> "$GITHUB_PATH"
+          date +%s > "$RUNNER_TEMP/php-darwin-e2e-started-at.txt"
+      - name: Install PHP including downloads and Composer
+        uses: shivammathur/setup-php@9af3b52286fbc7a3f8e1fdcc34643ab10bcc7e0f
+        with:
+          php-version: ${{ matrix.php }}
+        env:
+          update: 'true'
+      - name: Verify actual cache, libraries, and native Homebrew trust
+        env:
+          PHP_DARWIN_REQUIRE_CACHE: 'true'
+        run: |
+          test -f "$RUNNER_TEMP/timing/bootstrap-replaced"
+          cmp /tmp/install.sh "$RUNNER_TEMP/test-installer.sh"
+          echo 'Confirmed setup-php executed the selected installer'
+          bash scripts/test-setup-php.sh
+          brew trust --json=v1 > "$RUNNER_TEMP/native-trust.json"
+          jq -e '.taps == ["fixture/preserve"] and (.formulae // .formulas | index("fixture/preserve/keep")) != null and .casks == ["fixture/preserve/app"] and .commands == ["fixture/preserve/command"]' "$RUNNER_TEMP/native-trust.json"
+          php -m
+          # shellcheck disable=SC2016
+          php -r 'foreach (["curl", "dom", "mbstring", "openssl", "pdo", "zip"] as $ext) { if (!extension_loaded($ext)) { throw new Exception($ext); } }'
