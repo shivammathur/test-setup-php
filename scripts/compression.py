@@ -19,7 +19,11 @@ def sha(path):
 
 
 def run(*args):
-    return subprocess.run(args, check=True, text=True, capture_output=True).stdout
+    result = subprocess.run(args, text=True, capture_output=True)
+    if result.returncode:
+        print(result.stderr, file=sys.stderr, flush=True)
+        result.check_returncode()
+    return result.stdout
 
 
 def prepare():

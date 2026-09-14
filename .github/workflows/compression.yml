@@ -3,7 +3,7 @@ on:
   push:
     paths: [scripts/compression.py, .github/workflows/compression.yml]
 env:
-  BENCH_TAG: install-compression-20260915
+  BENCH_TAG: install-compression-20260915-v2
 permissions:
   contents: read
 jobs:
@@ -15,7 +15,7 @@ jobs:
       - name: Create isolated benchmark release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$BENCH_TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title 'Installer compression benchmark samples' --notes 'Identical verified PHP tar payloads for download and extraction measurements.'
+        run: gh release create "$BENCH_TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --draft --prerelease --title 'Installer compression benchmark samples' --notes 'Identical verified PHP tar payloads for download and extraction measurements.'
   prepare:
     needs: release
     runs-on: ubuntu-latest
@@ -35,8 +35,18 @@ jobs:
           PHP_VERSION: ${{ matrix.php }}
           ARCH: ${{ matrix.arch }}
         run: python3 scripts/compression.py prepare
-  measure:
+  publish:
     needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Publish only the complete verified samples
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$BENCH_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+  measure:
+    needs: publish
     name: ${{ matrix.os }} wire and extraction sample ${{ matrix.sample }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
