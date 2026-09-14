@@ -110,4 +110,5 @@ def measure():
                     pathlib.Path('compression-results.json').write_text(json.dumps(results, indent=2) + '\n')
 
 
-prepare() if sys.argv[1] == 'prepare' else measure()
+if __name__ == '__main__':
+    prepare() if sys.argv[1] == 'prepare' else measure()

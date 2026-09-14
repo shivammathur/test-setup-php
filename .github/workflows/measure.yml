@@ -1,0 +1,46 @@
+name: Measure controlled level 19 and 22 downloads and extraction
+on:
+  push:
+    paths: [.github/workflows/measure.yml]
+permissions:
+  contents: read
+env:
+  BENCH_TAG: install-compression-20260915-v3
+jobs:
+  ready:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Wait for the verified sample release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in {1..30}; do
+            if [ "$(gh release view "$BENCH_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = false ]; then exit 0; fi
+            sleep 20
+          done
+          exit 1
+  measure:
+    needs: ready
+    name: ${{ matrix.os }} wire and extraction sample ${{ matrix.sample }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15, macos-26, macos-15-intel, macos-26-intel, xcode-27]
+        sample: [0, 1]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Alternate levels across fresh downloads and extraction
+        env:
+          RUNNER_LABEL: ${{ matrix.os }}
+          SAMPLE: ${{ matrix.sample }}
+        run: python3 scripts/bench_network.py measure
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: compression-${{ matrix.os }}-${{ matrix.sample }}
+          path: compression-results.json
+          compression-level: 0
+          if-no-files-found: error

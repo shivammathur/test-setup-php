@@ -1,7 +1,5 @@
 name: Compare real download and extraction at levels 19 and 22
-on:
-  push:
-    paths: [scripts/compression.py, .github/workflows/compression.yml]
+on: workflow_dispatch
 env:
   BENCH_TAG: install-compression-20260915-v3
   REUSE_TAG: install-compression-20260915-v2
@@ -35,7 +33,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PHP_VERSION: ${{ matrix.php }}
           ARCH: ${{ matrix.arch }}
-        run: python3 scripts/compression.py prepare
+        run: python3 scripts/bench_network.py prepare
   publish:
     needs: prepare
     runs-on: ubuntu-latest
@@ -62,7 +60,7 @@ jobs:
         env:
           RUNNER_LABEL: ${{ matrix.os }}
           SAMPLE: ${{ matrix.sample }}
-        run: python3 scripts/compression.py measure
+        run: python3 scripts/bench_network.py measure
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
