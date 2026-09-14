@@ -1,0 +1,58 @@
+name: Profile remaining Intel install latency by download origin
+on:
+  push:
+    paths: [.github/workflows/profile.yml]
+permissions:
+  contents: read
+jobs:
+  profile:
+    name: ${{ matrix.os }} PHP ${{ matrix.php }} ${{ matrix.origin }} sample ${{ matrix.sample }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        os: [macos-15-intel, macos-26-intel]
+        php: ['5.6', '7.4', '8.6']
+        origin: [github, r2]
+        sample: [1, 2]
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      PHP_DARWIN_TIMING: 'true'
+      PHP_DARWIN_PREFER_MIRROR: ${{ matrix.origin == 'r2' && 'true' || 'false' }}
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+      HOMEBREW_REQUIRE_TAP_TRUST: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: 26623108c273a30aec92adf1a73f7cbede757483
+          persist-credentials: false
+      - name: Prepare installer without warming Homebrew or PHP
+        run: |
+          curl -fsSL --retry 3 "https://artifacts.php-darwin.setup-php.com/php-$PHP_VERSION/php-$PHP_VERSION-manifest.json" -o "$RUNNER_TEMP/manifest.json"
+          PHP_DARWIN_RELEASE_MANIFEST="$RUNNER_TEMP/manifest.json" bash scripts/generate-install.sh "$RUNNER_TEMP/install.sh"
+          date +%s > "$RUNNER_TEMP/php-darwin-e2e-started-at.txt"
+      - name: Measure the installer with phase output and no shell tracing
+        run: bash "$RUNNER_TEMP/install.sh" "$PHP_VERSION" 2>&1 | tee "$RUNNER_TEMP/profile.log"
+      - name: Verify cache provenance and module loading after measurement
+        env:
+          PHP_DARWIN_REQUIRE_CACHE: 'true'
+        run: |
+          bash scripts/test-setup-php.sh
+          php -m
+          extension_dir=$(php-config --extension-dir)
+          while IFS= read -r extension; do
+            type=extension
+            [ "$extension" != xdebug ] || type=zend_extension
+            php -n -d "$type=$extension_dir/$extension.so" -r "if (!extension_loaded('$extension')) exit(1);"
+          done < <(bash scripts/cached-extensions.sh "$PHP_VERSION")
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: profile-${{ matrix.os }}-${{ matrix.php }}-${{ matrix.origin }}-${{ matrix.sample }}
+          path: ${{ runner.temp }}/profile.log
+          compression-level: 0
+          if-no-files-found: error
