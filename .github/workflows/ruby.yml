@@ -1,0 +1,33 @@
+name: Isolate macOS Ruby helper startup
+on: push
+permissions:
+  contents: read
+jobs:
+  ruby:
+    name: ${{ matrix.os }} ${{ matrix.first }} first
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-26, macos-15-intel, macos-26-intel]
+        first: [system, portable]
+    steps:
+      - name: Measure fresh interpreter startup and standard library loading
+        env:
+          FIRST: ${{ matrix.first }}
+        run: |
+          BREW_REPOSITORY=$(brew --repository)
+          export BREW_REPOSITORY
+          python3 - <<'PY'
+          import os,subprocess,time,json
+          binaries={'system':'/usr/bin/ruby','portable':os.environ['BREW_REPOSITORY']+'/Library/Homebrew/vendor/portable-ruby/current/bin/ruby'}
+          first=os.environ['FIRST']; order=[first]+[x for x in binaries if x!=first]
+          source='started = Process.clock_gettime(Process::CLOCK_MONOTONIC); require "json"; require "fileutils"; require "tempfile"; require "find"; puts JSON.generate({version: RUBY_VERSION, require_ms: (Process.clock_gettime(Process::CLOCK_MONOTONIC)-started)*1000})'
+          for repeat in range(3):
+            for name in order:
+              started=time.monotonic(); p=subprocess.run([binaries[name],'--disable=gems','-e',source],text=True,capture_output=True)
+              elapsed=(time.monotonic()-started)*1000
+              assert p.returncode==0,p.stderr
+              print(json.dumps({'interpreter':name,'repeat':repeat,'elapsed_ms':elapsed,**json.loads(p.stdout)}),flush=True)
+          PY
