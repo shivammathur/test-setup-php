@@ -1,0 +1,28 @@
+name: Compare extraction decoder concurrency on large PHP caches
+on:
+  push:
+    paths: [.github/workflows/decoder.yml]
+permissions:
+  contents: read
+jobs:
+  decoder:
+    name: ${{ matrix.os }} native versus piped decoder
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15, macos-15-intel, macos-26-intel]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Measure alternating extraction methods on identical archives
+        env:
+          RUNNER_LABEL: ${{ matrix.os }}
+        run: python3 scripts/bench_decoder.py
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: decoder-${{ matrix.os }}
+          path: decoder-results.json
+          compression-level: 0
+          if-no-files-found: error
