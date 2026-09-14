@@ -1,8 +1,7 @@
 name: Compare real download and extraction at levels 19 and 22
 on: workflow_dispatch
 env:
-  BENCH_TAG: install-compression-20260915-v3
-  REUSE_TAG: install-compression-20260915-v2
+  BENCH_TAG: install-compression-${{ github.run_id }}-${{ github.run_attempt }}
 permissions:
   contents: read
 jobs:
