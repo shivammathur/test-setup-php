@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [xcode-27, macos-intel-15, macos-15]
+        os: [xcode-27, macos-15-intel, macos-15]
         php-version:
           - 8.0
           - 8.1
