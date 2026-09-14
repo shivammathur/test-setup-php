@@ -1,0 +1,87 @@
+name: Verify IO changes preserve Homebrew and recover failures
+on:
+  push:
+    paths: [.github/workflows/native.yml]
+permissions:
+  contents: read
+jobs:
+  native:
+    name: ${{ matrix.os }} ${{ matrix.scenario }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]
+        scenario: [native-alias, rollback]
+    env:
+      SCENARIO: ${{ matrix.scenario }}
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+      HOMEBREW_REQUIRE_TAP_TRUST: '1'
+      verbose: vvv
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: ccd1e65272b5d9e27ce7e812030b20d89cd8632b
+          persist-credentials: false
+      - name: Compare native unlink and exact rollback state
+        shell: bash
+        run: |
+          source scripts/lib.sh
+          php_darwin_select_ruby
+          prefix=$(brew --prefix)
+          test "$(php_darwin_tap_repository_path shivammathur/php)" = "$(brew --repository shivammathur/php)"
+          cat > "$RUNNER_TEMP/links.py" <<'PY'
+          import os,json,sys
+          prefix=sys.argv[1]; result={}
+          for root in ['bin','sbin','include','lib','share','opt','var/homebrew/linked']:
+            for base,dirs,files in os.walk(os.path.join(prefix,root),followlinks=False):
+              for name in dirs+files:
+                path=os.path.join(base,name)
+                if os.path.islink(path): result[os.path.relpath(path,prefix)]=os.readlink(path)
+          print(json.dumps(result,sort_keys=True))
+          PY
+          snapshot() { python3 "$RUNNER_TEMP/links.py" "$prefix" > "$RUNNER_TEMP/$1.json"; }
+          snapshot before
+          if [ "$SCENARIO" = native-alias ]; then
+            refs=(openssl@3 pcre2)
+            test -L "$prefix/var/homebrew/linked/openssl@3"
+            bash scripts/unlink-kegs.sh unlink "$prefix" "$RUNNER_TEMP/fast-journal" "${refs[@]}"
+            snapshot fast
+            cp -R "$RUNNER_TEMP/fast-journal" "$RUNNER_TEMP/native-journal"
+            bash scripts/unlink-kegs.sh restore "$prefix" "$RUNNER_TEMP/fast-journal"
+            snapshot fast-restored
+            cmp "$RUNNER_TEMP/before.json" "$RUNNER_TEMP/fast-restored.json"
+            brew unlink "${refs[@]}"
+            snapshot native
+            cmp "$RUNNER_TEMP/fast.json" "$RUNNER_TEMP/native.json"
+            bash scripts/unlink-kegs.sh restore "$prefix" "$RUNNER_TEMP/native-journal"
+            snapshot native-restored
+            cmp "$RUNNER_TEMP/before.json" "$RUNNER_TEMP/native-restored.json"
+            "$prefix/bin/openssl" version
+          else
+            if command -v php >/dev/null; then php -n -r 'echo PHP_VERSION;' > "$RUNNER_TEMP/before-php"; fi
+            curl -fsSL --retry 3 https://artifacts.php-darwin.setup-php.com/php-8.6/php-8.6-manifest.json -o "$RUNNER_TEMP/manifest.json"
+            PHP_DARWIN_RELEASE_MANIFEST="$RUNNER_TEMP/manifest.json" bash scripts/generate-install.sh "$RUNNER_TEMP/rollback.sh"
+            python3 - "$RUNNER_TEMP/rollback.sh" <<'PY'
+          import pathlib,sys
+          p=pathlib.Path(sys.argv[1]);s=p.read_text();marker='php_darwin_set_phase runtime.verify'
+          assert s.count(marker)==1
+          p.write_text(s.replace(marker,marker+"\nphp_darwin_die 'fixture failure after alias and trust changes'"))
+          PY
+            if bash "$RUNNER_TEMP/rollback.sh" 8.6 > "$RUNNER_TEMP/rollback.log" 2>&1; then
+              echo 'Expected injected failure' >&2
+              exit 1
+            fi
+            cat "$RUNNER_TEMP/rollback.log"
+            grep -q 'fixture failure after alias and trust changes' "$RUNNER_TEMP/rollback.log"
+            grep -q 'php-darwin: rollback ok' "$RUNNER_TEMP/rollback.log"
+            snapshot restored
+            cmp "$RUNNER_TEMP/before.json" "$RUNNER_TEMP/restored.json"
+            if [ -f "$RUNNER_TEMP/before-php" ]; then
+              php -n -r 'echo PHP_VERSION;' > "$RUNNER_TEMP/restored-php"
+              cmp "$RUNNER_TEMP/before-php" "$RUNNER_TEMP/restored-php"
+            fi
+          fi
