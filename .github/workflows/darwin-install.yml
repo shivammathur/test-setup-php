@@ -1,0 +1,53 @@
+name: Profile macOS package installation
+on: push
+permissions:
+  contents: read
+jobs:
+  install:
+    name: ${{ matrix.os }} PHP ${{ matrix.php }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15, macos-26, macos-latest, macos-15-intel, macos-26-intel, xcode-27]
+        php: ['7.4', '8.4', '8.6']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 9af3b52286fbc7a3f8e1fdcc34643ab10bcc7e0f
+          path: setup-php
+          persist-credentials: false
+      - name: Instrument installer phase boundaries
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+        shell: bash
+        run: |
+          curl --retry 2 --retry-all-errors -fsSL "https://github.com/shivammathur/php-darwin/releases/download/php-$PHP_VERSION/install.sh" -o "$RUNNER_TEMP/php-darwin-profile.sh"
+          python3 - <<'PY'
+          import os,pathlib
+          installer=pathlib.Path(os.environ['RUNNER_TEMP'])/'php-darwin-profile.sh'
+          source=installer.read_text()
+          marker='  PHP_DARWIN_PHASE=$1'
+          assert source.count(marker)==1
+          source=source.replace(marker,marker+'\n  printf "php-darwin phase: %s\\n" "$1" >&2')
+          installer.write_text(source)
+          action=pathlib.Path('setup-php/src/scripts/unix.sh')
+          source=action.read_text()
+          marker='run_script() {\n'
+          assert source.count(marker)==1
+          source=source.replace(marker,marker+'  if [ "$1" = php-darwin ]; then\n    shift\n    bash "$RUNNER_TEMP/php-darwin-profile.sh" "$@"\n    return $?\n  fi\n')
+          action.write_text(source)
+          PY
+      - name: Install PHP with phase diagnostics
+        uses: ./setup-php
+        with:
+          php-version: ${{ matrix.php }}
+        env:
+          verbose: 'true'
+          update: 'true'
+      - name: Verify PHP
+        run: |
+          php -v
+          php -m
