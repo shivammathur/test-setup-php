@@ -1,0 +1,81 @@
+name: Measure remaining macOS installation phases
+on: push
+permissions:
+  contents: read
+jobs:
+  profile:
+    name: ${{ matrix.os }} PHP ${{ matrix.php }} phases
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15-intel, macos-26-intel, macos-latest]
+        php: ['7.4']
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: e1ef24ca266ff4444b78261069ac4f5601c3ce16
+          persist-credentials: false
+      - name: Prepare phase and transfer measurements
+        shell: bash
+        run: |
+          curl -fsSL --retry 3 "https://artifacts.php-darwin.setup-php.com/php-$PHP_VERSION/php-$PHP_VERSION-manifest.json" -o "$RUNNER_TEMP/manifest.json"
+          PHP_DARWIN_RELEASE_MANIFEST="$RUNNER_TEMP/manifest.json" bash scripts/generate-install.sh "$RUNNER_TEMP/test-installer.sh"
+          python3 - "$RUNNER_TEMP/test-installer.sh" <<'PY'
+          import pathlib,sys
+          path=pathlib.Path(sys.argv[1])
+          source=path.read_text()
+          marker='  PHP_DARWIN_PHASE=$1'
+          assert source.count(marker)==1
+          path.write_text(source.replace(marker, marker+'\n  /usr/bin/perl -MTime::HiRes=time -e \'printf "%.6f %s\\n", time, $ARGV[0]\' "$1" >> "$RUNNER_TEMP/phases.log"'))
+          PY
+          mkdir -p "$RUNNER_TEMP/profile/bin"
+          cp "$RUNNER_TEMP/test-installer.sh" "$RUNNER_TEMP/profile/test-installer.sh"
+          touch "$RUNNER_TEMP/profile/transfers.log"
+          cat > "$RUNNER_TEMP/profile/bin/sudo" <<'SH'
+          #!/usr/bin/env bash
+          wrapper_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+          if [ "${1:-}" = curl ]; then
+            shift
+            exec /usr/bin/sudo "$wrapper_dir/curl" "$@"
+          fi
+          exec /usr/bin/sudo "$@"
+          SH
+          cat > "$RUNNER_TEMP/profile/bin/curl" <<'SH'
+          #!/usr/bin/env bash
+          fixture_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+          output= replace=false next_output=false url=
+          for arg; do
+            if [ "$next_output" = true ]; then output=$arg; next_output=false; fi
+            case "$arg" in
+              -o) next_output=true ;;
+              https://github.com/shivammathur/php-darwin/releases/download/*/install.sh|https://artifacts.php-darwin.setup-php.com/*/install.sh|https://cdn.jsdelivr.net/gh/shivammathur/php-darwin@main/scripts/install.sh|https://setup-php.com/php-darwin/install.sh) replace=true ;;
+            esac
+            case "$arg" in https://github.com/shivammathur/php-darwin/*|https://artifacts.php-darwin.setup-php.com/*) url=$arg ;; esac
+          done
+          [ -z "$url" ] || /usr/bin/perl -MTime::HiRes=time -e 'printf "%.6f start %s\n", time, $ARGV[0]' "$url" >> "$fixture_root/transfers.log"
+          status=0
+          /usr/bin/curl "$@" || status=$?
+          [ -z "$url" ] || /usr/bin/perl -MTime::HiRes=time -e 'printf "%.6f end %s status=%s\n", time, $ARGV[0], $ARGV[1]' "$url" "$status" >> "$fixture_root/transfers.log"
+          [ "$status" -eq 0 ] || exit "$status"
+          if [ "$replace" = true ] && [ -n "$output" ]; then cp "$fixture_root/test-installer.sh" "$output"; touch "$fixture_root/bootstrap-replaced"; fi
+          SH
+          chmod +x "$RUNNER_TEMP/profile/bin/curl" "$RUNNER_TEMP/profile/bin/sudo"
+          echo "$RUNNER_TEMP/profile/bin" >> "$GITHUB_PATH"
+      - name: Install PHP with phase measurements
+        uses: shivammathur/setup-php@9af3b52286fbc7a3f8e1fdcc34643ab10bcc7e0f
+        with:
+          php-version: ${{ matrix.php }}
+        env:
+          update: 'true'
+      - name: Report measured phases and transfers
+        if: always()
+        run: |
+          test -f "$RUNNER_TEMP/profile/bootstrap-replaced"
+          cmp /tmp/install.sh "$RUNNER_TEMP/test-installer.sh"
+          cat "$RUNNER_TEMP/phases.log"
+          cat "$RUNNER_TEMP/profile/transfers.log"
