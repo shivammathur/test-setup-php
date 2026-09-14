@@ -1,0 +1,61 @@
+name: Verify published macOS installer IO changes
+on: push
+permissions:
+  contents: read
+  actions: read
+jobs:
+  published:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Wait for verified release publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run watch 34888578478 --repo shivammathur/php-darwin --exit-status --interval 15
+  install:
+    needs: published
+    name: ${{ matrix.os }} PHP ${{ matrix.php }} published installer
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 14
+      matrix:
+        os: [macos-14, macos-15, macos-26, macos-latest, macos-15-intel, macos-26-intel, xcode-27]
+        php: ['7.4', '8.6']
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      HOMEBREW_REQUIRE_TAP_TRUST: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: 20cb965455e100911b13b2a82f0439ab7d222a11
+          persist-credentials: false
+      - name: Record install start without warming PHP or archive downloads
+        run: date +%s > "$RUNNER_TEMP/php-darwin-e2e-started-at.txt"
+      - name: Install from published releases without tools
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+        env:
+          update: 'true'
+      - name: Verify published installer bytes and cache runtime
+        env:
+          PHP_DARWIN_REQUIRE_CACHE: 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 "https://artifacts.php-darwin.setup-php.com/php-$PHP_VERSION/php-$PHP_VERSION-manifest.json" -o "$RUNNER_TEMP/manifest.json"
+          PHP_DARWIN_RELEASE_MANIFEST="$RUNNER_TEMP/manifest.json" bash scripts/generate-install.sh "$RUNNER_TEMP/expected-installer.sh"
+          cmp /tmp/install.sh "$RUNNER_TEMP/expected-installer.sh"
+          echo 'Confirmed setup-php executed the published IO installer'
+          bash scripts/test-setup-php.sh
+          php -m
+          extension_dir=$(php-config --extension-dir)
+          while IFS= read -r extension; do
+            type=extension
+            [ "$extension" != xdebug ] || type=zend_extension
+            php -n -d "$type=$extension_dir/$extension.so" -r "if (!extension_loaded('$extension')) exit(1);"
+          done < <(bash scripts/cached-extensions.sh "$PHP_VERSION")
