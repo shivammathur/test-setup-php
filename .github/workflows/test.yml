@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [xcode-27, macos-intel-15, macos-15]
         php-version:
           - 8.0
           - 8.1
@@ -22,9 +22,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-version }}
-          extensions: mongodb
       - run: |
-          php -r "echo phpversion('mongodb');"
           php -v
           php -m
       
