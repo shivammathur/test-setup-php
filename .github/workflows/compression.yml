@@ -1,0 +1,61 @@
+name: Compare real download and extraction at levels 19 and 22
+on:
+  push:
+    paths: [scripts/compression.py, .github/workflows/compression.yml]
+env:
+  BENCH_TAG: install-compression-20260915
+permissions:
+  contents: read
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create isolated benchmark release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$BENCH_TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease --title 'Installer compression benchmark samples' --notes 'Identical verified PHP tar payloads for download and extraction measurements.'
+  prepare:
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.6']
+        arch: [arm64, x86_64]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Recompress and verify identical tar contents
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PHP_VERSION: ${{ matrix.php }}
+          ARCH: ${{ matrix.arch }}
+        run: python3 scripts/compression.py prepare
+  measure:
+    needs: prepare
+    name: ${{ matrix.os }} wire and extraction sample ${{ matrix.sample }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15, macos-26, macos-15-intel, macos-26-intel, xcode-27]
+        sample: [0, 1]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Alternate levels across fresh downloads and extraction
+        env:
+          RUNNER_LABEL: ${{ matrix.os }}
+          SAMPLE: ${{ matrix.sample }}
+        run: python3 scripts/compression.py measure
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: compression-${{ matrix.os }}-${{ matrix.sample }}
+          path: compression-results.json
+          compression-level: 0
+          if-no-files-found: error
