@@ -1,0 +1,72 @@
+name: Measure production macOS installs
+on: push
+permissions:
+  contents: read
+jobs:
+  install:
+    name: ${{ matrix.os }} PHP ${{ matrix.php }} production
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15, macos-26, macos-latest, macos-15-intel, macos-26-intel, xcode-27]
+        php: ['5.6', '7.4', '8.4', '8.6']
+    steps:
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+        env:
+          update: 'true'
+      - name: Verify PHP and libraries
+        run: |
+          php -v
+          php -m
+          # shellcheck disable=SC2016
+          php -r 'foreach (["curl", "dom", "mbstring", "openssl", "pdo", "zip"] as $ext) { if (!extension_loaded($ext)) { throw new Exception($ext); } }'
+  profile:
+    name: ${{ matrix.os }} PHP 8.4 phase diagnostics
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15-intel, macos-26-intel]
+    steps:
+      - name: Instrument installer phases for diagnostics
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/profile/bin"
+          cat > "$RUNNER_TEMP/profile/bin/curl" <<'SH'
+          #!/usr/bin/env bash
+          output= instrument=false next_output=false
+          for arg; do
+            if [ "$next_output" = true ]; then output=$arg; next_output=false; fi
+            case "$arg" in
+              -o) next_output=true ;;
+              https://github.com/shivammathur/php-darwin/releases/download/*/install.sh|https://artifacts.php-darwin.setup-php.com/*/install.sh) instrument=true ;;
+            esac
+          done
+          /usr/bin/curl "$@" || exit $?
+          if [ "$instrument" = true ] && [ -n "$output" ]; then
+            python3 - "$output" <<'PY'
+          import pathlib,sys
+          installer=pathlib.Path(sys.argv[1])
+          source=installer.read_text()
+          marker='  PHP_DARWIN_PHASE=$1'
+          assert source.count(marker)==1
+          source=source.replace(marker, marker+'\n  printf "php-darwin phase: %s\\n" "$1" >&2')
+          installer.write_text(source)
+          PY
+          fi
+          SH
+          chmod +x "$RUNNER_TEMP/profile/bin/curl"
+          echo "$RUNNER_TEMP/profile/bin" >> "$GITHUB_PATH"
+      - name: Profile PHP installation
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+        env:
+          update: 'true'
+          verbose: 'true'
