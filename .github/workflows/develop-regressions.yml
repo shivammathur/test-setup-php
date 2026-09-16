@@ -1,0 +1,196 @@
+name: Develop regression E2E
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ACTION_SHA: 152fa3e2db0b114945166ee61824e069113f29f3
+
+jobs:
+  checksums:
+    name: Composer checksum / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ env.ACTION_SHA }}
+          path: action
+          persist-credentials: false
+      - name: Set up PHP with a valid Composer checksum
+        uses: ./action
+        with:
+          php-version: '8.3'
+          tools: composer:2.9.8@sha256:59b2c50e10cafa0d8efc19ede9a326d782f096c674a26baf98cf042ce23de890
+        env:
+          FAIL_FAST: 'true'
+      - name: Verify the real Composer binary and prepare invalid caches
+        shell: bash
+        run: |
+          set -euo pipefail
+          composer --version | tee composer-version.txt
+          grep -F 'Composer version 2.9.8' composer-version.txt
+          node scripts/checksum.cjs seed
+      - name: Reject checksum with build metadata
+        id: metadata
+        continue-on-error: true
+        uses: ./action
+        with:
+          php-version: '8.3'
+          tools: composer:2.9.8+build.1@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        env:
+          FAIL_FAST: 'true'
+      - name: Reject checksum with dotted prerelease
+        id: prerelease
+        continue-on-error: true
+        uses: ./action
+        with:
+          php-version: '8.3'
+          tools: composer:2.9.8-rc.1@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        env:
+          FAIL_FAST: 'true'
+      - name: Verify both checksums were enforced
+        shell: bash
+        env:
+          METADATA_OUTCOME: ${{ steps.metadata.outcome }}
+          PRERELEASE_OUTCOME: ${{ steps.prerelease.outcome }}
+        run: |
+          set -euo pipefail
+          test "$METADATA_OUTCOME" = failure
+          test "$PRERELEASE_OUTCOME" = failure
+          node scripts/checksum.cjs verify
+          composer --version | tee evidence/composer-after-rejection.txt
+          grep -F 'Composer version 2.9.8' evidence/composer-after-rejection.txt
+      - name: Upload checksum evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: checksum-${{ matrix.os }}
+          path: |
+            evidence
+            action/src/scripts/run.*
+
+  extensions:
+    name: Redis cache / ${{ matrix.os }} / ${{ matrix.cache }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+        cache: [corrupt, wrong-version]
+    env:
+      CACHE_CASE: ${{ matrix.cache }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ env.ACTION_SHA }}
+          path: action
+          persist-credentials: false
+      - name: Install the initial Redis version
+        uses: ./action
+        with:
+          php-version: '8.3'
+          extensions: redis-6.1.0
+          tools: none
+        env:
+          FAIL_FAST: 'true'
+      - name: Inject invalid cache and stale extension listing
+        run: bash scripts/cache.sh seed
+      - name: Recover requested Redis version
+        uses: ./action
+        with:
+          php-version: '8.3'
+          extensions: redis-6.2.0
+          tools: none
+        env:
+          FAIL_FAST: 'true'
+      - name: Verify the loaded binary and repaired cache
+        run: bash scripts/cache.sh recovered
+      - name: Reuse the repaired versioned cache
+        uses: ./action
+        with:
+          php-version: '8.3'
+          extensions: redis-6.2.0
+          tools: none
+        env:
+          FAIL_FAST: 'true'
+      - name: Verify cache reuse
+        run: bash scripts/cache.sh reused
+      - name: Upload extension evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: redis-${{ matrix.os }}-${{ matrix.cache }}
+          path: |
+            evidence
+            action/src/scripts/run.*
+
+  windows-debug:
+    name: Windows symbols / ${{ matrix.discovery }} / ${{ matrix.php }} ${{ matrix.ts }}
+    runs-on: windows-2022
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - discovery: api
+            php: '8.4'
+            ts: nts
+          - discovery: html
+            php: '8.3'
+            ts: ts
+    env:
+      DISCOVERY: ${{ matrix.discovery }}
+      PHP_VERSION: ${{ matrix.php }}
+      PHPTS: ${{ matrix.ts }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ env.ACTION_SHA }}
+          path: action
+          persist-credentials: false
+      - name: Inject HTTP 503 at metadata endpoints
+        run: node scripts/inject-metadata.cjs
+      - name: Install real PHP and debug symbols through fallback discovery
+        uses: ./action
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+        env:
+          DEBUG: 'true'
+          FAIL_FAST: 'true'
+      - name: Match PDB identifiers to PHP executable and engine DLL
+        run: |
+          php -v
+          node scripts/verify-pdb.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git -C action diff | Out-File evidence/endpoint-injection.diff
+      - name: Upload Windows binary and symbol evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: symbols-${{ matrix.discovery }}-${{ matrix.ts }}
+          path: |
+            evidence
+            action/src/scripts/run.*
