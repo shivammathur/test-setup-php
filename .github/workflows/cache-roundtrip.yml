@@ -6,7 +6,7 @@ permissions:
   contents: read
 env:
   ACTION_SHA: 5eaed2e30bc34fd60c7e79a37907dcc52ab6ddf6
-  SHARE_CACHE_ACROSS_JOBS: 'true'
+  share-cache-across-jobs: 'true'
 jobs:
   seed:
     name: Save versioned Redis / ${{ matrix.os }}
