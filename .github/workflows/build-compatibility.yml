@@ -1,0 +1,73 @@
+name: Versioned Windows extension cache build compatibility
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  switch:
+    name: ${{ matrix.ref.name }} / ${{ matrix.target.name }}
+    runs-on: windows-2022
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        ref:
+          - name: release
+            sha: f3e473d116dcccaddc5834248c87452386958240
+          - name: develop
+            sha: 25618cc48e863aa0b840b271ad42ba6fcd51b789
+        target:
+          - name: PHP 8.3 to 8.4
+            php: '8.4'
+            ts: nts
+          - name: NTS to TS
+            php: '8.3'
+            ts: ts
+    env:
+      ACTION_REF: ${{ matrix.ref.sha }}
+      verbose: vvv
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ matrix.ref.sha }}
+          path: action
+          persist-credentials: false
+      - name: Install Redis 6.2.0 on PHP 8.3 NTS
+        uses: ./action
+        with:
+          php-version: '8.3'
+          extensions: redis-6.2.0
+          tools: none
+        env:
+          PHPTS: nts
+          fail-fast: 'true'
+      - name: Inspect original PHP build and unmodified cache
+        shell: pwsh
+        run: ./scripts/inspect.ps1 before 8.3 nts
+      - name: Change PHP build while keeping the Redis release
+        id: changed
+        continue-on-error: true
+        uses: ./action
+        with:
+          php-version: ${{ matrix.target.php }}
+          extensions: redis-6.2.0
+          tools: none
+        env:
+          PHPTS: ${{ matrix.target.ts }}
+          fail-fast: 'true'
+      - name: Verify the new PHP build loads Redis
+        if: always()
+        shell: pwsh
+        run: ./scripts/inspect.ps1 after '${{ matrix.target.php }}' '${{ matrix.target.ts }}'
+        env:
+          SETUP_OUTCOME: ${{ steps.changed.outcome }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: ${{ matrix.ref.name }}-${{ matrix.target.php }}-${{ matrix.target.ts }}
+          path: evidence
