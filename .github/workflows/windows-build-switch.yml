@@ -1,0 +1,67 @@
+name: Verify cached extensions after Windows PHP build changes
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  switch:
+    name: PHP 8.3 NTS to ${{ matrix.target.name }} and back
+    runs-on: windows-2022
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - name: PHP 8.4 NTS
+            php: '8.4'
+            ts: nts
+          - name: PHP 8.3 TS
+            php: '8.3'
+            ts: ts
+    env:
+      ACTION_REF: e3f88f3ca75a2b63285e5a4eab2e32847a0546fd
+      verbose: vvv
+      fail-fast: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install Redis 6.2.0 on PHP 8.3 NTS
+        uses: shivammathur/setup-php@e3f88f3ca75a2b63285e5a4eab2e32847a0546fd
+        with:
+          php-version: '8.3'
+          extensions: redis-6.2.0
+          tools: none
+        env:
+          PHPTS: nts
+      - name: Inspect original PHP build and cached DLL
+        shell: pwsh
+        run: ./scripts/inspect.ps1 before 8.3 nts
+      - name: Change PHP build while keeping the Redis version
+        uses: shivammathur/setup-php@e3f88f3ca75a2b63285e5a4eab2e32847a0546fd
+        with:
+          php-version: ${{ matrix.target.php }}
+          extensions: redis-6.2.0
+          tools: none
+        env:
+          PHPTS: ${{ matrix.target.ts }}
+      - name: Verify the new PHP build loads Redis
+        shell: pwsh
+        run: ./scripts/inspect.ps1 after '${{ matrix.target.php }}' '${{ matrix.target.ts }}'
+      - name: Return to the original PHP build
+        uses: shivammathur/setup-php@e3f88f3ca75a2b63285e5a4eab2e32847a0546fd
+        with:
+          php-version: '8.3'
+          extensions: redis-6.2.0
+          tools: none
+        env:
+          PHPTS: nts
+      - name: Verify Redis loads after the return
+        shell: pwsh
+        run: ./scripts/inspect.ps1 returned 8.3 nts
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: switch-${{ matrix.target.php }}-${{ matrix.target.ts }}
+          path: evidence

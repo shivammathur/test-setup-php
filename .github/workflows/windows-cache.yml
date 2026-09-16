@@ -1,0 +1,165 @@
+name: Windows versioned extension backups and cache restore
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  ACTION_SHA: e3f88f3ca75a2b63285e5a4eab2e32847a0546fd
+  verbose: vvv
+  share-cache-across-jobs: 'true'
+jobs:
+  seed:
+    name: Switch, rollback and save / ${{ matrix.ts }}
+    runs-on: windows-2022
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        ts: [nts, ts]
+    env:
+      PHPTS: ${{ matrix.ts }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install Redis 6.1.0
+        uses: shivammathur/setup-php@e3f88f3ca75a2b63285e5a4eab2e32847a0546fd
+        with:
+          php-version: '8.3'
+          extensions: redis-6.1.0
+          tools: none
+        env:
+          fail-fast: 'true'
+      - name: Verify initial DLL and remove its cache copy
+        shell: pwsh
+        run: ./scripts/verify.ps1 initial 6.1.0
+      - name: Upgrade and create versioned backups
+        uses: shivammathur/setup-php@e3f88f3ca75a2b63285e5a4eab2e32847a0546fd
+        with:
+          php-version: '8.3'
+          extensions: redis-6.2.0
+          tools: none
+        env:
+          fail-fast: 'true'
+      - name: Verify both cached versions and the active DLL
+        shell: pwsh
+        run: ./scripts/verify.ps1 upgraded 6.2.0
+      - name: Restore Redis 6.1.0 from cache
+        uses: shivammathur/setup-php@e3f88f3ca75a2b63285e5a4eab2e32847a0546fd
+        with:
+          php-version: '8.3'
+          extensions: redis-6.1.0
+          tools: none
+        env:
+          fail-fast: 'true'
+      - name: Verify cached downgrade
+        shell: pwsh
+        run: ./scripts/verify.ps1 downgraded 6.1.0
+      - name: Restore Redis 6.2.0 from cache
+        uses: shivammathur/setup-php@e3f88f3ca75a2b63285e5a4eab2e32847a0546fd
+        with:
+          php-version: '8.3'
+          extensions: redis-6.2.0
+          tools: none
+        env:
+          fail-fast: 'true'
+      - name: Verify cached upgrade
+        shell: pwsh
+        run: ./scripts/verify.ps1 reupgraded 6.2.0
+      - name: Attempt an unavailable Redis version
+        id: unavailable
+        continue-on-error: true
+        uses: shivammathur/setup-php@e3f88f3ca75a2b63285e5a4eab2e32847a0546fd
+        with:
+          php-version: '8.3'
+          extensions: redis-999.0.0
+          tools: none
+        env:
+          fail-fast: 'true'
+      - name: Verify failure restored the DLL and retained the versioned backup
+        shell: pwsh
+        run: ./scripts/verify.ps1 rollback 6.2.0
+        env:
+          INSTALL_OUTCOME: ${{ steps.unavailable.outcome }}
+      - name: Configure cache-extensions
+        id: cache
+        uses: shivammathur/cache-extensions@de3c642a5fce0ef91581a1c9831e229f525196d6
+        with:
+          php-version: '8.3'
+          extensions: redis-6.1.0, redis-6.2.0
+          key: versioned-backups-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.ts }}
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ steps.cache.outputs.dir }}
+          key: ${{ steps.cache.outputs.key }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: seed-${{ matrix.ts }}
+          path: evidence
+  restore:
+    name: Restore on a fresh runner / ${{ matrix.ts }}
+    needs: seed
+    runs-on: windows-2022
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        ts: [nts, ts]
+    env:
+      PHPTS: ${{ matrix.ts }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Initialize fresh PHP
+        uses: shivammathur/setup-php@e3f88f3ca75a2b63285e5a4eab2e32847a0546fd
+        with:
+          php-version: '8.3'
+          extensions: ':redis'
+          tools: none
+        env:
+          fail-fast: 'true'
+      - name: Configure cache-extensions
+        id: cache
+        uses: shivammathur/cache-extensions@de3c642a5fce0ef91581a1c9831e229f525196d6
+        with:
+          php-version: '8.3'
+          extensions: redis-6.1.0, redis-6.2.0
+          key: versioned-backups-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.ts }}
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ steps.cache.outputs.dir }}
+          key: ${{ steps.cache.outputs.key }}
+          fail-on-cache-miss: true
+      - name: Verify saved binaries and remove the active DLL
+        shell: pwsh
+        run: ./scripts/verify.ps1 restored
+      - name: Enable Redis 6.1.0 from the restored cache
+        uses: shivammathur/setup-php@e3f88f3ca75a2b63285e5a4eab2e32847a0546fd
+        with:
+          php-version: '8.3'
+          extensions: redis-6.1.0
+          tools: none
+        env:
+          fail-fast: 'true'
+      - name: Verify the original versioned backup is reusable
+        shell: pwsh
+        run: ./scripts/verify.ps1 restored-old 6.1.0
+      - name: Enable Redis 6.2.0 from the restored cache
+        uses: shivammathur/setup-php@e3f88f3ca75a2b63285e5a4eab2e32847a0546fd
+        with:
+          php-version: '8.3'
+          extensions: redis-6.2.0
+          tools: none
+        env:
+          fail-fast: 'true'
+      - name: Verify the newer cached version is reusable
+        shell: pwsh
+        run: ./scripts/verify.ps1 restored-new 6.2.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: restore-${{ matrix.ts }}
+          path: evidence

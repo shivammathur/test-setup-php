@@ -1,0 +1,50 @@
+name: Verify Laravel Cloud enables fileinfo
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tools:
+    name: ${{ matrix.os }} / ${{ matrix.extensions }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+        extensions: ['none']
+    steps:
+      - uses: shivammathur/setup-php@e3f88f3ca75a2b63285e5a4eab2e32847a0546fd
+        with:
+          php-version: '8.5'
+          extensions: ${{ matrix.extensions }}
+          tools: laravel-cloud
+        env:
+          verbose: vvv
+          fail-fast: 'true'
+      - name: Check each command independently
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Continue'
+          $PSNativeCommandUseErrorActionPreference=$false
+          New-Item evidence -ItemType Directory -Force | Out-Null
+          php -m | Set-Content evidence/php-modules.txt
+          if ('fileinfo' -notin (Get-Content evidence/php-modules.txt)) { throw 'fileinfo is not loaded' }
+          $results=@()
+          foreach ($tool in @('cloud','cloud-cli')) {
+            $command=Get-Command $tool -ErrorAction Stop
+            $command | Format-List Name,CommandType,Source,Definition | Out-File "evidence/$tool-command.txt"
+            $global:LASTEXITCODE=0
+            $output=& $tool --version 2>&1
+            $exit=$LASTEXITCODE
+            $output | Tee-Object "evidence/$tool.txt"
+            $results+=@{tool=$tool;exit=$exit}
+          }
+          $results | ConvertTo-Json | Set-Content evidence/results.json
+          if ($results | Where-Object { $_.exit -ne 0 }) { exit 1 }
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: tools-${{ matrix.os }}-${{ strategy.job-index }}
+          path: evidence
