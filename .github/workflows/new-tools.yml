@@ -1,0 +1,43 @@
+name: Validate tools added since the last release
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tools:
+    name: cpx and Laravel Cloud / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    steps:
+      - name: Install tools with explicitly enabled dependencies
+        uses: shivammathur/setup-php@25618cc48e863aa0b840b271ad42ba6fcd51b789
+        with:
+          php-version: '8.5'
+          extensions: none
+          tools: cpx, laravel-cloud
+        env:
+          verbose: vvv
+          fail-fast: 'true'
+      - name: Check tool executables and aliases
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item evidence -ItemType Directory -Force | Out-Null
+          foreach ($tool in @('cpx','cloud','cloud-cli')) {
+            $command=Get-Command $tool -ErrorAction Stop
+            $output=& $command.Source --version 2>&1
+            $exit=$LASTEXITCODE
+            $output | Tee-Object "evidence/$tool.txt"
+            if ($exit -ne 0) { throw "$tool --version failed with exit $exit" }
+          }
+          php -m | Set-Content evidence/php-modules.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: tools-${{ matrix.os }}
+          path: evidence
