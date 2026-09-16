@@ -15,7 +15,7 @@ if (phase === 'seed') {
   if (version !== '6.2.0') throw new Error(`Wrong initial Redis: ${version}`);
   if (hash(cacheFile) !== hash(activeFile)) throw new Error('Versioned binary was not cached');
   data = {run: process.env.GITHUB_RUN_ID, version, sha256: hash(cacheFile), dir, key: process.env.CACHE_KEY, source: process.env.ACTION_SHA};
-  fs.writeFileSync(marker, JSON.stringify(data, null, 2));
+  execFileSync('sudo', ['tee', marker], {input: JSON.stringify(data, null, 2), stdio: ['pipe', 'ignore', 'inherit']});
 } else {
   data = JSON.parse(fs.readFileSync(marker, 'utf8'));
   if (data.run !== process.env.GITHUB_RUN_ID || data.key !== process.env.CACHE_KEY || data.source !== process.env.ACTION_SHA) throw new Error('Restored an unexpected cache');
