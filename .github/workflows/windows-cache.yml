@@ -1,0 +1,125 @@
+name: Release versus develop Windows extension caches
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  verbose: vvv
+jobs:
+  restored:
+    name: ${{ matrix.ref.name }} / ${{ matrix.scenario }}
+    runs-on: windows-2022
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        ref:
+          - name: release
+            sha: f3e473d116dcccaddc5834248c87452386958240
+          - name: develop
+            sha: 5eaed2e30bc34fd60c7e79a37907dcc52ab6ddf6
+        scenario: [wrong-version, corrupt]
+    env:
+      ACTION_REF: ${{ matrix.ref.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ matrix.ref.sha }}
+          path: action
+          persist-credentials: false
+      - name: Initialize PHP
+        uses: ./action
+        with:
+          php-version: '8.3'
+          extensions: ':redis'
+          tools: none
+      - name: Seed a working Redis and a faulty versioned cache
+        shell: pwsh
+        run: ./scripts/windows-cache.ps1 seed '${{ matrix.scenario }}'
+      - name: Request Redis 6.2.0
+        id: setup
+        continue-on-error: true
+        uses: ./action
+        with:
+          php-version: '8.3'
+          extensions: redis-6.2.0
+          tools: none
+        env:
+          fail-fast: 'true'
+      - name: Verify the requested version is loaded
+        if: always()
+        shell: pwsh
+        run: ./scripts/windows-cache.ps1 verify '${{ matrix.scenario }}'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: ${{ matrix.ref.name }}-${{ matrix.scenario }}
+          path: evidence
+  switch:
+    name: ${{ matrix.ref.name }} / version-switch
+    runs-on: windows-2022
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        ref:
+          - name: release
+            sha: f3e473d116dcccaddc5834248c87452386958240
+          - name: develop
+            sha: 5eaed2e30bc34fd60c7e79a37907dcc52ab6ddf6
+    env:
+      ACTION_REF: ${{ matrix.ref.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ matrix.ref.sha }}
+          path: action
+          persist-credentials: false
+      - name: Initialize PHP
+        uses: ./action
+        with:
+          php-version: '8.3'
+          extensions: ':redis'
+          tools: none
+      - name: Seed Redis 6.1.0 and its versioned cache
+        shell: pwsh
+        run: ./scripts/windows-cache.ps1 seed switch
+      - name: Upgrade to Redis 6.2.0
+        continue-on-error: true
+        uses: ./action
+        with:
+          php-version: '8.3'
+          extensions: redis-6.2.0
+          tools: none
+        env:
+          fail-fast: 'true'
+      - name: Inspect installation and versioned cache
+        if: always()
+        shell: pwsh
+        run: ./scripts/windows-cache.ps1 after-upgrade switch
+      - name: Restore Redis 6.1.0 from cache
+        uses: ./action
+        with:
+          php-version: '8.3'
+          extensions: redis-6.1.0
+          tools: none
+        env:
+          fail-fast: 'true'
+      - name: Check Redis 6.1.0
+        if: always()
+        shell: pwsh
+        run: ./scripts/windows-cache.ps1 final switch
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: ${{ matrix.ref.name }}-version-switch
+          path: evidence
