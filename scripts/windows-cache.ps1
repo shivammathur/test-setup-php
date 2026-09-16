@@ -1,7 +1,7 @@
 param([string]$Phase, [string]$Scenario)
 $ErrorActionPreference = 'Stop'
-$ext = (php -r 'echo ini_get("extension_dir");').Trim()
 $phpRoot = Split-Path (Get-Command php).Source
+$ext = Join-Path $phpRoot ext
 New-Item evidence -ItemType Directory -Force | Out-Null
 if ($Phase -eq 'seed') {
   foreach ($v in @('6.1.0', '6.2.0')) {
@@ -30,8 +30,8 @@ $data = [ordered]@{
   phase = $Phase
   scenario = $Scenario
   action = $env:ACTION_REF
-  runtime = (php -d display_errors=0 -r 'echo json_encode(["version"=>phpversion("redis"),"loaded"=>extension_loaded("redis")]);' 2>$null | ConvertFrom-Json)
-  files = @(Get-ChildItem $ext -Filter '*redis*' | ForEach-Object { @{name=$_.Name; size=$_.Length; sha256=(Get-FileHash $_.FullName).Hash} })
+  runtime = (php -d display_errors=0 -d display_startup_errors=0 -r 'echo json_encode(["version"=>phpversion("redis"),"loaded"=>extension_loaded("redis")]);' 2>$null | ConvertFrom-Json)
+  files = @(Get-ChildItem $ext -File -Filter '*redis*' | ForEach-Object { @{name=$_.Name; size=$_.Length; sha256=(Get-FileHash $_.FullName).Hash} })
   ini = @(Get-Content "$phpRoot/php.ini" | Where-Object { $_ -match 'redis' })
 }
 $data | ConvertTo-Json -Depth 6 | Tee-Object "evidence/$Phase.json"
