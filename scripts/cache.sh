@@ -10,7 +10,8 @@ if [ "$1" = seed ]; then
   else
     sudo cp "$ext_dir/redis.so" "$ext_dir/redis-6.2.0"
   fi
-  printf 'redis\n' | sudo tee /tmp/php8.3_extensions >/dev/null
+  sudo rm -f /tmp/php8.3_extensions
+  printf 'redis\n' > /tmp/php8.3_extensions
 else
   php -r '$r = new Redis(); if (phpversion("redis") !== "6.2.0") { exit(1); } echo json_encode(["php" => PHP_VERSION, "redis" => phpversion("redis"), "class" => get_class($r)], JSON_PRETTY_PRINT), PHP_EOL;' | tee "evidence/redis-$1.json"
   cmp "$ext_dir/redis.so" "$ext_dir/redis-6.2.0"
