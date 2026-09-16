@@ -1,0 +1,49 @@
+name: Check new tool dependencies and aliases
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tools:
+    name: ${{ matrix.os }} / ${{ matrix.extensions }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+        extensions: ['none', 'none, fileinfo']
+    steps:
+      - uses: shivammathur/setup-php@25618cc48e863aa0b840b271ad42ba6fcd51b789
+        with:
+          php-version: '8.5'
+          extensions: ${{ matrix.extensions }}
+          tools: cpx, laravel-cloud
+        env:
+          verbose: vvv
+          fail-fast: 'true'
+      - name: Check each command independently
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Continue'
+          $PSNativeCommandUseErrorActionPreference=$false
+          New-Item evidence -ItemType Directory -Force | Out-Null
+          php -m | Set-Content evidence/php-modules.txt
+          $results=@()
+          foreach ($tool in @('cpx','cloud','cloud-cli')) {
+            $command=Get-Command $tool -ErrorAction Stop
+            $command | Format-List Name,CommandType,Source,Definition | Out-File "evidence/$tool-command.txt"
+            $global:LASTEXITCODE=0
+            $output=& $tool --version 2>&1
+            $exit=$LASTEXITCODE
+            $output | Tee-Object "evidence/$tool.txt"
+            $results+=@{tool=$tool;exit=$exit}
+          }
+          $results | ConvertTo-Json | Set-Content evidence/results.json
+          if ($results | Where-Object { $_.exit -ne 0 }) { exit 1 }
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: tools-${{ matrix.os }}-${{ strategy.job-index }}
+          path: evidence
