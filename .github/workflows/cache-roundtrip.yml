@@ -1,0 +1,115 @@
+name: Versioned extension cache roundtrip
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  ACTION_SHA: 5eaed2e30bc34fd60c7e79a37907dcc52ab6ddf6
+  SHARE_CACHE_ACROSS_JOBS: 'true'
+jobs:
+  seed:
+    name: Save versioned Redis / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Initialize PHP
+        uses: shivammathur/setup-php@5eaed2e30bc34fd60c7e79a37907dcc52ab6ddf6
+        with:
+          php-version: '8.3'
+          extensions: ':redis'
+          tools: none
+      - name: Configure cache-extensions v1
+        id: cache
+        uses: shivammathur/cache-extensions@de3c642a5fce0ef91581a1c9831e229f525196d6
+        with:
+          php-version: '8.3'
+          extensions: redis-6.2.0
+          key: roundtrip-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Install versioned Redis
+        uses: shivammathur/setup-php@5eaed2e30bc34fd60c7e79a37907dcc52ab6ddf6
+        with:
+          php-version: '8.3'
+          extensions: redis-6.2.0
+          tools: none
+        env:
+          FAIL_FAST: 'true'
+      - name: Record exact versioned binary
+        run: node scripts/verify-cache.cjs seed
+        env:
+          CACHE_DIR: ${{ steps.cache.outputs.dir }}
+          CACHE_KEY: ${{ steps.cache.outputs.key }}
+      - name: Save the complete extension directory
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ steps.cache.outputs.dir }}
+          key: ${{ steps.cache.outputs.key }}
+      - name: Upload saved binary evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: seed-${{ matrix.os }}
+          path: evidence
+  restore:
+    name: Restore versioned Redis / ${{ matrix.os }}
+    needs: seed
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Initialize a fresh runner
+        uses: shivammathur/setup-php@5eaed2e30bc34fd60c7e79a37907dcc52ab6ddf6
+        with:
+          php-version: '8.3'
+          extensions: ':redis'
+          tools: none
+      - name: Configure cache-extensions v1
+        id: cache
+        uses: shivammathur/cache-extensions@de3c642a5fce0ef91581a1c9831e229f525196d6
+        with:
+          php-version: '8.3'
+          extensions: redis-6.2.0
+          key: roundtrip-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Restore the directory from the seed job
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ steps.cache.outputs.dir }}
+          key: ${{ steps.cache.outputs.key }}
+          fail-on-cache-miss: true
+      - name: Verify restored versioned binary and remove the active .so
+        run: node scripts/verify-cache.cjs restored
+        env:
+          CACHE_DIR: ${{ steps.cache.outputs.dir }}
+          CACHE_KEY: ${{ steps.cache.outputs.key }}
+      - name: Enable Redis from the restored versioned cache
+        uses: shivammathur/setup-php@5eaed2e30bc34fd60c7e79a37907dcc52ab6ddf6
+        with:
+          php-version: '8.3'
+          extensions: redis-6.2.0
+          tools: none
+        env:
+          FAIL_FAST: 'true'
+      - name: Verify loaded binary matches the saved cache
+        run: node scripts/verify-cache.cjs enabled
+        env:
+          CACHE_DIR: ${{ steps.cache.outputs.dir }}
+          CACHE_KEY: ${{ steps.cache.outputs.key }}
+      - name: Upload restored binary evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: restore-${{ matrix.os }}
+          path: evidence
