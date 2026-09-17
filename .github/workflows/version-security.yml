@@ -1,0 +1,103 @@
+name: PHP version compatibility and security
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+env:
+  ACTION_SHA: 75fa893d48ed4c16769683123e5881d4d7d817ad
+jobs:
+  matrix:
+    runs-on: ubuntu-24.04
+    outputs:
+      cases: ${{ steps.cases.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - id: cases
+        run: echo "matrix=$(node cases.cjs)" >> "$GITHUB_OUTPUT"
+  versions:
+    needs: matrix
+    name: ${{ matrix.os }} / ${{ matrix.id }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.cases) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ env.ACTION_SHA }}
+          path: action-under-test
+          persist-credentials: false
+      - name: Seed PHP for pre-installed aliases
+        if: matrix.pre
+        uses: ./action-under-test
+        with:
+          php-version: '8.4'
+          tools: none
+          coverage: none
+      - name: Prepare version source
+        id: fixture
+        run: node fixture.cjs
+        env:
+          CASE_ID: ${{ matrix.id }}
+      - name: Setup PHP from the selected source
+        id: setup
+        uses: ./action-under-test
+        with:
+          php-version: ${{ steps.fixture.outputs.input }}
+          php-version-file: ${{ steps.fixture.outputs.file }}
+          tools: ${{ matrix.source == 'smoke' && 'composer' || 'none' }}
+          extensions: ${{ matrix.source == 'smoke' && 'mbstring, xml, gd' || '' }}
+          coverage: none
+          ini-values: 'post_max_size=256M, date.timezone=Asia/Kolkata, error_log="$(echo COMPROMISED > e2e-pwned)"'
+        env:
+          COMPOSER_PROJECT_DIR: ${{ steps.fixture.outputs.project }}
+          fail-fast: 'true'
+      - name: Verify runtime, output, configuration and unchanged inputs
+        run: node verify.cjs
+        env:
+          ACTION_VERSION: ${{ steps.setup.outputs.php-version }}
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: version-${{ matrix.os }}-${{ matrix.id }}
+          path: |
+            e2e-result.json
+            e2e-state.json
+          retention-days: 7
+  security:
+    name: Security / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022, macos-15]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ env.ACTION_SHA }}
+          path: action-under-test
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Check repository and manifest rejection through the real bundle
+        run: node security.cjs
+      - name: Upload security result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: security-${{ matrix.os }}
+          path: security-result.json
+          retention-days: 7
