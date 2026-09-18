@@ -1,0 +1,289 @@
+name: Validate published libxml2 CVE artifacts
+run-name: Validate published libxml2 CVE-2026-86137 through CVE-2026-86144 artifacts
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - test/libxml2-cve-operational-validation-20260919
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  php-runtime:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            php_run: '35338605028'
+            php_artifact: '10544731403'
+            expected_libxml: '2.10.4-9'
+            expected_libxml_commit: 'b9ca51098499e5b4d47ed08778369b2f015fa8f3'
+            vs: vs16
+          - php: '8.3'
+            php_run: '35338607867'
+            php_artifact: '10544129537'
+            expected_libxml: '2.10.4-9'
+            expected_libxml_commit: 'b9ca51098499e5b4d47ed08778369b2f015fa8f3'
+            vs: vs16
+          - php: '8.4'
+            php_run: '35338610314'
+            php_artifact: '10544267925'
+            expected_libxml: '2.11.9-8'
+            expected_libxml_commit: 'c8797dc3b7964fabdb94d0b3176afb461afbd40b'
+            vs: vs17
+          - php: '8.5'
+            php_run: '35338613656'
+            php_artifact: '10545295261'
+            expected_libxml: '2.11.9-8'
+            expected_libxml_commit: 'c8797dc3b7964fabdb94d0b3176afb461afbd40b'
+            vs: vs17
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify exact PHP source build
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $run = gh api 'repos/shivammathur/php-windows-builder/actions/runs/${{ matrix.php_run }}' | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or
+              $run.head_sha -ne '76240faee4d7c2d1de35e2e5f800928961100e95' -or
+              $run.workflow_id -ne 251563593 -or
+              $run.status -ne 'completed' -or
+              $run.conclusion -ne 'success') {
+              throw 'Unexpected PHP source run provenance or status'
+          }
+          $artifacts = gh api 'repos/shivammathur/php-windows-builder/actions/runs/${{ matrix.php_run }}/artifacts' | ConvertFrom-Json
+          $selected = @($artifacts.artifacts | Where-Object { $_.name -eq 'artifacts' -and -not $_.expired -and $_.size_in_bytes -gt 0 })
+          if ($LASTEXITCODE -ne 0 -or $selected.Count -ne 1 -or $selected[0].id -ne '${{ matrix.php_artifact }}') {
+              throw 'Expected the pinned, non-empty merged PHP artifact'
+          }
+          New-Item reports -ItemType Directory -Force | Out-Null
+          $run | ConvertTo-Json -Depth 40 | Set-Content reports/source-run.json
+          $selected | ConvertTo-Json -Depth 30 | Set-Content reports/source-artifact.json
+
+      - name: Download exact PHP artifacts
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.php_run }}
+          github-token: ${{ secrets.PAT }}
+          artifact-ids: ${{ matrix.php_artifact }}
+          merge-multiple: true
+          path: artifacts
+
+      - name: Download published libraries for each architecture and validate PHP
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          . ./scripts/verify-publication.ps1
+          foreach ($arch in @('x64', 'x86')) {
+              Assert-StagedSeries -Php '${{ matrix.php }}' -Vs '${{ matrix.vs }}' -Arch $arch -Libxml '${{ matrix.expected_libxml }}' -ReportsDirectory reports/publication
+              $libxmlArtifact = "libxml2-${{ matrix.expected_libxml }}-${{ matrix.vs }}-$arch.zip"
+              $libxsltArtifact = "libxslt-1.1.43-2-${{ matrix.vs }}-$arch.zip"
+              $base = "https://downloads.php.net/~windows/php-sdk/deps/${{ matrix.vs }}/$arch"
+              New-Item "candidates/libxml2/$arch", "candidates/libxslt/$arch" -ItemType Directory -Force | Out-Null
+              Save-VerifiedPackage -Url "$base/$libxmlArtifact" -File $libxmlArtifact -ReportsDirectory reports/publication
+              Save-VerifiedPackage -Url "$base/$libxsltArtifact" -File $libxsltArtifact -ReportsDirectory reports/publication
+              Expand-Archive $libxmlArtifact -DestinationPath "candidates/libxml2/$arch" -Force
+              Expand-Archive $libxsltArtifact -DestinationPath "candidates/libxslt/$arch" -Force
+          }
+          ./scripts/test-libxml2-artifacts.ps1 `
+              -ArtifactsDirectory artifacts `
+              -ReportsDirectory reports/libxml2 `
+              -ExpectedLibxml '${{ matrix.expected_libxml }}' `
+              -ExpectedLibxmlCommit '${{ matrix.expected_libxml_commit }}' `
+              -ExpectedVs '${{ matrix.vs }}' `
+              -ExpectedPhpSeries '${{ matrix.php }}' `
+              -ExpectedLibxmlArtifactDirectory candidates/libxml2 `
+              -ExpectedLibxsltArtifactDirectory candidates/libxslt
+
+      - name: Upload PHP QA evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: php-${{ matrix.php }}-libxml2-qa
+          path: reports
+          if-no-files-found: error
+
+  rrd-native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            vs: vs16
+            arch: x64
+            expected_libxml: '2.10.4-9'
+          - php: '8.2'
+            vs: vs16
+            arch: x86
+            expected_libxml: '2.10.4-9'
+          - php: '8.4'
+            vs: vs17
+            arch: x64
+            expected_libxml: '2.11.9-8'
+          - php: '8.4'
+            vs: vs17
+            arch: x86
+            expected_libxml: '2.11.9-8'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/checkout@v6
+        with:
+          repository: winlibs/winlib-builder
+          ref: 98646365617e2042793c3086340ff605e224e15b
+          path: builder
+
+      - name: Download published RRDtool and libxml2 packages
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item reports -ItemType Directory -Force | Out-Null
+          . ./scripts/verify-publication.ps1
+          $rrdZip = 'librrd-1.11.0-${{ matrix.vs }}-${{ matrix.arch }}.zip'
+          $xmlZip = 'libxml2-${{ matrix.expected_libxml }}-${{ matrix.vs }}-${{ matrix.arch }}.zip'
+          Save-VerifiedPackage -Url "https://downloads.php.net/~windows/pecl/deps/$rrdZip" -File $rrdZip -ReportsDirectory reports/publication
+          Save-VerifiedPackage -Url "https://downloads.php.net/~windows/php-sdk/deps/${{ matrix.vs }}/${{ matrix.arch }}/$xmlZip" -File $xmlZip -ReportsDirectory reports/publication
+          Expand-Archive $rrdZip -DestinationPath rrd -Force
+          Expand-Archive $xmlZip -DestinationPath published-libxml -Force
+          $rrdBom = Get-Content rrd/share/sbom/librrd.cdx.json -Raw | ConvertFrom-Json
+          $xmlBom = Get-Content published-libxml/share/sbom/libxml2.cdx.json -Raw | ConvertFrom-Json
+          $embeddedXml = @($rrdBom.components | Where-Object name -eq libxml2)
+          if ($embeddedXml.Count -ne 1 -or
+              ($embeddedXml[0] | ConvertTo-Json -Depth 100 -Compress) -ne
+              ($xmlBom.metadata.component | ConvertTo-Json -Depth 100 -Compress)) {
+              throw 'Static RRD libxml2 provenance does not match the accepted published package'
+          }
+          $embeddedXml | ConvertTo-Json -Depth 100 | Set-Content reports/rrd-static-libxml2-provenance.json
+
+      - name: Compute virtual inputs
+        id: virtuals
+        shell: cmd
+        run: powershell builder/scripts/compute-virtuals -version ${{ matrix.php }} -arch ${{ matrix.arch }}
+
+      - name: Setup MSVC development environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+          toolset: ${{ steps.virtuals.outputs.toolset }}
+
+      - name: Fetch staged RRDtool runtime dependencies
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        run: >-
+          ./builder/scripts/fetch-deps.ps1
+          -lib librrd
+          -version '${{ matrix.php }}'
+          -vs '${{ matrix.vs }}'
+          -arch '${{ matrix.arch }}'
+          -stability staging
+          -repository 'winlibs/winlib-builder'
+
+      - name: Test RRDtool samples, XML roundtrip and malformed XML rejection
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item reports -ItemType Directory -Force | Out-Null
+          cl /nologo /W4 /WX /MD /O2 tests/rrd-smoke.c /Irrd/include /link /LIBPATH:rrd/lib librrd-8.lib /OUT:rrd-smoke.exe
+          if ($LASTEXITCODE -ne 0) { throw 'RRDtool smoke test compilation failed' }
+          dumpbin /headers rrd/bin/librrd-8.dll | Tee-Object reports/librrd-headers.txt
+          dumpbin /dependents rrd/bin/librrd-8.dll | Tee-Object reports/librrd-dependents.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect RRDtool linkage' }
+          if (Select-String -Path reports/librrd-dependents.txt -Pattern 'libxml2\.dll') {
+              throw 'Unexpected dynamic libxml2 linkage in the accepted static consumer'
+          }
+          $env:PATH = "$(Resolve-Path rrd/bin);$(Resolve-Path deps/bin);$env:PATH"
+          Push-Location $env:RUNNER_TEMP
+          try {
+              & "$env:GITHUB_WORKSPACE/rrd-smoke.exe" 2>&1 | Tee-Object "$env:GITHUB_WORKSPACE/reports/rrd-smoke.log"
+              if ($LASTEXITCODE -ne 0) { throw 'RRDtool smoke test failed' }
+          } finally {
+              Pop-Location
+          }
+          Get-ChildItem rrd -Recurse -File | Get-FileHash -Algorithm SHA256 | ConvertTo-Json | Set-Content reports/rrd-artifact-hashes.json
+          Get-ChildItem deps/bin -File | Get-FileHash -Algorithm SHA256 | ConvertTo-Json | Set-Content reports/staged-runtime-dependency-hashes.json
+
+      - name: Upload RRDtool QA evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: librrd-${{ matrix.vs }}-${{ matrix.arch }}-qa
+          path: reports
+          if-no-files-found: error
+
+  strict-sanitizers:
+    name: Strict sanitizers (${{ matrix.series }}, ${{ matrix.phase }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - series: '2.10'
+            phase: baseline
+            source: 53d3ad9aa8a1fa570ae06c05647a8930448818e2
+          - series: '2.10'
+            phase: patched
+            source: b9ca51098499e5b4d47ed08778369b2f015fa8f3
+          - series: '2.11'
+            phase: baseline
+            source: f06d784607050c08a9b28b1fce2faa4236c052cf
+          - series: '2.11'
+            phase: patched
+            source: c8797dc3b7964fabdb94d0b3176afb461afbd40b
+    env:
+      CC: clang
+      CFLAGS: -O1 -g -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer
+      LDFLAGS: -fsanitize=address,undefined
+      ASAN_OPTIONS: halt_on_error=1:allocator_may_return_null=1
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: winlibs/libxml2
+          ref: ${{ matrix.source }}
+      - name: Prepare autotools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y autoconf automake libtool pkg-config liblzma-dev zlib1g-dev
+      - name: Configure with strict address and undefined-behavior sanitizers
+        run: |
+          set -euo pipefail
+          mkdir -p qa-logs
+          git rev-parse HEAD | tee qa-logs/source.txt
+          clang --version | tee qa-logs/compiler.txt
+          NOCONFIGURE=1 sh ./autogen.sh 2>&1 | tee qa-logs/autogen.log
+          sh ./configure --without-python --without-ftp 2>&1 | tee qa-logs/configure.log
+      - name: Build and run native checks without sanitizer recovery
+        run: |
+          set -euo pipefail
+          make -j2 2>&1 | tee qa-logs/build.log
+          make -j2 check 2>&1 | tee qa-logs/check.log
+          grep -q 'Total: .* tests, 0 errors' qa-logs/check.log
+          if grep -E 'runtime error:|ERROR: (AddressSanitizer|LeakSanitizer)|SUMMARY: .*Sanitizer' qa-logs/check.log; then
+            exit 1
+          fi
+      - name: Retain strict sanitizer evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sanitizer-${{ matrix.series }}-${{ matrix.phase }}
+          path: |
+            qa-logs
+            config.log
+          if-no-files-found: error
