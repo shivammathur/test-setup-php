@@ -1,0 +1,48 @@
+name: Review PHP version files across platforms
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  versions:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022, macos-15]
+    env:
+      verbose: vvv
+      fail-fast: 'true'
+    steps:
+      - name: Write an asdf version file with CRLF, comments and whitespace
+        shell: pwsh
+        run: |
+          [IO.File]::WriteAllText((Join-Path (Get-Location) '.tool-versions'), "# Languages`r`nnodejs 22.0.0`r`n `tphp `t 8.3 `t# PHP version`r`nruby 3.2.0`r`n", [Text.UTF8Encoding]::new($false))
+      - uses: shivammathur/setup-php@75fa893d48ed4c16769683123e5881d4d7d817ad
+        with:
+          php-version-file: .tool-versions
+          extensions: none
+          tools: none
+      - shell: pwsh
+        run: |
+          New-Item evidence -ItemType Directory -Force | Out-Null
+          php -v | Tee-Object evidence/asdf.txt
+          php -r 'exit(PHP_MAJOR_VERSION === 8 && PHP_MINOR_VERSION === 3 ? 0 : 1);'
+      - name: Write a UTF-8 BOM version file with an alias
+        shell: pwsh
+        run: |
+          [IO.File]::WriteAllText((Join-Path (Get-Location) '.php-version'), "latest`r`n", [Text.UTF8Encoding]::new($true))
+      - uses: shivammathur/setup-php@75fa893d48ed4c16769683123e5881d4d7d817ad
+        with:
+          extensions: none
+          tools: none
+      - shell: pwsh
+        run: |
+          php -v | Tee-Object evidence/alias.txt
+          php -r 'exit(PHP_MAJOR_VERSION === 8 && PHP_MINOR_VERSION === 5 ? 0 : 1);'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: version-files-${{ matrix.os }}
+          path: evidence
