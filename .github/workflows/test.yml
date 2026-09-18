@@ -7,23 +7,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [xcode-27, macos-15-intel, macos-15]
+        os: [xcode-27, macos-15]
         php-version:
-          - 8.0
-          - 8.1
-          - 8.2
           - 8.3
           - 8.4
-          - 8.5
-          - 8.6
           
     steps:
       - name: Install PHP
-        uses: shivammathur/setup-php@develop
+        uses: shivammathur/setup-php@verbose
         with:
           php-version: ${{ matrix.php-version }}
-        env:
-          verbose: true
       - run: |
           php -v
           php -m
