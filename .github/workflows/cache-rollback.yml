@@ -1,0 +1,87 @@
+name: Verify Windows cache fallback and rollback
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rollback:
+    name: ${{ matrix.name }} / errors=${{ matrix.errors }} / outage=${{ matrix.outage }}
+    runs-on: windows-2022
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: develop, sha: 72c642301ae1dd53d997b774ef826b44976d67f6, errors: 'Off', outage: 'false'}
+          - {name: develop, sha: 72c642301ae1dd53d997b774ef826b44976d67f6, errors: 'On', outage: 'false'}
+          - {name: develop, sha: 72c642301ae1dd53d997b774ef826b44976d67f6, errors: 'Off', outage: 'true'}
+          - {name: develop, sha: 72c642301ae1dd53d997b774ef826b44976d67f6, errors: 'On', outage: 'true'}
+    env:
+      verbose: vvv
+      PHPTS: nts
+      fail-fast: 'true'
+      OUTAGE: ${{ matrix.outage }}
+      ACTION_NAME: ${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ matrix.sha }}
+          path: action
+          persist-credentials: false
+      - name: Install Redis 6.2.0 for PHP 8.3
+        uses: ./action
+        with:
+          php-version: '8.3'
+          extensions: redis-6.2.0
+          tools: none
+      - run: ./scripts/snapshot.ps1 first 6.2.0
+        shell: pwsh
+      - name: Install working Redis 6.1.0 for PHP 8.4
+        uses: ./action
+        with:
+          php-version: '8.4'
+          extensions: redis-6.1.0
+          tools: none
+          ini-values: display_errors=${{ matrix.errors }}, display_startup_errors=${{ matrix.errors }}
+      - run: ./scripts/snapshot.ps1 before 6.1.0 '${{ matrix.errors }}'
+        shell: pwsh
+      - name: Simulate PHP extension download host outage
+        if: matrix.outage == 'true'
+        shell: pwsh
+        run: |
+          $hosts="$env:WINDIR/System32/drivers/etc/hosts"
+          Copy-Item $hosts "$env:RUNNER_TEMP/hosts.before-review"
+          Add-Content $hosts "`n127.0.0.1 downloads.php.net`n::1 downloads.php.net"
+          Clear-DnsClientCache
+      - name: Request Redis 6.2.0 for the current PHP build
+        id: requested
+        continue-on-error: true
+        uses: ./action
+        with:
+          php-version: '8.4'
+          extensions: redis-6.2.0
+          tools: none
+      - name: Verify the requested extension or rollback
+        if: always()
+        shell: pwsh
+        run: ./scripts/snapshot.ps1 after '${{ matrix.outage == 'true' && '6.1.0' || '6.2.0' }}' '${{ matrix.errors }}'
+        env:
+          SETUP_OUTCOME: ${{ steps.requested.outcome }}
+      - name: Restore download host resolution
+        if: always() && matrix.outage == 'true'
+        shell: pwsh
+        run: |
+          if (Test-Path "$env:RUNNER_TEMP/hosts.before-review") {
+            Copy-Item "$env:RUNNER_TEMP/hosts.before-review" "$env:WINDIR/System32/drivers/etc/hosts" -Force
+            Clear-DnsClientCache
+          }
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: rollback-${{ matrix.name }}-${{ matrix.errors }}-${{ matrix.outage }}
+          path: evidence
