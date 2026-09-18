@@ -1,0 +1,206 @@
+name: Validate published libxml2 CVE artifacts
+run-name: Validate published libxml2 CVE-2026-86137 through CVE-2026-86144 artifacts
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - test/libxml2-cve-2026-86137-86144-published-20260918
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  php-runtime:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            php_run: '35338605028'
+            expected_libxml: '2.10.4-9'
+            expected_libxml_commit: 'b9ca51098499e5b4d47ed08778369b2f015fa8f3'
+            vs: vs16
+          - php: '8.3'
+            php_run: '35338607867'
+            expected_libxml: '2.10.4-9'
+            expected_libxml_commit: 'b9ca51098499e5b4d47ed08778369b2f015fa8f3'
+            vs: vs16
+          - php: '8.4'
+            php_run: '35338610314'
+            expected_libxml: '2.11.9-8'
+            expected_libxml_commit: 'c8797dc3b7964fabdb94d0b3176afb461afbd40b'
+            vs: vs17
+          - php: '8.5'
+            php_run: '35338613656'
+            expected_libxml: '2.11.9-8'
+            expected_libxml_commit: 'c8797dc3b7964fabdb94d0b3176afb461afbd40b'
+            vs: vs17
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify exact PHP source build
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $run = gh api 'repos/shivammathur/php-windows-builder/actions/runs/${{ matrix.php_run }}' | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or
+              $run.head_sha -ne '76240faee4d7c2d1de35e2e5f800928961100e95' -or
+              $run.workflow_id -ne 251563593 -or
+              $run.status -ne 'completed' -or
+              $run.conclusion -ne 'success') {
+              throw 'Unexpected PHP source run provenance or status'
+          }
+          $artifacts = gh api 'repos/shivammathur/php-windows-builder/actions/runs/${{ matrix.php_run }}/artifacts' | ConvertFrom-Json
+          $selected = @($artifacts.artifacts | Where-Object { $_.name -eq 'artifacts' -and -not $_.expired -and $_.size_in_bytes -gt 0 })
+          if ($selected.Count -ne 1) { throw 'Expected one non-empty merged PHP artifact' }
+          New-Item reports -ItemType Directory -Force | Out-Null
+          $run | ConvertTo-Json -Depth 40 | Set-Content reports/source-run.json
+          $selected | ConvertTo-Json -Depth 30 | Set-Content reports/source-artifact.json
+
+      - name: Download exact PHP artifacts
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.php_run }}
+          github-token: ${{ secrets.PAT }}
+          name: artifacts
+          path: artifacts
+
+      - name: Download published libraries for each architecture and validate PHP
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($arch in @('x64', 'x86')) {
+              $libxmlArtifact = "libxml2-${{ matrix.expected_libxml }}-${{ matrix.vs }}-$arch.zip"
+              $libxsltArtifact = "libxslt-1.1.43-2-${{ matrix.vs }}-$arch.zip"
+              $base = "https://downloads.php.net///~windows/php-sdk/deps/${{ matrix.vs }}/$arch"
+              New-Item "candidates/libxml2/$arch", "candidates/libxslt/$arch" -ItemType Directory -Force | Out-Null
+              Invoke-WebRequest "$base/$libxmlArtifact" -OutFile $libxmlArtifact
+              Invoke-WebRequest "$base/$libxsltArtifact" -OutFile $libxsltArtifact
+              Expand-Archive $libxmlArtifact -DestinationPath "candidates/libxml2/$arch" -Force
+              Expand-Archive $libxsltArtifact -DestinationPath "candidates/libxslt/$arch" -Force
+          }
+          ./scripts/test-libxml2-artifacts.ps1 `
+              -ArtifactsDirectory artifacts `
+              -ReportsDirectory reports/libxml2 `
+              -ExpectedLibxml '${{ matrix.expected_libxml }}' `
+              -ExpectedLibxmlCommit '${{ matrix.expected_libxml_commit }}' `
+              -ExpectedVs '${{ matrix.vs }}' `
+              -ExpectedPhpSeries '${{ matrix.php }}' `
+              -ExpectedLibxmlArtifactDirectory candidates/libxml2 `
+              -ExpectedLibxsltArtifactDirectory candidates/libxslt
+
+      - name: Upload PHP QA evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: php-${{ matrix.php }}-libxml2-qa
+          path: reports
+          if-no-files-found: error
+
+  rrd-native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            vs: vs16
+            arch: x64
+            expected_libxml: '2.10.4-9'
+          - php: '8.2'
+            vs: vs16
+            arch: x86
+            expected_libxml: '2.10.4-9'
+          - php: '8.4'
+            vs: vs17
+            arch: x64
+            expected_libxml: '2.11.9-8'
+          - php: '8.4'
+            vs: vs17
+            arch: x86
+            expected_libxml: '2.11.9-8'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/checkout@v6
+        with:
+          repository: winlibs/winlib-builder
+          ref: 98646365617e2042793c3086340ff605e224e15b
+          path: builder
+
+      - name: Download published RRDtool and libxml2 packages
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item reports -ItemType Directory -Force | Out-Null
+          $rrdZip = 'librrd-1.11.0-${{ matrix.vs }}-${{ matrix.arch }}.zip'
+          $xmlZip = 'libxml2-${{ matrix.expected_libxml }}-${{ matrix.vs }}-${{ matrix.arch }}.zip'
+          Invoke-WebRequest "https://downloads.php.net///~windows/pecl/deps/$rrdZip" -OutFile $rrdZip
+          Invoke-WebRequest "https://downloads.php.net///~windows/php-sdk/deps/${{ matrix.vs }}/${{ matrix.arch }}/$xmlZip" -OutFile $xmlZip
+          Expand-Archive $rrdZip -DestinationPath rrd -Force
+          Expand-Archive $xmlZip -DestinationPath published-libxml -Force
+
+      - name: Compute virtual inputs
+        id: virtuals
+        shell: cmd
+        run: powershell builder/scripts/compute-virtuals -version ${{ matrix.php }} -arch ${{ matrix.arch }}
+
+      - name: Setup MSVC development environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+          toolset: ${{ steps.virtuals.outputs.toolset }}
+
+      - name: Fetch staged RRDtool runtime dependencies
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        run: >-
+          ./builder/scripts/fetch-deps.ps1
+          -lib librrd
+          -version '${{ matrix.php }}'
+          -vs '${{ matrix.vs }}'
+          -arch '${{ matrix.arch }}'
+          -stability staging
+          -repository 'winlibs/winlib-builder'
+
+      - name: Compile and run RRDtool create/update/fetch smoke test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item reports -ItemType Directory -Force | Out-Null
+          cl /nologo /W4 /WX /MD /O2 tests/rrd-smoke.c /Irrd/include /link /LIBPATH:rrd/lib librrd-8.lib /OUT:rrd-smoke.exe
+          if ($LASTEXITCODE -ne 0) { throw 'RRDtool smoke test compilation failed' }
+          dumpbin /headers rrd/bin/librrd-8.dll | Tee-Object reports/librrd-headers.txt
+          dumpbin /dependents rrd/bin/librrd-8.dll | Tee-Object reports/librrd-dependents.txt
+          $env:PATH = "$(Resolve-Path rrd/bin);$(Resolve-Path deps/bin);$env:PATH"
+          Push-Location $env:RUNNER_TEMP
+          try {
+              & "$env:GITHUB_WORKSPACE/rrd-smoke.exe" 2>&1 | Tee-Object "$env:GITHUB_WORKSPACE/reports/rrd-smoke.log"
+              if ($LASTEXITCODE -ne 0) { throw 'RRDtool smoke test failed' }
+          } finally {
+              Pop-Location
+          }
+          Get-ChildItem rrd -Recurse -File | Get-FileHash -Algorithm SHA256 | ConvertTo-Json | Set-Content reports/rrd-artifact-hashes.json
+          $runtimeXmlHash = Get-FileHash deps/bin/libxml2.dll -Algorithm SHA256
+          $publishedXmlHash = Get-FileHash published-libxml/bin/libxml2.dll -Algorithm SHA256
+          if ($runtimeXmlHash.Hash -ne $publishedXmlHash.Hash) {
+              throw 'Staged RRDtool runtime dependency does not match the published libxml2 package'
+          }
+          @($runtimeXmlHash, $publishedXmlHash) | ConvertTo-Json | Set-Content reports/libxml2-runtime-hash.json
+
+      - name: Upload RRDtool QA evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: librrd-${{ matrix.vs }}-${{ matrix.arch }}-qa
+          path: reports
+          if-no-files-found: error
