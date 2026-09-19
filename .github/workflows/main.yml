@@ -1,0 +1,140 @@
+name: OpenBLAS validation
+run-name: "Validate OpenBLAS ${{ inputs.version }} for PHP ${{ inputs.php }}"
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+      php:
+        required: true
+      run_id:
+        required: true
+      builder_repository:
+        type: choice
+        default: winlibs/winlib-builder
+        options: [winlibs/winlib-builder, shivammathur/winlib-builder]
+      arch:
+        type: choice
+        default: both
+        options: [both, x64, x86]
+      tensor_only:
+        description: Consumer-only preflight; release validation must leave this disabled
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    if: ${{ !inputs.tensor_only }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJSON(inputs.arch == 'x64' && '["x64"]' || inputs.arch == 'x86' && '["x86"]' || '["x64", "x86"]') }}
+    runs-on: ${{ inputs.php == '8.6' && 'windows-2025-vs2026' || 'windows-2022' }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: winlibs/winlib-builder
+          ref: a7fb36c54fed4775f5086e60b935af65eb2fe19d
+          path: winlib-builder
+      - name: Compute virtual inputs
+        id: virtuals
+        shell: pwsh
+        run: powershell ./winlib-builder/scripts/compute-virtuals.ps1 -version '${{ inputs.php }}' -arch '${{ matrix.arch }}'
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+          toolset: ${{ steps.virtuals.outputs.toolset }}
+      - uses: actions/download-artifact@v8
+        if: inputs.run_id != 'reference'
+        with:
+          repository: ${{ inputs.builder_repository }}
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          name: OpenBLAS-${{ inputs.version }}-${{ steps.virtuals.outputs.vs }}-${{ matrix.arch }}
+          path: install
+      - name: Verify release packaging
+        if: inputs.run_id != 'reference'
+        shell: pwsh
+        run: ./qa/package.ps1 -Arch '${{ matrix.arch }}' -Vs '${{ steps.virtuals.outputs.vs }}' -Version '${{ inputs.version }}'
+      - uses: msys2/setup-msys2@v2
+        if: inputs.run_id != 'reference'
+        with:
+          msystem: MINGW64
+          install: mingw-w64-x86_64-binutils
+      - name: Inspect runtime definitions in the delivered DLL
+        if: inputs.run_id != 'reference'
+        shell: msys2 {0}
+        run: |
+          mkdir -p validation
+          objdump -t install/bin/libopenblas.dll > validation/symbols.txt
+      - name: Test OpenBLAS and historical parity
+        shell: pwsh
+        run: ./qa/verify.ps1 -Arch '${{ matrix.arch }}' -Version '${{ inputs.version }}' -Reference:${{ inputs.run_id == 'reference' && '$true' || '$false' }}
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: validation-OpenBLAS-${{ inputs.version }}-${{ steps.virtuals.outputs.vs }}-${{ matrix.arch }}
+          path: validation
+  tensor:
+    # Test the VS18 dependency with Tensor on PHP 8.5; Tensor uses APIs removed in 8.6.
+    if: inputs.run_id != 'reference'
+    name: Tensor (PHP ${{ inputs.php == '8.6' && '8.5' || inputs.php }}, ${{ matrix.arch }}, ${{ matrix.ts }})
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJSON(inputs.arch == 'x64' && '["x64"]' || inputs.arch == 'x86' && '["x86"]' || '["x64", "x86"]') }}
+        ts: [nts, ts]
+    runs-on: windows-2022
+    env:
+      auto-detect-libs: 'false'
+      auto-detect-args: 'false'
+      artifact-naming-scheme: pecl
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: RubixML/Tensor
+          ref: '3.0.11'
+          path: tensor-tests
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          path: php-windows-builder
+      - name: Prepare PECL Tensor with the existing Windows build patch
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://pecl.php.net/get/tensor-3.0.11.tgz -OutFile "$env:RUNNER_TEMP/tensor.tgz"
+          tar -xzf "$env:RUNNER_TEMP/tensor.tgz" -C "$env:RUNNER_TEMP"
+          if ($LASTEXITCODE) { throw 'Tensor extraction failed' }
+          Copy-Item "$env:RUNNER_TEMP/tensor-3.0.11/ext/*" . -Recurse -Force
+          Copy-Item "$env:RUNNER_TEMP/package.xml", "$env:RUNNER_TEMP/tensor-3.0.11/LICENSE", "$env:RUNNER_TEMP/tensor-3.0.11/README.md", "$env:RUNNER_TEMP/tensor-3.0.11/CHANGELOG.md" .
+          . ./php-windows-builder/extension/BuildPhpExtension/private/Get-RecursiveFilePath.ps1
+          . ./php-windows-builder/extension/BuildPhpExtension/patches/tensor.ps1
+      - uses: actions/download-artifact@v8
+        with:
+          repository: ${{ inputs.builder_repository }}
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          name: OpenBLAS-${{ inputs.version }}-${{ inputs.php == '8.2' && 'vs16' || inputs.php == '8.4' && 'vs17' || 'vs18' }}-${{ matrix.arch }}
+          path: C:/build/deps
+      - name: Build Tensor against the new OpenBLAS
+        uses: shivammathur/php-windows-builder/extension@master
+        with:
+          extension-ref: '3.0.11'
+          php-version: ${{ inputs.php == '8.6' && '8.5' || inputs.php }}
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+          args: --enable-tensor
+          run-tests: 'false'
+          build-directory: C:\build
+      - name: Run upstream Tensor tests against the native extension
+        shell: pwsh
+        run: ./qa/tensor.ps1
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: tensor-tests-${{ inputs.version }}-${{ inputs.php == '8.2' && 'vs16' || inputs.php == '8.4' && 'vs17' || 'vs18' }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: validation
