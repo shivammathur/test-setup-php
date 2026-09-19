@@ -1,0 +1,48 @@
+name: Compare Windows extension install overhead
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    name: errors=${{ matrix.errors }} / verbose=${{ matrix.verbosity }}
+    runs-on: windows-2022
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        errors: ['Off', 'On']
+        verbosity: ['normal', 'vvv']
+    env:
+      verbose: vvv
+      fail-fast: 'true'
+      PHPTS: nts
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: d76a76348c4c59947f906deefde17d81cf966d69
+          path: action
+          persist-credentials: false
+      - uses: ./action
+        with:
+          php-version: '8.3'
+          extensions: redis-6.1.0
+          tools: none
+      - uses: ./action
+        with:
+          php-version: '8.3'
+          extensions: redis-6.2.0
+          tools: none
+      - name: Measure original, previous, and optimized implementations on the same runner
+        shell: pwsh
+        run: ./scripts/benchmark.ps1 -Errors '${{ matrix.errors }}' -Verbosity '${{ matrix.verbosity }}'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: benchmark-${{ matrix.errors }}-${{ matrix.verbosity }}
+          path: evidence

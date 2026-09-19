@@ -1,0 +1,82 @@
+name: Verify Windows extension changes preserve INI settings
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  switch:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        errors: ['Off', 'On', 'unset']
+    env:
+      verbose: vvv
+      fail-fast: 'true'
+      PHPTS: nts
+      OUTAGE: 'false'
+      ACTION_NAME: develop
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@d76a76348c4c59947f906deefde17d81cf966d69
+        with:
+          php-version: '8.4'
+          extensions: redis-6.1.0
+          tools: none
+          ini-values: display_errors=On, display_startup_errors=${{ matrix.errors == 'unset' && 'On' || matrix.errors }}
+      - name: Remove the startup-error key for the unset case
+        if: matrix.errors == 'unset'
+        shell: pwsh
+        run: |
+          Import-Module C:/tools/php/PhpManager/PhpManager.psm1
+          Set-PhpIniKey -Key display_startup_errors -Delete -Path C:/tools/php/php.ini
+      - name: Verify initial extension and cache miss for 6.2.0
+        shell: pwsh
+        run: |
+          ./scripts/snapshot.ps1 before 6.1.0 '${{ matrix.errors }}'
+          if (Test-Path C:/tools/php/ext/redis-6.2.0) {throw 'Unexpected pre-existing Redis 6.2.0 cache'}
+      - name: Upgrade Redis without changing PHP
+        id: requested
+        continue-on-error: true
+        uses: shivammathur/setup-php@d76a76348c4c59947f906deefde17d81cf966d69
+        with:
+          php-version: '8.4'
+          extensions: redis-6.2.0
+          tools: none
+      - name: Verify Redis 6.2.0 loads
+        if: always()
+        shell: pwsh
+        run: ./scripts/snapshot.ps1 after 6.2.0 '${{ matrix.errors }}'
+        env:
+          SETUP_OUTCOME: ${{ steps.requested.outcome }}
+      - name: Attempt an unavailable extension version
+        id: missing
+        continue-on-error: true
+        uses: shivammathur/setup-php@d76a76348c4c59947f906deefde17d81cf966d69
+        with:
+          php-version: '8.4'
+          extensions: redis-999.0.0
+          tools: none
+      - name: Verify rollback and the original error setting
+        shell: pwsh
+        run: ./scripts/snapshot.ps1 rollback 6.2.0 '${{ matrix.errors }}'
+        env:
+          SETUP_OUTCOME: ${{ steps.missing.outcome }}
+      - name: Reuse the original cached version
+        uses: shivammathur/setup-php@d76a76348c4c59947f906deefde17d81cf966d69
+        with:
+          php-version: '8.4'
+          extensions: redis-6.1.0
+          tools: none
+      - name: Verify the cache hit preserved the original error setting
+        shell: pwsh
+        run: ./scripts/snapshot.ps1 cache-hit 6.1.0 '${{ matrix.errors }}'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: version-switch-${{ matrix.errors }}
+          path: evidence
