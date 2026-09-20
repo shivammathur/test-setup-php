@@ -1,0 +1,56 @@
+name: Tensor 3.1.0 artifact validation
+run-name: Test Tensor 3.1.0 artifacts with OpenBLAS 0.3.34
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  phpunit:
+    name: PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }} / OpenBLAS ${{ matrix.openblas }}
+    runs-on: windows-2022
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+        arch: [x64, x86]
+        ts: [nts, ts]
+        openblas: [bundled]
+        include:
+          - {php: '8.5', arch: x64, ts: nts, openblas: vs18}
+          - {php: '8.5', arch: x64, ts: ts, openblas: vs18}
+          - {php: '8.5', arch: x86, ts: nts, openblas: vs18}
+          - {php: '8.5', arch: x86, ts: ts, openblas: vs18}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: RubixML/Tensor
+          ref: 94cd025562b4edcd968e1c26b67a8751cb42f39a # 3.1.0
+          path: tensor-tests
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: 1a8617b67f2aa2fd7bf7dce581de61b08301da9b
+          path: php-windows-builder
+      - name: Download the existing Tensor release builds
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: 35486736634
+          github-token: ${{ github.token }}
+          name: tensor-3.1.0
+          path: artifacts
+      - name: Verify artifacts and run PHPUnit against the native extension
+        shell: pwsh
+        run: ./qa/test.ps1 -PhpVersion '${{ matrix.php }}' -Arch '${{ matrix.arch }}' -ThreadSafety '${{ matrix.ts }}' -OpenBlas '${{ matrix.openblas }}'
+      - name: Upload PHPUnit results and artifact provenance
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: tensor-3.1.0-php${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}-${{ matrix.openblas }}
+          path: |
+            validation/*.txt
+            validation/*.json
+            validation/*.xml
