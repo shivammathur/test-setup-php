@@ -1,0 +1,62 @@
+name: Diagnose Ubuntu 26 DB extensions
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  extensions:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Couchbase / PHP 5.6
+            php: '5.6'
+            extensions: couchbase
+          - name: Couchbase / PHP 7.0
+            php: '7.0'
+            extensions: couchbase
+          - name: Couchbase / PHP 7.1
+            php: '7.1'
+            extensions: couchbase
+          - name: Couchbase / PHP 7.2
+            php: '7.2'
+            extensions: couchbase
+          - name: Couchbase / PHP 7.3
+            php: '7.3'
+            extensions: couchbase
+          - name: OCI / PHP 7.2
+            php: '7.2'
+            extensions: pdo_oci, oci8
+          - name: IBM / PHP 8.3
+            php: '8.3'
+            extensions: pdo_ibm, ibm_db2
+    env:
+      verbose: vvv
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.extensions }}
+
+      - name: Validate extensions
+        shell: bash
+        env:
+          EXTENSIONS: ${{ matrix.extensions }}
+        run: |
+          set -euxo pipefail
+          php -v
+          php -m
+          tr ',' '\n' <<< "$EXTENSIONS" | while read -r extension; do
+            extension="${extension// /}"
+            php -r "exit(extension_loaded('$extension') ? 0 : 1);"
+          done
+          if [[ "$EXTENSIONS" == *ibm* ]]; then
+            ldd /opt/ibm/clidriver/lib/libdb2.so.1
+          fi
