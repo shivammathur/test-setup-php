@@ -1,0 +1,153 @@
+name: Diagnose Ubuntu extension failures
+
+on:
+  push:
+
+jobs:
+  diagnose:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: couchbase / PHP 7.4 / Ubuntu 26.04
+            os: ubuntu-26.04
+            php: '7.4'
+            extensions: couchbase
+            kind: couchbase
+          - name: OCI / PHP 5.3 / Ubuntu 26.04
+            os: ubuntu-26.04
+            php: '5.3'
+            extensions: pdo_oci, oci8
+            kind: oci
+          - name: OCI / PHP 7.4 / Ubuntu 26.04
+            os: ubuntu-26.04
+            php: '7.4'
+            extensions: pdo_oci, oci8
+            kind: oci
+          - name: OCI / PHP 8.4 / Ubuntu 26.04
+            os: ubuntu-26.04
+            php: '8.4'
+            extensions: pdo_oci, oci8
+            kind: oci
+          - name: IBM / PHP 7.4 / Ubuntu 26.04
+            os: ubuntu-26.04
+            php: '7.4'
+            extensions: pdo_ibm, ibm_db2
+            kind: ibm
+          - name: IBM / PHP 8.4 / Ubuntu 26.04
+            os: ubuntu-26.04
+            php: '8.4'
+            extensions: pdo_ibm, ibm_db2
+            kind: ibm
+          - name: PDO IBM / PHP 8.5 / Ubuntu 22.04
+            os: ubuntu-22.04
+            php: '8.5'
+            extensions: pdo_ibm
+            kind: ibm
+          - name: IBM DB2 / PHP 8.5 / Ubuntu 22.04
+            os: ubuntu-22.04
+            php: '8.5'
+            extensions: ibm_db2
+            kind: ibm
+          - name: OCI symlink repair / PHP 8.4 / Ubuntu 26.04
+            os: ubuntu-26.04
+            php: '8.4'
+            extensions: pdo_oci, oci8
+            kind: oci-repair
+          - name: IBM DB2 priority repair / PHP 8.5 / Ubuntu 22.04
+            os: ubuntu-22.04
+            php: '8.5'
+            extensions: ibm_db2
+            kind: ibm-priority
+    env:
+      verbose: vvv
+    steps:
+      - name: Setup PHP and extension
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.extensions }}
+
+      - name: Inspect installation and linked libraries
+        if: always()
+        shell: bash
+        env:
+          EXTENSIONS: ${{ matrix.extensions }}
+        run: |
+          set +e
+          php -v
+          php --ini
+          php -m
+          printf '%s\n' '--- requested extension status ---'
+          tr ',' '\n' <<< "$EXTENSIONS" | while read -r extension; do
+            extension="${extension// /}"
+            php -d display_errors=1 -r "printf('%s: %s\\n', '$extension', extension_loaded('$extension') ? phpversion('$extension') : 'not loaded');"
+          done
+          printf '%s\n' '--- loader cache ---'
+          ldconfig -p | grep -E 'lib(xml2|aio|clntsh|db2)' || true
+          printf '%s\n' '--- client and extension dependencies ---'
+          ls -la /opt/oracle/instantclient /opt/ibm/clidriver/lib 2>/dev/null || true
+          find /opt/oracle /opt/ibm "$(php-config --extension-dir 2>/dev/null)" \
+            -type f \( -name '*.so' -o -name '*.so.*' \) -print0 2>/dev/null |
+            while IFS= read -r -d '' library; do
+              echo "### $library"
+              ldd "$library" 2>&1 | grep -E 'not found|lib(xml2|aio|clntsh|db2)' || true
+            done
+          printf '%s\n' '--- relevant packages ---'
+          dpkg-query -W -f='${binary:Package}\t${Version}\n' 2>/dev/null | grep -E '(^|:)lib(xml2|aio)' || true
+
+      - name: Inspect build logs and retry OCI make visibly
+        if: always() && matrix.kind == 'oci'
+        shell: bash
+        run: |
+          set +e
+          printf '%s\n' '--- source trees ---'
+          find /tmp -maxdepth 4 -type d \( -name 'pecl-database-*' -o -name 'php-src-*' \) -print
+          printf '%s\n' '--- config.log tails ---'
+          find /tmp -type f -name config.log -print0 2>/dev/null |
+            while IFS= read -r -d '' log; do
+              echo "### $log"
+              tail -n 250 "$log"
+            done
+          printf '%s\n' '--- visible make retries ---'
+          find /tmp -type f -name Makefile -path '*pdo_oci*' -o -type f -name Makefile -path '*oci8*' |
+            while read -r makefile; do
+              directory="$(dirname "$makefile")"
+              echo "### make -C $directory"
+              make -C "$directory" V=1 -j1
+            done
+
+      - name: Repair Oracle client link and retry OCI
+        if: always() && matrix.kind == 'oci-repair'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          client_library="$(find /opt/oracle/instantclient -maxdepth 1 -type f -name 'libclntsh.so.*.1' | sort -V | tail -n 1)"
+          sudo ln -sfn "$(basename "$client_library")" /opt/oracle/instantclient/libclntsh.so
+          ls -la /opt/oracle/instantclient/libclntsh.so*
+      - name: Retry OCI after link repair
+        if: always() && matrix.kind == 'oci-repair'
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.extensions }}
+      - name: Validate repaired OCI
+        if: always() && matrix.kind == 'oci-repair'
+        shell: bash
+        run: |
+          php -m
+          php -r "exit(extension_loaded('pdo_oci') && extension_loaded('oci8') ? 0 : 1);"
+
+      - name: Load IBM DB2 after PDO SQLSRV
+        if: always() && matrix.kind == 'ibm-priority'
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo phpdismod -v "${{ matrix.php }}" ibm_db2
+          sudo sed -Ei 's/^; priority=.*/; priority=40/' "/etc/php/${{ matrix.php }}/mods-available/ibm_db2.ini"
+          sudo phpenmod -v "${{ matrix.php }}" ibm_db2
+          ls -l "/etc/php/${{ matrix.php }}/cli/conf.d"
+          php -v
+          php -m | grep -E '^(ibm_db2|pdo_sqlsrv)$'
