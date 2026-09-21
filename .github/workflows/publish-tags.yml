@@ -1,0 +1,89 @@
+name: Verify prerelease and stable publishing tags
+'on':
+  push: null
+  workflow_dispatch: null
+permissions:
+  contents: read
+  packages: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        registry:
+          - npm
+          - github
+        version:
+          - 2.40.0-beta
+          - 2.40.0
+    defaults:
+      run:
+        working-directory: package
+    env:
+      verbose: vvv
+      TEST_VERSION: ${{ matrix.version }}
+      TEST_REGISTRY: ${{ matrix.registry }}
+      EXPECTED_TAG: ${{ matrix.version == '2.40.0-beta' && 'beta' || 'latest' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 0ba8a221bc94e8340e7caf16938999153a793b56
+          path: package
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.x
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Build the package
+        run: |
+          npm ci
+          npm run build
+          mkdir -p "$GITHUB_WORKSPACE/evidence"
+      - name: Set the test package version and registry scope
+        run: |
+          node - <<'JS'
+          const fs = require("fs");
+          const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+          pkg.version = process.env.TEST_VERSION;
+          if (process.env.TEST_REGISTRY === "github") pkg.name = "@shivammathur/setup-php";
+          fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2));
+          JS
+      - name: Select npm distribution tag
+        id: publish-tag
+        run: |
+          echo "tag=$(node -p 'require("./package.json").version.split("+")[0].includes("-") ? "beta" : "latest"')" >> "$GITHUB_OUTPUT"
+      - name: Change to GitHub Packages registry
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          registry-url: https://npm.pkg.github.com
+          package-manager-cache: false
+          scope: '@shivammathur'
+        if: matrix.registry == 'github'
+      - name: Dry-run NPM publish
+        if: matrix.registry == 'npm'
+        run: npm publish --access public --tag "${{ steps.publish-tag.outputs.tag }}" --dry-run --ignore-scripts --json > "$GITHUB_WORKSPACE/evidence/publish.json"
+        env:
+          NPM_CONFIG_DRY_RUN: 'true'
+      - name: Dry-run GitHub Packages publish
+        if: matrix.registry == 'github'
+        run: npm publish --tag "${{ steps.publish-tag.outputs.tag }}" --dry-run --ignore-scripts --json > "$GITHUB_WORKSPACE/evidence/publish.json"
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+          NPM_CONFIG_DRY_RUN: 'true'
+      - name: Verify tag and package contents
+        run: node ../scripts/verify.cjs
+        env:
+          SELECTED_TAG: ${{ steps.publish-tag.outputs.tag }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: publish-${{ matrix.registry }}-${{ matrix.version }}
+          path: evidence
