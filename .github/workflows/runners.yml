@@ -1,0 +1,76 @@
+name: Verify README GitHub-hosted runners
+'on':
+  push: null
+  workflow_dispatch: null
+permissions:
+  contents: read
+jobs:
+  runners:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.label }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        label:
+          - ubuntu-26.04
+          - ubuntu-latest
+          - ubuntu-24.04
+          - ubuntu-22.04
+          - ubuntu-26.04-arm
+          - ubuntu-24.04-arm
+          - ubuntu-22.04-arm
+          - windows-latest
+          - windows-2025
+          - windows-2025-vs2026
+          - windows-2022
+          - windows-11-arm
+          - windows-11-vs2026-arm
+          - xcode-27
+          - macos-latest
+          - macos-26
+          - macos-15
+          - macos-14
+          - macos-26-intel
+          - macos-15-intel
+    env:
+      verbose: vvv
+      fail_fast: 'true'
+      TEST_RUNNER_LABEL: ${{ matrix.label }}
+      SETUP_PHP_SHA: 4d12d6612a211c7f38dad942875f181d1f19514e
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout validation fixture
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Capture runner before setup
+        run: node scripts/probe.cjs before
+      - name: Setup PHP 8.5
+        id: php
+        uses: shivammathur/setup-php@4d12d6612a211c7f38dad942875f181d1f19514e
+        with:
+          php-version: '8.5'
+          extensions: curl, mbstring, openssl, xml, zip
+          coverage: none
+          tools: composer
+          ini-values: memory_limit=256M
+      - name: Capture runner after setup
+        if: always()
+        run: node scripts/probe.cjs after
+        env:
+          SETUP_PHP_VERSION: ${{ steps.php.outputs.php-version }}
+          SETUP_OUTCOME: ${{ steps.php.outcome }}
+      - name: Verify README claims and PHP setup
+        if: always()
+        run: node scripts/verify.cjs
+      - name: Upload runner evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: runner-${{ matrix.label }}
+          path: evidence
+          if-no-files-found: error
