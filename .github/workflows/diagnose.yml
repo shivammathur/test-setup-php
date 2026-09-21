@@ -15,26 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Couchbase / PHP 5.6
-            php: '5.6'
-            extensions: couchbase
-          - name: Couchbase / PHP 7.0
-            php: '7.0'
-            extensions: couchbase
-          - name: Couchbase / PHP 7.1
-            php: '7.1'
-            extensions: couchbase
-          - name: Couchbase / PHP 7.2
-            php: '7.2'
-            extensions: couchbase
-          - name: Couchbase / PHP 7.3
+          - name: IBM / PHP 7.3
             php: '7.3'
-            extensions: couchbase
-          - name: OCI / PHP 7.2
-            php: '7.2'
-            extensions: pdo_oci, oci8
-          - name: IBM / PHP 8.3
-            php: '8.3'
             extensions: pdo_ibm, ibm_db2
     env:
       verbose: vvv
