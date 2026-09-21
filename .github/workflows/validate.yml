@@ -1,0 +1,108 @@
+name: Validate Ubuntu extension symlinks
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  extensions:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Couchbase / PHP 7.4 / Ubuntu 26.04
+            os: ubuntu-26.04
+            php: '7.4'
+            extensions: couchbase
+          - name: OCI / PHP 5.3 / Ubuntu 26.04
+            os: ubuntu-26.04
+            php: '5.3'
+            extensions: pdo_oci, oci8
+          - name: OCI / PHP 7.4 / Ubuntu 26.04
+            os: ubuntu-26.04
+            php: '7.4'
+            extensions: pdo_oci, oci8
+          - name: OCI / PHP 8.4 / Ubuntu 26.04
+            os: ubuntu-26.04
+            php: '8.4'
+            extensions: pdo_oci, oci8
+          - name: IBM DB2 priority / PHP 8.5 / Ubuntu 22.04
+            os: ubuntu-22.04
+            php: '8.5'
+            extensions: pdo_sqlsrv, ibm_db2
+    env:
+      verbose: vvv
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@fix/ubuntu-26-extensions
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.extensions }}
+
+      - name: Validate extensions
+        shell: bash
+        env:
+          EXTENSIONS: ${{ matrix.extensions }}
+        run: |
+          set -euxo pipefail
+          php -v
+          php -m
+          tr ',' '\n' <<< "$EXTENSIONS" | while read -r extension; do
+            extension="${extension// /}"
+            php -r "exit(extension_loaded('$extension') ? 0 : 1);"
+          done
+
+  ibm:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: IBM reference / PHP 8.4 / Ubuntu 24.04
+            os: ubuntu-24.04
+            expect_link: 'false'
+          - name: IBM symlink / PHP 8.4 / Ubuntu 26.04
+            os: ubuntu-26.04
+            expect_link: 'true'
+    env:
+      verbose: vvv
+    steps:
+      - name: Setup PHP with IBM extensions
+        uses: shivammathur/setup-php@fix/ubuntu-26-extensions
+        with:
+          php-version: '8.4'
+          extensions: pdo_ibm, ibm_db2
+
+      - name: Validate IBM extensions
+        shell: bash
+        env:
+          EXPECT_LINK: ${{ matrix.expect_link }}
+        run: |
+          set -euxo pipefail
+          php -v
+          php -m
+          php -r "exit(extension_loaded('pdo_ibm') && extension_loaded('ibm_db2') ? 0 : 1);"
+          php --ri pdo_ibm
+          php --ri ibm_db2
+          php -r "exit(in_array('ibm', PDO::getAvailableDrivers(), true) ? 0 : 1);"
+          php -r "exit(function_exists('db2_connect') && function_exists('db2_prepare') ? 0 : 1);"
+          dpkg-query -W -f='${binary:Package}\t${Version}\n' libxml2 libxml2-16 2>/dev/null || true
+          ldd_output=$(ldd /opt/ibm/clidriver/lib/libdb2.so.1)
+          printf '%s\n' "$ldd_output"
+          if grep -q 'not found' <<< "$ldd_output"; then
+            exit 1
+          fi
+          grep -q 'libxml2' <<< "$ldd_output"
+          if [ "$EXPECT_LINK" = true ]; then
+            libxml2=$(ldconfig -p | awk '$1 == "libxml2.so.16" {print $NF; exit}')
+            libxml2_link="$(dirname "$libxml2")/libxml2.so.2"
+            test -L "$libxml2_link"
+            readlink -f "$libxml2_link" | grep -q '/libxml2\.so\.16'
+          else
+            ldconfig -p | grep -q 'libxml2\.so\.2 '
+          fi
