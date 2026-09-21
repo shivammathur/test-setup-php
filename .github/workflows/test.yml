@@ -20,7 +20,7 @@ jobs:
           php-version: ${{ matrix.php-version }}
           extensions: couchbase
         env:
-          verbose: v
+          verbose: vvv
       - run: |
           php -v
           php -m
