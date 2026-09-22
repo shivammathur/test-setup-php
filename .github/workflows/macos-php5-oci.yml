@@ -1,0 +1,38 @@
+name: Validate macOS PHP 5 OCI architecture
+
+on:
+  push:
+
+jobs:
+  oci:
+    name: PHP ${{ matrix.php-version }}
+    runs-on: macos-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['5.3', '5.4', '5.5']
+    env:
+      verbose: vvv
+    steps:
+      - name: Install PHP and OCI extensions
+        uses: shivammathur/setup-php@fix/macos-php5-oci-architecture
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: pdo_oci, oci8
+
+      - name: Validate PHP and extension architectures
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = arm64
+          php_path="$(command -v php)"
+          file -L "$php_path"
+          file -L "$php_path" | grep -q x86_64
+          for extension in pdo_oci oci8; do
+            extension_path="$(php -r "echo ini_get('extension_dir') . '/$extension.so';")"
+            file -L "$extension_path"
+            file -L "$extension_path" | grep -q x86_64
+            php -r "if (!extension_loaded('$extension')) { throw new Exception('$extension not loaded'); }"
+            otool -L "$extension_path"
+          done
