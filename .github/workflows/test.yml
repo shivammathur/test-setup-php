@@ -7,18 +7,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         php-version:
-          - 8.2
+          - 8.7
           
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-version }}
-          extensions: imagick
         env:
-          verbose: vvv
+          verbose: v
       - run: |
           php -v
           php -m
