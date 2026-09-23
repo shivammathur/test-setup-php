@@ -1,0 +1,441 @@
+{
+  "7za.exe": {
+    "old": {
+      "sha256": "bfb34635f295df13ea1677c0d51d08fafd2da21a1c0bea252df6342d40e511a0",
+      "machine": "0x14c",
+      "magic": "0x10b",
+      "subsystem": 3,
+      "os_version": [
+        4,
+        0
+      ],
+      "subsystem_version": [
+        4,
+        0
+      ],
+      "is_dll": false,
+      "imports": [
+        "ADVAPI32.dll",
+        "KERNEL32.dll",
+        "MSVCRT.dll",
+        "OLEAUT32.dll",
+        "USER32.dll"
+      ],
+      "exports": []
+    },
+    "new": {
+      "sha256": "e0b1d095d464c1051381a775a166e9650e74a95529dc4274a5adfd5515b406b0",
+      "machine": "0x14c",
+      "magic": "0x10b",
+      "subsystem": 3,
+      "os_version": [
+        4,
+        0
+      ],
+      "subsystem_version": [
+        4,
+        0
+      ],
+      "is_dll": false,
+      "imports": [
+        "ADVAPI32.dll",
+        "KERNEL32.dll",
+        "MSVCRT.dll",
+        "OLEAUT32.dll",
+        "USER32.dll"
+      ],
+      "exports": []
+    }
+  },
+  "7za.dll": {
+    "old": {
+      "sha256": "56ac93e6fa3cbab0181a450a089ef9f6e0f9f4b5cebe0b628d22b9a67fdd827f",
+      "machine": "0x14c",
+      "magic": "0x10b",
+      "subsystem": 2,
+      "os_version": [
+        4,
+        0
+      ],
+      "subsystem_version": [
+        4,
+        0
+      ],
+      "is_dll": true,
+      "imports": [
+        "KERNEL32.dll",
+        "MSVCRT.dll",
+        "OLEAUT32.dll",
+        "USER32.dll"
+      ],
+      "exports": [
+        [
+          "CreateDecoder",
+          1
+        ],
+        [
+          "CreateEncoder",
+          2
+        ],
+        [
+          "CreateObject",
+          3
+        ],
+        [
+          "GetHandlerProperty",
+          5
+        ],
+        [
+          "GetHandlerProperty2",
+          4
+        ],
+        [
+          "GetHashers",
+          6
+        ],
+        [
+          "GetIsArc",
+          7
+        ],
+        [
+          "GetMethodProperty",
+          8
+        ],
+        [
+          "GetModuleProp",
+          9
+        ],
+        [
+          "GetNumberOfFormats",
+          10
+        ],
+        [
+          "GetNumberOfMethods",
+          11
+        ],
+        [
+          "SetCaseSensitive",
+          12
+        ],
+        [
+          "SetCodecs",
+          13
+        ],
+        [
+          "SetLargePageMode",
+          15
+        ],
+        [
+          "SetLargePageMode2",
+          14
+        ]
+      ]
+    },
+    "new": {
+      "sha256": "d61669cd09579fcf01f9410410840dc0dba8b735bcc5eff2bf0675961775cc05",
+      "machine": "0x14c",
+      "magic": "0x10b",
+      "subsystem": 2,
+      "os_version": [
+        4,
+        0
+      ],
+      "subsystem_version": [
+        4,
+        0
+      ],
+      "is_dll": true,
+      "imports": [
+        "KERNEL32.dll",
+        "MSVCRT.dll",
+        "OLEAUT32.dll",
+        "USER32.dll"
+      ],
+      "exports": [
+        [
+          "CreateDecoder",
+          1
+        ],
+        [
+          "CreateEncoder",
+          2
+        ],
+        [
+          "CreateObject",
+          3
+        ],
+        [
+          "GetHandlerProperty",
+          5
+        ],
+        [
+          "GetHandlerProperty2",
+          4
+        ],
+        [
+          "GetHashers",
+          6
+        ],
+        [
+          "GetIsArc",
+          7
+        ],
+        [
+          "GetMethodProperty",
+          8
+        ],
+        [
+          "GetModuleProp",
+          9
+        ],
+        [
+          "GetNumberOfFormats",
+          10
+        ],
+        [
+          "GetNumberOfMethods",
+          11
+        ],
+        [
+          "SetCaseSensitive",
+          12
+        ],
+        [
+          "SetCodecs",
+          13
+        ],
+        [
+          "SetLargePageMode",
+          15
+        ],
+        [
+          "SetLargePageMode2",
+          14
+        ]
+      ]
+    }
+  },
+  "7zxa.dll": {
+    "old": {
+      "sha256": "51f674885e32636d1d08e054baf14a4bb3a7dd3823598aec1c4f61a946ef45d0",
+      "machine": "0x14c",
+      "magic": "0x10b",
+      "subsystem": 2,
+      "os_version": [
+        4,
+        0
+      ],
+      "subsystem_version": [
+        4,
+        0
+      ],
+      "is_dll": true,
+      "imports": [
+        "KERNEL32.dll",
+        "MSVCRT.dll",
+        "OLEAUT32.dll"
+      ],
+      "exports": [
+        [
+          "CreateDecoder",
+          1
+        ],
+        [
+          "CreateEncoder",
+          2
+        ],
+        [
+          "CreateObject",
+          3
+        ],
+        [
+          "GetHandlerProperty",
+          5
+        ],
+        [
+          "GetHandlerProperty2",
+          4
+        ],
+        [
+          "GetHashers",
+          6
+        ],
+        [
+          "GetIsArc",
+          7
+        ],
+        [
+          "GetMethodProperty",
+          8
+        ],
+        [
+          "GetModuleProp",
+          9
+        ],
+        [
+          "GetNumberOfFormats",
+          10
+        ],
+        [
+          "GetNumberOfMethods",
+          11
+        ],
+        [
+          "SetCaseSensitive",
+          12
+        ],
+        [
+          "SetCodecs",
+          13
+        ],
+        [
+          "SetLargePageMode",
+          15
+        ],
+        [
+          "SetLargePageMode2",
+          14
+        ]
+      ]
+    },
+    "new": {
+      "sha256": "291c4789ff315b941163b3dff40323b12af6b6ff0d79a153c77d649e8b0b7e87",
+      "machine": "0x14c",
+      "magic": "0x10b",
+      "subsystem": 2,
+      "os_version": [
+        4,
+        0
+      ],
+      "subsystem_version": [
+        4,
+        0
+      ],
+      "is_dll": true,
+      "imports": [
+        "KERNEL32.dll",
+        "MSVCRT.dll",
+        "OLEAUT32.dll"
+      ],
+      "exports": [
+        [
+          "CreateDecoder",
+          1
+        ],
+        [
+          "CreateEncoder",
+          2
+        ],
+        [
+          "CreateObject",
+          3
+        ],
+        [
+          "GetHandlerProperty",
+          5
+        ],
+        [
+          "GetHandlerProperty2",
+          4
+        ],
+        [
+          "GetHashers",
+          6
+        ],
+        [
+          "GetIsArc",
+          7
+        ],
+        [
+          "GetMethodProperty",
+          8
+        ],
+        [
+          "GetModuleProp",
+          9
+        ],
+        [
+          "GetNumberOfFormats",
+          10
+        ],
+        [
+          "GetNumberOfMethods",
+          11
+        ],
+        [
+          "SetCaseSensitive",
+          12
+        ],
+        [
+          "SetCodecs",
+          13
+        ],
+        [
+          "SetLargePageMode",
+          15
+        ],
+        [
+          "SetLargePageMode2",
+          14
+        ]
+      ]
+    }
+  },
+  "jq.exe": {
+    "old": {
+      "sha256": "a51d36968dcbdeabb3142c6f5cf9b401a65dc3a095f3144bd0c118d5bb192753",
+      "machine": "0x8664",
+      "magic": "0x20b",
+      "subsystem": 3,
+      "os_version": [
+        4,
+        0
+      ],
+      "subsystem_version": [
+        5,
+        2
+      ],
+      "is_dll": false,
+      "imports": [
+        "KERNEL32.dll",
+        "SHELL32.dll",
+        "SHLWAPI.dll",
+        "USER32.dll",
+        "msvcrt.dll"
+      ],
+      "exports": []
+    },
+    "new": {
+      "sha256": "a6fc67fedaf9128a3309a1e2ebb8b986aeccf70122ee46d2cb4849e423f0c627",
+      "machine": "0x8664",
+      "magic": "0x20b",
+      "subsystem": 3,
+      "os_version": [
+        4,
+        0
+      ],
+      "subsystem_version": [
+        5,
+        2
+      ],
+      "is_dll": false,
+      "imports": [
+        "KERNEL32.dll",
+        "SHLWAPI.dll",
+        "api-ms-win-crt-convert-l1-1-0.dll",
+        "api-ms-win-crt-environment-l1-1-0.dll",
+        "api-ms-win-crt-filesystem-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-locale-l1-1-0.dll",
+        "api-ms-win-crt-math-l1-1-0.dll",
+        "api-ms-win-crt-private-l1-1-0.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-time-l1-1-0.dll",
+        "api-ms-win-crt-utility-l1-1-0.dll"
+      ],
+      "exports": []
+    }
+  }
+}

@@ -1,5 +1,6 @@
 $ErrorActionPreference = 'Stop'
 New-Item -ItemType Directory -Force results | Out-Null
+Copy-Item binary-comparison.json results/
 Start-Transcript -Path results/smoke-tests.txt
 function Invoke-Checked([string]$ExePath, [string[]]$CommandArgs) {
     & $ExePath @CommandArgs
@@ -81,7 +82,10 @@ foreach ($variant in @('baseline','jq')) {
     if ($LASTEXITCODE -ne 1) { throw 'jq false exit status changed' }
     '{bad json' | Set-Content $inputFile -Encoding utf8NoBOM
     & $exe '.' $inputFile 2> results/jq-invalid-$variant.txt
-    if ($LASTEXITCODE -ne 4) { throw 'jq invalid JSON exit status changed' }
+    $expectedParseExit = if ($variant -eq 'baseline') { 4 } else { 5 }
+    if ($LASTEXITCODE -ne $expectedParseExit) { throw "jq invalid JSON exit status: expected $expectedParseExit, got $LASTEXITCODE" }
+    Write-Output "PASS: $version malformed JSON returns expected exit code $expectedParseExit"
     Write-Output "PASS: $version arithmetic, JSON, regex, Unicode, raw output, and exit statuses"
 }
 Stop-Transcript
+exit 0
