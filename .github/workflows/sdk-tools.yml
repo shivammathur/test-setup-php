@@ -1,0 +1,64 @@
+name: Validate PHP SDK tool updates
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  binaries:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-2025]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-sdk-binary-tools
+          ref: c736724eee04ed9f3bc7b6837644969b72420210
+          path: sevenzip
+      - uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-sdk-binary-tools
+          ref: eec90b25dea837682749f413f0b6b4a23135e63d
+          path: jq
+      - uses: actions/checkout@v4
+        with:
+          repository: php/php-sdk-binary-tools
+          ref: faf3650b8b1127b2ac3c2489950a78e718c14671
+          path: baseline
+      - name: Test existing and replacement Windows binaries
+        shell: pwsh
+        run: ./test-binaries.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: binary-validation-${{ matrix.os }}
+          path: results/
+  nullable:
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.2', '8.5']
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-sdk-binary-tools
+          ref: 38fdb414e4b5a421deffe3be96ff2ddca8b9d596
+          path: sdk
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: none
+      - name: Lint and load SDK types with all diagnostics enabled
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($file in (Get-ChildItem sdk/lib,sdk/bin,sdk/pgo -Recurse -Filter *.php)) {
+            $result = & php -n -d error_reporting=-1 -l $file.FullName 2>&1
+            if ($LASTEXITCODE -ne 0 -or "$result" -match '(?i)deprecated|warning|fatal|parse error') { throw "$result" }
+          }
+          php -n -d error_reporting=-1 ./load-sdk.php ./sdk
+          if ($LASTEXITCODE -ne 0) { throw 'SDK class loading failed' }
