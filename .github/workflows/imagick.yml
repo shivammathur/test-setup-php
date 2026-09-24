@@ -1,0 +1,37 @@
+name: Imagick installation with setup-php develop
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  imagick:
+    name: PHP 8.4 / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]
+    steps:
+      - name: Install PHP and Imagick
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: '8.4'
+          extensions: imagick
+          tools: none
+          coverage: none
+        env:
+          verbose: v
+          fail-fast: 'true'
+      - name: Verify Imagick and inspect installed bottles
+        run: |
+          php -v
+          php --ri imagick
+          # shellcheck disable=SC2016
+          php -r '$image = new Imagick(); $image->newImage(16, 16, "white"); $image->setImageFormat("png"); if (substr($image->getImageBlob(), 0, 8) !== "\x89PNG\r\n\x1a\n") { throw new RuntimeException("Invalid PNG output"); } echo "Imagick PNG conversion passed\n";'
+          brew list --versions
+          brew info --json=v2 shivammathur/extensions/imagick@8.4 imagemagick
