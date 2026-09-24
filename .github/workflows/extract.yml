@@ -1,0 +1,29 @@
+name: Measure cache extractors
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  compare:
+    name: PHP ${{ matrix.php }} / ${{ matrix.first }} first / ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.5']
+        first: [tar, pax]
+        runner: [macos-15-intel, macos-26-intel]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Extract into temporary directories and verify every member
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          FIRST: ${{ matrix.first }}
+        run: python3 measure.py
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: extract-${{ matrix.php }}-${{ matrix.first }}-${{ matrix.runner }}
+          path: results.json
