@@ -1,0 +1,119 @@
+name: Validate optional macOS extension caches
+on:
+  push:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      runners:
+        type: string
+        default: '["macos-14","macos-15","macos-26","macos-15-intel","macos-26-intel"]'
+      php-versions:
+        type: string
+        default: '["8.4"]'
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: PHP ${{ matrix.php }} with all optional packs on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: ${{ fromJSON(inputs.runners || '["macos-14","macos-15","macos-26","macos-15-intel","macos-26-intel"]') }}
+        php: ${{ fromJSON(inputs.php-versions || '["8.4"]') }}
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+    steps:
+      - name: Capture existing PHP and services
+        run: |
+          brew list --versions | awk '/^php(@| )/' > "$RUNNER_TEMP/php-before.txt"
+          brew services list --json > "$RUNNER_TEMP/services-before.json"
+          date +%s > "$RUNNER_TEMP/setup-start.txt"
+      - name: Setup PHP with optional packs
+        if: runner.environment != 'self-hosted'
+        uses: shivammathur/setup-php@d20463ddb196b1f004281a80b40779de1fb6b3a9
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: imagick, mongodb, memcached
+          tools: none
+          coverage: none
+        env:
+          verbose: v
+          fail-fast: 'true'
+      - name: Check out cache test helpers
+        if: runner.environment == 'self-hosted'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: 10142cd31f7439a94ba35b222e380bbd458a27a1
+          path: php-cache
+          persist-credentials: false
+      - name: Preserve the Actions Node runtime
+        if: runner.environment == 'self-hosted'
+        uses: ./php-cache/.github/actions/node-runtime
+      - name: Install published PHP on the persistent runner
+        if: runner.environment == 'self-hosted'
+        run: |
+          bash php-cache/scripts/tests/helpers/prepare-e2e.sh
+          bash php-cache/scripts/tests/e2e/release.test.sh
+      - name: Check out the exact setup-php action
+        if: runner.environment == 'self-hosted'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: d20463ddb196b1f004281a80b40779de1fb6b3a9
+          path: setup-php
+          persist-credentials: false
+      - name: Setup PHP with optional packs on the persistent runner
+        if: runner.environment == 'self-hosted'
+        env:
+          INPUT_PHP-VERSION: ${{ matrix.php }}
+          INPUT_EXTENSIONS: imagick, mongodb, memcached
+          INPUT_TOOLS: none
+          INPUT_COVERAGE: none
+          INPUT_INI-FILE: production
+          INPUT_GITHUB-TOKEN: ${{ github.token }}
+          verbose: v
+          fail-fast: 'true'
+        run: '"$PHP_DARWIN_NODE" php-cache/scripts/tests/helpers/run-setup-php.cjs setup-php'
+      - name: Validate private modules and functional behavior
+        run: |
+          php -v
+          directory=$(php-config --extension-dir)
+          for extension in imagick mongodb memcached; do
+            test -f "$directory/$extension.so"
+            case "$(readlink "$directory/$extension.so")" in
+              */var/php-darwin/extensions/*/modules/*.so) ;;
+              *) echo "$extension did not come from the separate cache"; exit 1 ;;
+            esac
+          done
+          # shellcheck disable=SC2016
+          php -r '$i=new Imagick(); $i->newImage(16,16,"white"); foreach (["PNG","JPEG","WEBP"] as $f) { $i->setImageFormat($f); if (strlen($i->getImageBlob())<10) { exit(1); } }'
+          # shellcheck disable=SC2016
+          php -r '$b=MongoDB\BSON\Document::fromPHP(["cache"=>42]); if ($b->toPHP()->cache!==42) { exit(1); }'
+          # shellcheck disable=SC2016
+          php -r '$m=new Memcached(); foreach ([Memcached::SERIALIZER_PHP,Memcached::SERIALIZER_IGBINARY,Memcached::SERIALIZER_MSGPACK] as $s) { if (!$m->setOption(Memcached::OPT_SERIALIZER,$s)) { exit(1); } }'
+          brew list --versions | awk '/^php(@| )/' > "$RUNNER_TEMP/php-after.txt"
+          brew services list --json > "$RUNNER_TEMP/services-after.json"
+          python3 - <<'PY'
+          import json, os, pathlib, time
+          root = pathlib.Path(os.environ['RUNNER_TEMP'])
+          def packages(file):
+              result = {}
+              for line in (root/file).read_text().splitlines():
+                  name, *versions = line.split()
+                  result[name] = set(versions)
+              return result
+          before, after = packages('php-before.txt'), packages('php-after.txt')
+          for name, versions in before.items():
+              assert versions <= after.get(name, set()), (name, versions, after)
+          before = json.loads((root/'services-before.json').read_text())
+          after = {entry['name']: entry for entry in json.loads((root/'services-after.json').read_text())}
+          for entry in before:
+              assert after.get(entry['name']) == entry, (entry, after.get(entry['name']))
+          print('Preserved installed PHP and existing services')
+          print('Total setup action and verification seconds:', time.time()-int((root/'setup-start.txt').read_text()))
+          PY
