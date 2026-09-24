@@ -1,0 +1,76 @@
+name: Test published PHP caches with setup-php develop
+run-name: setup-php develop / PHP 5.6–8.7 / macOS ARM and Intel
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cache:
+    name: PHP ${{ matrix.php }} / ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6', '8.7']
+        runner: [macos-15, macos-15-intel]
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      HOMEBREW_DEVELOPER: '1'
+      HOMEBREW_VERBOSE: '1'
+      HOMEBREW_VERBOSE_USING_DOTS: '0'
+      use_package_cache: 'true'
+      verbose: v
+      EXTENSIONS: ${{ (matrix.php == '5.6' || matrix.php == '7.0') && 'xdebug' || 'xdebug, pcov' }}
+      PHP_DARWIN_REQUIRE_CACHE: 'true'
+      PHP_DARWIN_REQUIRE_XDEBUG: 'true'
+      PHP_DARWIN_REQUIRE_PCOV: ${{ (matrix.php == '5.6' || matrix.php == '7.0') && 'false' || 'true' }}
+      PHP_DARWIN_REQUIRE_INSTALL_TIMING: 'true'
+    steps:
+      - name: Check out this isolated test
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check out cache verification helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: shivammathur/php-darwin
+          ref: d4ecfce91cad104a5043f07111bee01287223220
+          path: cache-checks
+          persist-credentials: false
+
+      - name: Record existing PHP and service definitions
+        run: bash cache-checks/scripts/prepare-e2e.sh
+
+      - name: Run setup-php develop against the published cache
+        id: setup
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ env.EXTENSIONS }}
+          tools: none
+          coverage: none
+        env:
+          BASH_ENV: ${{ github.workspace }}/cache-checks/scripts/trace-install-phases.sh
+
+      - name: Verify cached PHP, preserved versions, services, extensions and install time
+        if: ${{ !cancelled() && steps.setup.outcome != 'skipped' }}
+        run: bash cache-checks/scripts/test-setup-php.sh
+
+      - name: Save runtime and cache evidence
+        if: ${{ always() }}
+        run: bash scripts/evidence.sh
+
+      - name: Upload evidence even when validation fails
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: php-cache-${{ matrix.php }}-${{ matrix.runner }}
+          path: evidence
+          if-no-files-found: error
+          retention-days: 7
