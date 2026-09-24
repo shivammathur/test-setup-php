@@ -54,7 +54,6 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: ${{ env.EXTENSIONS }}
           tools: none
-          coverage: none
         env:
           BASH_ENV: ${{ github.workspace }}/cache-checks/scripts/trace-install-phases.sh
 
