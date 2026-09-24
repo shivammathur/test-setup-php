@@ -1,5 +1,8 @@
 name: Profile cache filesystem work
-on: [push, workflow_dispatch]
+on:
+  push:
+    paths: [measure.py, assets.json]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:

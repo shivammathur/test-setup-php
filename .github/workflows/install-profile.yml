@@ -1,5 +1,8 @@
 name: Profile full cache installation
-on: workflow_dispatch
+on:
+  push:
+    paths: [profile_install.py, .github/workflows/install-profile.yml]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
