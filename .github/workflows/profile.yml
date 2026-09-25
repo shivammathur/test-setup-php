@@ -1,0 +1,35 @@
+name: Profile native cache extraction
+run-name: Diagnose Intel tar filesystem cost without installing PHP
+on: push
+permissions:
+  contents: read
+jobs:
+  profile:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15-intel, macos-26-intel]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Download the existing immutable PHP archive for the isolated benchmark
+        run: >-
+          curl -q --fail --silent --show-error --location --retry 0
+          --connect-timeout 5 --max-time 60
+          'https://artifacts.php-darwin.setup-php.com/php-8.3/php_8.3-nts-release+darwin_x86_64.1347595d5ac7d7d1e42feb736f80cda67392fa91c0598b20ae4bfd3e293511e3.tar.zst'
+          --output "$RUNNER_TEMP/base.tar.zst"
+      - name: Profile isolated extraction and verify both output trees
+        run: >-
+          python3 benchmark.py --archive "$RUNNER_TEMP/base.tar.zst"
+          --sha256 1347595d5ac7d7d1e42feb736f80cda67392fa91c0598b20ae4bfd3e293511e3
+          --bytes 148606166 --prefix /usr/local/Cellar --output "$RUNNER_TEMP/extraction-report" --trace
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: extraction-${{ matrix.runner }}
+          path: ${{ runner.temp }}/extraction-report
+          if-no-files-found: error
+          retention-days: 7
