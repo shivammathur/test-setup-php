@@ -1,0 +1,48 @@
+name: Profile PHP installation on hosted macOS
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  profile:
+    name: PHP ${{ matrix.php }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15-intel, macos-15, macos-latest]
+        php: ['8.2', '8.3', '8.4', '8.5']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Prepare diagnostics
+        run: |
+          mkdir -p "$RUNNER_TEMP/install-profile"
+          echo "PROFILE_DIR=$RUNNER_TEMP/install-profile" >> "$GITHUB_ENV"
+          echo "PROFILE_REAL_CURL=$(command -v curl)" >> "$GITHUB_ENV"
+          uname -m
+          sw_vers
+          sysctl -n machdep.cpu.brand_string hw.ncpu hw.memsize
+      - name: Install PHP with phase and transfer diagnostics
+        uses: shivammathur/setup-php@94719cf4ae4f900200550975baa64d5e39d15a00
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: imagick, mongodb
+        env:
+          verbose: v
+          BASH_ENV: ${{ github.workspace }}/trace.sh
+      - name: Verify PHP and extension behavior
+        run: |
+          php -v
+          php --ri imagick
+          php --ri mongodb
+          php -r 'if (PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION !== "${{ matrix.php }}") exit(1); $image = new Imagick(); $image->newImage(2, 2, "red"); $image->setImageFormat("png"); if (strlen($image->getImageBlob()) < 1) exit(2); if (!extension_loaded("mongodb")) exit(3);'
+          cp /tmp/install.sh "$RUNNER_TEMP/install-profile/install.sh"
+          shasum -a 256 "$RUNNER_TEMP/install-profile/install.sh"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: profile-${{ matrix.os }}-${{ matrix.php }}
+          path: ${{ runner.temp }}/install-profile
+          retention-days: 3
