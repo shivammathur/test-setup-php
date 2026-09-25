@@ -1,0 +1,146 @@
+name: Validate published extension caches and action timing
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      TOKEN:
+        required: false
+    inputs:
+      runners:
+        type: string
+        default: '["macos-14","macos-15","macos-26","macos-15-intel","macos-26-intel"]'
+      php-versions:
+        type: string
+        default: '["5.6","8.5","8.7"]'
+permissions:
+  contents: read
+jobs:
+  install:
+    name: PHP ${{ matrix.php }} with all packs on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: ${{ fromJSON(inputs.runners || '["macos-14","macos-15","macos-26","macos-15-intel","macos-26-intel"]') }}
+        php: ${{ fromJSON(inputs.php-versions || '["5.6","8.5","8.7"]') }}
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: '1'
+      HOMEBREW_DEVELOPER: '1'
+      use_package_cache: 'true'
+    steps:
+      - name: Check out cache validation helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: 81607b208a78ec4436bc401795be2f079bc49762
+          path: php-cache
+          persist-credentials: false
+      - name: Preserve the Actions Node runtime
+        uses: ./php-cache/.github/actions/node-runtime
+      - name: Check out the exact setup-php action
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: d20463ddb196b1f004281a80b40779de1fb6b3a9
+          path: setup-php
+          persist-credentials: false
+      - name: Record existing PHP and service definitions
+        id: prepare
+        run: |
+          sudo -n true
+          bash php-cache/scripts/tests/helpers/prepare-e2e.sh
+      - name: Install the published PHP cache on the persistent runner
+        if: runner.environment == 'self-hosted'
+        run: bash php-cache/scripts/tests/e2e/release.test.sh
+      - name: Run setup-php with all optional packs and measure only the action
+        id: setup
+        env:
+          INPUT_PHP-VERSION: ${{ matrix.php }}
+          INPUT_EXTENSIONS: imagick, mongodb, memcached
+          INPUT_TOOLS: none
+          INPUT_COVERAGE: none
+          INPUT_INI-FILE: production
+          INPUT_GITHUB-TOKEN: ${{ secrets.TOKEN || github.token }}
+          verbose: v
+          fail-fast: 'true'
+        run: |
+          "$PHP_DARWIN_NODE" - <<'JS'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const {runSetupPhp} = require('./php-cache/scripts/tests/helpers/run-setup-php.cjs');
+          const started = performance.now();
+          let status = 1;
+          try { status = runSetupPhp('setup-php'); }
+          finally {
+            const report = {php: process.env.PHP_VERSION, architecture: process.arch,
+              action_seconds: (performance.now() - started) / 1000, exit_code: status};
+            fs.writeFileSync(path.join(process.env.RUNNER_TEMP, 'setup-action-timing.json'), JSON.stringify(report));
+            console.log(JSON.stringify(report));
+          }
+          process.exitCode = status;
+          JS
+      - name: Verify cached PHP and private extension modules
+        env:
+          PHP_DARWIN_REQUIRE_CACHE: 'true'
+        run: |
+          bash php-cache/scripts/tests/e2e/setup-php.test.sh
+          php -v
+          "$PHP_DARWIN_NODE" - <<'JS'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const assert = require('node:assert/strict');
+          const {execFileSync} = require('node:child_process');
+          const prefix = execFileSync('brew', ['--prefix'], {encoding: 'utf8'}).trim();
+          const active = execFileSync('bash', ['-c', 'command -v php'], {encoding: 'utf8'}).trim();
+          assert.equal(fs.realpathSync(active), fs.realpathSync(path.join(prefix, 'bin/php')));
+          const directory = execFileSync('php-config', ['--extension-dir'], {encoding: 'utf8'}).trim();
+          for (const name of ['imagick', 'mongodb', 'memcached']) {
+            const target = fs.readlinkSync(path.join(directory, name + '.so'));
+            assert.ok(target.startsWith(prefix + '/var/php-darwin/extensions/'));
+            assert.ok(target.endsWith('/modules/' + name + '.so'));
+            assert.ok(fs.statSync(target).isFile());
+            const metadata = JSON.parse(fs.readFileSync(path.resolve(target, '../../metadata.json')));
+            assert.equal(metadata.name, name);
+            assert.equal(metadata.php_version, process.env.PHP_VERSION);
+            assert.equal(metadata.build, 'release');
+            assert.equal(metadata.thread_safety, 'nts');
+          }
+          console.log('The archived bin/php is default; all three extensions use private cached modules');
+          JS
+          # shellcheck disable=SC2016
+          php -r '$i=new Imagick(); $i->newImage(16,16,"white"); foreach (["PNG","JPEG","WEBP"] as $f) { $i->setImageFormat($f); if (strlen($i->getImageBlob())<10) { exit(1); } }'
+          # shellcheck disable=SC2016
+          php -r '$r=class_exists("MongoDB\\BSON\\Document") ? MongoDB\BSON\Document::fromPHP(["cache"=>42])->toPHP() : MongoDB\BSON\toPHP(MongoDB\BSON\fromPHP(["cache"=>42])); if ($r->cache!==42) { exit(1); }'
+          # shellcheck disable=SC2016
+          php -r '$m=new Memcached(); foreach ([Memcached::SERIALIZER_PHP,Memcached::SERIALIZER_IGBINARY,Memcached::SERIALIZER_MSGPACK] as $s) { if (!$m->setOption(Memcached::OPT_SERIALIZER,$s)) { exit(1); } }'
+      - name: Verify preservation even if setup failed
+        if: ${{ !cancelled() && steps.prepare.outcome == 'success' }}
+        run: |
+          bash php-cache/scripts/tests/helpers/check-preserved-homebrew.sh check "$(brew --prefix)" \
+            "$RUNNER_TEMP/php-darwin-e2e-preserved.json" \
+            "$HOME/Library/LaunchAgents" /Library/LaunchAgents /Library/LaunchDaemons
+      - name: Require complete action below ten seconds
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: |
+          "$PHP_DARWIN_NODE" - <<'JS'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const assert = require('node:assert/strict');
+          const report = JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP, 'setup-action-timing.json')));
+          assert.equal(report.exit_code, 0);
+          assert.ok(report.action_seconds > 0 && report.action_seconds < 10,
+            `The complete setup-php action took ${report.action_seconds.toFixed(3)} seconds`);
+          JS
+      - name: Preserve measured action timing
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: setup-php-${{ matrix.php }}-${{ matrix.runner }}
+          path: ${{ runner.temp }}/setup-action-timing.json
+          if-no-files-found: ignore
