@@ -1,0 +1,62 @@
+name: Compare parallel native extraction
+on:
+  push:
+    branches: ['**']
+permissions:
+  contents: read
+env:
+  ARCHIVE_SHA: a1e5d6c78bd801458919d024bff7e71363e1ee058db16ebd60300eefc2de5016
+jobs:
+  prepare:
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Download the existing immutable archive
+        run: >-
+          curl -q --fail --silent --show-error --location --retry 0
+          --connect-timeout 5 --max-time 60
+          "https://artifacts.php-darwin.setup-php.com/php-5.6/php_5.6-nts-release+darwin_x86_64.${ARCHIVE_SHA}.tar.zst"
+          --output "$RUNNER_TEMP/base.tar.zst"
+      - name: Prepare a temporary format comparison without executing PHP
+        run: >-
+          python3 benchmark.py prepare --archive "$RUNNER_TEMP/base.tar.zst"
+          --sha256 "$ARCHIVE_SHA" --output "$RUNNER_TEMP/profile-input"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: profile-input
+          path: ${{ runner.temp }}/profile-input
+          compression-level: 0
+          retention-days: 3
+  compare:
+    needs: prepare
+    runs-on: macos-15-intel
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        order: [tar-first, aa-first]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: profile-input
+          path: ${{ runner.temp }}/profile-input
+      - name: Compare isolated extraction and verify every file and metadata
+        env:
+          ORDER: ${{ matrix.order }}
+        run: >-
+          python3 benchmark.py compare --input "$RUNNER_TEMP/profile-input"
+          --sha256 "$ARCHIVE_SHA" --prefix /usr/local/Cellar
+          --output "$RUNNER_TEMP/profile-output" --order "$ORDER"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: extraction-${{ matrix.order }}
+          path: ${{ runner.temp }}/profile-output
+          if-no-files-found: error
+          retention-days: 7
