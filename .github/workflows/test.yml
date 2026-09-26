@@ -22,6 +22,7 @@ jobs:
           extensions: swoole-alpha
         env:
           verbose: v
+          update: true
       - run: |
           php -v
           php -m
