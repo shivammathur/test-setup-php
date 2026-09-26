@@ -19,7 +19,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-version }}
-          extensions: swoole
+          extensions: swoole-6.3.0RC1
         env:
           verbose: v
       - run: |
