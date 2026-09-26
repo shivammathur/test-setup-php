@@ -1,0 +1,58 @@
+name: Measure PHP archive installation components
+on: push
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.value }}
+    steps:
+      - id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          tag="php-darwin-compression-$GITHUB_RUN_ID"
+          gh release create "$tag" --repo "$REPO" --target "$GITHUB_SHA" --title 'Temporary PHP compression measurements' --notes '' --latest=false
+          echo "value=$tag" >> "$GITHUB_OUTPUT"
+  prepare:
+    needs: release
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x86_64]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ needs.release.outputs.tag }}
+          ARCH: ${{ matrix.arch }}
+        run: python3 benchmark.py prepare
+  measure:
+    needs: [release, prepare]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ needs.release.outputs.tag }}
+          ARCH: ${{ matrix.arch }}
+        run: python3 benchmark.py measure
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: compression-${{ matrix.arch }}
+          path: results-*.json
+          retention-days: 7
