@@ -10,7 +10,10 @@ def run(*args, **kwargs):
 
 def sha(file):
     with open(file, 'rb') as stream:
-        return hashlib.file_digest(stream, 'sha256').hexdigest()
+        value = hashlib.sha256()
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            value.update(block)
+        return value.hexdigest()
 
 def download(url, file):
     started = time.monotonic()

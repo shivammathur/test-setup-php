@@ -1,5 +1,7 @@
 name: Measure PHP archive installation components
-on: push
+on:
+  push:
+    branches: ['fix/php-darwin-install-benchmark-20260927']
 permissions:
   contents: write
 jobs:
@@ -14,7 +16,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           tag="php-darwin-compression-$GITHUB_RUN_ID"
-          gh release create "$tag" --repo "$REPO" --target "$GITHUB_SHA" --title 'Temporary PHP compression measurements' --notes '' --latest=false
+          gh release create "$tag" --repo "$REPO" --target "$GITHUB_SHA" --title 'Temporary PHP compression measurements' --notes '' --latest=false --draft
           echo "value=$tag" >> "$GITHUB_OUTPUT"
   prepare:
     needs: release
@@ -31,8 +33,17 @@ jobs:
           TAG: ${{ needs.release.outputs.tag }}
           ARCH: ${{ matrix.arch }}
         run: python3 benchmark.py prepare
-  measure:
+  publish:
     needs: [release, prepare]
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ needs.release.outputs.tag }}
+        run: gh release edit "$TAG" --repo "$REPO" --draft=false
+  measure:
+    needs: [release, publish]
     strategy:
       fail-fast: false
       matrix:
