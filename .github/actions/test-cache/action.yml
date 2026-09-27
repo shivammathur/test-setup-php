@@ -1,0 +1,210 @@
+name: Test existing PHP archives
+description: Shared guarded compatibility checks for built or recovered PHP archives
+inputs:
+  php-version:
+    required: true
+    description: PHP minor version
+  runner:
+    required: true
+    description: Configured macOS runner label
+  arch:
+    default: ''
+    description: Expected architecture, checked against the actual runner
+  builds:
+    default: 'debug release'
+    description: Build variants to test
+  ts:
+    default: 'nts zts'
+    description: Thread-safety variants to test
+  repository:
+    default: ${{ github.repository }}
+    description: Repository containing the source artifacts
+  run-id:
+    default: ${{ github.run_id }}
+    description: Run containing the verified archive artifacts
+  github-token:
+    default: ${{ github.token }}
+    description: Token for reading the source run
+  trace-install:
+    default: 'false'
+    description: Trace cache installation
+runs:
+  using: composite
+  steps:
+    - uses: ./.github/actions/runner-preflight
+    - name: Resolve and verify the actual runner architecture
+      id: target
+      shell: bash
+      env:
+        RUNNER: ${{ inputs.runner }}
+        EXPECTED_ARCH: ${{ inputs.arch }}
+        PHP_VERSION: ${{ inputs.php-version }}
+        PHP_DARWIN_TRACE_INSTALL: ${{ inputs.trace-install }}
+      run: |
+        arch=$(RUNNER="$RUNNER" GITHUB_OUTPUT='' bash scripts/tests/helpers/get-test-target.sh)
+        source scripts/lib/lib.sh
+        actual=$(php_darwin_normalize_arch "$(uname -m)")
+        test "$arch" = "$actual"
+        test -z "$EXPECTED_ARCH" || test "$arch" = "$EXPECTED_ARCH"
+        echo "arch=$arch" >> "$GITHUB_OUTPUT"
+        echo "ARCH=$arch" >> "$GITHUB_ENV"
+        echo "PHP_VERSION=$PHP_VERSION" >> "$GITHUB_ENV"
+        echo "PHP_DARWIN_TRACE_INSTALL=$PHP_DARWIN_TRACE_INSTALL" >> "$GITHUB_ENV"
+    - name: Remove unused Homebrew taps
+      shell: bash
+      run: bash scripts/build/cleanup-taps.sh
+    - name: Check the cleaned Homebrew environment
+      shell: bash
+      run: bash scripts/build/check-homebrew.sh
+    - name: Download existing architecture caches
+      uses: ./.github/actions/download-artifacts
+      with:
+        github-token: ${{ inputs.github-token }}
+        repository: ${{ inputs.repository }}
+        run-id: ${{ inputs.run-id }}
+        pattern: php-${{ inputs.php-version }}-${{ steps.target.outputs.arch }}-*
+        merge-multiple: 'true'
+        path: ${{ runner.temp }}/php-darwin
+    - name: Prepare release/NTS Homebrew formula source
+      id: prepare-release-nts
+      if: ${{ contains(inputs.builds, 'release') && contains(inputs.ts, 'nts') }}
+      env: &release-nts
+        BUILD: release
+        TS: nts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh prepare
+
+    - name: Install release/NTS Homebrew cache
+      if: ${{ contains(inputs.builds, 'release') && contains(inputs.ts, 'nts') }}
+      env: *release-nts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh install
+
+    - name: Validate release/NTS PHP runtime and build flags
+      if: ${{ contains(inputs.builds, 'release') && contains(inputs.ts, 'nts') }}
+      env: *release-nts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh runtime
+
+    - name: Validate release/NTS Homebrew state and operations
+      if: ${{ contains(inputs.builds, 'release') && contains(inputs.ts, 'nts') }}
+      env: *release-nts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh homebrew
+
+    - name: Reset runner after release/NTS validation
+      if: ${{ always() && steps.prepare-release-nts.outcome != 'skipped' && steps.prepare-release-nts.outcome != '' }}
+      env: *release-nts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh reset
+
+    - name: Prepare release/ZTS Homebrew formula source
+      id: prepare-release-zts
+      if: ${{ contains(inputs.builds, 'release') && contains(inputs.ts, 'zts') }}
+      env: &release-zts
+        BUILD: release
+        TS: zts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh prepare
+
+    - name: Install release/ZTS Homebrew cache
+      if: ${{ contains(inputs.builds, 'release') && contains(inputs.ts, 'zts') }}
+      env: *release-zts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh install
+
+    - name: Validate release/ZTS PHP runtime and build flags
+      if: ${{ contains(inputs.builds, 'release') && contains(inputs.ts, 'zts') }}
+      env: *release-zts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh runtime
+
+    - name: Validate release/ZTS Homebrew state and operations
+      if: ${{ contains(inputs.builds, 'release') && contains(inputs.ts, 'zts') }}
+      env: *release-zts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh homebrew
+
+    - name: Reset runner after release/ZTS validation
+      if: ${{ always() && steps.prepare-release-zts.outcome != 'skipped' && steps.prepare-release-zts.outcome != '' }}
+      env: *release-zts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh reset
+
+    - name: Prepare debug/NTS Homebrew formula source
+      id: prepare-debug-nts
+      if: ${{ contains(inputs.builds, 'debug') && contains(inputs.ts, 'nts') }}
+      env: &debug-nts
+        BUILD: debug
+        TS: nts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh prepare
+
+    - name: Install debug/NTS Homebrew cache
+      if: ${{ contains(inputs.builds, 'debug') && contains(inputs.ts, 'nts') }}
+      env: *debug-nts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh install
+
+    - name: Validate debug/NTS PHP runtime and build flags
+      if: ${{ contains(inputs.builds, 'debug') && contains(inputs.ts, 'nts') }}
+      env: *debug-nts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh runtime
+
+    - name: Validate debug/NTS Homebrew state and operations
+      if: ${{ contains(inputs.builds, 'debug') && contains(inputs.ts, 'nts') }}
+      env: *debug-nts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh homebrew
+
+    - name: Reset runner after debug/NTS validation
+      if: ${{ always() && steps.prepare-debug-nts.outcome != 'skipped' && steps.prepare-debug-nts.outcome != '' }}
+      env: *debug-nts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh reset
+
+    - name: Prepare debug/ZTS Homebrew formula source
+      id: prepare-debug-zts
+      if: ${{ contains(inputs.builds, 'debug') && contains(inputs.ts, 'zts') }}
+      env: &debug-zts
+        BUILD: debug
+        TS: zts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh prepare
+
+    - name: Install debug/ZTS Homebrew cache
+      if: ${{ contains(inputs.builds, 'debug') && contains(inputs.ts, 'zts') }}
+      env: *debug-zts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh install
+
+    - name: Validate debug/ZTS PHP runtime and build flags
+      if: ${{ contains(inputs.builds, 'debug') && contains(inputs.ts, 'zts') }}
+      env: *debug-zts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh runtime
+
+    - name: Validate debug/ZTS Homebrew state and operations
+      if: ${{ contains(inputs.builds, 'debug') && contains(inputs.ts, 'zts') }}
+      env: *debug-zts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh homebrew
+
+    - name: Reset runner after debug/ZTS validation
+      if: ${{ always() && steps.prepare-debug-zts.outcome != 'skipped' && steps.prepare-debug-zts.outcome != '' }}
+      env: *debug-zts
+      shell: bash
+      run: bash scripts/tests/native/install.test.sh reset
+
+    - name: Preserve installation rollback diagnostics
+      if: ${{ failure() }}
+      continue-on-error: true
+      uses: ./.github/actions/upload-artifacts
+      with:
+        name: install-recovery-${{ inputs.php-version }}-${{ inputs.runner }}
+        path: |
+          ${{ runner.temp }}/php-darwin-install.*/rollback.log
+          ${{ runner.temp }}/php-darwin-install.*/php-command-links.json
+        if-no-files-found: ignore
+        retention-days: 7

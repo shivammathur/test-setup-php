@@ -1,0 +1,80 @@
+name: Download artifacts with bounded retries
+description: Retry artifact listing or transfer failures without changing the selected run or artifacts
+inputs:
+  artifact-ids:
+    description: Exact artifact IDs, for recovery from a fixed set of successful builds
+    required: false
+  name:
+    description: Exact artifact name
+    required: false
+  pattern:
+    description: Artifact name pattern when name is omitted
+    required: false
+  path:
+    description: Destination directory
+    required: true
+  merge-multiple:
+    description: Merge distinct variant artifacts into one directory
+    default: 'false'
+  github-token:
+    description: Token for downloads from another workflow run
+    required: false
+  repository:
+    description: Source repository
+    default: ${{ github.repository }}
+  run-id:
+    description: Source workflow run
+    default: ${{ github.run_id }}
+runs:
+  using: composite
+  steps:
+    - name: Download artifacts
+      id: first
+      continue-on-error: true
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        artifact-ids: ${{ inputs.artifact-ids }}
+        name: ${{ inputs.name }}
+        pattern: ${{ inputs.pattern }}
+        path: ${{ inputs.path }}
+        merge-multiple: ${{ inputs.merge-multiple }}
+        github-token: ${{ inputs.github-token }}
+        repository: ${{ inputs.repository }}
+        run-id: ${{ inputs.run-id }}
+        digest-mismatch: error
+    - name: Wait before retrying
+      if: ${{ steps.first.outcome == 'failure' }}
+      shell: bash
+      run: sleep 5
+    - name: Retry artifact download
+      id: second
+      if: ${{ steps.first.outcome == 'failure' }}
+      continue-on-error: true
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        artifact-ids: ${{ inputs.artifact-ids }}
+        name: ${{ inputs.name }}
+        pattern: ${{ inputs.pattern }}
+        path: ${{ inputs.path }}
+        merge-multiple: ${{ inputs.merge-multiple }}
+        github-token: ${{ inputs.github-token }}
+        repository: ${{ inputs.repository }}
+        run-id: ${{ inputs.run-id }}
+        digest-mismatch: error
+    - name: Wait before the final attempt
+      if: ${{ steps.second.outcome == 'failure' }}
+      shell: bash
+      run: sleep 15
+    - name: Final artifact download attempt
+      if: ${{ steps.second.outcome == 'failure' }}
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        artifact-ids: ${{ inputs.artifact-ids }}
+        name: ${{ inputs.name }}
+        pattern: ${{ inputs.pattern }}
+        path: ${{ inputs.path }}
+        merge-multiple: ${{ inputs.merge-multiple }}
+        github-token: ${{ inputs.github-token }}
+        repository: ${{ inputs.repository }}
+        run-id: ${{ inputs.run-id }}
+        digest-mismatch: error
