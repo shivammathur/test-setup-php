@@ -2,25 +2,20 @@ name: Validate PHP Darwin dependency linking
 on: [push, workflow_dispatch]
 permissions:
   contents: write
+  actions: read
 jobs:
   prepare:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          repository: shivammathur/php-darwin
-          ref: 19d7cd6d9a5274564bc54576a021984f25d10c14
-          persist-credentials: false
       - name: Create isolated source-cache release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           CACHE_RELEASE: source-bottles-test-${{ github.run_id }}
         run: |
-          node - <<'JS'
-          const {ReleaseCache}=require('./scripts/cache/source-bottle-releases.cjs');
-          new ReleaseCache({tag:process.env.CACHE_RELEASE}).release(true)
-            .catch(error=>{console.error(error);process.exitCode=1;});
-          JS
+          gh release create "$CACHE_RELEASE" --target "$GITHUB_SHA" \
+            --title "$CACHE_RELEASE" --notes 'Temporary native dependency-link validation.' \
+            --prerelease --latest=false
   native:
     needs: prepare
     strategy:
@@ -75,7 +70,7 @@ jobs:
       - if: always()
         run: bash scripts/tests/native/source-bottle-native.test.sh cleanup
   cleanup:
-    if: always()
+    if: ${{ always() && needs.prepare.result == 'success' }}
     needs: [prepare, native]
     runs-on: ubuntu-latest
     steps:
