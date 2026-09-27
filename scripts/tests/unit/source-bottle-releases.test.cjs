@@ -30,6 +30,7 @@ function fixture(t, tag = 'cache', partition = false) {
       assert.equal(body.make_latest, 'false');
       assert.equal(body.target_commitish, process.env.GITHUB_SHA || 'main');
       assert.equal(body.prerelease, tag.startsWith('source-bottles-test-'));
+      assert.equal(body.draft, tag.startsWith('source-bottles-test-'));
       if (state.releases.some(item => item.tag_name === body.tag_name)) return json({}, 422);
       state.release = { id: state.releases.length + 1, ...body };
       state.releases.push(state.release);
@@ -742,4 +743,21 @@ test('legacy PHP and dependency keys restore across code edits without replacing
     f.state.assets[0].data[0] ^= 1;
     assert.equal(await f.cache.restoreCache([path.join(f.root, 'corrupt')], key, [], updated), undefined);
   }
+});
+
+test('legacy nightly PHP requires an identical source recipe and new keys distinguish php-src commits', async t => {
+  const f = fixture(t, 'cache', true);
+  const old = f.bottle('8.6.0', {formula: 'shivammathur/php/php@8.6', recipe: 'nightly-recipe'});
+  const file = path.join(old.directory, 'metadata.json');
+  const metadata = JSON.parse(fs.readFileSync(file));
+  metadata.key = legacyKeyFor(metadata.inputs);
+  fs.writeFileSync(file, JSON.stringify(metadata));
+  await f.cache.saveCache([old.directory], metadata.key);
+  const inputs = {...old.inputs, source_commit: 'a'.repeat(40)};
+  const destination = path.join(f.root, 'nightly');
+  assert.equal(await f.cache.restoreCache([destination], keyFor(inputs), [], inputs), keyFor(inputs));
+  assert.ok(readBottle(destination, keyFor(inputs)));
+  const next = {...inputs, source_commit: 'b'.repeat(40), recipe: 'new-nightly'};
+  assert.notEqual(keyFor(next), keyFor(inputs));
+  assert.equal(await f.cache.restoreCache([path.join(f.root, 'next')], keyFor(next), [], next), undefined);
 });

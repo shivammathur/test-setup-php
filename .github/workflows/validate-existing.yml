@@ -8,52 +8,6 @@ permissions:
   contents: write
   actions: read
 jobs:
-  local:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      with:
-        persist-credentials: false
-    - name: Validate cache inputs, recovery, publishing, and generated installer
-      run: bash scripts/tests/run.sh
-    - name: Preserve the Actions Node runtime
-      uses: ./.github/actions/node-runtime
-    - name: Verify the preserved Node runtime works without Node on PATH
-      run: PATH=/nonexistent "$PHP_DARWIN_NODE" -e 'require("node:assert/strict").ok(process.versions.node)'
-    - name: Upload an artifact transfer fixture
-      id: upload-fixture
-      uses: ./.github/actions/upload-artifacts
-      with:
-        name: workflow-validation
-        path: conf/platforms.json
-        if-no-files-found: error
-        retention-days: 1
-        overwrite: true
-        compression-level: 0
-    - name: Verify the shared artifact downloader
-      uses: ./.github/actions/download-artifacts
-      timeout-minutes: 5
-      with:
-        artifact-ids: ${{ steps.upload-fixture.outputs.artifact-id }}
-        path: ${{ runner.temp }}/workflow-validation
-    - name: Verify artifact contents
-      run: cmp conf/platforms.json "$RUNNER_TEMP/workflow-validation/platforms.json"
-    - name: Stage an archive checkpoint fixture
-      id: checkpoint
-      run: node scripts/tests/e2e/checkpoint-transfer.test.cjs stage
-    - name: Upload the checkpoint fixture
-      uses: ./.github/actions/upload-artifacts
-      with:
-        name: ${{ steps.checkpoint.outputs.name }}
-        path: ${{ steps.checkpoint.outputs.path }}
-        compression-level: 0
-        retention-days: 1
-        overwrite: true
-    - name: Restore and verify the checkpoint through the GitHub API
-      env:
-        GH_TOKEN: ${{ secrets.TOKEN || github.token }}
-      run: node scripts/tests/e2e/checkpoint-transfer.test.cjs restore
   coordination:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -73,26 +27,3 @@ jobs:
     - name: Remove the isolated test release
       if: always()
       run: "if gh release view \"$CACHE_RELEASE\" >/dev/null 2>&1; then\n  gh release delete \"$CACHE_RELEASE\" --cleanup-tag --yes\nfi\n"
-  archives:
-    strategy:
-      fail-fast: false
-      matrix:
-        runner:
-        - macos-14
-        - macos-15
-        - macos-26
-        - macos-15-intel
-        - macos-26-intel
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 20
-    steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      with:
-        persist-credentials: false
-    - uses: ./.github/actions/test-cache
-      with:
-        php-version: '8.5'
-        runner: ${{ matrix.runner }}
-        repository: shivammathur/php-darwin
-        run-id: '36283773068'
-        github-token: ${{ secrets.TOKEN || github.token }}

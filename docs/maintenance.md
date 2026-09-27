@@ -405,7 +405,9 @@ including runner recovery, architecture validation and rollback diagnostics.
 
 `validate.yml` and `test-runner-preflight.yml` run on main pushes and pull requests;
 use workflow_dispatch to validate an un-PR branch. `test-source-lock.yml` exercises
-live coordination once on Ubuntu. Source-cache native tests have scoped path
+live coordination once on Ubuntu. Isolated test releases remain drafts so
+repository release immutability cannot block temporary lock assets.
+Source-cache native tests have scoped path
 filters and still intentionally build isolated fixtures; do not dispatch that
 workflow for a no-build validation request. Use existing published/archive inputs
 for those requests. Timing and diagnostic upload failures do not block publication;
