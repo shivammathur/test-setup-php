@@ -31,12 +31,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: shivammathur/php-darwin
-          ref: f78f7a5f223f518dd857087327f5df89c573f7bf
+          ref: c5b3d177013ffce1631e7d5b2b8e37e6aa8c5bc3
           persist-credentials: false
       - uses: ./.github/actions/runner-preflight
       - uses: ./.github/actions/node-runtime
       - name: Verify abandoned processes, lock release and preserved caches
-        run: '"$PHP_DARWIN_NODE" --test scripts/tests/native/runner-preflight.test.cjs | tee "$RUNNER_TEMP/runner-preflight.tap"'
+        shell: bash
+        run: '"$PHP_DARWIN_NODE" --test --test-reporter=tap scripts/tests/native/runner-preflight.test.cjs | tee "$RUNNER_TEMP/runner-preflight.tap"'
       - uses: ./.github/actions/upload-artifacts
         if: always()
         with:
