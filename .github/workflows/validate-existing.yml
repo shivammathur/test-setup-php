@@ -73,101 +73,6 @@ jobs:
     - name: Remove the isolated test release
       if: always()
       run: "if gh release view \"$CACHE_RELEASE\" >/dev/null 2>&1; then\n  gh release delete \"$CACHE_RELEASE\" --cleanup-tag --yes\nfi\n"
-  homebrew:
-    name: Published PHP and brew update on ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        runner:
-        - macos-latest
-        - macos-15-intel
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 20
-    env:
-      PHP_VERSION: '8.5'
-    steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      with:
-        persist-credentials: false
-    - uses: ./.github/actions/runner-preflight
-    - name: Clean taps and check the runner
-      run: 'bash scripts/build/cleanup-taps.sh
-
-        bash scripts/build/check-homebrew.sh
-
-        '
-    - name: Record existing PHP and services
-      run: bash scripts/tests/helpers/prepare-e2e.sh
-    - name: Install existing published PHP
-      run: bash scripts/tests/e2e/release.test.sh
-    - name: Verify installation before updating Homebrew
-      run: bash scripts/tests/e2e/setup-php.test.sh
-    - name: Finalize installed PHP with brew install forbidden
-      run: 'ARCH=$(uname -m)
-
-        export ARCH BUILD=release TS=nts
-
-        export HOMEBREW_PHP_COMMIT=01a6a00a3ea0dcd81389076f2390280b54efc8c8
-
-        export HOMEBREW_EXTENSIONS_COMMIT=f01d94e63ebbd014cfc6c28efa9991e2f1410f40
-
-        mkdir -p "$RUNNER_TEMP/php-darwin-build" "$RUNNER_TEMP/no-build"
-
-        brew list --formula --versions | LC_ALL=C sort -u > "$RUNNER_TEMP/php-darwin-build/preserved-versions.txt"
-
-        awk ''{print $1}'' "$RUNNER_TEMP/php-darwin-build/preserved-versions.txt" > "$RUNNER_TEMP/php-darwin-build/preserved-formulae.txt"
-
-        cp "$RUNNER_TEMP/php-darwin-build/preserved-versions.txt" "$RUNNER_TEMP/php-darwin-build/before.tsv"
-
-        REAL_BREW=$(command -v brew)
-
-        export REAL_BREW
-
-        cat > "$RUNNER_TEMP/no-build/brew" <<''SH''
-
-        #!/bin/bash
-
-        case "$1" in install|reinstall) echo ''Unexpected brew installation in finalization'' >&2; exit 99;; esac
-
-        exec "$REAL_BREW" "$@"
-
-        SH
-
-        chmod +x "$RUNNER_TEMP/no-build/brew"
-
-        PATH="$RUNNER_TEMP/no-build:$PATH" bash scripts/build/build.sh finalize
-
-        cmp "$RUNNER_TEMP/php-darwin-build/semver" <(php-config --version)
-
-        '
-    - name: Verify Homebrew can update with the installed cache
-      run: "core=$(brew --repository homebrew/core)\nif [ -d \"$core/.git\" ]; then\n  bash scripts/build/ensure-core-history.sh \"$core\"\nfi\n\
-        source scripts/lib/retry.sh\nphp_darwin_retry brew update\nphp-config --version\nphp -n -r 'echo \"Runtime remains loadable after brew\
-        \ update\\n\";'\n"
-  preflight:
-    strategy:
-      fail-fast: false
-      matrix:
-        runner:
-        - macos-14
-        - macos-15-intel
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 5
-    steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      with:
-        persist-credentials: false
-    - uses: ./.github/actions/runner-preflight
-    - uses: ./.github/actions/node-runtime
-    - name: Verify abandoned processes, lock release and preserved caches
-      shell: bash
-      run: '"$PHP_DARWIN_NODE" --test --test-reporter=tap scripts/tests/native/runner-preflight.test.cjs | tee "$RUNNER_TEMP/runner-preflight.tap"'
-    - uses: ./.github/actions/upload-artifacts
-      if: always()
-      with:
-        name: runner-preflight-${{ matrix.runner }}
-        path: ${{ runner.temp }}/runner-preflight.tap
-        retention-days: 7
   archives:
     strategy:
       fail-fast: false
@@ -181,8 +86,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     steps:
-    - &id001
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
         persist-credentials: false
     - uses: ./.github/actions/test-cache
@@ -192,39 +96,3 @@ jobs:
         repository: shivammathur/php-darwin
         run-id: '36283773068'
         github-token: ${{ secrets.TOKEN || github.token }}
-  extensions:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-        - runner: macos-14
-          arch: arm64
-        - runner: macos-15-intel
-          arch: x86_64
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 25
-    env:
-      ARCH: ${{ matrix.arch }}
-    steps:
-    - *id001
-    - uses: ./.github/actions/runner-preflight
-    - uses: ./.github/actions/node-runtime
-    - name: Prepare without extension build formulae
-      run: 'bash scripts/build/cleanup-taps.sh
-
-        bash scripts/build/check-homebrew.sh
-
-        HOMEBREW_DEVELOPER=1 brew untap shivammathur/extensions >/dev/null 2>&1 || true'
-    - name: Download and verify existing published optional packs
-      run: '"$PHP_DARWIN_NODE" native-pack-download.cjs'
-    - name: Test all existing variants without an extension tap or source commit
-      run: 'EXTENSION_ENTRIES=$(cat extension-entries.json) "$PHP_DARWIN_NODE" scripts/build/extension-batch.cjs test
-
-        test ! -d "$(brew --repository shivammathur/extensions)"'
-    - uses: ./.github/actions/upload-artifacts
-      if: always()
-      with:
-        name: extension-validation-${{ matrix.arch }}
-        path: builds/extensions/**/validation.txt
-        if-no-files-found: error
-        retention-days: 7

@@ -96,11 +96,12 @@ Keys include software and dependency versions plus the target platform; PHP
 extensions additionally include the PHP API and variant. Nightly PHP source
 commits identify their software version. Recipe bytes and runner toolchain
 changes do not invalidate source bottles. Legacy keys remain readable, with
-checksum and software identity verification before reuse. Existing configuration is restored after source bottling, including
-failed builds; service data is not staged. Keep configure/make output visible.
+checksum and software identity verification before reuse. Existing configuration
+is restored after source bottling, including failed builds; service data is not staged. Keep configure/make output visible.
 
 Archive checkpoints last seven days and require matching software inputs and
-verified payloads. The php-darwin repository revision is provenance only. They are separate from reusable source bottles.
+verified payloads. The php-darwin repository revision is provenance only.
+Checkpoints are separate from reusable source bottles.
 Partial reruns can restore a checkpoint before installing PHP when the run,
 pinned taps/core, architecture, variant and toolchain match. Other runs retain
 the installed-payload comparison. Missing or invalid checkpoints fall through
@@ -325,8 +326,8 @@ The planner logs why each pack needs rebuilding. PHP Darwin implementation chang
 and repository revisions do not invalidate PHP, extension or dependency caches.
 Historical builder hashes in published metadata are ignored. Dependency upgrades
 remain explicit through `update-dependencies.yml`; a missing approved dependency
-fails instead of compiling in an ordinary PHP cache job. Use an explicit forced
-build when intentionally replacing unchanged software versions.
+fails instead of compiling in an ordinary PHP cache job. Replacing unchanged
+software versions requires an explicit cache repair.
 This recovery path works for both architectures. Regular Homebrew ARM bottles
 cannot replace debug/ZTS or development-PHP extension binaries; missing matching
 binaries and Mach-O relocation/signing still require macOS.

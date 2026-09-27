@@ -68,7 +68,7 @@ runs:
     - name: Prepare release/NTS Homebrew formula source
       id: prepare-release-nts
       if: ${{ contains(inputs.builds, 'release') && contains(inputs.ts, 'nts') }}
-      env: &release-nts
+      env:
         BUILD: release
         TS: nts
       shell: bash
@@ -76,32 +76,40 @@ runs:
 
     - name: Install release/NTS Homebrew cache
       if: ${{ contains(inputs.builds, 'release') && contains(inputs.ts, 'nts') }}
-      env: *release-nts
+      env:
+        BUILD: release
+        TS: nts
       shell: bash
       run: bash scripts/tests/native/install.test.sh install
 
     - name: Validate release/NTS PHP runtime and build flags
       if: ${{ contains(inputs.builds, 'release') && contains(inputs.ts, 'nts') }}
-      env: *release-nts
+      env:
+        BUILD: release
+        TS: nts
       shell: bash
       run: bash scripts/tests/native/install.test.sh runtime
 
     - name: Validate release/NTS Homebrew state and operations
       if: ${{ contains(inputs.builds, 'release') && contains(inputs.ts, 'nts') }}
-      env: *release-nts
+      env:
+        BUILD: release
+        TS: nts
       shell: bash
       run: bash scripts/tests/native/install.test.sh homebrew
 
     - name: Reset runner after release/NTS validation
       if: ${{ always() && steps.prepare-release-nts.outcome != 'skipped' && steps.prepare-release-nts.outcome != '' }}
-      env: *release-nts
+      env:
+        BUILD: release
+        TS: nts
       shell: bash
       run: bash scripts/tests/native/install.test.sh reset
 
     - name: Prepare release/ZTS Homebrew formula source
       id: prepare-release-zts
       if: ${{ contains(inputs.builds, 'release') && contains(inputs.ts, 'zts') }}
-      env: &release-zts
+      env:
         BUILD: release
         TS: zts
       shell: bash
@@ -109,32 +117,40 @@ runs:
 
     - name: Install release/ZTS Homebrew cache
       if: ${{ contains(inputs.builds, 'release') && contains(inputs.ts, 'zts') }}
-      env: *release-zts
+      env:
+        BUILD: release
+        TS: zts
       shell: bash
       run: bash scripts/tests/native/install.test.sh install
 
     - name: Validate release/ZTS PHP runtime and build flags
       if: ${{ contains(inputs.builds, 'release') && contains(inputs.ts, 'zts') }}
-      env: *release-zts
+      env:
+        BUILD: release
+        TS: zts
       shell: bash
       run: bash scripts/tests/native/install.test.sh runtime
 
     - name: Validate release/ZTS Homebrew state and operations
       if: ${{ contains(inputs.builds, 'release') && contains(inputs.ts, 'zts') }}
-      env: *release-zts
+      env:
+        BUILD: release
+        TS: zts
       shell: bash
       run: bash scripts/tests/native/install.test.sh homebrew
 
     - name: Reset runner after release/ZTS validation
       if: ${{ always() && steps.prepare-release-zts.outcome != 'skipped' && steps.prepare-release-zts.outcome != '' }}
-      env: *release-zts
+      env:
+        BUILD: release
+        TS: zts
       shell: bash
       run: bash scripts/tests/native/install.test.sh reset
 
     - name: Prepare debug/NTS Homebrew formula source
       id: prepare-debug-nts
       if: ${{ contains(inputs.builds, 'debug') && contains(inputs.ts, 'nts') }}
-      env: &debug-nts
+      env:
         BUILD: debug
         TS: nts
       shell: bash
@@ -142,32 +158,40 @@ runs:
 
     - name: Install debug/NTS Homebrew cache
       if: ${{ contains(inputs.builds, 'debug') && contains(inputs.ts, 'nts') }}
-      env: *debug-nts
+      env:
+        BUILD: debug
+        TS: nts
       shell: bash
       run: bash scripts/tests/native/install.test.sh install
 
     - name: Validate debug/NTS PHP runtime and build flags
       if: ${{ contains(inputs.builds, 'debug') && contains(inputs.ts, 'nts') }}
-      env: *debug-nts
+      env:
+        BUILD: debug
+        TS: nts
       shell: bash
       run: bash scripts/tests/native/install.test.sh runtime
 
     - name: Validate debug/NTS Homebrew state and operations
       if: ${{ contains(inputs.builds, 'debug') && contains(inputs.ts, 'nts') }}
-      env: *debug-nts
+      env:
+        BUILD: debug
+        TS: nts
       shell: bash
       run: bash scripts/tests/native/install.test.sh homebrew
 
     - name: Reset runner after debug/NTS validation
       if: ${{ always() && steps.prepare-debug-nts.outcome != 'skipped' && steps.prepare-debug-nts.outcome != '' }}
-      env: *debug-nts
+      env:
+        BUILD: debug
+        TS: nts
       shell: bash
       run: bash scripts/tests/native/install.test.sh reset
 
     - name: Prepare debug/ZTS Homebrew formula source
       id: prepare-debug-zts
       if: ${{ contains(inputs.builds, 'debug') && contains(inputs.ts, 'zts') }}
-      env: &debug-zts
+      env:
         BUILD: debug
         TS: zts
       shell: bash
@@ -175,25 +199,33 @@ runs:
 
     - name: Install debug/ZTS Homebrew cache
       if: ${{ contains(inputs.builds, 'debug') && contains(inputs.ts, 'zts') }}
-      env: *debug-zts
+      env:
+        BUILD: debug
+        TS: zts
       shell: bash
       run: bash scripts/tests/native/install.test.sh install
 
     - name: Validate debug/ZTS PHP runtime and build flags
       if: ${{ contains(inputs.builds, 'debug') && contains(inputs.ts, 'zts') }}
-      env: *debug-zts
+      env:
+        BUILD: debug
+        TS: zts
       shell: bash
       run: bash scripts/tests/native/install.test.sh runtime
 
     - name: Validate debug/ZTS Homebrew state and operations
       if: ${{ contains(inputs.builds, 'debug') && contains(inputs.ts, 'zts') }}
-      env: *debug-zts
+      env:
+        BUILD: debug
+        TS: zts
       shell: bash
       run: bash scripts/tests/native/install.test.sh homebrew
 
     - name: Reset runner after debug/ZTS validation
       if: ${{ always() && steps.prepare-debug-zts.outcome != 'skipped' && steps.prepare-debug-zts.outcome != '' }}
-      env: *debug-zts
+      env:
+        BUILD: debug
+        TS: zts
       shell: bash
       run: bash scripts/tests/native/install.test.sh reset
 

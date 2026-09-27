@@ -22,8 +22,8 @@ actionlint
 suites. Native cache and published-install checks run in GitHub Actions.
 
 Builds prefer Cloudflare for bottles; normal PHP installs prefer GitHub Releases
-with a checksum-verified Cloudflare fallback. Source-cache keys include formula,
-dependency, platform and toolchain inputs. Archives include a pinned Homebrew tap
+with a checksum-verified Cloudflare fallback. Source-cache keys include software and dependency versions, platform and PHP ABI.
+Repository code, recipe bytes and runner toolchain changes do not invalidate them. Archives include a pinned Homebrew tap
 snapshot matching PHP; `tap_snapshot` is its path relative to the Homebrew prefix.
 
 Installation preserves existing PHP kegs, configuration and services, and makes

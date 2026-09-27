@@ -259,10 +259,10 @@ test('follow-up batches start only after a successful prerequisite', async () =>
     if (args[0] === 'api') return JSON.stringify({ status: ready ? 'completed' : 'in_progress', conclusion: ready ? 'success' : null });
     assert.ok(ready);
   };
-  await dispatch({ afterRun: '123', run, wait: async delay => { assert.equal(delay, 60000); ready = true; } });
+  await dispatch({ repository: 'shivammathur/php-darwin', afterRun: '123', run, wait: async delay => { assert.equal(delay, 60000); ready = true; } });
   assert.equal(calls.filter(args => args[0] === 'workflow').length, 1);
   for (const conclusion of ['failure', 'cancelled', 'timed_out']) {
-    await assert.rejects(dispatch({ afterRun: '123', run: (_program, args) => {
+    await assert.rejects(dispatch({ repository: 'shivammathur/php-darwin', afterRun: '123', run: (_program, args) => {
       assert.equal(args[0], 'api');
       return JSON.stringify({ status: 'completed', conclusion });
     } }), /Prerequisite run/);

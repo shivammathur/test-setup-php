@@ -28,6 +28,7 @@ function fixture(t, tag = 'cache', partition = false) {
     if (endpoint === 'releases' && options.method === 'POST') {
       const body = JSON.parse(options.body);
       assert.equal(body.make_latest, 'false');
+      assert.equal(body.target_commitish, process.env.GITHUB_SHA || 'main');
       assert.equal(body.prerelease, tag.startsWith('source-bottles-test-'));
       if (state.releases.some(item => item.tag_name === body.tag_name)) return json({}, 422);
       state.release = { id: state.releases.length + 1, ...body };
