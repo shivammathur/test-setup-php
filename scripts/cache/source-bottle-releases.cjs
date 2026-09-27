@@ -178,10 +178,9 @@ class ReleaseCache {
     let release = await this.api(`releases/tags/${encodeURIComponent(tag)}`, { allow: [404] });
     if (!release && create) {
       release = await this.api('releases', { method: 'POST', allow: [422], body: {
-        tag_name: tag, target_commitish: process.env.GITHUB_SHA || 'main', name: tag,
+        tag_name: tag, target_commitish: 'main', name: tag,
         body: 'Homebrew source bottles and build-input metadata used by PHP cache builds.',
-        prerelease: tag.startsWith('source-bottles-test-'),
-        draft: tag.startsWith('source-bottles-test-'), make_latest: 'false',
+        prerelease: tag.startsWith('source-bottles-test-'), make_latest: 'false',
       } });
       release ||= await this.api(`releases/tags/${encodeURIComponent(tag)}`);
     }
@@ -282,7 +281,8 @@ class ReleaseCache {
           // Legacy nightly PHP keys recorded the complete source recipe hash.
           // An identical recipe proves the source commit when it was not yet
           // recorded separately; never equate two nightlies by semver alone.
-          if (!previous.source_commit && inputs.source_commit && previous.recipe === inputs.recipe) {
+          if (!previous.source_commit && inputs.source_commit && /^[a-f0-9]{64}$/.test(inputs.recipe || '') &&
+              previous.recipe === inputs.recipe) {
             previous.source_commit = inputs.source_commit;
           }
           if (keyFor(previous) !== key) continue;

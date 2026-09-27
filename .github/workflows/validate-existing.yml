@@ -20,10 +20,10 @@ jobs:
       with:
         persist-credentials: false
     - name: Create the isolated coordination release
-      run: "node - <<'JS'\nconst {ReleaseCache} = require('./scripts/cache/source-bottle-releases.cjs');\nnew ReleaseCache({tag: process.env.CACHE_RELEASE}).release(true)\n\
-        \  .catch(error => { console.error(error); process.exitCode = 1; });\nJS\n"
+      run: "id=$(gh api --method POST \"repos/$GH_REPO/releases\" \\\n  -f tag_name=\"$CACHE_RELEASE\" -f target_commitish=\"$GITHUB_SHA\" \\\n\
+        \  -f name=\"$CACHE_RELEASE\" -F draft=true -F prerelease=true --jq .id)\necho \"CACHE_RELEASE_ID=$id\" >> \"$GITHUB_ENV\"\n"
     - name: Verify concurrent ownership and fallback transfers
       run: node scripts/tests/e2e/source-build-lock-live.test.cjs
     - name: Remove the isolated test release
       if: always()
-      run: "if gh release view \"$CACHE_RELEASE\" >/dev/null 2>&1; then\n  gh release delete \"$CACHE_RELEASE\" --cleanup-tag --yes\nfi\n"
+      run: "if [ -n \"${CACHE_RELEASE_ID:-}\" ]; then\n  gh api --method DELETE \"repos/$GH_REPO/releases/$CACHE_RELEASE_ID\"\nfi\n"

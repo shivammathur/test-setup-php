@@ -7,6 +7,18 @@ async function main() {
   const tag = process.env.CACHE_RELEASE;
   if (!tag?.startsWith('source-bottles-test-')) throw new Error('Live coordination tests require an isolated test release');
   const cache = new ReleaseCache({ tag });
+  // The Ubuntu test uses one precreated draft release. Drafts have no unique
+  // tag, so every concurrent worker must address the same immutable release ID.
+  const releaseId = process.env.CACHE_RELEASE_ID;
+  if (releaseId) {
+    if (!/^[1-9][0-9]*$/.test(releaseId)) throw new Error('Invalid isolated release ID');
+    cache.release = async () => {
+      const release = await cache.api(`releases/${releaseId}`);
+      assert.equal(release.tag_name, tag);
+      assert.equal(release.draft, true);
+      return release;
+    };
+  }
   cache.request = async () => { throw new TypeError('Simulated Node connection failure'); };
   const key = 'php-darwin-source-v1-' + crypto.createHash('sha256')
     .update(`${process.env.GITHUB_RUN_ID}:${process.env.RUNNER_ARCH}:coordination`).digest('hex');
