@@ -1,0 +1,180 @@
+name: Validate production installer without rebuilding
+'on':
+  push:
+    branches:
+    - test-installer-production-20260928
+  workflow_dispatch: null
+permissions:
+  contents: read
+  actions: read
+env:
+  HOMEBREW_DEVELOPER: '1'
+  use_package_cache: 'true'
+  PHP_DARWIN_TEST_INSTALLER: ${{ github.workspace }}/scripts/install.sh
+jobs:
+  local:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Validate cache inputs, recovery, publishing, and generated installer
+      run: bash scripts/tests/run.sh
+  archives:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+        - macos-14
+        - macos-15
+        - macos-26
+        - macos-15-intel
+        - macos-26-intel
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+    - &id001
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - uses: ./.github/actions/test-cache
+      with:
+        php-version: '8.5'
+        runner: ${{ matrix.runner }}
+        repository: shivammathur/php-darwin
+        run-id: '36283773068'
+        github-token: ${{ secrets.TOKEN || github.token }}
+  extensions:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - runner: macos-14
+          arch: arm64
+        - runner: macos-15-intel
+          arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    env:
+      ARCH: ${{ matrix.arch }}
+    steps:
+    - *id001
+    - uses: ./.github/actions/runner-preflight
+    - uses: ./.github/actions/node-runtime
+    - name: Prepare without extension build formulae
+      run: 'bash scripts/build/cleanup-taps.sh
+
+        bash scripts/build/check-homebrew.sh
+
+        HOMEBREW_DEVELOPER=1 brew untap shivammathur/extensions >/dev/null 2>&1 || true'
+    - name: Download and verify existing published optional packs
+      run: '"$PHP_DARWIN_NODE" native-pack-download.cjs'
+    - name: Test existing variants without source builds
+      run: 'EXTENSION_ENTRIES=$(cat extension-entries.json) "$PHP_DARWIN_NODE" scripts/build/extension-batch.cjs test
+
+        test ! -d "$(brew --repository shivammathur/extensions)"'
+    - uses: ./.github/actions/upload-artifacts
+      if: always()
+      with:
+        name: extension-validation-${{ matrix.arch }}
+        path: builds/extensions/**/validation.txt
+        if-no-files-found: error
+        retention-days: 7
+  direct:
+    name: Install PHP 8.5 with the release installer on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+        - macos-15
+        - macos-15-intel
+    env:
+      PHP_VERSION: '8.5'
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Recover abandoned Homebrew installers
+      uses: ./.github/actions/runner-preflight
+    - name: Remove unused Homebrew taps
+      run: bash scripts/build/cleanup-taps.sh
+    - name: Record preinstalled PHP and services
+      run: bash scripts/tests/helpers/prepare-e2e.sh
+    - name: Run the published installer with visible output
+      id: install
+      run: bash scripts/tests/e2e/release.test.sh
+    - name: Verify the direct cache installation
+      if: ${{ !cancelled() && steps.install.outcome != 'skipped' }}
+      run: bash scripts/tests/e2e/setup-php.test.sh
+  setup-php:
+    name: Install PHP 8.5 through setup-php on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+        - macos-15
+        - macos-15-intel
+    env:
+      EXTENSIONS: xdebug, pcov, imagick, mongodb, memcached
+      PHP_DARWIN_REQUIRE_PACKS: 'true'
+      PHP_DARWIN_REQUIRE_PCOV: 'true'
+      PHP_DARWIN_REQUIRE_CACHE: 'true'
+      PHP_DARWIN_REQUIRE_XDEBUG: 'true'
+      PHP_VERSION: '8.5'
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - name: Recover abandoned Homebrew installers
+      uses: ./.github/actions/runner-preflight
+    - name: Remove unused Homebrew taps
+      run: bash scripts/build/cleanup-taps.sh
+    - name: Remove PHP for the cold setup-php path
+      run: bash scripts/tests/helpers/remove-preinstalled-php.sh
+    - name: Record preinstalled PHP and services
+      run: bash scripts/tests/helpers/prepare-e2e.sh
+    - name: Check setup-php's passwordless sudo prerequisite
+      run: sudo -n true
+    - name: Check out unchanged setup-php
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        repository: shivammathur/setup-php
+        ref: f3d967b8bc6d6fbb17cb0e2ffd56cf304d0290ba
+        path: .setup-php
+        persist-credentials: false
+    - name: Preserve the Actions Node runtime
+      uses: ./.github/actions/node-runtime
+    - name: Install PHP and extensions through setup-php from cold
+      env:
+        BASH_ENV: ${{ github.workspace }}/scripts/tests/helpers/setup-php-installer.sh
+        INPUT_PHP-VERSION: '8.5'
+        INPUT_EXTENSIONS: ${{ env.EXTENSIONS }}
+        INPUT_INI-FILE: production
+        INPUT_GITHUB-TOKEN: ${{ secrets.TOKEN || github.token }}
+      run: '"$PHP_DARWIN_NODE" scripts/tests/helpers/run-setup-php.cjs .setup-php'
+    - name: Verify the php-darwin cache installation
+      run: bash scripts/tests/e2e/setup-php.test.sh
+    - name: Run setup-php again on the hot path
+      env:
+        BASH_ENV: ${{ github.workspace }}/scripts/tests/helpers/setup-php-installer.sh
+        INPUT_PHP-VERSION: '8.5'
+        INPUT_EXTENSIONS: ${{ env.EXTENSIONS }}
+        INPUT_INI-FILE: production
+        INPUT_GITHUB-TOKEN: ${{ secrets.TOKEN || github.token }}
+      run: '"$PHP_DARWIN_NODE" scripts/tests/helpers/run-setup-php.cjs .setup-php'
+    - name: Verify the hot installation
+      run: bash scripts/tests/e2e/setup-php.test.sh
+    - name: Preserve cache installer diagnostics
+      if: always()
+      continue-on-error: true
+      uses: ./.github/actions/upload-artifacts
+      with:
+        name: setup-php-8.5-${{ matrix.runner }}
+        path: ${{ runner.temp }}/php-darwin-setup-install.log
+        if-no-files-found: ignore
+        retention-days: 7

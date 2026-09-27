@@ -1,0 +1,5 @@
+name: Recover abandoned Homebrew installers
+description: Release orphaned build locks on an idle self-hosted macOS runner without deleting caches
+runs:
+  using: node24
+  main: main.cjs

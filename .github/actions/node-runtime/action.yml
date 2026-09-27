@@ -1,0 +1,5 @@
+name: Preserve the Actions Node runtime
+description: Keep Node helpers independent of Homebrew cleanup
+runs:
+  using: node24
+  main: main.cjs

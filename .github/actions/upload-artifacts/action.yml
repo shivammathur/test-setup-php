@@ -1,0 +1,83 @@
+name: Upload workflow artifacts
+description: Retry failed uploads up to three attempts while preserving artifact settings
+inputs:
+  name:
+    description: Artifact name
+    default: 'artifact'
+  path:
+    description: Files to upload
+    required: true
+  if-no-files-found:
+    description: Behavior when no files match
+    default: 'warn'
+  retention-days:
+    description: Retention in days, zero uses the repository default
+    default: '0'
+  compression-level:
+    description: ZIP compression level
+    default: '6'
+  overwrite:
+    description: Replace an existing artifact with the same name
+    default: 'false'
+  include-hidden-files:
+    description: Include hidden files
+    default: 'false'
+outputs:
+  artifact-id:
+    description: artifact-id from the successful upload
+    value: ${{ (steps.first.outcome == 'success' && steps.first.outputs.artifact-id) || (steps.second.outcome == 'success' && steps.second.outputs.artifact-id) || steps.final.outputs.artifact-id }}
+  artifact-url:
+    description: artifact-url from the successful upload
+    value: ${{ (steps.first.outcome == 'success' && steps.first.outputs.artifact-url) || (steps.second.outcome == 'success' && steps.second.outputs.artifact-url) || steps.final.outputs.artifact-url }}
+  artifact-digest:
+    description: artifact-digest from the successful upload
+    value: ${{ (steps.first.outcome == 'success' && steps.first.outputs.artifact-digest) || (steps.second.outcome == 'success' && steps.second.outputs.artifact-digest) || steps.final.outputs.artifact-digest }}
+runs:
+  using: composite
+  steps:
+    - name: Upload artifact (attempt 1/3)
+      id: first
+      if: ${{ always() }}
+      continue-on-error: true
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}
+        if-no-files-found: ${{ inputs.if-no-files-found }}
+        retention-days: ${{ inputs.retention-days }}
+        compression-level: ${{ inputs.compression-level }}
+        overwrite: ${{ inputs.overwrite }}
+        include-hidden-files: ${{ inputs.include-hidden-files }}
+    - name: Wait before upload attempt 2
+      if: ${{ always() && steps.first.outcome == 'failure' }}
+      shell: bash
+      run: sleep 1
+    - name: Upload artifact (attempt 2/3)
+      id: second
+      if: ${{ always() && steps.first.outcome == 'failure' }}
+      continue-on-error: true
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}
+        if-no-files-found: ${{ inputs.if-no-files-found }}
+        retention-days: ${{ inputs.retention-days }}
+        compression-level: ${{ inputs.compression-level }}
+        overwrite: ${{ inputs.overwrite }}
+        include-hidden-files: ${{ inputs.include-hidden-files }}
+    - name: Wait before upload attempt 3
+      if: ${{ always() && steps.second.outcome == 'failure' }}
+      shell: bash
+      run: sleep 2
+    - name: Upload artifact (attempt 3/3)
+      id: final
+      if: ${{ always() && steps.second.outcome == 'failure' }}
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ inputs.path }}
+        if-no-files-found: ${{ inputs.if-no-files-found }}
+        retention-days: ${{ inputs.retention-days }}
+        compression-level: ${{ inputs.compression-level }}
+        overwrite: ${{ inputs.overwrite }}
+        include-hidden-files: ${{ inputs.include-hidden-files }}
