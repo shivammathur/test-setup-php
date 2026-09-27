@@ -1,0 +1,60 @@
+name: Verify approved GCC on hosted Intel
+on:
+  push:
+    branches: [fix/php-darwin-approved-deps-portability-20260927]
+    paths: [.github/workflows/approved-dependency-portability.yml, approved-dependency-portability.cjs]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: macos-15-intel
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ secrets.TOKEN || github.token }}
+      HOMEBREW_DEVELOPER: '1'
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_FROM_API: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: 4224d688addf0b355d785081a8fe9eeb2abe0e3f
+          path: darwin
+          persist-credentials: false
+      - uses: ./darwin/.github/actions/node-runtime
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          github-token: ${{ secrets.TOKEN || github.token }}
+          repository: shivammathur/php-darwin
+          run-id: 36296428030
+          name: approved-dependencies-x86_64
+          path: darwin
+          digest-mismatch: error
+      - name: Validate the producer proof and select its core snapshot
+        working-directory: darwin
+        run: '"$PHP_DARWIN_NODE" ../approved-dependency-portability.cjs prepare'
+      - name: Pin formulae and remove preinstalled build dependencies
+        working-directory: darwin
+        run: |
+          bash scripts/build/cleanup-taps.sh
+          bash scripts/build/pin-core.sh
+          "$PHP_DARWIN_NODE" scripts/cache/update-dependencies.cjs clean
+      - name: Restore approved GCC, compile a smoke program, and verify hot reuse
+        working-directory: darwin
+        run: '"$PHP_DARWIN_NODE" ../approved-dependency-portability.cjs verify'
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: hosted-intel-approved-dependency-proof
+          path: |
+            darwin/hosted-intel-approved-dependency-proof.json
+            darwin/hosted-intel-approved-dependency-metrics.jsonl
+          if-no-files-found: ignore
+          retention-days: 7
