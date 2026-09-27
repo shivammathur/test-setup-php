@@ -1,0 +1,87 @@
+name: Validate PHP Darwin dependency linking
+on: [push, workflow_dispatch]
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: 19d7cd6d9a5274564bc54576a021984f25d10c14
+          persist-credentials: false
+      - name: Create isolated source-cache release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CACHE_RELEASE: source-bottles-test-${{ github.run_id }}
+        run: |
+          node - <<'JS'
+          const {ReleaseCache}=require('./scripts/cache/source-bottle-releases.cjs');
+          new ReleaseCache({tag:process.env.CACHE_RELEASE}).release(true)
+            .catch(error=>{console.error(error);process.exitCode=1;});
+          JS
+  native:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-26, macos-26-intel]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    env:
+      HOMEBREW_DEVELOPER: '1'
+      GH_TOKEN: ${{ github.token }}
+      INPUT_RELEASE: source-bottles-test-${{ github.run_id }}
+      CACHE_RELEASE: source-bottles-test-${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: 19d7cd6d9a5274564bc54576a021984f25d10c14
+          persist-credentials: false
+      - uses: ./.github/actions/node-runtime
+      - run: bash scripts/tests/native/source-bottle-native.test.sh prepare
+      - name: Install with a private versioned build tool
+        uses: ./.github/actions/source-cache
+        with:
+          formula: php-darwin/source-cache-test/php-darwin-cache-app
+          release: source-bottles-test-${{ github.run_id }}
+      - name: Verify native executable and dependency receipts
+        run: |
+          bash scripts/tests/native/source-bottle-native.test.sh verify
+          bash scripts/tests/native/source-bottle-native.test.sh reset
+      - name: Restore the same packages without recompiling
+        id: warm
+        uses: ./.github/actions/source-cache
+        with:
+          formula: php-darwin/source-cache-test/php-darwin-cache-app
+          release: source-bottles-test-${{ github.run_id }}
+      - name: Verify warm-path linking and cache reuse
+        env:
+          BUILT: ${{ steps.warm.outputs.built }}
+          RESTORED: ${{ steps.warm.outputs.restored }}
+        run: |
+          test "$BUILT" = 0
+          test "$RESTORED" = 3
+          bash scripts/tests/native/source-bottle-native.test.sh verify
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: dependency-link-bottles-${{ matrix.runner }}
+          path: .source-bottle-cache
+          retention-days: 2
+          compression-level: 0
+      - if: always()
+        run: bash scripts/tests/native/source-bottle-native.test.sh cleanup
+  cleanup:
+    if: always()
+    needs: [prepare, native]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove isolated source-cache release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          CACHE_RELEASE: source-bottles-test-${{ github.run_id }}
+        run: gh release delete "$CACHE_RELEASE" --yes --cleanup-tag
