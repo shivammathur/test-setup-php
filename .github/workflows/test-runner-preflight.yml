@@ -1,0 +1,45 @@
+name: Test runner process recovery
+on:
+  workflow_dispatch:
+  push:
+    branches: ['**']
+    paths:
+      - .github/actions/runner-preflight/**
+      - .github/workflows/test-runner-preflight.yml
+      - scripts/build/recover-runner.cjs
+      - scripts/tests/native/runner-preflight.test.cjs
+  pull_request:
+    paths:
+      - .github/actions/runner-preflight/**
+      - .github/workflows/test-runner-preflight.yml
+      - scripts/build/recover-runner.cjs
+      - scripts/tests/native/runner-preflight.test.cjs
+permissions:
+  contents: read
+concurrency:
+  group: runner-preflight-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-14, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: shivammathur/php-darwin
+          ref: f78f7a5f223f518dd857087327f5df89c573f7bf
+          persist-credentials: false
+      - uses: ./.github/actions/runner-preflight
+      - uses: ./.github/actions/node-runtime
+      - name: Verify abandoned processes, lock release and preserved caches
+        run: '"$PHP_DARWIN_NODE" --test scripts/tests/native/runner-preflight.test.cjs | tee "$RUNNER_TEMP/runner-preflight.tap"'
+      - uses: ./.github/actions/upload-artifacts
+        if: always()
+        with:
+          name: runner-preflight-${{ matrix.runner }}
+          path: ${{ runner.temp }}/runner-preflight.tap
+          retention-days: 7
