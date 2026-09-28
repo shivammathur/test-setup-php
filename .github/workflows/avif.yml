@@ -1,67 +1,55 @@
-name: Investigate Imagick AVIF 1127
+name: Validate php-ubuntu AVIF fix
 on: [push, workflow_dispatch]
 permissions:
   contents: read
 jobs:
   avif:
-    name: ${{ matrix.os }} / ${{ matrix.source }}
+    name: PHP ${{ matrix.php }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 15
     defaults:
       run:
         shell: bash
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04]
-        source: [php-ubuntu-cache, php-builder-direct]
+        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04, ubuntu-22.04-arm, ubuntu-24.04-arm, ubuntu-26.04-arm]
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6', '8.7']
     steps:
       - uses: actions/checkout@v5
-      - name: Runner packages before setup
-        run: |
-          mkdir -p results
-          bash diagnostics.sh > results/before-setup.txt 2>&1
-      - name: Setup PHP from cache
-        if: matrix.source == 'php-ubuntu-cache'
-        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45
+      - uses: actions/checkout@v5
         with:
-          php-version: '8.5'
+          repository: shivammathur/php-ubuntu
+          ref: 10bee66
+          path: php-ubuntu
+      - name: Setup PHP from released cache
+        uses: shivammathur/setup-php@64cefab5
+        with:
+          php-version: ${{ matrix.php }}
           extensions: imagick
           coverage: none
           tools: none
-      - name: Setup PHP directly from php-builder
-        if: matrix.source == 'php-builder-direct'
+      - name: Record baseline
         run: |
-          curl -fsSL https://github.com/shivammathur/php-builder/releases/download/8.5/install.sh -o results/builder-install.sh
-          bash results/builder-install.sh github 8.5 release nts
-          sudo phpenmod -v 8.5 imagick
-      - name: Baseline encoding and artifact inventory
-        run: |
-          bash diagnostics.sh > results/after-setup.txt 2>&1
+          mkdir -p results
+          bash diagnostics.sh > results/before-fix.txt 2>&1
           php avif.php results/baseline > results/baseline.json || true
           cat results/baseline.json
-          for archive in /tmp/php*ubuntu*.tar.zst; do
-            [ -f "$archive" ] || continue
-            tar --zstd -tf "$archive" > "results/$(basename "$archive").files.txt"
-          done
-      - name: Install explicit AVIF encoder where packaged separately
+      - name: Install codec dependencies using php-ubuntu fix
         run: |
-          . /etc/os-release
-          if [ "$VERSION_ID" != '22.04' ]; then
-            sudo apt-get install -y --no-install-recommends libheif-plugin-aomenc || {
-              sudo apt-get update -qq -o Dir::Etc::sourcelist=sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o APT::Get::List-Cleanup=0
-              sudo apt-get install -y --no-install-recommends libheif-plugin-aomenc
-            }
-          fi
-      - name: Verify encoded file and decoding after dependency fix
+          sudo bash php-ubuntu/scripts/install-imagick-dependencies.sh || {
+            sudo apt-get update -qq -o Dir::Etc::sourcelist=sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=- -o APT::Get::List-Cleanup=0
+            sudo bash php-ubuntu/scripts/install-imagick-dependencies.sh
+          }
+      - name: Verify AVIF and apt consistency
         run: |
-          bash diagnostics.sh > results/after-fix.txt 2>&1
+          php php-ubuntu/scripts/test-imagick-avif.php
           php avif.php results/fixed | tee results/fixed.json
           file results/fixed.avif
-          ffmpeg -v error -i results/fixed.avif -f rawvideo -pix_fmt rgb24 -frames:v 1 results/fixed.rgb
-          python3 -c "from pathlib import Path; p=Path('results/fixed.rgb').read_bytes(); assert len(p)==16*16*3; assert p[0]>=230 and p[1]<=25 and p[2]<=25; print('Independent FFmpeg decode: PASS', list(p[:3]))"
+          sudo apt-get check
+          bash diagnostics.sh > results/after-fix.txt 2>&1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: avif-${{ matrix.os }}-${{ matrix.source }}
+          name: avif-${{ matrix.php }}-${{ matrix.os }}
           path: results

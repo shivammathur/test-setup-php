@@ -37,7 +37,7 @@ try {
         throw new RuntimeException('Decoded pixel is not red');
     }
     $result['ok'] = true;
-} catch (Throwable $error) {
+} catch (Exception $error) {
     $result['ok'] = false;
     $result['error'] = $error->getMessage();
 }
