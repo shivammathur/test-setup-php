@@ -2,7 +2,7 @@ name: HTTP workflow
 on:
   push:
 env:
-  key: cache-v4-2.37.0
+  key: cache-v4-2.40.0
   extensions: http
 jobs:
   run:
@@ -27,7 +27,7 @@ jobs:
       - name: Setup cache environment
         id: extcache
         if: steps.resolve.outputs.extensions != ''
-        uses: shivammathur/cache-extensions@1.14.1
+        uses: shivammathur/cache-extensions@v1
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: ${{ steps.resolve.outputs.extensions }}

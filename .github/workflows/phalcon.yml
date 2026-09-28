@@ -4,7 +4,7 @@ jobs:
   phalcon3:
     runs-on: ${{ matrix.operating-system }}
     env:
-      key: cache-v4-2.37.0
+      key: cache-v4-2.40.0
       extensions: phalcon3
     strategy:
       fail-fast: false
@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Setup cache environment
         id: extcache
-        uses: shivammathur/cache-extensions@1.14.1
+        uses: shivammathur/cache-extensions@v1
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: ${{ env.extensions }}
@@ -46,7 +46,7 @@ jobs:
   phalcon4:
     runs-on: ${{ matrix.operating-system }}
     env:
-      key: cache-v4-2.37.0
+      key: cache-v4-2.40.0
       extensions: phalcon4
     strategy:
       fail-fast: false
@@ -56,7 +56,7 @@ jobs:
     steps:
       - name: Setup cache environment
         id: extcache
-        uses: shivammathur/cache-extensions@1.14.1
+        uses: shivammathur/cache-extensions@v1
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: ${{ env.extensions }}
@@ -90,7 +90,7 @@ jobs:
   phalcon5:
     runs-on: ${{ matrix.operating-system }}
     env:
-      key: cache-v4-2.37.0
+      key: cache-v4-2.40.0
       extensions: phalcon5
     strategy:
       fail-fast: false
@@ -100,7 +100,7 @@ jobs:
     steps:
       - name: Setup cache environment
         id: extcache
-        uses: shivammathur/cache-extensions@1.14.1
+        uses: shivammathur/cache-extensions@v1
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: ${{ env.extensions }}
