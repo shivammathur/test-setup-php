@@ -2,6 +2,7 @@
 $prefix = $argv[1];
 $result = [
     'php' => PHP_VERSION,
+    'zend_assertions' => ini_get('zend.assertions'),
     'imagick' => phpversion('imagick'),
     'imagemagick' => Imagick::getVersion(),
     'avif_formats' => Imagick::queryFormats('AVIF'),
@@ -28,6 +29,8 @@ try {
     if ($result['dimensions'] !== [16, 16]) {
         throw new RuntimeException('Decoded dimensions differ');
     }
+    $result['decoded_colorspace'] = $decoded->getImageColorspace();
+    $decoded->transformImageColorspace(Imagick::COLORSPACE_SRGB);
     $result['pixel'] = $decoded->getImagePixelColor(0, 0)->getColor();
     $pixel = $result['pixel'];
     if ($pixel['r'] < 230 || $pixel['g'] > 25 || $pixel['b'] > 25) {
