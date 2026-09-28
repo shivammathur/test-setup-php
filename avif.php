@@ -85,7 +85,6 @@ $run = static function (string $name, callable $test) use (&$result): void {
 
 $run('runtime', static function (): array {
     check(PHP_MAJOR_VERSION === 8 && PHP_MINOR_VERSION === 6, 'Expected PHP 8.6');
-    check((bool) PHP_DEBUG === (getenv('EXPECTED_BUILD') === 'debug'), 'PHP_DEBUG differs from requested build');
     check((bool) PHP_ZTS === (getenv('EXPECTED_TS') === 'zts'), 'PHP_ZTS differs from requested build');
     $os = parse_ini_file('/etc/os-release');
     preg_match('/ubuntu-(\d+\.\d+)/', getenv('EXPECTED_OS'), $match);
@@ -93,7 +92,19 @@ $run('runtime', static function (): array {
     $arm = str_ends_with(getenv('EXPECTED_OS'), '-arm');
     check(php_uname('m') === ($arm ? 'aarch64' : 'x86_64'), 'Unexpected architecture');
     check(getenv('RUNNER_ENVIRONMENT') === 'github-hosted', 'Expected GitHub-hosted runner');
-    return ['ubuntu' => $os['VERSION_ID']];
+    // setup-php debug=true installs split debug symbols, not --enable-debug PHP.
+    exec('readelf --notes ' . escapeshellarg(PHP_BINARY) . ' 2>/dev/null', $notes, $status);
+    check($status === 0 && preg_match('/Build ID: ([a-f0-9]+)/', implode("\n", $notes), $id) === 1, 'PHP ELF build ID is missing');
+    $symbols = '/usr/lib/debug/.build-id/' . substr($id[1], 0, 2) . '/' . substr($id[1], 2) . '.debug';
+    $hasSymbols = is_file($symbols) && filesize($symbols) > 0;
+    check($hasSymbols === (getenv('EXPECTED_BUILD') === 'debug'), 'PHP debug symbols differ from requested build');
+    if ($hasSymbols) {
+        exec('readelf --section-headers --wide ' . escapeshellarg($symbols) . ' 2>/dev/null', $sections, $status);
+        check($status === 0 && str_contains(implode("\n", $sections), '.debug_info'), 'PHP symbol file has no debug info');
+        exec('readelf --notes ' . escapeshellarg($symbols) . ' 2>/dev/null', $symbolNotes, $status);
+        check($status === 0 && str_contains(implode("\n", $symbolNotes), 'Build ID: ' . $id[1]), 'PHP symbol file build ID does not match');
+    }
+    return ['ubuntu' => $os['VERSION_ID'], 'php_build_id' => $id[1], 'debug_symbols' => $hasSymbols, 'debug_symbols_path' => $symbols];
 });
 
 foreach (['gd', 'imagick'] as $encoder) {
