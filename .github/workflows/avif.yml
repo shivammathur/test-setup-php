@@ -20,10 +20,10 @@ jobs:
       - uses: actions/checkout@v5
         with:
           repository: shivammathur/php-ubuntu
-          ref: 10bee66
+          ref: 10bee666e146b4f794e47accf92774edc13acc1c
           path: php-ubuntu
       - name: Setup PHP from released cache
-        uses: shivammathur/setup-php@64cefab5
+        uses: shivammathur/setup-php@64cefab514bc650c6afd09c7133b02d9910a49aa
         with:
           php-version: ${{ matrix.php }}
           extensions: imagick
