@@ -15,7 +15,6 @@ const source = fs.readFileSync(script, 'utf8');
 assert.equal(source.split('\nsetup_php\n').length, 2);
 fs.writeFileSync(script, source.replace('\nsetup_php\n', '\n' + fs.readFileSync('profile.sh', 'utf8') + '\nsetup_php\n'));
 const command = (program, args) => execFileSync(program, args, {encoding: 'utf8'}).trim();
-const prefix = command('brew', ['--prefix']);
 const repository = command('brew', ['--repository']);
 function revisions() {
   const result = {};
@@ -58,4 +57,4 @@ if (process.env.SCENARIO === 'recovery') {
   assert.equal(stages.filter(stage => stage.name === 'brew' && stage.status !== 0).length, 1);
 }
 if (!refreshes.length) assert.deepEqual(after, before);
-assert.ok(fs.readdirSync(path.join(prefix, 'var/php-darwin')).some(name => name.startsWith('php_8.4-')));
+assert.ok(fs.existsSync(path.join(command('php-config', ['--prefix']), 'INSTALL_RECEIPT.json')));

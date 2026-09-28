@@ -45,7 +45,7 @@ jobs:
           installed=()
           while IFS= read -r formula; do
             case "$formula" in
-              yaml@8.4|apcu@8.4|redis@8.4|igbinary@8.4|msgpack@8.4) installed+=("$formula") ;;
+              yaml@8.4|apcu@8.4|redis@8.4|phpredis@8.4|igbinary@8.4|msgpack@8.4) installed+=("$formula") ;;
             esac
           done < <(brew list --formula)
           if [ "${#installed[@]}" -gt 0 ]; then
