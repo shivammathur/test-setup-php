@@ -1,0 +1,60 @@
+name: Investigate Imagick AVIF 1127
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  avif:
+    name: ${{ matrix.os }} / ${{ matrix.source }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04]
+        source: [php-ubuntu-cache, php-builder-direct]
+    steps:
+      - uses: actions/checkout@v5
+      - name: Runner packages before setup
+        run: |
+          mkdir -p results
+          bash diagnostics.sh > results/before-setup.txt 2>&1
+      - name: Setup PHP from cache
+        if: matrix.source == 'php-ubuntu-cache'
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45
+        with:
+          php-version: '8.5'
+          extensions: imagick
+          coverage: none
+          tools: none
+      - name: Setup PHP directly from php-builder
+        if: matrix.source == 'php-builder-direct'
+        run: |
+          curl -fsSL https://github.com/shivammathur/php-builder/releases/download/8.5/install.sh -o results/builder-install.sh
+          bash results/builder-install.sh github 8.5 release nts
+          sudo phpenmod -v 8.5 imagick
+      - name: Baseline encoding and artifact inventory
+        run: |
+          bash diagnostics.sh > results/after-setup.txt 2>&1
+          php avif.php results/baseline > results/baseline.json || true
+          cat results/baseline.json
+          for archive in /tmp/php*ubuntu*.tar.zst; do
+            [ -f "$archive" ] || continue
+            tar --zstd -tf "$archive" > "results/$(basename "$archive").files.txt"
+          done
+      - name: Install explicit AVIF encoder where packaged separately
+        run: |
+          . /etc/os-release
+          if [ "$VERSION_ID" != '22.04' ]; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends libheif-plugin-aomenc
+          fi
+      - name: Verify encoded file and decoding after dependency fix
+        run: |
+          bash diagnostics.sh > results/after-fix.txt 2>&1
+          php avif.php results/fixed | tee results/fixed.json
+          file results/fixed.avif
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: avif-${{ matrix.os }}-${{ matrix.source }}
+          path: results
