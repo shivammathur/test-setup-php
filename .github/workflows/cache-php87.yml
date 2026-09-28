@@ -1,0 +1,157 @@
+name: PHP 8.7 extension cache
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+env:
+  PHP_VERSION: '8.7'
+  EXTENSIONS: igbinary, msgpack, memcached
+  share-cache-across-jobs: 'true'
+  fail-fast: 'true'
+jobs:
+  seed:
+    name: Seed (${{ matrix.os }}, ${{ matrix.phpts }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-22.04, phpts: nts}
+          - {os: ubuntu-24.04, phpts: nts}
+          - {os: ubuntu-26.04, phpts: nts}
+          - {os: ubuntu-26.04-arm, phpts: nts}
+          - {os: macos-15, phpts: nts}
+          - {os: macos-26, phpts: nts}
+          - {os: windows-2022, phpts: nts}
+          - {os: windows-2022, phpts: ts}
+          - {os: windows-2025, phpts: nts}
+          - {os: windows-2025, phpts: ts}
+    env:
+      phpts: ${{ matrix.phpts }}
+      CACHE_BUSTER: php87-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.os }}-${{ matrix.phpts }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup cache environment
+        id: extcache
+        uses: shivammathur/cache-extensions@1d9982cecd78df2921a7b5d58f31bb5097c04917
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.EXTENSIONS }}
+          key: ${{ env.CACHE_BUSTER }}
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.EXTENSIONS }}
+          coverage: none
+          tools: none
+      - name: Verify runtime, cache directory, and extension binaries
+        env:
+          CACHE_DIR: ${{ steps.extcache.outputs.dir }}
+        run: |
+          php -v
+          php verify.php seed
+      - name: Save cache metadata
+        env:
+          CACHE_KEY: ${{ steps.extcache.outputs.key }}
+          CACHE_DIR: ${{ steps.extcache.outputs.dir }}
+        run: |
+          printf '%s\n' "$CACHE_KEY" > cache-key.txt
+          printf '%s\n' "$CACHE_DIR" > cache-dir.txt
+      - name: Save extension cache
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+      - name: Upload cache metadata
+        uses: actions/upload-artifact@v7
+        with:
+          name: cache-${{ matrix.os }}-${{ matrix.phpts }}
+          path: |
+            cache-key.txt
+            cache-dir.txt
+            manifest.json
+          if-no-files-found: error
+
+  restore:
+    name: Restore (${{ matrix.os }}, ${{ matrix.phpts }})
+    needs: seed
+    if: ${{ always() && !cancelled() }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-22.04, phpts: nts}
+          - {os: ubuntu-24.04, phpts: nts}
+          - {os: ubuntu-26.04, phpts: nts}
+          - {os: ubuntu-26.04-arm, phpts: nts}
+          - {os: macos-15, phpts: nts}
+          - {os: macos-26, phpts: nts}
+          - {os: windows-2022, phpts: nts}
+          - {os: windows-2022, phpts: ts}
+          - {os: windows-2025, phpts: nts}
+          - {os: windows-2025, phpts: ts}
+    env:
+      phpts: ${{ matrix.phpts }}
+      CACHE_BUSTER: php87-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.os }}-${{ matrix.phpts }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+      - name: Download seed metadata
+        uses: actions/download-artifact@v8
+        with:
+          name: cache-${{ matrix.os }}-${{ matrix.phpts }}
+          path: .e2e
+      - name: Setup cache environment
+        id: extcache
+        uses: shivammathur/cache-extensions@1d9982cecd78df2921a7b5d58f31bb5097c04917
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.EXTENSIONS }}
+          key: ${{ env.CACHE_BUSTER }}
+      - name: Verify cache metadata
+        env:
+          CACHE_KEY: ${{ steps.extcache.outputs.key }}
+          CACHE_DIR: ${{ steps.extcache.outputs.dir }}
+        run: |
+          test "$CACHE_KEY" = "$(tr -d '\r\n' < .e2e/cache-key.txt)"
+          test "$CACHE_DIR" = "$(tr -d '\r\n' < .e2e/cache-dir.txt)"
+      - name: Restore extension cache
+        id: restore
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          fail-on-cache-miss: true
+      - name: Verify restored binaries before setup-php
+        env:
+          CACHE_DIR: ${{ steps.extcache.outputs.dir }}
+        run: |
+          test '${{ steps.restore.outputs.cache-hit }}' = true
+          node verify-restored.cjs
+      - name: Setup PHP from restored extensions
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: ${{ env.EXTENSIONS }}
+          coverage: none
+          tools: none
+      - name: Verify restored runtime and unchanged binaries
+        env:
+          CACHE_DIR: ${{ steps.extcache.outputs.dir }}
+        run: |
+          php -v
+          php verify.php restore
+      - name: Upload restore verification
+        uses: actions/upload-artifact@v7
+        with:
+          name: restored-${{ matrix.os }}-${{ matrix.phpts }}
+          path: manifest.json
+          if-no-files-found: error
