@@ -1,0 +1,52 @@
+name: PHP 7.3 GD and Imagick AVIF
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  avif:
+    name: ${{ matrix.os }} / ${{ matrix.build }} / ${{ matrix.ts }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04, ubuntu-22.04-arm, ubuntu-24.04-arm, ubuntu-26.04-arm]
+        build: [release, debug]
+        ts: [nts, zts]
+    env:
+      EXPECTED_PHP: '7.3'
+      EXPECTED_OS: ${{ matrix.os }}
+      EXPECTED_BUILD: ${{ matrix.build }}
+      EXPECTED_TS: ${{ matrix.ts }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install PHP 7.3 using setup-php
+        id: setup
+        uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: '7.3'
+          extensions: gd, imagick
+          coverage: none
+          tools: none
+        env:
+          update: 'true'
+          debug: ${{ matrix.build == 'debug' && 'true' || 'false' }}
+          phpts: ${{ matrix.ts }}
+          fail-fast: 'true'
+      - name: Verify runtime and AVIF in GD and Imagick
+        run: php avif.php
+      - name: Record runtime and codec diagnostics
+        if: ${{ always() && steps.setup.outcome == 'success' }}
+        run: |
+          mkdir -p results
+          bash diagnostics.sh > results/diagnostics.txt 2>&1
+          sudo apt-get check 2>&1 | tee results/apt-check.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: php7.3-avif-${{ matrix.os }}-${{ matrix.build }}-${{ matrix.ts }}
+          path: results
+          if-no-files-found: warn
