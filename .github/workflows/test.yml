@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, macos-15-intel]
+        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04]
         php-version:
           - 5.6
           - 7.0
@@ -29,10 +29,12 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-version }}
-          extensions: imagick, redis, yaml
+          extensions: imagick, gd
         env:
           verbose: v
       - run: |
+          php --ri imagick
+          php --ri gd
           php -v
           php -m
       
