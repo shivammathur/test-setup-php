@@ -1,0 +1,73 @@
+name: Firebird cache diagnostics
+
+on:
+  push:
+    branches: [fix/firebird-cache-diagnostics-20260929]
+
+permissions:
+  contents: read
+
+jobs:
+  investigate:
+    name: PHP 7.4 / cache-extensions ${{ matrix.cache-version }}
+    runs-on: macos-26
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        cache-version: ['1.14.1', '1.15.2']
+    env:
+      CACHE_VERSION: ${{ matrix.cache-version }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/checkout@v5
+        with:
+          repository: shivammathur/cache-extensions
+          ref: ${{ matrix.cache-version }}
+          path: cache-action
+
+      - name: Setup cache environment
+        id: extcache
+        uses: ./cache-action
+        with:
+          php-version: '7.4'
+          extensions: pdo_firebird
+          key: firebird-diagnostics-${{ matrix.cache-version }}-${{ github.run_id }}
+
+      - name: Inspect dependency cache before PHP setup
+        if: always()
+        run: bash diagnostics.sh dependencies '${{ steps.extcache.outputs.dir }}'
+
+      - name: Restore extension cache
+        id: restore
+        uses: actions/cache@v5.0.3
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+
+      - name: Inspect restored extension before PHP setup
+        run: bash diagnostics.sh restored '${{ steps.extcache.outputs.dir }}'
+
+      - name: Setup PHP at original job revision
+        uses: shivammathur/setup-php@bc12f5cef4c73a871331e196ff380d38232ba293
+        with:
+          php-version: '7.4'
+          extensions: pdo_firebird
+          tools: none
+
+      - name: Inspect final INI directives and PHP startup
+        if: always()
+        run: bash diagnostics.sh final '${{ steps.extcache.outputs.dir }}'
+
+      - name: Verify cold and warm cache behavior
+        env:
+          CACHE_HIT: ${{ steps.restore.outputs.cache-hit }}
+        run: python3 verify.py
+
+      - name: Upload diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firebird-${{ matrix.cache-version }}-attempt-${{ github.run_attempt }}
+          path: diagnostics/
