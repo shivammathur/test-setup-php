@@ -1,0 +1,74 @@
+name: Profile cached PHP with Brew extensions
+on: push
+permissions:
+  contents: read
+jobs:
+  extensions:
+    name: ${{ matrix.runner }} / ${{ matrix.scenario }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel]
+        scenario: [baseline, candidate, recovery, debug-zts]
+    env:
+      PHP_VERSION: '8.4'
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_AUTOREMOVE: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+      use_package_cache: 'true'
+      SCENARIO: ${{ matrix.scenario }}
+      debug: ${{ matrix.scenario == 'debug-zts' && 'true' || 'false' }}
+      phpts: ${{ matrix.scenario == 'debug-zts' && 'zts' || 'nts' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: 7ba4d69079168aa13c1b5a750174cd3c72fa5a28
+          path: .cache-tests
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ matrix.scenario == 'baseline' && '2c253bfdb2619dd9b1764905d5b5e7488adfc104' || 'c187f77940fea5fb1b34f44019972d059457e135' }}
+          path: .setup-php
+          persist-credentials: false
+      - uses: ./.cache-tests/.github/actions/runner-preflight
+      - uses: ./.cache-tests/.github/actions/node-runtime
+      - name: Prepare a cold PHP and extension installation
+        shell: bash
+        run: |
+          installed=()
+          while IFS= read -r formula; do
+            case "$formula" in
+              yaml@8.4|apcu@8.4|redis@8.4|igbinary@8.4|msgpack@8.4) installed+=("$formula") ;;
+            esac
+          done < <(brew list --formula)
+          if [ "${#installed[@]}" -gt 0 ]; then
+            brew uninstall --force --ignore-dependencies "${installed[@]}"
+          fi
+          bash .cache-tests/scripts/tests/helpers/remove-preinstalled-php.sh
+          bash .cache-tests/scripts/build/cleanup-taps.sh
+          bash .cache-tests/scripts/tests/helpers/prepare-e2e.sh
+          rm -f /tmp/update_dependencies /tmp/abstract_patch
+      - name: Install, profile and verify
+        env:
+          INPUT_PHP-VERSION: '8.4'
+          INPUT_EXTENSIONS: ${{ matrix.scenario == 'debug-zts' && 'redis' || 'yaml, apcu, redis' }}
+          INPUT_TOOLS: none
+          INPUT_COVERAGE: none
+          INPUT_INI-FILE: production
+          INPUT_GITHUB-TOKEN: ${{ github.token }}
+          fail_fast: 'true'
+        run: '"$PHP_DARWIN_NODE" profile.cjs'
+      - name: Preserve profiles
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: brew-${{ matrix.runner }}-${{ matrix.scenario }}
+          path: profile/
+          retention-days: 14
