@@ -4,7 +4,6 @@ permissions:
   contents: read
 env:
   PHP_VERSION: '8.7'
-  EXTENSIONS: igbinary, msgpack, memcached
   share-cache-across-jobs: 'true'
   fail-fast: 'true'
 jobs:
@@ -27,6 +26,7 @@ jobs:
           - {os: windows-2025, phpts: nts}
           - {os: windows-2025, phpts: ts}
     env:
+      EXTENSIONS: ${{ startsWith(matrix.os, 'windows') && 'pcov, intl, mbstring' || 'igbinary, msgpack, memcached' }}
       phpts: ${{ matrix.phpts }}
       CACHE_BUSTER: php87-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.os }}-${{ matrix.phpts }}
     defaults:
@@ -46,7 +46,7 @@ jobs:
         with:
           php-version: ${{ env.PHP_VERSION }}
           extensions: ${{ env.EXTENSIONS }}
-          coverage: none
+          coverage: ${{ startsWith(matrix.os, 'windows') && 'pcov' || 'none' }}
           tools: none
       - name: Verify runtime, cache directory, and extension binaries
         env:
@@ -97,6 +97,7 @@ jobs:
           - {os: windows-2025, phpts: nts}
           - {os: windows-2025, phpts: ts}
     env:
+      EXTENSIONS: ${{ startsWith(matrix.os, 'windows') && 'pcov, intl, mbstring' || 'igbinary, msgpack, memcached' }}
       phpts: ${{ matrix.phpts }}
       CACHE_BUSTER: php87-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.os }}-${{ matrix.phpts }}
     defaults:
@@ -141,7 +142,7 @@ jobs:
         with:
           php-version: ${{ env.PHP_VERSION }}
           extensions: ${{ env.EXTENSIONS }}
-          coverage: none
+          coverage: ${{ startsWith(matrix.os, 'windows') && 'pcov' || 'none' }}
           tools: none
       - name: Verify restored runtime and unchanged binaries
         env:
