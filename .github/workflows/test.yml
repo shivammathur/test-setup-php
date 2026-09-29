@@ -19,7 +19,6 @@ jobs:
           php-version: ${{ matrix.php-version }}
         env:
           verbose: v
-          use_package_cache: false
       - run: |
           php -i | grep "PHP API"
           php -v
