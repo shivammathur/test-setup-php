@@ -1,0 +1,55 @@
+name: PHP 8.5 installation timings
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stable:
+    name: PHP 8.5 / v2 / xcode-27
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - name: Runner environment
+        run: |
+          sw_vers
+          uname -sm
+          xcodebuild -version
+      - name: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+        env:
+          update: 'true'
+      - name: Verify PHP 8.5
+        run: |
+          php --version
+          php -r 'exit(PHP_MAJOR_VERSION === 8 && PHP_MINOR_VERSION === 5 ? 0 : 1);'
+          php --modules
+          composer --version
+
+  beta:
+    name: PHP 8.5 / 2.40.0-beta / xcode-27
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - name: Runner environment
+        run: |
+          sw_vers
+          uname -sm
+          xcodebuild -version
+      - name: shivammathur/setup-php@2.40.0-beta
+        uses: shivammathur/setup-php@2.40.0-beta
+        with:
+          php-version: '8.5'
+        env:
+          update: 'true'
+      - name: Verify PHP 8.5
+        run: |
+          php --version
+          php -r 'exit(PHP_MAJOR_VERSION === 8 && PHP_MINOR_VERSION === 5 ? 0 : 1);'
+          php --modules
+          composer --version
