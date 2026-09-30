@@ -1,0 +1,175 @@
+name: pest macOS PHP cache comparison
+'on':
+  push:
+    branches:
+    - feature/macos-cache-pest-20260930
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  beta:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+        - macos-latest
+        symfony:
+        - '8.0'
+        php:
+        - '8.4'
+        - '8.5'
+        dependency_version:
+        - prefer-stable
+    name: beta / PHP ${{ matrix.php }} - Symfony ^${{ matrix.symfony }} - ${{ matrix.os }} - ${{ matrix.dependency_version
+      }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        repository: pestphp/pest
+        ref: 8b6607e344b29b282a73fccba1363954bfede68c
+        persist-credentials: false
+    - name: Setup PHP
+      uses: shivammathur/setup-php@2.40.0-beta
+      with:
+        php-version: ${{ matrix.php }}
+        tools: composer:v2
+        coverage: none
+        extensions: sockets
+    - name: Inspect PHP runtime and build tools
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        uname -m
+        sw_vers
+        command -v php phpize php-config composer
+        php -v
+        php --ini
+        php -m
+        phpize --version
+        php-config --version
+        php-config --extension-dir
+        php-config --includes
+        otool -L "$(command -v php)"
+        exit 0
+    - name: Get Composer cache directory
+      id: composer-cache
+      shell: bash
+      run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+    - name: Cache Composer dependencies
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: ${{ matrix.os }}-php-${{ matrix.php }}-symfony-${{ matrix.symfony }}-composer-${{ hashFiles('**/composer.json',
+          '**/composer.lock') }}
+        restore-keys: |
+          ${{ matrix.os }}-php-${{ matrix.php }}-symfony-${{ matrix.symfony }}-composer-
+          ${{ matrix.os }}-php-${{ matrix.php }}-composer-
+    - name: Setup Problem Matches
+      run: |
+        echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+        echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+    - name: Install PHP dependencies
+      shell: bash
+      env:
+        COMPOSER_ROOT_VERSION: 5.x-dev
+      run: composer update --${{ matrix.dependency_version }} --no-interaction --no-progress --ansi --with="symfony/console:^${{
+        matrix.symfony }}"
+    - name: Unit Tests
+      run: composer test:unit
+    - name: Parallel Tests
+      run: composer test:parallel
+    - name: Integration Tests
+      run: composer test:integration
+    permissions:
+      contents: read
+    env:
+      verbose: 'true'
+      use_package_cache: 'true'
+      COMPOSER_ROOT_VERSION: 5.x-dev
+  control:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+        - macos-latest
+        symfony:
+        - '8.0'
+        php:
+        - '8.4'
+        - '8.5'
+        dependency_version:
+        - prefer-stable
+    name: control / PHP ${{ matrix.php }} - Symfony ^${{ matrix.symfony }} - ${{ matrix.os }} - ${{ matrix.dependency_version
+      }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        repository: pestphp/pest
+        ref: 8b6607e344b29b282a73fccba1363954bfede68c
+        persist-credentials: false
+    - name: Setup PHP
+      uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
+      with:
+        php-version: ${{ matrix.php }}
+        tools: composer:v2
+        coverage: none
+        extensions: sockets
+    - name: Inspect PHP runtime and build tools
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        uname -m
+        sw_vers
+        command -v php phpize php-config composer
+        php -v
+        php --ini
+        php -m
+        phpize --version
+        php-config --version
+        php-config --extension-dir
+        php-config --includes
+        otool -L "$(command -v php)"
+        exit 0
+    - name: Get Composer cache directory
+      id: composer-cache
+      shell: bash
+      run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+    - name: Cache Composer dependencies
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: ${{ matrix.os }}-php-${{ matrix.php }}-symfony-${{ matrix.symfony }}-composer-${{ hashFiles('**/composer.json',
+          '**/composer.lock') }}
+        restore-keys: |
+          ${{ matrix.os }}-php-${{ matrix.php }}-symfony-${{ matrix.symfony }}-composer-
+          ${{ matrix.os }}-php-${{ matrix.php }}-composer-
+    - name: Setup Problem Matches
+      run: |
+        echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+        echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+    - name: Install PHP dependencies
+      shell: bash
+      env:
+        COMPOSER_ROOT_VERSION: 5.x-dev
+      run: composer update --${{ matrix.dependency_version }} --no-interaction --no-progress --ansi --with="symfony/console:^${{
+        matrix.symfony }}"
+    - name: Unit Tests
+      run: composer test:unit
+    - name: Parallel Tests
+      run: composer test:parallel
+    - name: Integration Tests
+      run: composer test:integration
+    permissions:
+      contents: read
+    env:
+      verbose: 'true'
+      use_package_cache: 'false'
+      COMPOSER_ROOT_VERSION: 5.x-dev
