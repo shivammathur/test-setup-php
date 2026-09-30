@@ -101,7 +101,6 @@ jobs:
     env:
       verbose: 'true'
       use_package_cache: 'true'
-      COMPOSER_ROOT_VERSION: dev-main
   control:
     name: control / CI
     runs-on: ${{ matrix.os }}
@@ -193,4 +192,3 @@ jobs:
     env:
       verbose: 'true'
       use_package_cache: 'false'
-      COMPOSER_ROOT_VERSION: dev-main
