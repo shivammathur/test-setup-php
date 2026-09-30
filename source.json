@@ -1,0 +1,27 @@
+{
+  "slug": "php-cs-fixer",
+  "repo": "PHP-CS-Fixer/PHP-CS-Fixer",
+  "source_branch": "master",
+  "source_sha": "9baada7cd9623eb2ec4d1a2d10b46842efaca824",
+  "source_workflow": "ci.yml",
+  "source_job": "tests",
+  "test_branch": "feature/macos-cache-php-cs-fixer-20260930",
+  "beta_ref": "2.40.0-beta",
+  "beta_sha": "bc12f5cef4c73a871331e196ff380d38232ba293",
+  "matrix": {
+    "include": [
+      {
+        "operating-system": "macos-latest",
+        "php-version": "8.5",
+        "job-description": "Fixer on macOS",
+        "run-fixer": "yes"
+      },
+      {
+        "operating-system": "macos-latest",
+        "php-version": "8.5",
+        "job-description": "tests on macOS",
+        "run-tests": "yes"
+      }
+    ]
+  }
+}

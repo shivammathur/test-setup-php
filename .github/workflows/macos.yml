@@ -1,0 +1,296 @@
+name: php-cs-fixer macOS PHP cache comparison
+'on':
+  push:
+    branches:
+    - feature/macos-cache-php-cs-fixer-20260930
+  workflow_dispatch: {}
+permissions:
+  contents: read
+env:
+  PHP_MAX: '8.5'
+  PHP_MIN: '7.4'
+jobs:
+  beta:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - operating-system: macos-latest
+          php-version: '8.5'
+          job-description: Fixer on macOS
+          run-fixer: 'yes'
+          AVOID_PARAUNIT: ''
+          run-mutation-tests: ''
+          PHP_CS_FIXER_FAST_LINT_TEST_CASES: ''
+          composer-flags: ''
+          composer-minimum-stability: ''
+          run-tests: ''
+          PHP_CS_FIXER_IGNORE_ENV: ''
+          collect-code-coverage: ''
+          phpunit-flags: ''
+          run-migration-rules: ''
+          execute-flex-with-symfony-version: ''
+        - operating-system: macos-latest
+          php-version: '8.5'
+          job-description: tests on macOS
+          run-tests: 'yes'
+          AVOID_PARAUNIT: ''
+          run-mutation-tests: ''
+          PHP_CS_FIXER_FAST_LINT_TEST_CASES: ''
+          composer-flags: ''
+          run-fixer: ''
+          composer-minimum-stability: ''
+          PHP_CS_FIXER_IGNORE_ENV: ''
+          collect-code-coverage: ''
+          phpunit-flags: ''
+          run-migration-rules: ''
+          execute-flex-with-symfony-version: ''
+    name: beta / PHP ${{ matrix.php-version }} ${{ matrix.job-description }}
+    runs-on: ${{ matrix.operating-system }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+      with:
+        repository: PHP-CS-Fixer/PHP-CS-Fixer
+        ref: 9baada7cd9623eb2ec4d1a2d10b46842efaca824
+        persist-credentials: false
+    - name: Select beta in the original PHP setup composite
+      shell: bash
+      run: |
+        python3 - <<'PY'
+        from pathlib import Path
+        p = Path('.github/composite-actions/setup-php/action.yml')
+        s = p.read_text()
+        assert 'shivammathur/setup-php@v2' in s
+        p.write_text(s.replace('shivammathur/setup-php@v2', 'shivammathur/setup-php@2.40.0-beta'))
+        PY
+    - name: Remove Infection requirement if not needed
+      if: matrix.operating-system != 'macos-latest' && matrix.run-mutation-tests != 'yes'
+      run: composer remove --dev --no-update infection/infection
+    - name: Setup PHP with Composer deps
+      uses: ./.github/composite-actions/setup-php-with-composer-deps
+      with:
+        os: ${{ runner.os }}
+        php: ${{ matrix.php-version }}
+        php-coverage: ${{ matrix.collect-code-coverage || matrix.run-mutation-tests }}
+        composer-flags: ${{ matrix.composer-flags }}
+        composer-minimum-stability: ${{ matrix.composer-minimum-stability }}
+        composer-flex-with-symfony-version: ${{ matrix.execute-flex-with-symfony-version }}
+    - name: Inspect PHP runtime and build tools
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        uname -m
+        sw_vers
+        command -v php phpize php-config composer
+        php -v
+        php --ini
+        php -m
+        phpize --version
+        php-config --version
+        php-config --extension-dir
+        php-config --includes
+        otool -L "$(command -v php)"
+        exit 0
+    - name: Run PHP CS Fixer with migration rules
+      if: env.PHP_MAX == matrix.php-version && matrix.run-migration-rules == 'yes'
+      env:
+        PHP_CS_FIXER_FUTURE_MODE: 1
+      run: php php-cs-fixer fix --diff --config .php-cs-fixer.php-highest.php
+    - name: Disable time limit for tests under Windows
+      if: matrix.operating-system == 'windows-latest'
+      run: (Get-Content phpunit.xml.dist) -replace 'enforceTimeLimit="true"', 'enforceTimeLimit="false"' | Out-File phpunit.xml
+    - name: Check configuration for PHPUnit
+      if: matrix.php-version != '7.4' && matrix.php-version != '8.0'
+      run: vendor/bin/phpunit --check-php-configuration
+    - name: Run tests (via PHPUnit)
+      if: matrix.run-tests == 'yes' && matrix.collect-code-coverage != 'yes' && matrix.AVOID_PARAUNIT == 'yes'
+      env:
+        PHP_CS_FIXER_IGNORE_ENV: ${{ matrix.PHP_CS_FIXER_IGNORE_ENV }}
+        PHP_CS_FIXER_FAST_LINT_TEST_CASES: ${{ matrix.PHP_CS_FIXER_FAST_LINT_TEST_CASES }}
+      run: vendor/bin/phpunit --testsuite unit,integration ${{ matrix.phpunit-flags }}
+    - name: Run tests (via ParaUnit)
+      if: matrix.run-tests == 'yes' && matrix.collect-code-coverage != 'yes' && matrix.AVOID_PARAUNIT != 'yes'
+      env:
+        PHP_CS_FIXER_IGNORE_ENV: ${{ matrix.PHP_CS_FIXER_IGNORE_ENV }}
+        PHP_CS_FIXER_FAST_LINT_TEST_CASES: ${{ matrix.PHP_CS_FIXER_FAST_LINT_TEST_CASES }}
+      run: vendor/bin/paraunit run --testsuite unit,integration
+    - name: Run tests with "short_open_tag" enabled
+      if: matrix.run-tests == 'yes' && matrix.collect-code-coverage != 'yes'
+      env:
+        PHP_CS_FIXER_IGNORE_ENV: ${{ matrix.PHP_CS_FIXER_IGNORE_ENV }}
+      run: composer test:short-open-tag
+    - name: Run tests and collect code coverage
+      if: matrix.run-tests == 'yes' && matrix.collect-code-coverage == 'yes'
+      env:
+        PHP_CS_FIXER_IGNORE_ENV: ${{ matrix.PHP_CS_FIXER_IGNORE_ENV }}
+      run: vendor/bin/paraunit coverage --testsuite unit --pass-through=--exclude-group=covers-nothing --pass-through=--do-not-fail-on-empty-test-suite
+        --clover=build/logs/clover.xml
+    - name: Run mutation tests (deps preps)
+      if: github.event_name == 'pull_request' && matrix.run-mutation-tests == 'yes'
+      env:
+        PHP_CS_FIXER_IGNORE_ENV: ${{ matrix.PHP_CS_FIXER_IGNORE_ENV }}
+      run: composer install --working-dir=./dev-tools
+    - name: Run mutation tests (Infection)
+      if: github.event_name == 'pull_request' && matrix.run-mutation-tests == 'yes'
+      env:
+        PHP_CS_FIXER_IGNORE_ENV: ${{ matrix.PHP_CS_FIXER_IGNORE_ENV }}
+      run: |
+        git fetch origin $GITHUB_BASE_REF
+        vendor/bin/infection --threads=max --map-source-class-to-test --git-diff-lines --git-diff-base=origin/$GITHUB_BASE_REF --ignore-msi-with-no-mutations --only-covering-test-cases --logger-github=false
+    - name: Run PHP CS Fixer
+      if: matrix.run-fixer == 'yes'
+      env:
+        PHP_CS_FIXER_IGNORE_ENV: ${{ matrix.PHP_CS_FIXER_IGNORE_ENV }}
+        PHP_CS_FIXER_FUTURE_MODE: 1
+      run: php php-cs-fixer check --diff -v
+    - name: Run PHP CS Fixer with PHPDoc to type rules
+      if: env.PHP_MIN == matrix.php-version && matrix.run-fixer == 'yes'
+      env:
+        PHP_CS_FIXER_FUTURE_MODE: 1
+      run: php php-cs-fixer check --diff -vvv --config .php-cs-fixer.php-lowest.php
+    permissions:
+      contents: read
+    timeout-minutes: 45
+    env:
+      verbose: 'true'
+      use_package_cache: 'true'
+      COMPOSER_ROOT_VERSION: dev-master
+  control:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - operating-system: macos-latest
+          php-version: '8.5'
+          job-description: Fixer on macOS
+          run-fixer: 'yes'
+          AVOID_PARAUNIT: ''
+          run-mutation-tests: ''
+          PHP_CS_FIXER_FAST_LINT_TEST_CASES: ''
+          composer-flags: ''
+          composer-minimum-stability: ''
+          run-tests: ''
+          PHP_CS_FIXER_IGNORE_ENV: ''
+          collect-code-coverage: ''
+          phpunit-flags: ''
+          run-migration-rules: ''
+          execute-flex-with-symfony-version: ''
+        - operating-system: macos-latest
+          php-version: '8.5'
+          job-description: tests on macOS
+          run-tests: 'yes'
+          AVOID_PARAUNIT: ''
+          run-mutation-tests: ''
+          PHP_CS_FIXER_FAST_LINT_TEST_CASES: ''
+          composer-flags: ''
+          run-fixer: ''
+          composer-minimum-stability: ''
+          PHP_CS_FIXER_IGNORE_ENV: ''
+          collect-code-coverage: ''
+          phpunit-flags: ''
+          run-migration-rules: ''
+          execute-flex-with-symfony-version: ''
+    name: control / PHP ${{ matrix.php-version }} ${{ matrix.job-description }}
+    runs-on: ${{ matrix.operating-system }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+      with:
+        repository: PHP-CS-Fixer/PHP-CS-Fixer
+        ref: 9baada7cd9623eb2ec4d1a2d10b46842efaca824
+        persist-credentials: false
+    - name: Remove Infection requirement if not needed
+      if: matrix.operating-system != 'macos-latest' && matrix.run-mutation-tests != 'yes'
+      run: composer remove --dev --no-update infection/infection
+    - name: Setup PHP with Composer deps
+      uses: ./.github/composite-actions/setup-php-with-composer-deps
+      with:
+        os: ${{ runner.os }}
+        php: ${{ matrix.php-version }}
+        php-coverage: ${{ matrix.collect-code-coverage || matrix.run-mutation-tests }}
+        composer-flags: ${{ matrix.composer-flags }}
+        composer-minimum-stability: ${{ matrix.composer-minimum-stability }}
+        composer-flex-with-symfony-version: ${{ matrix.execute-flex-with-symfony-version }}
+    - name: Inspect PHP runtime and build tools
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        uname -m
+        sw_vers
+        command -v php phpize php-config composer
+        php -v
+        php --ini
+        php -m
+        phpize --version
+        php-config --version
+        php-config --extension-dir
+        php-config --includes
+        otool -L "$(command -v php)"
+        exit 0
+    - name: Run PHP CS Fixer with migration rules
+      if: env.PHP_MAX == matrix.php-version && matrix.run-migration-rules == 'yes'
+      env:
+        PHP_CS_FIXER_FUTURE_MODE: 1
+      run: php php-cs-fixer fix --diff --config .php-cs-fixer.php-highest.php
+    - name: Disable time limit for tests under Windows
+      if: matrix.operating-system == 'windows-latest'
+      run: (Get-Content phpunit.xml.dist) -replace 'enforceTimeLimit="true"', 'enforceTimeLimit="false"' | Out-File phpunit.xml
+    - name: Check configuration for PHPUnit
+      if: matrix.php-version != '7.4' && matrix.php-version != '8.0'
+      run: vendor/bin/phpunit --check-php-configuration
+    - name: Run tests (via PHPUnit)
+      if: matrix.run-tests == 'yes' && matrix.collect-code-coverage != 'yes' && matrix.AVOID_PARAUNIT == 'yes'
+      env:
+        PHP_CS_FIXER_IGNORE_ENV: ${{ matrix.PHP_CS_FIXER_IGNORE_ENV }}
+        PHP_CS_FIXER_FAST_LINT_TEST_CASES: ${{ matrix.PHP_CS_FIXER_FAST_LINT_TEST_CASES }}
+      run: vendor/bin/phpunit --testsuite unit,integration ${{ matrix.phpunit-flags }}
+    - name: Run tests (via ParaUnit)
+      if: matrix.run-tests == 'yes' && matrix.collect-code-coverage != 'yes' && matrix.AVOID_PARAUNIT != 'yes'
+      env:
+        PHP_CS_FIXER_IGNORE_ENV: ${{ matrix.PHP_CS_FIXER_IGNORE_ENV }}
+        PHP_CS_FIXER_FAST_LINT_TEST_CASES: ${{ matrix.PHP_CS_FIXER_FAST_LINT_TEST_CASES }}
+      run: vendor/bin/paraunit run --testsuite unit,integration
+    - name: Run tests with "short_open_tag" enabled
+      if: matrix.run-tests == 'yes' && matrix.collect-code-coverage != 'yes'
+      env:
+        PHP_CS_FIXER_IGNORE_ENV: ${{ matrix.PHP_CS_FIXER_IGNORE_ENV }}
+      run: composer test:short-open-tag
+    - name: Run tests and collect code coverage
+      if: matrix.run-tests == 'yes' && matrix.collect-code-coverage == 'yes'
+      env:
+        PHP_CS_FIXER_IGNORE_ENV: ${{ matrix.PHP_CS_FIXER_IGNORE_ENV }}
+      run: vendor/bin/paraunit coverage --testsuite unit --pass-through=--exclude-group=covers-nothing --pass-through=--do-not-fail-on-empty-test-suite
+        --clover=build/logs/clover.xml
+    - name: Run mutation tests (deps preps)
+      if: github.event_name == 'pull_request' && matrix.run-mutation-tests == 'yes'
+      env:
+        PHP_CS_FIXER_IGNORE_ENV: ${{ matrix.PHP_CS_FIXER_IGNORE_ENV }}
+      run: composer install --working-dir=./dev-tools
+    - name: Run mutation tests (Infection)
+      if: github.event_name == 'pull_request' && matrix.run-mutation-tests == 'yes'
+      env:
+        PHP_CS_FIXER_IGNORE_ENV: ${{ matrix.PHP_CS_FIXER_IGNORE_ENV }}
+      run: |
+        git fetch origin $GITHUB_BASE_REF
+        vendor/bin/infection --threads=max --map-source-class-to-test --git-diff-lines --git-diff-base=origin/$GITHUB_BASE_REF --ignore-msi-with-no-mutations --only-covering-test-cases --logger-github=false
+    - name: Run PHP CS Fixer
+      if: matrix.run-fixer == 'yes'
+      env:
+        PHP_CS_FIXER_IGNORE_ENV: ${{ matrix.PHP_CS_FIXER_IGNORE_ENV }}
+        PHP_CS_FIXER_FUTURE_MODE: 1
+      run: php php-cs-fixer check --diff -v
+    - name: Run PHP CS Fixer with PHPDoc to type rules
+      if: env.PHP_MIN == matrix.php-version && matrix.run-fixer == 'yes'
+      env:
+        PHP_CS_FIXER_FUTURE_MODE: 1
+      run: php php-cs-fixer check --diff -vvv --config .php-cs-fixer.php-lowest.php
+    permissions:
+      contents: read
+    timeout-minutes: 45
+    env:
+      verbose: 'true'
+      use_package_cache: 'false'
+      COMPOSER_ROOT_VERSION: dev-master
