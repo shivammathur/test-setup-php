@@ -1,0 +1,203 @@
+name: mago macOS PHP cache comparison
+'on':
+  push:
+    branches:
+    - feature/macos-cache-mago-20260930
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  beta:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+        - macos-latest
+        rust:
+        - stable
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+      with:
+        repository: carthage-software/mago
+        ref: 8420093597a37803a8647c7d166d09267b663eec
+        persist-credentials: false
+    - name: install rust toolchain
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust }}
+        components: rustfmt, clippy
+    - name: cache rust toolchain
+      uses: Swatinem/rust-cache@v2
+      with:
+        key: ${{ runner.os }}-rust-${{ matrix.rust }}
+        shared-key: ${{ runner.os }}-rust-${{ matrix.rust }}
+        cache-on-failure: true
+    - name: cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-${{ matrix.rust }}-
+    - name: Setup PHP - Install PHP
+      uses: shivammathur/setup-php@2.40.0-beta
+      with:
+        php-version: '8.3'
+        tools: composer:v2
+    - name: Inspect PHP runtime and build tools
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        uname -m
+        sw_vers
+        command -v php phpize php-config composer
+        php -v
+        php --ini
+        php -m
+        phpize --version
+        php-config --version
+        php-config --extension-dir
+        php-config --includes
+        otool -L "$(command -v php)"
+        exit 0
+    - name: Install composer dependencies
+      run: composer install
+    - name: Install just
+      uses: extractions/setup-just@v4
+    - name: Test PHP SDK
+      run: just test-sdk
+    - name: cargo check
+      if: matrix.os == 'macos-latest'
+      run: cargo check --workspace --locked
+    - name: cargo fmt
+      if: matrix.os == 'macos-latest'
+      run: cargo fmt --all -- --check
+    - name: cargo clippy
+      run: cargo clippy --workspace --all-features -- -D warnings
+    - name: cargo test
+      run: cargo test --workspace --locked
+    - name: cargo test (property)
+      if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest'
+      run: cargo test -p mago-codex --features property-tests --locked
+    - name: cargo build
+      if: matrix.rust == 'stable'
+      run: cargo build --release --locked
+    - name: Validate composer code format
+      if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest'
+      run: ./target/release/mago format --dry-run
+    - name: Lint composer code
+      if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest'
+      run: ./target/release/mago lint --reporting-format=github
+    - name: Analyze composer code
+      if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest'
+      run: ./target/release/mago analyze --reporting-format=github
+    timeout-minutes: 45
+    name: beta / build-and-test
+    env:
+      verbose: 'true'
+      use_package_cache: 'true'
+      COMPOSER_ROOT_VERSION: dev-main
+  control:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+        - macos-latest
+        rust:
+        - stable
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+      with:
+        repository: carthage-software/mago
+        ref: 8420093597a37803a8647c7d166d09267b663eec
+        persist-credentials: false
+    - name: install rust toolchain
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.rust }}
+        components: rustfmt, clippy
+    - name: cache rust toolchain
+      uses: Swatinem/rust-cache@v2
+      with:
+        key: ${{ runner.os }}-rust-${{ matrix.rust }}
+        shared-key: ${{ runner.os }}-rust-${{ matrix.rust }}
+        cache-on-failure: true
+    - name: cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+        key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-${{ matrix.rust }}-
+    - name: Setup PHP - Install PHP
+      uses: shivammathur/setup-php@master
+      with:
+        php-version: '8.3'
+        tools: composer:v2
+    - name: Inspect PHP runtime and build tools
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        uname -m
+        sw_vers
+        command -v php phpize php-config composer
+        php -v
+        php --ini
+        php -m
+        phpize --version
+        php-config --version
+        php-config --extension-dir
+        php-config --includes
+        otool -L "$(command -v php)"
+        exit 0
+    - name: Install composer dependencies
+      run: composer install
+    - name: Install just
+      uses: extractions/setup-just@v4
+    - name: Test PHP SDK
+      run: just test-sdk
+    - name: cargo check
+      if: matrix.os == 'macos-latest'
+      run: cargo check --workspace --locked
+    - name: cargo fmt
+      if: matrix.os == 'macos-latest'
+      run: cargo fmt --all -- --check
+    - name: cargo clippy
+      run: cargo clippy --workspace --all-features -- -D warnings
+    - name: cargo test
+      run: cargo test --workspace --locked
+    - name: cargo test (property)
+      if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest'
+      run: cargo test -p mago-codex --features property-tests --locked
+    - name: cargo build
+      if: matrix.rust == 'stable'
+      run: cargo build --release --locked
+    - name: Validate composer code format
+      if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest'
+      run: ./target/release/mago format --dry-run
+    - name: Lint composer code
+      if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest'
+      run: ./target/release/mago lint --reporting-format=github
+    - name: Analyze composer code
+      if: matrix.rust == 'stable' && matrix.os == 'ubuntu-latest'
+      run: ./target/release/mago analyze --reporting-format=github
+    timeout-minutes: 45
+    name: control / build-and-test
+    env:
+      verbose: 'true'
+      use_package_cache: 'false'
+      COMPOSER_ROOT_VERSION: dev-main
