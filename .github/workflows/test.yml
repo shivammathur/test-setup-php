@@ -7,20 +7,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04]
+        os: [ubuntu-latest]
         php-version:
-          - 8.6
-          - 8.7
+          - 8.1
           
     steps:
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-version }}
+          tools: vapor-cli:1.11
         env:
           verbose: v
       - run: |
-          php -i | grep "PHP API"
           php -v
           php -m
       
