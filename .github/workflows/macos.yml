@@ -1,0 +1,145 @@
+name: behat macOS PHP cache comparison
+'on':
+  push:
+    branches:
+    - feature/macos-cache-behat-20260930
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  beta:
+    name: beta / Tests
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - php: 8.5
+          os: macos-latest
+          composer-mode: update
+          symfony-version: ''
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        repository: Behat/Behat
+        ref: 044fea2f1706abafdf3184e6c4146ac9f9ba7d5a
+        persist-credentials: false
+    - name: Setup PHP
+      uses: shivammathur/setup-php@2.40.0-beta
+      with:
+        php-version: ${{ matrix.php }}
+        ini-file: development
+        ini-values: phar.readonly=0,zend.exception_ignore_args=Off
+        coverage: none
+    - name: Inspect PHP runtime and build tools
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        uname -m
+        sw_vers
+        command -v php phpize php-config composer
+        php -v
+        php --ini
+        php -m
+        phpize --version
+        php-config --version
+        php-config --extension-dir
+        php-config --includes
+        otool -L "$(command -v php)"
+        exit 0
+    - name: Install symfony/flex
+      if: matrix.symfony-version != ''
+      run: |
+        composer config --global --no-plugins allow-plugins.symfony/flex true &&
+        composer global require symfony/flex
+    - name: Install latest dependencies
+      if: matrix.composer-mode == 'update'
+      env:
+        SYMFONY_REQUIRE: ${{ matrix.symfony-version }}.*
+      run: composer update
+    - name: Install lowest dependencies
+      if: matrix.composer-mode == 'lowest'
+      run: composer update --prefer-lowest
+    - name: Run tests (phpunit)
+      run: ./vendor/bin/phpunit
+    - name: Run tests (Behat)
+      run: ./bin/behat -fprogress --strict
+    permissions:
+      contents: read
+    timeout-minutes: 45
+    env:
+      verbose: 'true'
+      use_package_cache: 'true'
+      COMPOSER_ROOT_VERSION: 3.x-dev
+  control:
+    name: control / Tests
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - php: 8.5
+          os: macos-latest
+          composer-mode: update
+          symfony-version: ''
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        repository: Behat/Behat
+        ref: 044fea2f1706abafdf3184e6c4146ac9f9ba7d5a
+        persist-credentials: false
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php }}
+        ini-file: development
+        ini-values: phar.readonly=0,zend.exception_ignore_args=Off
+        coverage: none
+    - name: Inspect PHP runtime and build tools
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        uname -m
+        sw_vers
+        command -v php phpize php-config composer
+        php -v
+        php --ini
+        php -m
+        phpize --version
+        php-config --version
+        php-config --extension-dir
+        php-config --includes
+        otool -L "$(command -v php)"
+        exit 0
+    - name: Install symfony/flex
+      if: matrix.symfony-version != ''
+      run: |
+        composer config --global --no-plugins allow-plugins.symfony/flex true &&
+        composer global require symfony/flex
+    - name: Install latest dependencies
+      if: matrix.composer-mode == 'update'
+      env:
+        SYMFONY_REQUIRE: ${{ matrix.symfony-version }}.*
+      run: composer update
+    - name: Install lowest dependencies
+      if: matrix.composer-mode == 'lowest'
+      run: composer update --prefer-lowest
+    - name: Run tests (phpunit)
+      run: ./vendor/bin/phpunit
+    - name: Run tests (Behat)
+      run: ./bin/behat -fprogress --strict
+    permissions:
+      contents: read
+    timeout-minutes: 45
+    env:
+      verbose: 'true'
+      use_package_cache: 'false'
+      COMPOSER_ROOT_VERSION: 3.x-dev
