@@ -1,0 +1,157 @@
+name: swoole macOS PHP cache comparison
+'on':
+  push:
+    branches:
+    - feature/macos-cache-swoole-20260930
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  beta:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version:
+        - '8.3'
+    name: beta / ${{ matrix.php-version }} - macOS
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+      with:
+        repository: swoole/swoole-src
+        ref: 4aff74a9ac086458d1c5251e71ac6e080f68b390
+        persist-credentials: false
+    - name: Setup PHP
+      uses: shivammathur/setup-php@2.40.0-beta
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: dom, curl, libxml, mbstring, zip, redis, pdo, pdo_mysql, bcmath, sockets
+        tools: phpize, composer:v2
+        ini-values: extension=swoole
+        coverage: none
+    - name: Inspect PHP runtime and build tools
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        uname -m
+        sw_vers
+        command -v php phpize php-config composer
+        php -v
+        php --ini
+        php -m
+        phpize --version
+        php-config --version
+        php-config --extension-dir
+        php-config --includes
+        otool -L "$(command -v php)"
+        exit 0
+    - name: Install dependencies
+      run: |
+        brew install redis tinyproxy nginx md5sha1sum
+        brew services start redis
+        brew services start nginx
+        brew services start tinyproxy
+    - name: Build Swoole
+      run: |
+        phpize
+        export PCRE2_INCLUDE_DIR="/opt/homebrew/opt/pcre2/include"
+        export CPPFLAGS="${CPPFLAGS} -I${PCRE2_INCLUDE_DIR}"
+        export CFLAGS="${CFLAGS} -I${PCRE2_INCLUDE_DIR}"
+        ./configure CPPFLAGS="${CPPFLAGS}" --enable-sockets --enable-mysqlnd --enable-swoole-curl --enable-cares --enable-zstd
+        make -j$(sysctl -n hw.ncpu)
+        sudo make install
+        php --ri swoole
+        uname -a
+    - name: Run unit tests
+      run: |
+        export SWOOLE_CI_TYPE=NORMAL
+        export SWOOLE_BRANCH=master
+        export SWOOLE_BUILD_DIR=$(realpath .)
+        export PHP_VERSION=${{ matrix.php-version }}
+        export SWOOLE_CI_IN_MACOS=1
+        cd "$GITHUB_WORKSPACE"
+        ulimit -n 100000
+        ./scripts/run-tests.sh
+    permissions:
+      contents: read
+    env:
+      verbose: 'true'
+      use_package_cache: 'true'
+      COMPOSER_ROOT_VERSION: dev-master
+  control:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version:
+        - '8.3'
+    name: control / ${{ matrix.php-version }} - macOS
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v7
+      with:
+        repository: swoole/swoole-src
+        ref: 4aff74a9ac086458d1c5251e71ac6e080f68b390
+        persist-credentials: false
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: dom, curl, libxml, mbstring, zip, redis, pdo, pdo_mysql, bcmath, sockets
+        tools: phpize, composer:v2
+        ini-values: extension=swoole
+        coverage: none
+    - name: Inspect PHP runtime and build tools
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        uname -m
+        sw_vers
+        command -v php phpize php-config composer
+        php -v
+        php --ini
+        php -m
+        phpize --version
+        php-config --version
+        php-config --extension-dir
+        php-config --includes
+        otool -L "$(command -v php)"
+        exit 0
+    - name: Install dependencies
+      run: |
+        brew install redis tinyproxy nginx md5sha1sum
+        brew services start redis
+        brew services start nginx
+        brew services start tinyproxy
+    - name: Build Swoole
+      run: |
+        phpize
+        export PCRE2_INCLUDE_DIR="/opt/homebrew/opt/pcre2/include"
+        export CPPFLAGS="${CPPFLAGS} -I${PCRE2_INCLUDE_DIR}"
+        export CFLAGS="${CFLAGS} -I${PCRE2_INCLUDE_DIR}"
+        ./configure CPPFLAGS="${CPPFLAGS}" --enable-sockets --enable-mysqlnd --enable-swoole-curl --enable-cares --enable-zstd
+        make -j$(sysctl -n hw.ncpu)
+        sudo make install
+        php --ri swoole
+        uname -a
+    - name: Run unit tests
+      run: |
+        export SWOOLE_CI_TYPE=NORMAL
+        export SWOOLE_BRANCH=master
+        export SWOOLE_BUILD_DIR=$(realpath .)
+        export PHP_VERSION=${{ matrix.php-version }}
+        export SWOOLE_CI_IN_MACOS=1
+        cd "$GITHUB_WORKSPACE"
+        ulimit -n 100000
+        ./scripts/run-tests.sh
+    permissions:
+      contents: read
+    env:
+      verbose: 'true'
+      use_package_cache: 'false'
+      COMPOSER_ROOT_VERSION: dev-master
