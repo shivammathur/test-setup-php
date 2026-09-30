@@ -1,0 +1,22 @@
+{
+  "slug": "easyadmin",
+  "repo": "EasyCorp/EasyAdminBundle",
+  "source_branch": "5.x",
+  "source_sha": "db9e18886d900dc5ddd20fe184ccd4154c60e83e",
+  "source_workflow": "ci.yaml",
+  "source_job": "phpunit",
+  "test_branch": "feature/macos-cache-easyadmin-20260930",
+  "beta_ref": "2.40.0-beta",
+  "beta_sha": "bc12f5cef4c73a871331e196ff380d38232ba293",
+  "matrix": {
+    "include": [
+      {
+        "os": "macos-latest",
+        "php_version": "8.4",
+        "symfony_version": "7.4.*",
+        "stability": "stable",
+        "allow_failure": false
+      }
+    ]
+  }
+}
