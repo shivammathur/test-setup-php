@@ -16,7 +16,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-version }}
-          tools: vapor-cli:1.11
+          tools: vapor-cli:1.70
         env:
           verbose: v
       - run: |
