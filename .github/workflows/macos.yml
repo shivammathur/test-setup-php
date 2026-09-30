@@ -1,0 +1,479 @@
+name: prek macOS PHP cache comparison
+'on':
+  push:
+    branches:
+    - feature/macos-cache-prek-20260930
+  workflow_dispatch: {}
+permissions:
+  contents: read
+env:
+  UV_VERSION: 0.12.17
+  NODE_VERSION: '20'
+  BUN_VERSION: '1.3'
+  GO_VERSION: '1.24'
+  MISE_VERSION: 2026.8.3
+  PYTHON_VERSION: '3.12'
+  PHP_VERSION: '8.4'
+  RUBY_VERSION: '3.4'
+  LUA_VERSION: '5.4'
+  LUAROCKS_VERSION: 3.12.2
+  GHC_VERSION: 9.14.1
+  CABAL_VERSION: 3.16.1.0
+  JULIA_VERSION: 1.12.4
+  DOTNET_VERSION: '10.0'
+  DENO_VERSION: '2'
+  DART_VERSION: 3.10.4
+  R_VERSION: 4.6.0
+  CARGO_INCREMENTAL: 0
+  CARGO_NET_RETRY: 10
+  CARGO_TERM_COLOR: always
+  RUSTUP_MAX_RETRIES: 10
+jobs:
+  beta:
+    name: beta / language tests | ${{ matrix.os }} | group ${{ matrix.group }} (${{ matrix.languages }})
+    timeout-minutes: 15
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - os: macos-latest
+          group: 4
+          languages: conda php r rust
+          filter: test(conda::) or test(php::) or test(/^r::/) or test(rust::)
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+        ref: eb2909cf3c10c369a65c20e563bc4921a6e464f8
+        repository: j178/prek
+    - if: ${{ matrix.os == 'ubuntu-latest' && !contains(format(' {0} ', matrix.languages), ' swift ') }}
+      name: Install mold
+      run: ./scripts/install-mold.sh
+    - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
+      with:
+        cache-bin: false
+        save-if: false
+    - name: Install Rust toolchain
+      run: rustup component add llvm-tools-preview
+    - name: Install cargo nextest
+      uses: taiki-e/install-action@94c31af3204a9f15ab40b35ad084410b905bbc73
+      with:
+        tool: cargo-nextest
+    - name: Install cargo-llvm-cov
+      uses: taiki-e/install-action@94c31af3204a9f15ab40b35ad084410b905bbc73
+      with:
+        tool: cargo-llvm-cov
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' rust ') }}
+      name: Install cargo-binstall
+      uses: taiki-e/install-action@94c31af3204a9f15ab40b35ad084410b905bbc73
+      with:
+        tool: cargo-binstall
+    - if: ${{ matrix.os == 'windows-latest' && contains(format(' {0} ', matrix.languages), ' lua ') }}
+      name: Setup MSVC
+      run: ./scripts/setup-msvc.ps1
+      shell: pwsh
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' python ') }}
+      name: Install uv
+      uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+      with:
+        version: ${{ env.UV_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' python ') }}
+      name: Install Python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' node ') }}
+      name: Install Node.js
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      with:
+        cache: npm
+        cache-dependency-path: LICENSE
+        node-version: ${{ env.NODE_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' golang ') }}
+      name: Install Go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+      with:
+        cache-dependency-path: LICENSE
+        go-version: ${{ env.GO_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' mise ') }}
+      name: Install mise
+      uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c
+      with:
+        add_shims_to_path: false
+        cache: false
+        env: false
+        install: false
+        version: ${{ env.MISE_VERSION }}
+        working_directory: ${{ runner.temp }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' lua ') }}
+      name: Install Lua
+      uses: leafo/gh-actions-lua@6919171ccf181b826f44b9bca76307b577217377
+      with:
+        luaVersion: ${{ env.LUA_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' lua ') }}
+      name: Install LuaRocks
+      uses: luarocks/gh-actions-luarocks@86ccbcad8c77b22e94c96a2a08632192e2bcd62b
+      with:
+        luaRocksVersion: ${{ env.LUAROCKS_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' ruby ') }}
+      name: Install Ruby
+      uses: ruby/setup-ruby@a0102e0972be65f351c307e2d64b9314a57c8073
+      with:
+        ruby-version: ${{ env.RUBY_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' php ') }}
+      name: Setup PHP - Install PHP and Composer
+      uses: shivammathur/setup-php@2.40.0-beta
+      with:
+        coverage: none
+        php-version: ${{ env.PHP_VERSION }}
+        tools: composer
+    - name: Inspect PHP runtime and build tools
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        uname -m
+        sw_vers
+        command -v php phpize php-config composer
+        php -v
+        php --ini
+        php -m
+        phpize --version
+        php-config --version
+        php-config --extension-dir
+        php-config --includes
+        otool -L "$(command -v php)"
+        exit 0
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' bun ') }}
+      name: Install Bun
+      uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      with:
+        bun-version: ${{ env.BUN_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' conda ') }}
+      name: Install Micromamba
+      uses: mamba-org/setup-micromamba@f457c30a868e4760d3a6fcea5f25dc655b8edf39
+      with:
+        generate-run-shell: false
+        init-shell: none
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' conda ') }}
+      name: Install Pixi
+      uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e
+      with:
+        cache: false
+        pixi-version: v0.78.0
+        run-install: false
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' coursier ') }}
+      name: Install Coursier
+      uses: coursier/setup-action@3174df5c784a0c8724f06b7924b849551c40c39e
+      with:
+        apps: ''
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' deno ') }}
+      name: Install Deno
+      uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+      with:
+        deno-version: ${{ env.DENO_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' dart ') }}
+      name: Install Dart
+      uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d
+      with:
+        sdk: ${{ env.DART_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' haskell ') }}
+      name: Install GHC and Cabal
+      uses: haskell-actions/setup@6037f33647c3f17758a2356c80fc4a53d7e0685d
+      with:
+        cabal-version: ${{ env.CABAL_VERSION }}
+        ghc-version: ${{ env.GHC_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' julia ') }}
+      name: Install Julia
+      uses: julia-actions/setup-julia@fa02766e078afaaf09b14210362cee14137e6a32
+      with:
+        version: ${{ env.JULIA_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' dotnet ') }}
+      name: Install .NET
+      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' r ') }}
+      name: Install R
+      uses: r-lib/actions/setup-r@465b7d8e732ca3921382b1674c59bada9cbf3399
+      with:
+        r-version: ${{ env.R_VERSION }}
+        use-public-rspm: true
+        windows-path-include-rtools: false
+    - if: ${{ matrix.os == 'windows-latest' && contains(format(' {0} ', matrix.languages), ' perl ') }}
+      name: Use Strawberry Perl
+      run: |
+        "C:\Strawberry\perl\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+      shell: pwsh
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' perl ') }}
+      name: Check Perl and CPAN
+      run: |
+        perl -V:version
+        perl -MCPAN -e 'print "CPAN $CPAN::VERSION\n"'
+    - env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NEXTEST_FILTER: ${{ matrix.filter }}
+        PREK_CONDA_INSTALLER: micromamba
+      if: ${{ matrix.os != 'windows-latest' }}
+      name: Run language tests
+      run: |
+        cargo llvm-cov nextest \
+          --lcov \
+          --output-path lcov.info \
+          --workspace \
+          --cargo-profile no-debug \
+          --features ci,schemars \
+          --profile ci-language \
+          -E "$NEXTEST_FILTER"
+    - env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NEXTEST_FILTER: ${{ matrix.filter }}
+        PREK_CONDA_INSTALLER: micromamba
+      if: ${{ matrix.os == 'windows-latest' }}
+      name: Run language tests (windows)
+      run: |
+        # Remove msys64 from PATH for Rust compilation
+        $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch '\\msys64\\' }) -join ';'
+
+        cargo llvm-cov nextest `
+          --lcov `
+          --output-path lcov.info `
+          --workspace `
+          --cargo-profile no-debug `
+          --features ci,schemars `
+          --profile ci-language `
+          -E $env:NEXTEST_FILTER
+
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      shell: pwsh
+    permissions:
+      contents: read
+    env:
+      verbose: 'true'
+      use_package_cache: 'true'
+      COMPOSER_ROOT_VERSION: dev-master
+  control:
+    name: control / language tests | ${{ matrix.os }} | group ${{ matrix.group }} (${{ matrix.languages }})
+    timeout-minutes: 15
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - os: macos-latest
+          group: 4
+          languages: conda php r rust
+          filter: test(conda::) or test(php::) or test(/^r::/) or test(rust::)
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+        ref: eb2909cf3c10c369a65c20e563bc4921a6e464f8
+        repository: j178/prek
+    - if: ${{ matrix.os == 'ubuntu-latest' && !contains(format(' {0} ', matrix.languages), ' swift ') }}
+      name: Install mold
+      run: ./scripts/install-mold.sh
+    - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
+      with:
+        cache-bin: false
+        save-if: false
+    - name: Install Rust toolchain
+      run: rustup component add llvm-tools-preview
+    - name: Install cargo nextest
+      uses: taiki-e/install-action@94c31af3204a9f15ab40b35ad084410b905bbc73
+      with:
+        tool: cargo-nextest
+    - name: Install cargo-llvm-cov
+      uses: taiki-e/install-action@94c31af3204a9f15ab40b35ad084410b905bbc73
+      with:
+        tool: cargo-llvm-cov
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' rust ') }}
+      name: Install cargo-binstall
+      uses: taiki-e/install-action@94c31af3204a9f15ab40b35ad084410b905bbc73
+      with:
+        tool: cargo-binstall
+    - if: ${{ matrix.os == 'windows-latest' && contains(format(' {0} ', matrix.languages), ' lua ') }}
+      name: Setup MSVC
+      run: ./scripts/setup-msvc.ps1
+      shell: pwsh
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' python ') }}
+      name: Install uv
+      uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4
+      with:
+        version: ${{ env.UV_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' python ') }}
+      name: Install Python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' node ') }}
+      name: Install Node.js
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      with:
+        cache: npm
+        cache-dependency-path: LICENSE
+        node-version: ${{ env.NODE_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' golang ') }}
+      name: Install Go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+      with:
+        cache-dependency-path: LICENSE
+        go-version: ${{ env.GO_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' mise ') }}
+      name: Install mise
+      uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c
+      with:
+        add_shims_to_path: false
+        cache: false
+        env: false
+        install: false
+        version: ${{ env.MISE_VERSION }}
+        working_directory: ${{ runner.temp }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' lua ') }}
+      name: Install Lua
+      uses: leafo/gh-actions-lua@6919171ccf181b826f44b9bca76307b577217377
+      with:
+        luaVersion: ${{ env.LUA_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' lua ') }}
+      name: Install LuaRocks
+      uses: luarocks/gh-actions-luarocks@86ccbcad8c77b22e94c96a2a08632192e2bcd62b
+      with:
+        luaRocksVersion: ${{ env.LUAROCKS_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' ruby ') }}
+      name: Install Ruby
+      uses: ruby/setup-ruby@a0102e0972be65f351c307e2d64b9314a57c8073
+      with:
+        ruby-version: ${{ env.RUBY_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' php ') }}
+      name: Setup PHP - Install PHP and Composer
+      uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
+      with:
+        coverage: none
+        php-version: ${{ env.PHP_VERSION }}
+        tools: composer
+    - name: Inspect PHP runtime and build tools
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        uname -m
+        sw_vers
+        command -v php phpize php-config composer
+        php -v
+        php --ini
+        php -m
+        phpize --version
+        php-config --version
+        php-config --extension-dir
+        php-config --includes
+        otool -L "$(command -v php)"
+        exit 0
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' bun ') }}
+      name: Install Bun
+      uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+      with:
+        bun-version: ${{ env.BUN_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' conda ') }}
+      name: Install Micromamba
+      uses: mamba-org/setup-micromamba@f457c30a868e4760d3a6fcea5f25dc655b8edf39
+      with:
+        generate-run-shell: false
+        init-shell: none
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' conda ') }}
+      name: Install Pixi
+      uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e
+      with:
+        cache: false
+        pixi-version: v0.78.0
+        run-install: false
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' coursier ') }}
+      name: Install Coursier
+      uses: coursier/setup-action@3174df5c784a0c8724f06b7924b849551c40c39e
+      with:
+        apps: ''
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' deno ') }}
+      name: Install Deno
+      uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+      with:
+        deno-version: ${{ env.DENO_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' dart ') }}
+      name: Install Dart
+      uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d
+      with:
+        sdk: ${{ env.DART_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' haskell ') }}
+      name: Install GHC and Cabal
+      uses: haskell-actions/setup@6037f33647c3f17758a2356c80fc4a53d7e0685d
+      with:
+        cabal-version: ${{ env.CABAL_VERSION }}
+        ghc-version: ${{ env.GHC_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' julia ') }}
+      name: Install Julia
+      uses: julia-actions/setup-julia@fa02766e078afaaf09b14210362cee14137e6a32
+      with:
+        version: ${{ env.JULIA_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' dotnet ') }}
+      name: Install .NET
+      uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' r ') }}
+      name: Install R
+      uses: r-lib/actions/setup-r@465b7d8e732ca3921382b1674c59bada9cbf3399
+      with:
+        r-version: ${{ env.R_VERSION }}
+        use-public-rspm: true
+        windows-path-include-rtools: false
+    - if: ${{ matrix.os == 'windows-latest' && contains(format(' {0} ', matrix.languages), ' perl ') }}
+      name: Use Strawberry Perl
+      run: |
+        "C:\Strawberry\perl\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+      shell: pwsh
+    - if: ${{ contains(format(' {0} ', matrix.languages), ' perl ') }}
+      name: Check Perl and CPAN
+      run: |
+        perl -V:version
+        perl -MCPAN -e 'print "CPAN $CPAN::VERSION\n"'
+    - env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NEXTEST_FILTER: ${{ matrix.filter }}
+        PREK_CONDA_INSTALLER: micromamba
+      if: ${{ matrix.os != 'windows-latest' }}
+      name: Run language tests
+      run: |
+        cargo llvm-cov nextest \
+          --lcov \
+          --output-path lcov.info \
+          --workspace \
+          --cargo-profile no-debug \
+          --features ci,schemars \
+          --profile ci-language \
+          -E "$NEXTEST_FILTER"
+    - env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        NEXTEST_FILTER: ${{ matrix.filter }}
+        PREK_CONDA_INSTALLER: micromamba
+      if: ${{ matrix.os == 'windows-latest' }}
+      name: Run language tests (windows)
+      run: |
+        # Remove msys64 from PATH for Rust compilation
+        $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch '\\msys64\\' }) -join ';'
+
+        cargo llvm-cov nextest `
+          --lcov `
+          --output-path lcov.info `
+          --workspace `
+          --cargo-profile no-debug `
+          --features ci,schemars `
+          --profile ci-language `
+          -E $env:NEXTEST_FILTER
+
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      shell: pwsh
+    permissions:
+      contents: read
+    env:
+      verbose: 'true'
+      use_package_cache: 'false'
+      COMPOSER_ROOT_VERSION: dev-master

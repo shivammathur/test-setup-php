@@ -1,0 +1,21 @@
+{
+  "slug": "prek",
+  "repo": "j178/prek",
+  "source_branch": "master",
+  "source_sha": "eb2909cf3c10c369a65c20e563bc4921a6e464f8",
+  "source_workflow": "ci.yml",
+  "source_job": "language-tests",
+  "test_branch": "feature/macos-cache-prek-20260930",
+  "beta_ref": "2.40.0-beta",
+  "beta_sha": "bc12f5cef4c73a871331e196ff380d38232ba293",
+  "matrix": {
+    "include": [
+      {
+        "os": "macos-latest",
+        "group": 4,
+        "languages": "conda php r rust",
+        "filter": "test(conda::) or test(php::) or test(/^r::/) or test(rust::)"
+      }
+    ]
+  }
+}
