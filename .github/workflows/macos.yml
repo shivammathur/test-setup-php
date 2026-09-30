@@ -1,0 +1,105 @@
+name: psalm macOS PHP cache comparison
+'on':
+  push:
+    branches:
+    - feature/macos-cache-psalm-20260930
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  beta:
+    runs-on: macos-15
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        repository: vimeo/psalm
+        ref: 6d4fae3eced02786500cc6983badabc6da9ee4ea
+        persist-credentials: false
+    - uses: shivammathur/setup-php@2.40.0-beta
+      with:
+        php-version: '8.5'
+        ini-values: zend.assertions=1, assert.exception=1, opcache.enable_cli=1, opcache.jit=off
+        tools: composer:v2
+        coverage: none
+      env:
+        fail-fast: true
+      name: Setup PHP
+    - name: Inspect PHP runtime and build tools
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        uname -m
+        sw_vers
+        command -v php phpize php-config composer
+        php -v
+        php --ini
+        php -m
+        phpize --version
+        php-config --version
+        php-config --extension-dir
+        php-config --includes
+        otool -L "$(command -v php)"
+        exit 0
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-suggest
+      env:
+        COMPOSER_ROOT_VERSION: dev-master
+    - name: Run Psalm
+      run: ./psalm --output-format=github
+    permissions:
+      contents: read
+    timeout-minutes: 45
+    name: beta / build
+    env:
+      verbose: 'true'
+      use_package_cache: 'true'
+      COMPOSER_ROOT_VERSION: 6.x-dev
+  control:
+    runs-on: macos-15
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        repository: vimeo/psalm
+        ref: 6d4fae3eced02786500cc6983badabc6da9ee4ea
+        persist-credentials: false
+    - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
+      with:
+        php-version: '8.5'
+        ini-values: zend.assertions=1, assert.exception=1, opcache.enable_cli=1, opcache.jit=off
+        tools: composer:v2
+        coverage: none
+      env:
+        fail-fast: true
+      name: Setup PHP
+    - name: Inspect PHP runtime and build tools
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        uname -m
+        sw_vers
+        command -v php phpize php-config composer
+        php -v
+        php --ini
+        php -m
+        phpize --version
+        php-config --version
+        php-config --extension-dir
+        php-config --includes
+        otool -L "$(command -v php)"
+        exit 0
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-suggest
+      env:
+        COMPOSER_ROOT_VERSION: dev-master
+    - name: Run Psalm
+      run: ./psalm --output-format=github
+    permissions:
+      contents: read
+    timeout-minutes: 45
+    name: control / build
+    env:
+      verbose: 'true'
+      use_package_cache: 'false'
+      COMPOSER_ROOT_VERSION: 6.x-dev
