@@ -1,0 +1,169 @@
+name: phpredis macOS PHP cache comparison
+'on':
+  push:
+    branches:
+    - feature/macos-cache-phpredis-20260930
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  beta:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php:
+        - '7.4'
+        - '8.0'
+        - '8.1'
+        - '8.2'
+        - '8.3'
+        - '8.4'
+        - '8.5'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+        repository: phpredis/phpredis
+        ref: bac00154b1f528b2d0ca42d2726d2cc31d145e3b
+        persist-credentials: false
+    - name: Setup PHP - Install PHP runtime for PIE
+      uses: shivammathur/setup-php@2.40.0-beta
+      with:
+        php-version: '8.3'
+        coverage: none
+        tools: pie
+    - name: Save PIE runtime paths
+      id: pie
+      run: |
+        php -r 'echo "php=", realpath(PHP_BINARY), "\n";' >> "$GITHUB_OUTPUT"
+        echo "path=$(command -v pie)" >> "$GITHUB_OUTPUT"
+    - name: Setup PHP - Install PHP ${{ matrix.php }}
+      uses: shivammathur/setup-php@2.40.0-beta
+      with:
+        php-version: ${{ matrix.php }}
+        extensions: json, :redis
+        coverage: none
+        tools: none
+    - name: Inspect PHP runtime and build tools
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        uname -m
+        sw_vers
+        command -v php phpize php-config composer
+        php -v
+        php --ini
+        php -m
+        phpize --version
+        php-config --version
+        php-config --extension-dir
+        php-config --includes
+        otool -L "$(command -v php)"
+        exit 0
+    - name: Install dependencies
+      run: |
+        # Igbinary currently only publishes an RC release on Packagist.
+        "${{ steps.pie.outputs.php }}" "${{ steps.pie.outputs.path }}" install --no-interaction \
+          --with-php-config="$(command -v php-config)" --with-phpize-path="$(command -v phpize)" \
+          'igbinary/igbinary:^3.2@RC'
+        "${{ steps.pie.outputs.php }}" "${{ steps.pie.outputs.path }}" install --no-interaction \
+          --with-php-config="$(command -v php-config)" --with-phpize-path="$(command -v phpize)" \
+          msgpack/msgpack-php
+    - name: Build phpredis
+      run: |
+        phpize
+        ./configure --enable-redis-lzf --enable-redis-zstd --enable-redis-igbinary --enable-redis-msgpack --enable-redis-lz4 --with-liblz4
+        sudo make install
+        sudo mkdir -p "$(php-config --ini-dir)"
+        echo 'extension = redis.so' | sudo tee -a "$(php-config --ini-dir)/90-redis.ini"
+    permissions:
+      contents: read
+    timeout-minutes: 45
+    name: beta / macos
+    env:
+      verbose: 'true'
+      use_package_cache: 'true'
+      COMPOSER_ROOT_VERSION: dev-develop
+  control:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php:
+        - '7.4'
+        - '8.0'
+        - '8.1'
+        - '8.2'
+        - '8.3'
+        - '8.4'
+        - '8.5'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+        repository: phpredis/phpredis
+        ref: bac00154b1f528b2d0ca42d2726d2cc31d145e3b
+        persist-credentials: false
+    - name: Setup PHP - Install PHP runtime for PIE
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+        coverage: none
+        tools: pie
+    - name: Save PIE runtime paths
+      id: pie
+      run: |
+        php -r 'echo "php=", realpath(PHP_BINARY), "\n";' >> "$GITHUB_OUTPUT"
+        echo "path=$(command -v pie)" >> "$GITHUB_OUTPUT"
+    - name: Setup PHP - Install PHP ${{ matrix.php }}
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php }}
+        extensions: json, :redis
+        coverage: none
+        tools: none
+    - name: Inspect PHP runtime and build tools
+      if: always()
+      shell: bash
+      run: |
+        set +e
+        uname -m
+        sw_vers
+        command -v php phpize php-config composer
+        php -v
+        php --ini
+        php -m
+        phpize --version
+        php-config --version
+        php-config --extension-dir
+        php-config --includes
+        otool -L "$(command -v php)"
+        exit 0
+    - name: Install dependencies
+      run: |
+        # Igbinary currently only publishes an RC release on Packagist.
+        "${{ steps.pie.outputs.php }}" "${{ steps.pie.outputs.path }}" install --no-interaction \
+          --with-php-config="$(command -v php-config)" --with-phpize-path="$(command -v phpize)" \
+          'igbinary/igbinary:^3.2@RC'
+        "${{ steps.pie.outputs.php }}" "${{ steps.pie.outputs.path }}" install --no-interaction \
+          --with-php-config="$(command -v php-config)" --with-phpize-path="$(command -v phpize)" \
+          msgpack/msgpack-php
+    - name: Build phpredis
+      run: |
+        phpize
+        ./configure --enable-redis-lzf --enable-redis-zstd --enable-redis-igbinary --enable-redis-msgpack --enable-redis-lz4 --with-liblz4
+        sudo make install
+        sudo mkdir -p "$(php-config --ini-dir)"
+        echo 'extension = redis.so' | sudo tee -a "$(php-config --ini-dir)/90-redis.ini"
+    permissions:
+      contents: read
+    timeout-minutes: 45
+    name: control / macos
+    env:
+      verbose: 'true'
+      use_package_cache: 'false'
+      COMPOSER_ROOT_VERSION: dev-develop
