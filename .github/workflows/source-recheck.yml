@@ -1,0 +1,77 @@
+name: Apache 2.4.69 PHP source failure recheck
+'on':
+  push:
+    branches:
+    - test/apache-2.4.69-source-recheck-20261003
+permissions:
+  actions: read
+  contents: read
+jobs:
+  source-recheck:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+        - x64
+        - x86
+        php:
+        - version: '8.6'
+          source_sha: 4e5516af1dae5adb5b42fe964341cbd6f82da195
+          run_id: '37063646777'
+        - version: '8.7'
+          source_sha: cd8312e052043a9c44f1da755adb8918570ab02e
+          run_id: '37063646831'
+    steps:
+    - uses: actions/checkout@v5
+    - name: Checkout pinned PHP test helpers
+      uses: actions/checkout@v5
+      with:
+        repository: shivammathur/php-windows-builder
+        ref: 44b177dd05168995a788123c8807a70e2d0db20c
+        path: php-builder
+    - name: Preserve exact source fixture bytes
+      shell: pwsh
+      run: 'git config --global core.autocrlf false
+
+        if ($LASTEXITCODE -ne 0) { throw "Cannot configure exact source checkout" }'
+    - name: Checkout pinned PHP source
+      uses: actions/checkout@v5
+      with:
+        repository: php/php-src
+        ref: ${{ matrix.php.source_sha }}
+        path: php-source
+    - name: Download exact PHP artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: artifacts
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        repository: shivammathur/php-windows-builder
+        run-id: ${{ matrix.php.run_id }}
+        path: external/source-artifacts
+    - name: Install pinned VC runtime for Apache VS18
+      shell: pwsh
+      env:
+        TEST_ARCH: ${{ matrix.arch }}
+      run: "$ErrorActionPreference = 'Stop'\n$manifest = Get-Content manifest.json -Raw | ConvertFrom-Json\n$runtime = $manifest.vc_runtime.($env:TEST_ARCH)\n\
+        $installer = Join-Path $env:RUNNER_TEMP \"vc_redist.$env:TEST_ARCH.exe\"\nInvoke-WebRequest $runtime.url -OutFile $installer\n\
+        if ((Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant() -ne $runtime.sha256) {\n  throw 'VC runtime installer\
+        \ checksum mismatch'\n}\n$signature = Get-AuthenticodeSignature $installer\nif ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject\
+        \ -notmatch 'O=Microsoft Corporation') {\n  throw 'VC runtime installer signature is not valid Microsoft code'\n}\n$process\
+        \ = Start-Process $installer -ArgumentList '/install', '/quiet', '/norestart' -Wait -PassThru\nif ($process.ExitCode -notin\
+        \ @(0, 1638, 3010)) { throw \"VC runtime install failed: $($process.ExitCode)\" }\nWrite-Host \"VC runtime installer version:\
+        \ $((Get-Item $installer).VersionInfo.FileVersion); exit code $($process.ExitCode)\"\n"
+    - name: Recheck source failures and SAPI suites
+      shell: pwsh
+      env:
+        TEST_ARCH: ${{ matrix.arch }}
+        TEST_PHP_VERSION: ${{ matrix.php.version }}
+      run: ./recheck.ps1
+    - name: Upload all reproduction evidence
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: source-recheck-${{ matrix.php.version }}-${{ matrix.arch }}
+        path: reports
+        if-no-files-found: error
