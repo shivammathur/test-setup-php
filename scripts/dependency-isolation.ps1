@@ -69,7 +69,7 @@ try {
         })
         $env:TEST_PHP_JUNIT = Join-Path $workspace "reports/$mode.xml"
         $arguments = @('-n','run-tests.php','-p',$php,'-n','-d',"extension_dir=$extensionRoot",'-q','--offline','--show-diff','-g','FAIL,BORK,WARN')
-        if ($mode -eq 'parallel') { $arguments += '-j6' }
+        if ($mode -eq 'serial') { $arguments += '-j1' } else { $arguments += '-j6' }
         & $php @arguments @tests 2>&1 | Tee-Object (Join-Path $workspace "reports/$mode.log")
         $exitCode = $LASTEXITCODE
         [xml]$xml = Get-Content $env:TEST_PHP_JUNIT -Raw
