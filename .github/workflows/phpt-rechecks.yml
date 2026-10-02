@@ -1,0 +1,50 @@
+name: Recheck CLI and CGI source failures on exact PHP artifacts
+on:
+  push:
+    branches: ['test/openssl-upgrade-20261002']
+    paths: ['recheck-manifest.json', '.github/workflows/phpt-rechecks.yml', '.github/scripts/Test-PhptRechecks.ps1']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.matrix.outputs.include }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: matrix
+        run: |
+          python3 - <<'PY'
+          import json,os,itertools
+          rows=json.load(open('recheck-manifest.json'))['php']
+          matrix=[{'php':r['php'],'builderCommit':r['builderCommit'],'arch':a,'ts':t,'opcache':o} for r in rows for a,t,o in itertools.product(['x64','x86'],['ts','nts'],['opcache','nocache'])]
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('include='+json.dumps(matrix)+'\n')
+          PY
+  recheck:
+    needs: matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.matrix.outputs.include) }}
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: ${{ matrix.builderCommit }}
+          path: builder
+      - name: Run complete SAPI suites and repeat the failing cases
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./.github/scripts/Test-PhptRechecks.ps1 -Php '${{ matrix.php }}' -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}' -Opcache '${{ matrix.opcache }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phpt-recheck-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}-${{ matrix.opcache }}
+          path: reports
+          if-no-files-found: error
