@@ -53,7 +53,8 @@ Push-Location php-src
 $results = @()
 try {
     foreach ($mode in @('serial','parallel')) {
-        $count = if ($mode -eq 'serial') {20} else {120}
+        $count = if ($mode -eq 'serial') { if ($row.serial_cases) {$row.serial_cases} else {20} }
+                 else { if ($row.parallel_cases) {$row.parallel_cases} else {120} }
         $tests = @(for ($i=0; $i -lt $count; $i++) {
             foreach ($test in $row.tests) {
                 $directory = Split-Path $test -Parent
