@@ -1,5 +1,12 @@
 name: Native OpenSSL consumer artifact QA
 on:
+  push:
+    branches: ['test/openssl-upgrade-20261002']
+    paths:
+      - 'native-manifest.json'
+      - '.github/workflows/native-tls-qa.yml'
+      - '.github/scripts/Test-NativeTlsArtifacts.ps1'
+      - 'tests/native-*'
   workflow_dispatch:
 permissions:
   contents: read

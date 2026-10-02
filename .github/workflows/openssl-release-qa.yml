@@ -1,6 +1,10 @@
 name: OpenSSL release artifact QA
 
 on:
+  push:
+    branches: ['test/openssl-upgrade-20261002']
+    paths:
+      - 'qa-manifest.json'
   workflow_dispatch:
 
 permissions:
