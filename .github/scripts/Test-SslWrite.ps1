@@ -60,7 +60,7 @@ foreach ($mode in $modes) {
     for ($i=1; $i -le 100; $i++) {
         $dir = Join-Path $workspace "cases/$mode-$i"
         New-Item $dir -ItemType Directory | Out-Null
-        Get-ChildItem sources -Filter '*.inc' | Copy-Item -Destination $dir
+        Get-ChildItem sources -File | Where-Object Extension -In '.inc','.cnf' | Copy-Item -Destination $dir
         [IO.File]::WriteAllText((Join-Path $dir $testName), $(if ($mode -eq 'original') {$original} else {$control}))
     }
 }
@@ -70,6 +70,13 @@ $info | Set-Content reports/openssl-version.txt
 if ($LASTEXITCODE -ne 0 -or $info -notmatch "(?m)^OpenSSL Library Version\s*=>\s*(OpenSSL $([regex]::Escape($OpenSsl))[^\r\n]*)") { throw 'Wrong OpenSSL runtime loaded' }
 $version = $Matches[1]
 & $exe -r 'echo json_encode(["ini"=>php_ini_loaded_file(),"extensions"=>get_loaded_extensions(),"opcache"=>ini_get("opcache.enable_cli")]);' | Set-Content reports/runtime-configuration.json
+if ($Kind -eq 'write') {
+    # CertificateGenerator.inc reads its sibling openssl.cnf. Validate the full
+    # fixture before treating any repeated test failure as SSL-write evidence.
+    & $exe -r 'set_error_handler(static function($n,$s) { throw new Exception($s); }); require "sources/CertificateGenerator.inc"; $g = new CertificateGenerator(); $g->saveNewCertAsFileWithKey("bug72333", "reports/preflight.pem"); if (!openssl_x509_parse(file_get_contents("reports/preflight.pem"))) { exit(1); } echo "certificate fixture valid";' | Tee-Object reports/certificate-preflight.txt | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw 'Certificate fixture setup failed' }
+    Remove-Item reports/preflight.pem
+}
 $env:TEST_PHP_JUNIT = Join-Path $workspace 'reports/results.xml'
 & $exe sources/run-tests.php -p $exe -n -c (Join-Path $env:PHPRC 'php.ini') -d "extension_dir=$workspace\runtime\ext" -j4 -q --offline --show-diff --set-timeout 90 cases 2>&1 | Tee-Object reports/tests.log | Out-Host
 $exitCode = $LASTEXITCODE
