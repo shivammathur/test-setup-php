@@ -17,7 +17,16 @@ foreach ($package in $row.packages) {
         throw "Artifact identity mismatch for $($package.name)"
     }
     $zip = "native-inputs/$($package.library).zip"
-    Invoke-WebRequest "$api/actions/artifacts/$($package.artifactId)/zip" -Headers $headers -OutFile $zip
+    if ($manifest.phase -eq 'published') {
+        if ($package.url -notmatch '^https://downloads\.php\.net/~windows/(?:pecl/deps|php-sdk/deps/vs\d+/(?:x64|x86))/[^/?]+\.zip$') {
+            throw 'Expected a canonical published package URL'
+        }
+        $response = Invoke-WebRequest $package.url -OutFile $zip -PassThru
+        @{ url=$package.url; headers=$response.Headers; observedAt=(Get-Date).ToUniversalTime().ToString('o') } |
+            ConvertTo-Json -Depth 10 | Set-Content "reports/$($package.library)-publication.json"
+    } else {
+        Invoke-WebRequest "$api/actions/artifacts/$($package.artifactId)/zip" -Headers $headers -OutFile $zip
+    }
     if ((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $package.sha256) {
         throw "Artifact hash mismatch for $($package.name)"
     }
