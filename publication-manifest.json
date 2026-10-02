@@ -194,22 +194,6 @@
     },
     {
       "kind": "archive",
-      "name": "net-snmp-5.9.4-5-vs18-x64.zip",
-      "url": "https://downloads.php.net/~windows/php-sdk/deps/vs18/x64/net-snmp-5.9.4-5-vs18-x64.zip",
-      "sha256": "68d8c34e18eee807f9bfe74ee9d81212169be5430ce8b9b033bc98eb2b765df2",
-      "builderId": 37011463849,
-      "uploadId": 37019422084
-    },
-    {
-      "kind": "archive",
-      "name": "net-snmp-5.9.4-5-vs18-x86.zip",
-      "url": "https://downloads.php.net/~windows/php-sdk/deps/vs18/x86/net-snmp-5.9.4-5-vs18-x86.zip",
-      "sha256": "01b1bdb96931ad2e0e13d3b346d0b93e5f85beb19905799d5a73da8ca02fb134",
-      "builderId": 37011463849,
-      "uploadId": 37019422084
-    },
-    {
-      "kind": "archive",
       "name": "libsasl-2.1.28-3-vs18-x64.zip",
       "url": "https://downloads.php.net/~windows/php-sdk/deps/vs18/x64/libsasl-2.1.28-3-vs18-x64.zip",
       "sha256": "97df970af8c5e917985b1a5af2a1b48f5d6dba5ef9099e8d89d37038651e549b",
@@ -466,22 +450,6 @@
     },
     {
       "kind": "archive",
-      "name": "net-snmp-5.9.4-3-vs16-x64.zip",
-      "url": "https://downloads.php.net/~windows/php-sdk/deps/vs16/x64/net-snmp-5.9.4-3-vs16-x64.zip",
-      "sha256": "0530bdff963835189e5f4b5a7acede3094cf8071d0c68ed7e9e81a36143f2ec0",
-      "builderId": 37014602424,
-      "uploadId": 37024711570
-    },
-    {
-      "kind": "archive",
-      "name": "net-snmp-5.9.4-3-vs16-x86.zip",
-      "url": "https://downloads.php.net/~windows/php-sdk/deps/vs16/x86/net-snmp-5.9.4-3-vs16-x86.zip",
-      "sha256": "2c02feb2c79cd85c1c59fb91e8c6617fa7142ab77164983fb71f097f5e300735",
-      "builderId": 37014602424,
-      "uploadId": 37024711570
-    },
-    {
-      "kind": "archive",
       "name": "libpq-14.24-1-vs16-x64.zip",
       "url": "https://downloads.php.net/~windows/php-sdk/deps/vs16/x64/libpq-14.24-1-vs16-x64.zip",
       "sha256": "50d1b6a7001e93d68206359b2b3cadb774ab59c7fad00cd8b107b8a98f3f6ea5",
@@ -545,6 +513,38 @@
       "uploadId": 37024957904
     },
     {
+      "kind": "archive",
+      "name": "net-snmp-5.7.3-6-vs16-x64.zip",
+      "url": "https://downloads.php.net/~windows/php-sdk/deps/vs16/x64/net-snmp-5.7.3-6-vs16-x64.zip",
+      "sha256": "88911a4aefa5388ac2c90d9f651f7d301326d08f3e849fb6a53d719ef79589b1",
+      "builderId": 37029067231,
+      "uploadId": 37039435800
+    },
+    {
+      "kind": "archive",
+      "name": "net-snmp-5.7.3-6-vs16-x86.zip",
+      "url": "https://downloads.php.net/~windows/php-sdk/deps/vs16/x86/net-snmp-5.7.3-6-vs16-x86.zip",
+      "sha256": "7497a5160ebb6f23126fc4edbd5d95f954a4e11c8f972a6d4780e37d06c6b4d0",
+      "builderId": 37029067231,
+      "uploadId": 37039435800
+    },
+    {
+      "kind": "archive",
+      "name": "net-snmp-5.9.5.2-2-vs18-x64.zip",
+      "url": "https://downloads.php.net/~windows/php-sdk/deps/vs18/x64/net-snmp-5.9.5.2-2-vs18-x64.zip",
+      "sha256": "0a2f1d3def0900b1a7b585ec4231f1118f5b2be40d5bbc5bf2ac2f88a9c52b31",
+      "builderId": 37029067473,
+      "uploadId": 37042322106
+    },
+    {
+      "kind": "archive",
+      "name": "net-snmp-5.9.5.2-2-vs18-x86.zip",
+      "url": "https://downloads.php.net/~windows/php-sdk/deps/vs18/x86/net-snmp-5.9.5.2-2-vs18-x86.zip",
+      "sha256": "3196bd73bd870e739a6cca6edb829c588de1a82b7f6b8d58994b0c34d383d244",
+      "builderId": 37029067473,
+      "uploadId": 37042322106
+    },
+    {
       "kind": "series",
       "name": "packages-8.5-vs17-x64-staging.txt",
       "url": "https://downloads.php.net/~windows/php-sdk/deps/series/packages-8.5-vs17-x64-staging.txt",
@@ -580,10 +580,10 @@
         "openssl": "openssl-4.0.3-vs18-x64.zip",
         "libssh2": "libssh2-1.11.1-11-vs18-x64.zip",
         "libpq": "libpq-16.15-2-vs18-x64.zip",
-        "net-snmp": "net-snmp-5.9.4-5-vs18-x64.zip",
         "libsasl": "libsasl-2.1.28-3-vs18-x64.zip",
         "libcurl": "libcurl-8.22.0-3-vs18-x64.zip",
-        "openldap": "openldap-2.7.0-4-vs18-x64.zip"
+        "openldap": "openldap-2.7.0-4-vs18-x64.zip",
+        "net-snmp": "net-snmp-5.9.5.2-2-vs18-x64.zip"
       }
     },
     {
@@ -594,10 +594,10 @@
         "openssl": "openssl-4.0.3-vs18-x64.zip",
         "libssh2": "libssh2-1.11.1-11-vs18-x64.zip",
         "libpq": "libpq-16.15-2-vs18-x64.zip",
-        "net-snmp": "net-snmp-5.9.4-5-vs18-x64.zip",
         "libsasl": "libsasl-2.1.28-3-vs18-x64.zip",
         "libcurl": "libcurl-8.22.0-3-vs18-x64.zip",
-        "openldap": "openldap-2.7.0-4-vs18-x64.zip"
+        "openldap": "openldap-2.7.0-4-vs18-x64.zip",
+        "net-snmp": "net-snmp-5.9.5.2-2-vs18-x64.zip"
       }
     },
     {
@@ -608,10 +608,10 @@
         "openssl": "openssl-4.0.3-vs18-x64.zip",
         "libssh2": "libssh2-1.11.1-11-vs18-x64.zip",
         "libpq": "libpq-16.15-2-vs18-x64.zip",
-        "net-snmp": "net-snmp-5.9.4-5-vs18-x64.zip",
         "libsasl": "libsasl-2.1.28-3-vs18-x64.zip",
         "libcurl": "libcurl-8.22.0-3-vs18-x64.zip",
-        "openldap": "openldap-2.7.0-4-vs18-x64.zip"
+        "openldap": "openldap-2.7.0-4-vs18-x64.zip",
+        "net-snmp": "net-snmp-5.9.5.2-2-vs18-x64.zip"
       }
     },
     {
@@ -622,10 +622,10 @@
         "openssl": "openssl-4.0.3-vs18-x64.zip",
         "libssh2": "libssh2-1.11.1-11-vs18-x64.zip",
         "libpq": "libpq-16.15-2-vs18-x64.zip",
-        "net-snmp": "net-snmp-5.9.4-5-vs18-x64.zip",
         "libsasl": "libsasl-2.1.28-3-vs18-x64.zip",
         "libcurl": "libcurl-8.22.0-3-vs18-x64.zip",
-        "openldap": "openldap-2.7.0-4-vs18-x64.zip"
+        "openldap": "openldap-2.7.0-4-vs18-x64.zip",
+        "net-snmp": "net-snmp-5.9.5.2-2-vs18-x64.zip"
       }
     },
     {
@@ -636,10 +636,10 @@
         "openssl": "openssl-4.0.3-vs18-x64.zip",
         "libssh2": "libssh2-1.11.1-11-vs18-x64.zip",
         "libpq": "libpq-16.15-2-vs18-x64.zip",
-        "net-snmp": "net-snmp-5.9.4-5-vs18-x64.zip",
         "libsasl": "libsasl-2.1.28-3-vs18-x64.zip",
         "libcurl": "libcurl-8.22.0-3-vs18-x64.zip",
-        "openldap": "openldap-2.7.0-4-vs18-x64.zip"
+        "openldap": "openldap-2.7.0-4-vs18-x64.zip",
+        "net-snmp": "net-snmp-5.9.5.2-2-vs18-x64.zip"
       }
     },
     {
@@ -650,10 +650,10 @@
         "openssl": "openssl-4.0.3-vs18-x64.zip",
         "libssh2": "libssh2-1.11.1-11-vs18-x64.zip",
         "libpq": "libpq-16.15-2-vs18-x64.zip",
-        "net-snmp": "net-snmp-5.9.4-5-vs18-x64.zip",
         "libsasl": "libsasl-2.1.28-3-vs18-x64.zip",
         "libcurl": "libcurl-8.22.0-3-vs18-x64.zip",
-        "openldap": "openldap-2.7.0-4-vs18-x64.zip"
+        "openldap": "openldap-2.7.0-4-vs18-x64.zip",
+        "net-snmp": "net-snmp-5.9.5.2-2-vs18-x64.zip"
       }
     },
     {
@@ -664,10 +664,10 @@
         "openssl": "openssl-4.0.3-vs18-x86.zip",
         "libssh2": "libssh2-1.11.1-11-vs18-x86.zip",
         "libpq": "libpq-16.15-2-vs18-x86.zip",
-        "net-snmp": "net-snmp-5.9.4-5-vs18-x86.zip",
         "libsasl": "libsasl-2.1.28-3-vs18-x86.zip",
         "libcurl": "libcurl-8.22.0-3-vs18-x86.zip",
-        "openldap": "openldap-2.7.0-4-vs18-x86.zip"
+        "openldap": "openldap-2.7.0-4-vs18-x86.zip",
+        "net-snmp": "net-snmp-5.9.5.2-2-vs18-x86.zip"
       }
     },
     {
@@ -678,10 +678,10 @@
         "openssl": "openssl-4.0.3-vs18-x86.zip",
         "libssh2": "libssh2-1.11.1-11-vs18-x86.zip",
         "libpq": "libpq-16.15-2-vs18-x86.zip",
-        "net-snmp": "net-snmp-5.9.4-5-vs18-x86.zip",
         "libsasl": "libsasl-2.1.28-3-vs18-x86.zip",
         "libcurl": "libcurl-8.22.0-3-vs18-x86.zip",
-        "openldap": "openldap-2.7.0-4-vs18-x86.zip"
+        "openldap": "openldap-2.7.0-4-vs18-x86.zip",
+        "net-snmp": "net-snmp-5.9.5.2-2-vs18-x86.zip"
       }
     },
     {
@@ -692,10 +692,10 @@
         "openssl": "openssl-4.0.3-vs18-x86.zip",
         "libssh2": "libssh2-1.11.1-11-vs18-x86.zip",
         "libpq": "libpq-16.15-2-vs18-x86.zip",
-        "net-snmp": "net-snmp-5.9.4-5-vs18-x86.zip",
         "libsasl": "libsasl-2.1.28-3-vs18-x86.zip",
         "libcurl": "libcurl-8.22.0-3-vs18-x86.zip",
-        "openldap": "openldap-2.7.0-4-vs18-x86.zip"
+        "openldap": "openldap-2.7.0-4-vs18-x86.zip",
+        "net-snmp": "net-snmp-5.9.5.2-2-vs18-x86.zip"
       }
     },
     {
@@ -706,10 +706,10 @@
         "openssl": "openssl-4.0.3-vs18-x86.zip",
         "libssh2": "libssh2-1.11.1-11-vs18-x86.zip",
         "libpq": "libpq-16.15-2-vs18-x86.zip",
-        "net-snmp": "net-snmp-5.9.4-5-vs18-x86.zip",
         "libsasl": "libsasl-2.1.28-3-vs18-x86.zip",
         "libcurl": "libcurl-8.22.0-3-vs18-x86.zip",
-        "openldap": "openldap-2.7.0-4-vs18-x86.zip"
+        "openldap": "openldap-2.7.0-4-vs18-x86.zip",
+        "net-snmp": "net-snmp-5.9.5.2-2-vs18-x86.zip"
       }
     },
     {
@@ -720,10 +720,10 @@
         "openssl": "openssl-4.0.3-vs18-x86.zip",
         "libssh2": "libssh2-1.11.1-11-vs18-x86.zip",
         "libpq": "libpq-16.15-2-vs18-x86.zip",
-        "net-snmp": "net-snmp-5.9.4-5-vs18-x86.zip",
         "libsasl": "libsasl-2.1.28-3-vs18-x86.zip",
         "libcurl": "libcurl-8.22.0-3-vs18-x86.zip",
-        "openldap": "openldap-2.7.0-4-vs18-x86.zip"
+        "openldap": "openldap-2.7.0-4-vs18-x86.zip",
+        "net-snmp": "net-snmp-5.9.5.2-2-vs18-x86.zip"
       }
     },
     {
@@ -734,10 +734,10 @@
         "openssl": "openssl-4.0.3-vs18-x86.zip",
         "libssh2": "libssh2-1.11.1-11-vs18-x86.zip",
         "libpq": "libpq-16.15-2-vs18-x86.zip",
-        "net-snmp": "net-snmp-5.9.4-5-vs18-x86.zip",
         "libsasl": "libsasl-2.1.28-3-vs18-x86.zip",
         "libcurl": "libcurl-8.22.0-3-vs18-x86.zip",
-        "openldap": "openldap-2.7.0-4-vs18-x86.zip"
+        "openldap": "openldap-2.7.0-4-vs18-x86.zip",
+        "net-snmp": "net-snmp-5.9.5.2-2-vs18-x86.zip"
       }
     },
     {
@@ -776,10 +776,10 @@
         "openssl": "openssl-3.0.22.pl2-vs16-x64.zip",
         "libsasl": "libsasl-2.1.28-2-vs16-x64.zip",
         "libssh2": "libssh2-1.11.1-9-vs16-x64.zip",
-        "net-snmp": "net-snmp-5.9.4-3-vs16-x64.zip",
         "libpq": "libpq-14.24-1-vs16-x64.zip",
         "openldap": "openldap-2.7.0-3-vs16-x64.zip",
-        "libcurl": "libcurl-8.22.0-2-vs16-x64.zip"
+        "libcurl": "libcurl-8.22.0-2-vs16-x64.zip",
+        "net-snmp": "net-snmp-5.7.3-6-vs16-x64.zip"
       }
     },
     {
@@ -790,10 +790,10 @@
         "openssl": "openssl-3.0.22.pl2-vs16-x64.zip",
         "libsasl": "libsasl-2.1.28-2-vs16-x64.zip",
         "libssh2": "libssh2-1.11.1-9-vs16-x64.zip",
-        "net-snmp": "net-snmp-5.9.4-3-vs16-x64.zip",
         "libpq": "libpq-14.24-1-vs16-x64.zip",
         "openldap": "openldap-2.7.0-3-vs16-x64.zip",
-        "libcurl": "libcurl-8.22.0-2-vs16-x64.zip"
+        "libcurl": "libcurl-8.22.0-2-vs16-x64.zip",
+        "net-snmp": "net-snmp-5.7.3-6-vs16-x64.zip"
       }
     },
     {
@@ -804,10 +804,10 @@
         "openssl": "openssl-3.0.22.pl2-vs16-x86.zip",
         "libsasl": "libsasl-2.1.28-2-vs16-x86.zip",
         "libssh2": "libssh2-1.11.1-9-vs16-x86.zip",
-        "net-snmp": "net-snmp-5.9.4-3-vs16-x86.zip",
         "libpq": "libpq-14.24-1-vs16-x86.zip",
         "openldap": "openldap-2.7.0-3-vs16-x86.zip",
-        "libcurl": "libcurl-8.22.0-2-vs16-x86.zip"
+        "libcurl": "libcurl-8.22.0-2-vs16-x86.zip",
+        "net-snmp": "net-snmp-5.7.3-6-vs16-x86.zip"
       }
     },
     {
@@ -818,10 +818,10 @@
         "openssl": "openssl-3.0.22.pl2-vs16-x86.zip",
         "libsasl": "libsasl-2.1.28-2-vs16-x86.zip",
         "libssh2": "libssh2-1.11.1-9-vs16-x86.zip",
-        "net-snmp": "net-snmp-5.9.4-3-vs16-x86.zip",
         "libpq": "libpq-14.24-1-vs16-x86.zip",
         "openldap": "openldap-2.7.0-3-vs16-x86.zip",
-        "libcurl": "libcurl-8.22.0-2-vs16-x86.zip"
+        "libcurl": "libcurl-8.22.0-2-vs16-x86.zip",
+        "net-snmp": "net-snmp-5.7.3-6-vs16-x86.zip"
       }
     },
     {
