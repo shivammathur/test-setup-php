@@ -34,6 +34,12 @@ jobs:
         with:
           python-version: '3.13'
           architecture: ${{ matrix.arch }}
+      - uses: actions/checkout@v6
+        if: matrix.mode == 'published'
+        with:
+          repository: winlibs/winlib-builder
+          ref: master
+          path: winlib-builder
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: ${{ matrix.arch }}

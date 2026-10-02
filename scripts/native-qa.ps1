@@ -57,6 +57,27 @@ foreach ($library in @('glib', 'libffi', 'libiconv', 'libintl', 'libxml2', 'zlib
     "$($selected[0]) $((Get-FileHash $zip -Algorithm SHA256).Hash)" | Add-Content reports/dependency-zips.txt
 }
 Get-ChildItem deps -Recurse -File | Get-FileHash -Algorithm SHA256 | ConvertTo-Json | Set-Content reports/input-sha256.json
+if ($Mode -eq 'published') {
+    # Exercise the normal consumer path, including live series and PECL index
+    # selection, without any workflow artifact overrides.
+    $resolver = (Resolve-Path winlib-builder/scripts/fetch-deps.ps1).Path
+    git -C winlib-builder rev-parse HEAD | Set-Content reports/resolver-commit.txt
+    New-Item resolver-check -ItemType Directory -Force | Out-Null
+    Push-Location resolver-check
+    try {
+        & pwsh -NoProfile -File $resolver -lib librrd -version $Php -vs $Vs -arch $Arch -stability staging 2>&1 | Tee-Object ../reports/fetch-deps.log
+        if ($LASTEXITCODE -ne 0) { throw 'Published dependency resolution failed' }
+        foreach ($library in @('libpng', 'cairo', 'pango')) {
+            $manifest = $expected[$lane.libraries.$library.artifact]
+            foreach ($name in $manifest.Keys) {
+                $path = Join-Path deps $name
+                if (!(Test-Path $path) -or (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $manifest[$name]) {
+                    throw "Normal fetch-deps selected unexpected $library/$name"
+                }
+            }
+        }
+    } finally { Pop-Location }
+}
 $env:PATH = "$(Resolve-Path deps/bin);$env:PATH"
 $include = "/I$((Resolve-Path deps/include/libpng16).Path)"
 cl /nologo /W3 /O2 /MD $include tests/png-roundtrip.c /Febuild/png-shared.exe /link /LIBPATH:deps/lib libpng.lib

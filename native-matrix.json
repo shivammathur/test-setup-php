@@ -1,0 +1,72 @@
+{
+  "include": [
+    {
+      "php": "8.4",
+      "vs": "vs17",
+      "arch": "x86",
+      "runner": "windows-2022",
+      "toolset": "14.4",
+      "mode": "candidate",
+      "libraries": {
+        "libpng": {
+          "run": 37030219566,
+          "artifact": "libpng-1.6.59-vs17-x86"
+        },
+        "cairo": {
+          "run": 37031607445,
+          "artifact": "cairo-1.18.6-vs17-x86"
+        },
+        "pango": {
+          "run": 37032136813,
+          "artifact": "pango-1.58.2-vs17-x86"
+        },
+        "librrd": {
+          "run": 37032929593,
+          "artifact": "librrd-1.11.0-vs17-x86"
+        }
+      },
+      "dependencies": {
+        "glib": "glib-2.88.3-vs17-x86.zip",
+        "libffi": "libffi-3.8.0-vs17-x86.zip",
+        "libiconv": "libiconv-1.19-vs17-x86.zip",
+        "libintl": "libintl-1.0-vs17-x86.zip",
+        "libxml2": "libxml2-2.11.9-8-vs17-x86.zip",
+        "zlib": "zlib-1.3.2-vs17-x86.zip"
+      }
+    },
+    {
+      "php": "8.4",
+      "vs": "vs17",
+      "arch": "x64",
+      "runner": "windows-2022",
+      "toolset": "14.4",
+      "mode": "candidate",
+      "libraries": {
+        "libpng": {
+          "run": 37030219566,
+          "artifact": "libpng-1.6.59-vs17-x64"
+        },
+        "cairo": {
+          "run": 37031607445,
+          "artifact": "cairo-1.18.6-vs17-x64"
+        },
+        "pango": {
+          "run": 37032136813,
+          "artifact": "pango-1.58.2-vs17-x64"
+        },
+        "librrd": {
+          "run": 37032929593,
+          "artifact": "librrd-1.11.0-vs17-x64"
+        }
+      },
+      "dependencies": {
+        "glib": "glib-2.88.3-vs17-x64.zip",
+        "libffi": "libffi-3.8.0-vs17-x64.zip",
+        "libiconv": "libiconv-1.19-vs17-x64.zip",
+        "libintl": "libintl-1.0-vs17-x64.zip",
+        "libxml2": "libxml2-2.11.9-8-vs17-x64.zip",
+        "zlib": "zlib-1.3.2-vs17-x64.zip"
+      }
+    }
+  ]
+}
