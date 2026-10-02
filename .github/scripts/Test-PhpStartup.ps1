@@ -20,7 +20,12 @@ $coreDll = if ($Ts -eq 'ts') { 'php8ts.dll' } else { 'php8.dll' }
 foreach ($file in @('php.exe', 'php-cgi.exe', $coreDll)) { Copy-Item "runtime/$file" minimal }
 $files = @(Get-ChildItem minimal -File | ForEach-Object { @{ name=$_.Name; sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() } })
 Expand-Archive (Join-Path unpacked ($runtime.name -replace '^php-', 'php-debug-pack-')) symbols -Force
-Expand-Archive "unpacked/php-test-pack-$($runtime.phpVersion).zip" source-tests -Force
+Invoke-WebRequest "https://api.github.com/repos/php/php-src/zipball/$($row.sourceCommit)" -Headers $headers -OutFile source.zip
+Expand-Archive source.zip source-download -Force
+$sourceRoot = @(Get-ChildItem source-download -Directory)
+if ($sourceRoot.Count -ne 1) { throw 'Unexpected source archive layout' }
+Get-ChildItem $sourceRoot[0].FullName -Force | Move-Item -Destination source-tests
+if (!(Test-Path source-tests/run-tests.php)) { throw 'Pinned source test runner is missing' }
 
 # Collect postmortem evidence on the disposable runner without injecting a debugger into the process.
 $dumpDirectory = (Resolve-Path reports/dumps).Path
@@ -70,7 +75,7 @@ foreach ($exe in @($phpExe, $cgiExe)) {
     }
 }
 $starts | ConvertTo-Json -Depth 6 | Set-Content reports/startups.json
-$tests = @('sapi/cli/tests/gh18582.phpt', 'sapi/cli/tests/bug65633.phpt', 'sapi/cli/tests/gh22003.phpt', 'sapi/cgi/tests/004.phpt', 'sapi/cgi/tests/bug78323.phpt')
+$tests = @('sapi/cli/tests/gh18582.phpt', 'sapi/cli/tests/bug65633.phpt', 'sapi/cli/tests/gh22003.phpt', 'sapi/cgi/tests/004.phpt', 'sapi/cgi/tests/bug78323.phpt', 'ext/standard/tests/file/windows_mb_path/test_long_path_1.phpt')
 $reports = @()
 Push-Location source-tests
 try {
@@ -99,4 +104,4 @@ if ($cdb) {
 $result = @{ php=$Php; arch=$Arch; ts=$Ts; sourceRunId=$row.runId; sourceCommit=$row.sourceCommit; runtimeSha256=$runtime.sha256; minimalFiles=$files; startupFailures=@($starts | Where-Object exit -NE 0); reports=$reports; dumps=@(Get-ChildItem reports/dumps -Filter '*.dmp' | ForEach-Object Name) }
 $result | ConvertTo-Json -Depth 20 | Set-Content reports/minimal-results.json
 Stop-Transcript
-if ($result.startupFailures.Count -gt 0 -or @($reports | Where-Object { $_.failures -gt 0 -or $_.missingReport -or $_.cases -ne 5 -or $_.skipped -gt 0 }).Count -gt 0) { throw 'Minimal runtime diagnostics require review; see retained evidence' }
+if ($result.startupFailures.Count -gt 0 -or @($reports | Where-Object { $_.failures -gt 0 -or $_.missingReport -or $_.cases -ne $tests.Count -or $_.skipped -gt 0 }).Count -gt 0) { throw 'Minimal runtime diagnostics require review; see retained evidence' }
