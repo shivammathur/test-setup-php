@@ -1,0 +1,37 @@
+name: Diagnose parallel SAPI startup with isolated PHP cores
+on:
+  push:
+    branches: ['test/openssl-upgrade-20261002']
+    paths: ['.github/workflows/php-startup-parallel.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.6', 'master']
+        arch: [x64, x86]
+        stack: [8, 64]
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: 44b177dd05168995a788123c8807a70e2d0db20c
+          path: builder
+      - name: Repeat complete CLI and CGI suites with six workers and no OpenSSL DLLs
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./.github/scripts/Test-PhpStartup.ps1 -Php '${{ matrix.php }}' -Arch '${{ matrix.arch }}' -Ts nts -StackMegabytes ${{ matrix.stack }} -ProbeMode core -ParallelSuites
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: parallel-startup-${{ matrix.php }}-${{ matrix.arch }}-nts-stack${{ matrix.stack }}
+          path: reports
+          if-no-files-found: error

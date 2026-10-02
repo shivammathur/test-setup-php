@@ -1,8 +1,5 @@
 name: Diagnose PHP startup without rebuilt dependencies
 on:
-  push:
-    branches: ['test/openssl-upgrade-20261002']
-    paths: ['.github/workflows/php-startup-diagnostics.yml', '.github/scripts/Test-PhpStartup.ps1']
   workflow_dispatch:
 permissions:
   contents: read

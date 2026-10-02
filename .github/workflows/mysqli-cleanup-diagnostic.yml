@@ -1,0 +1,35 @@
+name: Verify mysqli fake-server cleanup race
+on:
+  push:
+    branches: ['test/openssl-upgrade-20261002']
+    paths: ['mysqli-manifest.json', '.github/workflows/mysqli-cleanup-diagnostic.yml', '.github/scripts/Test-MysqliCleanup.ps1']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  reproduce:
+    strategy:
+      fail-fast: false
+      matrix:
+        cleanup: [original, terminate-before-close]
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: 44b177dd05168995a788123c8807a70e2d0db20c
+          path: builder
+      - name: Repeat the exact malformed-packet test with original and ordered cleanup
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./.github/scripts/Test-MysqliCleanup.ps1 -Cleanup '${{ matrix.cleanup }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mysqli-cleanup-${{ matrix.cleanup }}
+          path: reports
+          if-no-files-found: error

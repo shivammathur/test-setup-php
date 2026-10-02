@@ -1,4 +1,4 @@
-param([string]$Php, [string]$Arch, [string]$Ts, [ValidateSet(8,64)][int]$StackMegabytes = 64, [ValidateSet('core','openssl')][string]$ProbeMode = 'core')
+param([string]$Php, [string]$Arch, [string]$Ts, [ValidateSet(8,64)][int]$StackMegabytes = 64, [ValidateSet('core','openssl')][string]$ProbeMode = 'core', [switch]$ParallelSuites)
 $ErrorActionPreference = 'Stop'
 $started = Get-Date
 $row = @((Get-Content recheck-manifest.json -Raw | ConvertFrom-Json).php | Where-Object php -EQ $Php)[0]
@@ -56,6 +56,12 @@ $sourceRoot = @(Get-ChildItem source-download -Directory)
 if ($sourceRoot.Count -ne 1) { throw 'Unexpected source archive layout' }
 Get-ChildItem $sourceRoot[0].FullName -Force | Move-Item -Destination source-tests
 if (!(Test-Path source-tests/run-tests.php)) { throw 'Pinned source test runner is missing' }
+if ($ParallelSuites) {
+    . ./builder/php/BuildPhp/private/Invoke-CompatRunTestsPatch.ps1
+    $patch = (Resolve-Path ./builder/php/BuildPhp/config/run-tests/run-tests-8.2-plus.patch).Path
+    if (!(Invoke-CompatRunTestsPatch -Path (Resolve-Path source-tests/run-tests.php).Path -PatchPath $patch)) { throw 'Could not reproduce the CI worker setup' }
+    Get-FileHash source-tests/run-tests.php, $patch -Algorithm SHA256 | ConvertTo-Json | Set-Content reports/runner-hashes.json
+}
 
 # Collect postmortem evidence on the disposable runner without injecting a debugger into the process.
 $dumpDirectory = (Resolve-Path reports/dumps).Path
@@ -115,8 +121,19 @@ foreach ($exe in @($phpExe, $cgiExe)) {
 $starts | ConvertTo-Json -Depth 6 | Set-Content reports/startups.json
 $tests = @('sapi/cli/tests/gh18582.phpt', 'sapi/cli/tests/bug65633.phpt', 'sapi/cli/tests/gh22003.phpt', 'sapi/cgi/tests/004.phpt', 'sapi/cgi/tests/bug78323.phpt', 'ext/standard/tests/file/windows_mb_path/test_long_path_1.phpt')
 $reports = @()
+$suiteReports = @()
 Push-Location source-tests
 try {
+    if ($ParallelSuites) {
+        for ($i=1; $i -le 10; $i++) {
+            $env:TEST_PHP_JUNIT = Join-Path $workspace "reports/suites-$i.xml"
+            & $phpExe -n run-tests.php -p $phpExe -n -c $probeIni -j6 -q --offline --show-diff sapi/cli/tests sapi/cgi/tests 2>&1 | Tee-Object (Join-Path $workspace "reports/suites-$i.log") | Out-Host
+            if (Test-Path $env:TEST_PHP_JUNIT) {
+                [xml]$xml = Get-Content $env:TEST_PHP_JUNIT -Raw
+                $suiteReports += @{ iteration=$i; cases=@($xml.SelectNodes('//testcase')).Count; failures=@($xml.SelectNodes('//failure|//error')).Count; skipped=@($xml.SelectNodes('//skipped')).Count }
+            } else { $suiteReports += @{ iteration=$i; missingReport=$true; exit=$LASTEXITCODE } }
+        }
+    }
     for ($i=1; $i -le 30; $i++) {
         $env:TEST_PHP_JUNIT = Join-Path $workspace "reports/minimal-$i.xml"
         & $phpExe -n run-tests.php -p $phpExe -n -c $probeIni -q --offline --show-diff @tests 2>&1 | Tee-Object (Join-Path $workspace "reports/minimal-$i.log") | Out-Host
@@ -139,7 +156,7 @@ if ($cdb) {
         & $cdb.FullName -z $dump.FullName -y $symbolPath -c '.ecxr; kpn; lm; q' 2>&1 | Set-Content (Join-Path reports ($dump.Name + '.txt'))
     }
 }
-$result = @{ php=$Php; arch=$Arch; ts=$Ts; probeMode=$ProbeMode; stackMegabytes=$StackMegabytes; stackEdits=$stackEdits; sourceRunId=$row.runId; sourceCommit=$row.sourceCommit; runtimeSha256=$runtime.sha256; minimalFiles=$files; startupFailures=@($starts | Where-Object exit -NE 0); reports=$reports; dumps=@(Get-ChildItem reports/dumps -Filter '*.dmp' | ForEach-Object Name) }
+$result = @{ php=$Php; arch=$Arch; ts=$Ts; probeMode=$ProbeMode; parallelSuites=[bool]$ParallelSuites; suiteReports=$suiteReports; stackMegabytes=$StackMegabytes; stackEdits=$stackEdits; sourceRunId=$row.runId; sourceCommit=$row.sourceCommit; runtimeSha256=$runtime.sha256; minimalFiles=$files; startupFailures=@($starts | Where-Object exit -NE 0); reports=$reports; dumps=@(Get-ChildItem reports/dumps -Filter '*.dmp' | ForEach-Object Name) }
 $result | ConvertTo-Json -Depth 20 | Set-Content reports/minimal-results.json
 Stop-Transcript
-if ($result.startupFailures.Count -gt 0 -or @($reports | Where-Object { $_.failures -gt 0 -or $_.missingReport -or $_.cases -ne $tests.Count -or $_.skipped -gt 0 }).Count -gt 0) { throw 'Minimal runtime diagnostics require review; see retained evidence' }
+if ($result.startupFailures.Count -gt 0 -or @($reports | Where-Object { $_.failures -gt 0 -or $_.missingReport -or $_.cases -ne $tests.Count -or $_.skipped -gt 0 }).Count -gt 0 -or @($suiteReports | Where-Object { $_.failures -gt 0 -or $_.missingReport -or $_.cases -lt 150 }).Count -gt 0) { throw 'Minimal runtime diagnostics require review; see retained evidence' }
