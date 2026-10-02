@@ -24,6 +24,19 @@ Invoke-WebRequest "$api/actions/artifacts/$($row.artifactId)/zip" -Headers $head
 $actualArchiveHash = (Get-FileHash artifacts/merged.zip -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($actualArchiveHash -ne $row.artifactSha256) { throw 'Merged PHP artifact SHA-256 mismatch' }
 Expand-Archive artifacts/merged.zip artifacts/runtime
+$mibs = $row.mibsPackage
+$mibsApi = 'https://api.github.com/repos/winlibs/winlib-builder'
+$mibsMetadata = Invoke-RestMethod "$mibsApi/actions/artifacts/$($mibs.artifactId)" -Headers $headers
+if ($mibsMetadata.expired -or $mibsMetadata.workflow_run.id -ne $mibs.runId -or $mibsMetadata.name -ne $mibs.name) {
+    throw 'MIB artifact identity mismatch'
+}
+Invoke-WebRequest "$mibsApi/actions/artifacts/$($mibs.artifactId)/zip" -Headers $headers -OutFile artifacts/net-snmp.zip
+if ((Get-FileHash artifacts/net-snmp.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $mibs.sha256) {
+    throw 'MIB artifact hash mismatch'
+}
+Expand-Archive artifacts/net-snmp.zip artifacts/net-snmp
+$env:MIBDIRS = (Resolve-Path artifacts/net-snmp/share/mibs).Path
+
 
 function Invoke-CheckedPhp {
     param([string] $Executable, [string[]] $Arguments)

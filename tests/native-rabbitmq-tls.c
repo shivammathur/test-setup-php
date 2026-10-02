@@ -25,6 +25,16 @@ int main(int argc, char **argv)
     status = amqp_socket_open(socket, argv[1], atoi(argv[2]));
     printf("RabbitMQ %s: socket status=%d (%s)\n", amqp_version(), status,
            amqp_error_string2(status));
+    if (status == AMQP_STATUS_OK) {
+        amqp_frame_t frame;
+        struct timeval timeout = { 3, 0 };
+        if (amqp_send_header(conn) != AMQP_STATUS_OK ||
+            amqp_simple_wait_frame_noblock(conn, &frame, &timeout) != AMQP_STATUS_OK ||
+            frame.frame_type != AMQP_FRAME_HEARTBEAT) {
+            fprintf(stderr, "AMQP protocol exchange failed\n"); return 3;
+        }
+        printf("Received authenticated AMQP heartbeat\n");
+    }
     amqp_destroy_connection(conn);
     return expect_success ? (status != AMQP_STATUS_OK) :
         (status != AMQP_STATUS_SSL_PEER_VERIFY_FAILED && status != AMQP_STATUS_SSL_HOSTNAME_VERIFY_FAILED);

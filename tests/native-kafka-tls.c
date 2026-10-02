@@ -35,6 +35,7 @@ int main(int argc, char **argv)
     conf = rd_kafka_conf_new();
     set(conf, "bootstrap.servers", brokers);
     set(conf, "security.protocol", "ssl");
+    set(conf, "broker.address.family", "v4");
     set(conf, "ssl.ca.location", argv[3]);
     set(conf, "enable.ssl.certificate.verification", "true");
     set(conf, "ssl.endpoint.identification.algorithm", "https");

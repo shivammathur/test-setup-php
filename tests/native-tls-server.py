@@ -35,10 +35,13 @@ for name, host, ca, expect in [('trusted', 'localhost', 'trusted', 'success'),
                 with context.wrap_socket(raw, server_side=True) as stream:
                     observations.append({'handshake': True, 'protocol': stream.version(),
                                          'cipher': stream.cipher()[0]})
-                    # Kafka sends an ApiVersions request; RabbitMQ socket_open stops after TLS.
-                    if 'kafka' in pathlib.Path(exe).name:
-                        data = stream.recv(4096)
-                        observations[-1]['applicationBytes'] = len(data)
+                    data = stream.recv(4096)
+                    observations[-1]['applicationBytes'] = len(data)
+                    if 'rabbitmq' in pathlib.Path(exe).name:
+                        observations[-1]['amqpHeader'] = data.hex()
+                        if data == b'AMQP\x00\x00\x09\x01':
+                            # A valid heartbeat frame acknowledges receipt over the authenticated channel.
+                            stream.sendall(b'\x08\x00\x00\x00\x00\x00\x00\xce')
             except (ssl.SSLError, OSError) as error:
                 observations.append({'handshake': False, 'error': str(error)})
                 raw.close()
@@ -63,7 +66,8 @@ for name, host, ca, expect in [('trusted', 'localhost', 'trusted', 'success'),
     assert observations, 'Client never reached the TLS server'
     if expect == 'success':
         assert successes, 'No successful TLS handshake'
-        if 'kafka' in pathlib.Path(exe).name:
-            assert any(r.get('applicationBytes', 0) > 0 for r in successes), 'No Kafka protocol traffic'
+        assert any(r.get('applicationBytes', 0) > 0 for r in successes), 'No application protocol traffic'
+        if 'rabbitmq' in pathlib.Path(exe).name:
+            assert any(r.get('amqpHeader') == '414d515000000901' for r in successes), 'Invalid AMQP protocol header'
     else:
         assert not successes, 'Client accepted an invalid certificate'
