@@ -22,6 +22,8 @@ static void set(rd_kafka_conf_t *conf, const char *key, const char *value)
 int main(int argc, char **argv)
 {
     char brokers[256], error[512];
+    char features[1024];
+    size_t features_size = sizeof(features);
     rd_kafka_conf_t *conf;
     rd_kafka_t *rk;
     ULONGLONG until;
@@ -33,6 +35,10 @@ int main(int argc, char **argv)
     expect_success = strcmp(argv[4], "success") == 0;
     snprintf(brokers, sizeof(brokers), "%s:%s", argv[1], argv[2]);
     conf = rd_kafka_conf_new();
+    if (rd_kafka_conf_get(conf, "builtin.features", features, &features_size) != RD_KAFKA_CONF_OK) {
+        fprintf(stderr, "Could not read Kafka's compiled features\n"); return 2;
+    }
+    printf("Kafka built-in features: %s\n", features);
     set(conf, "bootstrap.servers", brokers);
     set(conf, "security.protocol", "ssl");
     set(conf, "broker.address.family", "v4");
