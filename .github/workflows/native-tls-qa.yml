@@ -1,0 +1,52 @@
+name: Native OpenSSL consumer artifact QA
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.matrix.outputs.include }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: matrix
+        run: |
+          python3 - <<'PY'
+          import json, os
+          manifest = json.load(open('native-manifest.json'))
+          rows = manifest['lanes']
+          assert rows
+          for row in rows:
+              assert {p['library'] for p in row['packages']} == {'openssl', 'librdkafka', 'librabbitmq'}
+              assert all(p['runId'] and p['artifactId'] and len(p['sha256']) == 64 for p in row['packages'])
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('include=' + json.dumps([{k:r[k] for k in ('php','arch','runner','toolset')} for r in rows]) + '\n')
+          PY
+  native-tls:
+    needs: matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.matrix.outputs.include) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+          toolset: ${{ matrix.toolset }}
+      - name: Link and exercise exact packaged clients
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./.github/scripts/Test-NativeTlsArtifacts.ps1 -Php '${{ matrix.php }}' -Arch '${{ matrix.arch }}'
+      - name: Preserve native test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-tls-${{ matrix.php }}-${{ matrix.arch }}
+          path: reports
+          if-no-files-found: error
