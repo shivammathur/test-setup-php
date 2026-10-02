@@ -1,4 +1,4 @@
-param([string]$Php, [string]$Arch, [string]$Ts)
+param([string]$Php, [string]$Arch, [string]$Ts, [ValidateSet(8,64)][int]$StackMegabytes = 64, [ValidateSet('core','openssl')][string]$ProbeMode = 'core')
 $ErrorActionPreference = 'Stop'
 $started = Get-Date
 $row = @((Get-Content recheck-manifest.json -Raw | ConvertFrom-Json).php | Where-Object php -EQ $Php)[0]
@@ -18,7 +18,37 @@ if ((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $runtime.s
 Expand-Archive $zip runtime -Force
 $coreDll = if ($Ts -eq 'ts') { 'php8ts.dll' } else { 'php8.dll' }
 foreach ($file in @('php.exe', 'php-cgi.exe', $coreDll)) { Copy-Item "runtime/$file" minimal }
-$files = @(Get-ChildItem minimal -File | ForEach-Object { @{ name=$_.Name; sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() } })
+if ($ProbeMode -eq 'openssl') {
+    Get-ChildItem runtime -File -Filter '*.dll' | Where-Object Name -Match '^lib(?:crypto|ssl)-' | Copy-Item -Destination minimal
+    New-Item minimal/ext -ItemType Directory -Force | Out-Null
+    Copy-Item runtime/ext/php_openssl.dll, runtime/ext/php_sockets.dll minimal/ext
+}
+$probeIni = Join-Path (Resolve-Path minimal).Path 'probe.ini'
+if ($ProbeMode -eq 'openssl') {
+    @("extension_dir=$workspace\minimal\ext", 'extension=php_openssl.dll', 'extension=php_sockets.dll') | Set-Content $probeIni
+} else { '' | Set-Content $probeIni }
+$files = @(Get-ChildItem minimal -Recurse -File | ForEach-Object { @{ name=$_.FullName; sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() } })
+$stackEdits = @()
+foreach ($exeName in @('php.exe', 'php-cgi.exe')) {
+    $path = (Resolve-Path "minimal/$exeName").Path
+    $before = [System.IO.File]::ReadAllBytes($path)
+    if ($StackMegabytes -eq 8) {
+        $pattern = "C:\Program Files\Microsoft Visual Studio\*\*\VC\Tools\MSVC\*\bin\Hostx64\$Arch\editbin.exe"
+        $editbin = Get-ChildItem $pattern -File | Sort-Object { [Version](($_.FullName -split '\\MSVC\\')[1] -split '\\')[0] } -Descending | Select-Object -First 1
+        if (!$editbin) { throw 'Missing editbin for the stack comparison' }
+        & $editbin.FullName '/STACK:8388608' $path
+        if ($LASTEXITCODE -ne 0) { throw 'editbin failed' }
+    }
+    $after = [System.IO.File]::ReadAllBytes($path)
+    if ($before.Length -ne $after.Length) { throw 'Unexpected executable size change' }
+    $optionalHeader = [BitConverter]::ToInt32($after, 0x3c) + 24
+    $magic = [BitConverter]::ToUInt16($after, $optionalHeader)
+    $reserve = if ($magic -eq 0x20b) { [BitConverter]::ToUInt64($after, $optionalHeader + 72) } else { [BitConverter]::ToUInt32($after, $optionalHeader + 72) }
+    if ($reserve -ne ($StackMegabytes * 1MB)) { throw 'Unexpected stack reserve in probe executable' }
+    $changed = @(for ($offset=0; $offset -lt $before.Length; $offset++) { if ($before[$offset] -ne $after[$offset]) { $offset } })
+    $stackEdits += @{ exe=$exeName; reserve=$reserve; changedByteOffsets=$changed; sha256=(Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant() }
+}
+$stackEdits | ConvertTo-Json -Depth 6 | Set-Content reports/stack-comparison.json
 Expand-Archive (Join-Path unpacked ($runtime.name -replace '^php-', 'php-debug-pack-')) symbols -Force
 Invoke-WebRequest "https://api.github.com/repos/php/php-src/zipball/$($row.sourceCommit)" -Headers $headers -OutFile source.zip
 Expand-Archive source.zip source-download -Force
@@ -49,16 +79,24 @@ $env:PHP_INI_SCAN_DIR = ''
 $env:PHPRC = (Resolve-Path minimal).Path
 $env:TEST_PHP_EXECUTABLE = $phpExe
 $env:TEST_PHP_CGI_EXECUTABLE = $cgiExe
-$env:TEST_PHP_ARGS = '-n'
+$env:TEST_PHP_ARGS = '-n -c "' + $probeIni + '"'
 $env:NO_INTERACTION = '1'
 $env:REPORT_EXIT_STATUS = '1'
 $env:SKIP_ONLINE_TESTS = '1'
+$extensions = & $phpExe -n -c $probeIni -r 'echo json_encode(get_loaded_extensions());'
+if ($LASTEXITCODE -ne 0) { throw 'Initial extension probe failed; inspect the captured dump' }
+$extensions | Set-Content reports/loaded-extensions.json
+$loaded = $extensions | ConvertFrom-Json
+if ($ProbeMode -eq 'openssl' -and ('openssl' -notin $loaded -or 'sockets' -notin $loaded)) { throw 'Required diagnostic extensions did not load' }
+if ($ProbeMode -eq 'core' -and 'openssl' -in $loaded) { throw 'OpenSSL must be absent from the core control' }
 $starts = @()
 foreach ($exe in @($phpExe, $cgiExe)) {
     for ($i=1; $i -le 300; $i++) {
         $p = [System.Diagnostics.Process]::new()
         $p.StartInfo.FileName = $exe
         $p.StartInfo.ArgumentList.Add('-n')
+        $p.StartInfo.ArgumentList.Add('-c')
+        $p.StartInfo.ArgumentList.Add($probeIni)
         $p.StartInfo.ArgumentList.Add('-v')
         $p.StartInfo.UseShellExecute = $false
         $p.StartInfo.RedirectStandardOutput = $true
@@ -81,7 +119,7 @@ Push-Location source-tests
 try {
     for ($i=1; $i -le 30; $i++) {
         $env:TEST_PHP_JUNIT = Join-Path $workspace "reports/minimal-$i.xml"
-        & $phpExe -n run-tests.php -p $phpExe -n -q --offline --show-diff @tests 2>&1 | Tee-Object (Join-Path $workspace "reports/minimal-$i.log") | Out-Host
+        & $phpExe -n run-tests.php -p $phpExe -n -c $probeIni -q --offline --show-diff @tests 2>&1 | Tee-Object (Join-Path $workspace "reports/minimal-$i.log") | Out-Host
         if (Test-Path $env:TEST_PHP_JUNIT) {
             [xml]$xml = Get-Content $env:TEST_PHP_JUNIT -Raw
             $reports += @{ iteration=$i; cases=@($xml.SelectNodes('//testcase')).Count; failures=@($xml.SelectNodes('//failure|//error')).Count; skipped=@($xml.SelectNodes('//skipped')).Count }
@@ -101,7 +139,7 @@ if ($cdb) {
         & $cdb.FullName -z $dump.FullName -y $symbolPath -c '.ecxr; kpn; lm; q' 2>&1 | Set-Content (Join-Path reports ($dump.Name + '.txt'))
     }
 }
-$result = @{ php=$Php; arch=$Arch; ts=$Ts; sourceRunId=$row.runId; sourceCommit=$row.sourceCommit; runtimeSha256=$runtime.sha256; minimalFiles=$files; startupFailures=@($starts | Where-Object exit -NE 0); reports=$reports; dumps=@(Get-ChildItem reports/dumps -Filter '*.dmp' | ForEach-Object Name) }
+$result = @{ php=$Php; arch=$Arch; ts=$Ts; probeMode=$ProbeMode; stackMegabytes=$StackMegabytes; stackEdits=$stackEdits; sourceRunId=$row.runId; sourceCommit=$row.sourceCommit; runtimeSha256=$runtime.sha256; minimalFiles=$files; startupFailures=@($starts | Where-Object exit -NE 0); reports=$reports; dumps=@(Get-ChildItem reports/dumps -Filter '*.dmp' | ForEach-Object Name) }
 $result | ConvertTo-Json -Depth 20 | Set-Content reports/minimal-results.json
 Stop-Transcript
 if ($result.startupFailures.Count -gt 0 -or @($reports | Where-Object { $_.failures -gt 0 -or $_.missingReport -or $_.cases -ne $tests.Count -or $_.skipped -gt 0 }).Count -gt 0) { throw 'Minimal runtime diagnostics require review; see retained evidence' }

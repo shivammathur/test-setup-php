@@ -15,6 +15,8 @@ jobs:
         php: ['8.6', 'master']
         arch: [x64, x86]
         ts: [ts, nts]
+        stack: [8, 64]
+        mode: [core, openssl]
     runs-on: windows-2025-vs2026
     timeout-minutes: 30
     steps:
@@ -23,10 +25,10 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: ./.github/scripts/Test-PhpStartup.ps1 -Php '${{ matrix.php }}' -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}'
+        run: ./.github/scripts/Test-PhpStartup.ps1 -Php '${{ matrix.php }}' -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}' -StackMegabytes ${{ matrix.stack }} -ProbeMode '${{ matrix.mode }}'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: startup-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          name: startup-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}-stack${{ matrix.stack }}-${{ matrix.mode }}
           path: reports
           if-no-files-found: error

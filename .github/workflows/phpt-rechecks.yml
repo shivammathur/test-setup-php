@@ -1,8 +1,5 @@
 name: Recheck CLI and CGI source failures on exact PHP artifacts
 on:
-  push:
-    branches: ['test/openssl-upgrade-20261002']
-    paths: ['recheck-manifest.json', '.github/workflows/phpt-rechecks.yml', '.github/scripts/Test-PhptRechecks.ps1']
   workflow_dispatch:
 permissions:
   contents: read
