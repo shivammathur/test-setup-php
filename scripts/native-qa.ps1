@@ -62,10 +62,12 @@ if ($Mode -eq 'published') {
     # selection, without any workflow artifact overrides.
     $resolver = (Resolve-Path winlib-builder/scripts/fetch-deps.ps1).Path
     git -C winlib-builder rev-parse HEAD | Set-Content reports/resolver-commit.txt
+    & powershell.exe -NoProfile -File winlib-builder/scripts/tests/fetch-deps-package-selection.ps1 2>&1 | Tee-Object reports/resolver-regression.log
+    if ($LASTEXITCODE -ne 0) { throw 'Windows PowerShell dependency resolver regressions failed' }
     New-Item resolver-check -ItemType Directory -Force | Out-Null
     Push-Location resolver-check
     try {
-        & pwsh -NoProfile -File $resolver -lib librrd -version $Php -vs $Vs -arch $Arch -stability staging 2>&1 | Tee-Object ../reports/fetch-deps.log
+        & powershell.exe -NoProfile -File $resolver -lib librrd -version $Php -vs $Vs -arch $Arch -stability staging 2>&1 | Tee-Object ../reports/fetch-deps.log
         if ($LASTEXITCODE -ne 0) { throw 'Published dependency resolution failed' }
         foreach ($library in @('libpng', 'cairo', 'pango')) {
             $manifest = $expected[$lane.libraries.$library.artifact]
