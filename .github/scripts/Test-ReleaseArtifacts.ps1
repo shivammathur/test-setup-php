@@ -49,6 +49,30 @@ function Invoke-CheckedPhp {
     return ($output -join "`n")
 }
 
+# Exercise the packaged Net-SNMP agent against each exact PHP artifact.
+# The only account is a disposable loopback test fixture; credentials live in the test.
+$agentRuntime = @($row.runtimeZips | Where-Object arch -EQ 'x64')[0]
+$agentZip = Join-Path artifacts/runtime $agentRuntime.name
+if ((Get-FileHash $agentZip).Hash.ToLowerInvariant() -ne $agentRuntime.sha256) { throw 'Agent runtime digest mismatch' }
+Expand-Archive $agentZip artifacts/agent-runtime
+Get-ChildItem artifacts/agent-runtime -Filter 'libcrypto-*.dll' | Copy-Item -Destination artifacts/net-snmp/bin
+Get-ChildItem artifacts/agent-runtime -Filter 'libssl-*.dll' | Copy-Item -Destination artifacts/net-snmp/bin
+New-Item artifacts/agent-config, artifacts/agent-state -ItemType Directory -Force | Out-Null
+$env:SNMPCONFPATH = (Resolve-Path artifacts/agent-config).Path
+$env:SNMP_PERSISTENT_DIR = (Resolve-Path artifacts/agent-state).Path
+$env:OPENSSL_CONF = (Resolve-Path artifacts/agent-runtime/extras/ssl/openssl.cnf).Path
+$port = Get-Random -Minimum 20000 -Maximum 60000
+@("agentaddress udp:127.0.0.1:$port", 'rocommunity release-community 127.0.0.1', 'rouser releaseqa priv', 'sysDescr Winlibs OpenSSL release validation') | Set-Content artifacts/agent-config/snmpd.conf
+'createUser releaseqa SHA ReleaseAuthOnlyForTests AES ReleasePrivacyOnlyForTests' | Set-Content artifacts/agent-state/snmpd.conf
+$agent = Start-Process (Resolve-Path artifacts/net-snmp/bin/snmpd.exe).Path -ArgumentList '-f','-Lo' -PassThru -NoNewWindow -RedirectStandardOutput reports/snmpd.log -RedirectStandardError reports/snmpd-stderr.log
+$ready = $false
+for ($attempt=0; $attempt -lt 60; $attempt++) {
+    if ($agent.HasExited) { Get-Content reports/snmpd.log, reports/snmpd-stderr.log; throw "SNMP agent exited with $($agent.ExitCode)" }
+    if (Get-NetUDPEndpoint -LocalPort $port -ErrorAction SilentlyContinue) { $ready=$true; break }
+    Start-Sleep -Milliseconds 500
+}
+if (!$ready) { Stop-Process -Id $agent.Id -Force; throw 'SNMP agent did not bind loopback' }
+@{package=$mibs; executableSha256=(Get-FileHash artifacts/net-snmp/bin/snmpd.exe).Hash.ToLowerInvariant(); endpoint="127.0.0.1:$port"} | ConvertTo-Json -Depth 10 | Set-Content reports/snmp-agent.json
 $results = @()
 foreach ($runtime in $row.runtimeZips) {
     $result = [ordered]@{
@@ -103,6 +127,8 @@ foreach ($runtime in $row.runtimeZips) {
         $consumers = Invoke-CheckedPhp $exe ($modules + @('tests/consumer-extensions.php'))
         $result.consumers = $consumers | ConvertFrom-Json
         if ($result.consumers.curl_ssl -notmatch "^OpenSSL/$expected(?:\s|$)") { throw 'curl loaded an unexpected OpenSSL runtime' }
+        $snmp = Invoke-CheckedPhp $exe ($base + @('-d', 'extension=snmp', 'tests/snmp-roundtrip.php', "127.0.0.1:$port"))
+        $result.snmp = $snmp | ConvertFrom-Json
         $result.passed = $true
     } catch {
         $result.error = $_.ToString()
@@ -113,6 +139,7 @@ foreach ($runtime in $row.runtimeZips) {
         Write-Host '::endgroup::'
     }
 }
+Stop-Process -Id $agent.Id -Force -ErrorAction SilentlyContinue
 Stop-Transcript
 if ($results.Count -ne 4 -or @($results | Where-Object passed -NE $true).Count -gt 0) {
     throw 'One or more PHP artifact variants failed validation'
