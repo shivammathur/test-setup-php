@@ -46,15 +46,21 @@
           "png_dlls": {}
         }
       ],
-      "label": "published-8.6-x64-ts-cgi",
-      "arch": "x64",
+      "label": "published-8.6-x86-ts-openssl",
+      "arch": "x86",
       "ts": "ts",
       "tests": [
-        "sapi/cgi/tests/011.phpt"
+        "ext/openssl/tests/tls_psk_mismatch.phpt"
       ],
-      "extensions": [],
-      "serial_cases": 50,
-      "parallel_cases": 240
+      "extensions": [
+        "openssl"
+      ],
+      "runtime_dlls": [
+        "libcrypto-4.dll",
+        "libssl-4.dll"
+      ],
+      "serial_cases": 30,
+      "parallel_cases": 120
     }
   ]
 }

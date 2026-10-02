@@ -21,6 +21,13 @@ foreach ($name in @('php.exe','php-cgi.exe',$core)) {
     dumpbin /nologo /dependents "minimal/$name" | Set-Content "reports/$name-imports.txt"
     if ($LASTEXITCODE -ne 0) { throw 'Import inspection failed' }
 }
+if ($row.PSObject.Properties.Name -contains 'runtime_dlls') {
+    foreach ($name in $row.runtime_dlls) {
+        Copy-Item "runtime/$name" minimal
+        dumpbin /nologo /dependents "minimal/$name" | Set-Content "reports/$name-imports.txt"
+        if ($LASTEXITCODE -ne 0) { throw 'Runtime DLL import inspection failed' }
+    }
+}
 New-Item minimal/ext -ItemType Directory -Force | Out-Null
 foreach ($extension in $row.extensions) {
     Copy-Item "runtime/ext/php_$extension.dll" minimal/ext
