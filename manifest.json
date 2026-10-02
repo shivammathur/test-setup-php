@@ -1,0 +1,473 @@
+{
+  "apache_version": "2.4.69",
+  "apache_sha": "1e06e9860794ce39605b79a0a787abfe084e5677",
+  "builder_sha": "a285ceb15f11207af5b5b7fe88add33cc9201e4e",
+  "php_builder_sha": "44b177dd05168995a788123c8807a70e2d0db20c",
+  "php_sdk": {
+    "repository": "php/php-sdk-binary-tools",
+    "tag": "php-sdk-2.8.4",
+    "sha": "cfe7325dfdc9f20e54e85fb8929e32625d5f624e"
+  },
+  "apache_runtime": {
+    "x64": {
+      "url": "https://www.apachelounge.com/download/VS18/binaries/httpd-2.4.69-261002-Win64-VS18.zip",
+      "sha256": "9b47a2363a71fef6209c88e79743db81311e1753c4564e007141934123132c10"
+    },
+    "x86": {
+      "url": "https://www.apachelounge.com/download/VS18/binaries/httpd-2.4.69-261002-win32-VS18.zip",
+      "sha256": "9245f3eee23c5dccbb4ef89d885c7cee7060ff8102112ac268b007647a31557b"
+    }
+  },
+  "vc_runtime": {
+    "x64": {
+      "url": "https://download.visualstudio.microsoft.com/download/pr/ebdab8e5-1d7b-4d9f-a11b-cbb1720c3b12/843068991DAAA1F73AD9F6239BCE4D0F6A07A51F18C37EA2A867E9BECA71295C/VC_redist.x64.exe",
+      "sha256": "843068991daaa1f73ad9f6239bce4d0f6a07a51f18c37ea2a867e9beca71295c",
+      "size": 18731856
+    },
+    "x86": {
+      "url": "https://download.visualstudio.microsoft.com/download/pr/ece44298-3977-4f73-ab91-c13fe79cfea8/F0BAB33A302B3CDB2E11113760D016F54FD3D2632C65BA7834FAC4F0ABD7F1A3/VC_redist.x86.exe",
+      "sha256": "f0bab33a302b3cdb2e11113760d016f54fd3d2632c65ba7834fac4f0abd7f1a3",
+      "size": 6941536
+    }
+  },
+  "lanes": {
+    "8.2": {
+      "vs": "vs16",
+      "arches": [
+        "x86",
+        "x64"
+      ],
+      "php_ref": "PHP-8.2",
+      "php_source_sha": "8155a01189961a6d05621100b14a20608c191035",
+      "dispatch_at": "2026-10-02T15:51:30.887712+00:00",
+      "dispatch_exit_code": 0,
+      "dispatch_output": "https://github.com/winlibs/winlib-builder/actions/runs/37029914043\n",
+      "build_run_id": 37029914043,
+      "build_url": "https://github.com/winlibs/winlib-builder/actions/runs/37029914043",
+      "build_artifacts": [
+        {
+          "id": 11237482933,
+          "node_id": "MDg6QXJ0aWZhY3QxMTIzNzQ4MjkzMw==",
+          "name": "apache-2.4.69-vs16-x64",
+          "size_in_bytes": 7715338,
+          "url": "https://api.github.com/repos/winlibs/winlib-builder/actions/artifacts/11237482933",
+          "archive_download_url": "https://api.github.com/repos/winlibs/winlib-builder/actions/artifacts/11237482933/zip",
+          "expired": false,
+          "digest": "sha256:ecbc4e7a82c8add17ad593ba23e48bd8a092c99a20fcb5c0810fa9881118fc02",
+          "created_at": "2026-10-02T16:04:25Z",
+          "updated_at": "2026-10-02T16:04:25Z",
+          "expires_at": "2026-12-31T15:51:34Z",
+          "workflow_run": {
+            "id": 37029914043,
+            "repository_id": 380752022,
+            "head_repository_id": 380752022,
+            "head_branch": "master",
+            "head_sha": "a285ceb15f11207af5b5b7fe88add33cc9201e4e"
+          }
+        },
+        {
+          "id": 11237448133,
+          "node_id": "MDg6QXJ0aWZhY3QxMTIzNzQ0ODEzMw==",
+          "name": "apache-2.4.69-vs16-x86",
+          "size_in_bytes": 7431981,
+          "url": "https://api.github.com/repos/winlibs/winlib-builder/actions/artifacts/11237448133",
+          "archive_download_url": "https://api.github.com/repos/winlibs/winlib-builder/actions/artifacts/11237448133/zip",
+          "expired": false,
+          "digest": "sha256:df641a63079d71900f7ea021498fd9dff6f60ca4000f9438f32ee7d4b2e4ede4",
+          "created_at": "2026-10-02T16:04:26Z",
+          "updated_at": "2026-10-02T16:04:26Z",
+          "expires_at": "2026-12-31T15:51:34Z",
+          "workflow_run": {
+            "id": 37029914043,
+            "repository_id": 380752022,
+            "head_repository_id": 380752022,
+            "head_branch": "master",
+            "head_sha": "a285ceb15f11207af5b5b7fe88add33cc9201e4e"
+          }
+        }
+      ],
+      "php_dispatch_at": "2026-10-02T16:09:31.935175+00:00",
+      "php_inputs": {
+        "php-src-repository": "php/php-src",
+        "php-src-ref": "8155a01189961a6d05621100b14a20608c191035",
+        "libs-build-runs": "37029914043",
+        "sbom": "true"
+      },
+      "php_dispatch_exit_code": 0,
+      "php_dispatch_output": "https://github.com/shivammathur/php-windows-builder/actions/runs/37032006588\n",
+      "php_run_id": 37032006588,
+      "php_url": "https://github.com/shivammathur/php-windows-builder/actions/runs/37032006588",
+      "apache_compilers": [
+        "19.29.30159.0"
+      ],
+      "dependency_compilers": [
+        "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+        "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x86/cl.exe"
+      ],
+      "php_merged_artifact": {
+        "id": 11238448372,
+        "node_id": "MDg6QXJ0aWZhY3QxMTIzODQ0ODM3Mg==",
+        "name": "artifacts",
+        "size_in_bytes": 252415557,
+        "url": "https://api.github.com/repos/shivammathur/php-windows-builder/actions/artifacts/11238448372",
+        "archive_download_url": "https://api.github.com/repos/shivammathur/php-windows-builder/actions/artifacts/11238448372/zip",
+        "expired": false,
+        "digest": "sha256:188d8643ae9804175a2691cc6810b04662b00f14e9b8611728ae3e73aa5d3216",
+        "created_at": "2026-10-02T16:28:42Z",
+        "updated_at": "2026-10-02T16:28:42Z",
+        "expires_at": "2026-12-31T16:09:34Z",
+        "workflow_run": {
+          "id": 37032006588,
+          "repository_id": 750099177,
+          "head_repository_id": 750099177,
+          "head_branch": "master",
+          "head_sha": "44b177dd05168995a788123c8807a70e2d0db20c"
+        }
+      },
+      "php_archives": {
+        "php-8.2.34-dev-Win32-vs16-x64.zip": {
+          "sha256": "e4e1cf9b3fef52527bbd481745d2efe11b1eb86ab514e7e415822c1c8bb03510",
+          "size": 33580188,
+          "arch": "x64",
+          "ts": "ts",
+          "version": "8.2.34-dev",
+          "files": 87,
+          "apache_sapi_imports": {
+            "libhttpd.dll": 25,
+            "libapr-1.dll": 16,
+            "libaprutil-1.dll": 4,
+            "php8ts.dll": 67
+          },
+          "status": "passed"
+        },
+        "php-8.2.34-dev-Win32-vs16-x86.zip": {
+          "sha256": "dbc4863ea7c64dadabe5657ef1900e4fdd36fb56213195e779634b4d8f00197f",
+          "size": 30171788,
+          "arch": "x86",
+          "ts": "ts",
+          "version": "8.2.34-dev",
+          "files": 87,
+          "apache_sapi_imports": {
+            "libhttpd.dll": 25,
+            "libapr-1.dll": 16,
+            "libaprutil-1.dll": 4,
+            "php8ts.dll": 67
+          },
+          "status": "passed"
+        },
+        "php-8.2.34-dev-nts-Win32-vs16-x64.zip": {
+          "sha256": "4985a1d0ba41cdb72a1eb369b0b35b0d96667683b08c9d66cc2e804d090f9918",
+          "size": 33473240,
+          "arch": "x64",
+          "ts": "nts",
+          "version": "8.2.34-dev",
+          "files": 86,
+          "apache_sapi_imports": {},
+          "status": "passed"
+        },
+        "php-8.2.34-dev-nts-Win32-vs16-x86.zip": {
+          "sha256": "69c5bb0efd4db4a1fffe02fb4b61f11b2b67cb605d7fecd513cb0a4540283fbf",
+          "size": 30190818,
+          "arch": "x86",
+          "ts": "nts",
+          "version": "8.2.34-dev",
+          "files": 86,
+          "apache_sapi_imports": {},
+          "status": "passed"
+        }
+      }
+    },
+    "8.4": {
+      "vs": "vs17",
+      "arches": [
+        "x86",
+        "x64"
+      ],
+      "php_ref": "PHP-8.4",
+      "php_source_sha": "87d728d24895068a7e886ad04368447797399c7f",
+      "dispatch_at": "2026-10-02T15:51:33.283298+00:00",
+      "dispatch_exit_code": 0,
+      "dispatch_output": "https://github.com/winlibs/winlib-builder/actions/runs/37029919785\n",
+      "build_run_id": 37029919785,
+      "build_url": "https://github.com/winlibs/winlib-builder/actions/runs/37029919785",
+      "build_artifacts": [
+        {
+          "id": 11237915785,
+          "node_id": "MDg6QXJ0aWZhY3QxMTIzNzkxNTc4NQ==",
+          "name": "apache-2.4.69-vs17-x86",
+          "size_in_bytes": 7432065,
+          "url": "https://api.github.com/repos/winlibs/winlib-builder/actions/artifacts/11237915785",
+          "archive_download_url": "https://api.github.com/repos/winlibs/winlib-builder/actions/artifacts/11237915785/zip",
+          "expired": false,
+          "digest": "sha256:cdae24396c78b8ac919c5e56266cd58b050626e8ff5a625d5cb077e2702b8dc8",
+          "created_at": "2026-10-02T16:06:26Z",
+          "updated_at": "2026-10-02T16:06:26Z",
+          "expires_at": "2026-12-31T15:51:37Z",
+          "workflow_run": {
+            "id": 37029919785,
+            "repository_id": 380752022,
+            "head_repository_id": 380752022,
+            "head_branch": "master",
+            "head_sha": "a285ceb15f11207af5b5b7fe88add33cc9201e4e"
+          }
+        },
+        {
+          "id": 11237786001,
+          "node_id": "MDg6QXJ0aWZhY3QxMTIzNzc4NjAwMQ==",
+          "name": "apache-2.4.69-vs17-x64",
+          "size_in_bytes": 7715422,
+          "url": "https://api.github.com/repos/winlibs/winlib-builder/actions/artifacts/11237786001",
+          "archive_download_url": "https://api.github.com/repos/winlibs/winlib-builder/actions/artifacts/11237786001/zip",
+          "expired": false,
+          "digest": "sha256:1afd2fd6cce82b46744825b6c1b26fb7be8afa16b61537b43172bcd0ea0d800c",
+          "created_at": "2026-10-02T16:07:15Z",
+          "updated_at": "2026-10-02T16:07:15Z",
+          "expires_at": "2026-12-31T15:51:37Z",
+          "workflow_run": {
+            "id": 37029919785,
+            "repository_id": 380752022,
+            "head_repository_id": 380752022,
+            "head_branch": "master",
+            "head_sha": "a285ceb15f11207af5b5b7fe88add33cc9201e4e"
+          }
+        }
+      ],
+      "php_dispatch_at": "2026-10-02T16:09:34.023884+00:00",
+      "php_inputs": {
+        "php-src-repository": "php/php-src",
+        "php-src-ref": "87d728d24895068a7e886ad04368447797399c7f",
+        "libs-build-runs": "37029919785",
+        "sbom": "true"
+      },
+      "php_dispatch_exit_code": 0,
+      "php_dispatch_output": "https://github.com/shivammathur/php-windows-builder/actions/runs/37032010789\n",
+      "php_run_id": 37032010789,
+      "php_url": "https://github.com/shivammathur/php-windows-builder/actions/runs/37032010789",
+      "apache_compilers": [
+        "19.44.35229.0"
+      ],
+      "dependency_compilers": [
+        "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+        "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x86/cl.exe"
+      ],
+      "php_merged_artifact": {
+        "id": 11241342324,
+        "node_id": "MDg6QXJ0aWZhY3QxMTI0MTM0MjMyNA==",
+        "name": "artifacts",
+        "size_in_bytes": 319894273,
+        "url": "https://api.github.com/repos/shivammathur/php-windows-builder/actions/artifacts/11241342324",
+        "archive_download_url": "https://api.github.com/repos/shivammathur/php-windows-builder/actions/artifacts/11241342324/zip",
+        "expired": false,
+        "digest": "sha256:5271aeb554f3005971eeb3af1740667d53484e30b2acee0bd278781f399f95e6",
+        "created_at": "2026-10-02T17:02:45Z",
+        "updated_at": "2026-10-02T17:02:45Z",
+        "expires_at": "2026-12-31T16:09:37Z",
+        "workflow_run": {
+          "id": 37032010789,
+          "repository_id": 750099177,
+          "head_repository_id": 750099177,
+          "head_branch": "master",
+          "head_sha": "44b177dd05168995a788123c8807a70e2d0db20c"
+        }
+      },
+      "php_archives": {
+        "php-8.4.27-dev-Win32-vs17-x64.zip": {
+          "sha256": "8160c6106643fb9c3c9cfbfa17c5ef380b495257f0380a7179834bb71a4c190a",
+          "size": 35154416,
+          "arch": "x64",
+          "ts": "ts",
+          "version": "8.4.27-dev",
+          "files": 86,
+          "apache_sapi_imports": {
+            "libhttpd.dll": 25,
+            "libapr-1.dll": 16,
+            "libaprutil-1.dll": 4,
+            "php8ts.dll": 67
+          },
+          "status": "passed"
+        },
+        "php-8.4.27-dev-Win32-vs17-x86.zip": {
+          "sha256": "5088a1cd063e36653aa3bdcd666e557b394270cf74f1a5f66d90fcd89bad2550",
+          "size": 31588550,
+          "arch": "x86",
+          "ts": "ts",
+          "version": "8.4.27-dev",
+          "files": 86,
+          "apache_sapi_imports": {
+            "libhttpd.dll": 25,
+            "libapr-1.dll": 16,
+            "libaprutil-1.dll": 4,
+            "php8ts.dll": 67
+          },
+          "status": "passed"
+        },
+        "php-8.4.27-dev-nts-Win32-vs17-x64.zip": {
+          "sha256": "4ce5db55ffe56325286b0fa0dca6c42297a3b33c501f82bc40e161477c4dc35c",
+          "size": 35120862,
+          "arch": "x64",
+          "ts": "nts",
+          "version": "8.4.27-dev",
+          "files": 85,
+          "apache_sapi_imports": {},
+          "status": "passed"
+        },
+        "php-8.4.27-dev-nts-Win32-vs17-x86.zip": {
+          "sha256": "886fb02e722594ca0cf25319cede583f5697919b0930fafde9f25390a6074c14",
+          "size": 31513611,
+          "arch": "x86",
+          "ts": "nts",
+          "version": "8.4.27-dev",
+          "files": 85,
+          "apache_sapi_imports": {},
+          "status": "passed"
+        }
+      }
+    },
+    "8.6": {
+      "vs": "vs18",
+      "arches": [
+        "x86",
+        "x64"
+      ],
+      "php_ref": "PHP-8.6",
+      "php_source_sha": "38b2036e6f70de1000cd9177c113f7e5195eae47",
+      "dispatch_at": "2026-10-02T15:51:36.362693+00:00",
+      "dispatch_exit_code": 0,
+      "dispatch_output": "https://github.com/winlibs/winlib-builder/actions/runs/37029925542\n",
+      "build_run_id": 37029925542,
+      "build_url": "https://github.com/winlibs/winlib-builder/actions/runs/37029925542",
+      "build_artifacts": [
+        {
+          "id": 11237966177,
+          "node_id": "MDg6QXJ0aWZhY3QxMTIzNzk2NjE3Nw==",
+          "name": "apache-2.4.69-vs18-x86",
+          "size_in_bytes": 7451707,
+          "url": "https://api.github.com/repos/winlibs/winlib-builder/actions/artifacts/11237966177",
+          "archive_download_url": "https://api.github.com/repos/winlibs/winlib-builder/actions/artifacts/11237966177/zip",
+          "expired": false,
+          "digest": "sha256:a135aedccd4a5c91518690f6a7b2722bfdf3131fc29fe8874a7ac07428e4acc6",
+          "created_at": "2026-10-02T16:08:49Z",
+          "updated_at": "2026-10-02T16:08:49Z",
+          "expires_at": "2026-12-31T15:51:40Z",
+          "workflow_run": {
+            "id": 37029925542,
+            "repository_id": 380752022,
+            "head_repository_id": 380752022,
+            "head_branch": "master",
+            "head_sha": "a285ceb15f11207af5b5b7fe88add33cc9201e4e"
+          }
+        },
+        {
+          "id": 11237183874,
+          "node_id": "MDg6QXJ0aWZhY3QxMTIzNzE4Mzg3NA==",
+          "name": "apache-2.4.69-vs18-x64",
+          "size_in_bytes": 7768268,
+          "url": "https://api.github.com/repos/winlibs/winlib-builder/actions/artifacts/11237183874",
+          "archive_download_url": "https://api.github.com/repos/winlibs/winlib-builder/actions/artifacts/11237183874/zip",
+          "expired": false,
+          "digest": "sha256:e529484496841b13f887fd360b922e5f71367a4da786ba192e717ec772d785d4",
+          "created_at": "2026-10-02T16:06:34Z",
+          "updated_at": "2026-10-02T16:06:34Z",
+          "expires_at": "2026-12-31T15:51:40Z",
+          "workflow_run": {
+            "id": 37029925542,
+            "repository_id": 380752022,
+            "head_repository_id": 380752022,
+            "head_branch": "master",
+            "head_sha": "a285ceb15f11207af5b5b7fe88add33cc9201e4e"
+          }
+        }
+      ],
+      "php_dispatch_at": "2026-10-02T16:09:36.371983+00:00",
+      "php_inputs": {
+        "php-src-repository": "php/php-src",
+        "php-src-ref": "38b2036e6f70de1000cd9177c113f7e5195eae47",
+        "libs-build-runs": "37029925542",
+        "sbom": "true"
+      },
+      "php_dispatch_exit_code": 0,
+      "php_dispatch_output": "https://github.com/shivammathur/php-windows-builder/actions/runs/37032014938\n",
+      "php_run_id": 37032014938,
+      "php_url": "https://github.com/shivammathur/php-windows-builder/actions/runs/37032014938",
+      "apache_compilers": [
+        "19.51.36260.0"
+      ],
+      "dependency_compilers": [
+        "C:/Program Files/Microsoft Visual Studio/18/Enterprise/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe",
+        "C:/Program Files/Microsoft Visual Studio/18/Enterprise/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x86/cl.exe"
+      ],
+      "php_merged_artifact": {
+        "id": 11240460303,
+        "node_id": "MDg6QXJ0aWZhY3QxMTI0MDQ2MDMwMw==",
+        "name": "artifacts",
+        "size_in_bytes": 384675589,
+        "url": "https://api.github.com/repos/shivammathur/php-windows-builder/actions/artifacts/11240460303",
+        "archive_download_url": "https://api.github.com/repos/shivammathur/php-windows-builder/actions/artifacts/11240460303/zip",
+        "expired": false,
+        "digest": "sha256:eedd0ad6ef5ef4ca3810484ffcde8f9ee51289f62911de6d1f28f4cbac83e3ac",
+        "created_at": "2026-10-02T16:42:20Z",
+        "updated_at": "2026-10-02T16:42:20Z",
+        "expires_at": "2026-12-31T16:09:39Z",
+        "workflow_run": {
+          "id": 37032014938,
+          "repository_id": 750099177,
+          "head_repository_id": 750099177,
+          "head_branch": "master",
+          "head_sha": "44b177dd05168995a788123c8807a70e2d0db20c"
+        }
+      },
+      "php_archives": {
+        "php-8.6.0-dev-Win32-vs18-x64.zip": {
+          "sha256": "4063ec977fd79899978c048d11120d4cf063150aeaf29366987518dba81cb857",
+          "size": 39285910,
+          "arch": "x64",
+          "ts": "ts",
+          "version": "8.6.0-dev",
+          "files": 84,
+          "apache_sapi_imports": {
+            "libhttpd.dll": 25,
+            "libapr-1.dll": 16,
+            "libaprutil-1.dll": 4,
+            "php8ts.dll": 68
+          },
+          "status": "passed"
+        },
+        "php-8.6.0-dev-Win32-vs18-x86.zip": {
+          "sha256": "29bf44b1ddcc153a7898bedc82543c2bef7ef62ece3fbce8a2dfec6b2bbcd8db",
+          "size": 34433428,
+          "arch": "x86",
+          "ts": "ts",
+          "version": "8.6.0-dev",
+          "files": 84,
+          "apache_sapi_imports": {
+            "libhttpd.dll": 25,
+            "libapr-1.dll": 16,
+            "libaprutil-1.dll": 4,
+            "php8ts.dll": 68
+          },
+          "status": "passed"
+        },
+        "php-8.6.0-dev-nts-Win32-vs18-x64.zip": {
+          "sha256": "7e757b2bae48d9b7d8e0ad5fb9f9e90e1f59019676959061f058538f0d1fc70d",
+          "size": 39222675,
+          "arch": "x64",
+          "ts": "nts",
+          "version": "8.6.0-dev",
+          "files": 83,
+          "apache_sapi_imports": {},
+          "status": "passed"
+        },
+        "php-8.6.0-dev-nts-Win32-vs18-x86.zip": {
+          "sha256": "5645017d8215b160dcbcee56d2b8222257e60319ff77b9252d96da848df5bb76",
+          "size": 34411036,
+          "arch": "x86",
+          "ts": "nts",
+          "version": "8.6.0-dev",
+          "files": 83,
+          "apache_sapi_imports": {},
+          "status": "passed"
+        }
+      }
+    }
+  }
+}
