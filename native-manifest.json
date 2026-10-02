@@ -2,62 +2,62 @@
   "phase": "candidate",
   "lanes": [
     {
-      "php": "8.5",
+      "php": "8.6",
       "arch": "x64",
-      "runner": "windows-2022",
-      "toolset": "14.44.35207",
-      "opensslVersion": "3.5.9",
+      "runner": "windows-2025-vs2026",
+      "toolset": "14.51.36231",
+      "opensslVersion": "4.0.3",
       "packages": [
         {
           "library": "openssl",
-          "runId": 36997380363,
-          "artifactId": 11223625400,
-          "name": "openssl-3.5.9-vs17-x64",
-          "sha256": "889b08e67ff0f7aae59f58619f4f73da7b4998ae2b6f96e1a4b0acaf89d6c280"
+          "runId": 36997380507,
+          "artifactId": 11223498444,
+          "name": "openssl-4.0.3-vs18-x64",
+          "sha256": "4b551372b43e3d5f88ca931349a74236d0b9ba97f983d7f9a7bfee69f6b9370c"
         },
         {
           "library": "librdkafka",
-          "runId": 37004039050,
-          "artifactId": 11225421674,
-          "name": "librdkafka.openssl3.5-2.15.1-vs17-x64",
-          "sha256": "d1b74820ec3ecc13d5ce73e71a38bd28b1d43cb3b41c34bbd1529bc5a1b6416b"
+          "runId": 37002159052,
+          "artifactId": 11224660796,
+          "name": "librdkafka-2.15.1-vs18-x64",
+          "sha256": "21571e91e43029a9fbab068035ae66e51962dfeb5999b88b771f556dca05d453"
         },
         {
           "library": "librabbitmq",
-          "runId": 37004039744,
-          "artifactId": 11225152139,
-          "name": "librabbitmq.openssl3.5-0.18.0-vs17-x64",
-          "sha256": "7a627eacb1ea58c7dfd5e72d206348704ae3037e605e4184927bd1650db2b2b2"
+          "runId": 37002159418,
+          "artifactId": 11224485275,
+          "name": "librabbitmq-0.18.0-vs18-x64",
+          "sha256": "5cf2a5fb1309c9af8f5c3a250c8e50024441431e947956e614d2246a15c48daa"
         }
       ]
     },
     {
-      "php": "8.5",
+      "php": "8.6",
       "arch": "x86",
-      "runner": "windows-2022",
-      "toolset": "14.44.35207",
-      "opensslVersion": "3.5.9",
+      "runner": "windows-2025-vs2026",
+      "toolset": "14.51.36231",
+      "opensslVersion": "4.0.3",
       "packages": [
         {
           "library": "openssl",
-          "runId": 36997380363,
-          "artifactId": 11224051302,
-          "name": "openssl-3.5.9-vs17-x86",
-          "sha256": "b603a66fba280b72150f72dc3f5f9b0b2fd077a5e5ee04307a4a9111dfc00f4e"
+          "runId": 36997380507,
+          "artifactId": 11224102687,
+          "name": "openssl-4.0.3-vs18-x86",
+          "sha256": "ad368a51309a5dd456f3522a7cc45d33318a8636cc6f8d89982dc1c6656475f2"
         },
         {
           "library": "librdkafka",
-          "runId": 37004039050,
-          "artifactId": 11225082179,
-          "name": "librdkafka.openssl3.5-2.15.1-vs17-x86",
-          "sha256": "7445f0934bfd424bd09b6bb8d9fb55a2e9a4136fe05f398e699c73a8716e1569"
+          "runId": 37002159052,
+          "artifactId": 11224298455,
+          "name": "librdkafka-2.15.1-vs18-x86",
+          "sha256": "4a5a7fe247b4c392352738a59923f838f0cf2e67ebbef8782469d272800d3747"
         },
         {
           "library": "librabbitmq",
-          "runId": 37004039744,
-          "artifactId": 11224681886,
-          "name": "librabbitmq.openssl3.5-0.18.0-vs17-x86",
-          "sha256": "2a71d9557d05a5876ae1e96d48599641cec96fc4673bf40f62b726f3f28d760b"
+          "runId": 37002159418,
+          "artifactId": 11223419026,
+          "name": "librabbitmq-0.18.0-vs18-x86",
+          "sha256": "1cddb98cb7ce75fd591ebe8d0f6553e483170bbb211037d2cd71d15c49a3e7ba"
         }
       ]
     }

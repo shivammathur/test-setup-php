@@ -40,8 +40,10 @@ $env:MIBDIRS = (Resolve-Path artifacts/net-snmp/share/mibs).Path
 
 function Invoke-CheckedPhp {
     param([string] $Executable, [string[]] $Arguments)
-    $output = & $Executable @Arguments 2>&1
+    $stderrFile = Join-Path (Resolve-Path reports).Path 'php-stderr.txt'
+    $output = & $Executable @Arguments 2> $stderrFile
     $status = $LASTEXITCODE
+    Get-Content $stderrFile | ForEach-Object { Write-Host $_ }
     $output | ForEach-Object { Write-Host $_ }
     if ($status -ne 0) { throw "PHP exited with $status" }
     return ($output -join "`n")
