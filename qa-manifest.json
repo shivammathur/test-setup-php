@@ -2,79 +2,157 @@
   "phase": "published",
   "php": [
     {
-      "php": "8.3",
-      "runId": 37047199151,
-      "artifactId": 11245815288,
-      "artifactSha256": "f06adf2ca34ab9197fd041f088c5fc29b0f71b160bdb74aa29d09d5bf4b53cd9",
-      "runner": "windows-2022",
-      "opensslVersion": "3.0.22",
-      "sourceCommit": "361ef000e623ff95166f169e9beeb6f42c5950e0",
+      "php": "8.6",
+      "runId": 37049981455,
+      "artifactId": 11247505653,
+      "artifactSha256": "31bc18a8a3c3c34664352b9b5d7b304feb4e933a84dea79de3116bb680b87009",
+      "runner": "windows-2025-vs2026",
+      "opensslVersion": "4.0.3",
+      "sourceCommit": "3ebd95ff865dbfef9443c9293f427312e04fb68a",
       "mibsPackage": {
         "library": "net-snmp",
-        "runId": 37029067231,
-        "artifactId": 11235899841,
-        "name": "net-snmp-5.7.3-6-vs16-x64",
-        "sha256": "88911a4aefa5388ac2c90d9f651f7d301326d08f3e849fb6a53d719ef79589b1"
+        "runId": 37029067473,
+        "artifactId": 11236307494,
+        "name": "net-snmp-5.9.5.2-2-vs18-x64",
+        "sha256": "0a2f1d3def0900b1a7b585ec4231f1118f5b2be40d5bbc5bf2ac2f88a9c52b31"
       },
       "runtimeZips": [
         {
-          "name": "php-8.3.36-dev-Win32-vs16-x64.zip",
+          "name": "php-8.6.0-dev-Win32-vs18-x64.zip",
           "arch": "x64",
           "ts": "ts",
-          "phpVersion": "8.3.36-dev",
-          "sha256": "52e84c214e991afc8b2757e5f238e726cfb45bfd1c11658f8110fc68d0e8429a",
+          "phpVersion": "8.6.0-dev",
+          "sha256": "839c64949104190e5b9c574712a3cddafe2fee698ffa5363d7bb5aa3afa554c8",
           "dllHashes": {
-            "extras/ssl/legacy.dll": "00b02ddf8be6fefd2f01023e79dfc97241bfe090149e2890d3d504c44f8f9df2",
-            "libcrypto-3-x64.dll": "c3586951c3170967cfd9ca93b86b0e51a289d2c680d0b2556377252374e3c73b",
-            "libpq.dll": "5e6fef4682c3b65662d47a5675c025eeb1ac594762a16d9a7b106c92efa4a45a",
-            "libsasl.dll": "7799cd0d4461595e69ba7650f084abf8b82d4511f5f010f5806d7c6f48b7b16a",
-            "libssh2.dll": "03ff15fe723212b7e7f765b0cebb3fc064579471a9f18472849f52874a815034",
-            "libssl-3-x64.dll": "ead4db5a9657864e46f5985762240bf086e69d30647bab6de425b98309153fa7"
+            "extras/ssl/legacy.dll": "ef077239d1a7d873563fcf3b2d806c45eca6b754c8305ab5fab0da0aff0eeaa2",
+            "libcrypto-4-x64.dll": "48c234fe663ff774ca5d974eb7b961af9752a49321f90e1fbe9f510fb25424a6",
+            "libpq.dll": "953af1f9bdc1a45733eb5b43b80fb2fecbdd6cc8c2fb8012208572a7374214e3",
+            "libsasl.dll": "8b6943b3506aa24c8da3f59fecb4a22f84e56b2be632971c19b50cb83cba4152",
+            "libssh2.dll": "3f9682ed9ed358caec12b0b3eba6d30fd6c08208ca3881b7c5eb1b6546a4b0b1",
+            "libssl-4-x64.dll": "7ab7c3afe98fc14f85e1c8ffdd43d45eee0fe75e427c38bcb46155b67d4273c7"
           }
         },
         {
-          "name": "php-8.3.36-dev-Win32-vs16-x86.zip",
+          "name": "php-8.6.0-dev-Win32-vs18-x86.zip",
           "arch": "x86",
           "ts": "ts",
-          "phpVersion": "8.3.36-dev",
-          "sha256": "576f5610d76a796f358a32703d6cfc1e070eaa3484cff41991da54c64b8aba33",
+          "phpVersion": "8.6.0-dev",
+          "sha256": "80b1f7e5798639103c27b109122fb34cf345a953715deb7a89f9651f2671989e",
           "dllHashes": {
-            "extras/ssl/legacy.dll": "bf803a9414169500613a5339aa7827faaf05a072352a1a45f24e3dcb25a13c38",
-            "libcrypto-3.dll": "79d049b020bb8e8791e4b2f1b385f101195a0826456213b4e97d573ba945f04c",
-            "libpq.dll": "97c763beedf7426675e5e9010bca76e1b84878adb0c12f21f444164608ea2fe9",
-            "libsasl.dll": "8775e937adbfc6fecec8bd56210fc8f9eb8683f11c8b64cbe81029c3fd57db2c",
-            "libssh2.dll": "f9f18181a3b0fae9e81d31ce52f2fec9374c0625ecb908451c7202cabfc9683e",
-            "libssl-3.dll": "9f231347abb1b3cd84731458d8be1be467597ee814279091c61b80d866ad48a5"
+            "extras/ssl/legacy.dll": "e4b3870dbfd1eafb21f7ee57c7acaa20537312f8d71ff3cdc51058913c0517f0",
+            "libcrypto-4.dll": "4abf1e8122cc920f9bafadf94f72b95a6387d1434e0973ea47bd3976b0504e73",
+            "libpq.dll": "295cb8a271520245ca85482476293b6246cb0798cd3895ca06aea36e5f3a432c",
+            "libsasl.dll": "ee7b12206afd30e471a28dc52477167678d77342568494821b99a749a7e052a3",
+            "libssh2.dll": "841b84a4a08339840d212c463bfabdf6d3953fe5fd0c08503ee197cb06496b72",
+            "libssl-4.dll": "9f2343570b15416ffa168b132121c11b23d14584f28b636cbda4c6fd2365bf09"
           }
         },
         {
-          "name": "php-8.3.36-dev-nts-Win32-vs16-x64.zip",
+          "name": "php-8.6.0-dev-nts-Win32-vs18-x64.zip",
           "arch": "x64",
           "ts": "nts",
-          "phpVersion": "8.3.36-dev",
-          "sha256": "198c25e1ce064cb86f39c1e849300d8023f1c41be8740ee2088511fe25b01c8b",
+          "phpVersion": "8.6.0-dev",
+          "sha256": "98e5ac129c0c697cf96d4db81b6c121314956a7b5d0d4770a2dd94361fa3ea6c",
           "dllHashes": {
-            "extras/ssl/legacy.dll": "00b02ddf8be6fefd2f01023e79dfc97241bfe090149e2890d3d504c44f8f9df2",
-            "libcrypto-3-x64.dll": "c3586951c3170967cfd9ca93b86b0e51a289d2c680d0b2556377252374e3c73b",
-            "libpq.dll": "5e6fef4682c3b65662d47a5675c025eeb1ac594762a16d9a7b106c92efa4a45a",
-            "libsasl.dll": "7799cd0d4461595e69ba7650f084abf8b82d4511f5f010f5806d7c6f48b7b16a",
-            "libssh2.dll": "03ff15fe723212b7e7f765b0cebb3fc064579471a9f18472849f52874a815034",
-            "libssl-3-x64.dll": "ead4db5a9657864e46f5985762240bf086e69d30647bab6de425b98309153fa7"
+            "extras/ssl/legacy.dll": "ef077239d1a7d873563fcf3b2d806c45eca6b754c8305ab5fab0da0aff0eeaa2",
+            "libcrypto-4-x64.dll": "48c234fe663ff774ca5d974eb7b961af9752a49321f90e1fbe9f510fb25424a6",
+            "libpq.dll": "953af1f9bdc1a45733eb5b43b80fb2fecbdd6cc8c2fb8012208572a7374214e3",
+            "libsasl.dll": "8b6943b3506aa24c8da3f59fecb4a22f84e56b2be632971c19b50cb83cba4152",
+            "libssh2.dll": "3f9682ed9ed358caec12b0b3eba6d30fd6c08208ca3881b7c5eb1b6546a4b0b1",
+            "libssl-4-x64.dll": "7ab7c3afe98fc14f85e1c8ffdd43d45eee0fe75e427c38bcb46155b67d4273c7"
           }
         },
         {
-          "name": "php-8.3.36-dev-nts-Win32-vs16-x86.zip",
+          "name": "php-8.6.0-dev-nts-Win32-vs18-x86.zip",
           "arch": "x86",
           "ts": "nts",
-          "phpVersion": "8.3.36-dev",
-          "sha256": "dbe82cd68486bd9dc0c292bae87f4d072eb346a2026be229abb5ee361d99b458",
+          "phpVersion": "8.6.0-dev",
+          "sha256": "967abb5cae93c6082c249dfffde7ececd1f08d920ccd93900285c25f760d8f9e",
           "dllHashes": {
-            "extras/ssl/legacy.dll": "bf803a9414169500613a5339aa7827faaf05a072352a1a45f24e3dcb25a13c38",
-            "libcrypto-3.dll": "79d049b020bb8e8791e4b2f1b385f101195a0826456213b4e97d573ba945f04c",
-            "libpq.dll": "97c763beedf7426675e5e9010bca76e1b84878adb0c12f21f444164608ea2fe9",
-            "libsasl.dll": "8775e937adbfc6fecec8bd56210fc8f9eb8683f11c8b64cbe81029c3fd57db2c",
-            "libssh2.dll": "f9f18181a3b0fae9e81d31ce52f2fec9374c0625ecb908451c7202cabfc9683e",
-            "libssl-3.dll": "9f231347abb1b3cd84731458d8be1be467597ee814279091c61b80d866ad48a5"
+            "extras/ssl/legacy.dll": "e4b3870dbfd1eafb21f7ee57c7acaa20537312f8d71ff3cdc51058913c0517f0",
+            "libcrypto-4.dll": "4abf1e8122cc920f9bafadf94f72b95a6387d1434e0973ea47bd3976b0504e73",
+            "libpq.dll": "295cb8a271520245ca85482476293b6246cb0798cd3895ca06aea36e5f3a432c",
+            "libsasl.dll": "ee7b12206afd30e471a28dc52477167678d77342568494821b99a749a7e052a3",
+            "libssh2.dll": "841b84a4a08339840d212c463bfabdf6d3953fe5fd0c08503ee197cb06496b72",
+            "libssl-4.dll": "9f2343570b15416ffa168b132121c11b23d14584f28b636cbda4c6fd2365bf09"
+          }
+        }
+      ]
+    },
+    {
+      "php": "master",
+      "runId": 37049981446,
+      "artifactId": 11247580338,
+      "artifactSha256": "04558a449bca1662c8445f911d5c17ca726a9a2748a8bad3f1cc13acdf477240",
+      "runner": "windows-2025-vs2026",
+      "opensslVersion": "4.0.3",
+      "sourceCommit": "1b2bde474ab06e5b4303754cc4b91ecb7eeee1a9",
+      "mibsPackage": {
+        "library": "net-snmp",
+        "runId": 37029067473,
+        "artifactId": 11236307494,
+        "name": "net-snmp-5.9.5.2-2-vs18-x64",
+        "sha256": "0a2f1d3def0900b1a7b585ec4231f1118f5b2be40d5bbc5bf2ac2f88a9c52b31"
+      },
+      "runtimeZips": [
+        {
+          "name": "php-8.7.0-dev-Win32-vs18-x64.zip",
+          "arch": "x64",
+          "ts": "ts",
+          "phpVersion": "8.7.0-dev",
+          "sha256": "eb0d533edc2665260a12c7e6ca15b88d90750fbc15df1a1877ceeaff2adec9f9",
+          "dllHashes": {
+            "extras/ssl/legacy.dll": "ef077239d1a7d873563fcf3b2d806c45eca6b754c8305ab5fab0da0aff0eeaa2",
+            "libcrypto-4-x64.dll": "48c234fe663ff774ca5d974eb7b961af9752a49321f90e1fbe9f510fb25424a6",
+            "libpq.dll": "953af1f9bdc1a45733eb5b43b80fb2fecbdd6cc8c2fb8012208572a7374214e3",
+            "libsasl.dll": "8b6943b3506aa24c8da3f59fecb4a22f84e56b2be632971c19b50cb83cba4152",
+            "libssh2.dll": "3f9682ed9ed358caec12b0b3eba6d30fd6c08208ca3881b7c5eb1b6546a4b0b1",
+            "libssl-4-x64.dll": "7ab7c3afe98fc14f85e1c8ffdd43d45eee0fe75e427c38bcb46155b67d4273c7"
+          }
+        },
+        {
+          "name": "php-8.7.0-dev-Win32-vs18-x86.zip",
+          "arch": "x86",
+          "ts": "ts",
+          "phpVersion": "8.7.0-dev",
+          "sha256": "f5935fedb72d90825e09f12b043a725408257756a5eae093b138da93509ce18a",
+          "dllHashes": {
+            "extras/ssl/legacy.dll": "e4b3870dbfd1eafb21f7ee57c7acaa20537312f8d71ff3cdc51058913c0517f0",
+            "libcrypto-4.dll": "4abf1e8122cc920f9bafadf94f72b95a6387d1434e0973ea47bd3976b0504e73",
+            "libpq.dll": "295cb8a271520245ca85482476293b6246cb0798cd3895ca06aea36e5f3a432c",
+            "libsasl.dll": "ee7b12206afd30e471a28dc52477167678d77342568494821b99a749a7e052a3",
+            "libssh2.dll": "841b84a4a08339840d212c463bfabdf6d3953fe5fd0c08503ee197cb06496b72",
+            "libssl-4.dll": "9f2343570b15416ffa168b132121c11b23d14584f28b636cbda4c6fd2365bf09"
+          }
+        },
+        {
+          "name": "php-8.7.0-dev-nts-Win32-vs18-x64.zip",
+          "arch": "x64",
+          "ts": "nts",
+          "phpVersion": "8.7.0-dev",
+          "sha256": "b18fceb9dd676e99d01e9526fa1c2818c3ac7edfb63a27e750b84fb1009c9032",
+          "dllHashes": {
+            "extras/ssl/legacy.dll": "ef077239d1a7d873563fcf3b2d806c45eca6b754c8305ab5fab0da0aff0eeaa2",
+            "libcrypto-4-x64.dll": "48c234fe663ff774ca5d974eb7b961af9752a49321f90e1fbe9f510fb25424a6",
+            "libpq.dll": "953af1f9bdc1a45733eb5b43b80fb2fecbdd6cc8c2fb8012208572a7374214e3",
+            "libsasl.dll": "8b6943b3506aa24c8da3f59fecb4a22f84e56b2be632971c19b50cb83cba4152",
+            "libssh2.dll": "3f9682ed9ed358caec12b0b3eba6d30fd6c08208ca3881b7c5eb1b6546a4b0b1",
+            "libssl-4-x64.dll": "7ab7c3afe98fc14f85e1c8ffdd43d45eee0fe75e427c38bcb46155b67d4273c7"
+          }
+        },
+        {
+          "name": "php-8.7.0-dev-nts-Win32-vs18-x86.zip",
+          "arch": "x86",
+          "ts": "nts",
+          "phpVersion": "8.7.0-dev",
+          "sha256": "709b716499697cf37839ff1c727e610e61fb0e6eff967fbddf82c00619e26fe6",
+          "dllHashes": {
+            "extras/ssl/legacy.dll": "e4b3870dbfd1eafb21f7ee57c7acaa20537312f8d71ff3cdc51058913c0517f0",
+            "libcrypto-4.dll": "4abf1e8122cc920f9bafadf94f72b95a6387d1434e0973ea47bd3976b0504e73",
+            "libpq.dll": "295cb8a271520245ca85482476293b6246cb0798cd3895ca06aea36e5f3a432c",
+            "libsasl.dll": "ee7b12206afd30e471a28dc52477167678d77342568494821b99a749a7e052a3",
+            "libssh2.dll": "841b84a4a08339840d212c463bfabdf6d3953fe5fd0c08503ee197cb06496b72",
+            "libssl-4.dll": "9f2343570b15416ffa168b132121c11b23d14584f28b636cbda4c6fd2365bf09"
           }
         }
       ]
