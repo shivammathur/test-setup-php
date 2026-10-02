@@ -132,6 +132,8 @@ foreach ($runtime in $row.runtimeZips) {
         if ($result.consumers.curl_ssl -notmatch "^OpenSSL/$expected(?:\s|$)") { throw 'curl loaded an unexpected OpenSSL runtime' }
         $snmp = Invoke-CheckedPhp $exe ($base + @('-d', 'extension=snmp', 'tests/snmp-roundtrip.php', "127.0.0.1:$port"))
         $result.snmp = $snmp | ConvertFrom-Json
+        $negative = Invoke-CheckedPhp $exe ($base + @('-d', 'extension=snmp', 'tests/snmp-roundtrip.php', "127.0.0.1:$port", 'wrong-auth')) | ConvertFrom-Json
+        $result.snmp | Add-Member -NotePropertyName wrongAuthenticationRejected -NotePropertyValue $negative.wrongAuthenticationRejected
         $result.passed = $true
     } catch {
         $result.error = $_.ToString()
