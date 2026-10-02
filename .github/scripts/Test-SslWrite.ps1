@@ -1,6 +1,7 @@
-param([ValidateSet('4.0.2','4.0.3')][string]$OpenSsl)
+param([ValidateSet('4.0.2','4.0.3')][string]$OpenSsl, [ValidateSet('write','psk')][string]$Kind = 'write')
 $ErrorActionPreference = 'Stop'
 $row = Get-Content ssl-write-manifest.json -Raw | ConvertFrom-Json
+if ($Kind -eq 'psk') { $row = $row.psk }
 $runtime = @($row.runtimeZips | Where-Object { $_.arch -eq 'x86' -and $_.ts -eq 'nts' })[0]
 $package = @($row.packages | Where-Object version -EQ $OpenSsl)[0]
 New-Item reports, unpacked, sources, cases, empty-ini -ItemType Directory -Force | Out-Null
@@ -23,13 +24,19 @@ Get-ChildItem openssl/bin -Filter '*.dll' | Copy-Item -Destination runtime -Forc
 Copy-Item openssl/lib/ossl-modules/legacy.dll runtime/extras/ssl/legacy.dll -Force
 $files = @(Get-ChildItem runtime -File | Where-Object Name -Match '^(php|lib(?:crypto|ssl)-)' | ForEach-Object { @{name=$_.Name; sha256=(Get-FileHash $_.FullName).Hash.ToLowerInvariant()} })
 $ini = @("extension_dir=$workspace\runtime\ext", 'extension=openssl', 'display_errors=1', 'log_errors=0')
+if ($Kind -eq 'psk') {
+    $opcache = Get-Content builder/php/BuildPhp/config/ini/opcache-ext-x86.ini -Raw
+    $ini += $opcache.Replace('OPCACHE_ERROR_LOG_PATH', "$workspace\reports\opcache-error.log")
+}
 $ini | Set-Content runtime/php.ini
 $env:PHPRC = (Resolve-Path runtime).Path
 $env:PHP_INI_SCAN_DIR = (Resolve-Path empty-ini).Path
 $env:OPENSSL_CONF = Join-Path $workspace 'runtime/extras/ssl/openssl.cnf'
 $exe = (Resolve-Path runtime/php.exe).Path
 $env:TEST_PHP_EXECUTABLE = $exe
-$env:TEST_PHP_ARGS = '-c "' + (Join-Path $env:PHPRC 'php.ini') + '"'
+# run-tests.php splits TEST_PHP_ARGS on spaces without parsing quotes. Supply
+# the INI path only through the actual argument vector below.
+Remove-Item Env:TEST_PHP_ARGS -ErrorAction SilentlyContinue
 $env:NO_INTERACTION = '1'
 $env:REPORT_EXIT_STATUS = '1'
 $env:SKIP_ONLINE_TESTS = '1'
@@ -41,28 +48,34 @@ foreach ($source in $row.sources) {
 $patch = (Resolve-Path builder/php/BuildPhp/config/run-tests/run-tests-8.2-plus.patch).Path
 if (!(Invoke-CompatRunTestsPatch -Path (Resolve-Path sources/run-tests.php).Path -PatchPath $patch)) { throw 'Could not reproduce source CI worker setup' }
 Get-FileHash sources/run-tests.php, $patch | ConvertTo-Json | Set-Content reports/runner-hashes.json
-$original = [IO.File]::ReadAllText((Resolve-Path sources/bug72333.phpt))
+$testName = if ($Kind -eq 'write') { 'bug72333.phpt' } else { 'tls_psk_tls13_basic.phpt' }
+$original = [IO.File]::ReadAllText((Resolve-Path "sources/$testName"))
+if ($Kind -eq 'write') {
 $control = $original.Replace('        $total = 0;', '        $total = 0; $originalLength = strlen($buf);').Replace('if ($total >= strlen($buf))', 'if ($total >= $originalLength)').Replace('$buf = substr($buf, $total);', '$buf = substr($buf, $result);')
 if ($control -eq $original -or $control.Contains('$buf = substr($buf, $total);')) { throw 'Expected buffer-offset code absent' }
 [IO.File]::WriteAllText((Join-Path $workspace 'reports/buffer-offset-control.phpt'), $control)
-foreach ($mode in @('original','buffer-offset-control')) {
+$modes = @('original','buffer-offset-control')
+} else { $modes = @('original') }
+foreach ($mode in $modes) {
     for ($i=1; $i -le 100; $i++) {
         $dir = Join-Path $workspace "cases/$mode-$i"
         New-Item $dir -ItemType Directory | Out-Null
-        Copy-Item sources/CertificateGenerator.inc, sources/ServerClientTestCase.inc $dir
-        [IO.File]::WriteAllText((Join-Path $dir 'bug72333.phpt'), $(if ($mode -eq 'original') {$original} else {$control}))
+        Get-ChildItem sources -Filter '*.inc' | Copy-Item -Destination $dir
+        [IO.File]::WriteAllText((Join-Path $dir $testName), $(if ($mode -eq 'original') {$original} else {$control}))
     }
 }
 foreach ($credential in @(Get-ChildItem Env: | Where-Object Name -Match '(?i)TOKEN|SECRET|PASSWORD|CREDENTIAL|PRIVATE_KEY')) { Remove-Item "Env:$($credential.Name)" }
-$version = & $exe -r 'echo OPENSSL_VERSION_TEXT;'
-if ($LASTEXITCODE -ne 0 -or $version -notmatch "^OpenSSL $([regex]::Escape($OpenSsl)) ") { throw 'Wrong OpenSSL runtime loaded' }
-$version | Set-Content reports/openssl-version.txt
+$info = (& $exe --ri openssl) -join "`n"
+$info | Set-Content reports/openssl-version.txt
+if ($LASTEXITCODE -ne 0 -or $info -notmatch "(?m)^OpenSSL Library Version\s*=>\s*(OpenSSL $([regex]::Escape($OpenSsl))[^\r\n]*)") { throw 'Wrong OpenSSL runtime loaded' }
+$version = $Matches[1]
+& $exe -r 'echo json_encode(["ini"=>php_ini_loaded_file(),"extensions"=>get_loaded_extensions(),"opcache"=>ini_get("opcache.enable_cli")]);' | Set-Content reports/runtime-configuration.json
 $env:TEST_PHP_JUNIT = Join-Path $workspace 'reports/results.xml'
-& $exe sources/run-tests.php -p $exe -c (Join-Path $env:PHPRC 'php.ini') -j4 -q --offline --show-diff --set-timeout 90 cases 2>&1 | Tee-Object reports/tests.log | Out-Host
+& $exe sources/run-tests.php -p $exe -n -c (Join-Path $env:PHPRC 'php.ini') -d "extension_dir=$workspace\runtime\ext" -j4 -q --offline --show-diff --set-timeout 90 cases 2>&1 | Tee-Object reports/tests.log | Out-Host
 $exitCode = $LASTEXITCODE
 [xml]$xml = Get-Content reports/results.xml -Raw
-$result = @{runId=$row.runId; sourceCommit=$row.sourceCommit; runtime=$runtime.name; runtimeSha256=$runtime.sha256; openssl=$version; package=$package; files=$files; cases=@($xml.SelectNodes('//testcase')).Count; failures=@($xml.SelectNodes('//failure|//error')).Count; skipped=@($xml.SelectNodes('//skipped')).Count; exit=$exitCode}
+$result = @{kind=$Kind; runId=$row.runId; sourceCommit=$row.sourceCommit; runtime=$runtime.name; runtimeSha256=$runtime.sha256; openssl=$version; package=$package; files=$files; cases=@($xml.SelectNodes('//testcase')).Count; failures=@($xml.SelectNodes('//failure|//error')).Count; skipped=@($xml.SelectNodes('//skipped')).Count; exit=$exitCode}
 $result | ConvertTo-Json -Depth 10 | Set-Content reports/summary.json
-Copy-Item sources/bug72333.phpt reports
+Copy-Item "sources/$testName" reports
 Stop-Transcript
-if ($result.cases -ne 200 -or $result.skipped -ne 0 -or $result.failures -ne 0 -or $exitCode -ne 0) { throw 'Inspect retained SSL-write diagnostic evidence' }
+if ($result.cases -ne (100 * $modes.Count) -or $result.skipped -ne 0 -or $result.failures -ne 0 -or $exitCode -ne 0) { throw 'Inspect retained SSL diagnostic evidence' }

@@ -1,4 +1,4 @@
-name: Compare nonblocking SSL writes before and after the update
+name: Compare SSL source failures before and after the update
 on:
   push:
     branches: ['test/openssl-upgrade-20261002']
@@ -13,6 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         openssl: ['4.0.2', '4.0.3']
+        kind: [write, psk]
     runs-on: windows-2025-vs2026
     timeout-minutes: 35
     steps:
@@ -22,14 +23,14 @@ jobs:
           repository: shivammathur/php-windows-builder
           ref: 44b177dd05168995a788123c8807a70e2d0db20c
           path: builder
-      - name: Compare original test and buffer-offset control on the same PHP runtime
+      - name: Repeat the failing SSL tests on pinned PHP and OpenSSL packages
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: ./.github/scripts/Test-SslWrite.ps1 -OpenSsl '${{ matrix.openssl }}'
+        run: ./.github/scripts/Test-SslWrite.ps1 -OpenSsl '${{ matrix.openssl }}' -Kind '${{ matrix.kind }}'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ssl-write-${{ matrix.openssl }}
+          name: ssl-${{ matrix.kind }}-${{ matrix.openssl }}
           path: reports
           if-no-files-found: error
