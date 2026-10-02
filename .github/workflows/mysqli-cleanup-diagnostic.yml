@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cleanup: [original, terminate-before-close]
+        cleanup: [delay-after-close]
     runs-on: windows-2022
     timeout-minutes: 20
     steps:

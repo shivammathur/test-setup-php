@@ -1,4 +1,4 @@
-param([ValidateSet('original','terminate-before-close')][string]$Cleanup)
+param([ValidateSet('original','terminate-before-close','delay-after-close')][string]$Cleanup)
 $ErrorActionPreference = 'Stop'
 $row = (Get-Content mysqli-manifest.json -Raw | ConvertFrom-Json).php[0]
 $runtime = @($row.runtimeZips | Where-Object { $_.arch -eq 'x86' -and $_.ts -eq 'ts' })[0]
@@ -26,9 +26,9 @@ $test = 'ext/mysqli/tests/ghsa-r6x9-5r99-36j7-stmt-response-row-status.phpt'
 $path = Join-Path source-tests $test
 $original = (Get-Content $path -Raw).Replace("`r`n", "`n")
 Copy-Item $path reports/original.phpt
-if ($Cleanup -eq 'terminate-before-close') {
+if ($Cleanup -ne 'original') {
     $before = '$conn->close();' + "`n`n" + '$process->terminate();'
-    $after = '$process->terminate();' + "`n`n" + '$conn->close();'
+    $after = if ($Cleanup -eq 'terminate-before-close') { '$process->terminate();' + "`n`n" + '$conn->close();' } else { '$conn->close();' + "`n" + 'usleep(100000);' + "`n" + '$process->terminate();' }
     if (($original.Split($before).Count - 1) -ne 1) { throw 'Unexpected test cleanup sequence' }
     $original.Replace($before,$after) | Set-Content $path -NoNewline
 }
@@ -52,3 +52,4 @@ try {
 @{ cleanup=$Cleanup; runId=$row.runId; sourceCommit=$row.sourceCommit; runtimeSha256=$runtime.sha256; reports=$reports } | ConvertTo-Json -Depth 10 | Set-Content reports/cleanup-results.json
 if (@($reports | Where-Object { $_.cases -ne 1 -or $_.skipped -gt 0 }).Count) { throw 'Missing malformed-packet coverage' }
 if ($Cleanup -eq 'terminate-before-close' -and @($reports | Where-Object failures -GT 0).Count) { throw 'Ordered cleanup did not resolve the failure' }
+if ($Cleanup -eq 'delay-after-close' -and @($reports | Where-Object failures -GT 0).Count -eq 0) { throw 'The controlled cleanup interleaving did not reproduce the race' }
