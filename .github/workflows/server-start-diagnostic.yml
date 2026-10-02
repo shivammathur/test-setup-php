@@ -1,0 +1,31 @@
+name: Isolate SSL test helper startup without OpenSSL
+on:
+  push:
+    branches: ['test/openssl-upgrade-20261002']
+    paths: ['.github/workflows/server-start-diagnostic.yml', '.github/scripts/Test-ServerStart.ps1']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: 44b177dd05168995a788123c8807a70e2d0db20c
+          path: builder
+      - name: Repeat identical helper with plain TCP and only PHP core DLLs
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./.github/scripts/Test-ServerStart.ps1 -Ts nts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: server-start-core
+          path: reports
+          if-no-files-found: error
