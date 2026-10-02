@@ -1,5 +1,5 @@
 """Exercise packaged TLS clients against a local independently observed peer."""
-import json, pathlib, socket, ssl, subprocess, sys, threading, time
+import json, pathlib, socket, ssl, struct, subprocess, sys, threading, time
 
 exe, openssl, output = sys.argv[1:]
 root = pathlib.Path(output).resolve()
@@ -38,10 +38,19 @@ for name, host, ca, expect in [('trusted', 'localhost', 'trusted', 'success'),
                     data = stream.recv(4096)
                     observations[-1]['applicationBytes'] = len(data)
                     if 'rabbitmq' in pathlib.Path(exe).name:
+                        while len(data) < 8:
+                            chunk = stream.recv(8 - len(data))
+                            if not chunk:
+                                break
+                            data += chunk
+                        observations[-1]['applicationBytes'] = len(data)
                         observations[-1]['amqpHeader'] = data.hex()
                         if data == b'AMQP\x00\x00\x09\x01':
-                            # A valid heartbeat frame acknowledges receipt over the authenticated channel.
-                            stream.sendall(b'\x08\x00\x00\x00\x00\x00\x00\xce')
+                            # A real connection.start method acknowledges the AMQP protocol header.
+                            payload = struct.pack('!HHBBI', 10, 10, 0, 9, 0)
+                            payload += struct.pack('!I', 5) + b'PLAIN'
+                            payload += struct.pack('!I', 5) + b'en_US'
+                            stream.sendall(struct.pack('!BHI', 1, 0, len(payload)) + payload + b'\xce')
             except (ssl.SSLError, OSError) as error:
                 observations.append({'handshake': False, 'error': str(error)})
                 raw.close()

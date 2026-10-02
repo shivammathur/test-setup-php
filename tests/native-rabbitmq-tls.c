@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <amqp.h>
+#include <amqp_framing.h>
 #include <amqp_ssl_socket.h>
 
 int main(int argc, char **argv)
@@ -30,10 +31,11 @@ int main(int argc, char **argv)
         struct timeval timeout = { 3, 0 };
         if (amqp_send_header(conn) != AMQP_STATUS_OK ||
             amqp_simple_wait_frame_noblock(conn, &frame, &timeout) != AMQP_STATUS_OK ||
-            frame.frame_type != AMQP_FRAME_HEARTBEAT) {
+            frame.frame_type != AMQP_FRAME_METHOD ||
+            frame.payload.method.id != AMQP_CONNECTION_START_METHOD) {
             fprintf(stderr, "AMQP protocol exchange failed\n"); return 3;
         }
-        printf("Received authenticated AMQP heartbeat\n");
+        printf("Received authenticated AMQP connection.start\n");
     }
     amqp_destroy_connection(conn);
     return expect_success ? (status != AMQP_STATUS_OK) :
