@@ -74,6 +74,7 @@ foreach ($runtime in $row.runtimeZips) {
         $identity = $identity | ConvertFrom-Json
         $expectedBits = if ($runtime.arch -eq 'x64') { 64 } else { 32 }
         if ($identity.bits -ne $expectedBits -or $identity.zts -ne ($runtime.ts -eq 'ts')) { throw 'PHP runtime architecture/TS mismatch' }
+        if ($identity.version -ne $runtime.phpVersion) { throw 'PHP source version mismatch' }
         $result.phpVersion = $identity.version
 
         $info = Invoke-CheckedPhp $exe ($base + @('--ri', 'openssl'))

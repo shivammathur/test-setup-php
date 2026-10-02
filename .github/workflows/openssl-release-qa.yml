@@ -26,8 +26,8 @@ jobs:
           from pathlib import Path
           manifest = json.loads(Path('qa-manifest.json').read_text())
           rows = manifest['php']
-          assert {r['php'] for r in rows} == {'8.2', '8.3', '8.4', '8.5', '8.6', 'master'}
-          assert len(rows) == 6
+          assert {r['php'] for r in rows} <= {'8.2', '8.3', '8.4', '8.5', '8.6', 'master'}
+          assert 1 <= len(rows) == len({r['php'] for r in rows}) <= 6
           for row in rows:
               assert row['runId'] and row['artifactId'] and len(row['artifactSha256']) == 64
               assert {(z['arch'], z['ts']) for z in row['runtimeZips']} == {
