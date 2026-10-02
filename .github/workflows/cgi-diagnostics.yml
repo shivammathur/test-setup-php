@@ -1,0 +1,39 @@
+name: Diagnose CGI output with isolated PHP core
+on:
+  push:
+    branches: [test/libpng-1.6.59-20261002]
+    paths: [cgi-diagnostics.json]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: php/php-src
+          ref: 6249b46c4a5d5fbbdb41bf56abc8026db9beb9a5
+          path: php-src
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: 44b177dd05168995a788123c8807a70e2d0db20c
+          path: builder
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+      - name: Repeat header test without GD or libpng
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/cgi-diagnostics.ps1
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: isolated-cgi-master-x86-ts
+          path: reports
+          if-no-files-found: error
