@@ -5,6 +5,8 @@ on:
     branches: ['test/openssl-upgrade-20261002']
     paths:
       - 'qa-manifest.json'
+      - '.github/scripts/Test-ReleaseArtifacts.ps1'
+      - 'tests/snmp-roundtrip.php'
   workflow_dispatch:
 
 permissions:

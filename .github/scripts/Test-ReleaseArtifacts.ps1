@@ -60,6 +60,9 @@ Get-ChildItem artifacts/agent-runtime -Filter 'libssl-*.dll' | Copy-Item -Destin
 New-Item artifacts/agent-config, artifacts/agent-state -ItemType Directory -Force | Out-Null
 $env:SNMPCONFPATH = (Resolve-Path artifacts/agent-config).Path
 $env:SNMP_PERSISTENT_DIR = (Resolve-Path artifacts/agent-state).Path
+# An explicit SNMPCONFPATH replaces the default search, including persistence.
+# Include both directories so the agent reads the createUser fixture.
+$env:SNMPCONFPATH += ";$env:SNMP_PERSISTENT_DIR"
 $env:OPENSSL_CONF = (Resolve-Path artifacts/agent-runtime/extras/ssl/openssl.cnf).Path
 $port = Get-Random -Minimum 20000 -Maximum 60000
 @("agentaddress udp:127.0.0.1:$port", 'rocommunity release-community 127.0.0.1', 'rouser releaseqa priv', 'sysDescr Winlibs OpenSSL release validation') | Set-Content artifacts/agent-config/snmpd.conf
