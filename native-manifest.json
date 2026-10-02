@@ -1,5 +1,5 @@
 {
-  "phase": "candidate",
+  "phase": "published",
   "lanes": [
     {
       "php": "8.2",
@@ -13,21 +13,24 @@
           "runId": 37011468012,
           "artifactId": 11227949903,
           "name": "openssl-3.0.22.pl2-vs16-x64",
-          "sha256": "acfaf545e764c6376bf9927d4b5dcb90a110824321900c3479c92df8701abec6"
+          "sha256": "acfaf545e764c6376bf9927d4b5dcb90a110824321900c3479c92df8701abec6",
+          "url": "https://downloads.php.net/~windows/php-sdk/deps/vs16/x64/openssl-3.0.22.pl2-vs16-x64.zip"
         },
         {
           "library": "librdkafka",
           "runId": 37014603400,
           "artifactId": 11229482290,
           "name": "librdkafka-2.15.1-vs16-x64",
-          "sha256": "37661ceb5c41b95dabb21924144a27caabcda3f5f840913281069ca5879f3443"
+          "sha256": "37661ceb5c41b95dabb21924144a27caabcda3f5f840913281069ca5879f3443",
+          "url": "https://downloads.php.net/~windows/pecl/deps/librdkafka-2.15.1-vs16-x64.zip"
         },
         {
           "library": "librabbitmq",
           "runId": 37014602131,
           "artifactId": 11229521104,
           "name": "librabbitmq-0.18.0-vs16-x64",
-          "sha256": "b82e6bfb39a55e664f388fb9c41f9c347bb2ea53a7355437ac861846bc0a7169"
+          "sha256": "b82e6bfb39a55e664f388fb9c41f9c347bb2ea53a7355437ac861846bc0a7169",
+          "url": "https://downloads.php.net/~windows/pecl/deps/librabbitmq-0.18.0-vs16-x64.zip"
         }
       ]
     },
@@ -43,21 +46,222 @@
           "runId": 37011468012,
           "artifactId": 11229351637,
           "name": "openssl-3.0.22.pl2-vs16-x86",
-          "sha256": "3f4ccd80b96f9e72b97bf460f804a221c08474b72f154202e1b1040e02522895"
+          "sha256": "3f4ccd80b96f9e72b97bf460f804a221c08474b72f154202e1b1040e02522895",
+          "url": "https://downloads.php.net/~windows/php-sdk/deps/vs16/x86/openssl-3.0.22.pl2-vs16-x86.zip"
         },
         {
           "library": "librdkafka",
           "runId": 37014603400,
           "artifactId": 11230130926,
           "name": "librdkafka-2.15.1-vs16-x86",
-          "sha256": "b57b47c9ea55e72bbf2a61ee8e7be47cca95c24af1a110daf5f824830202423c"
+          "sha256": "b57b47c9ea55e72bbf2a61ee8e7be47cca95c24af1a110daf5f824830202423c",
+          "url": "https://downloads.php.net/~windows/pecl/deps/librdkafka-2.15.1-vs16-x86.zip"
         },
         {
           "library": "librabbitmq",
           "runId": 37014602131,
           "artifactId": 11230075023,
           "name": "librabbitmq-0.18.0-vs16-x86",
-          "sha256": "051a9b80728b5e5bc07455625d2ebbafa66065564812001abaa4f53a83063b19"
+          "sha256": "051a9b80728b5e5bc07455625d2ebbafa66065564812001abaa4f53a83063b19",
+          "url": "https://downloads.php.net/~windows/pecl/deps/librabbitmq-0.18.0-vs16-x86.zip"
+        }
+      ]
+    },
+    {
+      "php": "8.4",
+      "arch": "x64",
+      "runner": "windows-2022",
+      "toolset": "14.44.35207",
+      "opensslVersion": "3.0.22",
+      "packages": [
+        {
+          "library": "openssl",
+          "runId": 37011467633,
+          "artifactId": 11227779276,
+          "name": "openssl-3.0.22.pl2-vs17-x64",
+          "sha256": "3bc1b788fa192ec455d6502e6067a581c64f6f9ba1db538e5d2aebc2c3a55977",
+          "url": "https://downloads.php.net/~windows/php-sdk/deps/vs17/x64/openssl-3.0.22.pl2-vs17-x64.zip"
+        },
+        {
+          "library": "librdkafka",
+          "runId": 37011468245,
+          "artifactId": 11227954020,
+          "name": "librdkafka-2.15.1-vs17-x64",
+          "sha256": "1305b89f879d352d41ef3f675f48f63c46b239b10745d0a63425de82cb431e85",
+          "url": "https://downloads.php.net/~windows/pecl/deps/librdkafka-2.15.1-vs17-x64.zip"
+        },
+        {
+          "library": "librabbitmq",
+          "runId": 37011468008,
+          "artifactId": 11227952788,
+          "name": "librabbitmq-0.18.0-vs17-x64",
+          "sha256": "ce1c8ea80e128af1047818e54b256d044df841388eef14ea75e7618642c6cd83",
+          "url": "https://downloads.php.net/~windows/pecl/deps/librabbitmq-0.18.0-vs17-x64.zip"
+        }
+      ]
+    },
+    {
+      "php": "8.4",
+      "arch": "x86",
+      "runner": "windows-2022",
+      "toolset": "14.44.35207",
+      "opensslVersion": "3.0.22",
+      "packages": [
+        {
+          "library": "openssl",
+          "runId": 37011467633,
+          "artifactId": 11229085858,
+          "name": "openssl-3.0.22.pl2-vs17-x86",
+          "sha256": "9183666f98552081c5cbfb995e560cc2d5abaffa1f6ea98a6600b994e8ca56c3",
+          "url": "https://downloads.php.net/~windows/php-sdk/deps/vs17/x86/openssl-3.0.22.pl2-vs17-x86.zip"
+        },
+        {
+          "library": "librdkafka",
+          "runId": 37011468245,
+          "artifactId": 11227747942,
+          "name": "librdkafka-2.15.1-vs17-x86",
+          "sha256": "9bcdf98812cd0e0d0bf8c573c2cd19ed7b11ced04d34c15ef5dfe53afb6b8c25",
+          "url": "https://downloads.php.net/~windows/pecl/deps/librdkafka-2.15.1-vs17-x86.zip"
+        },
+        {
+          "library": "librabbitmq",
+          "runId": 37011468008,
+          "artifactId": 11228101593,
+          "name": "librabbitmq-0.18.0-vs17-x86",
+          "sha256": "bc7181ffc97ceed0326247297bea123ea6fe43c06d26def832540b06b25fa73f",
+          "url": "https://downloads.php.net/~windows/pecl/deps/librabbitmq-0.18.0-vs17-x86.zip"
+        }
+      ]
+    },
+    {
+      "php": "8.5",
+      "arch": "x64",
+      "runner": "windows-2022",
+      "toolset": "14.44.35207",
+      "opensslVersion": "3.5.9",
+      "packages": [
+        {
+          "library": "openssl",
+          "runId": 36997380363,
+          "artifactId": 11223625400,
+          "name": "openssl-3.5.9-vs17-x64",
+          "sha256": "889b08e67ff0f7aae59f58619f4f73da7b4998ae2b6f96e1a4b0acaf89d6c280",
+          "url": "https://downloads.php.net/~windows/php-sdk/deps/vs17/x64/openssl-3.5.9-vs17-x64.zip"
+        },
+        {
+          "library": "librdkafka",
+          "runId": 37011468245,
+          "artifactId": 11227954020,
+          "name": "librdkafka-2.15.1-vs17-x64",
+          "sha256": "1305b89f879d352d41ef3f675f48f63c46b239b10745d0a63425de82cb431e85",
+          "url": "https://downloads.php.net/~windows/pecl/deps/librdkafka-2.15.1-vs17-x64.zip"
+        },
+        {
+          "library": "librabbitmq",
+          "runId": 37011468008,
+          "artifactId": 11227952788,
+          "name": "librabbitmq-0.18.0-vs17-x64",
+          "sha256": "ce1c8ea80e128af1047818e54b256d044df841388eef14ea75e7618642c6cd83",
+          "url": "https://downloads.php.net/~windows/pecl/deps/librabbitmq-0.18.0-vs17-x64.zip"
+        }
+      ]
+    },
+    {
+      "php": "8.5",
+      "arch": "x86",
+      "runner": "windows-2022",
+      "toolset": "14.44.35207",
+      "opensslVersion": "3.5.9",
+      "packages": [
+        {
+          "library": "openssl",
+          "runId": 36997380363,
+          "artifactId": 11224051302,
+          "name": "openssl-3.5.9-vs17-x86",
+          "sha256": "b603a66fba280b72150f72dc3f5f9b0b2fd077a5e5ee04307a4a9111dfc00f4e",
+          "url": "https://downloads.php.net/~windows/php-sdk/deps/vs17/x86/openssl-3.5.9-vs17-x86.zip"
+        },
+        {
+          "library": "librdkafka",
+          "runId": 37011468245,
+          "artifactId": 11227747942,
+          "name": "librdkafka-2.15.1-vs17-x86",
+          "sha256": "9bcdf98812cd0e0d0bf8c573c2cd19ed7b11ced04d34c15ef5dfe53afb6b8c25",
+          "url": "https://downloads.php.net/~windows/pecl/deps/librdkafka-2.15.1-vs17-x86.zip"
+        },
+        {
+          "library": "librabbitmq",
+          "runId": 37011468008,
+          "artifactId": 11228101593,
+          "name": "librabbitmq-0.18.0-vs17-x86",
+          "sha256": "bc7181ffc97ceed0326247297bea123ea6fe43c06d26def832540b06b25fa73f",
+          "url": "https://downloads.php.net/~windows/pecl/deps/librabbitmq-0.18.0-vs17-x86.zip"
+        }
+      ]
+    },
+    {
+      "php": "8.6",
+      "arch": "x64",
+      "runner": "windows-2025-vs2026",
+      "toolset": "14.51.36231",
+      "opensslVersion": "4.0.3",
+      "packages": [
+        {
+          "library": "openssl",
+          "runId": 36997380507,
+          "artifactId": 11223498444,
+          "name": "openssl-4.0.3-vs18-x64",
+          "sha256": "4b551372b43e3d5f88ca931349a74236d0b9ba97f983d7f9a7bfee69f6b9370c",
+          "url": "https://downloads.php.net/~windows/php-sdk/deps/vs18/x64/openssl-4.0.3-vs18-x64.zip"
+        },
+        {
+          "library": "librdkafka",
+          "runId": 37011467903,
+          "artifactId": 11227684669,
+          "name": "librdkafka-2.15.1-vs18-x64",
+          "sha256": "2224ec1141f84434f6d4dfc288e5681061e1ad2cea918af99443728b2424bc66",
+          "url": "https://downloads.php.net/~windows/pecl/deps/librdkafka-2.15.1-vs18-x64.zip"
+        },
+        {
+          "library": "librabbitmq",
+          "runId": 37011468034,
+          "artifactId": 11228451219,
+          "name": "librabbitmq-0.18.0-vs18-x64",
+          "sha256": "4404c9d142079a520e4e8dcc992412617f9b111593d88395de053191ee22eb85",
+          "url": "https://downloads.php.net/~windows/pecl/deps/librabbitmq-0.18.0-vs18-x64.zip"
+        }
+      ]
+    },
+    {
+      "php": "8.6",
+      "arch": "x86",
+      "runner": "windows-2025-vs2026",
+      "toolset": "14.51.36231",
+      "opensslVersion": "4.0.3",
+      "packages": [
+        {
+          "library": "openssl",
+          "runId": 36997380507,
+          "artifactId": 11224102687,
+          "name": "openssl-4.0.3-vs18-x86",
+          "sha256": "ad368a51309a5dd456f3522a7cc45d33318a8636cc6f8d89982dc1c6656475f2",
+          "url": "https://downloads.php.net/~windows/php-sdk/deps/vs18/x86/openssl-4.0.3-vs18-x86.zip"
+        },
+        {
+          "library": "librdkafka",
+          "runId": 37011467903,
+          "artifactId": 11228646830,
+          "name": "librdkafka-2.15.1-vs18-x86",
+          "sha256": "83a6e7aa2b5318e2f359605119b4c7a775238fb94dcbe0f84d6217a0b41a6190",
+          "url": "https://downloads.php.net/~windows/pecl/deps/librdkafka-2.15.1-vs18-x86.zip"
+        },
+        {
+          "library": "librabbitmq",
+          "runId": 37011468034,
+          "artifactId": 11227743374,
+          "name": "librabbitmq-0.18.0-vs18-x86",
+          "sha256": "4330071fdb1fe4312d52ef82ae9b0000feb401066164ff58c229f0a235bf1132",
+          "url": "https://downloads.php.net/~windows/pecl/deps/librabbitmq-0.18.0-vs18-x86.zip"
         }
       ]
     }
