@@ -35,15 +35,19 @@ if ($LASTEXITCODE -ne 0 -or $version -notmatch ('^OpenSSL ' + [regex]::Escape($r
 }
 Get-ChildItem native-inputs -Recurse -File | Get-FileHash -Algorithm SHA256 |
     Select-Object Path, Hash | ConvertTo-Json | Set-Content reports/native-input-hashes.json
+$failures = @()
 & cl /nologo /W4 /MD /I"$kafka\include" tests/native-kafka-tls.c /Fenative-bin/kafka.exe /link /LIBPATH:"$kafka\lib" librdkafka.lib
-if ($LASTEXITCODE -ne 0) { throw 'Kafka artifact link failed' }
+if ($LASTEXITCODE -ne 0) { $failures += 'Kafka artifact link failed' }
 & cl /nologo /W4 /MD /I"$rabbit\include" tests/native-rabbitmq-tls.c /Fenative-bin/rabbitmq-shared.exe /link /LIBPATH:"$rabbit\lib" rabbitmq.4.lib
-if ($LASTEXITCODE -ne 0) { throw 'Shared RabbitMQ artifact link failed' }
+if ($LASTEXITCODE -ne 0) { $failures += 'Shared RabbitMQ artifact link failed' }
 & cl /nologo /W4 /MD /DAMQP_STATIC /I"$rabbit\include" tests/native-rabbitmq-tls.c /Fenative-bin/rabbitmq-static.exe /link /LIBPATH:"$rabbit\lib" /LIBPATH:"$ssl\lib" librabbitmq.4.lib libssl.lib libcrypto.lib ws2_32.lib crypt32.lib
-if ($LASTEXITCODE -ne 0) { throw 'Static RabbitMQ artifact link failed' }
+if ($LASTEXITCODE -ne 0) { $failures += 'Static RabbitMQ artifact link failed' }
 foreach ($client in @('kafka', 'rabbitmq-shared', 'rabbitmq-static')) {
-    python tests/native-tls-server.py (Resolve-Path "native-bin/$client.exe").Path $openssl "reports/$client"
-    if ($LASTEXITCODE -ne 0) { throw "$client TLS behavior failed" }
+    if (Test-Path "native-bin/$client.exe") {
+        python tests/native-tls-server.py (Resolve-Path "native-bin/$client.exe").Path $openssl "reports/$client"
+        if ($LASTEXITCODE -ne 0) { $failures += "$client TLS behavior failed" }
+    }
 }
 $row | ConvertTo-Json -Depth 20 | Set-Content reports/native-manifest-lane.json
 Stop-Transcript
+if ($failures.Count) { throw ($failures -join '; ') }
