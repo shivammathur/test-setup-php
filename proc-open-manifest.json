@@ -1,0 +1,85 @@
+{
+  "php": "master",
+  "runId": 37029487234,
+  "artifactId": 11237790750,
+  "artifactSha256": "c554fd268331b402d5417d97a84432aaa87010591890da6768584281ed1cd7bf",
+  "runner": {
+    "url": "https://raw.githubusercontent.com/php/php-src/1b2bde474ab06e5b4303754cc4b91ecb7eeee1a9/run-tests.php",
+    "sha256": "34f6f9573b2aced8c1e5ec6ec8d2164ad7309275648479db28e2a4dee9b0c190"
+  },
+  "opensslVersion": "4.0.3",
+  "sourceCommit": "1b2bde474ab06e5b4303754cc4b91ecb7eeee1a9",
+  "mibsPackage": {
+    "library": "net-snmp",
+    "runId": 37029067473,
+    "artifactId": 11236307494,
+    "name": "net-snmp-5.9.5.2-2-vs18-x64",
+    "sha256": "0a2f1d3def0900b1a7b585ec4231f1118f5b2be40d5bbc5bf2ac2f88a9c52b31"
+  },
+  "runtimeZips": [
+    {
+      "name": "php-8.7.0-dev-Win32-vs18-x64.zip",
+      "arch": "x64",
+      "ts": "ts",
+      "phpVersion": "8.7.0-dev",
+      "sha256": "a3882d63b0580cc15d75f736efb652a85dc5cf3a4f84f4f4104fe8370d50c54b",
+      "dllHashes": {
+        "extras/ssl/legacy.dll": "ef077239d1a7d873563fcf3b2d806c45eca6b754c8305ab5fab0da0aff0eeaa2",
+        "libcrypto-4-x64.dll": "48c234fe663ff774ca5d974eb7b961af9752a49321f90e1fbe9f510fb25424a6",
+        "libpq.dll": "953af1f9bdc1a45733eb5b43b80fb2fecbdd6cc8c2fb8012208572a7374214e3",
+        "libsasl.dll": "8b6943b3506aa24c8da3f59fecb4a22f84e56b2be632971c19b50cb83cba4152",
+        "libssh2.dll": "3f9682ed9ed358caec12b0b3eba6d30fd6c08208ca3881b7c5eb1b6546a4b0b1",
+        "libssl-4-x64.dll": "7ab7c3afe98fc14f85e1c8ffdd43d45eee0fe75e427c38bcb46155b67d4273c7"
+      }
+    },
+    {
+      "name": "php-8.7.0-dev-Win32-vs18-x86.zip",
+      "arch": "x86",
+      "ts": "ts",
+      "phpVersion": "8.7.0-dev",
+      "sha256": "f81122deddb871f6aaa462f5839f052d53e33dbfe8a73824cb02ac3f34dc4033",
+      "dllHashes": {
+        "extras/ssl/legacy.dll": "e4b3870dbfd1eafb21f7ee57c7acaa20537312f8d71ff3cdc51058913c0517f0",
+        "libcrypto-4.dll": "4abf1e8122cc920f9bafadf94f72b95a6387d1434e0973ea47bd3976b0504e73",
+        "libpq.dll": "295cb8a271520245ca85482476293b6246cb0798cd3895ca06aea36e5f3a432c",
+        "libsasl.dll": "ee7b12206afd30e471a28dc52477167678d77342568494821b99a749a7e052a3",
+        "libssh2.dll": "841b84a4a08339840d212c463bfabdf6d3953fe5fd0c08503ee197cb06496b72",
+        "libssl-4.dll": "9f2343570b15416ffa168b132121c11b23d14584f28b636cbda4c6fd2365bf09"
+      }
+    },
+    {
+      "name": "php-8.7.0-dev-nts-Win32-vs18-x64.zip",
+      "arch": "x64",
+      "ts": "nts",
+      "phpVersion": "8.7.0-dev",
+      "sha256": "632a9e9c6adcea3235f8c3b8849079aca310e39696e2e2b01562aa0a7425b1a9",
+      "dllHashes": {
+        "extras/ssl/legacy.dll": "ef077239d1a7d873563fcf3b2d806c45eca6b754c8305ab5fab0da0aff0eeaa2",
+        "libcrypto-4-x64.dll": "48c234fe663ff774ca5d974eb7b961af9752a49321f90e1fbe9f510fb25424a6",
+        "libpq.dll": "953af1f9bdc1a45733eb5b43b80fb2fecbdd6cc8c2fb8012208572a7374214e3",
+        "libsasl.dll": "8b6943b3506aa24c8da3f59fecb4a22f84e56b2be632971c19b50cb83cba4152",
+        "libssh2.dll": "3f9682ed9ed358caec12b0b3eba6d30fd6c08208ca3881b7c5eb1b6546a4b0b1",
+        "libssl-4-x64.dll": "7ab7c3afe98fc14f85e1c8ffdd43d45eee0fe75e427c38bcb46155b67d4273c7"
+      }
+    },
+    {
+      "name": "php-8.7.0-dev-nts-Win32-vs18-x86.zip",
+      "arch": "x86",
+      "ts": "nts",
+      "phpVersion": "8.7.0-dev",
+      "sha256": "a94238adf2c1905d694d27e70142b4c1fc00aad8c328310ad26f40ee354e6813",
+      "dllHashes": {
+        "extras/ssl/legacy.dll": "e4b3870dbfd1eafb21f7ee57c7acaa20537312f8d71ff3cdc51058913c0517f0",
+        "libcrypto-4.dll": "4abf1e8122cc920f9bafadf94f72b95a6387d1434e0973ea47bd3976b0504e73",
+        "libpq.dll": "295cb8a271520245ca85482476293b6246cb0798cd3895ca06aea36e5f3a432c",
+        "libsasl.dll": "ee7b12206afd30e471a28dc52477167678d77342568494821b99a749a7e052a3",
+        "libssh2.dll": "841b84a4a08339840d212c463bfabdf6d3953fe5fd0c08503ee197cb06496b72",
+        "libssl-4.dll": "9f2343570b15416ffa168b132121c11b23d14584f28b636cbda4c6fd2365bf09"
+      }
+    }
+  ],
+  "test": {
+    "url": "https://raw.githubusercontent.com/php/php-src/1b2bde474ab06e5b4303754cc4b91ecb7eeee1a9/ext/standard/tests/general_functions/proc_open_null.phpt",
+    "sha256": "f5b96a8105ce93c1fb45b8aafd50f511540e46a09e5f743db9cd2cf85eb99ca0"
+  }
+}
