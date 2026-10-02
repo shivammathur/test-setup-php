@@ -56,6 +56,15 @@ $extensions = & $php @probeOptions -r 'echo json_encode(get_loaded_extensions())
 if ($LASTEXITCODE -ne 0) { throw 'Isolated core startup failed' }
 $extensions | Set-Content reports/extensions.json
 if ('gd' -in ($extensions | ConvertFrom-Json)) { throw 'GD must be absent' }
+$testOptions = @('-n','-d',"extension_dir=$extensionRoot")
+if ($row.extensions.Count) {
+    $ini = Join-Path (Resolve-Path minimal).Path 'php.ini'
+    @("extension_dir=$($extensionRoot.Replace('\','/'))") + @($row.extensions | ForEach-Object {"extension=$_"}) | Set-Content $ini
+    $childExtensions = & $php -n -c $ini -r 'echo json_encode(get_loaded_extensions());'
+    if ($LASTEXITCODE -ne 0 -or @($row.extensions | Where-Object { $_ -notin ($childExtensions | ConvertFrom-Json) }).Count) { throw 'Isolated child extension startup failed' }
+    $childExtensions | Set-Content reports/child-extensions.json
+    $testOptions = @('-n','-c',$ini)
+}
 Push-Location php-src
 $results = @()
 try {
@@ -75,7 +84,7 @@ try {
             }
         })
         $env:TEST_PHP_JUNIT = Join-Path $workspace "reports/$mode.xml"
-        $arguments = @('-n','run-tests.php','-p',$php,'-n','-d',"extension_dir=$extensionRoot",'-q','--offline','--show-diff','-g','FAIL,BORK,WARN')
+        $arguments = @('-n','run-tests.php','-p',$php) + $testOptions + @('-q','--offline','--show-diff','-g','FAIL,BORK,WARN')
         if ($mode -eq 'serial') { $arguments += '-j1' } else { $arguments += '-j6' }
         & $php @arguments @tests 2>&1 | Tee-Object (Join-Path $workspace "reports/$mode.log")
         $exitCode = $LASTEXITCODE
