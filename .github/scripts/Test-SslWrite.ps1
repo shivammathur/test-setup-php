@@ -1,0 +1,68 @@
+param([ValidateSet('4.0.2','4.0.3')][string]$OpenSsl)
+$ErrorActionPreference = 'Stop'
+$row = Get-Content ssl-write-manifest.json -Raw | ConvertFrom-Json
+$runtime = @($row.runtimeZips | Where-Object { $_.arch -eq 'x86' -and $_.ts -eq 'nts' })[0]
+$package = @($row.packages | Where-Object version -EQ $OpenSsl)[0]
+New-Item reports, unpacked, sources, cases, empty-ini -ItemType Directory -Force | Out-Null
+$workspace = (Get-Location).Path
+Start-Transcript reports/transcript.txt
+$headers = @{Authorization="Bearer $env:GH_TOKEN"; Accept='application/vnd.github+json'}
+$api = 'https://api.github.com/repos/shivammathur/php-windows-builder'
+$artifact = Invoke-RestMethod "$api/actions/artifacts/$($row.artifactId)" -Headers $headers
+if ($artifact.expired -or $artifact.workflow_run.id -ne $row.runId -or $artifact.name -ne 'artifacts') { throw 'Artifact identity changed' }
+Invoke-WebRequest "$api/actions/artifacts/$($row.artifactId)/zip" -Headers $headers -OutFile merged.zip
+if ((Get-FileHash merged.zip).Hash.ToLowerInvariant() -ne $row.artifactSha256) { throw 'Artifact digest changed' }
+Expand-Archive merged.zip unpacked
+$zip = Join-Path unpacked $runtime.name
+if ((Get-FileHash $zip).Hash.ToLowerInvariant() -ne $runtime.sha256) { throw 'Runtime digest changed' }
+Expand-Archive $zip runtime
+Invoke-WebRequest $package.url -OutFile openssl.zip
+if ((Get-FileHash openssl.zip).Hash.ToLowerInvariant() -ne $package.sha256) { throw 'OpenSSL package digest changed' }
+Expand-Archive openssl.zip openssl
+Get-ChildItem openssl/bin -Filter '*.dll' | Copy-Item -Destination runtime -Force
+Copy-Item openssl/lib/ossl-modules/legacy.dll runtime/extras/ssl/legacy.dll -Force
+$files = @(Get-ChildItem runtime -File | Where-Object Name -Match '^(php|lib(?:crypto|ssl)-)' | ForEach-Object { @{name=$_.Name; sha256=(Get-FileHash $_.FullName).Hash.ToLowerInvariant()} })
+$ini = @("extension_dir=$workspace\runtime\ext", 'extension=openssl', 'display_errors=1', 'log_errors=0')
+$ini | Set-Content runtime/php.ini
+$env:PHPRC = (Resolve-Path runtime).Path
+$env:PHP_INI_SCAN_DIR = (Resolve-Path empty-ini).Path
+$env:OPENSSL_CONF = Join-Path $workspace 'runtime/extras/ssl/openssl.cnf'
+$exe = (Resolve-Path runtime/php.exe).Path
+$env:TEST_PHP_EXECUTABLE = $exe
+$env:TEST_PHP_ARGS = '-c "' + (Join-Path $env:PHPRC 'php.ini') + '"'
+$env:NO_INTERACTION = '1'
+$env:REPORT_EXIT_STATUS = '1'
+$env:SKIP_ONLINE_TESTS = '1'
+foreach ($source in $row.sources) {
+    Invoke-WebRequest $source.url -OutFile "sources/$($source.name)"
+    if ((Get-FileHash "sources/$($source.name)").Hash.ToLowerInvariant() -ne $source.sha256) { throw 'Pinned source hash mismatch' }
+}
+. ./builder/php/BuildPhp/private/Invoke-CompatRunTestsPatch.ps1
+$patch = (Resolve-Path builder/php/BuildPhp/config/run-tests/run-tests-8.2-plus.patch).Path
+if (!(Invoke-CompatRunTestsPatch -Path (Resolve-Path sources/run-tests.php).Path -PatchPath $patch)) { throw 'Could not reproduce source CI worker setup' }
+Get-FileHash sources/run-tests.php, $patch | ConvertTo-Json | Set-Content reports/runner-hashes.json
+$original = [IO.File]::ReadAllText((Resolve-Path sources/bug72333.phpt))
+$control = $original.Replace('        $total = 0;', '        $total = 0; $originalLength = strlen($buf);').Replace('if ($total >= strlen($buf))', 'if ($total >= $originalLength)').Replace('$buf = substr($buf, $total);', '$buf = substr($buf, $result);')
+if ($control -eq $original -or $control.Contains('$buf = substr($buf, $total);')) { throw 'Expected buffer-offset code absent' }
+[IO.File]::WriteAllText((Join-Path $workspace 'reports/buffer-offset-control.phpt'), $control)
+foreach ($mode in @('original','buffer-offset-control')) {
+    for ($i=1; $i -le 100; $i++) {
+        $dir = Join-Path $workspace "cases/$mode-$i"
+        New-Item $dir -ItemType Directory | Out-Null
+        Copy-Item sources/CertificateGenerator.inc, sources/ServerClientTestCase.inc $dir
+        [IO.File]::WriteAllText((Join-Path $dir 'bug72333.phpt'), $(if ($mode -eq 'original') {$original} else {$control}))
+    }
+}
+foreach ($credential in @(Get-ChildItem Env: | Where-Object Name -Match '(?i)TOKEN|SECRET|PASSWORD|CREDENTIAL|PRIVATE_KEY')) { Remove-Item "Env:$($credential.Name)" }
+$version = & $exe -r 'echo OPENSSL_VERSION_TEXT;'
+if ($LASTEXITCODE -ne 0 -or $version -notmatch "^OpenSSL $([regex]::Escape($OpenSsl)) ") { throw 'Wrong OpenSSL runtime loaded' }
+$version | Set-Content reports/openssl-version.txt
+$env:TEST_PHP_JUNIT = Join-Path $workspace 'reports/results.xml'
+& $exe sources/run-tests.php -p $exe -c (Join-Path $env:PHPRC 'php.ini') -j4 -q --offline --show-diff --set-timeout 90 cases 2>&1 | Tee-Object reports/tests.log | Out-Host
+$exitCode = $LASTEXITCODE
+[xml]$xml = Get-Content reports/results.xml -Raw
+$result = @{runId=$row.runId; sourceCommit=$row.sourceCommit; runtime=$runtime.name; runtimeSha256=$runtime.sha256; openssl=$version; package=$package; files=$files; cases=@($xml.SelectNodes('//testcase')).Count; failures=@($xml.SelectNodes('//failure|//error')).Count; skipped=@($xml.SelectNodes('//skipped')).Count; exit=$exitCode}
+$result | ConvertTo-Json -Depth 10 | Set-Content reports/summary.json
+Copy-Item sources/bug72333.phpt reports
+Stop-Transcript
+if ($result.cases -ne 200 -or $result.skipped -ne 0 -or $result.failures -ne 0 -or $exitCode -ne 0) { throw 'Inspect retained SSL-write diagnostic evidence' }

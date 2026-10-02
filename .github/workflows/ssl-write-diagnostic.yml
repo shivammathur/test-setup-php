@@ -1,0 +1,35 @@
+name: Compare nonblocking SSL writes before and after the update
+on:
+  push:
+    branches: ['test/openssl-upgrade-20261002']
+    paths: ['ssl-write-manifest.json', '.github/workflows/ssl-write-diagnostic.yml', '.github/scripts/Test-SslWrite.ps1']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    strategy:
+      fail-fast: false
+      matrix:
+        openssl: ['4.0.2', '4.0.3']
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: 44b177dd05168995a788123c8807a70e2d0db20c
+          path: builder
+      - name: Compare original test and buffer-offset control on the same PHP runtime
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./.github/scripts/Test-SslWrite.ps1 -OpenSsl '${{ matrix.openssl }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ssl-write-${{ matrix.openssl }}
+          path: reports
+          if-no-files-found: error
