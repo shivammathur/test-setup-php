@@ -1,0 +1,35 @@
+name: Diagnose CGI output failures without rebuilt DLLs
+on:
+  push:
+    branches: ['test/openssl-upgrade-20261002']
+    paths: ['cgi-manifest.json', '.github/workflows/cgi-startup-diagnostic.yml', '.github/scripts/Test-CgiStartup.ps1']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    strategy:
+      fail-fast: false
+      matrix:
+        ts: [ts, nts]
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: 44b177dd05168995a788123c8807a70e2d0db20c
+          path: builder
+      - name: Repeat exact CGI tests with isolated PHP binaries
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./.github/scripts/Test-CgiStartup.ps1 -Ts '${{ matrix.ts }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cgi-startup-${{ matrix.ts }}
+          path: reports
+          if-no-files-found: error

@@ -1,0 +1,75 @@
+{
+  "php": "master",
+  "runId": 37049981446,
+  "artifactId": 11247580338,
+  "artifactSha256": "04558a449bca1662c8445f911d5c17ca726a9a2748a8bad3f1cc13acdf477240",
+  "runner": "windows-2025-vs2026",
+  "opensslVersion": "4.0.3",
+  "sourceCommit": "1b2bde474ab06e5b4303754cc4b91ecb7eeee1a9",
+  "mibsPackage": {
+    "library": "net-snmp",
+    "runId": 37029067473,
+    "artifactId": 11236307494,
+    "name": "net-snmp-5.9.5.2-2-vs18-x64",
+    "sha256": "0a2f1d3def0900b1a7b585ec4231f1118f5b2be40d5bbc5bf2ac2f88a9c52b31"
+  },
+  "runtimeZips": [
+    {
+      "name": "php-8.7.0-dev-Win32-vs18-x64.zip",
+      "arch": "x64",
+      "ts": "ts",
+      "phpVersion": "8.7.0-dev",
+      "sha256": "eb0d533edc2665260a12c7e6ca15b88d90750fbc15df1a1877ceeaff2adec9f9",
+      "dllHashes": {
+        "extras/ssl/legacy.dll": "ef077239d1a7d873563fcf3b2d806c45eca6b754c8305ab5fab0da0aff0eeaa2",
+        "libcrypto-4-x64.dll": "48c234fe663ff774ca5d974eb7b961af9752a49321f90e1fbe9f510fb25424a6",
+        "libpq.dll": "953af1f9bdc1a45733eb5b43b80fb2fecbdd6cc8c2fb8012208572a7374214e3",
+        "libsasl.dll": "8b6943b3506aa24c8da3f59fecb4a22f84e56b2be632971c19b50cb83cba4152",
+        "libssh2.dll": "3f9682ed9ed358caec12b0b3eba6d30fd6c08208ca3881b7c5eb1b6546a4b0b1",
+        "libssl-4-x64.dll": "7ab7c3afe98fc14f85e1c8ffdd43d45eee0fe75e427c38bcb46155b67d4273c7"
+      }
+    },
+    {
+      "name": "php-8.7.0-dev-nts-Win32-vs18-x64.zip",
+      "arch": "x64",
+      "ts": "nts",
+      "phpVersion": "8.7.0-dev",
+      "sha256": "b18fceb9dd676e99d01e9526fa1c2818c3ac7edfb63a27e750b84fb1009c9032",
+      "dllHashes": {
+        "extras/ssl/legacy.dll": "ef077239d1a7d873563fcf3b2d806c45eca6b754c8305ab5fab0da0aff0eeaa2",
+        "libcrypto-4-x64.dll": "48c234fe663ff774ca5d974eb7b961af9752a49321f90e1fbe9f510fb25424a6",
+        "libpq.dll": "953af1f9bdc1a45733eb5b43b80fb2fecbdd6cc8c2fb8012208572a7374214e3",
+        "libsasl.dll": "8b6943b3506aa24c8da3f59fecb4a22f84e56b2be632971c19b50cb83cba4152",
+        "libssh2.dll": "3f9682ed9ed358caec12b0b3eba6d30fd6c08208ca3881b7c5eb1b6546a4b0b1",
+        "libssl-4-x64.dll": "7ab7c3afe98fc14f85e1c8ffdd43d45eee0fe75e427c38bcb46155b67d4273c7"
+      }
+    }
+  ],
+  "sources": [
+    {
+      "name": "run-tests.php",
+      "url": "https://raw.githubusercontent.com/php/php-src/1b2bde474ab06e5b4303754cc4b91ecb7eeee1a9/run-tests.php",
+      "sha256": "34f6f9573b2aced8c1e5ec6ec8d2164ad7309275648479db28e2a4dee9b0c190"
+    },
+    {
+      "name": "apache_response_headers.phpt",
+      "url": "https://raw.githubusercontent.com/php/php-src/1b2bde474ab06e5b4303754cc4b91ecb7eeee1a9/sapi/cgi/tests/apache_response_headers.phpt",
+      "sha256": "65c11466ce4194490bef789e89d6cfa668140f4f45a3faf6cefc318bde834a86"
+    },
+    {
+      "name": "006.phpt",
+      "url": "https://raw.githubusercontent.com/php/php-src/1b2bde474ab06e5b4303754cc4b91ecb7eeee1a9/sapi/cgi/tests/006.phpt",
+      "sha256": "9b164e17a1eb359490a9175b78145d5664c9a3c4a3a85135549169a94ecf7eff"
+    },
+    {
+      "name": "include.inc",
+      "url": "https://raw.githubusercontent.com/php/php-src/1b2bde474ab06e5b4303754cc4b91ecb7eeee1a9/sapi/cgi/tests/include.inc",
+      "sha256": "00532fd1e304bb0d04804cc24b86c06f6b3421f9e131ed76ad6e1f04ab3c0358"
+    },
+    {
+      "name": "skipif.inc",
+      "url": "https://raw.githubusercontent.com/php/php-src/1b2bde474ab06e5b4303754cc4b91ecb7eeee1a9/sapi/cgi/tests/skipif.inc",
+      "sha256": "6b58eca33da873d5994da2130cfee61582a85b030644433574054c9993179dda"
+    }
+  ]
+}
