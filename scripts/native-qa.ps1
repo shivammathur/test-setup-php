@@ -73,7 +73,14 @@ if ($Mode -eq 'published') {
             $manifest = $expected[$lane.libraries.$library.artifact]
             foreach ($name in $manifest.Keys) {
                 $path = Join-Path deps $name
-                if (!(Test-Path $path) -or (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $manifest[$name]) {
+                # The packages share COPYING; extraction order may leave either
+                # accepted copy in the merged dependency directory.
+                $allowed = @('libpng', 'cairo', 'pango') | ForEach-Object {
+                    $source = $expected[$lane.libraries.$_.artifact]
+                    if ($source.ContainsKey($name)) { $source[$name] }
+                } | Select-Object -Unique
+                if (!(Test-Path $path) -or
+                    (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant() -notin $allowed) {
                     throw "Normal fetch-deps selected unexpected $library/$name"
                 }
             }
