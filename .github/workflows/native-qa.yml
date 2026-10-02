@@ -1,0 +1,53 @@
+name: libpng and native consumer QA
+on:
+  push:
+    branches: [test/libpng-1.6.59-20261002]
+    paths: [native-matrix.json]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.value }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: matrix
+        run: echo "value=$(jq -c . native-matrix.json)" >> "$GITHUB_OUTPUT"
+  native:
+    needs: matrix
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: winlibs/libpng
+          ref: 7cda9e2cb293ca6320211891ae32a4c6f84f1365
+          path: libpng-src
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+          architecture: ${{ matrix.arch }}
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+          toolset: ${{ matrix.toolset }}
+      - name: Verify artifacts and exercise native libraries
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/native-qa.ps1 -Php '${{ matrix.php }}' -Vs '${{ matrix.vs }}' -Arch '${{ matrix.arch }}' -Mode '${{ matrix.mode }}'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-${{ matrix.mode }}-${{ matrix.vs }}-${{ matrix.arch }}
+          path: |
+            reports
+            *.png
+          if-no-files-found: error
