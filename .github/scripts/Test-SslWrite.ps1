@@ -23,12 +23,14 @@ Expand-Archive openssl.zip openssl
 Get-ChildItem openssl/bin -Filter '*.dll' | Copy-Item -Destination runtime -Force
 Copy-Item openssl/lib/ossl-modules/legacy.dll runtime/extras/ssl/legacy.dll -Force
 $files = @(Get-ChildItem runtime -File | Where-Object Name -Match '^(php|lib(?:crypto|ssl)-)' | ForEach-Object { @{name=$_.Name; sha256=(Get-FileHash $_.FullName).Hash.ToLowerInvariant()} })
-$ini = @("extension_dir=$workspace\runtime\ext", 'extension=openssl', 'display_errors=1', 'log_errors=0')
+# Match the source job's complete extension configuration, including child processes.
+$ini = @((Get-Content builder/php/BuildPhp/config/ini/ext.ini -Raw), "extension_dir=$workspace\runtime\ext")
 if ($Kind -eq 'psk') {
     $opcache = Get-Content builder/php/BuildPhp/config/ini/opcache-ext-x86.ini -Raw
     $ini += $opcache.Replace('OPCACHE_ERROR_LOG_PATH', "$workspace\reports\opcache-error.log")
 }
 $ini | Set-Content runtime/php.ini
+Copy-Item runtime/php.ini reports/test-configuration.ini
 $env:PHPRC = (Resolve-Path runtime).Path
 $env:PHP_INI_SCAN_DIR = (Resolve-Path empty-ini).Path
 $env:OPENSSL_CONF = Join-Path $workspace 'runtime/extras/ssl/openssl.cnf'
@@ -57,7 +59,7 @@ if ($control -eq $original -or $control.Contains('$buf = substr($buf, $total);')
 $modes = @('original','buffer-offset-control')
 } else { $modes = @('original') }
 foreach ($mode in $modes) {
-    for ($i=1; $i -le 100; $i++) {
+    for ($i=1; $i -le 500; $i++) {
         $dir = Join-Path $workspace "cases/$mode-$i"
         New-Item $dir -ItemType Directory | Out-Null
         Get-ChildItem sources -File | Where-Object Extension -In '.inc','.cnf' | Copy-Item -Destination $dir
@@ -78,11 +80,11 @@ if ($Kind -eq 'write') {
     Remove-Item reports/preflight.pem
 }
 $env:TEST_PHP_JUNIT = Join-Path $workspace 'reports/results.xml'
-& $exe sources/run-tests.php -p $exe -n -c (Join-Path $env:PHPRC 'php.ini') -d "extension_dir=$workspace\runtime\ext" -j4 -q --offline --show-diff --set-timeout 90 cases 2>&1 | Tee-Object reports/tests.log | Out-Host
+& $exe -n -d open_basedir= -d output_buffering=0 sources/run-tests.php -p $exe -n -c (Join-Path $env:PHPRC 'php.ini') -d "extension_dir=$workspace\runtime\ext" -j6 -q --offline --show-diff --set-timeout 90 cases 2>&1 | Tee-Object reports/tests.log | Out-Host
 $exitCode = $LASTEXITCODE
 [xml]$xml = Get-Content reports/results.xml -Raw
 $result = @{kind=$Kind; runId=$row.runId; sourceCommit=$row.sourceCommit; runtime=$runtime.name; runtimeSha256=$runtime.sha256; openssl=$version; package=$package; files=$files; cases=@($xml.SelectNodes('//testcase')).Count; failures=@($xml.SelectNodes('//failure|//error')).Count; skipped=@($xml.SelectNodes('//skipped')).Count; exit=$exitCode}
 $result | ConvertTo-Json -Depth 10 | Set-Content reports/summary.json
 Copy-Item "sources/$testName" reports
 Stop-Transcript
-if ($result.cases -ne (100 * $modes.Count) -or $result.skipped -ne 0 -or $result.failures -ne 0 -or $exitCode -ne 0) { throw 'Inspect retained SSL diagnostic evidence' }
+if ($result.cases -ne (500 * $modes.Count) -or $result.skipped -ne 0 -or $result.failures -ne 0 -or $exitCode -ne 0) { throw 'Inspect retained SSL diagnostic evidence' }

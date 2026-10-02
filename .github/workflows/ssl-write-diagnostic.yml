@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         openssl: ['4.0.2', '4.0.3']
-        kind: [write]
+        kind: [write, psk]
     runs-on: windows-2025-vs2026
     timeout-minutes: 35
     steps:
