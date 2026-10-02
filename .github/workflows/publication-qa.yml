@@ -1,0 +1,30 @@
+name: Verify canonical Winlibs publication
+on:
+  push:
+    branches: ['test/openssl-upgrade-20261002']
+    paths: ['publication-manifest.json', '.github/workflows/publication-qa.yml', '.github/scripts/verify-publication.py', '.github/scripts/Test-PeclResolution.ps1']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: 44b177dd05168995a788123c8807a70e2d0db20c
+          path: builder
+      - name: Verify canonical package hashes and series selections
+        run: python3 .github/scripts/verify-publication.py
+      - name: Verify the published PECL packages selected by the restored resolver
+        shell: pwsh
+        run: ./.github/scripts/Test-PeclResolution.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: canonical-publication
+          path: reports
+          if-no-files-found: error
