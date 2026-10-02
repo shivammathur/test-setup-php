@@ -79,4 +79,9 @@ for name, host, ca, expect in [('trusted', 'localhost', 'trusted', 'success'),
         if 'rabbitmq' in pathlib.Path(exe).name:
             assert any(r.get('amqpHeader') == '414d515000000901' for r in successes), 'Invalid AMQP protocol header'
     else:
-        assert not successes, 'Client accepted an invalid certificate'
+        # RabbitMQ checks the certificate after SSL_connect, before exposing the socket.
+        # Its exact certificate error is required by the C client; no AMQP bytes may be sent.
+        if 'rabbitmq' in pathlib.Path(exe).name:
+            assert not any(r.get('applicationBytes', 0) > 0 for r in successes), 'Client sent data to an untrusted peer'
+        else:
+            assert not successes, 'Client accepted an invalid certificate'
