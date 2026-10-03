@@ -1,0 +1,51 @@
+name: Candidate PHP CGI recheck
+on:
+  push:
+    branches: [feature/glib-2.90.0-qa-20261003]
+    paths: [.github/workflows/glib-cgi-recheck.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  cgi:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        opcache: [opcache, nocache]
+    env:
+      GH_TOKEN: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: 44b177dd05168995a788123c8807a70e2d0db20c
+      - uses: actions/download-artifact@v4
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: 37088511305
+          github-token: ${{ env.GH_TOKEN }}
+          name: artifacts
+      - name: Recheck CGI behavior using the exact candidate runtime
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ env.GH_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module (Join-Path $PWD 'php/BuildPhp') -Force
+          New-Item reports -ItemType Directory -Force | Out-Null
+          for ($iteration = 1; $iteration -le 3; $iteration++) {
+            $env:LIBS_BUILD_RUNS = '37083952924,37088132934'
+            Invoke-PhpTests -PhpVersion '8.6.0-dev' -Arch x86 -Ts ts -Opcache '${{ matrix.opcache }}' -TestType php -SourceRepository 'php/php-src' -SourceRef '1ab6d6b1bdca3edf715015c9920802a0577be803' -TestDirectories @('sapi/cgi/tests') -FailOnError
+            Copy-Item test-x86-ts-${{ matrix.opcache }}-php.xml "reports/cgi-$iteration.xml"
+          }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cgi-recheck-${{ matrix.opcache }}
+          path: |
+            reports
+            test-*.xml
+            test-*.log
