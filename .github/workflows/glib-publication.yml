@@ -1,5 +1,11 @@
 name: Verify published GLib dependency packages
 on:
+  push:
+    branches: [feature/glib-2.90.0-qa-20261003]
+    paths:
+      - .github/workflows/glib-publication.yml
+      - scripts/verify-glib-publication.py
+      - publication-manifest.json
   workflow_dispatch:
 permissions:
   contents: read
