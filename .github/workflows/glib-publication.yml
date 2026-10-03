@@ -1,0 +1,26 @@
+name: Verify published GLib dependency packages
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: winlibs/winlib-builder
+          ref: facb1c0d8aef0bf290737e854e8492cabde6190f
+          path: publication-builder
+      - name: Verify public archives, indexes, and fetch-deps
+        run: python3 -u scripts/verify-glib-publication.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: publication-verification
+          path: |
+            publication-results/*.json
+            publication-results/fetch-*/*.log
+          if-no-files-found: error
