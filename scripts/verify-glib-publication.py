@@ -4,6 +4,7 @@ import hashlib
 import io
 import json
 import subprocess
+import threading
 import urllib.error
 import urllib.request
 import zipfile
@@ -13,12 +14,18 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = json.loads((ROOT / 'publication-manifest.json').read_text())
 OUT = ROOT / 'publication-results'
 OUT.mkdir(exist_ok=True)
+RESPONSES = []
+RESPONSE_LOCK = threading.Lock()
 
 
 def fetch(url):
     request = urllib.request.Request(url, headers={'Cache-Control': 'no-cache'})
     with urllib.request.urlopen(request, timeout=90) as response:
-        return response.read()
+        data = response.read()
+        with RESPONSE_LOCK:
+            RESPONSES.append({'url': url, 'headers': dict(response.headers)})
+            (OUT / 'responses.json').write_text(json.dumps(RESPONSES, indent=2) + '\n')
+        return data
 
 
 def archive(package):
@@ -39,6 +46,7 @@ def archive(package):
 
 def indexes():
     checked = []
+    mismatches = []
     for lane, vs in MANIFEST['lanes'].items():
         for php in MANIFEST['targets'][lane].split(','):
             for stability in (['stable', 'staging'] if php in ['8.6', '8.7', 'master'] else ['staging']):
@@ -48,13 +56,17 @@ def indexes():
                     for library in ['glib', 'enchant']:
                         name = MANIFEST['names'].get(library, library)
                         expected = f'{name}-{MANIFEST["versions"][library]}-{vs}-{arch}.zip'
-                        assert [line for line in lines if line.startswith(name + '-')] == [expected], url
+                        selected = [line for line in lines if line.startswith(name + '-')]
+                        if selected != [expected]:
+                            mismatches.append({'url': url, 'expected': expected, 'actual': selected})
                     checked.append(url)
     lines = fetch('https://downloads.php.net/~windows/pecl/deps/packages.txt').decode().splitlines()
     for package in MANIFEST['packages']:
         if package['library'] in ['pango', 'librrd']:
-            assert lines.count(package['name'] + '.zip') == 1, package['name']
-    return checked
+            if lines.count(package['name'] + '.zip') != 1:
+                mismatches.append({'pecl_package': package['name'], 'matches': lines.count(package['name'] + '.zip')})
+    (OUT / 'index-verification.json').write_text(json.dumps({'series': checked, 'mismatches': mismatches}, indent=2) + '\n')
+    return checked, mismatches
 
 
 def install(item):
@@ -90,13 +102,16 @@ def main():
     assert commit == MANIFEST['builder_commit']
     with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
         archives = list(pool.map(archive, MANIFEST['packages']))
-    series = indexes()
+    (OUT / 'archive-verification.json').write_text(json.dumps(archives, indent=2) + '\n')
+    tasks = [(lane, vs, arch) for lane, vs in MANIFEST['lanes'].items() for arch in ['x86', 'x64']]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+        index_task = pool.submit(indexes)
+        resolved = list(pool.map(install, tasks))
+        series, mismatches = index_task.result()
+    (OUT / 'published-fetch-deps-verification.json').write_text(json.dumps(resolved, indent=2) + '\n')
+    assert not mismatches, mismatches
     (OUT / 'publication-verification.json').write_text(json.dumps(
         {'artifacts': archives, 'series': series, 'pecl_index': 'verified'}, indent=2) + '\n')
-    tasks = [(lane, vs, arch) for lane, vs in MANIFEST['lanes'].items() for arch in ['x86', 'x64']]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
-        resolved = list(pool.map(install, tasks))
-    (OUT / 'published-fetch-deps-verification.json').write_text(json.dumps(resolved, indent=2) + '\n')
     print('Verified 24 public archives, 20 series files, PECL index, and 6 fresh fetch-deps installations.')
 
 
