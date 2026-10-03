@@ -11,6 +11,7 @@ on:
       - scripts/prepare-rrd-builder.ps1
       - tests/glib-consumers.py
       - tests/rrd-runtime.php
+      - patches/rrd-2.0.4-qa-compat.patch
   workflow_dispatch:
 permissions:
   actions: read

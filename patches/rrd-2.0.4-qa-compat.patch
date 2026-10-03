@@ -1,0 +1,225 @@
+diff --git a/qa_rrd_abi.h b/qa_rrd_abi.h
+new file mode 100644
+index 0000000..5319c98
+--- /dev/null
++++ b/qa_rrd_abi.h
+@@ -0,0 +1,14 @@
++/* Match the Winlibs librrd time ABI while preserving PHP's own time_t. */
++#ifndef QA_RRD_ABI_H
++#define QA_RRD_ABI_H
++#include <time.h>
++#ifdef PHP_WIN32
++# define time_t __time64_t
++# include <rrd.h>
++# undef time_t
++typedef __time64_t qa_rrd_time_t;
++#else
++# include <rrd.h>
++typedef time_t qa_rrd_time_t;
++#endif
++#endif
+diff --git a/rrd.c b/rrd.c
+index ff51776..815061c 100644
+--- a/rrd.c
++++ b/rrd.c
+@@ -20,7 +20,7 @@
+ #include "ext/standard/php_array.h"
+ #include "ext/standard/info.h"
+ 
+-#include <rrd.h>
++#include "qa_rrd_abi.h"
+ #ifdef HAVE_RRDC_DISCONNECT
+ #include <rrd_client.h>
+ #endif
+@@ -58,7 +58,7 @@ PHP_FUNCTION(rrd_fetch)
+ 	zval *zv_arr_options;
+ 	rrd_args *argv;
+ 	/* returned values if rrd_fetch doesn't fail */
+-	time_t start, end;
++	qa_rrd_time_t start, end;
+ 	unsigned long step,
+ 	ds_cnt; /* count of data sources */
+ 	char **ds_namv; /* list of data source names */
+@@ -157,7 +157,7 @@ PHP_FUNCTION(rrd_first)
+ 	size_t filename_length;
+ 	long rraindex = 0;
+ 	/* return value from rrd_first_r call */
+-	time_t rrd_first_return_val;
++	qa_rrd_time_t rrd_first_return_val;
+ 
+ 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "p|l", &filename,
+ 		&filename_length, &rraindex) == FAILURE) {
+@@ -192,7 +192,7 @@ PHP_FUNCTION(rrd_last)
+ 	char *filename;
+ 	size_t filename_length;
+ 	/* return value from rrd_first_r call */
+-	time_t rrd_last_return_val;
++	qa_rrd_time_t rrd_last_return_val;
+ 
+ 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "p", &filename,
+ 		&filename_length) == FAILURE) {
+@@ -225,7 +225,7 @@ PHP_FUNCTION(rrd_lastupdate)
+ 	 */
+ 	char *argv[3];
+ 	/* return values from rrd_lastupdate_r function */
+-	time_t last_update;
++	qa_rrd_time_t last_update;
+ 	unsigned long ds_cnt;
+ 	char **ds_namv;
+ 	char **last_ds;
+@@ -399,7 +399,7 @@ PHP_FUNCTION(rrd_xport)
+ 	rrd_args *argv;
+ 	/* return values from rrd_xport */
+ 	int xxsize;
+-	time_t start, end, time_index;
++	qa_rrd_time_t start, end, time_index;
+ 	unsigned long step, outvar_count;
+ 	char **legend_v;
+ 	rrd_value_t *data, *data_ptr;
+@@ -641,7 +641,7 @@ zend_module_entry rrd_module_entry = {
+ rrd_args *rrd_args_init_by_phparray(const char *command_name, const char *filename,
+ 	const zval *options)
+ {
+-	unsigned i, option_count, args_counter = 2;
++	unsigned option_count, args_counter = 2;
+ 	rrd_args *result;
+ 
+ 	if (Z_TYPE_P(options) != IS_ARRAY) return NULL;
+@@ -661,22 +661,18 @@ rrd_args *rrd_args_init_by_phparray(const char *command_name, const char *filena
+ 	/* append filename if it's presented */
+ 	if (strlen(filename)) result->args[args_counter++] = estrdup(filename);
+ 
+-	zend_hash_internal_pointer_reset(Z_ARRVAL_P(options));
+-	for (i=0; i < option_count; i++) {
+-		zval *item;
+-		smart_string option = {0}; /* one argument option */
+-
+-		/* force using strings as array items */
+-		item = zend_hash_get_current_data(Z_ARRVAL_P(options));
+-		if (Z_TYPE_P(item) != IS_STRING) convert_to_string(item);
+-		smart_string_appendl(&option, Z_STRVAL_P(item), Z_STRLEN_P(item));
+-		smart_string_0(&option);
+-
+-		result->args[args_counter++] = estrdup(option.c);
+-		smart_string_free(&option);
+-
+-		zend_hash_move_forward(Z_ARRVAL_P(options));
+-	}
++	zval *item;
++	ZEND_HASH_FOREACH_VAL(Z_ARRVAL_P(options), item) {
++		zend_string *option = zval_get_string(item);
++		if (EG(exception)) {
++			zend_string_release(option);
++			result->count = args_counter;
++			rrd_args_free(result);
++			return NULL;
++		}
++		result->args[args_counter++] = estrndup(ZSTR_VAL(option), ZSTR_LEN(option));
++		zend_string_release(option);
++	} ZEND_HASH_FOREACH_END();
+ 
+ 	return result;
+ }
+diff --git a/rrd_create.c b/rrd_create.c
+index 94cf16b..86e6690 100644
+--- a/rrd_create.c
++++ b/rrd_create.c
+@@ -16,7 +16,7 @@
+ #include "zend_exceptions.h"
+ #include "ext/standard/php_array.h"
+ 
+-#include <rrd.h>
++#include "qa_rrd_abi.h"
+ 
+ #include "php_rrd.h"
+ #include "rrd_create.h"
+@@ -47,7 +47,7 @@ typedef struct _rrd_create_object {
+  * fetch our custom object from user space object
+  */
+ static inline rrd_create_object *php_rrd_create_fetch_object(zend_object *obj) {
+-	return (rrd_create_object *)((char*)(obj) - XtOffsetOf(rrd_create_object, std));
++	return (rrd_create_object *)((char*)(obj) - offsetof(rrd_create_object, std));
+ } 
+ 
+ /* {{{ rrd_create_object_dtor
+@@ -345,6 +345,6 @@ void rrd_create_minit()
+ 
+ 	memcpy(&rrd_create_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+ 	rrd_create_handlers.clone_obj = NULL;
+-	rrd_create_handlers.offset = XtOffsetOf(rrd_create_object, std);
++	rrd_create_handlers.offset = offsetof(rrd_create_object, std);
+ 	rrd_create_handlers.free_obj = rrd_create_object_dtor; 
+ }
+diff --git a/rrd_graph.c b/rrd_graph.c
+index 0e43550..b848957 100644
+--- a/rrd_graph.c
++++ b/rrd_graph.c
+@@ -20,7 +20,7 @@
+ #include "Zend/zend_smart_string.h"
+ #endif
+ 
+-#include <rrd.h>
++#include "qa_rrd_abi.h"
+ 
+ #include "php_rrd.h"
+ #include "rrd_info.h"
+@@ -45,7 +45,7 @@ typedef struct _rrd_graph_object {
+  * fetch our custom object from user space object
+  */
+ static inline rrd_graph_object *php_rrd_graph_fetch_object(zend_object *obj) {
+-	return (rrd_graph_object *)((char*)(obj) - XtOffsetOf(rrd_graph_object, std));
++	return (rrd_graph_object *)((char*)(obj) - offsetof(rrd_graph_object, std));
+ } 
+ 
+ /* {{{ rrd_graph_object_dtor
+@@ -391,6 +391,6 @@ void rrd_graph_minit()
+ 
+ 	memcpy(&rrd_graph_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+ 	rrd_graph_handlers.clone_obj = NULL;
+-	rrd_graph_handlers.offset = XtOffsetOf(rrd_graph_object, std);
++	rrd_graph_handlers.offset = offsetof(rrd_graph_object, std);
+ 	rrd_graph_handlers.free_obj = rrd_graph_object_dtor; 
+ }
+diff --git a/rrd_info.c b/rrd_info.c
+index 19cb1b5..6fe57be 100644
+--- a/rrd_info.c
++++ b/rrd_info.c
+@@ -14,7 +14,7 @@
+ 
+ #include "php.h"
+ 
+-#include <rrd.h>
++#include "qa_rrd_abi.h"
+ 
+ #include "php_rrd.h"
+ #include "rrd_info.h"
+diff --git a/rrd_update.c b/rrd_update.c
+index e21c778..d0f10cf 100644
+--- a/rrd_update.c
++++ b/rrd_update.c
+@@ -20,7 +20,7 @@
+ #include "Zend/zend_smart_string.h"
+ #endif
+ 
+-#include <rrd.h>
++#include "qa_rrd_abi.h"
+ 
+ #include "php_rrd.h"
+ #include "rrd_update.h"
+@@ -44,7 +44,7 @@ typedef struct _rrd_update_object {
+  * fetch our custom object from user space object
+  */
+ static inline rrd_update_object *php_rrd_update_fetch_object(zend_object *obj) {
+-	return (rrd_update_object *)((char*)(obj) - XtOffsetOf(rrd_update_object, std));
++	return (rrd_update_object *)((char*)(obj) - offsetof(rrd_update_object, std));
+ } 
+ 
+ /* {{{ rrd_update_object_dtor
+@@ -265,6 +265,6 @@ void rrd_update_minit()
+ 
+ 	memcpy(&rrd_update_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+ 	rrd_update_handlers.clone_obj = NULL;
+-	rrd_update_handlers.offset = XtOffsetOf(rrd_update_object, std);
++	rrd_update_handlers.offset = offsetof(rrd_update_object, std);
+ 	rrd_update_handlers.free_obj = rrd_update_object_dtor;
+ }

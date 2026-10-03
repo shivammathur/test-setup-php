@@ -15,6 +15,7 @@ foreach ($name in @($runtime[0].Name, $runtime[0].Name.Replace('php-', 'php-deve
     if (!(Test-Path (Join-Path $artifactDirectory $name))) { throw "Missing candidate archive: $name" }
 }
 $private = 'builder/extension/BuildPhpExtension/private'
+"QA_RRD_PATCH=$((Resolve-Path patches/rrd-2.0.4-qa-compat.patch).Path)" >> $env:GITHUB_ENV
 # Route the builder's runtime and SDK requests to these exact candidate archives.
 @'
 function Get-PhpBuildDetails {
@@ -44,6 +45,13 @@ $replacement = @'
         Copy-Item "$env:QA_LIBRARY_DEPS/bin/*.dll" $Prefix -Force
         "QA_RRD_PHP=$Prefix/php.exe" >> $env:GITHUB_ENV
         "QA_RRD_ROOT=$((Get-Location).Path)" >> $env:GITHUB_ENV
+        git apply --check $env:QA_RRD_PATCH
+        if ($LASTEXITCODE -ne 0) { throw 'RRD compatibility patch does not apply' }
+        git apply $env:QA_RRD_PATCH
+        if ($LASTEXITCODE -ne 0) { throw 'RRD compatibility patch failed' }
+        # Unix configure normally generates this include. These packages ship
+        # librrd without the CLI; CLI/fixture tests retain their upstream skips.
+        (Get-Content tests/rrdtool-bin.inc.in -Raw).Replace('@RRDTOOL_BIN@', 'no') | Set-Content tests/rrdtool-bin.inc
 '@
 $content.Replace($needle, "$needle`n$replacement") | Set-Content $file
 $file = "$private/Invoke-Tests.ps1"
@@ -55,3 +63,4 @@ $replacement = @'
 '@
 $content.Replace($needle, "$replacement`n$needle") | Set-Content $file
 git -C builder diff | Set-Content reports/builder-candidate-overrides.diff
+Copy-Item patches/rrd-2.0.4-qa-compat.patch reports
