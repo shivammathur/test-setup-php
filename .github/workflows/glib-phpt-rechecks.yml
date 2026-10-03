@@ -36,25 +36,10 @@ jobs:
           run-id: ${{ matrix.run }}
           github-token: ${{ env.GH_TOKEN }}
           name: artifacts
-      - name: Provide the WMIC test prerequisite for both process architectures
+      - name: Verify the legacy WMIC prerequisite
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
-          $wmic = Join-Path $env:SystemRoot 'System32/wbem/wmic.exe'
-          if (!(Test-Path $wmic)) {
-            Add-WindowsCapability -Online -Name 'WMIC~~~~0.0.1.0' | Out-Null
-          }
-          if (!(Test-Path $wmic)) { throw 'WMIC capability did not provide wmic.exe' }
-          New-Item qa-tools -ItemType Directory -Force | Out-Null
-          @'
-          @echo off
-          if exist "%SystemRoot%\Sysnative\wbem\wmic.exe" (
-            "%SystemRoot%\Sysnative\wbem\wmic.exe" %*
-          ) else (
-            "%SystemRoot%\System32\wbem\wmic.exe" %*
-          )
-          '@ | Set-Content qa-tools/wmic.cmd
-          (Resolve-Path qa-tools).Path >> $env:GITHUB_PATH
+          if (!(Get-Command wmic.exe -ErrorAction SilentlyContinue)) { throw 'WMIC is required by the unchanged legacy test' }
       - name: Repeat the reviewed PHPT cases with the candidate runtime
         shell: pwsh
         env:
