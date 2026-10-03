@@ -1,0 +1,32 @@
+[
+  {
+    "target": "8.6",
+    "arch": "x64",
+    "ts": "ts",
+    "opcache": "nocache",
+    "type": "ext",
+    "full": false,
+    "iterations": 3,
+    "tests": [
+      "ext/soap/tests/bugs/bug49278.phpt"
+    ],
+    "run": 37088511305,
+    "source": "1ab6d6b1bdca3edf715015c9920802a0577be803",
+    "libs": "37083952924,37088132934",
+    "runner": "windows-2025-vs2026"
+  },
+  {
+    "target": "8.3",
+    "arch": "x86",
+    "ts": "ts",
+    "opcache": "opcache",
+    "type": "ext",
+    "full": true,
+    "iterations": 1,
+    "tests": [],
+    "runner": "windows-2025-vs2026",
+    "run": 37088498072,
+    "source": "361ef000e623ff95166f169e9beeb6f42c5950e0",
+    "libs": "37083935928,37088124621"
+  }
+]

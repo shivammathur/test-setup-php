@@ -1,0 +1,94 @@
+name: Candidate PHP environment rechecks
+on:
+  push:
+    branches: [feature/glib-2.90.0-qa-20261003]
+    paths: [.github/workflows/glib-phpt-rechecks.yml, phpt-rechecks.json]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      cases: ${{ steps.matrix.outputs.cases }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: matrix
+        run: echo "cases=$(jq -c '{include:.}' phpt-rechecks.json)" >> "$GITHUB_OUTPUT"
+  recheck:
+    needs: matrix
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.cases) }}
+    env:
+      GH_TOKEN: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: 44b177dd05168995a788123c8807a70e2d0db20c
+      - uses: actions/download-artifact@v4
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run }}
+          github-token: ${{ env.GH_TOKEN }}
+          name: artifacts
+      - name: Repeat the reviewed PHPT cases with the candidate runtime
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ env.GH_TOKEN }}
+          RECHECK_TESTS: ${{ toJSON(matrix.tests) }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # The builder accepts directories. Select the reviewed individual
+          # files without changing their contents, helpers, or expectations.
+          if ('${{ matrix.full }}' -ne 'true') {
+          @'
+          function Get-TestsList {
+            param([string]$OutputFile, [string]$Type, [string[]]$TestDirectories)
+            $paths = @(foreach ($path in $TestDirectories) {
+              if (!(Test-Path -LiteralPath $path -PathType Leaf) -or !$path.EndsWith('.phpt')) { throw "Missing PHPT: $path" }
+              (Resolve-Path -LiteralPath $path).Path
+            })
+            if (!$paths.Count) { throw 'No PHPT cases selected' }
+            $paths | Set-Content $OutputFile
+          }
+          '@ | Set-Content php/BuildPhp/private/Get-TestsList.ps1
+          }
+          Import-Module (Join-Path $PWD 'php/BuildPhp') -Force
+          New-Item reports -ItemType Directory -Force | Out-Null
+          $runtime = @(Get-ChildItem -Filter 'php-*.zip' | Where-Object {
+            $_.Name -match '^php-(?!debug-pack-|devel-pack-|test-pack-).+?-(?:nts-)?Win32-vs\d+-${{ matrix.arch }}\.zip$' -and
+            ($_.Name.Contains('-nts-') -eq ('${{ matrix.ts }}' -eq 'nts'))
+          })
+          if ($runtime.Count -ne 1) { throw 'Expected one candidate runtime' }
+          $version = [regex]::Match($runtime[0].Name, '^php-(.+?)-(?:nts-)?Win32-vs\d+-(?:x86|x64)\.zip$').Groups[1].Value
+          $tests = @($env:RECHECK_TESTS | ConvertFrom-Json)
+          for ($iteration = 1; $iteration -le ${{ matrix.iterations }}; $iteration++) {
+            $env:LIBS_BUILD_RUNS = '${{ matrix.libs }}'
+            Invoke-PhpTests -PhpVersion $version -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}' -Opcache '${{ matrix.opcache }}' -TestType '${{ matrix.type }}' -SourceRepository 'php/php-src' -SourceRef '${{ matrix.source }}' -TestDirectories $tests -FailOnError
+            Copy-Item 'test-${{ matrix.arch }}-${{ matrix.ts }}-${{ matrix.opcache }}-${{ matrix.type }}.xml' "reports/recheck-$iteration.xml"
+            $env:DEPS_CACHE_HIT = 'true'
+          }
+      - name: Retain setup diagnostics
+        if: failure()
+        shell: pwsh
+        run: |
+          New-Item reports -ItemType Directory -Force | Out-Null
+          fsutil fsinfo sectorinfo C: | Set-Content reports/sector-C.txt
+          fsutil fsinfo sectorinfo D: | Set-Content reports/sector-D.txt
+          Get-ChildItem 'C:/Program Files/Microsoft SQL Server' -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -in @('ERRORLOG', 'Summary.txt', 'Detail.txt') } | ForEach-Object {
+            $name = $_.FullName.Replace(':', '').Replace('\', '_')
+            Copy-Item $_.FullName (Join-Path reports $name)
+          }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: recheck-${{ matrix.target }}-${{ matrix.arch }}-${{ matrix.ts }}-${{ matrix.opcache }}-${{ matrix.type }}
+          path: |
+            reports
+            test-*.xml
+            test-*.log
