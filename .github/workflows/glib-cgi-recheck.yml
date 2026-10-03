@@ -1,4 +1,4 @@
-name: Candidate PHP CGI recheck
+name: Candidate PHP master CGI recheck
 on:
   push:
     branches: [feature/glib-2.90.0-qa-20261003]
@@ -25,7 +25,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           repository: shivammathur/php-windows-builder
-          run-id: 37088511305
+          run-id: 37088516418
           github-token: ${{ env.GH_TOKEN }}
           name: artifacts
       - name: Recheck CGI behavior using the exact candidate runtime
@@ -38,8 +38,8 @@ jobs:
           New-Item reports -ItemType Directory -Force | Out-Null
           for ($iteration = 1; $iteration -le 3; $iteration++) {
             $env:LIBS_BUILD_RUNS = '37083952924,37088132934'
-            Invoke-PhpTests -PhpVersion '8.6.0-dev' -Arch x86 -Ts ts -Opcache '${{ matrix.opcache }}' -TestType php -SourceRepository 'php/php-src' -SourceRef '1ab6d6b1bdca3edf715015c9920802a0577be803' -TestDirectories @('sapi/cgi/tests') -FailOnError
-            Copy-Item test-x86-ts-${{ matrix.opcache }}-php.xml "reports/cgi-$iteration.xml"
+            Invoke-PhpTests -PhpVersion '8.7.0-dev' -Arch x64 -Ts nts -Opcache '${{ matrix.opcache }}' -TestType php -SourceRepository 'php/php-src' -SourceRef '459f8cb22bb795f620f1d6fdfbba374c6520ea03' -TestDirectories @('sapi/cgi/tests') -FailOnError
+            Copy-Item test-x64-nts-${{ matrix.opcache }}-php.xml "reports/cgi-$iteration.xml"
           }
       - uses: actions/upload-artifact@v4
         if: always()
