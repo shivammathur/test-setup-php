@@ -32,28 +32,28 @@ jobs:
       matrix:
         include:
           - php: "8.2"
-            run_id: 37084768885
-            title: "Build PHP from source 8155a01189961a6d05621100b14a20608c191035"
+            run_id: 37088493273
+            title: "Build PHP with custom library builds from winlibs/winlib-builder (source)"
             runner: "windows-2022"
           - php: "8.3"
-            run_id: 37084784651
-            title: "Build PHP from source 361ef000e623ff95166f169e9beeb6f42c5950e0"
+            run_id: 37088498072
+            title: "Build PHP with custom library builds from winlibs/winlib-builder (source)"
             runner: "windows-2022"
           - php: "8.4"
-            run_id: 37084798157
-            title: "Build PHP from source 6abb600217a20d1aa313000b08eed3d6eb9d8675"
+            run_id: 37088502666
+            title: "Build PHP with custom library builds from winlibs/winlib-builder (source)"
             runner: "windows-2022"
           - php: "8.5"
-            run_id: 37084811393
-            title: "Build PHP from source 30bf8e7e412d89ff7456bf2a4285df07c57d6128"
+            run_id: 37088506831
+            title: "Build PHP with custom library builds from winlibs/winlib-builder (source)"
             runner: "windows-2022"
           - php: "8.6"
-            run_id: 37084824386
-            title: "Build PHP from source 1ab6d6b1bdca3edf715015c9920802a0577be803"
+            run_id: 37088511305
+            title: "Build PHP with custom library builds from winlibs/winlib-builder (source)"
             runner: "windows-2025-vs2026"
           - php: "master"
-            run_id: 37084838241
-            title: "Build PHP from source 459f8cb22bb795f620f1d6fdfbba374c6520ea03"
+            run_id: 37088516418
+            title: "Build PHP with custom library builds from winlibs/winlib-builder (source)"
             runner: "windows-2025-vs2026"
 
     steps:

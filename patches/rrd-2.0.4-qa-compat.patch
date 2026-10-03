@@ -19,7 +19,7 @@ index 0000000..5319c98
 +#endif
 +#endif
 diff --git a/rrd.c b/rrd.c
-index ff51776..815061c 100644
+index ff51776..660216c 100644
 --- a/rrd.c
 +++ b/rrd.c
 @@ -20,7 +20,7 @@
@@ -40,6 +40,17 @@ index ff51776..815061c 100644
  	unsigned long step,
  	ds_cnt; /* count of data sources */
  	char **ds_namv; /* list of data source names */
+@@ -124,8 +124,8 @@ PHP_FUNCTION(rrd_fetch)
+ 				/* pointer for one data source retrieved data */
+ 				zval *ds_data_array;
+ 				/* value for key (timestamp) in data array */
+-				char str_timestamp[11];
+-				ZEND_LTOA((zend_ulong)timestamp, str_timestamp, sizeof(str_timestamp));
++				char str_timestamp[32];
++				snprintf(str_timestamp, sizeof(str_timestamp), ZEND_ULONG_FMT, (zend_ulong)timestamp);
+ 
+ 				/* gets pointer for data source result array */
+ 				ds_data_array = zend_hash_get_current_data(Z_ARRVAL(zv_data_array));
 @@ -157,7 +157,7 @@ PHP_FUNCTION(rrd_first)
  	size_t filename_length;
  	long rraindex = 0;
@@ -67,6 +78,24 @@ index ff51776..815061c 100644
  	unsigned long ds_cnt;
  	char **ds_namv;
  	char **last_ds;
+@@ -334,7 +334,7 @@ PHP_FUNCTION(rrd_restore)
+ 	argv = rrd_args_init_by_phparray("restore", xml_filename, &zv_options);
+ 	if (!argv) {
+ 		zend_error(E_WARNING, "cannot allocate arguments options");
+-		zval_dtor(&zv_options);
++		zval_ptr_dtor_nogc(&zv_options);
+ 		RETURN_FALSE;
+ 	}
+ 
+@@ -346,7 +346,7 @@ PHP_FUNCTION(rrd_restore)
+ 	} else {
+ 		RETVAL_TRUE;
+ 	}
+-	zval_dtor(&zv_options);
++	zval_ptr_dtor_nogc(&zv_options);
+ 	rrd_args_free(argv);
+ }
+ /* }}} */
 @@ -399,7 +399,7 @@ PHP_FUNCTION(rrd_xport)
  	rrd_args *argv;
  	/* return values from rrd_xport */
@@ -76,6 +105,17 @@ index ff51776..815061c 100644
  	unsigned long step, outvar_count;
  	char **legend_v;
  	rrd_value_t *data, *data_ptr;
+@@ -463,8 +463,8 @@ PHP_FUNCTION(rrd_xport)
+ 		data_ptr = data + outvar_index;
+ 		for (time_index = start + step; time_index <= end; time_index += step) {
+ 			/* value for key (timestamp) in data array */
+-			char str_timestamp[11];
+-			ZEND_LTOA((zend_ulong)time_index, str_timestamp, sizeof(str_timestamp));
++			char str_timestamp[32];
++			snprintf(str_timestamp, sizeof(str_timestamp), ZEND_ULONG_FMT, (zend_ulong)time_index);
+ 
+ 			add_assoc_double(&time_data, str_timestamp, *data_ptr);
+ 			data_ptr += outvar_count;
 @@ -641,7 +641,7 @@ zend_module_entry rrd_module_entry = {
  rrd_args *rrd_args_init_by_phparray(const char *command_name, const char *filename,
  	const zval *options)
@@ -121,7 +161,7 @@ index ff51776..815061c 100644
  	return result;
  }
 diff --git a/rrd_create.c b/rrd_create.c
-index 94cf16b..86e6690 100644
+index 94cf16b..a727563 100644
 --- a/rrd_create.c
 +++ b/rrd_create.c
 @@ -16,7 +16,7 @@
@@ -142,6 +182,48 @@ index 94cf16b..86e6690 100644
  } 
  
  /* {{{ rrd_create_object_dtor
+@@ -63,11 +63,11 @@ static void rrd_create_object_dtor(zend_object *object)
+ 	if (intern_obj->start_time)
+ 		efree(intern_obj->start_time);
+ 	if (!Z_ISUNDEF(intern_obj->zv_step))
+-		zval_dtor(&intern_obj->zv_step);
++		zval_ptr_dtor_nogc(&intern_obj->zv_step);
+ 	if (!Z_ISUNDEF(intern_obj->zv_arr_data_sources))
+-		zval_dtor(&intern_obj->zv_arr_data_sources);
++		zval_ptr_dtor_nogc(&intern_obj->zv_arr_data_sources);
+ 	if (!Z_ISUNDEF(intern_obj->zv_arr_archives))
+-		zval_dtor(&intern_obj->zv_arr_archives);
++		zval_ptr_dtor_nogc(&intern_obj->zv_arr_archives);
+ 
+ 	zend_object_std_dtor(&intern_obj->std);
+ }
+@@ -255,7 +255,7 @@ PHP_METHOD(RRDCreator, save)
+ 	create_argv = rrd_args_init_by_phparray("create", intern_obj->file_path, &zv_create_argv);
+ 	if (!create_argv) {
+ 		zend_error(E_WARNING, "cannot allocate arguments options");
+-		zval_dtor(&zv_create_argv);
++		zval_ptr_dtor_nogc(&zv_create_argv);
+ 		RETURN_FALSE;
+ 	}
+ 
+@@ -263,7 +263,7 @@ PHP_METHOD(RRDCreator, save)
+ 
+ 	/* call rrd_create and test if fails */
+ 	if (rrd_create(create_argv->count - 1, &create_argv->args[1]) == -1) {
+-		zval_dtor(&zv_create_argv);
++		zval_ptr_dtor_nogc(&zv_create_argv);
+ 		rrd_args_free(create_argv);
+ 
+ 		/* throw exception with rrd error string */
+@@ -272,7 +272,7 @@ PHP_METHOD(RRDCreator, save)
+ 		return;
+ 	}
+ 
+-	zval_dtor(&zv_create_argv);
++	zval_ptr_dtor_nogc(&zv_create_argv);
+ 	rrd_args_free(create_argv);
+ 	RETURN_TRUE;
+ }
 @@ -345,6 +345,6 @@ void rrd_create_minit()
  
  	memcpy(&rrd_create_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
@@ -151,7 +233,7 @@ index 94cf16b..86e6690 100644
  	rrd_create_handlers.free_obj = rrd_create_object_dtor; 
  }
 diff --git a/rrd_graph.c b/rrd_graph.c
-index 0e43550..b848957 100644
+index 0e43550..3043579 100644
 --- a/rrd_graph.c
 +++ b/rrd_graph.c
 @@ -20,7 +20,7 @@
@@ -172,6 +254,33 @@ index 0e43550..b848957 100644
  } 
  
  /* {{{ rrd_graph_object_dtor
+@@ -60,7 +60,7 @@ static void rrd_graph_object_dtor(zend_object *object)
+ 		efree(intern_obj->file_path);
+ 	}
+ 	if (!Z_ISUNDEF(intern_obj->zv_arr_options)) {
+-		zval_dtor(&intern_obj->zv_arr_options);
++		zval_ptr_dtor_nogc(&intern_obj->zv_arr_options);
+ 	}
+ 
+ 	zend_object_std_dtor(&intern_obj->std);
+@@ -120,7 +120,7 @@ PHP_METHOD(RRDGraph, setOptions)
+ 
+ 	/* if our array is initialized, so delete it first */
+ 	if (!Z_ISUNDEF(intern_obj->zv_arr_options)) {
+-		zval_dtor(&intern_obj->zv_arr_options);
++		zval_ptr_dtor_nogc(&intern_obj->zv_arr_options);
+ 	}
+ 
+ 	/* copy array from parameter */
+@@ -169,7 +169,7 @@ static rrd_args *rrd_graph_obj_create_argv(const char *command_name, const rrd_g
+ 	} ZEND_HASH_FOREACH_END();
+ 
+ 	result = rrd_args_init_by_phparray(command_name, obj->file_path, &zv_argv);
+-	zval_dtor(&zv_argv);
++	zval_ptr_dtor_nogc(&zv_argv);
+ 
+ 	return result;
+ }
 @@ -391,6 +391,6 @@ void rrd_graph_minit()
  
  	memcpy(&rrd_graph_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
@@ -194,7 +303,7 @@ index 19cb1b5..6fe57be 100644
  #include "php_rrd.h"
  #include "rrd_info.h"
 diff --git a/rrd_update.c b/rrd_update.c
-index e21c778..d0f10cf 100644
+index e21c778..6ec757c 100644
 --- a/rrd_update.c
 +++ b/rrd_update.c
 @@ -20,7 +20,7 @@
@@ -215,6 +324,33 @@ index e21c778..d0f10cf 100644
  } 
  
  /* {{{ rrd_update_object_dtor
+@@ -179,7 +179,7 @@ PHP_METHOD(RRDUpdater, update)
+ 	update_argv = rrd_args_init_by_phparray("update", intern_obj->file_path, &zv_update_argv);
+ 	if (!update_argv) {
+ 		zend_error(E_WARNING, "cannot allocate arguments options");
+-		zval_dtor(&zv_update_argv);
++		zval_ptr_dtor_nogc(&zv_update_argv);
+ 		if (time_str_length == 0) efree(time);
+ 		RETURN_FALSE;
+ 	}
+@@ -188,7 +188,7 @@ PHP_METHOD(RRDUpdater, update)
+ 
+ 	/* call rrd_update and test if fails */
+ 	if (rrd_update(update_argv->count - 1, &update_argv->args[1]) == -1) {
+-		zval_dtor(&zv_update_argv);
++		zval_ptr_dtor_nogc(&zv_update_argv);
+ 		rrd_args_free(update_argv);
+ 
+ 		/* throw exception with rrd error string */
+@@ -197,7 +197,7 @@ PHP_METHOD(RRDUpdater, update)
+ 		return;
+ 	}
+ 
+-	zval_dtor(&zv_update_argv);
++	zval_ptr_dtor_nogc(&zv_update_argv);
+ 	rrd_args_free(update_argv);
+ 
+ 	RETURN_TRUE;
 @@ -265,6 +265,6 @@ void rrd_update_minit()
  
  	memcpy(&rrd_update_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
