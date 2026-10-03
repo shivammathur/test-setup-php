@@ -72,7 +72,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: shivammathur/php-windows-builder
-          ref: 44b177d
+          ref: 44b177dd05168995a788123c8807a70e2d0db20c
           path: builder
       - uses: actions/download-artifact@v4
         with:

@@ -976,6 +976,13 @@ function intl_calendar_optional_methods(): array
 
 function assert_intl_userland_manifest(): void
 {
+    $php86LocaleFunctions = PHP_VERSION_ID >= 80600 ? ['locale_get_display_keyword', 'locale_get_display_keyword_value'] : [];
+    $php86LocaleMethods = PHP_VERSION_ID >= 80600 ? ['getDisplayKeyword', 'getDisplayKeywordValue'] : [];
+    $php86PatternMethods = PHP_VERSION_ID >= 80600 ? ['getSkeleton', 'getBaseSkeleton'] : [];
+    $php86SpoofMethods = PHP_VERSION_ID >= 80600 ? ['getSkeleton'] : [];
+    if (PHP_VERSION_ID >= 80600 && version_compare(INTL_ICU_VERSION, '74.0', '>=')) {
+        array_push($php86SpoofMethods, 'getBidiSkeleton', 'areBidiConfusable');
+    }
     assert_internal_function_manifest('intl common', 'intl_', [
         'intl_error_name',
         'intl_get_error_code',
@@ -1102,7 +1109,7 @@ function assert_intl_userland_manifest(): void
         'msgfmt_parse_message',
         'msgfmt_set_pattern',
     ]);
-    assert_internal_function_manifest('intl grapheme', 'grapheme_', [
+    assert_internal_function_manifest('intl grapheme', 'grapheme_', array_merge([
         'grapheme_extract',
         'grapheme_stripos',
         'grapheme_stristr',
@@ -1112,12 +1119,11 @@ function assert_intl_userland_manifest(): void
         'grapheme_strrpos',
         'grapheme_strstr',
         'grapheme_substr',
-    ], [
+    ], PHP_VERSION_ID >= 80600 ? ['grapheme_strrev'] : []), [
         'grapheme_levenshtein',
         'grapheme_str_split',
-        'grapheme_strrev',
     ]);
-    assert_internal_function_manifest('intl locale', 'locale_', [
+    assert_internal_function_manifest('intl locale', 'locale_', array_merge([
         'locale_accept_from_http',
         'locale_canonicalize',
         'locale_compose',
@@ -1136,7 +1142,7 @@ function assert_intl_userland_manifest(): void
         'locale_lookup',
         'locale_parse',
         'locale_set_default',
-    ], [
+    ], $php86LocaleFunctions), [
         'locale_add_likely_subtags',
         'locale_is_right_to_left',
         'locale_minimize_subtags',
@@ -1199,16 +1205,22 @@ function assert_intl_userland_manifest(): void
     assert_class_method_manifest(Collator::class, ['__construct', 'asort', 'compare', 'create', 'getAttribute', 'getErrorCode', 'getErrorMessage', 'getLocale', 'getSortKey', 'getStrength', 'setAttribute', 'setStrength', 'sort', 'sortWithSortKeys']);
     assert_class_method_manifest(NumberFormatter::class, ['__construct', 'create', 'format', 'formatCurrency', 'getAttribute', 'getErrorCode', 'getErrorMessage', 'getLocale', 'getPattern', 'getSymbol', 'getTextAttribute', 'parse', 'parseCurrency', 'setAttribute', 'setPattern', 'setSymbol', 'setTextAttribute']);
     assert_class_method_manifest(IntlDateFormatter::class, ['__construct', 'create', 'format', 'formatObject', 'getCalendar', 'getCalendarObject', 'getDateType', 'getErrorCode', 'getErrorMessage', 'getLocale', 'getPattern', 'getTimeType', 'getTimeZone', 'getTimeZoneId', 'isLenient', 'localtime', 'parse', 'setCalendar', 'setLenient', 'setPattern', 'setTimeZone'], ['parseToCalendar']);
-    assert_class_method_manifest(IntlDatePatternGenerator::class, ['__construct', 'create', 'getBestPattern']);
+    assert_class_method_manifest(IntlDatePatternGenerator::class, array_merge(['__construct', 'create', 'getBestPattern'], $php86PatternMethods));
     assert_class_method_manifest(MessageFormatter::class, ['__construct', 'create', 'format', 'formatMessage', 'getErrorCode', 'getErrorMessage', 'getLocale', 'getPattern', 'parse', 'parseMessage', 'setPattern']);
     assert_class_method_manifest(Normalizer::class, ['getRawDecomposition', 'isNormalized', 'normalize']);
-    assert_class_method_manifest(Locale::class, ['acceptFromHttp', 'canonicalize', 'composeLocale', 'filterMatches', 'getAllVariants', 'getDefault', 'getDisplayLanguage', 'getDisplayName', 'getDisplayRegion', 'getDisplayScript', 'getDisplayVariant', 'getKeywords', 'getPrimaryLanguage', 'getRegion', 'getScript', 'lookup', 'parseLocale', 'setDefault'], ['addLikelySubtags', 'isRightToLeft', 'minimizeSubtags']);
+    assert_class_method_manifest(Locale::class, array_merge(['acceptFromHttp', 'canonicalize', 'composeLocale', 'filterMatches', 'getAllVariants', 'getDefault', 'getDisplayLanguage', 'getDisplayName', 'getDisplayRegion', 'getDisplayScript', 'getDisplayVariant', 'getKeywords', 'getPrimaryLanguage', 'getRegion', 'getScript', 'lookup', 'parseLocale', 'setDefault'], $php86LocaleMethods), ['addLikelySubtags', 'isRightToLeft', 'minimizeSubtags']);
     assert_class_method_manifest(IntlCalendar::class, intl_calendar_methods(), intl_calendar_optional_methods());
     assert_class_method_manifest(IntlGregorianCalendar::class, array_values(array_unique(array_merge(intl_calendar_methods(), ['getGregorianChange', 'isLeapYear', 'setGregorianChange']))), array_values(array_unique(array_merge(intl_calendar_optional_methods(), ['createFromDate', 'createFromDateTime']))));
     assert_class_method_manifest(IntlTimeZone::class, ['__construct', 'countEquivalentIDs', 'createDefault', 'createEnumeration', 'createTimeZone', 'createTimeZoneIDEnumeration', 'fromDateTimeZone', 'getCanonicalID', 'getDSTSavings', 'getDisplayName', 'getEquivalentID', 'getErrorCode', 'getErrorMessage', 'getGMT', 'getID', 'getIDForWindowsID', 'getOffset', 'getRawOffset', 'getRegion', 'getTZDataVersion', 'getUnknown', 'getWindowsID', 'hasSameRules', 'toDateTimeZone', 'useDaylightTime'], ['getIanaID']);
     assert_class_method_manifest(ResourceBundle::class, ['__construct', 'count', 'create', 'get', 'getErrorCode', 'getErrorMessage', 'getIterator', 'getLocales']);
     assert_class_method_manifest(Transliterator::class, ['__construct', 'create', 'createFromRules', 'createInverse', 'getErrorCode', 'getErrorMessage', 'listIDs', 'transliterate']);
-    assert_class_method_manifest(Spoofchecker::class, ['__construct', 'areConfusable', 'isSuspicious', 'setAllowedLocales', 'setChecks', 'setRestrictionLevel'], ['setAllowedChars']);
+    assert_class_method_manifest(Spoofchecker::class, array_merge(['__construct', 'areConfusable', 'isSuspicious', 'setAllowedLocales', 'setChecks', 'setRestrictionLevel'], $php86SpoofMethods), ['setAllowedChars']);
+    if (PHP_VERSION_ID >= 80500) {
+        assert_class_method_manifest(IntlListFormatter::class, ['__construct', 'format', 'getErrorCode', 'getErrorMessage']);
+    }
+    if (PHP_VERSION_ID >= 80600) {
+        assert_class_method_manifest(IntlNumberRangeFormatter::class, ['__construct', 'createFromSkeleton', 'format', 'getErrorCode', 'getErrorMessage']);
+    }
     assert_class_method_manifest(IntlBreakIterator::class, intl_break_iterator_methods());
     assert_class_method_manifest(IntlRuleBasedBreakIterator::class, array_values(array_unique(array_merge(intl_break_iterator_methods(), ['getBinaryRules', 'getRuleStatus', 'getRuleStatusVec', 'getRules']))));
     assert_class_method_manifest(IntlCodePointBreakIterator::class, array_values(array_unique(array_merge(array_diff(intl_break_iterator_methods(), ['__construct']), ['getLastCodePoint']))));
@@ -1216,6 +1228,71 @@ function assert_intl_userland_manifest(): void
     assert_class_method_manifest(IntlPartsIterator::class, ['current', 'getBreakIterator', 'getRuleStatus', 'key', 'next', 'rewind', 'valid']);
     assert_class_method_manifest(UConverter::class, ['__construct', 'convert', 'fromUCallback', 'getAliases', 'getAvailable', 'getDestinationEncoding', 'getDestinationType', 'getErrorCode', 'getErrorMessage', 'getSourceEncoding', 'getSourceType', 'getStandards', 'getSubstChars', 'reasonText', 'setDestinationEncoding', 'setSourceEncoding', 'setSubstChars', 'toUCallback', 'transcode']);
     assert_class_method_manifest(IntlChar::class, ['charAge', 'charDigitValue', 'charDirection', 'charFromName', 'charMirror', 'charName', 'charType', 'chr', 'digit', 'enumCharNames', 'enumCharTypes', 'foldCase', 'forDigit', 'getBidiPairedBracket', 'getBlockCode', 'getCombiningClass', 'getFC_NFKC_Closure', 'getIntPropertyMaxValue', 'getIntPropertyMinValue', 'getIntPropertyValue', 'getNumericValue', 'getPropertyEnum', 'getPropertyName', 'getPropertyValueEnum', 'getPropertyValueName', 'getUnicodeVersion', 'hasBinaryProperty', 'isalnum', 'isalpha', 'isbase', 'isblank', 'iscntrl', 'isdefined', 'isdigit', 'isgraph', 'isIDIgnorable', 'isIDPart', 'isIDStart', 'isISOControl', 'isJavaIDPart', 'isJavaIDStart', 'isJavaSpaceChar', 'islower', 'isMirrored', 'isprint', 'ispunct', 'isspace', 'istitle', 'isUAlphabetic', 'isULowercase', 'isupper', 'isUUppercase', 'isUWhiteSpace', 'isWhitespace', 'isxdigit', 'ord', 'tolower', 'totitle', 'toupper']);
+}
+
+function test_intl_versioned_apis(): void
+{
+    $list = new IntlListFormatter('en_US', IntlListFormatter::TYPE_AND, IntlListFormatter::WIDTH_WIDE);
+    assert_same('one, two, and three', $list->format(['one', 'two', 'three']), 'IntlListFormatter should join an English list');
+    assert_false(intl_is_failure($list->getErrorCode()), 'List formatter should report success');
+    assert_true(is_string($list->getErrorMessage()), 'List formatter should expose an error message');
+    if (version_compare(INTL_ICU_VERSION, '67.0', '>=')) {
+        assert_constants_defined(['IntlListFormatter::TYPE_OR', 'IntlListFormatter::TYPE_UNITS', 'IntlListFormatter::WIDTH_SHORT', 'IntlListFormatter::WIDTH_NARROW'], 'IntlListFormatter');
+        $or = new IntlListFormatter('en_US', IntlListFormatter::TYPE_OR, IntlListFormatter::WIDTH_WIDE);
+        assert_same('one or two', $or->format(['one', 'two']), 'List formatter should honor the OR style');
+    }
+    if (PHP_VERSION_ID < 80600) {
+        return;
+    }
+
+    $keyword = locale_get_display_keyword('calendar', 'en');
+    assert_contains('Calendar', $keyword, 'Locale keyword display should localize calendar');
+    assert_same($keyword, Locale::getDisplayKeyword('calendar', 'en'), 'Locale keyword procedural and object APIs should agree');
+    $value = locale_get_display_keyword_value('de_DE@calendar=gregorian', 'calendar', 'en');
+    assert_contains('Gregorian', $value, 'Locale keyword value should describe the Gregorian calendar');
+    assert_same($value, Locale::getDisplayKeywordValue('de_DE@calendar=gregorian', 'calendar', 'en'), 'Locale keyword value APIs should agree');
+    assert_same('MMMdd', IntlDatePatternGenerator::getSkeleton('dd/MMM'), 'Date skeleton should preserve field widths');
+    assert_same('MMMd', IntlDatePatternGenerator::getBaseSkeleton('dd/MMM'), 'Base skeleton should normalize field widths');
+    assert_same("e\u{0301}faC", grapheme_strrev("Cafe\u{0301}"), 'Required PHP 8.6 grapheme reversal should preserve combining characters');
+    $type = (new ReflectionMethod(IntlBreakIterator::class, 'getPartsIterator'))->getParameters()[0]->getType();
+    assert_same('int', (string) $type, 'Break iterator part keys should use the corrected integer parameter type');
+
+    assert_same(-16, IntlDateFormatter::PROLEPTIC_GREGORIAN, 'Proleptic Gregorian calendar constant should match the PHP stub');
+    $date = new IntlDateFormatter('en_US', IntlDateFormatter::NONE, IntlDateFormatter::NONE, 'UTC', IntlDateFormatter::PROLEPTIC_GREGORIAN, 'yyyy-MM-dd');
+    assert_same('1970-01-01', $date->format(0), 'Proleptic Gregorian formatting should work on both architectures');
+    if (PHP_INT_SIZE === 8) {
+        assert_same('1200-03-01', $date->format(new DateTimeImmutable('1200-03-01 12:00:00 UTC')), 'Proleptic Gregorian formatting should preserve dates before the calendar cutover');
+    }
+
+    assert_constants_defined([
+        'IntlNumberRangeFormatter::COLLAPSE_AUTO', 'IntlNumberRangeFormatter::COLLAPSE_NONE',
+        'IntlNumberRangeFormatter::COLLAPSE_UNIT', 'IntlNumberRangeFormatter::COLLAPSE_ALL',
+        'IntlNumberRangeFormatter::IDENTITY_FALLBACK_SINGLE_VALUE',
+        'IntlNumberRangeFormatter::IDENTITY_FALLBACK_APPROXIMATELY_OR_SINGLE_VALUE',
+        'IntlNumberRangeFormatter::IDENTITY_FALLBACK_APPROXIMATELY',
+        'IntlNumberRangeFormatter::IDENTITY_FALLBACK_RANGE',
+    ], 'IntlNumberRangeFormatter');
+    if (version_compare(INTL_ICU_VERSION, '63.0', '>=')) {
+        $range = IntlNumberRangeFormatter::createFromSkeleton('', 'en_GB', IntlNumberRangeFormatter::COLLAPSE_AUTO, IntlNumberRangeFormatter::IDENTITY_FALLBACK_APPROXIMATELY);
+        assert_same("5.1\u{2013}5.2", $range->format(5.1, 5.2), 'Number range formatter should format both endpoints');
+        assert_false(intl_is_failure($range->getErrorCode()), 'Number range formatter should report success');
+        assert_true(is_string($range->getErrorMessage()), 'Number range formatter should expose an error message');
+    }
+
+    $checker = new Spoofchecker();
+    assert_same('abc', $checker->getSkeleton('abc'), 'Spoofchecker skeleton should preserve this ASCII identifier');
+    assert_same('fi', $checker->getSkeleton("\u{FB01}"), 'Spoofchecker skeleton should expand the fi ligature');
+    if (version_compare(INTL_ICU_VERSION, '74.0', '>=')) {
+        assert_constants_defined(['Spoofchecker::LTR', 'Spoofchecker::RTL'], 'Spoofchecker');
+        $left = "A1\u{05D0}";
+        $right = "A\u{05D0}1";
+        assert_same($checker->getBidiSkeleton(Spoofchecker::LTR, $left), $checker->getBidiSkeleton(Spoofchecker::LTR, $right), 'Bidi skeleton should respect left-to-right ordering');
+        assert_not_same($checker->getBidiSkeleton(Spoofchecker::RTL, $left), $checker->getBidiSkeleton(Spoofchecker::RTL, $right), 'Bidi skeleton should distinguish the right-to-left context');
+        $error = null;
+        assert_true($checker->areBidiConfusable(Spoofchecker::LTR, $left, $right, $error), 'Bidi confusable check should detect the matching left-to-right skeletons');
+        assert_same(Spoofchecker::MIXED_SCRIPT_CONFUSABLE, $error, 'Bidi confusable check should return its classification');
+        assert_false($checker->areBidiConfusable(Spoofchecker::RTL, $left, $right), 'Bidi confusable check should honor the different text direction');
+    }
 }
 
 function create_reference_image(int $width = 96, int $height = 64): GdImage
@@ -2662,6 +2739,9 @@ $suite->add('ffi/kernel32-foreign-calls', 'test_ffi_kernel32_calls');
 $suite->add('glib/ffi-runtime/utf8/path/version', 'test_glib_runtime_via_ffi');
 $suite->add('enchant/configuration/dictionaries/pwl', 'test_enchant_configuration_and_dictionary');
 $suite->add('intl/configuration/icu-version/manifest', 'test_intl_configuration_and_manifest');
+if (PHP_VERSION_ID >= 80500) {
+    $suite->add('intl/versioned/locale/skeleton/range/list/calendar', 'test_intl_versioned_apis');
+}
 $suite->add('intl/locale/grapheme/normalizer/char/idn', 'test_intl_locale_grapheme_normalizer_char_idn');
 $suite->add('intl/collator/number/message/date', 'test_intl_collator_number_message_date');
 $suite->add('intl/calendar/timezone', 'test_intl_calendar_timezone');
