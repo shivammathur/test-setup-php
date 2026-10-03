@@ -1,0 +1,123 @@
+name: GLib consumer artifact QA
+on:
+  push:
+    branches: [feature/glib-2.90.0-qa-20261003]
+    paths:
+      - .github/workflows/glib-consumers.yml
+      - release-inputs.json
+      - consumer-matrix.json
+      - expected-manifests.json
+      - scripts/prepare-library-inputs.ps1
+      - scripts/prepare-rrd-builder.ps1
+      - tests/glib-consumers.py
+      - tests/rrd-runtime.php
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      native: ${{ steps.matrix.outputs.native }}
+      php: ${{ steps.matrix.outputs.php }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: matrix
+        run: |
+          echo "native=$(jq -c .native consumer-matrix.json)" >> "$GITHUB_OUTPUT"
+          echo "php=$(jq -c .php consumer-matrix.json)" >> "$GITHUB_OUTPUT"
+  native:
+    needs: matrix
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.native) }}
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+          architecture: ${{ matrix.arch }}
+      - name: Prepare accepted library artifacts
+        shell: pwsh
+        run: ./scripts/prepare-library-inputs.ps1 -Lane '${{ matrix.lane }}' -Arch '${{ matrix.arch }}'
+      - name: Exercise GLib, Enchant, Pango and RRDtool
+        shell: pwsh
+        run: |
+          python tests/glib-consumers.py | Tee-Object reports/native-runtime.log
+          if ($LASTEXITCODE -ne 0) { throw 'Native consumer runtime failed' }
+          Copy-Item *.png reports
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-${{ matrix.lane }}-${{ matrix.arch }}
+          path: reports
+  rrd:
+    needs: matrix
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.php) }}
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+      artifact-naming-scheme: pecl
+      TEST_PHP_JUNIT: C:\rrd-build\rrd-junit.xml
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: 44b177d
+          path: builder
+      - uses: actions/download-artifact@v4
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run }}
+          github-token: ${{ env.GH_TOKEN }}
+          name: artifacts
+          path: php-artifacts
+      - name: Prepare accepted library artifacts
+        shell: pwsh
+        run: ./scripts/prepare-library-inputs.ps1 -Lane '${{ matrix.lane }}' -Arch '${{ matrix.arch }}'
+      - name: Connect builder to candidate PHP and dependency artifacts
+        shell: pwsh
+        run: ./scripts/prepare-rrd-builder.ps1 -Php '${{ matrix.php }}' -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}'
+      - name: Build and test RRD against candidate PHP
+        uses: ./builder/extension
+        with:
+          extension-url: https://github.com/php/pecl-processing-rrd
+          extension-ref: e7002847af5769a4330c525101b78a796851a974
+          php-version: ${{ matrix.php }}
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+          args: --with-rrd
+          libs: librrd
+          run-tests: 'true'
+          test-opcache-mode: both
+          save-vs-cache: 'false'
+          build-directory: C:\rrd-build
+      - name: Verify RRD database and graph behavior
+        shell: pwsh
+        run: |
+          $extension = @(Get-ChildItem $env:QA_RRD_ROOT -Recurse -Filter php_rrd.dll -File | Where-Object { $_.FullName -notmatch '\\artifacts\\' })
+          if ($extension.Count -ne 1) { throw 'Expected one built RRD extension' }
+          & $env:QA_RRD_PHP -n -d "extension=$($extension[0].FullName)" tests/rrd-runtime.php | Tee-Object reports/rrd-runtime.json
+          if ($LASTEXITCODE -ne 0) { throw 'PHP RRD runtime behavior failed' }
+      - name: Collect RRD test results
+        if: always()
+        shell: pwsh
+        run: |
+          Copy-Item C:\rrd-build\rrd-junit-*.xml reports -ErrorAction SilentlyContinue
+          Get-ChildItem C:\rrd-build -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in @('.diff', '.out', '.log') } | Copy-Item -Destination reports -Force
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rrd-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: |
+            reports
+            artifacts

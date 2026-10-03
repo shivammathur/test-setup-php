@@ -1,0 +1,88 @@
+name: Winlibs dependency exhaustive QA
+
+on:
+  push:
+    branches:
+      - feature/glib-2.90.0-qa-20261003
+    paths:
+      - .github/workflows/winlibs-deps-exhaustive-qa.yml
+      - scripts/run-winlibs-deps-suite.ps1
+      - tests/winlibs-deps-exhaustive.php
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: winlibs-deps-exhaustive-qa-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  SOURCE_REPOSITORY: shivammathur/php-windows-builder
+  SOURCE_GITHUB_TOKEN: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+
+jobs:
+  test:
+    name: ${{ matrix.php }} artifact QA
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: "8.2"
+            run_id: 37084768885
+            title: "Build PHP from source 8155a01189961a6d05621100b14a20608c191035"
+            runner: "windows-2022"
+          - php: "8.3"
+            run_id: 37084784651
+            title: "Build PHP from source 361ef000e623ff95166f169e9beeb6f42c5950e0"
+            runner: "windows-2022"
+          - php: "8.4"
+            run_id: 37084798157
+            title: "Build PHP from source 6abb600217a20d1aa313000b08eed3d6eb9d8675"
+            runner: "windows-2022"
+          - php: "8.5"
+            run_id: 37084811393
+            title: "Build PHP from source 30bf8e7e412d89ff7456bf2a4285df07c57d6128"
+            runner: "windows-2022"
+          - php: "8.6"
+            run_id: 37084824386
+            title: "Build PHP from source 1ab6d6b1bdca3edf715015c9920802a0577be803"
+            runner: "windows-2025-vs2026"
+          - php: "master"
+            run_id: 37084838241
+            title: "Build PHP from source 459f8cb22bb795f620f1d6fdfbba374c6520ea03"
+            runner: "windows-2025-vs2026"
+
+    steps:
+      - name: Checkout tests
+        uses: actions/checkout@v4
+
+      - name: Download PHP build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ env.SOURCE_GITHUB_TOKEN }}
+          repository: ${{ env.SOURCE_REPOSITORY }}
+          run-id: ${{ matrix.run_id }}
+          name: artifacts
+          path: artifacts
+
+      - name: Run exhaustive Winlibs dependency suite
+        shell: pwsh
+        run: |
+          ./scripts/run-winlibs-deps-suite.ps1 `
+            -ArtifactsDirectory artifacts `
+            -ReportsDirectory reports `
+            -RunId '${{ matrix.run_id }}' `
+            -RunTitle '${{ matrix.title }}' `
+            -PhpTarget '${{ matrix.php }}'
+
+      - name: Upload exhaustive QA reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: winlibs-deps-exhaustive-qa-${{ matrix.php }}-${{ matrix.run_id }}
+          path: reports
+          if-no-files-found: warn
