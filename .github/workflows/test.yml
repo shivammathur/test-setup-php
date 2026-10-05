@@ -7,19 +7,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, macos-15, macos-26]
+        os: [ubuntu-24.04, ubuntu-26.04]
         php-version:
           - 8.4
           
     steps:
-      - name: Install PHP
-        uses: shivammathur/setup-php@develop
+      - name: Setup PHP
+        uses: shivammathur/setup-php@bc12f5cef4c73a871331e196ff380d38232ba293 # 2.40.0-beta
         with:
-          php-version: ${{ matrix.php-version }}
+            php-version: ${{ matrix.php-version }}
+            extensions: http
         env:
-          verbose: v
+            verbose: v
       - run: |
-          brew config
           php -v
           php -m
       
