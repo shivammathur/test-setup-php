@@ -9,8 +9,11 @@ $policies = [
 ];
 $mode = $argv[1];
 $resolved = realpath('NUL');
-if (ini_set('open_basedir', $policies[$mode]) === false) {
+if ($policies[$mode] !== '' && ini_set('open_basedir', $policies[$mode]) === false) {
     throw new RuntimeException('Could not set open_basedir');
+}
+if (ini_get('open_basedir') !== $policies[$mode]) {
+    throw new RuntimeException('Unexpected open_basedir');
 }
 
 $results = [];
