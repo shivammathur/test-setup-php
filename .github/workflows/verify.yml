@@ -1,0 +1,47 @@
+name: Verify NUL open_basedir patch
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  verify:
+    name: ${{ matrix.os }} ${{ matrix.arch }} ${{ matrix.phpts }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-2025]
+        arch: [x64, x86]
+        phpts: [ts, nts]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: shivammathur/php-src
+          ref: aef119083542a55cde79df0e5a612d2f19d1b729
+          path: php-src
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: symfony/process
+          ref: 18b7af8fb0c40a3fa4c1748924d7e7d235da8699
+          path: symfony-process
+      - name: Verify artifacts and Symfony Process
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCH: ${{ matrix.arch }}
+          PHPTS: ${{ matrix.phpts }}
+          BASELINE_RUN: '37430488124'
+          PATCHED_RUN: '37430484325'
+        run: ./verify.ps1
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: nul-qa-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.phpts }}
+          path: reports
+          if-no-files-found: error
