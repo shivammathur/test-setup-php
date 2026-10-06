@@ -1,6 +1,7 @@
 name: Verify NUL open_basedir patch
 
 on:
+  push:
   workflow_dispatch:
 
 permissions:
