@@ -1,0 +1,64 @@
+name: Recover missing PHP 8.2 baseline reports
+
+on:
+  push:
+    paths:
+      - .github/workflows/baseline-recovery.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  baseline:
+    name: x64 ${{ matrix.ts }} ${{ matrix.opcache }} ext
+    runs-on: windows-2022
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ts: nts
+            opcache: opcache
+          - ts: ts
+            opcache: nocache
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: a907c2b6728f5ae815ff20944b853990f49af657
+      - name: Download baseline artifacts
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 37430488124 --repo shivammathur/php-windows-builder --name artifacts
+          if ($LASTEXITCODE -ne 0) { throw 'Artifact download failed' }
+      - name: Test baseline artifacts
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          Import-Module ./php/BuildPhp -Force
+          Invoke-PhpTests -PhpVersion '8.2.34-dev' -Arch x64 `
+            -Ts '${{ matrix.ts }}' -Opcache '${{ matrix.opcache }}' -TestType ext `
+            -SourceRepository shivammathur/php-src `
+            -SourceRef 8155a01189961a6d05621100b14a20608c191035 -FailOnError
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: test-results-x64-${{ matrix.ts }}-${{ matrix.opcache }}-ext
+          path: |
+            test-x64-${{ matrix.ts }}-${{ matrix.opcache }}-ext.xml
+            test-x64-${{ matrix.ts }}-${{ matrix.opcache }}-ext.log
+          if-no-files-found: error
+      - name: Retain setup diagnostics
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: failure()
+        with:
+          name: setup-x64-${{ matrix.ts }}-${{ matrix.opcache }}
+          path: |
+            C:/ProgramData/chocolatey/logs
+            C:/Program Files/Microsoft SQL Server/160/Setup Bootstrap/Log
+            C:/Program Files/Microsoft SQL Server/MSSQL16.SQLEXPRESS/MSSQL/Log
