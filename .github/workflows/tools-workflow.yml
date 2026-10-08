@@ -73,13 +73,13 @@ jobs:
       - name: Test phpmd on windows
         if: matrix.operating-system == 'windows-latest'
         run: |
-          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
-          phpmd $RUNNER_TOOL_CACHE\test.php text cleancode
+          Set-Content -Path "$env:RUNNER_TOOL_CACHE\test.php" -Value '<?php echo "test"; ?>'
+          phpmd analyze "$env:RUNNER_TOOL_CACHE\test.php" --format text --ruleset cleancode
       - name: Test phpmd
         if: matrix.operating-system != 'windows-latest'
         run: |
           echo '<?php echo "test"; ?>' > $RUNNER_TOOL_CACHE/test.php
-          phpmd $RUNNER_TOOL_CACHE/test.php text cleancode
+          phpmd analyze "$RUNNER_TOOL_CACHE/test.php" --format text --ruleset cleancode
   versions:
     name: versions
     needs: latest
