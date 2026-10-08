@@ -1,0 +1,96 @@
+name: Published Swoole packs through setup-php
+run-name: Validate published Swoole packs on both macOS architectures
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  swoole:
+    name: PHP ${{ matrix.php }} ${{ matrix.build }}-${{ matrix.ts }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+        os: [macos-15, macos-15-intel]
+        build: [release, debug]
+        ts: [nts, zts]
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      BUILD: ${{ matrix.build }}
+      TS: ${{ matrix.ts }}
+      phpts: ${{ matrix.ts }}
+      debug: ${{ matrix.build == 'debug' && 'true' || 'false' }}
+      use_package_cache: 'true'
+      fail_fast: 'true'
+      verbose: 'true'
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Check out the published cache validation helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-darwin
+          ref: 14ef1a15a94c1ec20a4255e7e2b65d2611861e4b
+          path: php-darwin
+          persist-credentials: false
+      - name: Preserve the Actions Node runtime
+        uses: ./php-darwin/.github/actions/node-runtime
+      - name: Prepare a cold PHP installation
+        shell: bash
+        run: |
+          bash php-darwin/scripts/build/cleanup-taps.sh
+          bash php-darwin/scripts/tests/helpers/remove-preinstalled-php.sh
+          bash php-darwin/scripts/tests/helpers/prepare-e2e.sh
+          mkdir -p diagnostics
+      - name: Install PHP and Swoole from published caches
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: swoole
+          coverage: none
+          tools: none
+        env:
+          BASH_ENV: ${{ github.workspace }}/cache-only.sh
+      - name: Verify cold cache provenance, linkage and runtime
+        run: '"$PHP_DARWIN_NODE" verify.cjs cold'
+      - name: Repeat setup-php on the hot path
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: swoole
+          coverage: none
+          tools: none
+        env:
+          BASH_ENV: ${{ github.workspace }}/cache-only.sh
+      - name: Verify hot cache provenance, linkage and runtime
+        run: '"$PHP_DARWIN_NODE" verify.cjs hot'
+      - name: Save installer and PHP diagnostics
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p diagnostics
+          if [ -f "$RUNNER_TEMP/php-darwin-setup-install.log" ]; then
+            cp "$RUNNER_TEMP/php-darwin-setup-install.log" diagnostics/install.log
+          fi
+          if command -v php >/dev/null 2>&1; then
+            php -v > diagnostics/php-version.txt 2>&1 || true
+            php --ini > diagnostics/php-ini.txt 2>&1 || true
+            php --ri swoole > diagnostics/swoole-info.txt 2>&1 || true
+          fi
+      - name: Upload runtime and provenance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swoole-${{ matrix.php }}-${{ matrix.build }}-${{ matrix.ts }}-${{ matrix.os }}
+          path: diagnostics
+          retention-days: 7
+          if-no-files-found: error
