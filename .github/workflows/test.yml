@@ -8,10 +8,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-15, macos-26]
+        ts: [nts, zts]
+        php: [8.4, 8.5]
           
     steps:
-      - run:
-          brew install php@8.4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: swoole          
       - run: |
           php -v
           php -m
