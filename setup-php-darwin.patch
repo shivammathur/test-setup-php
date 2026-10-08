@@ -1,0 +1,9 @@
+diff --git a/src/scripts/darwin.sh b/src/scripts/darwin.sh
+index ed0c2932..68c92dda 100644
+--- a/src/scripts/darwin.sh
++++ b/src/scripts/darwin.sh
+@@ -119 +119,3 @@ patch_abstract_file() {
+-        sudo sed -i '' -e "s|php@#{\(.*\)}|php@#{\1}$suffix|g" -e "s|php_version /|\"#{php_version}$suffix\" /|g" "$abstract_path"
++        # Resolve PHP aliases such as php@8.5-zts when locating its build tools.
++        sudo sed -i '' -e "s|php@#{\(.*\)}|php@#{\1}$suffix|g" -e "s|php_version /|\"#{php_version}$suffix\" /|g" \
++          -e 's|formula_opt_bin(php_formula)|Formula[php_formula].opt_bin|g' "$abstract_path"
