@@ -54,7 +54,7 @@ jobs:
           exit 1
       - name: Install PHP and Swoole using the released action
         id: setup
-        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
           extensions: swoole
