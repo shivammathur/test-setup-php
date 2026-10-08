@@ -1,0 +1,98 @@
+diff --git a/config/fpm-asan.envvars b/config/fpm-asan.envvars
+new file mode 100644
+index 000000000..7281d5d32
+--- /dev/null
++++ b/config/fpm-asan.envvars
+@@ -0,0 +1,4 @@
++ASAN_OPTIONS=detect_leaks=0
++UBSAN_OPTIONS=halt_on_error=1
++ZEND_DONT_UNLOAD_MODULES=1
++USE_ZEND_ALLOC=0
+diff --git a/config/php-fpm.service b/config/php-fpm.service
+index a3eb345fb..767f15ead 100644
+--- a/config/php-fpm.service
++++ b/config/php-fpm.service
+@@ -5,6 +5,7 @@ After=network.target
+ 
+ [Service]
+ Type=notify
++EnvironmentFile=-/etc/php/PHP_VERSION/fpm/asan-envvars
+ ExecStart=/usr/sbin/php-fpmPHP_VERSION --nodaemonize --fpm-config /etc/php/PHP_VERSION/fpm/php-fpm.conf
+ ExecStartPost=-/usr/lib/php/php-fpm-socket-helper install /run/php/php-fpm.sock /etc/php/PHP_VERSION/fpm/pool.d/www.conf NO_DOT
+ ExecStopPost=-/usr/lib/php/php-fpm-socket-helper remove /run/php/php-fpm.sock /etc/php/PHP_VERSION/fpm/pool.d/www.conf NO_DOT
+diff --git a/scripts/build_partials/sapi/fpm.sh b/scripts/build_partials/sapi/fpm.sh
+index 27595f90e..ed63ec3ed 100644
+--- a/scripts/build_partials/sapi/fpm.sh
++++ b/scripts/build_partials/sapi/fpm.sh
+@@ -49,6 +49,10 @@ configure_fpm() {
+   cp -fp config/php-fpm.tmpfile "$INSTALL_ROOT"/usr/lib/tmpfiles.d/php"$PHP_VERSION"-fpm.conf
+   cp -fp config/php-fpm.conf "$INSTALL_ROOT"/etc/apache2/conf-available/php"$PHP_VERSION"-fpm.conf
+ 
++  if [ "${ASAN:-}" = asan ]; then
++    cp -fp config/fpm-asan.envvars "$FPM_CONF_DIR"/asan-envvars
++  fi
++
+   # Copy the scripts to INSTALL_ROOT.
+   cp -fp scripts/php-fpm.init "$INSTALL_ROOT"/etc/init.d/php"$PHP_VERSION"-fpm
+   cp -fp scripts/php-fpm-reopenlogs "$INSTALL_ROOT"/usr/lib/php/php"$PHP_VERSION"-fpm-reopenlogs
+diff --git a/scripts/php-fpm.init b/scripts/php-fpm.init
+index 323a447a9..e843a84ba 100644
+--- a/scripts/php-fpm.init
++++ b/scripts/php-fpm.init
+@@ -26,6 +26,13 @@ SCRIPTNAME=/etc/init.d/$NAME
+ # Exit if the package is not installed
+ [ -x "$DAEMON" ] || exit 0
+ 
++# Load the packaged sanitizer defaults before local overrides.
++if [ -r /etc/php/PHP_VERSION/fpm/asan-envvars ]; then
++	set -a
++	. /etc/php/PHP_VERSION/fpm/asan-envvars
++	set +a
++fi
++
+ # Read configuration variable file if it is present
+ [ -r /etc/default/$NAME ] && . /etc/default/$NAME
+ 
+diff --git a/scripts/test_sapi.sh b/scripts/test_sapi.sh
+index 1e97e92a9..bfc1b0ce2 100644
+--- a/scripts/test_sapi.sh
++++ b/scripts/test_sapi.sh
+@@ -2,30 +2,6 @@ sudo_php_env() {
+   sudo --preserve-env=ASAN_OPTIONS,UBSAN_OPTIONS,ZEND_DONT_UNLOAD_MODULES,USE_ZEND_ALLOC "$@"
+ }
+ 
+-configure_asan_env() {
+-  [ -n "${ASAN_OPTIONS:-}" ] || return 1
+-
+-  fpm_env="/etc/default/php-fpm$PHP_VERSION"
+-  systemd_env="/etc/systemd/system/php$PHP_VERSION-fpm.service.d/asan-env.conf"
+-  sudo touch "$fpm_env"
+-  sudo mkdir -p "${systemd_env%/*}"
+-  {
+-    echo "[Service]"
+-    for name in ASAN_OPTIONS UBSAN_OPTIONS ZEND_DONT_UNLOAD_MODULES USE_ZEND_ALLOC; do
+-      value="${!name-}"
+-      [ "$name" != USE_ZEND_ALLOC ] || value="${USE_ZEND_ALLOC-1}"
+-      if [ -n "$value" ]; then
+-        sudo sed -i "/^export $name=/d" "$fpm_env"
+-        printf 'export %s=%s\n' "$name" "$value" | sudo tee -a "$fpm_env" >/dev/null
+-      elif [ "$name" != USE_ZEND_ALLOC ]; then
+-        continue
+-      fi
+-      printf 'Environment="%s=%s"\n' "$name" "$value"
+-    done
+-  } | sudo tee "$systemd_env" >/dev/null
+-  [ -d /run/systemd/system ] && sudo systemctl daemon-reload 2>/dev/null || true
+-}
+-
+ run_switch_sapi() {
+   if [ -n "${ASAN_OPTIONS:-}" ] && command -v timeout >/dev/null 2>&1; then
+     sudo_php_env timeout 120 switch_sapi -v "$PHP_VERSION" -s "$1"
+@@ -37,7 +13,6 @@ run_switch_sapi() {
+ sudo mkdir -p /var/www/html
+ sudo rm -rf /var/www/html/index.html
+ printf "<?php echo current(explode('-', php_sapi_name())).':'.strtolower(current(explode('/', \$_SERVER['SERVER_SOFTWARE']))).\"\n\";" | sudo tee /var/www/html/index.php >/dev/null
+-configure_asan_env || true
+ for sapi in apache2handler:apache fpm:apache cgi:apache fpm:nginx; do
+   run_switch_sapi "$sapi"
+   resp="$(curl -fsS --connect-timeout 5 --max-time 30 http://localhost)" || exit 1

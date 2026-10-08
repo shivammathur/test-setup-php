@@ -1,0 +1,70 @@
+name: ASAN FPM artifact validation
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    name: ${{ matrix.os }} / ${{ matrix.service }} / ${{ matrix.variant }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-22.04-arm, ubuntu-24.04-arm]
+        service: [systemd, sysv]
+        variant: [original, patched]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-builder
+          ref: 27307712fa62d9e9ab23365a63033594961becf3
+          path: builder
+      - name: Download ASAN artifact from the latest PR build
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-builder
+          run-id: 37794525615
+          github-token: ${{ secrets.PAT }}
+          name: php8.6-nts-asan+${{ matrix.os }}
+          path: packages/asan
+      - name: Download matching regular artifact
+        if: matrix.variant == 'patched'
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-builder
+          run-id: 37794525615
+          github-token: ${{ secrets.PAT }}
+          name: php8.6-nts+${{ matrix.os }}
+          path: packages/regular
+      - name: Verify systemd startup and requests
+        if: matrix.service == 'systemd'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libfcgi-bin zstd
+          bash scripts/verify.sh '${{ matrix.variant }}' systemd github
+      - name: Verify SysV startup and requests
+        if: matrix.service == 'sysv'
+        env:
+          TEST_OS: ${{ matrix.os }}
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          release="${TEST_OS#ubuntu-}"
+          release="${release%-arm}"
+          docker run --rm --init -v "$PWD:/qa" -w /qa \
+            "ubuntu:$release" bash -c \
+            'apt-get update -qq && apt-get install -y sudo python3 libfcgi-bin zstd && bash scripts/verify.sh "$1" sysv local' -- "$VARIANT"
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fpm-evidence-${{ matrix.os }}-${{ matrix.service }}-${{ matrix.variant }}
+          path: reports/
+      - name: Upload patched installable package
+        if: success() && matrix.service == 'systemd' && matrix.variant == 'patched'
+        uses: actions/upload-artifact@v7
+        with:
+          name: patched-fpm-${{ matrix.os }}
+          path: candidate/*.tar.zst
