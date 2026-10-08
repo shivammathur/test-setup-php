@@ -1,0 +1,11 @@
+parameters:
+    level: max
+    paths:
+        - fixtures
+    bootstrapFiles:
+        - bootstrap.php
+    tmpDir: cache
+    parallel:
+        jobSize: 1
+        maximumNumberOfProcesses: 2
+        minimumNumberOfJobsPerProcess: 1
