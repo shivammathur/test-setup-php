@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, macos-26]
+        os: [windows-latest]
         ts: [nts, zts]
         php: [8.4, 8.5]
           
@@ -15,7 +15,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: swoole          
+          extensions: swoole-alpha
       - run: |
           php -v
           php -m
