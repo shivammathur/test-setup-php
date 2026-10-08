@@ -1,0 +1,93 @@
+name: Issue 1131 published cache with setup-php v2
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  swoole:
+    name: ${{ matrix.os }} / PHP 8.5 / ${{ matrix.ts }} / ${{ matrix.extension }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-26, windows-2022, windows-2025]
+        ts: [nts, zts]
+        include:
+          - os: macos-15
+            extension: swoole
+          - os: macos-26
+            extension: swoole
+          - os: windows-2022
+            extension: swoole-alpha
+          - os: windows-2025
+            extension: swoole-alpha
+    env:
+      EXPECTED_TS: ${{ matrix.ts }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify published repair and prepare a cold macOS install
+        if: runner.os == 'macOS'
+        shell: bash
+        run: bash prepare-macos.sh
+      - name: Setup PHP and Swoole
+        id: setup
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: none
+          extensions: ${{ matrix.extension }}
+        env:
+          phpts: ${{ matrix.ts }}
+          verbose: 'true'
+          fail-fast: 'true'
+      - name: Inspect PHP and extension binary
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p diagnostics
+          php -v 2>&1 | tee diagnostics/php-version.txt
+          php --ini 2>&1 | tee diagnostics/php-ini.txt
+          php --ri swoole 2>&1 | tee diagnostics/swoole-info.txt
+      - name: Test Swoole runtime
+        if: always() && steps.setup.outcome == 'success'
+        shell: bash
+        run: php smoke.php 2>&1 | tee diagnostics/smoke.txt
+      - name: Verify the published Homebrew alias and Swoole binary
+        if: always() && steps.setup.outcome == 'success' && runner.os == 'macOS'
+        shell: bash
+        run: |
+          prefix=$(brew --prefix)
+          formula=php
+          alias=php@8.5
+          if [ "$EXPECTED_TS" = zts ]; then formula=php-zts; alias=php@8.5-zts; fi
+          target=$(readlink "$prefix/opt/$formula")
+          [ "$(readlink "$prefix/opt/$alias")" = "$target" ]
+          printf '%s -> %s\n' "$alias" "$target" | tee diagnostics/alias.txt
+          "$prefix/opt/$alias/bin/phpize" --version
+          [ "$("$prefix/opt/$alias/bin/php-config" --version)" = "$(jq -r .php_semver expected-release.json)" ]
+          binary="$(brew --prefix swoole@8.5)/swoole.so"
+          cmp "$binary" "$(php-config --extension-dir)/swoole.so"
+          file "$binary" | tee diagnostics/binary.txt
+          otool -L "$binary" | tee diagnostics/dependencies.txt
+      - name: Collect Homebrew build logs
+        if: always() && runner.os == 'macOS'
+        shell: bash
+        run: |
+          if [ -d "$HOME/Library/Logs/Homebrew" ]; then
+            cp -R "$HOME/Library/Logs/Homebrew" diagnostics/homebrew
+          fi
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swoole-${{ matrix.os }}-${{ matrix.ts }}
+          path: diagnostics
+          retention-days: 7
