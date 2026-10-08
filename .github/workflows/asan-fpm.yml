@@ -55,7 +55,7 @@ jobs:
           release="${release%-arm}"
           docker run --rm --init -v "$PWD:/qa" -w /qa \
             "ubuntu:$release" bash -c \
-            'apt-get update -qq && apt-get install -y sudo python3 libfcgi-bin zstd && bash scripts/verify.sh "$1" sysv local' -- "$VARIANT"
+            'apt-get update -qq && apt-get install -y sudo git python3 libfcgi-bin zstd && bash scripts/verify.sh "$1" sysv local' -- "$VARIANT"
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v7

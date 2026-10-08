@@ -23,8 +23,8 @@ if grep -Eq 'Environment(File)?=' reports/original-unit.txt || \
 fi
 
 if [ "$variant" = patched ]; then
-  git -C builder apply --check "$qa_root/fpm-runtime.patch"
-  git -C builder apply "$qa_root/fpm-runtime.patch"
+  git -c safe.directory="$qa_root/builder" -C builder apply --check "$qa_root/fpm-runtime.patch"
+  git -c safe.directory="$qa_root/builder" -C builder apply "$qa_root/fpm-runtime.patch"
   stage=$(mktemp -d)
   sudo tar -I zstd -xf "$asan_tar" -C "$stage" --no-same-owner
   sudo cp builder/config/fpm-asan.envvars "$stage/etc/php/8.6/fpm/asan-envvars"
@@ -36,10 +36,26 @@ if [ "$variant" = patched ]; then
   sudo cp "$stage/etc/php/8.6/fpm/asan-envvars" reports/packaged-env.txt
   sudo cp "$stage/usr/lib/systemd/system/php8.6-fpm.service" reports/packaged-unit.txt
   sudo cp "$stage/etc/init.d/php8.6-fpm" reports/packaged-init.txt
+  # Do not archive mktemp's private directory permissions as the install root.
+  sudo chmod 755 "$stage"
   sudo tar -I 'zstd -T0 -3' -cf "$qa_root/candidate/$(basename "$asan_tar")" -C "$stage" .
   sudo rm -rf "$stage"
   asan_tar="$qa_root/candidate/$(basename "$asan_tar")"
   sha256sum "$asan_tar" | tee reports/patched-sha256.txt
+  tar -I zstd -tf "$asan_tar" > reports/patched-manifest.txt
+
+  # Exercise the same optional service hooks in a regular build too.
+  regular_tar=$(find "$qa_root/packages/regular" -name '*.tar.zst' ! -name '*-dbgsym*')
+  test -f "$regular_tar"
+  stage=$(mktemp -d)
+  sudo tar -I zstd -xf "$regular_tar" -C "$stage" --no-same-owner
+  sudo cp reports/packaged-unit.txt "$stage/usr/lib/systemd/system/php8.6-fpm.service"
+  sudo cp reports/packaged-init.txt "$stage/etc/init.d/php8.6-fpm"
+  sudo chmod 755 "$stage" "$stage/etc/init.d/php8.6-fpm"
+  test ! -e "$stage/etc/php/8.6/fpm/asan-envvars"
+  sudo tar -I 'zstd -T0 -3' -cf "$qa_root/candidate/$(basename "$regular_tar")" -C "$stage" .
+  sudo rm -rf "$stage"
+  regular_tar="$qa_root/candidate/$(basename "$regular_tar")"
 fi
 
 collect_failure() {
@@ -132,7 +148,6 @@ else
   test ! -e /etc/systemd/system/php8.6-fpm.service.d/asan-env.conf
   inspect_runtime after-sapi configured
   # The normal installer clears the versioned configuration on replacement.
-  regular_tar=$(find "$qa_root/packages/regular" -name '*.tar.zst' ! -name '*-dbgsym*')
   test -f "$regular_tar"
   install_package "$regular_tar" > reports/install-regular.log 2>&1
   test ! -e "$env_file"
