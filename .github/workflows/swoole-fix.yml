@@ -1,0 +1,80 @@
+name: Issue 1131 Swoole Homebrew fix
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  swoole:
+    name: ${{ matrix.os }} / PHP 8.5 ZTS / Homebrew alias fix
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-26]
+    env:
+      EXPECTED_TS: zts
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Apply PHP formula alias fix
+        shell: bash
+        run: |
+          brew tap shivammathur/extensions
+          tap_dir="$(brew --repository shivammathur/extensions)"
+          git -C "$tap_dir" checkout 66dacecd6
+          git -C "$tap_dir" apply --unidiff-zero "$GITHUB_WORKSPACE/homebrew-php-alias.patch"
+          ruby -c "$tap_dir/Abstract/abstract-php-extension.rb"
+          git -C "$tap_dir" diff --check
+          git -C "$tap_dir" diff
+      - name: Setup PHP and Swoole
+        id: setup
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: none
+          extensions: swoole
+        env:
+          phpts: zts
+          verbose: 'true'
+          fail-fast: 'true'
+      - name: Inspect PHP and extension binary
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p diagnostics
+          php -v 2>&1 | tee diagnostics/php-version.txt
+          php --ini 2>&1 | tee diagnostics/php-ini.txt
+          php --ri swoole 2>&1 | tee diagnostics/swoole-info.txt
+      - name: Verify Homebrew binary and Swoole runtime
+        if: always() && steps.setup.outcome == 'success'
+        shell: bash
+        run: |
+          brew list --versions swoole@8.5 | tee diagnostics/brew-version.txt
+          binary="$(brew --prefix swoole@8.5)/swoole.so"
+          cmp "$binary" "$(php-config --extension-dir)/swoole.so"
+          file "$binary" | tee diagnostics/binary.txt
+          otool -L "$binary" | tee diagnostics/dependencies.txt
+          php smoke.php 2>&1 | tee diagnostics/smoke.txt
+      - name: Collect Homebrew build logs
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p diagnostics
+          if [ -d "$HOME/Library/Logs/Homebrew" ]; then
+            cp -R "$HOME/Library/Logs/Homebrew" diagnostics/homebrew
+          fi
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swoole-fixed-${{ matrix.os }}-zts
+          path: diagnostics
+          retention-days: 7

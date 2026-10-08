@@ -1,0 +1,13 @@
+diff --git a/Abstract/abstract-php-extension.rb b/Abstract/abstract-php-extension.rb
+index 68177c3b9..3bb3d340c 100755
+--- a/Abstract/abstract-php-extension.rb
++++ b/Abstract/abstract-php-extension.rb
+@@ -24 +24 @@ class AbstractPhpExtension < Formula
+-    output = shell_output("#{formula_opt_bin(php_formula)}/php -m").downcase
++    output = shell_output("#{Formula[php_formula].opt_bin}/php -m").downcase
+@@ -39 +39 @@ class AbstractPhpExtension < Formula
+-    "--with-php-config=#{formula_opt_bin(php_formula)}/php-config"
++    "--with-php-config=#{Formula[php_formula].opt_bin}/php-config"
+@@ -74 +74 @@ class AbstractPhpExtension < Formula
+-    system "#{formula_opt_bin(php_formula)}/phpize"
++    system "#{Formula[php_formula].opt_bin}/phpize"
