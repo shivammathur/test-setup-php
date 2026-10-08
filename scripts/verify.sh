@@ -89,6 +89,11 @@ echo json_encode([
     'version' => PHP_VERSION,
     'zend_memory_usage' => memory_get_usage(),
     'zend_memory_peak' => memory_get_peak_usage(),
+    'environment' => array_combine(
+        ['ASAN_OPTIONS', 'UBSAN_OPTIONS', 'ZEND_DONT_UNLOAD_MODULES', 'USE_ZEND_ALLOC', 'LD_PRELOAD'],
+        array_map(fn($name) => getenv($name, true),
+            ['ASAN_OPTIONS', 'UBSAN_OPTIONS', 'ZEND_DONT_UNLOAD_MODULES', 'USE_ZEND_ALLOC', 'LD_PRELOAD'])
+    ),
 ]), "\n";
 PHP
 chmod 644 "$probe"
@@ -103,33 +108,28 @@ inspect_runtime() {
     pid=$(sudo cat /run/php/php8.6-fpm.pid)
   fi
   test "$pid" -gt 1
-  sudo python3 - "$pid" "$expected" "reports/$label-environment.json" <<'PY'
-import json, sys
-from pathlib import Path
-expected = {
-    'ASAN_OPTIONS': 'detect_leaks=0',
-    'UBSAN_OPTIONS': 'halt_on_error=1',
-    'ZEND_DONT_UNLOAD_MODULES': '1',
-    'USE_ZEND_ALLOC': '0',
-}
-env = dict(x.split(b'=', 1) for x in Path(f'/proc/{sys.argv[1]}/environ').read_bytes().split(b'\0') if b'=' in x)
-actual = {key: env.get(key.encode(), b'<unset>').decode() for key in expected}
-actual['LD_PRELOAD'] = env.get(b'LD_PRELOAD', b'<unset>').decode()
-Path(sys.argv[3]).write_text(json.dumps(actual, indent=2) + '\n')
-print(json.dumps(actual))
-for key, value in expected.items():
-    assert actual[key] == (value if sys.argv[2] == 'configured' else '<unset>'), (key, actual)
-assert actual['LD_PRELOAD'] == '<unset>', actual
-PY
+  if [ "$expected" = configured ]; then
+    sudo cmp builder/config/fpm-asan.envvars "$env_file"
+  else
+    test ! -e "$env_file"
+  fi
   sudo env SCRIPT_FILENAME="$probe" REQUEST_METHOD=GET \
     cgi-fcgi -bind -connect /run/php/php8.6-fpm.sock | tee "reports/$label-response.txt"
-  python3 - "$expected" "reports/$label-response.txt" <<'PY'
+  python3 - "$expected" "reports/$label-response.txt" "$label" <<'PY'
 import json, sys
 from pathlib import Path
 data = json.loads(Path(sys.argv[2]).read_text().split('\n\n', 1)[1])
 assert data['sapi'] == 'fpm-fcgi', data
 assert data['version'].startswith('8.6.'), data
 assert (data['zend_memory_usage'] == 0) == (sys.argv[1] == 'configured'), data
+if sys.argv[3] == 'observed-environment':
+    assert data['environment'] == {
+        'ASAN_OPTIONS': 'detect_leaks=0',
+        'UBSAN_OPTIONS': 'halt_on_error=1',
+        'ZEND_DONT_UNLOAD_MODULES': '1',
+        'USE_ZEND_ALLOC': '0',
+        'LD_PRELOAD': False,
+    }, data
 print('Verified FPM request:', data)
 PY
 }
@@ -140,6 +140,15 @@ if [ "$variant" = original ]; then
   echo 'CONFIRMED: the normal install starts FPM without all four sanitizer settings, with Zend allocation enabled.'
 else
   inspect_runtime installed configured
+  # FPM relocates and clears the initial environment when setting its process
+  # title, so /proc/PID/environ cannot observe it. After verifying the untouched
+  # install, temporarily retain the inherited worker environment for one probe.
+  # This sets no sanitizer variables and is restored before the SAPI test.
+  sudo cp /etc/php/8.6/fpm/pool.d/www.conf /tmp/fpm-qa-www.conf
+  printf '\nclear_env = no\n' | sudo tee -a /etc/php/8.6/fpm/pool.d/www.conf >/dev/null
+  sudo service "$unit" restart
+  inspect_runtime observed-environment configured
+  sudo cp /tmp/fpm-qa-www.conf /etc/php/8.6/fpm/pool.d/www.conf
   sudo service "$unit" restart
   inspect_runtime restarted configured
   # Exercise the patched upstream SAPI test with no caller sanitizer variables.
