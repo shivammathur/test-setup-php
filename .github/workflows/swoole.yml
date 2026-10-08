@@ -1,0 +1,72 @@
+name: Issue 1131 Swoole
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  swoole:
+    name: ${{ matrix.os }} / PHP 8.5 / ${{ matrix.ts }} / ${{ matrix.extension }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-26, windows-2022, windows-2025]
+        ts: [nts, zts]
+        include:
+          - os: macos-15
+            extension: swoole
+          - os: macos-26
+            extension: swoole
+          - os: windows-2022
+            extension: swoole-alpha
+          - os: windows-2025
+            extension: swoole-alpha
+    env:
+      EXPECTED_TS: ${{ matrix.ts }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup PHP and Swoole
+        id: setup
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: none
+          extensions: ${{ matrix.extension }}
+        env:
+          phpts: ${{ matrix.ts }}
+          verbose: 'true'
+          fail-fast: 'true'
+      - name: Inspect PHP and extension binary
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p diagnostics
+          php -v 2>&1 | tee diagnostics/php-version.txt
+          php --ini 2>&1 | tee diagnostics/php-ini.txt
+          php --ri swoole 2>&1 | tee diagnostics/swoole-info.txt
+      - name: Test Swoole runtime
+        if: always() && steps.setup.outcome == 'success'
+        shell: bash
+        run: php smoke.php 2>&1 | tee diagnostics/smoke.txt
+      - name: Collect Homebrew build logs
+        if: always() && runner.os == 'macOS'
+        shell: bash
+        run: |
+          if [ -d "$HOME/Library/Logs/Homebrew" ]; then
+            cp -R "$HOME/Library/Logs/Homebrew" diagnostics/homebrew
+          fi
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swoole-${{ matrix.os }}-${{ matrix.ts }}
+          path: diagnostics
+          retention-days: 7
