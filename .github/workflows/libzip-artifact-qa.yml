@@ -1,0 +1,45 @@
+name: Validate libzip 1.12 PHP artifacts
+on:
+  push:
+    branches: [test/libzip-1.12-static-zstd-20261009]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  test:
+    name: ${{ matrix.source.branch }} ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: ${{ matrix.source.runner }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86]
+        ts: [ts, nts]
+        source:
+          - {branch: PHP-8.2, run: '37920135949', runner: windows-2022}
+          - {branch: PHP-8.3, run: '37920134739', runner: windows-2022}
+          - {branch: PHP-8.4, run: '37920134563', runner: windows-2022}
+          - {branch: PHP-8.5, run: '37920134758', runner: windows-2022}
+          - {branch: PHP-8.6, run: '37920134764', runner: windows-2025-vs2026}
+          - {branch: master, run: '37920134813', runner: windows-2025-vs2026}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Download exact rebuilt PHP artifacts
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.source.run }}
+          name: artifacts
+          path: artifacts
+          github-token: ${{ github.token }}
+      - name: Validate package, ZIP behavior and isolated runtime
+        shell: pwsh
+        run: ./tests/check-artifact.ps1 -Branch '${{ matrix.source.branch }}' -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}'
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: zip-qa-${{ matrix.source.branch }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: results/
+          if-no-files-found: error
