@@ -7,19 +7,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04, ubuntu-22.04-arm, ubuntu-24.04-arm, ubuntu-26.04-arm]
-        ts: [nts, zts]
-        php: [8.4, 8.5]
+        os: [macos-15, macos-15-intel]
+        php: [8.6, 8.7]
           
     steps:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: swoole
         env:
           fail-fast: true
-      - run: |
+      - run: |          
           php -v
+          php -i
           php -m
       
   
