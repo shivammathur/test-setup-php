@@ -1,0 +1,162 @@
+name: PHPStan Composer fallback and Turbo
+
+on: [push, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  phpstan:
+    name: PHP ${{ matrix.php }} / ${{ matrix.platform.os }} / ${{ matrix.platform.ts }}
+    runs-on: ${{ matrix.platform.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4', '8.5', '8.6', '8.7']
+        platform:
+          - {os: ubuntu-24.04, ts: nts, turbo: true}
+          - {os: ubuntu-24.04-arm, ts: nts, turbo: true}
+          - {os: macos-15, ts: nts, turbo: true}
+          - {os: macos-15-intel, ts: nts, turbo: false}
+          - {os: windows-2025, ts: nts, turbo: true}
+          - {os: windows-2025, ts: ts, turbo: true}
+    env:
+      EXPECTED_PHP: ${{ matrix.php }}
+      EXPECTED_TS: ${{ matrix.platform.ts }}
+      EXPECT_TURBO: ${{ matrix.platform.turbo && matrix.php != '8.7' && '1' || '0' }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install PHPStan from develop
+        uses: shivammathur/setup-php@7155c0d0eb4969c588b4355dde29157a16f25da8 # develop
+        with:
+          php-version: ${{ matrix.php }}
+          tools: phpstan
+          coverage: none
+        env:
+          phpts: ${{ matrix.platform.ts }}
+          fail-fast: true
+      - name: Check scoped package and native Turbo binary
+        run: |
+          mkdir -p evidence
+          php -v | tee evidence/php.txt
+          command -v phpstan | tee evidence/command.txt
+          phpstan --version | tee evidence/version.txt
+          php prepare.php | tee evidence/package.txt
+      - name: Analyse with automatic Turbo loading
+        run: |
+          phpstan diagnose -c phpstan.neon --no-ansi | tee evidence/diagnose.txt
+          phpstan analyse -c phpstan.neon --no-progress --no-ansi -vvv | tee evidence/analysis.txt
+          php verify.php | tee evidence/verification.txt
+      - name: Upload runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpstan-${{ matrix.php }}-${{ matrix.platform.os }}-${{ matrix.platform.ts }}
+          path: evidence/
+
+  versions:
+    name: Composer constraint ${{ matrix.tool }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: ['phpstan:2.3.0', 'phpstan:2.3', 'phpstan:^2.3']
+    env:
+      EXPECTED_PHP: '8.3'
+      EXPECTED_TS: nts
+      EXPECT_TURBO: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@7155c0d0eb4969c588b4355dde29157a16f25da8 # develop
+        with:
+          php-version: '8.3'
+          tools: ${{ matrix.tool }}
+          coverage: none
+        env:
+          fail-fast: true
+      - name: Check version and Turbo
+        run: |
+          mkdir -p evidence
+          phpstan --version | tee evidence/version.txt
+          php prepare.php | tee evidence/package.txt
+          phpstan diagnose -c phpstan.neon --no-ansi | tee evidence/diagnose.txt
+          phpstan analyse -c phpstan.neon --no-progress --no-ansi -vvv | tee evidence/analysis.txt
+          php verify.php | tee evidence/verification.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: constraint-${{ strategy.job-index }}
+          path: evidence/
+
+  fallback:
+    name: Composer 1 fallback / ${{ matrix.os }} / ${{ matrix.tool }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+        tool: ['phpstan:^0.12.68', 'phpstan:0.12', 'phpstan:2.3.0']
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install with Composer 1 and fail-fast enabled
+        uses: shivammathur/setup-php@7155c0d0eb4969c588b4355dde29157a16f25da8 # develop
+        with:
+          php-version: '8.0'
+          tools: composer:v1, ${{ matrix.tool }}
+          coverage: none
+        env:
+          fail-fast: true
+      - name: Verify PHAR fallback and actual analysis
+        env:
+          EXPECTED_TOOL: ${{ matrix.tool }}
+        run: |
+          mkdir -p evidence
+          composer --version --no-ansi | tee evidence/composer.txt
+          phpstan --version --no-ansi | tee evidence/version.txt
+          php verify-fallback.php | tee evidence/fallback.txt
+          phpstan analyse fallback-fixture.php --level=max --no-progress --no-ansi | tee evidence/analysis.txt
+          grep -F '[OK] No errors' evidence/analysis.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fallback-${{ matrix.os }}-${{ strategy.job-index }}
+          path: evidence/
+
+  runtime:
+    name: Installer failure paths / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v7
+        with:
+          repository: shivammathur/setup-php
+          ref: 7155c0d0eb4969c588b4355dde29157a16f25da8
+          path: action
+          persist-credentials: false
+      - name: Validate success, failure, retry, cache, and fail-fast
+        run: python runtime/validate.py action
