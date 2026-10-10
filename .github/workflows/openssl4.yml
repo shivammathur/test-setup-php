@@ -1,0 +1,62 @@
+name: Verify php-darwin OpenSSL 4
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    name: PHP ${{ matrix.php }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6', '8.7']
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      use_package_cache: 'true'
+      EXTENSIONS: imagick, mongodb, memcached, igbinary, msgpack${{ (matrix.php != '8.6' && matrix.php != '8.7') && ', swoole' || '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Prepare a cold PHP installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          export HOMEBREW_NO_AUTOREMOVE=1
+          formulae=()
+          while IFS= read -r formula; do
+            [[ "$formula" =~ ^php(@[0-9.]+)?(-debug)?(-zts)?$ ]] && formulae+=("$formula")
+          done < <(brew list --formula)
+          if [ "${#formulae[@]}" -gt 0 ]; then
+            brew uninstall --formula --force --ignore-dependencies "${formulae[@]}"
+          fi
+          rm -f "/tmp/php${PHP_VERSION}_extensions"
+          if command -v php >/dev/null 2>&1; then exit 1; fi
+          date +%s > "$RUNNER_TEMP/install-started.txt"
+      - name: Install published PHP and optional packs
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2 at test creation
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ env.EXTENSIONS }}
+          coverage: none
+          tools: none
+      - name: Verify cache, runtime linkage, crypto and TLS
+        run: python3 verify.py cold
+      - name: Repeat setup-php on the installed cache
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ env.EXTENSIONS }}
+          coverage: none
+          tools: none
+      - name: Verify the repeat installation
+        run: python3 verify.py hot
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openssl4-${{ matrix.php }}-${{ matrix.os }}
+          path: evidence/
+          if-no-files-found: warn
