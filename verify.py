@@ -64,8 +64,14 @@ for root in roots:
             if path.is_symlink() or not path.is_file():
                 continue
             with path.open('rb') as source:
-                if source.read(4) in magic:
-                    binaries.add(path)
+                header = source.read(4)
+            if header not in magic:
+                continue
+            # Java class files share CAFEBABE with Mach-O universal binaries.
+            if header in {bytes.fromhex('cafebabe'), bytes.fromhex('bebafeca'), bytes.fromhex('cafebabf'), bytes.fromhex('bfbafeca')}:
+                if 'Mach-O' not in run('file', '-b', str(path)):
+                    continue
+            binaries.add(path)
 
 
 def linkage(binary):
@@ -74,15 +80,24 @@ def linkage(binary):
     return {'file': str(binary), 'links': links.splitlines()[1:]}
 
 
+errors = []
+links = []
 with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
-    links = list(pool.map(linkage, sorted(binaries)))
-assert links and any('libssl.4.dylib' in str(item) for item in links)
+    futures = [pool.submit(linkage, binary) for binary in sorted(binaries)]
+    for future in futures:
+        try:
+            links.append(future.result())
+        except Exception as error:
+            errors.append(str(error))
+if not links or not any('libssl.4.dylib' in str(item) for item in links):
+    errors.append('No OpenSSL 4 runtime linkage found')
 (evidence / f'{phase}-linkage.json').write_text(json.dumps(links, indent=2))
 started = int((Path(os.environ['RUNNER_TEMP']) / 'install-started.txt').read_text())
 installed = json.loads(run('brew', 'info', '--installed', '--json=v2'))
 source_builds = [f['name'] for f in installed['formulae'] for receipt in f['installed']
                  if receipt.get('time', 0) >= started and receipt.get('poured_from_bottle') is not True]
-assert not source_builds, f'Unexpected source builds: {source_builds}'
+if source_builds:
+    errors.append(f'Unexpected source builds: {source_builds}')
 with tempfile.TemporaryDirectory() as temporary:
     ca = Path(temporary) / 'cert.pem'
     key = Path(temporary) / 'key.pem'
@@ -105,12 +120,14 @@ with tempfile.TemporaryDirectory() as temporary:
         result = subprocess.run(['php', 'smoke.php'], text=True, capture_output=True, timeout=120,
                                 env={**os.environ, 'TLS_URL': f'https://localhost:{port}/', 'TLS_CA': str(ca)})
         (evidence / f'{phase}-smoke.txt').write_text(result.stdout + result.stderr)
-        assert result.returncode == 0 and not result.stderr, result.stdout + result.stderr
+        if result.returncode != 0 or result.stderr:
+            errors.append(result.stdout + result.stderr)
         print(result.stdout)
     finally:
         server.terminate()
         server.wait(timeout=10)
 report = {'php': version, 'arch': arch, 'phase': phase, 'mach_o_files': len(links),
-          'optional_modules': modules, 'source_builds': source_builds, 'openssl': '4', 'smoke': 'passed'}
+          'optional_modules': modules, 'source_builds': source_builds, 'openssl': '4', 'errors': errors}
 (evidence / f'{phase}-summary.json').write_text(json.dumps(report, indent=2))
 print(json.dumps(report))
+assert not errors, '\n'.join(errors)
