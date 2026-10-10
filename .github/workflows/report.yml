@@ -1,0 +1,13 @@
+name: Finalize published installer runtimes
+on:
+  push:
+    branches: [test/packaged-installer-20261011]
+    paths: [report.py, collect-jobs.py, .github/workflows/report.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  report:
+    uses: ./.github/workflows/packaged-installer.yml
+    with:
+      source-run: '38077679043'
