@@ -28,7 +28,7 @@ snapshot = run('git', '-C', tap, 'config', '--get', 'php-darwin.snapshot-commit'
 assert snapshot == manifest['homebrew_php_commit'] == run('git', '-C', tap, 'rev-parse', 'HEAD')
 expected_version = manifest['php_semver'] + ('-dev' if version in ['8.6', '8.7'] else '')
 assert run('php-config', '--version') == expected_version
-assert run('php', '-r', 'echo PHP_DEBUG, ":", PHP_ZTS;') == '0:0'
+assert run('php', '-r', 'echo (int) PHP_DEBUG, ":", (int) PHP_ZTS;') == '0:0'
 php_root = Path(run('php', '-r', 'echo PHP_BINARY;')).resolve(strict=True).parent.parent
 receipt = json.loads((php_root / 'INSTALL_RECEIPT.json').read_text())
 (evidence / f'{phase}-cache.json').write_text(json.dumps({'manifest': manifest, 'receipt': receipt, 'snapshot': snapshot}, indent=2))
