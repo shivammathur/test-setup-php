@@ -21,14 +21,22 @@ arch = platform.machine()
 prefix = Path(run('brew', '--prefix'))
 evidence = Path('evidence')
 evidence.mkdir(exist_ok=True)
-metadata_path = prefix / f'var/php-darwin/php_{version}-nts-release+darwin_{arch}.json'
-metadata = json.loads(metadata_path.read_text())
-(evidence / f'{phase}-cache.json').write_text(json.dumps(metadata, indent=2))
-assert metadata['php_version'] == version, metadata.keys()
-roots = []
-for package in metadata['packages']:
-    assert package['name'] != 'openssl@3', package
-    roots.append((prefix / 'opt' / package['name']).resolve(strict=True))
+manifest = json.loads(run('curl', '-fsSL', '--retry', '3', '--max-time', '60',
+    f'https://artifacts.php-darwin.setup-php.com/php-{version}/php-{version}-manifest.json'))
+tap = run('brew', '--repository', 'shivammathur/php')
+snapshot = run('git', '-C', tap, 'config', '--get', 'php-darwin.snapshot-commit')
+assert snapshot == manifest['homebrew_php_commit'] == run('git', '-C', tap, 'rev-parse', 'HEAD')
+expected_version = manifest['php_semver'] + ('-dev' if version in ['8.6', '8.7'] else '')
+assert run('php-config', '--version') == expected_version
+assert run('php', '-r', 'echo PHP_DEBUG, ":", PHP_ZTS;') == '0:0'
+php_root = Path(run('php', '-r', 'echo PHP_BINARY;')).resolve(strict=True).parent.parent
+receipt = json.loads((php_root / 'INSTALL_RECEIPT.json').read_text())
+(evidence / f'{phase}-cache.json').write_text(json.dumps({'manifest': manifest, 'receipt': receipt, 'snapshot': snapshot}, indent=2))
+roots = [php_root]
+for package in receipt['runtime_dependencies']:
+    name = package['full_name'].split('/')[-1]
+    assert name != 'openssl@3', package
+    roots.append((prefix / 'opt' / name).resolve(strict=True))
 assert any(p.parent.name == 'openssl@4' for p in roots), roots
 extension_dir = Path(run('php-config', '--extension-dir'))
 modules = ['imagick', 'mongodb', 'memcached', 'igbinary', 'msgpack']
