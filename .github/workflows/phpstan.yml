@@ -132,7 +132,7 @@ jobs:
           composer --version --no-ansi | tee evidence/composer.txt
           phpstan --version --no-ansi | tee evidence/version.txt
           php verify-fallback.php | tee evidence/fallback.txt
-          phpstan analyse fallback-fixture.php --level=max --no-progress --no-ansi | tee evidence/analysis.txt
+          phpstan analyse -c fallback.neon fallback-fixture.php --no-progress --no-ansi | tee evidence/analysis.txt
           grep -F '[OK] No errors' evidence/analysis.txt
       - uses: actions/upload-artifact@v4
         if: always()
