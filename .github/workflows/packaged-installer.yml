@@ -1,0 +1,113 @@
+name: Trimmed installer validation and timings
+run-name: Trimmed PHP installer - 3 workloads, 3 samples, both architectures
+on:
+  push:
+    branches: [test/trimmed-installer-20261011]
+  workflow_dispatch:
+    inputs:
+      source-run:
+        description: Existing benchmark run to report without repeating installations
+        type: string
+        default: ''
+  workflow_call:
+    inputs:
+      source-run:
+        type: string
+        default: ''
+permissions:
+  contents: read
+  actions: read
+jobs:
+  test:
+    if: inputs.source-run == ''
+    name: PHP ${{ matrix.php }} / ${{ matrix.os }} / ${{ matrix.workload }} / sample ${{ matrix.sample }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6', '8.7']
+        workload: [php, imagick, imagick-mongodb]
+        sample: [1, 2, 3]
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      WORKLOAD: ${{ matrix.workload }}
+      SAMPLE: ${{ matrix.sample }}
+      EXPECTED_ARCH: ${{ matrix.os == 'macos-15' && 'arm64' || 'x86_64' }}
+      use_builds_cache: 'true'
+      use_package_cache: 'true'
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_AUTOREMOVE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare a cold PHP installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          formulae=()
+          while IFS= read -r formula; do
+            [[ "$formula" =~ ^php(@[0-9.]+)?(-debug)?(-zts)?$ ]] && formulae+=("$formula")
+          done < <(brew list --formula)
+          if [ "${#formulae[@]}" -gt 0 ]; then
+            brew uninstall --formula --force --ignore-dependencies "${formulae[@]}"
+          fi
+          rm -f "/tmp/php${PHP_VERSION}_extensions"
+          if command -v php >/dev/null 2>&1; then exit 1; fi
+          mkdir -p evidence
+          date +%s > "$RUNNER_TEMP/install-started.txt"
+      - name: Measure setup-php
+        id: setup
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # unchanged v2
+        env:
+          BASH_ENV: ${{ github.workspace }}/installer-guard.sh
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.workload == 'imagick-mongodb' && 'imagick, mongodb' || matrix.workload == 'imagick' && 'imagick' || '' }}
+          coverage: none
+          tools: none
+          ini-file: production
+          ini-values: memory_limit=512M, date.timezone=UTC
+      - name: Verify published cache, runtime linkage, crypto and TLS
+        run: python3 verify.py
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.php }}-${{ matrix.os }}-${{ matrix.workload }}-${{ matrix.sample }}
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 7
+  report:
+    name: Aggregate measured setup-php runtimes
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: installer-*
+          path: evidence-download
+          run-id: ${{ inputs.source-run || github.run_id }}
+          github-token: ${{ github.token }}
+      - name: Collect actual action step durations
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.source-run || github.run_id }}
+        run: |
+          python3 collect-jobs.py
+          python3 report.py
+      - name: Upload timing report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: setup-php-runtime-report
+          path: |
+            reports/
+            jobs.json
+          retention-days: 14
