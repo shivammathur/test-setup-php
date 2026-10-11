@@ -3,6 +3,7 @@ run-name: Trimmed PHP installer - 3 workloads, 3 samples, both architectures
 on:
   push:
     branches: [test/trimmed-installer-20261011]
+    paths: [installer-guard.sh, verify.py, smoke.php, expected-installers.json]
   workflow_dispatch:
     inputs:
       source-run:
@@ -89,12 +90,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: installer-*
-          path: evidence-download
-          run-id: ${{ inputs.source-run || github.run_id }}
-          github-token: ${{ github.token }}
+      - name: Collect all installer evidence with bounded API concurrency
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ inputs.source-run || github.run_id }}
+        run: python3 collect-artifacts.py
       - name: Collect actual action step durations
         env:
           GH_TOKEN: ${{ github.token }}
@@ -110,4 +110,6 @@ jobs:
           path: |
             reports/
             jobs.json
+            artifact-inventory.json
           retention-days: 14
+          overwrite: true
