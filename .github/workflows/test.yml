@@ -16,7 +16,7 @@ jobs:
           php-version: ${{ matrix.php }}
           tools: phan
         env:
-          fail-fast: true
+          verbose: vv
       - run: |         
           phan -v
           php -v
