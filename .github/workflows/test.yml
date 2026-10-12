@@ -7,18 +7,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, macos-15-intel]
-        php: [8.5, 8.6, 8.7]
+        os: [ubuntu-latest]
+        php: [8.5]
           
     steps:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
+          tools: phan
         env:
           fail-fast: true
-      - run: |          
+      - run: |         
+          phan -v
           php -v
-          php -i
           php -m
       
   
