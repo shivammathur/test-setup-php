@@ -1,0 +1,27 @@
+# Helper function to add gearman extension.
+add_gearman_helper() {
+  enable_extension gearman extension
+  if ! check_extension gearman; then
+    status="Installed and enabled"
+    install_packages libgearman-dev
+    if [[ "${version:?}" =~ 5.[3-6] ]]; then
+      pecl_install gearman-1.1.2
+    elif [[ "${version:?}" =~ 7.0 ]]; then
+      pecl_install gearman-2.1.3
+    else
+      install_packages php"${version:?}"-gearman || pecl_install gearman
+    fi
+    enable_extension gearman extension
+  fi
+}
+
+# Function to add gearman extension.
+add_gearman() {
+  status="Enabled"
+  if [ "$(uname -s)" = 'Linux' ]; then
+    add_gearman_helper >/dev/null 2>&1
+    add_extension_log "gearman" "$status"
+  else
+    add_brew_extension gearman extension
+  fi
+}

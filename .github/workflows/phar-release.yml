@@ -1,0 +1,26 @@
+name: PHAR release fallback
+on: [push]
+permissions:
+  contents: read
+jobs:
+  phan:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: ./
+        with:
+          php-version: '8.5'
+          tools: phan
+          coverage: none
+        env:
+          fail-fast: true
+      - name: Validate installed PHAR
+        run: |
+          phan --version
+          php verify-phan.php

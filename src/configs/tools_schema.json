@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shivammathur/setup-php/develop/src/configs/tools_schema.json",
+  "type": "object",
+  "title": "Tools",
+  "default": {},
+  "examples": [
+    {
+      "tool": {
+        "alias": "tool_alias",
+        "domain": "https://example.com",
+        "extension": ".ext",
+        "fetch_latest": "true",
+        "function": "function_name",
+        "repository": "user/tool",
+        "packagist": "user/tool",
+        "scope": "scoped",
+        "type": "composer",
+        "version_parameter": "--version",
+        "version_prefix": "v",
+        "fallback": {
+          "type": "phar",
+          "repository": "user/tool",
+          "domain": "https://github.com",
+          "extension": ".phar",
+          "version_prefix": "v",
+          "version_parameter": "--version"
+        }
+      }
+    }
+  ],
+  "additionalProperties": {
+    "$ref": "#/$defs/tool"
+  },
+  "$defs": {
+    "tool": {
+      "type": "object",
+      "properties": {
+        "alias": {
+          "type": "string",
+          "title": "The alias schema",
+          "description": "Alias for a tool.",
+          "examples": [
+            "tool_alias"
+          ]
+        },
+        "domain": {
+          "type": "string",
+          "title": "The domain schema",
+          "description": "Domain URL of the tool.",
+          "examples": [
+            "https://example.com"
+          ]
+        },
+        "extension": {
+          "type": "string",
+          "title": "The extension schema",
+          "description": "File extension of the tool.",
+          "examples": [
+            ".ext"
+          ]
+        },
+        "fetch_latest": {
+          "type": "string",
+          "title": "The fetch_latest schema",
+          "description": "Fetch the latest version from GitHub releases.",
+          "enum": [
+            "true",
+            "false"
+          ]
+        },
+        "function": {
+          "type": "string",
+          "title": "The function schema",
+          "description": "Function name in tools.ts which returns the script to setup the tool.",
+          "examples": [
+            "function_name"
+          ]
+        },
+        "repository": {
+          "type": "string",
+          "title": "The repository schema",
+          "description": "GitHub repository of the tool.",
+          "examples": [
+            "user/tool"
+          ]
+        },
+        "packagist": {
+          "type": "string",
+          "title": "The repository schema",
+          "description": "Packagist repository of the tool in case different from repository.",
+          "examples": [
+            "user/tool"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "title": "The scope schema",
+          "description": "Scope of tool installation: global or scoped",
+          "enum": [
+            "global",
+            "scoped"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "title": "The type schema",
+          "description": "Type of tool: phar, composer, custom-package or custom-function.",
+          "enum": [
+            "phar",
+            "composer",
+            "custom-package",
+            "custom-function"
+          ]
+        },
+        "version_parameter": {
+          "type": "string",
+          "title": "The version_parameter schema",
+          "description": "Parameter to get the tool version.",
+          "examples": [
+            "--version"
+          ]
+        },
+        "version_prefix": {
+          "type": "string",
+          "title": "The version_prefix schema",
+          "description": "Prefix of the version in the download URL.",
+          "examples": [
+            "v"
+          ]
+        },
+        "fallback": {
+          "$ref": "#/$defs/pharFallback"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": true
+    },
+    "pharFallback": {
+      "type": "object",
+      "title": "The fallback schema",
+      "description": "PHAR installation settings used when Composer installation fails.",
+      "properties": {
+        "type": {
+          "const": "phar"
+        },
+        "repository": {
+          "$ref": "#/$defs/tool/properties/repository"
+        },
+        "domain": {
+          "$ref": "#/$defs/tool/properties/domain"
+        },
+        "extension": {
+          "$ref": "#/$defs/tool/properties/extension"
+        },
+        "fetch_latest": {
+          "$ref": "#/$defs/tool/properties/fetch_latest"
+        },
+        "version_parameter": {
+          "$ref": "#/$defs/tool/properties/version_parameter"
+        },
+        "version_prefix": {
+          "$ref": "#/$defs/tool/properties/version_prefix"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,38 @@
+name: 'Setup PHP Action'
+author: shivammathur
+description: 'GitHub Action for PHP'
+branding:
+  color: 'purple'
+  icon: 'play-circle'
+inputs:
+  php-version:
+    description: 'Setup PHP version.'
+    required: false
+  php-version-file:
+    description: 'Setup PHP version from a file.'
+    required: false
+  extensions:
+    description: 'Setup PHP extensions.'
+    required: false
+  ini-file:
+    description: 'Set base ini file.'
+    required: false
+    default: 'production'
+  ini-values:
+    description: 'Add values to php.ini.'
+    required: false
+  coverage: 
+    description: 'Setup code coverage driver.'
+    required: false
+  tools:
+    description: 'Setup popular tools globally.'
+    required: false
+  github-token:
+    description: 'GitHub token to use for authentication.'
+    default: ${{ github.token }}
+outputs:
+  php-version:
+    description: 'PHP version in semver format'
+runs:
+  using: 'node24'
+  main: 'dist/index.js'
