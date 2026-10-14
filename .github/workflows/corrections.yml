@@ -1,0 +1,64 @@
+name: Validate proposed PR 11669 test corrections
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      builds: ${{ steps.matrix.outputs.builds }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: matrix
+        run: echo "builds=$(jq -c . qa/builds.json)" >> "$GITHUB_OUTPUT"
+  test:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        build: ${{ fromJSON(needs.prepare.outputs.builds) }}
+        arch: [x64]
+        ts: [ts]
+    name: ${{ matrix.build.branch }} ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: ${{ matrix.build.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - name: Preserve source line endings
+        run: git config --global core.autocrlf false
+      - name: Checkout exact PHP source
+        uses: actions/checkout@v6
+        with:
+          repository: php/php-src
+          ref: ${{ matrix.build.sha }}
+          path: php-src
+      - name: Fetch matching source before PR
+        working-directory: php-src
+        run: git fetch --depth=1 origin ${{ matrix.build.before }}
+      - name: Download the new build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.build.run }}
+          name: artifacts
+          path: artifacts
+          github-token: ${{ github.token }}
+      - name: Validate corrected tests against the same artifacts
+        env:
+          QA_BRANCH: ${{ matrix.build.branch }}
+          QA_SHA: ${{ matrix.build.sha }}
+          QA_BEFORE: ${{ matrix.build.before }}
+          QA_BUILD_RUN: ${{ matrix.build.run }}
+          QA_ARCH: ${{ matrix.arch }}
+          QA_TS: ${{ matrix.ts }}
+        run: python qa/run.py
+      - name: Upload complete evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: evidence-${{ matrix.build.branch }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: results/
+          if-no-files-found: error
