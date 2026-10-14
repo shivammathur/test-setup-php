@@ -1,0 +1,25 @@
+name: Verify canonical Winlibs publication
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Verify ordinary consumer URLs and exact package contents
+        run: python publication/verify-publication.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: canonical-publication
+          path: |
+            publication/publication-verification.json
+            publication/public/*.txt
+            publication/public/*.html
+          if-no-files-found: error
