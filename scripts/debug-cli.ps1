@@ -21,7 +21,7 @@ $symbolPath=($symbolDirs -join ';')+";srv*$env:RUNNER_TEMP/symbol-cache*https://
 # Only text exception/stack/module metadata leaves the runner; no process dumps.
 @('sxd -c2 ".echo UNHANDLED_PHP_ACCESS_VIOLATION; .exr -1; .ecxr; k; lm; q" av', 'sxn cpr', 'sxn epr', 'g') | Set-Content reports/debug-commands.txt
 & $cdb -o -g -G -cf "$root/reports/debug-commands.txt" -y $symbolPath -logo "$root/reports/core-stack.log" "$root/runtime/php.exe" -n "$root/tests/cli-startup-worker.php" 4000 "$root/reports/debug-worker.json" *> "$root/reports/debugger-console.log"
-if(Select-String -Path reports/core-stack.log -Pattern UNHANDLED_PHP_ACCESS_VIOLATION -Quiet){throw 'Captured an unhandled PHP core access violation'}
+if(Select-String -Path reports/core-stack.log -Pattern '^UNHANDLED_PHP_ACCESS_VIOLATION\s*$' -Quiet){throw 'Captured an unhandled PHP core access violation'}
 if(!(Test-Path reports/debug-worker.json)){throw 'Debug worker did not complete'}
 $result=Get-Content reports/debug-worker.json -Raw | ConvertFrom-Json
 if(@($result.cases).Count -ne 4000 -or @($result.cases | Where-Object {!$_.passed}).Count){throw 'Debug worker reported failed startup cases'}

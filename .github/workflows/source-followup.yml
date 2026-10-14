@@ -1,0 +1,99 @@
+name: Reproduce original PHP subprocess source tests
+on:
+  push:
+    branches: [test/curl-freetype-20261014]
+    paths: [.github/workflows/source-followup.yml]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  test:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.6.0-dev'
+            run: 38590573613
+            sha: ea6fb375025a9aff98d061150b071172372e6cdb
+            arch: x86
+            ts: nts
+            cache: opcache
+            type: php
+            directory: sapi/cli/tests
+          - php: '8.6.0-dev'
+            run: 38590573613
+            sha: ea6fb375025a9aff98d061150b071172372e6cdb
+            arch: x64
+            ts: nts
+            cache: opcache
+            type: ext
+            directory: ext/openssl/tests
+          - php: '8.7.0-dev'
+            run: 38590573999
+            sha: cb491daca35fe8e0177d60b4e163218c4ec97b2a
+            arch: x64
+            ts: ts
+            cache: nocache
+            type: php
+            directory: sapi/cli/tests
+          - php: '8.7.0-dev'
+            run: 38590573999
+            sha: cb491daca35fe8e0177d60b4e163218c4ec97b2a
+            arch: x64
+            ts: ts
+            cache: opcache
+            type: php
+            directory: sapi/cgi/tests
+          - php: '8.7.0-dev'
+            run: 38590573999
+            sha: cb491daca35fe8e0177d60b4e163218c4ec97b2a
+            arch: x86
+            ts: ts
+            cache: nocache
+            type: php
+            directory: sapi/cgi/tests
+          - php: '8.7.0-dev'
+            run: 38590573999
+            sha: cb491daca35fe8e0177d60b4e163218c4ec97b2a
+            arch: x86
+            ts: ts
+            cache: opcache
+            type: php
+            directory: sapi/cgi/tests
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: ee574155b29fe7915de0174778e8473ded9e6e5e
+      - uses: actions/download-artifact@v4
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run }}
+          name: artifacts
+          github-token: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+      - name: Reproduce the original source tests with the production test configuration
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $root=(Get-Location).Path
+          New-Item reports -ItemType Directory -Force | Out-Null
+          Get-ChildItem -File -Filter '*.zip' | Get-FileHash -Algorithm SHA256 | ConvertTo-Json | Set-Content reports/artifact-hashes.json
+          Import-Module "$root/php/BuildPhp" -Force
+          try {
+            Invoke-PhpTests -PhpVersion '${{ matrix.php }}' -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}' `
+              -Opcache '${{ matrix.cache }}' -TestType '${{ matrix.type }}' -SourceRepository php/php-src `
+              -SourceRef '${{ matrix.sha }}' -TestDirectories @('${{ matrix.directory }}') -FailOnError
+          } finally {
+            Set-Location $root
+            Get-ChildItem -Path $root -File -Filter 'test-*' | Copy-Item -Destination "$root/reports" -Force
+          }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: followup-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}-${{ matrix.cache }}-${{ matrix.type }}
+          path: reports
+          if-no-files-found: error

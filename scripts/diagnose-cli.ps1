@@ -39,7 +39,10 @@ if(!$text.Contains($old)){throw 'CLI helper diagnostic anchor missing'}
 [IO.File]::WriteAllText($helper,$text.Replace($old,$new))
 $ini="$root/runtime/diagnostic.ini"
 @('[PHP]', 'date.timezone=UTC', 'allow_url_fopen=1') | Set-Content $ini
-if($Opcache -eq 'opcache'){@("zend_extension=`"$root/runtime/ext/php_opcache.dll`"",'opcache.enable_cli=1') | Add-Content $ini}
+if($Opcache -eq 'opcache'){
+  if(Test-Path "$root/runtime/ext/php_opcache.dll"){"zend_extension=`"$root/runtime/ext/php_opcache.dll`"" | Add-Content $ini}
+  'opcache.enable_cli=1' | Add-Content $ini
+}
 $env:TEST_PHP_EXECUTABLE=$php
 $env:TEST_PHP_JUNIT="$report/cli-junit.xml"
 $env:NO_INTERACTION='1'
