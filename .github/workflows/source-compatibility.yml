@@ -1,0 +1,62 @@
+name: Validate curl 8.23 source test compatibility
+on:
+  push:
+    branches: [test/curl-freetype-20261014]
+    paths: [.github/workflows/source-compatibility.yml]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  test:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86]
+        ts: [nts, ts]
+        source:
+          - php: '8.6.0-dev'
+            run: 38590573613
+            sha: ea6fb375025a9aff98d061150b071172372e6cdb
+          - php: '8.7.0-dev'
+            run: 38590573999
+            sha: cb491daca35fe8e0177d60b4e163218c4ec97b2a
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: ee574155b29fe7915de0174778e8473ded9e6e5e
+      - uses: actions/download-artifact@v4
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.source.run }}
+          name: artifacts
+          github-token: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+      - name: Test exact curl and GD artifacts with updated protocol expectation
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $root=(Get-Location).Path
+          New-Item reports -ItemType Directory -Force | Out-Null
+          Get-ChildItem -File -Filter '*.zip' | Get-FileHash -Algorithm SHA256 | ConvertTo-Json | Set-Content reports/artifact-hashes.json
+          Import-Module "$root/php/BuildPhp" -Force
+          $failed=@()
+          foreach($cache in @('nocache','opcache')) {
+            try {
+              Invoke-PhpTests -PhpVersion '${{ matrix.source.php }}' -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}' `
+                -Opcache $cache -TestType ext -SourceRepository php/php-src -SourceRef '${{ matrix.source.sha }}' `
+                -TestDirectories @('ext/curl/tests','ext/gd/tests') -FailOnError
+            } catch { $failed+=$_.ToString(); Write-Warning $_; Set-Location $root }
+            Get-ChildItem -Path $root -File -Filter 'test-*' | Copy-Item -Destination "$root/reports" -Force
+          }
+          $failed | ConvertTo-Json | Set-Content reports/failures.json
+          if($failed.Count){throw ($failed -join "`n")}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-compatibility-${{ matrix.source.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: reports
+          if-no-files-found: error
