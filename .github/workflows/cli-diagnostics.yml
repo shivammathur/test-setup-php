@@ -1,5 +1,11 @@
 name: Diagnose exact PHP CLI startup failures
 on:
+  push:
+    branches: [test/curl-freetype-20261014]
+    paths:
+      - .github/workflows/cli-diagnostics.yml
+      - scripts/diagnose-cli.ps1
+      - tests/cli-startup-worker.php
   workflow_dispatch:
 permissions:
   actions: read
