@@ -1,5 +1,8 @@
 name: Verify canonical Winlibs publication
 on:
+  push:
+    branches: [test/curl-freetype-20261014]
+    paths: [.github/workflows/verify-publication.yml]
   workflow_dispatch:
 permissions:
   contents: read
