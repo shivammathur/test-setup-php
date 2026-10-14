@@ -10,6 +10,14 @@ Get-FileHash $zips[0].FullName -Algorithm SHA256 | ConvertTo-Json | Set-Content 
 Expand-Archive $zips[0].FullName runtime -Force
 $php="$root/runtime/php.exe"
 $env:PATH="$root/runtime;$env:PATH"
+. ./builder/php/BuildPhp/private/Invoke-EditBin.ps1
+. ./builder/php/BuildPhp/private/Invoke-CompatRunTestsPatch.ps1
+Get-FileHash $php -Algorithm SHA256 | ConvertTo-Json | Set-Content "$report/executable-before-stack-change.json"
+Invoke-EditBin -Exe $php -StackSize 8388608 -Arch $Arch
+Invoke-EditBin -Exe "$root/runtime/php-cgi.exe" -StackSize 8388608 -Arch $Arch
+Get-FileHash $php -Algorithm SHA256 | ConvertTo-Json | Set-Content "$report/executable-after-stack-change.json"
+$patched=Invoke-CompatRunTestsPatch -Path "$root/source/run-tests.php" -PatchPath "$root/builder/php/BuildPhp/config/run-tests/run-tests-8.2-plus.patch"
+if(!$patched){throw 'Cannot reproduce the source test runner patch'}
 & $php -n -m | Tee-Object "$report/no-ini-modules.txt"
 if($LASTEXITCODE){throw 'Bare PHP cannot start'}
 $modules=Get-Content "$report/no-ini-modules.txt"
