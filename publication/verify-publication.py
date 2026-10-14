@@ -7,6 +7,7 @@ import io
 import json
 from pathlib import Path
 import re
+import time
 import urllib.error
 import urllib.request
 import zipfile
@@ -93,6 +94,21 @@ for dispatch in state['dependency_dispatches']:
 with concurrent.futures.ThreadPoolExecutor(8) as pool:
     packages = list(pool.map(package, artifacts))
     listings = list(pool.map(series, before.values()))
+    propagation = []
+    # Ordinary consumer URLs can retain pre-upload series for the CDN's one-hour
+    # TTL. Poll only stale selections; never add cache-busting URLs or headers.
+    for attempt in range(61):
+        pending = [x for x in listings if not x['passed']]
+        progress = {'at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                    'pending': [x['file'] for x in pending]}
+        propagation.append(progress)
+        (root / 'publication-propagation.json').write_text(json.dumps(propagation, indent=2)+'\n')
+        print(json.dumps(progress), flush=True)
+        if not pending or not all(x['passed'] for x in packages) or attempt == 60:
+            break
+        time.sleep(60)
+        refreshed = {x['file']: x for x in pool.map(series, [before[x['file']] for x in pending])}
+        listings = [refreshed.get(x['file'], x) for x in listings]
 indexes = []
 for vs in ['vs16', 'vs17', 'vs18']:
     for arch in ['x86', 'x64', 'arm64']:
@@ -103,7 +119,7 @@ for vs in ['vs16', 'vs17', 'vs18']:
         expected_names=[a['name']+'.zip' for a in artifacts if a['name'].endswith(f'-{vs}-{arch}')]
         present=all(any(name in line for line in lines) for name in expected_names)
         indexes.append({'url': url, 'headers': headers, 'listing_rows': lines, 'expected':expected_names, 'passed':present})
-report = {'observed_at': observation, 'packages': packages, 'series': listings, 'directory_indexes': indexes}
+report = {'observed_at': observation, 'completed_at': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'packages': packages, 'series': listings, 'directory_indexes': indexes}
 (root / 'publication-verification.json').write_text(json.dumps(report, indent=2) + '\n')
 history=public/'verification-history';history.mkdir(exist_ok=True)
 (history/(observation.replace(':','-')+'.json')).write_text(json.dumps(report,indent=2)+'\n')
