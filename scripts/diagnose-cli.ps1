@@ -3,7 +3,7 @@ $ErrorActionPreference='Stop'
 $root=(Get-Location).Path
 New-Item -ItemType Directory -Force reports | Out-Null
 $report="$root/reports"
-$pattern=if($Ts -eq 'nts'){"^php-.+?-nts-Win32-vs18-$Arch\.zip$"}else{"^php-(?!debug-pack-|devel-pack-|test-pack-)(?!.*-nts-).+?-Win32-vs18-$Arch\.zip$"}
+$pattern=if($Ts -eq 'nts'){"^php-(?!debug-pack-|devel-pack-|test-pack-).+?-nts-Win32-vs18-$Arch\.zip$"}else{"^php-(?!debug-pack-|devel-pack-|test-pack-)(?!.*-nts-).+?-Win32-vs18-$Arch\.zip$"}
 $zips=@(Get-ChildItem artifacts -Recurse -Filter '*.zip' | Where-Object {$_.Name -match $pattern})
 if($zips.Count -ne 1){throw 'Expected one exact runtime ZIP'}
 Get-FileHash $zips[0].FullName -Algorithm SHA256 | ConvertTo-Json | Set-Content "$report/artifact.json"

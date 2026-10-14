@@ -5,6 +5,7 @@ on:
     paths:
       - .github/workflows/cli-diagnostics.yml
       - scripts/diagnose-cli.ps1
+      - scripts/debug-cli.ps1
       - tests/cli-startup-worker.php
   workflow_dispatch:
 permissions:
@@ -31,6 +32,8 @@ jobs:
             ts: ts
             opcache: nocache
     steps:
+      - name: Preserve upstream fixture line endings
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
@@ -52,6 +55,10 @@ jobs:
       - name: Diagnose startup without curl or GD loaded
         shell: pwsh
         run: ./scripts/diagnose-cli.ps1 -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}' -Opcache '${{ matrix.opcache }}'
+      - name: Capture core crash stack with exact symbols
+        if: always()
+        shell: pwsh
+        run: ./scripts/debug-cli.ps1 -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
