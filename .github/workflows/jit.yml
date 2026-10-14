@@ -1,0 +1,36 @@
+name: Isolate Windows TS JIT child crash from PR 11669
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    name: master ${{ matrix.arch }} TS JIT controls
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: 38625620239
+          name: artifacts
+          path: artifacts
+          github-token: ${{ github.token }}
+      - name: Isolate shared cache and file execution
+        env:
+          ARCH: ${{ matrix.arch }}
+          BRANCH: master
+          BUILD_RUN: '38625620239'
+        run: python qa/run.py
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: jit-controls-${{ matrix.arch }}
+          path: results/
+          if-no-files-found: error
