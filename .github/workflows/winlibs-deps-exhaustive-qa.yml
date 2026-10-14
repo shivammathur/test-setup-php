@@ -1,0 +1,50 @@
+name: curl and FreeType PHP artifact QA
+run-name: curl and FreeType PHP QA (${{ inputs.phase }})
+on:
+  workflow_dispatch:
+    inputs:
+      matrix:
+        description: Exact PHP artifact runs as JSON matrix
+        required: true
+      phase:
+        description: Validation phase
+        type: choice
+        options: [candidate, published]
+        default: candidate
+permissions:
+  actions: read
+  contents: read
+jobs:
+  test:
+    name: PHP ${{ matrix.php }} artifact QA
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(inputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: x64
+      - run: python -m pip install impacket==0.13.1
+      - name: Download exact PHP artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run_id }}
+          name: artifacts
+          path: artifacts
+      - name: Test four runtime variants
+        shell: pwsh
+        run: |
+          ./scripts/run-winlibs-deps-suite.ps1 -ArtifactsDirectory artifacts -ReportsDirectory reports `
+            -RunId '${{ matrix.run_id }}' -RunTitle '${{ matrix.title }}' -PhpTarget '${{ matrix.php }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: php-qa-${{ matrix.php }}-${{ inputs.phase }}
+          path: reports
+          if-no-files-found: error

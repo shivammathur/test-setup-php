@@ -1,0 +1,77 @@
+name: curl and FreeType native artifact QA
+on:
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        run: echo "value=$(jq -c . native-matrix.json)" >> "$GITHUB_OUTPUT"
+  test:
+    name: PHP ${{ matrix.php }} ${{ matrix.arch }} native QA
+    needs: matrix
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: winlibs/winlib-builder
+          ref: 9b2ce53603984e9c437d10882905a9f3f8749631
+          path: winlib-builder
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: x64
+      - run: python -m pip install impacket==0.13.1
+      - name: Download exact curl artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: winlibs/winlib-builder
+          run-id: ${{ matrix.curl_run }}
+          name: ${{ matrix.curl_artifact }}
+          path: candidate-curl
+      - name: Download exact FreeType artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: winlibs/winlib-builder
+          run-id: ${{ matrix.freetype_run }}
+          name: ${{ matrix.freetype_artifact }}
+          path: candidate-freetype
+      - name: Compute compiler inputs
+        id: virtuals
+        shell: pwsh
+        run: ./winlib-builder/scripts/compute-virtuals.ps1 -version '${{ matrix.php }}' -arch '${{ matrix.arch }}' -sdk '${{ matrix.sdk }}'
+      - name: Fetch curl runtime dependencies
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./winlib-builder/scripts/fetch-deps.ps1 -lib curl -version '${{ matrix.php }}' -vs '${{ matrix.vs }}' -arch '${{ matrix.arch }}' -stability staging
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_arch }}
+          toolset: ${{ steps.virtuals.outputs.toolset }}
+          sdk: ${{ matrix.msvc_sdk }}
+      - name: Run SMB transfers and FreeType comparison
+        shell: pwsh
+        run: |
+          ./scripts/run-native-qa.ps1 -Vs '${{ matrix.vs }}' -Arch '${{ matrix.arch }}' -Smb '${{ matrix.smb }}' `
+            -Generator '${{ steps.virtuals.outputs.vsinst }}' -MsArch '${{ steps.virtuals.outputs.msarch }}' `
+            -Toolset '${{ steps.virtuals.outputs.msts }}' -Sdk '${{ steps.virtuals.outputs.winsdk }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-qa-${{ matrix.php }}-${{ matrix.arch }}
+          path: reports
+          if-no-files-found: warn

@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.20)
+project(winlibs_freetype_probe C)
+find_library(FREETYPE_LIBRARY freetype_a PATHS "${FREETYPE_ROOT}/lib" NO_DEFAULT_PATH REQUIRED)
+add_executable(freetype-probe freetype-probe.c)
+target_include_directories(freetype-probe PRIVATE "${FREETYPE_ROOT}/include/freetype2")
+target_link_libraries(freetype-probe PRIVATE "${FREETYPE_LIBRARY}")
