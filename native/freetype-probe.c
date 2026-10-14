@@ -24,7 +24,7 @@ int main(int argc, char **argv)
   if(strcmp(version, argv[3])) { fprintf(stderr, "Wrong FreeType version: %s\n", version); return 4; }
   csv = fopen(argv[1], "w");
   if(!csv) return 5;
-  fprintf(csv, "font,size,char,advance_x,advance_y,left,top,width,rows,bitmap_hash\n");
+  fprintf(csv, "font,size,char,advance_x,advance_y,left,top,width,rows,pixel_mode,bitmap_hash\n");
   for(f = 0; f < sizeof(fonts) / sizeof(fonts[0]); ++f) {
     snprintf(path, sizeof(path), "%s/Fonts/%s", getenv("WINDIR"), fonts[f]);
     error = FT_New_Face(library, path, 0, &face);
@@ -35,19 +35,32 @@ int main(int argc, char **argv)
       for(c = 32; c < 256; ++c) {
         uint64_t hash = UINT64_C(14695981039346656037);
         FT_Bitmap *bitmap;
+        unsigned row_bytes;
         error = FT_Load_Char(face, c, FT_LOAD_RENDER);
         if(error) { fprintf(stderr, "%s %u %u: %d\n", fonts[f], sizes[s], c, error); return 7; }
         bitmap = &face->glyph->bitmap;
         if(bitmap->pitch < 0 || bitmap->width > 4096 || bitmap->rows > 4096) return 8;
+        switch(bitmap->pixel_mode) {
+        case FT_PIXEL_MODE_MONO: row_bytes = (bitmap->width + 7) / 8; break;
+        case FT_PIXEL_MODE_GRAY2: row_bytes = (bitmap->width + 3) / 4; break;
+        case FT_PIXEL_MODE_GRAY4: row_bytes = (bitmap->width + 1) / 2; break;
+        case FT_PIXEL_MODE_BGRA: row_bytes = bitmap->width * 4; break;
+        case FT_PIXEL_MODE_GRAY:
+        case FT_PIXEL_MODE_LCD:
+        case FT_PIXEL_MODE_LCD_V: row_bytes = bitmap->width; break;
+        case FT_PIXEL_MODE_NONE: row_bytes = 0; break;
+        default: return 16;
+        }
+        if(row_bytes > (unsigned)bitmap->pitch) return 17;
         for(y = 0; y < bitmap->rows; ++y)
-          for(x = 0; x < bitmap->width; ++x) {
+          for(x = 0; x < row_bytes; ++x) {
             hash ^= bitmap->buffer[y * bitmap->pitch + x];
             hash *= UINT64_C(1099511628211);
           }
-        fprintf(csv, "%s,%u,%u,%ld,%ld,%d,%d,%u,%u,%llu\n", fonts[f], sizes[s], c,
+        fprintf(csv, "%s,%u,%u,%ld,%ld,%d,%d,%u,%u,%u,%llu\n", fonts[f], sizes[s], c,
                 (long)face->glyph->advance.x, (long)face->glyph->advance.y,
                 face->glyph->bitmap_left, face->glyph->bitmap_top, bitmap->width,
-                bitmap->rows, (unsigned long long)hash);
+                bitmap->rows, bitmap->pixel_mode, (unsigned long long)hash);
         ++count;
       }
     }
