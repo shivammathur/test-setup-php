@@ -1,0 +1,49 @@
+name: Diagnose exact PHP CLI startup failures
+on:
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  diagnose:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.6'
+            run: 38590573613
+            sha: ea6fb375025a9aff98d061150b071172372e6cdb
+            arch: x86
+            ts: nts
+            opcache: opcache
+          - php: master
+            run: 38590573999
+            sha: cb491daca35fe8e0177d60b4e163218c4ec97b2a
+            arch: x64
+            ts: ts
+            opcache: nocache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: php/php-src
+          ref: ${{ matrix.sha }}
+          path: source
+      - uses: actions/download-artifact@v4
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run }}
+          name: artifacts
+          github-token: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+          path: artifacts
+      - name: Diagnose startup without curl or GD loaded
+        shell: pwsh
+        run: ./scripts/diagnose-cli.ps1 -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}' -Opcache '${{ matrix.opcache }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cli-diagnostics-${{ matrix.php }}
+          path: reports
+          if-no-files-found: error
