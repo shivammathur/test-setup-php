@@ -20,8 +20,19 @@ $symbolDirs=@("$root/symbols")+@(Get-ChildItem symbols -Directory -Recurse | Sel
 $symbolPath=($symbolDirs -join ';')+";srv*$env:RUNNER_TEMP/symbol-cache*https://msdl.microsoft.com/download/symbols"
 # Only text exception/stack/module metadata leaves the runner; no process dumps.
 @('sxd -c2 ".echo UNHANDLED_PHP_ACCESS_VIOLATION; .exr -1; .ecxr; k; lm; q" av', 'sxn cpr', 'sxn epr', 'g') | Set-Content reports/debug-commands.txt
-& $cdb -o -g -G -cf "$root/reports/debug-commands.txt" -y $symbolPath -logo "$root/reports/core-stack.log" "$root/runtime/php.exe" -n "$root/tests/cli-startup-worker.php" 4000 "$root/reports/debug-worker.json" *> "$root/reports/debugger-console.log"
-if(Select-String -Path reports/core-stack.log -Pattern '^UNHANDLED_PHP_ACCESS_VIOLATION\s*$' -Quiet){throw 'Captured an unhandled PHP core access violation'}
-if(!(Test-Path reports/debug-worker.json)){throw 'Debug worker did not complete'}
-$result=Get-Content reports/debug-worker.json -Raw | ConvertFrom-Json
-if(@($result.cases).Count -ne 4000 -or @($result.cases | Where-Object {!$_.passed}).Count){throw 'Debug worker reported failed startup cases'}
+# Match the concurrent reproducer and preserve the normal heap (-hd).
+# The previous serial debugger run did not reproduce the bare-process failures.
+$debuggers=@()
+foreach($i in 0..5){
+  $arguments="-hd -o -g -G -cf `"$root/reports/debug-commands.txt`" -y `"$symbolPath`" -logo `"$root/reports/core-stack-$i.log`" `"$root/runtime/php.exe`" -n `"$root/tests/cli-startup-worker.php`" 1000 `"$root/reports/debug-worker-$i.json`""
+  $debuggers+=Start-Process -FilePath $cdb -ArgumentList $arguments -PassThru -WindowStyle Hidden -RedirectStandardOutput "$root/reports/debugger-$i.stdout" -RedirectStandardError "$root/reports/debugger-$i.stderr"
+}
+foreach($debugger in $debuggers){$debugger.WaitForExit()}
+$failures=@()
+foreach($i in 0..5){
+  if(Select-String -Path "reports/core-stack-$i.log" -Pattern '^UNHANDLED_PHP_ACCESS_VIOLATION\s*$' -Quiet){$failures+='Captured an unhandled PHP core access violation'}
+  if(!(Test-Path "reports/debug-worker-$i.json")){$failures+="Debug worker $i did not complete";continue}
+  $result=Get-Content "reports/debug-worker-$i.json" -Raw | ConvertFrom-Json
+  if(@($result.cases).Count -ne 1000 -or @($result.cases | Where-Object {!$_.passed}).Count){$failures+="Debug worker $i reported failed startup cases"}
+}
+if($failures.Count){throw ($failures -join '; ')}
