@@ -52,6 +52,8 @@ jobs:
           for /f "delims=" %%T in ('call .github\scripts\windows\find-vs-toolset.bat vs17') do set "VS_TOOLSET=%%T"
           call ..\sdk\phpsdk-vs17-x64.bat -s %VS_TOOLSET% -t %GITHUB_WORKSPACE%\harness\build-minimal.bat
           if errorlevel 1 exit /b 1
+          if not exist "%PHP_TEST_BINARY%" exit /b 1
+          if not exist "%PHP_TEST_OPCACHE%" exit /b 1
       - name: Record compiled binary provenance
         shell: pwsh
         working-directory: php-src
@@ -62,6 +64,8 @@ jobs:
           & $env:PHP_TEST_BINARY -n -r 'if (!PHP_ZTS) { exit(1); } echo PHP_BINARY, PHP_EOL;'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Get-FileHash $env:PHP_TEST_BINARY, (Join-Path (Split-Path $env:PHP_TEST_BINARY) 'php8ts.dll'), $env:PHP_TEST_OPCACHE | Format-Table -AutoSize | Out-String | Set-Content results/binary-hashes.txt
+          New-Item -ItemType Directory -Force results/binaries | Out-Null
+          Copy-Item $env:PHP_TEST_BINARY, (Join-Path (Split-Path $env:PHP_TEST_BINARY) 'php8ts.dll'), $env:PHP_TEST_OPCACHE results/binaries/
           git diff HEAD^ -- ext/standard/proc_open.c | Set-Content results/core.patch
       - name: Require both current tests to reproduce the quoting failures
         shell: pwsh
@@ -97,6 +101,3 @@ jobs:
             harness/historical/
             php-src/results/
             php-src/build.log
-            C:/php-proc-open-build/Release_TS/php.exe
-            C:/php-proc-open-build/Release_TS/php8ts.dll
-            C:/php-proc-open-build/Release_TS/php_opcache.dll
