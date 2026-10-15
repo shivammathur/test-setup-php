@@ -1,0 +1,68 @@
+name: Validate minimal PR 11669 fixes and JIT controls
+on:
+  push:
+  workflow_dispatch:
+env:
+  FIX_COMMIT: a2d2e80dc6181974ce2eb072d71e4f0790714719
+permissions:
+  contents: read
+  actions: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      builds: ${{ steps.matrix.outputs.builds }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: matrix
+        run: echo "builds=$(jq -c . qa/builds.json)" >> "$GITHUB_OUTPUT"
+  test:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        build: ${{ fromJSON(needs.prepare.outputs.builds) }}
+        arch: [x64, x86]
+        ts: [ts, nts]
+    name: ${{ matrix.build.branch }} ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: ${{ matrix.build.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - name: Preserve source line endings
+        run: git config --global core.autocrlf false
+      - name: Checkout exact PHP source
+        uses: actions/checkout@v6
+        with:
+          repository: php/php-src
+          ref: ${{ matrix.build.sha }}
+          path: php-src
+      - name: Fetch exact fix commit
+        working-directory: php-src
+        run: git fetch --depth=2 https://github.com/shivammathur/php-src.git ${{ env.FIX_COMMIT }}
+      - name: Download the new build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.build.run }}
+          name: artifacts
+          path: artifacts
+          github-token: ${{ github.token }}
+      - name: Validate corrected tests against the same artifacts
+        env:
+          QA_BRANCH: ${{ matrix.build.branch }}
+          QA_FIX_COMMIT: ${{ env.FIX_COMMIT }}
+          QA_ARTIFACT_SHA: ${{ matrix.build.artifact_sha }}
+          QA_SHA: ${{ matrix.build.sha }}
+          QA_BEFORE: ${{ matrix.build.before }}
+          QA_BUILD_RUN: ${{ matrix.build.run }}
+          QA_ARCH: ${{ matrix.arch }}
+          QA_TS: ${{ matrix.ts }}
+        run: python qa/run.py
+      - name: Upload complete evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: evidence-${{ matrix.build.branch }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: results/
+          if-no-files-found: error
