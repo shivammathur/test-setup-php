@@ -17,8 +17,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          path: harness
+      - uses: actions/checkout@v6
+        with:
           repository: shivammathur/php-src
           ref: 95a3eb77c7458af3caad459f2ba16b138c189737
+          fetch-depth: 2
+          path: php-src
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /run-tests.php
@@ -31,23 +36,32 @@ jobs:
           extensions: opcache
         env:
           phpts: ts
-      - name: Test without INI
-        shell: pwsh
+      - name: Restore original tests and save the exact patch
+        shell: bash
+        working-directory: php-src
         run: |
-          php -n run-tests.php -n -q --show-diff -d precision=12 ext/standard/tests/general_functions/proc_open_null.phpt ext/standard/tests/general_functions/proc_open_redirect.phpt 2>&1 | Tee-Object -FilePath no-ini.log
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Test with OPcache and tracing JIT
-        if: ${{ !cancelled() }}
+          test "$(git rev-parse HEAD^)" = 455a419b09740d2f87080677af274ef530aeeebb
+          git diff HEAD^ HEAD -- ext/standard/tests/general_functions/proc_open_null.phpt ext/standard/tests/general_functions/proc_open_redirect.phpt > ../fix.patch
+          git checkout HEAD^ -- ext/standard/tests/general_functions/proc_open_null.phpt ext/standard/tests/general_functions/proc_open_redirect.phpt
+      - name: Verify original failures on Windows
         shell: pwsh
+        working-directory: php-src
+        run: ../harness/verify-proc-open.ps1 -Phase before
+      - name: Apply our patch
+        shell: bash
+        working-directory: php-src
         run: |
-          php run-tests.php -q --show-diff -d opcache.enable_cli=1 -d opcache.protect_memory=1 -d opcache.jit_buffer_size=64M -d opcache.jit=tracing ext/standard/tests/general_functions/proc_open_null.phpt ext/standard/tests/general_functions/proc_open_redirect.phpt 2>&1 | Tee-Object -FilePath opcache.log
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git apply --check ../fix.patch
+          git apply ../fix.patch
+          git diff --exit-code HEAD -- ext/standard/tests/general_functions/proc_open_null.phpt ext/standard/tests/general_functions/proc_open_redirect.phpt
+      - name: Verify both tests pass with our patch
+        shell: pwsh
+        working-directory: php-src
+        run: ../harness/verify-proc-open.ps1 -Phase after
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: proc-open-${{ matrix.os }}-${{ matrix.php }}
           path: |
-            no-ini.log
-            opcache.log
-            ext/standard/tests/general_functions/*.diff
-            ext/standard/tests/general_functions/*.out
+            fix.patch
+            php-src/results/
