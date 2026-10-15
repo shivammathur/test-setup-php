@@ -1,0 +1,53 @@
+name: Validate proc_open Windows quoting
+on: push
+permissions:
+  contents: read
+jobs:
+  test:
+    name: ${{ matrix.os }} PHP ${{ matrix.php }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: windows-latest, php: '8.4'}
+          - {os: windows-latest, php: '8.5'}
+          - {os: windows-latest, php: '8.6'}
+          - {os: ubuntu-latest, php: '8.4'}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-src
+          ref: 95a3eb77c7458af3caad459f2ba16b138c189737
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /run-tests.php
+            /ext/standard/tests/general_functions/proc_open_null.phpt
+            /ext/standard/tests/general_functions/proc_open_redirect.phpt
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          extensions: opcache
+        env:
+          phpts: ts
+      - name: Test without INI
+        shell: pwsh
+        run: |
+          php -n run-tests.php -n -q --show-diff -d precision=12 ext/standard/tests/general_functions/proc_open_null.phpt ext/standard/tests/general_functions/proc_open_redirect.phpt 2>&1 | Tee-Object -FilePath no-ini.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test with OPcache and tracing JIT
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: |
+          php run-tests.php -q --show-diff -d opcache.enable_cli=1 -d opcache.protect_memory=1 -d opcache.jit_buffer_size=64M -d opcache.jit=tracing ext/standard/tests/general_functions/proc_open_null.phpt ext/standard/tests/general_functions/proc_open_redirect.phpt 2>&1 | Tee-Object -FilePath opcache.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: proc-open-${{ matrix.os }}-${{ matrix.php }}
+          path: |
+            no-ini.log
+            opcache.log
+            ext/standard/tests/general_functions/*.diff
+            ext/standard/tests/general_functions/*.out
