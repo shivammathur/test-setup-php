@@ -1,22 +1,27 @@
-param([Parameter(Mandatory)][ValidateSet('before', 'after')][string]$Phase)
+param([Parameter(Mandatory)][string]$Phase, [switch]$ExpectFailure)
 
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 $env:REPORT_EXIT_STATUS = '1'
+$php = $env:PHP_TEST_BINARY
+if (-not (Test-Path $php)) { throw 'Compiled PHP binary is missing' }
+$env:TEST_PHP_EXECUTABLE = $php
+$env:TEST_PHP_CGI_EXECUTABLE = ''
+$env:TEST_PHPDBG_EXECUTABLE = ''
 $tests = @(
     'ext/standard/tests/general_functions/proc_open_null.phpt',
     'ext/standard/tests/general_functions/proc_open_redirect.phpt'
 )
 $modes = @{
     'no-ini' = @('-n', 'run-tests.php', '-n', '-d', 'precision=12')
-    'opcache' = @('run-tests.php', '-d', 'opcache.enable_cli=1', '-d', 'opcache.protect_memory=1', '-d', 'opcache.jit_buffer_size=64M', '-d', 'opcache.jit=tracing')
+    'opcache' = @('-n', 'run-tests.php', '-n', '-d', "zend_extension=$env:PHP_TEST_OPCACHE", '-d', 'opcache.enable_cli=1', '-d', 'opcache.protect_memory=1', '-d', 'opcache.jit_buffer_size=64M', '-d', 'opcache.jit=tracing')
 }
 
 foreach ($mode in @('no-ini', 'opcache')) {
     $resultDir = "results/$Phase/$mode"
     New-Item -ItemType Directory -Force $resultDir | Out-Null
     $phpArgs = $modes[$mode] + @('-q', '--no-progress', '--no-color', '--show-diff') + $tests
-    & php @phpArgs 2>&1 | Tee-Object -FilePath "$resultDir/run.log"
+    & $php @phpArgs 2>&1 | Tee-Object -FilePath "$resultDir/run.log"
     $testExitCode = $LASTEXITCODE
     $log = Get-Content "$resultDir/run.log" -Raw
     foreach ($test in $tests) {
@@ -26,8 +31,7 @@ foreach ($mode in @('no-ini', 'opcache')) {
         }
     }
 
-    $expectFailure = $Phase -eq 'before' -and $IsWindows
-    if ($expectFailure) {
+    if ($ExpectFailure) {
         if ($testExitCode -ne 1 -or $log -notmatch 'Tests failed\s*:\s*2\s') {
             throw "Expected exactly two failures and exit code 1; got exit code $testExitCode"
         }
