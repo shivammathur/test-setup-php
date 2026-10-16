@@ -3,6 +3,10 @@ on:
   push:
   workflow_dispatch:
     inputs:
+      php_versions:
+        description: JSON array of PHP versions to validate
+        type: string
+        default: '["5.3", "5.4", "5.5"]'
       runners:
         description: JSON array of runner labels to validate
         type: string
@@ -25,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['5.3', '5.4', '5.5']
+        php: ${{ fromJSON(inputs.php_versions || '["5.3", "5.4", "5.5"]') }}
         # Start ARM validation on push while the Intel source builds finish.
         runner: ${{ fromJSON(inputs.runners || '["macos-14"]') }}
     env:
