@@ -1,0 +1,98 @@
+name: PHP 5 smaller archive experiment
+on:
+  push:
+    paths: ['.github/workflows/candidate.yml', 'repack.py', 'profile.py', 'validate.php']
+  workflow_dispatch:
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+jobs:
+  candidate:
+    name: Candidate PHP ${{ matrix.php }} on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.3', '5.4', '5.5']
+        runner: [macos-14, macos-15-intel]
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: shivammathur/php5-darwin
+          ref: befa03443fc0ce8a41aaa94471c4c44b71b9b14a
+          path: php5-darwin
+      - name: Prepare current and candidate archives
+        run: |
+          mkdir -p "$RUNNER_TEMP/original" "$RUNNER_TEMP/candidate" "$RUNNER_TEMP/report"
+          suffix=
+          [[ "$(uname -m)" != arm64 ]] || suffix=-arm64
+          archive="php${PHP_VERSION/./}$suffix-cache.tar.zst"
+          echo "CACHE_NAME=$archive" >> "$GITHUB_ENV"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/original/$archive" \
+            "https://github.com/shivammathur/php5-darwin/releases/download/builds/$archive"
+          zstd -dq "$RUNNER_TEMP/original/$archive"
+          python3 repack.py "$RUNNER_TEMP/original/${archive%.zst}" \
+            "$RUNNER_TEMP/candidate/${archive%.zst}" "$RUNNER_TEMP/report/archive.json"
+          zstd -q -19 -T0 "$RUNNER_TEMP/candidate/${archive%.zst}" \
+            -o "$RUNNER_TEMP/candidate/$archive"
+          wc -c "$RUNNER_TEMP/original/$archive" "$RUNNER_TEMP/candidate/$archive" \
+            | tee "$RUNNER_TEMP/report/compressed-size.txt"
+          if [[ -d /opt/local ]]; then sudo mv /opt/local "$RUNNER_TEMP/preinstalled"; fi
+      - name: Current archive with setup-php develop (local cache)
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+          coverage: none
+        env:
+          PHP5_CACHE_DIR: ${{ runner.temp }}/original
+          fail-fast: true
+      - name: Isolate original installation
+        run: sudo mv /opt/local "$RUNNER_TEMP/original-install"
+      - name: Candidate archive with setup-php develop (local cache)
+        id: candidate
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+          coverage: none
+        env:
+          PHP5_CACHE_DIR: ${{ runner.temp }}/candidate
+          fail-fast: true
+      - name: Validate candidate PHP and bundled extensions
+        if: ${{ !cancelled() && steps.candidate.outcome == 'success' }}
+        run: |
+          # setup-php coverage:none disables OPcache as well as Xdebug.
+          extension_dir="$(php-config --extension-dir)"
+          echo "zend_extension=$extension_dir/opcache.so" | sudo tee /opt/local/var/db/php"${PHP_VERSION/./}"/10-opcache.ini
+          bash php5-darwin/scripts/validate-extensions.sh "${PHP_VERSION/./}"
+          php validate.php
+          sudo /opt/local/sbin/php-fpm"${PHP_VERSION/./}" -t
+          AUDIT_DIR="$RUNNER_TEMP/report/base-audit" bash php5-darwin/scripts/audit-dependencies.sh /opt/local "$(uname -m)"
+      - name: Validate PECL compilation in isolated candidate
+        if: ${{ !cancelled() && steps.candidate.outcome == 'success' }}
+        run: bash php5-darwin/scripts/validate-pecl.sh "${PHP_VERSION/./}"
+      - name: Validate Imagick with candidate base
+        if: ${{ !cancelled() && steps.candidate.outcome == 'success' }}
+        run: |
+          bash php5-darwin/scripts/install.sh "${PHP_VERSION/./}" imagick
+          # shellcheck disable=SC2016
+          php -r '$image = new Imagick(); $image->newImage(2, 2, "white"); if ($image->getImageWidth() !== 2) { exit(1); }'
+          # shellcheck disable=SC2016
+          php -r '$formats = Imagick::queryFormats("HEI*"); if (!in_array("HEIC", $formats, true) && !in_array("HEIF", $formats, true)) { exit(1); }'
+          AUDIT_DIR="$RUNNER_TEMP/report/imagick-audit" bash php5-darwin/scripts/audit-dependencies.sh /opt/local "$(uname -m)"
+      - name: Compare extraction methods
+        if: ${{ !cancelled() && steps.candidate.outcome == 'success' }}
+        run: python3 profile.py "$RUNNER_TEMP" "$CACHE_NAME"
+      - uses: actions/upload-artifact@v7
+        if: ${{ always() }}
+        with:
+          name: candidate-${{ matrix.php }}-${{ matrix.runner }}
+          path: ${{ runner.temp }}/report
+          if-no-files-found: error
