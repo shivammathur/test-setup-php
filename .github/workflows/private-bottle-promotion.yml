@@ -1,0 +1,63 @@
+name: Verify privately built public Homebrew bottles
+on:
+  push:
+    branches: [feature/private-bottle-promotion-self-hosted-20261016]
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_ANALYTICS: 1
+jobs:
+  verify:
+    name: Verify ${{ matrix.runner }}
+    runs-on: [self-hosted, macOS, ARM64, bottle-promotion-20261016]
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: self-hosted-macos-15
+            bottle_tag: arm64_sequoia
+    steps:
+      - name: Checkout isolated test branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install PHP using setup-php
+        uses: shivammathur/setup-php@19d3947a1647b475a6a57dda3d4ce92ee4a89202
+        with:
+          php-version: '8.4'
+          tools: none
+          coverage: none
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@4790763c0a3ba4036f72634dc079c4a7dfcd4878
+        with:
+          stable: false
+          core: false
+          cask: false
+      - name: Install and test public bottle without credentials
+        shell: bash
+        env:
+          EXPECTED_BOTTLE_TAG: ${{ matrix.bottle_tag }}
+        run: |
+          set -euo pipefail
+          unset GH_TOKEN GITHUB_TOKEN HOMEBREW_GITHUB_API_TOKEN HOMEBREW_GITHUB_PACKAGES_TOKEN HOMEBREW_DOCKER_REGISTRY_TOKEN HOMEBREW_DOCKER_REGISTRY_BASIC_AUTH_TOKEN
+          brew trust shivammathur/test-tap
+          brew tap shivammathur/test-tap
+          brew fetch --force-bottle shivammathur/test-tap/hello
+          brew install --force-bottle shivammathur/test-tap/hello
+          brew test shivammathur/test-tap/hello
+          brew linkage --test shivammathur/test-tap/hello
+          hello --version
+          test "$(hello --greeting=promoted-private-bottle)" = promoted-private-bottle
+          # shellcheck disable=SC2016
+          test "$(php -r 'passthru("hello --greeting=from-php", $status); exit($status);')" = from-php
+          php -v
+          python3 .github/scripts/verify_hello.py
+      - name: Save consumer evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: consumer-${{ matrix.bottle_tag }}
+          path: consumer-evidence.json
+          if-no-files-found: error
