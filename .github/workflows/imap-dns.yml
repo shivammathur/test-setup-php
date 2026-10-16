@@ -1,0 +1,21 @@
+name: PHP 5 IMAP resolver diagnosis
+on:
+  push:
+    paths: ['.github/workflows/imap-dns.yml', 'resolver-profile.py']
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: macos-15-intel
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install PHP 5.5
+        run: bash install-fast.sh 55
+      - name: Compare hostname resolver configurations
+        run: python3 resolver-profile.py
+      - uses: actions/upload-artifact@v7
+        if: ${{ always() }}
+        with:
+          name: imap-resolver-profile
+          path: ${{ runner.temp }}/resolver-profile.json
