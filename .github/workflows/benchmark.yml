@@ -1,0 +1,67 @@
+name: PHP 5 install benchmark
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+jobs:
+  baseline:
+    name: Baseline PHP ${{ matrix.php }} on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.3', '5.4', '5.5', '8.4']
+        runner: [macos-14, macos-15-intel]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install PHP with setup-php develop
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+          coverage: none
+        env:
+          fail-fast: true
+      - name: Verify installed PHP
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+        run: |
+          php -v
+          php --ini
+          php -m
+          phpize --version
+          php-config --version
+          file -L "$(command -v php)"
+          php -r 'if (substr(PHP_VERSION, 0, 3) !== getenv("PHP_VERSION")) { exit(1); }'
+      - name: Profile current PHP 5 archive
+        if: ${{ matrix.php != '8.4' }}
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/profile"
+          suffix=
+          [[ "$(uname -m)" != arm64 ]] || suffix=-arm64
+          archive="php${PHP_VERSION/./}$suffix-cache.tar.zst"
+          curl -fsSL --retry 3 --compressed -o "$RUNNER_TEMP/profile/$archive" \
+            -w 'download_seconds=%{time_total}\ndownload_bytes=%{size_download}\n' \
+            "https://github.com/shivammathur/php5-darwin/releases/latest/download/$archive" \
+            | tee "$RUNNER_TEMP/profile/download.txt"
+          /usr/bin/time -p zstd -dq "$RUNNER_TEMP/profile/$archive" 2> "$RUNNER_TEMP/profile/decompress.txt"
+          mkdir -p "$RUNNER_TEMP/profile/extracted"
+          /usr/bin/time -p tar xf "${RUNNER_TEMP}/profile/${archive%.zst}" \
+            -C "$RUNNER_TEMP/profile/extracted" 2> "$RUNNER_TEMP/profile/extract.txt"
+          du -sk "$RUNNER_TEMP/profile/extracted/opt/local"/* | sort -nr | tee "$RUNNER_TEMP/profile/sizes.txt"
+          find "$RUNNER_TEMP/profile/extracted" -type f | wc -l | tee "$RUNNER_TEMP/profile/file-count.txt"
+          cat "$RUNNER_TEMP/profile/decompress.txt" "$RUNNER_TEMP/profile/extract.txt"
+          ls -lh "$RUNNER_TEMP/profile/$archive" "${RUNNER_TEMP}/profile/${archive%.zst}"
+      - uses: actions/upload-artifact@v7
+        if: ${{ always() && matrix.php != '8.4' }}
+        with:
+          name: profile-${{ matrix.php }}-${{ matrix.runner }}
+          path: ${{ runner.temp }}/profile/*.txt
+          if-no-files-found: error
