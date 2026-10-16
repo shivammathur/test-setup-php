@@ -1,0 +1,87 @@
+name: Validate optimized PHP 5 release
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      runners:
+        description: JSON array of runner labels to validate
+        type: string
+        default: '["macos-14", "macos-15-intel"]'
+      published:
+        description: Test the published release instead of build artifacts
+        type: boolean
+        default: false
+permissions:
+  contents: read
+  actions: read
+defaults:
+  run:
+    shell: bash
+jobs:
+  validate:
+    name: PHP ${{ matrix.php }} on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.3', '5.4', '5.5']
+        # Start ARM validation on push while the Intel source builds finish.
+        runner: ${{ fromJSON(inputs.runners || '["macos-14"]') }}
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      SOURCE_RUN: '38884699769'
+      PUBLISHED: ${{ inputs.published || false }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: shivammathur/php5-darwin
+          ref: a957536e44047acb4c3b1d92e1807fe0651f9cc2
+          path: php5-darwin
+      - name: Prepare isolated install
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "$(brew --prefix zstd)/bin" >> "$GITHUB_PATH"
+          if [[ -d /opt/local ]]; then sudo mv /opt/local "$RUNNER_TEMP/preinstalled"; fi
+          mkdir -p "$RUNNER_TEMP/report"
+          if [[ "$PUBLISHED" != true ]]; then
+            gh run download "$SOURCE_RUN" --repo shivammathur/php5-darwin \
+              --name "php${PHP_VERSION/./}-caches-$(uname -m)" --dir "$RUNNER_TEMP/artifacts"
+            mkdir -p "$RUNNER_TEMP/caches"
+            find "$RUNNER_TEMP/artifacts" -name '*.tar.zst' -exec cp {} "$RUNNER_TEMP/caches/" \;
+            echo "PHP5_CACHE_DIR=$RUNNER_TEMP/caches" >> "$GITHUB_ENV"
+          fi
+      - name: Install with unmodified setup-php develop
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+          coverage: none
+        env:
+          fail-fast: true
+      - name: Validate runtime and IMAP
+        run: |
+          ext_dir="$(php-config --extension-dir)"
+          echo "zend_extension=$ext_dir/opcache.so" | sudo tee /opt/local/var/db/php"${PHP_VERSION/./}"/10-opcache.ini
+          bash php5-darwin/scripts/validate-extensions.sh "${PHP_VERSION/./}"
+          bash php5-darwin/scripts/validate-imap.sh "${PHP_VERSION/./}"
+          sudo /opt/local/sbin/php-fpm"${PHP_VERSION/./}" -t
+          sudo "$(command -v python3)" php5-darwin/scripts/audit-runtime.py
+          AUDIT_DIR="$RUNNER_TEMP/report/base" bash php5-darwin/scripts/audit-dependencies.sh /opt/local "$(uname -m)"
+          if [[ "$(stat -f %Sf /opt/local/bin/php"${PHP_VERSION/./}")" == *compressed* ]]; then exit 1; fi
+          python3 timing.py
+      - name: Validate PECL compilation
+        run: bash php5-darwin/scripts/validate-pecl.sh "${PHP_VERSION/./}"
+      - name: Validate Imagick and delegates
+        run: |
+          bash php5-darwin/scripts/install.sh "${PHP_VERSION/./}" imagick
+          php imagick.php
+          sudo "$(command -v python3)" php5-darwin/scripts/audit-runtime.py
+          AUDIT_DIR="$RUNNER_TEMP/report/imagick" bash php5-darwin/scripts/audit-dependencies.sh /opt/local "$(uname -m)"
+      - uses: actions/upload-artifact@v7
+        if: ${{ always() }}
+        with:
+          name: optimized-php-${{ matrix.php }}-${{ matrix.runner }}
+          path: ${{ runner.temp }}/report
