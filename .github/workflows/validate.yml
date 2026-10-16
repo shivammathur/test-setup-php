@@ -41,7 +41,7 @@ jobs:
           path: php5-darwin
       - name: Prepare isolated install
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.PAT }}
         run: |
           echo "$(brew --prefix zstd)/bin" >> "$GITHUB_PATH"
           if [[ -d /opt/local ]]; then sudo mv /opt/local "$RUNNER_TEMP/preinstalled"; fi
