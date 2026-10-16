@@ -1,0 +1,100 @@
+name: PHP 5 extraction fix validation
+on:
+  push:
+    paths: ['.github/workflows/fast-installer.yml', 'install-fast.sh']
+  workflow_dispatch:
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+jobs:
+  fast:
+    name: Fast PHP ${{ matrix.php }} on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.3', '5.4', '5.5']
+        runner: [macos-14, macos-15-intel]
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: shivammathur/setup-php
+          ref: develop
+          path: setup-php
+      - uses: actions/checkout@v7
+        with:
+          repository: shivammathur/php5-darwin
+          ref: befa03443fc0ce8a41aaa94471c4c44b71b9b14a
+          path: php5-darwin
+      - name: Route develop action to candidate installer
+        run: |
+          git -C setup-php rev-parse HEAD
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('setup-php/src/scripts/darwin.sh')
+          text = path.read_text()
+          assert text.count('run_script "php5-darwin"') == 2
+          path.write_text(text.replace('run_script "php5-darwin"', 'bash "$GITHUB_WORKSPACE/install-fast.sh"'))
+          PY
+          git -C setup-php diff -- src/scripts/darwin.sh
+          if [[ -d /opt/local ]]; then sudo mv /opt/local "$RUNNER_TEMP/preinstalled"; fi
+      - name: Install full archive with fast installer (first)
+        id: first
+        uses: ./setup-php
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+          coverage: none
+        env:
+          fail-fast: true
+      - name: Isolate first installation
+        run: sudo mv /opt/local "$RUNNER_TEMP/first-install"
+      - name: Install full archive with fast installer (second)
+        id: second
+        uses: ./setup-php
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+          coverage: none
+        env:
+          fail-fast: true
+      - name: Validate full runtime and extraction metadata
+        if: ${{ !cancelled() && steps.second.outcome == 'success' }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/report"
+          file -L /opt/local/bin/php
+          ls -lO /opt/local/bin/php"${PHP_VERSION/./}"
+          if [[ "$(stat -f %Sf /opt/local/bin/php"${PHP_VERSION/./}")" == *compressed* ]]; then exit 1; fi
+          extension_dir="$(php-config --extension-dir)"
+          echo "zend_extension=$extension_dir/opcache.so" | sudo tee /opt/local/var/db/php"${PHP_VERSION/./}"/10-opcache.ini
+          bash php5-darwin/scripts/validate-extensions.sh "${PHP_VERSION/./}"
+          php validate.php
+          sudo /opt/local/sbin/php-fpm"${PHP_VERSION/./}" -t
+          AUDIT_DIR="$RUNNER_TEMP/report/base-audit" bash php5-darwin/scripts/audit-dependencies.sh /opt/local "$(uname -m)"
+      - name: Validate PECL compilation
+        if: ${{ !cancelled() && steps.second.outcome == 'success' }}
+        run: bash php5-darwin/scripts/validate-pecl.sh "${PHP_VERSION/./}"
+      - name: Install full Imagick archive with fast installer
+        id: imagick
+        if: ${{ !cancelled() && steps.second.outcome == 'success' }}
+        run: bash install-fast.sh "${PHP_VERSION/./}" imagick
+      - name: Validate Imagick
+        if: ${{ !cancelled() && steps.imagick.outcome == 'success' }}
+        run: |
+          # shellcheck disable=SC2016
+          php -r '$image = new Imagick(); $image->newImage(2, 2, "white"); if ($image->getImageWidth() !== 2) { exit(1); }'
+          # shellcheck disable=SC2016
+          php -r '$formats = Imagick::queryFormats("HEI*"); if (!in_array("HEIC", $formats, true) && !in_array("HEIF", $formats, true)) { exit(1); }'
+          AUDIT_DIR="$RUNNER_TEMP/report/imagick-audit" bash php5-darwin/scripts/audit-dependencies.sh /opt/local "$(uname -m)"
+      - uses: actions/upload-artifact@v7
+        if: ${{ always() }}
+        with:
+          name: fast-${{ matrix.php }}-${{ matrix.runner }}
+          path: ${{ runner.temp }}/report
+          if-no-files-found: warn
