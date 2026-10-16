@@ -1,0 +1,85 @@
+name: Check CGI path-info with PGO artifacts
+on:
+  push:
+    branches: [benchmark/pgo-jit-20261017]
+    paths:
+      - .github/workflows/pgo-cgi-regression.yml
+      - scripts/check-cgi-path-info.ps1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  check:
+    name: master ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86]
+        ts: [nts, ts]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: php/php-src
+          ref: 1c4a8ad3735ff1671883857a9f14ae72bd5c6d18
+          path: source
+          sparse-checkout: |
+            run-tests.php
+            sapi/cgi/tests
+          sparse-checkout-cone-mode: false
+      - name: Download baseline
+        uses: actions/download-artifact@v8
+        with:
+          name: artifacts
+          path: downloads/baseline
+          repository: shivammathur/php-windows-builder
+          run-id: 38949801233
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download candidate
+        uses: actions/download-artifact@v8
+        with:
+          name: artifacts
+          path: downloads/candidate
+          repository: shivammathur/php-windows-builder
+          run-id: 38949801579
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download baseline provenance
+        uses: actions/download-artifact@v8
+        with:
+          name: pgo-evidence-${{ matrix.arch }}-${{ matrix.ts }}
+          path: evidence/baseline
+          repository: shivammathur/php-windows-builder
+          run-id: 38949801233
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download candidate provenance
+        uses: actions/download-artifact@v8
+        with:
+          name: pgo-evidence-${{ matrix.arch }}-${{ matrix.ts }}
+          path: evidence/candidate
+          repository: shivammathur/php-windows-builder
+          run-id: 38949801579
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare and verify artifacts
+        id: php
+        shell: pwsh
+        env:
+          PHP_ARCH: ${{ matrix.arch }}
+          PHP_TS: ${{ matrix.ts }}
+          PHP_BRANCH: master
+        run: ./scripts/prepare-artifacts.ps1
+      - name: Repeat original CGI test
+        shell: pwsh
+        run: |
+          ./scripts/check-cgi-path-info.ps1 -BaselinePhp '${{ steps.php.outputs.baseline_php }}' -CandidatePhp '${{ steps.php.outputs.candidate_php }}'
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cgi-master-${{ matrix.arch }}-${{ matrix.ts }}
+          path: results
+          if-no-files-found: error

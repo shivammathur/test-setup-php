@@ -1,8 +1,6 @@
 name: Benchmark JIT PGO builds
 run-name: PHP 8.5 and newer JIT PGO comparison
 on:
-  push:
-    branches: [benchmark/pgo-jit-20261017]
   workflow_dispatch:
 
 permissions:
