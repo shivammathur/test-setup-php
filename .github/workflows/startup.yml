@@ -1,0 +1,26 @@
+name: PHP 5 Intel startup profile
+on:
+  push:
+    paths: ['.github/workflows/startup.yml', 'startup.py']
+permissions:
+  contents: read
+jobs:
+  profile:
+    runs-on: macos-15-intel
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install current PHP 5.5 with extraction fix
+        run: |
+          /usr/bin/time -p bash install-fast.sh 55
+          echo /usr/local/bin >> "$GITHUB_PATH"
+      - name: Measure PHP startup
+        run: python3 startup.py
+      - uses: actions/upload-artifact@v7
+        if: ${{ always() }}
+        with:
+          name: intel-startup-profile
+          path: ${{ runner.temp }}/startup.json
