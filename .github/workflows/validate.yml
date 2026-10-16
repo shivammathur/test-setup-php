@@ -80,7 +80,7 @@ jobs:
           if errorlevel 1 exit /b 1
           if not exist .validation\null-probe.exe exit /b 1
       - name: Check null stdin, stdout and stderr in native child processes
-        id: null
+        id: handles
         continue-on-error: true
         shell: pwsh
         run: |
@@ -121,7 +121,7 @@ jobs:
         env:
           SUITE_OUTCOME: ${{ steps.suite.outcome }}
           FOCUSED_OUTCOME: ${{ steps.focused.outcome }}
-          NULL_OUTCOME: ${{ steps.null.outcome }}
+          NULL_OUTCOME: ${{ steps.handles.outcome }}
         run: |
           if ($env:SUITE_OUTCOME -ne 'success') { throw "Full suite: $env:SUITE_OUTCOME" }
           if ($env:FOCUSED_OUTCOME -ne 'success') { throw "proc_open tests: $env:FOCUSED_OUTCOME" }
