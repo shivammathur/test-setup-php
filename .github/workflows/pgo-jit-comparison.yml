@@ -1,0 +1,123 @@
+name: Benchmark JIT PGO builds
+run-name: PHP 8.5 and newer JIT PGO comparison
+on:
+  push:
+    branches: [benchmark/pgo-jit-20261017]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  wait-builds:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v6
+      - name: Wait for validated build artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          deadline=$((SECONDS + 6900))
+          while (( SECONDS < deadline )); do
+            ready=true
+            for run in $(jq -r '.[] | .baseline, .candidate' builds.json); do
+              jobs=$(gh api "repos/shivammathur/php-windows-builder/actions/runs/$run/jobs?per_page=100")
+              failed=$(jq '[.jobs[] | select((.name | startswith("php (")) or .name == "artifacts") | select(.conclusion != null and .conclusion != "success")] | length' <<<"$jobs")
+              if (( failed > 0 )); then
+                echo "::error::Builder run $run failed; inspect its PGO evidence."
+                exit 1
+              fi
+              merged=$(jq '[.jobs[] | select(.name == "artifacts" and .conclusion == "success")] | length' <<<"$jobs")
+              if (( merged != 1 )); then ready=false; fi
+            done
+            if $ready; then exit 0; fi
+            echo "Build artifacts are still being produced."
+            sleep 30
+          done
+          echo "::error::Timed out waiting for build artifacts"
+          exit 1
+
+  benchmark:
+    needs: wait-builds
+    name: ${{ matrix.source.branch }} ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: ${{ matrix.source.runner }}
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86]
+        ts: [nts, ts]
+        source:
+          - branch: PHP-8.5
+            baseline: 38949801275
+            candidate: 38949801557
+            runner: windows-2022
+          - branch: PHP-8.6
+            baseline: 38949801861
+            candidate: 38949800887
+            runner: windows-2025-vs2026
+          - branch: master
+            baseline: 38949801233
+            candidate: 38949801579
+            runner: windows-2025-vs2026
+    steps:
+      - uses: actions/checkout@v6
+      - name: Download baseline
+        uses: actions/download-artifact@v8
+        with:
+          name: artifacts
+          path: downloads/baseline
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.source.baseline }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download candidate
+        uses: actions/download-artifact@v8
+        with:
+          name: artifacts
+          path: downloads/candidate
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.source.candidate }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download baseline provenance
+        uses: actions/download-artifact@v8
+        with:
+          name: pgo-evidence-${{ matrix.arch }}-${{ matrix.ts }}
+          path: evidence/baseline
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.source.baseline }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download candidate provenance
+        uses: actions/download-artifact@v8
+        with:
+          name: pgo-evidence-${{ matrix.arch }}-${{ matrix.ts }}
+          path: evidence/candidate
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.source.candidate }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare and verify artifacts
+        id: php
+        shell: pwsh
+        env:
+          PHP_ARCH: ${{ matrix.arch }}
+          PHP_TS: ${{ matrix.ts }}
+          PHP_BRANCH: ${{ matrix.source.branch }}
+        run: ./scripts/prepare-artifacts.ps1
+      - name: Verify multiprocess JIT regression
+        shell: pwsh
+        run: |
+          ./scripts/check-artifacts.ps1 -BaselinePhp '${{ steps.php.outputs.baseline_php }}' -CandidatePhp '${{ steps.php.outputs.candidate_php }}' -OutputDirectory results/regression
+      - name: Run paired benchmarks
+        shell: pwsh
+        run: |
+          ./scripts/run-comparison.ps1 -BaselinePhp '${{ steps.php.outputs.baseline_php }}' -CandidatePhp '${{ steps.php.outputs.candidate_php }}' -OutputDirectory results -Samples 15 |
+            Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-${{ matrix.source.branch }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: results
+          if-no-files-found: error
