@@ -1,4 +1,4 @@
-name: Check CGI path-info with PGO artifacts
+name: Check CGI tests with PGO artifacts
 on:
   push:
     branches: [benchmark/pgo-jit-20261017]
@@ -72,7 +72,7 @@ jobs:
           PHP_TS: ${{ matrix.ts }}
           PHP_BRANCH: master
         run: ./scripts/prepare-artifacts.ps1
-      - name: Repeat original CGI test
+      - name: Repeat original CGI tests
         shell: pwsh
         run: |
           ./scripts/check-cgi-path-info.ps1 -BaselinePhp '${{ steps.php.outputs.baseline_php }}' -CandidatePhp '${{ steps.php.outputs.candidate_php }}'
