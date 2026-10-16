@@ -19,8 +19,38 @@ jobs:
           echo /usr/local/bin >> "$GITHUB_PATH"
       - name: Measure PHP startup
         run: python3 startup.py
+      - name: Diagnose IMAP hostname resolution
+        run: |
+          /opt/local/bin/php55 -n -d extension=/opt/local/lib/php55/extensions/no-debug-non-zts-20121212/imap.so -r 'echo PHP_VERSION;' &
+          php_pid=$!
+          sample "$php_pid" 1 -file "$RUNNER_TEMP/imap-sample.txt" || true
+          wait "$php_pid"
+          python3 - <<'PY'
+          import json, os, socket, subprocess, time
+          from pathlib import Path
+          hostname = socket.gethostname()
+          start = time.perf_counter()
+          try:
+              resolved = socket.gethostbyname(hostname)
+          except OSError as error:
+              resolved = str(error)
+          print(json.dumps(dict(hostname=hostname, resolved=resolved, seconds=time.perf_counter()-start)))
+          subprocess.run(['sudo', 'tee', '-a', '/etc/hosts'], input='\n127.0.0.1 '+hostname+'\n', text=True, check=True)
+          results = []
+          for label, options in [('imap', ['-n', '-d', 'extension=/opt/local/lib/php55/extensions/no-debug-non-zts-20121212/imap.so']), ('default', [])]:
+              for trial in range(3):
+                  start = time.perf_counter()
+                  output = subprocess.run(['/opt/local/bin/php55'] + options + ['-r', 'echo PHP_VERSION;'], text=True, capture_output=True, check=True)
+                  assert output.stdout == '5.5.38' and not output.stderr, output
+                  results.append(dict(case=label, trial=trial+1, seconds=round(time.perf_counter()-start, 3)))
+          print(json.dumps(results, indent=2))
+          (Path(os.environ['RUNNER_TEMP'])/'hostname-profile.json').write_text(json.dumps(results, indent=2))
+          PY
       - uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: intel-startup-profile
-          path: ${{ runner.temp }}/startup.json
+          path: |
+            ${{ runner.temp }}/startup.json
+            ${{ runner.temp }}/hostname-profile.json
+            ${{ runner.temp }}/imap-sample.txt
