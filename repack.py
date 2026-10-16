@@ -25,6 +25,7 @@ def keep(name):
     if documentation.search(path):
         return False
     if path.startswith(('Library/Frameworks/', 'lib/perl5/', 'lib/python',
+                        'lib/texi2any/', 'share/texi2any/',
                         'include/python', 'lib/pkgconfig/python')):
         return False
     if path.startswith('libexec/boost/'):
