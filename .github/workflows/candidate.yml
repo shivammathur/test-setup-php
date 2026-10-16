@@ -43,6 +43,9 @@ jobs:
             -o "$RUNNER_TEMP/candidate/$archive"
           wc -c "$RUNNER_TEMP/original/$archive" "$RUNNER_TEMP/candidate/$archive" \
             | tee "$RUNNER_TEMP/report/compressed-size.txt"
+          # The original installer replaces /usr/local/bin/zstd on Intel.
+          # Keep Homebrew zstd available when isolating /opt/local between trials.
+          echo "$(brew --prefix zstd)/bin" >> "$GITHUB_PATH"
           if [[ -d /opt/local ]]; then sudo mv /opt/local "$RUNNER_TEMP/preinstalled"; fi
       - name: Current archive with setup-php develop (local cache)
         uses: shivammathur/setup-php@develop

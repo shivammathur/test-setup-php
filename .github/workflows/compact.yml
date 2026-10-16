@@ -43,6 +43,9 @@ jobs:
           path.write_text(text.replace('run_script "php5-darwin"', 'bash "$GITHUB_WORKSPACE/install-fast.sh"'))
           PY
           git -C setup-php diff -- src/scripts/darwin.sh
+          # The original installer replaces /usr/local/bin/zstd on Intel.
+          # Keep Homebrew zstd available when isolating /opt/local between trials.
+          echo "$(brew --prefix zstd)/bin" >> "$GITHUB_PATH"
           if [[ -d /opt/local ]]; then sudo mv /opt/local "$RUNNER_TEMP/preinstalled"; fi
       - name: Prepare compact archive
         run: |
