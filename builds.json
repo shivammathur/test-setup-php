@@ -1,0 +1,55 @@
+[
+  {
+    "branch": "PHP-8.2", "group": "controls", "runner": "windows-2022", "jit": false,
+    "sha": "03e959375b1244adbbd5de7e2dae02e06b6a627c",
+    "builds": {
+      "previous": {"run": 38970173551, "sdk": "61aea83167d5257357915b9603d6386d56f0e37d", "variant": "baseline"},
+      "fixed": {"run": 38961274451, "sdk": "9a70ed235f6b040f098493560abe477068f96dcc", "variant": "candidate"}
+    }
+  },
+  {
+    "branch": "PHP-8.3", "group": "controls", "runner": "windows-2022", "jit": false,
+    "sha": "9c6ad6caeeb77f308c1bc1b36887ce00c66b1f32",
+    "builds": {
+      "previous": {"run": 38970173703, "sdk": "61aea83167d5257357915b9603d6386d56f0e37d", "variant": "baseline"},
+      "fixed": {"run": 38961273798, "sdk": "9a70ed235f6b040f098493560abe477068f96dcc", "variant": "candidate"}
+    }
+  },
+  {
+    "branch": "PHP-8.4", "group": "ready", "runner": "windows-2022", "jit": true,
+    "sha": "6ec698758e50d0356a7befeca6b2bfaffffa15aa",
+    "invalid_lanes": ["x86-ts", "x86-nts"],
+    "caveat": "Both previous and fixed x86 PGO training aborted database workloads with HY000/2002 errors despite HTTP 200; timings are exploratory, not valid evidence of a training improvement.",
+    "builds": {
+      "previous": {"run": 38963376835, "sdk": "61aea83167d5257357915b9603d6386d56f0e37d", "variant": "baseline", "artifact": "artifacts-source-{arch}-{ts}", "allow_failed_run": true},
+      "fixed": {"run": 38961274240, "sdk": "9a70ed235f6b040f098493560abe477068f96dcc", "variant": "candidate"}
+    }
+  },
+  {
+    "branch": "PHP-8.5", "group": "ready", "runner": "windows-2022", "jit": true,
+    "sha": "b94db20dfe9b2e78984069d52af530563e647b44",
+    "builds": {
+      "nojit": {"run": 38949801275, "sdk": "87567dececcf806c83e67fceb89a3bd206e7f1b1", "variant": "baseline"},
+      "previous": {"run": 38949801557, "sdk": "61aea83167d5257357915b9603d6386d56f0e37d", "variant": "candidate"},
+      "fixed": {"run": 38961273995, "sdk": "9a70ed235f6b040f098493560abe477068f96dcc", "variant": "candidate"}
+    }
+  },
+  {
+    "branch": "PHP-8.6", "group": "ready", "runner": "windows-2025-vs2026", "jit": true,
+    "sha": "c66711881aab52fd5631cc6d90c8f73cd518599f",
+    "builds": {
+      "nojit": {"run": 38949801861, "sdk": "87567dececcf806c83e67fceb89a3bd206e7f1b1", "variant": "baseline"},
+      "previous": {"run": 38949800887, "sdk": "61aea83167d5257357915b9603d6386d56f0e37d", "variant": "candidate"},
+      "fixed": {"run": 38961273878, "sdk": "9a70ed235f6b040f098493560abe477068f96dcc", "variant": "candidate"}
+    }
+  },
+  {
+    "branch": "master", "group": "controls", "runner": "windows-2025-vs2026", "jit": true,
+    "sha": "6e4082b2eba9d35073062dec96052272b46763ed",
+    "builds": {
+      "nojit": {"run": 38970173683, "sdk": "87567dececcf806c83e67fceb89a3bd206e7f1b1", "variant": "baseline"},
+      "previous": {"run": 38970173932, "sdk": "61aea83167d5257357915b9603d6386d56f0e37d", "variant": "baseline"},
+      "fixed": {"run": 38961273775, "sdk": "9a70ed235f6b040f098493560abe477068f96dcc", "variant": "candidate"}
+    }
+  }
+]
