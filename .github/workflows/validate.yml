@@ -1,0 +1,128 @@
+name: Validate GH-24335 on current PHP-8.4
+run-name: Full Windows suite after GH-24343, baseline vs GH-24335
+on: push
+permissions:
+  contents: read
+jobs:
+  windows:
+    name: Windows x64 ZTS - ${{ matrix.variant }}
+    runs-on: windows-2022
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [baseline, pr24335]
+    env:
+      PHP_BUILD_CACHE_BASE_DIR: C:\build-cache
+      PHP_BUILD_OBJ_DIR: C:\obj
+      PHP_BUILD_CACHE_SDK_DIR: C:\build-cache\sdk
+      PHP_BUILD_SDK_BRANCH: php-sdk-2.8.4
+      PHP_BUILD_CRT: vs17
+      PLATFORM: x64
+      THREAD_SAFE: '1'
+      INTRINSICS: AVX2
+      PARALLEL: -j2
+      OPCACHE: '1'
+      ASAN: '0'
+      CLANG_TOOLSET: '0'
+      PHP_TEST_BINARY: C:\obj\Release_TS\php.exe
+      VALIDATION_VARIANT: ${{ matrix.variant }}
+    steps:
+      - name: Preserve LF sources
+        run: git config --global core.autocrlf false
+      - name: Checkout current PHP-8.4 including the merged quoting fix
+        uses: actions/checkout@v6
+        with:
+          repository: php/php-src
+          ref: 25348e809d4e2ec89c6de562d22c876e4ab90a1d
+      - name: Checkout validation harness
+        uses: actions/checkout@v6
+        with:
+          path: .validation
+      - name: Prepare exact patch and preserve test results
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory .validation/results | Out-Null
+          git rev-parse HEAD | Set-Content .validation/results/source-sha.txt
+          if ($env:VALIDATION_VARIANT -eq 'pr24335') {
+            git apply --check .validation/pr24335.patch
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+            git apply .validation/pr24335.patch
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
+          git diff -- ext/standard/proc_open.c | Set-Content .validation/results/core.patch
+          $path = '.github/scripts/windows/test_task.bat'
+          $original = Get-Content $path -Raw
+          if (-not $original.Contains('--bless')) { throw 'Upstream runner changed' }
+          $updated = $original.Replace('--bless', '-W .validation/results/all-tests.txt')
+          [IO.File]::WriteAllText((Join-Path $PWD $path), $updated)
+          git diff -- $path | Set-Content .validation/results/harness.patch
+      - name: Setup upstream Windows test services
+        uses: ./.github/actions/setup-windows
+      - name: Build complete PHP snapshot with upstream configuration
+        shell: pwsh
+        run: |
+          & cmd /c .github\scripts\windows\build.bat 2>&1 | Tee-Object .validation/results/build.log
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          foreach ($name in @('php.exe', 'php8ts.dll', 'php_opcache.dll', 'phpdbg.exe')) {
+            if (-not (Test-Path "C:/obj/Release_TS/$name")) { throw "Missing compiled binary: $name" }
+          }
+          Copy-Item C:/build-cache/deps-8.4-vs17-x64/bin/*.dll C:/obj/Release_TS/ -Force
+          & $env:PHP_TEST_BINARY -n -v | Tee-Object .validation/results/version.txt
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Get-FileHash C:/obj/Release_TS/*.exe, C:/obj/Release_TS/*.dll | Format-Table -AutoSize | Out-String -Width 300 | Set-Content .validation/results/binary-hashes.txt
+          Copy-Item C:/obj/Release_TS/php.exe, C:/obj/Release_TS/php8ts.dll, C:/obj/Release_TS/php_opcache.dll .validation/results/
+      - name: Compile native child for null-handle checks
+        shell: cmd
+        run: |
+          for /f "delims=" %%T in ('call .github\scripts\windows\find-vs-toolset.bat vs17') do set "VS_TOOLSET=%%T"
+          call C:\build-cache\sdk\phpsdk-vs17-x64.bat -s %VS_TOOLSET% -t %GITHUB_WORKSPACE%\.validation\build-probe.bat
+          if errorlevel 1 exit /b 1
+          if not exist .validation\null-probe.exe exit /b 1
+      - name: Check null stdin, stdout and stderr in native child processes
+        id: null
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          & $env:PHP_TEST_BINARY -n .validation/check-null.php | Tee-Object .validation/results/null-handles.json
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Run proc_open tests without INI and with tracing JIT
+        id: focused
+        continue-on-error: true
+        shell: pwsh
+        run: .validation/focused.ps1
+      - name: Run complete upstream Windows test suite with tracing JIT
+        id: suite
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          & cmd /c .github\scripts\windows\test.bat 2>&1 | Tee-Object .validation/results/suite.log
+          $code = $LASTEXITCODE
+          $code | Set-Content .validation/results/suite-exit-code.txt
+          if (-not (Test-Path .validation/results/all-tests.txt)) { throw 'Suite did not produce per-test results' }
+          $results = @(Get-Content .validation/results/all-tests.txt)
+          if ($results.Count -lt 10000) { throw "Incomplete full suite: $($results.Count) results" }
+          if ($results -match '^(FAILED|BORKED|LEAKED)\s') { throw 'Full suite has unexpected failures' }
+          if ($code) { exit $code }
+      - name: Collect failed test artifacts
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: .validation/collect.ps1
+      - name: Upload binaries, patch provenance, complete logs and test artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.variant }}
+          path: .validation/results/
+          retention-days: 14
+      - name: Require the full suite and targeted checks to pass
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        env:
+          SUITE_OUTCOME: ${{ steps.suite.outcome }}
+          FOCUSED_OUTCOME: ${{ steps.focused.outcome }}
+          NULL_OUTCOME: ${{ steps.null.outcome }}
+        run: |
+          if ($env:SUITE_OUTCOME -ne 'success') { throw "Full suite: $env:SUITE_OUTCOME" }
+          if ($env:FOCUSED_OUTCOME -ne 'success') { throw "proc_open tests: $env:FOCUSED_OUTCOME" }
+          if ($env:VALIDATION_VARIANT -eq 'pr24335' -and $env:NULL_OUTCOME -ne 'success') { throw 'Patched null-handle check failed' }
