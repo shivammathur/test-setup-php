@@ -45,6 +45,24 @@ function arithmetic(int $n): int {
     return $total ^ $seed;
 }
 
+function foreach_keyed(int $n): int {
+    $a = range(1, 256);
+    $sum = 0;
+    for ($i = 0; $i < $n; $i++) {
+        foreach ($a as $key => $value) { $sum += $key + $value; }
+    }
+    return $sum;
+}
+
+function foreach_value(int $n): int {
+    $a = range(1, 256);
+    $sum = 0;
+    for ($i = 0; $i < $n; $i++) {
+        foreach ($a as $value) { $sum += $value; }
+    }
+    return $sum;
+}
+
 $mode = $argv[1];
 $checksum = 0;
 $start = hrtime(true);
@@ -66,6 +84,14 @@ switch ($mode) {
         break;
     case 'arithmetic':
         $checksum = arithmetic(10000000);
+        break;
+    case 'foreach-key':
+    case 'foreach-key-raw':
+        $checksum = foreach_keyed(200000);
+        break;
+    case 'foreach-value':
+    case 'foreach-value-raw':
+        $checksum = foreach_value(200000);
         break;
     case 'empty':
         break;

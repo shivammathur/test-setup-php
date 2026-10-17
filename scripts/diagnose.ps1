@@ -1,3 +1,8 @@
+param(
+    [string[]] $Modes = @('vm','no-sort','sort','arithmetic','mixed','empty'),
+    [string[]] $JitModes = @('disable','tracing'),
+    [switch] $SkipTrace
+)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $paths = Get-Content results/runtime-paths.json -Raw | ConvertFrom-Json -AsHashtable
@@ -12,7 +17,8 @@ function Invoke-Diagnostic {
     $info.UseShellExecute = $false
     $info.RedirectStandardOutput = $true
     $info.RedirectStandardError = $true
-    $arguments = @('-n', '-d', 'opcache.enable_cli=1', '-d', "opcache.jit=$Jit", '-d',
+    $cli = if ($Mode.EndsWith('-raw')) { '0' } else { '1' }
+    $arguments = @('-n', '-d', "opcache.enable_cli=$cli", '-d', "opcache.jit=$Jit", '-d',
         ('opcache.jit_buffer_size=' + $(if ($Jit -eq 'tracing') { '64M' } else { '0' })))
     if ($Trace) { $arguments += @('-d', 'opcache.jit_debug=1') }
     $arguments += @('-f', (Join-Path $PSScriptRoot '../benchmarks/diagnose.php'), $Mode)
@@ -40,8 +46,8 @@ function Invoke-Diagnostic {
     return [pscustomobject]$row
 }
 
-foreach ($mode in @('vm','no-sort','sort','arithmetic','mixed','empty')) {
-    foreach ($jit in @('disable','tracing')) {
+foreach ($mode in $Modes) {
+    foreach ($jit in $JitModes) {
         $expected = $null
         for ($sample=0; $sample -le 12; $sample++) {
             foreach ($label in $orders[($sample % 6)].Split(',')) {
@@ -55,8 +61,8 @@ foreach ($mode in @('vm','no-sort','sort','arithmetic','mixed','empty')) {
         Write-Host "Completed $mode $jit"
     }
 }
-foreach ($label in @('nojit','previous','fixed')) {
+if (-not $SkipTrace) { foreach ($label in @('nojit','previous','fixed')) {
     foreach ($mode in @('vm','no-sort','sort','arithmetic')) {
         Invoke-Diagnostic $label $mode tracing 0 $true | ConvertTo-Json -Depth 8 | Set-Content "results/trace-status-$label-$mode.json"
     }
-}
+} }
