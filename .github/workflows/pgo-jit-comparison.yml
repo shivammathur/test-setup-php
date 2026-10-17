@@ -1,0 +1,110 @@
+name: Benchmark static extension PGO
+run-name: Static PGO ${{ inputs.php-branch }} ${{ inputs.arch }} ${{ inputs.ts }} (${{ inputs.samples }} samples)
+on:
+  workflow_dispatch:
+    inputs:
+      group:
+        type: choice
+        options: [all]
+        default: all
+      php-branch:
+        type: string
+        default: all
+      arch:
+        type: choice
+        options: [all, x64, x86]
+        default: all
+      ts:
+        type: choice
+        options: [all, ts, nts]
+        default: all
+      samples:
+        type: number
+        default: 20
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  wait-builds:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    outputs:
+      matrix: ${{ steps.select.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Select comparisons
+        id: select
+        env:
+          GROUP: ${{ inputs.group }}
+          BRANCH: ${{ inputs.php-branch }}
+          ARCH: ${{ inputs.arch }}
+          TS: ${{ inputs.ts }}
+        run: |
+          jq --arg group "$GROUP" --arg branch "$BRANCH" '[.[] | select(($group == "all" or .group == $group) and ($branch == "all" or .branch == $branch))]' builds.json > selected.json
+          jq -e 'length > 0' selected.json
+          matrix=$(jq -c --arg arch "$ARCH" --arg ts "$TS" '{source: ., arch: (if $arch == "all" then ["x64", "x86"] else [$arch] end), ts: (if $ts == "all" then ["nts", "ts"] else [$ts] end)}' selected.json)
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+      - name: Wait for validated build artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          deadline=$((SECONDS + 6900))
+          while (( SECONDS < deadline )); do
+            ready=true
+            while IFS=$'\t' read -r run allow_failed; do
+              state=$(gh api "repos/shivammathur/php-windows-builder/actions/runs/$run")
+              status=$(jq -r '.status' <<<"$state")
+              conclusion=$(jq -r '.conclusion' <<<"$state")
+              if [[ "$status" != completed ]]; then ready=false; continue; fi
+              if [[ "$conclusion" != success && "$allow_failed" != true ]]; then
+                echo "::error::Builder run $run concluded $conclusion"
+                exit 1
+              fi
+            done < <(jq -r '.[].builds[] | [.run, (.allow_failed_run // false)] | @tsv' selected.json | sort -u)
+            if $ready; then exit 0; fi
+            echo "Build controls are still running."
+            sleep 30
+          done
+          echo "::error::Timed out waiting for build artifacts"
+          exit 1
+
+  benchmark:
+    needs: wait-builds
+    name: ${{ matrix.source.branch }} ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: ${{ matrix.source.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.wait-builds.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Download and verify artifacts
+        id: php
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PHP_ARCH: ${{ matrix.arch }}
+          PHP_TS: ${{ matrix.ts }}
+          PHP_BRANCH: ${{ matrix.source.branch }}
+        run: ./scripts/prepare-artifacts.ps1
+      - name: Verify multiprocess JIT regression
+        if: steps.php.outputs.regression == 'true'
+        shell: pwsh
+        run: ./scripts/check-artifacts.ps1 -RuntimePaths results/runtime-paths.json -OutputDirectory results/regression
+      - name: Run interleaved benchmarks
+        shell: pwsh
+        env:
+          BENCH_SAMPLES: ${{ inputs.samples }}
+          BENCH_JIT: ${{ steps.php.outputs.jit }}
+        run: |
+          ./scripts/run-comparison.ps1 -RuntimePaths results/runtime-paths.json -OutputDirectory results -Samples ([int]$env:BENCH_SAMPLES) -EnableJit ($env:BENCH_JIT -eq 'true') |
+            Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-${{ matrix.source.branch }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: results
+          if-no-files-found: error
