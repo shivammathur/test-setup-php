@@ -21,6 +21,9 @@ on:
       samples:
         type: number
         default: 20
+      diagnostics-only:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -91,10 +94,15 @@ jobs:
           PHP_BRANCH: ${{ matrix.source.branch }}
         run: ./scripts/prepare-artifacts.ps1
       - name: Verify multiprocess JIT regression
-        if: steps.php.outputs.regression == 'true'
+        if: steps.php.outputs.regression == 'true' && !inputs.diagnostics-only
         shell: pwsh
         run: ./scripts/check-artifacts.ps1 -RuntimePaths results/runtime-paths.json -OutputDirectory results/regression
+      - name: Check repeated CGI startup
+        if: inputs.diagnostics-only
+        shell: pwsh
+        run: ./scripts/check-cgi.ps1 -RuntimePaths results/runtime-paths.json -OutputDirectory results/cgi
       - name: Run interleaved benchmarks
+        if: ${{ !inputs.diagnostics-only }}
         shell: pwsh
         env:
           BENCH_SAMPLES: ${{ inputs.samples }}
