@@ -23,6 +23,17 @@ foreach ($label in @('nojit', 'previous', 'accumulated', 'gl-pr', 'gl-accumulate
     $build = $selection.builds.$label
     if (-not $build) { continue }
     $artifact = if ($build.artifact) { $build.artifact.Replace('{arch}', $env:PHP_ARCH).Replace('{ts}', $env:PHP_TS) } else { 'artifacts' }
+    if ($build.require_gl) {
+        $jobs = & gh api "repos/shivammathur/php-windows-builder/actions/runs/$($build.run)/jobs?per_page=100" | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0) { throw "$label job verification failed" }
+        $job = @($jobs.jobs | Where-Object name -eq "php ($env:PHP_ARCH, $env:PHP_TS)")
+        if ($job.Count -ne 1 -or $job[0].conclusion -ne 'success') { throw "$label lane did not pass build and PGO validation" }
+    }
+    if ($artifact -eq 'auto') {
+        $available = & gh api "repos/shivammathur/php-windows-builder/actions/runs/$($build.run)/artifacts?per_page=100" | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0) { throw "$label artifact lookup failed" }
+        $artifact = if ('artifacts' -in $available.artifacts.name) { 'artifacts' } else { "artifacts-source-$lane" }
+    }
     & gh run download $build.run --repo shivammathur/php-windows-builder --name $artifact --dir "downloads/$label"
     if ($LASTEXITCODE -ne 0) { throw "$label artifact download failed" }
     & gh run download $build.run --repo shivammathur/php-windows-builder --name "pgo-evidence-$lane" --dir "evidence/$label"
