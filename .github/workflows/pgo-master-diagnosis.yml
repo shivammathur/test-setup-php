@@ -1,0 +1,38 @@
+name: Diagnose master PGO regression
+on:
+  workflow_dispatch:
+  push:
+    branches: [benchmark/pgo-master-diagnosis-20261017]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    strategy:
+      fail-fast: false
+      matrix:
+        repeat: [1, 2]
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - name: Verify matched master x64 NTS artifacts
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PHP_ARCH: x64
+          PHP_TS: nts
+          PHP_BRANCH: master
+        run: ./scripts/prepare-artifacts.ps1
+      - name: Repeat original benchmarks
+        shell: pwsh
+        run: ./scripts/run-comparison.ps1 -RuntimePaths results/runtime-paths.json -OutputDirectory results -Samples 12 -BenchmarkNames vm,vm-opcache,vm-jit
+      - name: Separate startup and runtime operations
+        shell: pwsh
+        run: ./scripts/diagnose.ps1
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: master-x64-nts-diagnosis-${{ matrix.repeat }}
+          path: results
+          if-no-files-found: error
