@@ -1,6 +1,7 @@
 param(
     [string[]] $Modes = @('vm','no-sort','sort','arithmetic','mixed','empty'),
     [string[]] $JitModes = @('disable','tracing'),
+    [int] $Samples = 12,
     [switch] $SkipTrace
 )
 $ErrorActionPreference = 'Stop'
@@ -9,6 +10,13 @@ $paths = Get-Content results/runtime-paths.json -Raw | ConvertFrom-Json -AsHasht
 $orders = @('nojit,previous,fixed', 'fixed,previous,nojit', 'previous,nojit,fixed',
             'fixed,nojit,previous', 'nojit,fixed,previous', 'previous,fixed,nojit')
 $rows = [Collections.Generic.List[object]]::new()
+if ($Modes | Where-Object { $_.EndsWith('-weak') }) {
+    New-Item -ItemType Directory -Force results/weak-php | Out-Null
+    foreach ($file in Get-ChildItem (Join-Path $PSScriptRoot '../benchmarks') -Filter '*.php') {
+        (Get-Content $file.FullName -Raw).Replace('strict_types=1', 'strict_types=0').Replace('strict_types = 1', 'strict_types = 0') |
+            Set-Content (Join-Path 'results/weak-php' $file.Name)
+    }
+}
 
 function Invoke-Diagnostic {
     param($Label, $Mode, $Jit, $Sample, [bool] $Trace = $false)
@@ -21,7 +29,8 @@ function Invoke-Diagnostic {
     $arguments = @('-n', '-d', "opcache.enable_cli=$cli", '-d', "opcache.jit=$Jit", '-d',
         ('opcache.jit_buffer_size=' + $(if ($Jit -eq 'tracing') { '64M' } else { '0' })))
     if ($Trace) { $arguments += @('-d', 'opcache.jit_debug=1') }
-    $arguments += @('-f', (Join-Path $PSScriptRoot '../benchmarks/diagnose.php'), $Mode)
+    $file = if ($Mode.EndsWith('-weak')) { (Resolve-Path 'results/weak-php/diagnose.php').Path } else { Join-Path $PSScriptRoot '../benchmarks/diagnose.php' }
+    $arguments += @('-f', $file, ($Mode -replace '-weak$', ''))
     foreach ($argument in $arguments) { $info.ArgumentList.Add($argument) }
     $clock = [Diagnostics.Stopwatch]::StartNew()
     $process = [Diagnostics.Process]::Start($info)
@@ -49,7 +58,7 @@ function Invoke-Diagnostic {
 foreach ($mode in $Modes) {
     foreach ($jit in $JitModes) {
         $expected = $null
-        for ($sample=0; $sample -le 12; $sample++) {
+        for ($sample=0; $sample -le $Samples; $sample++) {
             foreach ($label in $orders[($sample % 6)].Split(',')) {
                 $row = Invoke-Diagnostic $label $mode $jit $sample
                 if ($null -eq $expected) { $expected=$row.checksum }

@@ -4,7 +4,7 @@ on:
     inputs:
       phase:
         type: choice
-        options: [full, foreach]
+        options: [full, foreach, strict]
         default: full
 permissions:
   contents: read
@@ -28,17 +28,21 @@ jobs:
           PHP_BRANCH: master
         run: ./scripts/prepare-artifacts.ps1
       - name: Repeat original benchmarks
-        if: inputs.phase != 'foreach'
+        if: inputs.phase == 'full'
         shell: pwsh
         run: ./scripts/run-comparison.ps1 -RuntimePaths results/runtime-paths.json -OutputDirectory results -Samples 12 -BenchmarkNames vm,vm-opcache,vm-jit
       - name: Separate startup and runtime operations
-        if: inputs.phase != 'foreach'
+        if: inputs.phase == 'full'
         shell: pwsh
         run: ./scripts/diagnose.ps1
       - name: Isolate keyed foreach code placement
         if: inputs.phase == 'foreach'
         shell: pwsh
         run: ./scripts/diagnose.ps1 -Modes foreach-key,foreach-value,foreach-key-raw,foreach-value-raw -JitModes disable -SkipTrace
+      - name: Isolate strict-types cold path
+        if: inputs.phase == 'strict'
+        shell: pwsh
+        run: ./scripts/diagnose.ps1 -Modes foreach-key,foreach-key-weak,foreach-value,foreach-value-weak,vm,vm-weak -JitModes disable -Samples 6 -SkipTrace
       - uses: actions/upload-artifact@v7
         if: always()
         with:
