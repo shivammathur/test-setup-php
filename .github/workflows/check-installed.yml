@@ -1,0 +1,109 @@
+name: Installed package checks and benchmark
+on:
+  push:
+    branches: [fix/check-installed-missing-20261017]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    name: ${{ matrix.os }} / ${{ matrix.manager }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+        manager: [apt-get, apt-fast]
+    env:
+      BASELINE_SHA: 19d3947a1647b475a6a57dda3d4ce92ee4a89202
+      BATCHED_SHA: e272b3b1c640dfb7fe45798f4dfa0e61b1bf911c
+      CANDIDATE_SHA: 02dd6cd902c7649b155fda62ec53bf53ba71f002
+      PACKAGE_MANAGER: ${{ matrix.manager }}
+      BENCHMARK_OS: ${{ matrix.os }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ env.BASELINE_SHA }}
+          path: action-baseline
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ env.BATCHED_SHA }}
+          path: action-batched
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ env.CANDIDATE_SHA }}
+          path: action-candidate
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24
+      - name: Prepare identical installed dependencies
+        shell: bash
+        run: |
+          mkdir -p results
+          { sudo apt-get update; } > results/apt-update.log 2>&1
+          { sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends apt-transport-https ca-certificates curl file make jq unzip autoconf automake gcc g++ gnupg aria2; } > results/prepare.log 2>&1
+          apt_fast_path=$(command -v apt-fast || true)
+          apt_fast_path=${apt_fast_path:-/usr/local/sbin/apt-fast}
+          sudo rm -f "$apt_fast_path"
+          if [ "$PACKAGE_MANAGER" = apt-get ]; then
+            sudo ln -s /usr/bin/apt-get "$apt_fast_path"
+          else
+            curl -fsSL --retry 3 https://raw.githubusercontent.com/ilikenwf/apt-fast/1f55b476b568f8589df8c040c2c1afd4a2384c4f/apt-fast -o "$RUNNER_TEMP/apt-fast"
+            sudo install -m 755 "$RUNNER_TEMP/apt-fast" "$apt_fast_path"
+          fi
+          bash -n action-candidate/src/scripts/linux.sh action-candidate/src/scripts/unix.sh action-candidate/src/scripts/extensions/source.sh
+          shellcheck -s bash -S error action-candidate/src/scripts/linux.sh action-candidate/src/scripts/unix.sh action-candidate/src/scripts/extensions/source.sh
+          dpkg-query -W -f='${Package}\t${Version}\t${Status}\n' apt-transport-https ca-certificates curl file make jq unzip autoconf automake gcc g++ gnupg > results/packages.tsv
+          command -v apt-fast > results/apt-fast-path.txt
+          ls -l "$apt_fast_path" >> results/apt-fast-path.txt
+          sha256sum "$apt_fast_path" >> results/apt-fast-path.txt
+      - name: Validate package states and callers
+        run: bash tests/package-states.sh action-candidate | tee results/package-states.log
+      - name: Install a real missing package and verify repeat and hold skips
+        run: bash tests/install-library.sh action-candidate | tee results/install-library.log
+      - name: Verify only missing curl reaches apt
+        run: bash tests/self-hosted-missing.sh action-candidate | tee results/self-hosted-missing.log
+      - name: Benchmark helper and complete self-hosted setup
+        run: python3 tests/benchmark.py
+      - name: Upload raw timings and validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: check-installed-${{ matrix.os }}-${{ matrix.manager }}
+          path: results/
+          if-no-files-found: error
+  macos:
+    name: macOS shared helper and callers
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 02dd6cd902c7649b155fda62ec53bf53ba71f002
+          path: action-candidate
+          persist-credentials: false
+      - name: Validate native Homebrew and macOS callers
+        run: |
+          mkdir -p results
+          bash tests/brew-checks.sh action-candidate | tee results/brew-checks.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: check-installed-macos
+          path: results/
+          if-no-files-found: error

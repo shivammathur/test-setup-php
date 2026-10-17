@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+set -euo pipefail
+action_dir=$1
+os=Linux
+eval "$(sed -n '/^check_installed() {$/,/^}$/p' "$action_dir/src/scripts/unix.sh")"
+for function_name in self_hosted_helper; do
+  eval "$(sed -n "/^${function_name}() {$/,/^}$/p" "$action_dir/src/scripts/linux.sh")"
+done
+for function_name in add_lib_log add_linux_libs; do
+  eval "$(sed -n "/^${function_name}() {$/,/^}$/p" "$action_dir/src/scripts/extensions/source.sh")"
+done
+checks=0
+pass() { checks=$((checks + 1)); printf 'PASS: %s\n' "$1"; }
+fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
+expect_success() { local label=$1; shift; "$@" || fail "$label"; pass "$label"; }
+expect_failure() { local label=$1; shift; if "$@"; then fail "$label"; fi; pass "$label"; }
+expect_success 'real database: bash installed' check_installed bash
+expect_failure 'real database: missing package' check_installed setup-php-missing-package-1136
+expect_failure 'empty argument list' check_installed
+test_db=$(mktemp -d)
+trap 'rm -rf "$test_db"' EXIT
+architecture=$(dpkg --print-architecture)
+remove_package() {
+  awk -v package="$1" 'BEGIN {RS=""; ORS="\n\n"} index($0, "Package: " package "\n") != 1 {print}' "$test_db/status" > "$test_db/status.new"
+  mv "$test_db/status.new" "$test_db/status"
+}
+write_package() {
+  if [ -f "$test_db/status" ]; then remove_package "$1"; fi
+  {
+    printf 'Package: %s\nStatus: %s\nArchitecture: %s\nVersion: 1.0\nMaintainer: Test <test@example.invalid>\nDescription: package status fixture\n' "$1" "$2" "$architecture"
+    case "$2" in
+      *triggers-awaited) printf 'Triggers-Awaited: fixture-triggers-pending\n' ;;
+      *triggers-pending) printf 'Triggers-Pending: /fixture-trigger\n' ;;
+    esac
+    printf '\n'
+  } >> "$test_db/status"
+}
+write_package fixture-installed 'install ok installed'
+write_package fixture-held 'hold ok installed'
+write_package fixture-removed 'deinstall ok config-files'
+write_package fixture-unpacked 'install ok unpacked'
+write_package fixture-half-configured 'install ok half-configured'
+write_package fixture-half-installed 'install reinstreq half-installed'
+write_package fixture-reinstall-required 'install reinstreq installed'
+write_package fixture-triggers-awaited 'install ok triggers-awaited'
+write_package fixture-triggers-pending 'install ok triggers-pending'
+dpkg-query() { command dpkg-query --admindir="$test_db" "$@"; }
+expect_success 'installed package' check_installed fixture-installed
+expect_success 'held installed package' check_installed fixture-held
+expect_failure 'multiple arguments rejected' check_installed fixture-installed fixture-held
+expect_success 'architecture-qualified package' check_installed "fixture-installed:$architecture"
+expect_failure 'missing package' check_installed fixture-missing
+for state in removed unpacked half-configured half-installed reinstall-required triggers-awaited triggers-pending; do
+  expect_failure "$state package" check_installed "fixture-$state"
+done
+os=Linux
+tick=OK
+cross=FAIL
+install_count=0
+install_result=success
+installed_args=()
+last_log=()
+install_packages() {
+  install_count=$((install_count + 1))
+  installed_args=("$@")
+  [ "$install_result" = success ] || return 1
+  for package in "$@"; do
+    check_installed "$package" || write_package "$package" 'install ok installed'
+  done
+}
+add_log() { last_log=("$@"); }
+sudo() { :; }
+apt-fast() { :; }
+base_packages=(apt-transport-https ca-certificates curl file make jq unzip autoconf automake gcc g++ gnupg)
+for package in "${base_packages[@]}"; do
+  [ "$package" = curl ] || write_package "$package" 'install ok installed'
+done
+self_hosted_helper
+[ "$install_count" -eq 1 ] && [ "${installed_args[*]}" = curl ] || fail 'self-hosted missing curl'
+pass 'self-hosted passes only missing curl to installer'
+self_hosted_helper
+[ "$install_count" -eq 1 ] || fail 'self-hosted already installed'
+pass 'self-hosted installed dependencies skip installer'
+remove_package curl
+remove_package jq
+write_package gnupg 'hold ok installed'
+self_hosted_helper
+[ "$install_count" -eq 2 ] && [ "${installed_args[*]}" = 'curl jq' ] || fail 'self-hosted missing pair'
+pass 'self-hosted passes only two missing packages and skips held dependency'
+write_package curl 'install ok unpacked'
+write_package file 'deinstall ok config-files'
+self_hosted_helper
+[ "$install_count" -eq 3 ] && [ "${installed_args[*]}" = 'curl file' ] || fail 'self-hosted incomplete packages'
+pass 'self-hosted selects only unpacked and removed packages'
+remove_package curl
+install_result=fail
+expect_failure 'self-hosted propagates installation failure' self_hosted_helper
+[ "${installed_args[*]}" = curl ] || fail 'failed install requested extra packages'
+write_package curl 'install ok installed'
+install_result=success
+install_count=1
+add_linux_libs fixture-installed
+[ "$install_count" -eq 1 ] && [ "${last_log[*]}" = 'OK fixture-installed Installed' ] || fail 'installed library'
+pass 'installed library skips installer and logs success'
+add_linux_libs fixture-held
+[ "$install_count" -eq 1 ] || fail 'held library'
+pass 'held library skips installer'
+add_linux_libs fixture-new-library
+[ "$install_count" -eq 2 ] && [ "${last_log[*]}" = 'OK fixture-new-library Installed' ] || fail 'missing library'
+pass 'missing library installs and logs success'
+install_result=fail
+add_linux_libs fixture-removed
+[ "$install_count" -eq 3 ] && [ "${last_log[*]}" = 'FAIL fixture-removed Could not install fixture-removed' ] || fail 'removed library'
+pass 'removed library attempts installation and logs failure'
+add_linux_libs fixture-half-configured
+[ "$install_count" -eq 4 ] && [ "${last_log[0]}" = FAIL ] || fail 'partial library'
+pass 'partial library attempts installation and logs failure'
+os=Darwin
+brew_prefix="$test_db/brew"
+mkdir -p "$brew_prefix/Cellar/fixture-brew"
+expect_success 'macOS installed library unchanged' check_installed fixture-brew
+expect_failure 'macOS missing library unchanged' check_installed fixture-missing
+expect_failure 'macOS multiple arguments rejected' check_installed fixture-brew fixture-brew
+expect_failure 'macOS empty argument list' check_installed
+printf '\nAll %s package-state and caller checks passed.\n' "$checks"
