@@ -22,6 +22,12 @@ $dependencies = $null
 foreach ($label in @('nojit', 'previous', 'accumulated', 'gl-pr', 'gl-accumulated')) {
     $build = $selection.builds.$label
     if (-not $build) { continue }
+    $override = $build.arch_overrides.($env:PHP_ARCH)
+    if ($override) {
+        foreach ($property in $override.PSObject.Properties) {
+            $build | Add-Member -MemberType NoteProperty -Name $property.Name -Value $property.Value -Force
+        }
+    }
     $artifact = if ($build.artifact) { $build.artifact.Replace('{arch}', $env:PHP_ARCH).Replace('{ts}', $env:PHP_TS) } else { 'artifacts' }
     if ($build.require_gl) {
         $jobs = & gh api "repos/shivammathur/php-windows-builder/actions/runs/$($build.run)/jobs?per_page=100" | ConvertFrom-Json
@@ -48,6 +54,15 @@ foreach ($label in @('nojit', 'previous', 'accumulated', 'gl-pr', 'gl-accumulate
             throw "$label missing static-extension PGO compiler flags"
         }
         if (-not (Test-Path "evidence/$label/jit-profile-functions.txt")) { throw "$label missing JIT profile evidence" }
+    }
+    if ($build.profile_memmax) {
+        $instrumented = Get-Content "evidence/$label/profiles/initialized/Makefile" -Raw
+        $optimized = Get-Content "evidence/$label/Makefile.pgo" -Raw
+        $flags = @([regex]::Matches($instrumented, '/GENPROFILE[^\s]*') | ForEach-Object Value)
+        if (-not $flags.Count -or @($flags | Where-Object { $_ -ne "/GENPROFILE:MEMMAX=$($build.profile_memmax)" }).Count -or $instrumented -match '/LTCG:PGINSTRUMENT') {
+            throw "$label missing or inconsistent instrumented-build reservation cap"
+        }
+        if ($optimized -match '/GENPROFILE|/LTCG:PGINSTRUMENT|MEMMAX') { throw "$label reservation cap leaked into optimized build" }
     }
     $matches = @(Get-ChildItem "downloads/$label" -Recurse -File | Where-Object { $_.Name -match $pattern })
     if ($matches.Count -ne 1) { throw "Expected one $label runtime archive, found $($matches.Count)" }
@@ -79,6 +94,7 @@ foreach ($label in @('nojit', 'previous', 'accumulated', 'gl-pr', 'gl-accumulate
         run=$build.run; sdk_sha=$build.sdk; archive=$archive.Name
         sha256=(Get-FileHash $archive.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
         runtime=$info; build_provenance=$evidence
+        profile_memmax=$build.profile_memmax
     }
     $paths[$label] = $php
 }

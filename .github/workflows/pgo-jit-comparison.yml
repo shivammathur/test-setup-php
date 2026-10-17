@@ -49,6 +49,7 @@ jobs:
       - name: Wait for validated build artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARCH: ${{ inputs.arch }}
         run: |
           deadline=$((SECONDS + 6900))
           while (( SECONDS < deadline )); do
@@ -62,7 +63,7 @@ jobs:
                 echo "::error::Builder run $run concluded $conclusion"
                 exit 1
               fi
-            done < <(jq -r '.[].builds[] | [.run, (.allow_failed_run // false)] | @tsv' selected.json | sort -u)
+            done < <(jq -r --arg arch "$ARCH" '.[].builds[] as $build | (if $arch == "all" then ["x64", "x86"] else [$arch] end)[] as $lane | ($build + ($build.arch_overrides[$lane] // {})) | [.run, (.allow_failed_run // false)] | @tsv' selected.json | sort -u)
             if $ready; then exit 0; fi
             echo "Build controls are still running."
             sleep 30
