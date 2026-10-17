@@ -53,20 +53,34 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ARCH: ${{ inputs.arch }}
+          TS: ${{ inputs.ts }}
         run: |
           deadline=$((SECONDS + 6900))
           while (( SECONDS < deadline )); do
             ready=true
-            while IFS=$'\t' read -r run allow_failed; do
+            while IFS=$'\t' read -r run allow_failed artifact_ready arch; do
               state=$(gh api "repos/shivammathur/php-windows-builder/actions/runs/$run")
               status=$(jq -r '.status' <<<"$state")
               conclusion=$(jq -r '.conclusion' <<<"$state")
+              if [[ "$artifact_ready" == true ]]; then
+                jobs=$(gh api "repos/shivammathur/php-windows-builder/actions/runs/$run/jobs?per_page=100")
+                lanes=$(jq --arg arch "$arch" --arg ts "$TS" '[.jobs[] | select(.name == ("php (" + $arch + ", nts)") and ($ts == "all" or $ts == "nts") or .name == ("php (" + $arch + ", ts)") and ($ts == "all" or $ts == "ts"))]' <<<"$jobs")
+                expected=1; if [[ "$TS" == all ]]; then expected=2; fi
+                if jq -e 'any(.[]; .status == "completed" and .conclusion != "success")' <<<"$lanes" >/dev/null; then
+                  echo "::error::Builder run $run failed build or PGO validation"
+                  exit 1
+                fi
+                if ! jq -e --argjson expected "$expected" 'length == $expected and all(.[]; .conclusion == "success")' <<<"$lanes" >/dev/null; then ready=false; continue; fi
+                artifacts=$(gh api "repos/shivammathur/php-windows-builder/actions/runs/$run/artifacts?per_page=100")
+                if ! jq -e 'any(.artifacts[]; .name == "artifacts" and .expired == false)' <<<"$artifacts" >/dev/null; then ready=false; fi
+                continue
+              fi
               if [[ "$status" != completed ]]; then ready=false; continue; fi
               if [[ "$conclusion" != success && "$allow_failed" != true ]]; then
                 echo "::error::Builder run $run concluded $conclusion"
                 exit 1
               fi
-            done < <(jq -r --arg arch "$ARCH" '.[].builds[] as $build | (if $arch == "all" then ["x64", "x86"] else [$arch] end)[] as $lane | ($build + ($build.arch_overrides[$lane] // {})) | [.run, (.allow_failed_run // false)] | @tsv' selected.json | sort -u)
+            done < <(jq -r --arg arch "$ARCH" '.[].builds[] as $build | (if $arch == "all" then ["x64", "x86"] else [$arch] end)[] as $lane | ($build + ($build.arch_overrides[$lane] // {})) | [.run, (.allow_failed_run // false), (.profile_memmax != null), $lane] | @tsv' selected.json | sort -u)
             if $ready; then exit 0; fi
             echo "Build controls are still running."
             sleep 30
