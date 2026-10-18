@@ -1,0 +1,42 @@
+name: PHP Ubuntu install benchmark
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  profile:
+    name: Baseline ${{ matrix.os }} ${{ matrix.build }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04, ubuntu-22.04-arm, ubuntu-24.04-arm, ubuntu-26.04-arm]
+        build: [release, debug]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-ubuntu
+          ref: 7569bea
+      - name: Profile installer
+        env:
+          BUILD: ${{ matrix.build }}
+        run: |
+          mkdir reports
+          export PS4='+${EPOCHREALTIME} ${FUNCNAME[0]:-main}:${LINENO}: '
+          /usr/bin/time -v bash -x scripts/install.sh 8.4 "$BUILD" nts >reports/install.log 2>&1
+      - name: Validate installed packages
+        run: |
+          php8.4 -v
+          php-config8.4 --version
+          sudo /usr/sbin/php-fpm8.4 -t
+          sudo systemctl is-active php8.4-fpm
+          bash scripts/check-test-packages.sh 8.4 '${{ matrix.os }}' success success
+          source reports/8.4-${{ matrix.os }}.env
+          test "$broken" = false
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: baseline-${{ matrix.os }}-${{ matrix.build }}
+          path: reports
