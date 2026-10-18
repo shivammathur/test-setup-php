@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: shivammathur/php-ubuntu
-          ref: 7569bea
+          ref: 7569bea4610ff99cee175621e650c17565617880
       - name: Profile installer
         env:
           BUILD: ${{ matrix.build }}
