@@ -1,0 +1,129 @@
+name: PHP Ubuntu streaming benchmark
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    name: ${{ matrix.variant }} ${{ matrix.os }} run ${{ matrix.repeat }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+        variant: [buffered, streaming]
+        repeat: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    env:
+      PHP_VERSION: '8.4'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-ubuntu
+          ref: ${{ matrix.variant == 'buffered' && 'ace85d504a9e2ac6e5775aa908d3cdc23f466721' || 'eec14ae8af68daa2d3e4b61360d5b18caa3cff88' }}
+          path: cache
+      - name: Time first install on a fresh runner
+        run: |
+          mkdir reports
+          export PS4='+${EPOCHREALTIME} ${FUNCNAME[0]:-main}:${LINENO}: '
+          /usr/bin/time -f '%e' -o reports/seconds.txt bash -x cache/scripts/install.sh "$PHP_VERSION" release nts >reports/install.log 2>&1
+      - name: Select installed version for validation
+        run: bash select-version.sh
+      - name: Validate runtime and FPM
+        run: bash validate.sh runtime
+      - name: Validate package health
+        if: always()
+        run: bash validate.sh packages
+      - name: Inspect compressed archive
+        if: always()
+        run: bash validate.sh archive
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-${{ matrix.variant }}-${{ matrix.os }}-${{ matrix.repeat }}
+          path: reports
+  compatibility:
+    name: Compatibility ${{ matrix.os }} PHP ${{ matrix.php }} ${{ matrix.ts }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-22.04, php: '5.6', ts: nts}
+          - {os: ubuntu-22.04-arm, php: '5.6', ts: nts}
+          - {os: ubuntu-24.04, php: '8.5', ts: zts}
+          - {os: ubuntu-24.04-arm, php: '8.5', ts: zts}
+          - {os: ubuntu-26.04, php: '8.7', ts: nts}
+          - {os: ubuntu-26.04-arm, php: '8.7', ts: nts}
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      PHP_TS: ${{ matrix.ts }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-ubuntu
+          ref: eec14ae8af68daa2d3e4b61360d5b18caa3cff88
+          path: cache
+      - name: Stream install
+        run: |
+          mkdir reports
+          export PS4='+${EPOCHREALTIME} ${FUNCNAME[0]:-main}:${LINENO}: '
+          bash -x cache/scripts/install.sh "$PHP_VERSION" release "$PHP_TS" >reports/install.log 2>&1
+          bash select-version.sh
+      - name: Validate runtime and FPM
+        run: bash validate.sh runtime
+      - name: Load bundled extensions
+        if: always()
+        run: bash validate.sh extensions
+      - name: Validate package health
+        if: always()
+        run: bash validate.sh packages
+      - name: Build and load a native extension
+        if: always()
+        run: bash validate.sh build_extension
+      - name: Inspect archive and verify direct URL
+        if: always()
+        run: |
+          bash validate.sh archive
+          archive=$(basename /tmp/php_*.tar.zst)
+          base=https://github.com/shivammathur/php-ubuntu/releases
+          latest=$(curl -fsSIL -o /dev/null -w '%{num_redirects}' "$base/latest/download/$archive")
+          direct=$(curl -fsSIL -o /dev/null -w '%{num_redirects}' "$base/download/builds/$archive")
+          printf 'latest_redirects=%s\ndirect_redirects=%s\n' "$latest" "$direct" | tee reports/redirects.txt
+          test "$latest" -eq "$((direct + 1))"
+      - name: Verify local build-artifact installation
+        if: always()
+        env:
+          PHP_UBUNTU_ARCHIVE_DIR: /tmp
+        run: |
+          bash -x cache/scripts/install.sh "$PHP_VERSION" release "$PHP_TS" >reports/local-install.log 2>&1
+          if grep -q 'sudo curl' reports/local-install.log; then exit 1; fi
+          bash validate.sh packages
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compatibility-${{ matrix.os }}-${{ matrix.php }}-${{ matrix.ts }}
+          path: reports
+  fallback:
+    name: Stream fallback ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-ubuntu
+          ref: eec14ae8af68daa2d3e4b61360d5b18caa3cff88
+          path: cache
+      - run: bash test-stream.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fallback-${{ matrix.os }}
+          path: reports
