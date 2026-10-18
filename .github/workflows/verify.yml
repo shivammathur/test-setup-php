@@ -1,0 +1,90 @@
+name: Verify published PHP Ubuntu installer
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  install:
+    name: PHP ${{ matrix.php }} ${{ matrix.ts }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-22.04, php: '8.4', ts: nts}
+          - {os: ubuntu-22.04-arm, php: '8.4', ts: nts}
+          - {os: ubuntu-24.04, php: '8.4', ts: nts}
+          - {os: ubuntu-24.04-arm, php: '8.4', ts: nts}
+          - {os: ubuntu-26.04, php: '8.4', ts: nts}
+          - {os: ubuntu-26.04-arm, php: '8.4', ts: nts}
+          - {os: ubuntu-22.04, php: '5.6', ts: nts}
+          - {os: ubuntu-22.04-arm, php: '5.6', ts: nts}
+          - {os: ubuntu-24.04, php: '8.5', ts: zts}
+          - {os: ubuntu-24.04-arm, php: '8.5', ts: zts}
+          - {os: ubuntu-26.04, php: '8.7', ts: zts}
+          - {os: ubuntu-26.04-arm, php: '8.7', ts: zts}
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-ubuntu
+          ref: ace85d504a9e2ac6e5775aa908d3cdc23f466721
+          path: cache
+      - run: mkdir reports
+      - name: Install using the publicly distributed installer
+        id: setup
+        uses: shivammathur/setup-php@7769f838bc3079e8784d4a8b18b6266847c439f0
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+          coverage: none
+        env:
+          update: 'true'
+          phpts: ${{ matrix.ts }}
+      - name: Verify downloaded installer matches main
+        run: |
+          cmp /tmp/install.sh cache/scripts/install.sh
+          sha256sum /tmp/install.sh | tee reports/installer.sha256
+          # shellcheck disable=SC2016
+          grep -F 'releases/download/builds/$tar_file' /tmp/install.sh
+          grep -F 'Dir::Etc::sourcelist=/dev/null' /tmp/install.sh
+          if grep -q download_and_extract /tmp/install.sh; then exit 1; fi
+      - name: Validate runtime and FPM
+        if: always() && steps.setup.outcome == 'success'
+        run: bash validate.sh runtime
+      - name: Load all bundled extensions
+        if: always() && steps.setup.outcome == 'success'
+        run: bash validate.sh extensions
+      - name: Validate package health and downstream APT
+        if: always() && steps.setup.outcome == 'success'
+        run: bash validate.sh packages
+      - name: Inspect archive
+        if: always() && steps.setup.outcome == 'success'
+        run: bash validate.sh archive
+      - name: Build and load a native extension
+        if: always() && steps.setup.outcome == 'success'
+        run: bash validate.sh build_extension
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: installed-${{ matrix.os }}-${{ matrix.php }}-${{ matrix.ts }}
+          path: reports
+  mirrors:
+    name: Verify published installer mirrors
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-ubuntu
+          ref: ace85d504a9e2ac6e5775aa908d3cdc23f466721
+          path: cache
+      - run: bash verify-mirrors.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: published-installer-mirrors
+          path: reports
