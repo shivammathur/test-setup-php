@@ -94,6 +94,7 @@ jobs:
       - name: Use candidate installer
         run: python3 prepare-action.py
       - name: Setup PHP
+        id: setup
         uses: ./setup-php
         with:
           php-version: ${{ matrix.php }}
@@ -103,8 +104,21 @@ jobs:
           update: 'true'
           debug: ${{ matrix.build == 'debug' }}
           phpts: ${{ matrix.ts }}
-      - name: Validate runtime, extensions, headers and package state
-        run: bash validate.sh
+      - name: Validate runtime and FPM
+        if: always() && steps.setup.outcome == 'success'
+        run: bash validate.sh runtime
+      - name: Load all bundled extensions
+        if: always() && steps.setup.outcome == 'success'
+        run: bash validate.sh extensions
+      - name: Check package state and downstream APT
+        if: always() && steps.setup.outcome == 'success'
+        run: bash validate.sh packages
+      - name: Inspect archive
+        if: always() && steps.setup.outcome == 'success'
+        run: bash validate.sh archive
+      - name: Build and load extension using installed headers
+        if: always() && steps.setup.outcome == 'success'
+        run: bash validate.sh build_extension
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -1,22 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+runtime() {
 test -s reports/install.log
 grep -q 'fix_packages' reports/install.log
 php -v | tee reports/php.txt
 php-config --version | tee -a reports/php.txt
 phpize -v | tee -a reports/php.txt
 php -r 'exit(PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION === getenv("PHP_VERSION") ? 0 : 1);'
-php-fpm -t
+sudo php-fpm -t
 systemctl is-active php"$PHP_VERSION"-fpm
-PHP_VERSION="$PHP_VERSION" bash cache/scripts/test-optional-extensions.sh >reports/extensions.log 2>&1
+}
 
+extensions() {
+PHP_VERSION="$PHP_VERSION" bash cache/scripts/test-optional-extensions.sh >reports/extensions.log 2>&1
+}
+
+packages() {
 bash cache/scripts/check-test-packages.sh "$PHP_VERSION" "$RUNNER_OS" success success
 grep -qx 'broken=false' "reports/$PHP_VERSION-$RUNNER_OS.env"
 apt-get -s install jq > reports/downstream-apt.log
+}
+
+archive() {
 sha256sum /tmp/php_*.tar.zst > reports/archive.sha256
 tar -I zstd -tf /tmp/php_*.tar.zst > reports/archive-files.txt
+}
 
+build_extension() {
 mkdir extension-build
 cd extension-build
 cat > config.m4 <<'EOF'
@@ -45,3 +56,6 @@ EOF
   php -d "extension=$PWD/modules/install_smoke.so" -r 'exit(extension_loaded("install_smoke") ? 0 : 1);'
 } > ../reports/extension-build.log 2>&1
 cp modules/install_smoke.so ../reports/
+}
+
+"$@"
