@@ -6,7 +6,7 @@ permissions:
   contents: read
 jobs:
   profile:
-    name: Baseline ${{ matrix.os }} ${{ matrix.build }}
+    name: ${{ matrix.variant }} ${{ matrix.os }} ${{ matrix.build }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
@@ -14,11 +14,12 @@ jobs:
       matrix:
         os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04, ubuntu-22.04-arm, ubuntu-24.04-arm, ubuntu-26.04-arm]
         build: [release, debug]
+        variant: [baseline, candidate]
     steps:
       - uses: actions/checkout@v6
         with:
           repository: shivammathur/php-ubuntu
-          ref: 7569bea4610ff99cee175621e650c17565617880
+          ref: ${{ matrix.variant == 'baseline' && '7569bea4610ff99cee175621e650c17565617880' || '3b798671d4908c63efcb64a49bd3f3afb74dd829' }}
       - name: Profile installer
         env:
           BUILD: ${{ matrix.build }}
@@ -35,8 +36,77 @@ jobs:
           bash scripts/check-test-packages.sh 8.4 '${{ matrix.os }}' success success
           source reports/8.4-${{ matrix.os }}.env
           test "$broken" = false
+          sha256sum /tmp/php_8.4-*.tar.zst > reports/archive.sha256
+          tar -I zstd -tf /tmp/php_8.4-*.tar.zst > reports/archive-files.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: baseline-${{ matrix.os }}-${{ matrix.build }}
+          name: ${{ matrix.variant }}-${{ matrix.os }}-${{ matrix.build }}
+          path: reports
+  dependencies:
+    name: Dependency checks ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04, ubuntu-22.04-arm, ubuntu-24.04-arm, ubuntu-26.04-arm]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-ubuntu
+          ref: 3b798671d4908c63efcb64a49bd3f3afb74dd829
+      - run: python3 -m unittest discover -s tests -v
+  integration:
+    name: Setup PHP ${{ matrix.php }} ${{ matrix.os }} ${{ matrix.build }} ${{ matrix.ts }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-22.04, php: '5.6', build: release, ts: nts}
+          - {os: ubuntu-22.04-arm, php: '5.6', build: release, ts: nts}
+          - {os: ubuntu-22.04, php: '8.1', build: debug, ts: nts}
+          - {os: ubuntu-22.04-arm, php: '8.1', build: debug, ts: nts}
+          - {os: ubuntu-24.04, php: '8.5', build: debug, ts: zts}
+          - {os: ubuntu-24.04-arm, php: '8.5', build: debug, ts: zts}
+          - {os: ubuntu-24.04, php: '8.7', build: release, ts: nts}
+          - {os: ubuntu-24.04-arm, php: '8.7', build: release, ts: nts}
+          - {os: ubuntu-26.04, php: '7.4', build: debug, ts: nts}
+          - {os: ubuntu-26.04-arm, php: '7.4', build: debug, ts: nts}
+          - {os: ubuntu-26.04, php: '8.6', build: release, ts: zts}
+          - {os: ubuntu-26.04-arm, php: '8.6', build: release, ts: zts}
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-ubuntu
+          ref: 3b798671d4908c63efcb64a49bd3f3afb74dd829
+          path: cache
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/setup-php
+          ref: 7769f838bc3079e8784d4a8b18b6266847c439f0
+          path: setup-php
+      - name: Use candidate installer
+        run: python3 prepare-action.py
+      - name: Setup PHP
+        uses: ./setup-php
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+          coverage: none
+        env:
+          update: 'true'
+          debug: ${{ matrix.build == 'debug' }}
+          phpts: ${{ matrix.ts }}
+      - name: Validate runtime, extensions, headers and package state
+        run: bash validate.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-${{ matrix.os }}-${{ matrix.php }}-${{ matrix.build }}-${{ matrix.ts }}
           path: reports
