@@ -3,13 +3,21 @@ name: Build legacy PHP on Windows 2022
 on:
   push:
     branches: [feature/legacy-php-windows-20261021]
+    paths: [.github/workflows/legacy-php.yml]
   workflow_dispatch:
+    inputs:
+      artifact-run:
+        description: Existing build run to validate without rebuilding
+        type: string
+        default: ''
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   build:
+    if: ${{ inputs.artifact-run == '' }}
     name: Build PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}
     runs-on: windows-2022
     timeout-minutes: 90
@@ -25,7 +33,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: shivammathur/php-windows-builder
-          ref: 5a1411b7d8e4bfd04c6e0cb7a8a4d64b8d4e0a68
+          ref: 2bbfa92f10e7377b28bcc80183397ef5aeaba377
           path: builder
       - name: Build PHP
         uses: ./builder/php
@@ -69,6 +77,14 @@ jobs:
         with:
           name: artifacts-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
           path: artifacts
+          run-id: ${{ inputs.artifact-run || github.run_id }}
+          github-token: ${{ github.token }}
+      - name: Checkout PhpManager
+        uses: actions/checkout@v6
+        with:
+          repository: mlocati/powershell-phpmanager
+          ref: 8ff33df31c7345ca77b0eaea4c4395e30f3ef64c
+          path: phpmanager
       - name: Validate packaged artifacts on a clean runner
         shell: pwsh
         run: ./tests/validate.ps1 -PhpVersion '${{ matrix.php }}' -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}'

@@ -6,58 +6,112 @@ param(
 $ErrorActionPreference = 'Stop'
 $compiler = if ($PhpVersion.StartsWith('5.6.')) { 'VC11' } else { 'VC14' }
 $suffix = if ($Ts -eq 'nts') { "nts-Win32-$compiler-$Arch" } else { "Win32-$compiler-$Arch" }
-$binary = "artifacts/php-$PhpVersion-$suffix.zip"
+$binaryName = "php-$PhpVersion-$suffix.zip"
 New-Item evidence -ItemType Directory -Force | Out-Null
-Get-ChildItem artifacts -File | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  $([IO.Path]::GetFileName($_.Path))" } | Tee-Object evidence/checksums.txt
-foreach ($archive in @($binary, "artifacts/php-debug-pack-$PhpVersion-$suffix.zip", "artifacts/php-devel-pack-$PhpVersion-$suffix.zip", "artifacts/php-test-pack-$PhpVersion.zip", "artifacts/php-$PhpVersion-src.zip")) {
+Get-ChildItem artifacts -File | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  $([IO.Path]::GetFileName($_.Path))" } | Set-Content evidence/checksums.txt
+foreach ($archive in @("artifacts/$binaryName", "artifacts/php-debug-pack-$PhpVersion-$suffix.zip", "artifacts/php-devel-pack-$PhpVersion-$suffix.zip", "artifacts/php-test-pack-$PhpVersion.zip", "artifacts/php-$PhpVersion-src.zip")) {
     if (-not (Test-Path $archive)) { throw "Missing artifact: $archive" }
     & 7z t $archive
     if ($LASTEXITCODE -ne 0) { throw "Invalid archive: $archive" }
 }
-Expand-Archive $binary -DestinationPath runtime
+Expand-Archive "artifacts/$binaryName" -DestinationPath runtime
+$publicUrl = "https://downloads.php.net/~windows/releases/archives/$binaryName"
+Invoke-WebRequest $publicUrl -OutFile public.zip
+Expand-Archive public.zip -DestinationPath public
+Get-FileHash public.zip | Format-List | Out-String | Set-Content evidence/public-checksum.txt
 $runtime = (Resolve-Path runtime).Path
-foreach ($file in @('php.exe', 'php-cgi.exe', 'php-win.exe', 'php.ini-development', 'php.ini-production', 'ext/php_opcache.dll')) {
-    if (-not (Test-Path (Join-Path $runtime $file))) { throw "Missing runtime file: $file" }
-}
+$public = (Resolve-Path public).Path
+$env:PHP_INI_SCAN_DIR = ''
+$env:PHPRC = ''
+# Avoid SNMP MIB diagnostics unrelated to extension loading.
+$env:MIBS = ' '
+$comparisonFailures = [System.Collections.Generic.List[string]]::new()
 
-# Loading an independently built Zend extension verifies compatibility with the
-# published compiler, PHP API, architecture and thread-safety ABI together.
-$series = ($PhpVersion.Split('.')[0..1] -join '.')
-$xdebugPackage = "php_xdebug-2.5.5-$series-$Ts-$($compiler.ToLower())-$Arch.zip"
-Invoke-WebRequest "https://downloads.php.net/~windows/pecl/releases/xdebug/2.5.5/$xdebugPackage" -OutFile xdebug.zip
-Expand-Archive xdebug.zip -DestinationPath xdebug
-$xdebug = @(Get-ChildItem xdebug -Recurse -Filter 'php_xdebug*.dll')
-if ($xdebug.Count -ne 1) { throw 'Expected one published Xdebug DLL' }
-$output = & "$runtime/php.exe" -n -d "zend_extension=$($xdebug[0].FullName)" -r 'if (phpversion("xdebug") !== "2.5.5") { exit(1); } echo "Published Xdebug 2.5.5 loaded successfully\n";' 2>&1
-$code = $LASTEXITCODE
-$output | Tee-Object evidence/xdebug.txt
-if ($code -ne 0 -or "$output" -match '(?i)(Warning|Fatal|Unable|Startup:)') { throw 'Published Xdebug ABI check failed' }
-$bytes = [IO.File]::ReadAllBytes("$runtime/php.exe")
-$peOffset = [BitConverter]::ToInt32($bytes, 0x3c)
-$machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
-$expectedMachine = if ($Arch -eq 'x64') { 0x8664 } else { 0x14c }
-if ($machine -ne $expectedMachine) { throw "Wrong PE machine: $machine" }
-$ini = @('date.timezone=UTC', 'display_errors=stderr', 'log_errors=Off', "extension_dir=`"$runtime/ext`"", 'opcache.enable_cli=1')
-foreach ($dll in Get-ChildItem "$runtime/ext/php_*.dll" | Sort-Object Name) {
-    if ($dll.Name -match '^php_(oci8.*|pdo_oci|pdo_firebird|interbase|snmp)\.dll$') { continue }
-    if ($dll.Name -eq 'php_opcache.dll') {
-        $ini += "zend_extension=`"$($dll.FullName)`""
-    } else {
-        $ini += "extension=$($dll.Name)"
+function Assert-Same($Expected, $Actual, [string] $Label) {
+    $diff = @(Compare-Object @($Expected | Sort-Object -Unique) @($Actual | Sort-Object -Unique))
+    $diff | ConvertTo-Json | Set-Content "evidence/$Label-diff.json"
+    if ($diff.Count) {
+        $script:comparisonFailures.Add($Label)
+        Write-Warning "$Label differ from public PHP: $($diff | Out-String)"
     }
 }
-Set-Content "$runtime/php.ini" $ini -Encoding ascii
-$env:PHP_INI_SCAN_DIR = ''
+function Invoke-CheckedPhp([string] $Root, [string[]] $Arguments, [string] $Label) {
+    $output = & "$Root/php.exe" @Arguments 2>&1
+    $code = $LASTEXITCODE
+    $output | Out-String | Add-Content "evidence/$Label.txt"
+    if ($code -ne 0 -or "$output" -match '(?im)(PHP (Warning|Fatal|Parse)|Unable to load|Unable to initialize|Startup:)') {
+        throw "PHP validation failed: $Root $Arguments (exit $code): $output"
+    }
+    $output
+}
+
+# windows-2022 no longer has the VC11 runtime. Install the same runtime needed
+# by the public PHP 5.6 package before comparing either PHP installation.
+if ($compiler -eq 'VC11') {
+    Invoke-WebRequest "https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_$Arch.exe" -OutFile vcredist.exe
+    $process = Start-Process (Resolve-Path vcredist.exe) -ArgumentList '/install','/quiet','/norestart' -Wait -PassThru
+    if ($process.ExitCode -notin @(0, 1638, 3010)) { throw "VC11 runtime installation failed: $($process.ExitCode)" }
+}
+
+$publicExtensions = @(Get-ChildItem "$public/ext/*.dll" | ForEach-Object { $_.Name.ToLowerInvariant() })
+$builtExtensions = @(Get-ChildItem "$runtime/ext/*.dll" | ForEach-Object { $_.Name.ToLowerInvariant() })
+$publicExtensions | Set-Content evidence/public-extensions.txt
+$builtExtensions | Set-Content evidence/built-extensions.txt
+Assert-Same $publicExtensions $builtExtensions 'extensions'
+$getSapis = { param($root) Get-ChildItem "$root/php*" -File | Where-Object { $_.Extension -in @('.exe','.dll') } | ForEach-Object { $_.Name.ToLowerInvariant() } }
+Assert-Same (& $getSapis $public) (& $getSapis $runtime) 'sapis'
+
+$moduleCode = '$m=get_loaded_extensions(); sort($m); echo json_encode($m);'
+$publicBuiltin = Invoke-CheckedPhp $public @('-n','-r',$moduleCode) 'public-builtin' | ConvertFrom-Json
+$builtBuiltin = Invoke-CheckedPhp $runtime @('-n','-r',$moduleCode) 'built-builtin' | ConvertFrom-Json
+Assert-Same $publicBuiltin $builtBuiltin 'builtin-modules'
+
+# Supply the external Oracle client to both installations for OCI loading.
+$oracleSuffix = if ($Arch -eq 'x86') { 'nt' } else { 'windows.x64' }
+Invoke-WebRequest "https://download.oracle.com/otn_software/nt/instantclient/1932000/instantclient-basiclite-$oracleSuffix-19.32.0.0.0dbru.zip" -OutFile oracle.zip
+Expand-Archive oracle.zip -DestinationPath oracle
+$oracle = (Get-ChildItem oracle -Recurse -Filter oci.dll | Select-Object -First 1).Directory.FullName
+if (-not $oracle) { throw 'Oracle runtime DLL missing' }
+$env:PATH = "$oracle;$env:PATH"
+
+foreach ($root in @($public, $runtime)) {
+    $ini = @('date.timezone=UTC', 'display_errors=stderr', 'log_errors=Off', "extension_dir=`"$root/ext`"", 'opcache.enable_cli=1')
+    foreach ($dll in Get-ChildItem "$root/ext/php_*.dll" | Sort-Object Name) {
+        if ($dll.Name -eq 'php_opcache.dll') { $ini += "zend_extension=`"$($dll.FullName)`"" }
+        else { $ini += "extension=$($dll.Name)" }
+    }
+    Set-Content "$root/php.ini" $ini -Encoding ascii
+}
+$publicModules = Invoke-CheckedPhp $public @('-c',"$public/php.ini",'-r',$moduleCode) 'public-modules' | ConvertFrom-Json
+$builtModules = Invoke-CheckedPhp $runtime @('-c',"$runtime/php.ini",'-r',$moduleCode) 'built-modules' | ConvertFrom-Json
+Assert-Same $publicModules $builtModules 'loaded-modules'
 $env:EXPECTED_PHP_VERSION = $PhpVersion
 $env:EXPECTED_PHP_ZTS = if ($Ts -eq 'ts') { '1' } else { '0' }
 $env:EXPECTED_PHP_COMPILER = $compiler
-$requiredModules = @('bz2','com_dotnet','curl','enchant','ftp','gd','intl','ldap','mbstring','mysqli','mysqlnd','odbc','openssl','PDO','pdo_mysql','PDO_ODBC','pdo_pgsql','pdo_sqlite','pgsql','SimpleXML','sqlite3','xml','xmlreader','xmlwriter','xsl','Zend OPcache','zip','zlib','mcrypt')
-$env:EXPECTED_PHP_MODULES = $requiredModules -join ','
-foreach ($arguments in @(@('-v'), @('-m'), @('-i'), @((Join-Path $PSScriptRoot 'smoke.php')))) {
-    $output = & "$runtime/php.exe" -c "$runtime/php.ini" @arguments 2>&1
-    $code = $LASTEXITCODE
-    $output | Tee-Object -FilePath evidence/runtime.txt -Append
-    if ($code -ne 0 -or "$output" -match '(?im)(PHP (Warning|Fatal|Parse)|Unable to load|Unable to initialize|Startup:)') {
-        throw "PHP validation failed: $arguments (exit $code)"
-    }
+
+$expectedMachine = if ($Arch -eq 'x64') { 0x8664 } else { 0x14c }
+foreach ($file in Get-ChildItem $runtime -Recurse -File | Where-Object { $_.Extension -in @('.exe','.dll') }) {
+    $bytes = [IO.File]::ReadAllBytes($file.FullName)
+    $peOffset = [BitConverter]::ToInt32($bytes, 0x3c)
+    if ([BitConverter]::ToUInt16($bytes, $peOffset + 4) -ne $expectedMachine) { throw "Wrong PE machine: $($file.Name)" }
 }
+
+Import-Module ./phpmanager/PhpManager/PhpManager.psd1 -Force
+$xdebugVersion = if ($PhpVersion.StartsWith('7.1.')) { '2.9.8' } else { '2.5.5' }
+foreach ($entry in @(@{Root=$public; Label='public'}, @{Root=$runtime; Label='built'})) {
+    $root = $entry.Root
+    $label = $entry.Label
+    $env:EXPECTED_PHP_MODULES = if ($label -eq 'public') { $publicModules -join ',' } else { $builtModules -join ',' }
+    foreach ($arguments in @(@('-v'), @('-m'), @('-i'), @((Join-Path $PSScriptRoot 'smoke.php')))) {
+        Invoke-CheckedPhp $root (@('-c',"$root/php.ini") + $arguments) "$label-runtime" | Write-Host
+    }
+    # Exercise PhpManager's public download selection, DLL inspection, copying
+    # and php.ini activation, rather than loading a manually supplied DLL.
+    Install-PhpExtension -Extension xdebug -Version $xdebugVersion -Path $root -Verbose 4>&1 | Tee-Object "evidence/$label-phpmanager.txt" | Write-Host
+    $env:EXPECTED_XDEBUG_VERSION = $xdebugVersion
+    Invoke-CheckedPhp $root @('-c',"$root/php.ini",(Join-Path $PSScriptRoot 'xdebug.php')) "$label-xdebug" | Write-Host
+    Invoke-CheckedPhp $root @('-c',"$root/php.ini",(Join-Path $PSScriptRoot 'smoke.php')) "$label-with-xdebug" | Write-Host
+}
+if ($comparisonFailures.Count) { throw "Public build parity failed: $($comparisonFailures -join ', ')" }
+@{php=$PhpVersion; arch=$Arch; ts=$Ts; public=$publicUrl; extensionCount=$publicExtensions.Count; modules=$publicModules; xdebug=$xdebugVersion; result='passed'} | ConvertTo-Json -Depth 5 | Set-Content evidence/result.json
+Write-Host "Public extension parity, smoke tests and PhpManager Xdebug installation passed"
