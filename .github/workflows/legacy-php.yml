@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: shivammathur/php-windows-builder
-          ref: a67308ef1c05e55d39d7869ddfbc92dae7f0f826
+          ref: 5a1411b7d8e4bfd04c6e0cb7a8a4d64b8d4e0a68
           path: builder
       - name: Build PHP
         uses: ./builder/php
@@ -54,6 +54,7 @@ jobs:
   smoke:
     name: Validate PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}
     needs: build
+    if: ${{ !cancelled() }}
     runs-on: windows-2022
     timeout-minutes: 15
     strategy:

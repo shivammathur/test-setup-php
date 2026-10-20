@@ -8,8 +8,8 @@ $compiler = if ($PhpVersion.StartsWith('5.6.')) { 'VC11' } else { 'VC14' }
 $suffix = if ($Ts -eq 'nts') { "nts-Win32-$compiler-$Arch" } else { "Win32-$compiler-$Arch" }
 $binary = "artifacts/php-$PhpVersion-$suffix.zip"
 New-Item evidence -ItemType Directory -Force | Out-Null
-Get-ChildItem artifacts -File | Get-FileHash -Algorithm SHA256 | Format-Table -AutoSize | Out-String | Tee-Object evidence/checksums.txt
-foreach ($archive in @($binary, "artifacts/php-debug-pack-$PhpVersion-$suffix.zip", "artifacts/php-devel-pack-$PhpVersion-$suffix.zip", "artifacts/php-$PhpVersion-src.zip")) {
+Get-ChildItem artifacts -File | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  $([IO.Path]::GetFileName($_.Path))" } | Tee-Object evidence/checksums.txt
+foreach ($archive in @($binary, "artifacts/php-debug-pack-$PhpVersion-$suffix.zip", "artifacts/php-devel-pack-$PhpVersion-$suffix.zip", "artifacts/php-test-pack-$PhpVersion.zip", "artifacts/php-$PhpVersion-src.zip")) {
     if (-not (Test-Path $archive)) { throw "Missing artifact: $archive" }
     & 7z t $archive
     if ($LASTEXITCODE -ne 0) { throw "Invalid archive: $archive" }
