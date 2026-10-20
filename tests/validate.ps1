@@ -15,6 +15,21 @@ foreach ($archive in @("artifacts/$binaryName", "artifacts/php-debug-pack-$PhpVe
     if ($LASTEXITCODE -ne 0) { throw "Invalid archive: $archive" }
 }
 Expand-Archive "artifacts/$binaryName" -DestinationPath runtime
+Expand-Archive "artifacts/php-devel-pack-$PhpVersion-$suffix.zip" -DestinationPath devel
+Expand-Archive "artifacts/php-debug-pack-$PhpVersion-$suffix.zip" -DestinationPath debug
+$major = $PhpVersion.Split('.')[0]
+$core = if ($Ts -eq 'ts') { "php${major}ts" } else { "php$major" }
+$headers = @(Get-ChildItem devel -Recurse -Filter php_version.h)
+if ($headers.Count -ne 1 -or (Get-Content $headers[0] -Raw) -notmatch ('#define PHP_VERSION "' + [regex]::Escape($PhpVersion) + '"')) {
+    throw 'Development pack PHP version does not match the binary'
+}
+if (-not (Get-ChildItem devel -Recurse -Filter "$core.lib")) { throw 'Core import library missing from development pack' }
+foreach ($name in @('php', $core, 'php_intl', 'php_opcache')) {
+    $pdb = @(Get-ChildItem debug -Recurse -Filter "$name.pdb")
+    if ($pdb.Count -ne 1) { throw "Missing debug symbols: $name.pdb" }
+    $header = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($pdb[0].FullName), 0, 24)
+    if ($header -ne 'Microsoft C/C++ MSF 7.00') { throw "Invalid PDB header: $name.pdb" }
+}
 $publicUrl = "https://downloads.php.net/~windows/releases/archives/$binaryName"
 Invoke-WebRequest $publicUrl -OutFile public.zip
 Expand-Archive public.zip -DestinationPath public
@@ -117,7 +132,7 @@ foreach ($entry in @(@{Root=$public; Label='public'}, @{Root=$runtime; Label='bu
     $root = $entry.Root
     $label = $entry.Label
     $env:EXPECTED_PHP_MODULES = if ($label -eq 'public') { $publicModules -join ',' } else { $builtModules -join ',' }
-    foreach ($arguments in @(@('-v'), @('-m'), @('-i'), @((Join-Path $PSScriptRoot 'smoke.php')))) {
+    foreach ($arguments in @(@('-v'), @('-m'), @('-r','phpinfo(INFO_GENERAL | INFO_CONFIGURATION | INFO_MODULES);'), @((Join-Path $PSScriptRoot 'smoke.php')))) {
         Invoke-CheckedPhp $root (@('-c',"$root/php.ini") + $arguments) "$label-runtime" | Write-Host
     }
     # Exercise PhpManager's public download selection, DLL inspection, copying
