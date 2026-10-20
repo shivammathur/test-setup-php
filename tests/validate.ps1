@@ -24,7 +24,8 @@ $public = (Resolve-Path public).Path
 $env:PHP_INI_SCAN_DIR = ''
 $env:PHPRC = ''
 # Avoid SNMP MIB diagnostics unrelated to extension loading.
-$env:MIBS = ' '
+$env:MIBS = ';'
+New-Item 'C:/usr/snmp/persist/mib_indexes' -ItemType Directory -Force | Out-Null
 $comparisonFailures = [System.Collections.Generic.List[string]]::new()
 
 function Assert-Same($Expected, $Actual, [string] $Label) {
@@ -74,9 +75,23 @@ $oracle = (Get-ChildItem oracle -Recurse -Filter oci.dll | Select-Object -First 
 if (-not $oracle) { throw 'Oracle runtime DLL missing' }
 $env:PATH = "$oracle;$env:PATH"
 
+# Firebird's client is external to the public PHP packages as well.
+$firebirdArch = if ($Arch -eq 'x86') { 'Win32' } else { 'x64' }
+Invoke-WebRequest "https://github.com/FirebirdSQL/firebird/releases/download/v4.0.4/Firebird-4.0.4.3010-0-$firebirdArch.zip" -OutFile firebird.zip
+Expand-Archive firebird.zip -DestinationPath firebird
+$firebird = (Get-ChildItem firebird -Recurse -Filter fbclient.dll | Select-Object -First 1).Directory.FullName
+if (-not $firebird) { throw 'Firebird runtime DLL missing' }
+$env:PATH = "$firebird;$env:PATH"
+
+# SAP Open Client is not distributed with either PHP package. Compare its
+# extension DLL, but record that runtime validation requires that proprietary client.
+$runtimeExclusions = @('php_sybase_ct.dll')
+@{extensions=$runtimeExclusions; reason='SAP Open Client runtime is not available on the runner; package parity is still checked'} | ConvertTo-Json | Set-Content evidence/runtime-exclusions.json
+
 foreach ($root in @($public, $runtime)) {
     $ini = @('date.timezone=UTC', 'display_errors=stderr', 'log_errors=Off', "extension_dir=`"$root/ext`"", 'opcache.enable_cli=1')
     foreach ($dll in Get-ChildItem "$root/ext/php_*.dll" | Sort-Object Name) {
+        if ($dll.Name -in $runtimeExclusions) { continue }
         if ($dll.Name -eq 'php_opcache.dll') { $ini += "zend_extension=`"$($dll.FullName)`"" }
         else { $ini += "extension=$($dll.Name)" }
     }
@@ -113,5 +128,5 @@ foreach ($entry in @(@{Root=$public; Label='public'}, @{Root=$runtime; Label='bu
     Invoke-CheckedPhp $root @('-c',"$root/php.ini",(Join-Path $PSScriptRoot 'smoke.php')) "$label-with-xdebug" | Write-Host
 }
 if ($comparisonFailures.Count) { throw "Public build parity failed: $($comparisonFailures -join ', ')" }
-@{php=$PhpVersion; arch=$Arch; ts=$Ts; public=$publicUrl; extensionCount=$publicExtensions.Count; modules=$publicModules; xdebug=$xdebugVersion; result='passed'} | ConvertTo-Json -Depth 5 | Set-Content evidence/result.json
+@{php=$PhpVersion; arch=$Arch; ts=$Ts; public=$publicUrl; extensionCount=$publicExtensions.Count; modules=$publicModules; runtimeExclusions=@($publicExtensions | Where-Object { $_ -in $runtimeExclusions }); xdebug=$xdebugVersion; result='passed'} | ConvertTo-Json -Depth 5 | Set-Content evidence/result.json
 Write-Host "Public extension parity, smoke tests and PhpManager Xdebug installation passed"
