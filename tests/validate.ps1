@@ -126,11 +126,24 @@ foreach ($file in Get-ChildItem $runtime -Recurse -File | Where-Object { $_.Exte
     if ([BitConverter]::ToUInt16($bytes, $peOffset + 4) -ne $expectedMachine) { throw "Wrong PE machine: $($file.Name)" }
 }
 
+if ($compiler -eq 'VC11') {
+    # Upstream PhpManager identifies PHP 5.6 x64 as x86 from PHP_INT_SIZE.
+    # Read the PE machine instead; preserve the compatibility patch as evidence.
+    $patch = Join-Path $PSScriptRoot 'phpmanager-architecture.patch'
+    & git -C phpmanager apply --check $patch
+    if ($LASTEXITCODE -ne 0) { throw 'PhpManager architecture patch no longer applies' }
+    & git -C phpmanager apply $patch
+    if ($LASTEXITCODE -ne 0) { throw 'PhpManager architecture patch failed' }
+    Copy-Item $patch evidence/
+}
 Import-Module ./phpmanager/PhpManager/PhpManager.psd1 -Force
 $xdebugVersion = if ($PhpVersion.StartsWith('7.1.')) { '2.9.8' } else { '2.5.5' }
 foreach ($entry in @(@{Root=$public; Label='public'}, @{Root=$runtime; Label='built'})) {
     $root = $entry.Root
     $label = $entry.Label
+    $managerPhp = Get-Php -Path $root
+    $managerPhp | ConvertTo-Json -Depth 5 | Set-Content "evidence/$label-phpmanager-detection.json"
+    if ($managerPhp.Architecture -ne $Arch) { throw "PhpManager detected the wrong architecture for $label" }
     $env:EXPECTED_PHP_MODULES = if ($label -eq 'public') { $publicModules -join ',' } else { $builtModules -join ',' }
     foreach ($arguments in @(@('-v'), @('-m'), @('-r','phpinfo(INFO_GENERAL | INFO_CONFIGURATION | INFO_MODULES);'), @((Join-Path $PSScriptRoot 'smoke.php')))) {
         Invoke-CheckedPhp $root (@('-c',"$root/php.ini") + $arguments) "$label-runtime" | Write-Host
@@ -143,5 +156,5 @@ foreach ($entry in @(@{Root=$public; Label='public'}, @{Root=$runtime; Label='bu
     Invoke-CheckedPhp $root @('-c',"$root/php.ini",(Join-Path $PSScriptRoot 'smoke.php')) "$label-with-xdebug" | Write-Host
 }
 if ($comparisonFailures.Count) { throw "Public build parity failed: $($comparisonFailures -join ', ')" }
-@{php=$PhpVersion; arch=$Arch; ts=$Ts; public=$publicUrl; extensionCount=$publicExtensions.Count; modules=$publicModules; runtimeExclusions=@($publicExtensions | Where-Object { $_ -in $runtimeExclusions }); xdebug=$xdebugVersion; result='passed'} | ConvertTo-Json -Depth 5 | Set-Content evidence/result.json
+@{php=$PhpVersion; arch=$Arch; ts=$Ts; public=$publicUrl; extensionCount=$publicExtensions.Count; modules=$publicModules; runtimeExclusions=@($publicExtensions | Where-Object { $_ -in $runtimeExclusions }); phpManagerArchitecturePatch=($compiler -eq 'VC11'); xdebug=$xdebugVersion; result='passed'} | ConvertTo-Json -Depth 5 | Set-Content evidence/result.json
 Write-Host "Public extension parity, smoke tests and PhpManager Xdebug installation passed"
