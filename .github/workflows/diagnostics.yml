@@ -1,0 +1,63 @@
+name: Public PHP smoke diagnostic evidence
+run-name: Public diagnostics ${{ inputs.ticket }}
+on:
+  push:
+    branches: [feature/public-smoke-20261021]
+  workflow_dispatch:
+    inputs:
+      ticket:
+        description: Immutable dispatch identifier
+        required: true
+        type: string
+      selection:
+        description: canary, remaining, all, or a JSON array of exact job IDs
+        default: all
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  validate:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - run: python3 -m compileall -q scripts
+      - run: python3 scripts/matrix.py all
+  plan:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - id: matrix
+        env:
+          SELECTION: ${{ inputs.selection }}
+        run: python3 scripts/matrix.py "$SELECTION"
+  install:
+    needs: plan
+    name: ${{ matrix.id }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Collect remaining output without hiding startup findings
+        env:
+          JOB_ID: ${{ matrix.id }}
+        shell: bash
+        run: python scripts/diagnose.py "$JOB_ID"
+      - name: Retain installation logs and results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: diagnostics-${{ matrix.id }}-${{ github.run_attempt }}
+          path: results/
+          if-no-files-found: error
+          retention-days: 90
