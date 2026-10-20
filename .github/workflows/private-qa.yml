@@ -1,0 +1,52 @@
+name: Private QA comparison
+run-name: Private QA ${{ inputs.ticket }}
+on:
+  push:
+    branches: [feature/private-qa-20261020]
+  workflow_dispatch:
+    inputs:
+      ticket:
+        description: Prepared private access environment
+        required: true
+        type: string
+      lanes:
+        description: Generic lane identifiers
+        required: true
+        type: string
+      max-parallel:
+        description: Available personal hosted capacity at dispatch
+        required: true
+        type: number
+permissions:
+  contents: read
+jobs:
+  validate:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - run: python3 -m py_compile scripts/private_qa.py
+  qa:
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'shivammathur/test-setup-php' && github.ref == 'refs/heads/feature/private-qa-20261020'
+    runs-on: windows-2022
+    timeout-minutes: 180
+    environment: ${{ inputs.ticket }}
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.max-parallel }}
+      matrix:
+        lane: ${{ fromJSON(inputs.lanes) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Execute private QA and archive evidence
+        env:
+          PRIVATE_QA_ACCESS: ${{ secrets.PRIVATE_QA_ACCESS }}
+          QA_LANE: ${{ matrix.lane }}
+        run: python scripts/private_qa.py
