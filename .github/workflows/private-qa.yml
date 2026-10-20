@@ -35,7 +35,7 @@ jobs:
     environment: ${{ inputs.ticket }}
     strategy:
       fail-fast: false
-      max-parallel: ${{ inputs.max-parallel }}
+      max-parallel: ${{ fromJSON(inputs.max-parallel) }}
       matrix:
         lane: ${{ fromJSON(inputs.lanes) }}
     steps:
