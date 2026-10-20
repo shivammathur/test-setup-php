@@ -56,10 +56,23 @@ def main():
         env.pop(name, None)
     started = time.time()
     with (result / 'execution.log').open('wb') as log:
-        process = subprocess.run(['pwsh', '-NoLogo', '-NoProfile', '-NonInteractive', '-File', str(payload / 'run.ps1'), '-Lane', lane], cwd=payload, env=env, stdout=log, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(['pwsh', '-NoLogo', '-NoProfile', '-NonInteractive', '-File', str(payload / 'run.ps1'), '-Lane', lane], cwd=payload, env=env, stdout=log, stderr=subprocess.STDOUT)
+        timed_out = False
+        try:
+            process.wait(timeout=165 * 60)
+        except subprocess.TimeoutExpired:
+            # Leave time to archive partial evidence before the 180-minute job limit.
+            timed_out = True
+            subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'], stdout=log, stderr=subprocess.STDOUT, check=False)
+            try:
+                process.wait(timeout=30)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=30)
+            process.returncode = 124
     record = {'schema': 1, 'run_id': os.environ['GITHUB_RUN_ID'], 'attempt': 1,
               'revision': os.environ['GITHUB_SHA'], 'lane': lane, 'bundle_sha256': access['sha256'],
-              'exit_code': process.returncode, 'seconds': time.time() - started,
+              'exit_code': process.returncode, 'timed_out': timed_out, 'seconds': time.time() - started,
               'files': {str(p.relative_to(result)): hashlib.sha256(p.read_bytes()).hexdigest()
                         for p in result.rglob('*') if p.is_file()}}
     (result / 'result.json').write_text(json.dumps(record, indent=2))
