@@ -1,0 +1,78 @@
+name: Build legacy PHP on Windows 2022
+
+on:
+  push:
+    branches: [feature/legacy-php-windows-20261021]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: windows-2022
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.6.40', '7.0.33', '7.1.33']
+        arch: [x64, x86]
+        ts: [nts, ts]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Checkout builder
+        uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: a3c0d719d276dae8b94b1cfea861d58bf2271f86
+          path: builder
+      - name: Build PHP
+        uses: ./builder/php
+        with:
+          php-version: ${{ matrix.php }}
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+      - name: Collect build diagnostics
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item diagnostics -ItemType Directory -Force | Out-Null
+          Get-ChildItem $env:TEMP -Directory -Filter 'php-*' | ForEach-Object {
+            Get-ChildItem $_.FullName -Recurse -File -Include Makefile,config.nice.bat,config.log,config.w32.h | ForEach-Object {
+              Copy-Item $_.FullName (Join-Path diagnostics ($_.Name + '-' + [guid]::NewGuid()))
+            }
+          }
+          Get-ChildItem $env:TEMP -File -Filter '*vs2012*.log' | Copy-Item -Destination diagnostics
+          Get-ChildItem $env:TEMP -File -Filter 'dd_*.log' | Copy-Item -Destination diagnostics
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: diagnostics-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: diagnostics
+
+  smoke:
+    name: Validate PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}
+    needs: build
+    runs-on: windows-2022
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.6.40', '7.0.33', '7.1.33']
+        arch: [x64, x86]
+        ts: [nts, ts]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: artifacts-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: artifacts
+      - name: Validate packaged artifacts on a clean runner
+        shell: pwsh
+        run: ./tests/validate.ps1 -PhpVersion '${{ matrix.php }}' -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: validation-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: evidence
