@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: shivammathur/php-windows-builder
-          ref: a3c0d719d276dae8b94b1cfea861d58bf2271f86
+          ref: 41d6cd020b66b40dc425a756a261491faf968973
           path: builder
       - name: Build PHP
         uses: ./builder/php

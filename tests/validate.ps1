@@ -16,9 +16,22 @@ foreach ($archive in @($binary, "artifacts/php-debug-pack-$PhpVersion-$suffix.zi
 }
 Expand-Archive $binary -DestinationPath runtime
 $runtime = (Resolve-Path runtime).Path
-foreach ($file in @('php.exe', 'php-cgi.exe', 'php-win.exe', 'php.ini-development', 'php.ini-production', 'php.exe', 'ext/php_opcache.dll')) {
+foreach ($file in @('php.exe', 'php-cgi.exe', 'php-win.exe', 'php.ini-development', 'php.ini-production', 'ext/php_opcache.dll')) {
     if (-not (Test-Path (Join-Path $runtime $file))) { throw "Missing runtime file: $file" }
 }
+
+# Loading an independently built Zend extension verifies compatibility with the
+# published compiler, PHP API, architecture and thread-safety ABI together.
+$series = ($PhpVersion.Split('.')[0..1] -join '.')
+$xdebugPackage = "php_xdebug-2.5.5-$series-$Ts-$($compiler.ToLower())-$Arch.zip"
+Invoke-WebRequest "https://downloads.php.net/~windows/pecl/releases/xdebug/2.5.5/$xdebugPackage" -OutFile xdebug.zip
+Expand-Archive xdebug.zip -DestinationPath xdebug
+$xdebug = @(Get-ChildItem xdebug -Recurse -Filter 'php_xdebug*.dll')
+if ($xdebug.Count -ne 1) { throw 'Expected one published Xdebug DLL' }
+$output = & "$runtime/php.exe" -n -d "zend_extension=$($xdebug[0].FullName)" -r 'if (phpversion("xdebug") !== "2.5.5") { exit(1); } echo "Published Xdebug 2.5.5 loaded successfully\n";' 2>&1
+$code = $LASTEXITCODE
+$output | Tee-Object evidence/xdebug.txt
+if ($code -ne 0 -or "$output" -match '(?i)(Warning|Fatal|Unable|Startup:)') { throw 'Published Xdebug ABI check failed' }
 $bytes = [IO.File]::ReadAllBytes("$runtime/php.exe")
 $peOffset = [BitConverter]::ToInt32($bytes, 0x3c)
 $machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
