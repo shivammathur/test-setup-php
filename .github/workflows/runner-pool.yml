@@ -1,0 +1,74 @@
+name: Temporary runner pool
+run-name: Runner pool ${{ inputs.pool || 'validation' }}
+
+on:
+  push:
+    branches: [feature/windows-security-runners-20261020]
+  workflow_dispatch:
+    inputs:
+      pool:
+        description: Prepared environment containing temporary registration secrets
+        required: true
+        type: string
+      x64-count:
+        description: x64 runners (Linux or macOS 15 Intel)
+        default: '1'
+        type: string
+      arm64-count:
+        description: ARM64 runners
+        default: '1'
+        type: string
+      platform:
+        description: Host operating system (must match target job labels)
+        default: linux
+        type: choice
+        options: [linux, ubuntu-22.04, ubuntu-24.04, ubuntu-26.04, ubuntu-latest, macos-14, macos-15, macos-26, macos-15-arm64, macos-26-arm, windows-2022]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s tests -v
+      - id: matrix
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          POOL: ${{ inputs.pool }}
+          X64_COUNT: ${{ inputs.x64-count }}
+          ARM64_COUNT: ${{ inputs.arm64-count }}
+          POOL_PLATFORM: ${{ inputs.platform }}
+        run: python3 scripts/runner_pool.py matrix
+
+  runner:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    name: Runner ${{ matrix.arch }}-${{ matrix.slot }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 360
+    environment: ${{ inputs.pool }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.validate.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare standalone Python supervisor
+        if: matrix.platform != 'linux'
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - name: Serve one job with a temporary runner
+        env:
+          RUNNER_JIT_CONFIG: ${{ secrets[matrix.secret] }}
+          POOL_ARCH: ${{ matrix.arch }}
+          POOL_SLOT: ${{ matrix.slot }}
+          POOL_PLATFORM: ${{ matrix.platform }}
+        run: python scripts/runner_pool.py serve
