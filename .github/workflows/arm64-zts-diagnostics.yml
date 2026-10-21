@@ -64,6 +64,15 @@ jobs:
         timeout-minutes: 8
         run: |
           set -euo pipefail
+          retain_test_files() {
+            find /tmp /var/tmp -maxdepth 5 -type f \( -name httpd-error.log -o -name httpd.conf -o -name httpd-fpm.conf -o -name fpm.conf -o -name index.php \) -print0 |
+              while IFS= read -r -d '' retained_file; do
+                printf '\nFILE: %s\n' "$retained_file"
+                cat "$retained_file"
+                mkdir -p diagnostics/retained
+                cp --parents "$retained_file" diagnostics/retained/
+              done
+          }
           set +e
           timeout --kill-after=5s 20s php -r 'echo "before ldap\n"; var_dump(ldap_connect()); echo "after ldap\n";' > diagnostics/ldap-cli.log 2>&1
           cli_status=$?
@@ -79,6 +88,7 @@ jobs:
           date -u +%FT%TZ > diagnostics/processes-observed-at.txt
           ps -eo pid,ppid,lwp,stat,wchan:32,args > diagnostics/processes.txt
           cat diagnostics/brew-test.log
+          retain_test_files | tee diagnostics/retained-before-ptrace.txt
           if kill -0 "$test_pid" 2>/dev/null; then
             printf 'brew test is still running; collecting Apache process evidence.\n'
             while IFS= read -r apache_pid; do
@@ -99,11 +109,7 @@ jobs:
           test_status=$?
           set -e
           printf '%s\n' "$test_status" > diagnostics/brew-test.exit
-          find /tmp -maxdepth 5 -type f \( -name httpd-error.log -o -name httpd.conf -o -name httpd-fpm.conf -o -name fpm.conf -o -name index.php \) -print0 |
-            while IFS= read -r -d '' retained_file; do
-              printf '\nFILE: %s\n' "$retained_file"
-              cat "$retained_file"
-            done > diagnostics/retained-test-files.txt
+          retain_test_files > diagnostics/retained-test-files.txt
           cat diagnostics/brew-test.log diagnostics/retained-test-files.txt
           printf 'CLI exit: %s; brew test exit: %s\n' "$cli_status" "$test_status"
           exit "$test_status"
