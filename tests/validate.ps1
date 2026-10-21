@@ -161,9 +161,13 @@ foreach ($entry in @(@{Root=$public; Label='public'}, @{Root=$runtime; Label='bu
     foreach ($arguments in @(@('-v'), @('-m'), @('-r','phpinfo(INFO_GENERAL | INFO_CONFIGURATION | INFO_MODULES);'), @((Join-Path $PSScriptRoot 'smoke.php')))) {
         Invoke-CheckedPhp $root (@('-c',"$root/php.ini") + $arguments) "$label-runtime" | Write-Host
     }
+    $cgiOutput = & "$root/php-cgi.exe" -n -v 2>&1
+    $cgiOutput | Out-String | Set-Content "evidence/$label-cgi.txt"
+    if ($LASTEXITCODE -ne 0 -or "$cgiOutput" -notmatch [regex]::Escape("PHP $PhpVersion")) { throw "CGI startup failed for $label" }
     # Exercise PhpManager's public download selection, DLL inspection, copying
     # and php.ini activation, rather than loading a manually supplied DLL.
     Install-PhpExtension -Extension xdebug -Version $xdebugVersion -Path $root -Verbose 4>&1 | Tee-Object "evidence/$label-phpmanager.txt" | Write-Host
+    Get-ChildItem "$root/ext/*xdebug*.dll" | Get-FileHash -Algorithm SHA256 | Format-List | Out-String | Set-Content "evidence/$label-xdebug-checksum.txt"
     $env:EXPECTED_XDEBUG_VERSION = $xdebugVersion
     Invoke-CheckedPhp $root @('-c',"$root/php.ini",(Join-Path $PSScriptRoot 'xdebug.php')) "$label-xdebug" | Write-Host
     Invoke-CheckedPhp $root @('-c',"$root/php.ini",(Join-Path $PSScriptRoot 'smoke.php')) "$label-with-xdebug" | Write-Host
