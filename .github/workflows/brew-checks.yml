@@ -13,7 +13,7 @@ on:
 permissions:
   contents: read
 env:
-  EXPECTED_TAP_COMMIT: bf1d6bec9dfc19f10e37d1b88ef6508e257e1fc4
+  EXPECTED_TAP_COMMIT: b6ba34525ceb871d51444f7ed4e8ef4fb3bdbf01
 jobs:
   check_macos:
     if: github.event_name == 'push' || inputs.macos != '{"include":[]}'
