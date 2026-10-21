@@ -1,0 +1,32 @@
+name: Verify published Linux release bytes
+run-name: Publication verification ${{ inputs.ticket }}
+on:
+  workflow_dispatch:
+    inputs:
+      ticket:
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  verify:
+    name: ${{ matrix.id }}
+    strategy:
+      fail-fast: false
+      matrix:
+        id: ["php-builder-5.6", "php-builder-7.0", "php-builder-7.1", "php-builder-7.2", "php-builder-7.3", "php-builder-7.4", "php-builder-8.0", "php-builder-8.1", "php-builder-8.2", "php-builder-8.3", "php-builder-8.4", "php-builder-8.5", "php-ubuntu-5.6", "php-ubuntu-7.0", "php-ubuntu-7.1", "php-ubuntu-7.2", "php-ubuntu-7.3", "php-ubuntu-7.4", "php-ubuntu-8.0", "php-ubuntu-8.1", "php-ubuntu-8.2", "php-ubuntu-8.3", "php-ubuntu-8.4", "php-ubuntu-8.5"]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Verify downloads, GitHub digests and preservation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ITEM: ${{ matrix.id }}
+        run: python3 scripts/verify-publication.py "$ITEM"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: verification-${{ matrix.id }}
+          path: verification-results/
+          if-no-files-found: error
+          retention-days: 90
