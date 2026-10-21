@@ -1,0 +1,101 @@
+name: Build PHP 5.3-5.5 on Windows 2022
+
+on:
+  push:
+    branches: [feature/early-php-windows-20261021]
+    paths: [.github/workflows/legacy-php.yml]
+  workflow_dispatch:
+    inputs:
+      artifact-run:
+        description: Existing build run to validate without rebuilding
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    if: ${{ inputs.artifact-run == '' }}
+    name: Build PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: windows-2022
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.3.29', '5.4.45', '5.5.38']
+        arch: [x64, x86]
+        ts: [nts, ts]
+        exclude:
+          - {php: '5.3.29', arch: x64}
+          - {php: '5.4.45', arch: x64}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Checkout builder
+        uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: fa5788af87f06c9a06307df86b34fc0b24185690
+          path: builder
+      - name: Build PHP
+        uses: ./builder/php
+        with:
+          php-version: ${{ matrix.php }}
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+      - name: Collect build diagnostics
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item diagnostics -ItemType Directory -Force | Out-Null
+          Get-ChildItem $env:TEMP -Directory -Filter 'php-*' | ForEach-Object {
+            Get-ChildItem $_.FullName -Recurse -File -Include Makefile,config.nice.bat,config.log,config.w32.h | ForEach-Object {
+              Copy-Item $_.FullName (Join-Path diagnostics ($_.Name + '-' + [guid]::NewGuid()))
+            }
+          }
+          Get-ChildItem $env:TEMP -File -Filter '*vs20*.log' | Copy-Item -Destination diagnostics
+          Get-ChildItem $env:TEMP -File -Filter 'dd_*.log' | Copy-Item -Destination diagnostics
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: diagnostics-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: diagnostics
+
+  smoke:
+    name: Validate PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}
+    needs: build
+    if: ${{ !cancelled() }}
+    runs-on: windows-2022
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.3.29', '5.4.45', '5.5.38']
+        arch: [x64, x86]
+        ts: [nts, ts]
+        exclude:
+          - {php: '5.3.29', arch: x64}
+          - {php: '5.4.45', arch: x64}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: artifacts-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: artifacts
+          run-id: ${{ inputs.artifact-run || github.run_id }}
+          github-token: ${{ github.token }}
+      - name: Checkout PhpManager
+        uses: actions/checkout@v6
+        with:
+          repository: mlocati/powershell-phpmanager
+          ref: 8ff33df31c7345ca77b0eaea4c4395e30f3ef64c
+          path: phpmanager
+      - name: Validate packaged artifacts on a clean runner
+        shell: pwsh
+        run: ./tests/validate.ps1 -PhpVersion '${{ matrix.php }}' -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: validation-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: evidence

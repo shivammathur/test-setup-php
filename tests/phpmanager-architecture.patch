@@ -1,0 +1,19 @@
+--- a/PhpManager/private/PhpVersion.ps1
++++ b/PhpManager/private/PhpVersion.ps1
+@@ -319,7 +319,15 @@
+             $data.UnstabilityLevel = $groups['stabilityLevel'].Value
+             $data.UnstabilityVersion = $groups['stabilityVersion'].Value
+         }
+-        $data.Architecture = Get-Variable -Scope Script -ValueOnly -Name $('ARCHITECTURE_' +  $groups['bits'].Value + 'BITS')
++        # PHP 5.x has 32-bit integers even in Windows x64 builds.
++        $peBytes = [System.IO.File]::ReadAllBytes($data.ExecutablePath)
++        $peOffset = [System.BitConverter]::ToInt32($peBytes, 0x3c)
++        $peMachine = [System.BitConverter]::ToUInt16($peBytes, $peOffset + 4)
++        switch ($peMachine) {
++            0x014c { $data.Architecture = 'x86' }
++            0x8664 { $data.Architecture = 'x64' }
++            default { throw "Unsupported PE architecture: $peMachine" }
++        }
+         $data.ApiVersion = [int] $groups['apiVersion'].Value
+         $executableResult = & $data.ExecutablePath @('-i')
+         $match = $executableResult | Select-String -CaseSensitive -Pattern '^[ \t]*Thread Safety\s*=>\s*(\w+)'
