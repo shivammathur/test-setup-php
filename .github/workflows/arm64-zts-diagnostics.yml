@@ -1,0 +1,117 @@
+name: Diagnose published ARM64 ZTS HTTP tests
+on:
+  push:
+    branches: [feature/arm64-zts-http-diagnostics-20261021]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    name: ${{ matrix.formula }} ARM64 HTTP diagnostics
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        formula: [php@8.0-zts, php@8.1-zts, php@8.2-zts, php@8.2-debug-zts, php-zts, php-debug-zts, php@8.3-zts]
+    container:
+      image: ghcr.io/homebrew/brew:main # zizmor: ignore[unpinned-images] Match the installation-test container.
+      options: --user=linuxbrew --cap-add=SYS_PTRACE --security-opt seccomp=unconfined
+    defaults:
+      run:
+        shell: bash
+    env:
+      FORMULA: ${{ matrix.formula }}
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+      HOMEBREW_NO_ANALYTICS: 1
+    steps:
+      - name: Install diagnostic tools
+        run: |
+          sudo -n apt-get update
+          sudo -n apt-get install --no-install-recommends -y gdb strace procps
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@4790763c0a3ba4036f72634dc079c4a7dfcd4878
+        with:
+          core: true
+          cask: false
+          stable: false
+      - name: Tap trust install and link published bottle
+        run: |
+          set -euo pipefail
+          brew tap shivammathur/php
+          brew trust shivammathur/php
+          brew install "shivammathur/php/$FORMULA" httpd
+          while IFS= read -r installed; do
+            case "$installed" in
+              php|php@*|php-debug|php-zts|php-debug-zts)
+                if [ "$installed" != "$FORMULA" ]; then brew unlink "$installed"; fi
+                ;;
+            esac
+          done < <(brew list --formula -1)
+          brew link --overwrite --force "$FORMULA"
+          mkdir -p diagnostics
+          brew config > diagnostics/brew-config.txt
+          brew cat "shivammathur/php/$FORMULA" > diagnostics/formula.rb
+          cp "$(brew --prefix "$FORMULA")/INSTALL_RECEIPT.json" diagnostics/INSTALL_RECEIPT.json
+          command -v php
+          php --version
+          php --ini
+          php --modules
+          php-cgi --version
+          php-fpm --test
+      - name: Capture bounded runtime and Apache diagnostics
+        timeout-minutes: 8
+        run: |
+          set -euo pipefail
+          set +e
+          timeout --kill-after=5s 20s php -r 'echo "before ldap\n"; var_dump(ldap_connect()); echo "after ldap\n";' > diagnostics/ldap-cli.log 2>&1
+          cli_status=$?
+          set -e
+          printf '%s\n' "$cli_status" > diagnostics/ldap-cli.exit
+          cat diagnostics/ldap-cli.log
+          timeout --signal=INT --kill-after=15s 240s brew test --keep-tmp --verbose "shivammathur/php/$FORMULA" > diagnostics/brew-test.log 2>&1 &
+          test_pid=$!
+          for _ in $(seq 1 18); do
+            if ! kill -0 "$test_pid" 2>/dev/null; then break; fi
+            sleep 5
+          done
+          date -u +%FT%TZ > diagnostics/processes-observed-at.txt
+          ps -eo pid,ppid,lwp,stat,wchan:32,args > diagnostics/processes.txt
+          cat diagnostics/brew-test.log
+          if kill -0 "$test_pid" 2>/dev/null; then
+            printf 'brew test is still running; collecting Apache process evidence.\n'
+            while IFS= read -r apache_pid; do
+              [ -n "$apache_pid" ] || continue
+              sudo -n cat "/proc/$apache_pid/maps" | tee "diagnostics/httpd-$apache_pid.maps" >/dev/null || true
+              sudo -n timeout --kill-after=5s 25s gdb -nx -q -batch \
+                -ex 'set debuginfod enabled off' \
+                -ex 'set pagination off' \
+                -ex 'info threads' \
+                -ex 'thread apply all bt' \
+                -p "$apache_pid" 2>&1 | tee "diagnostics/httpd-$apache_pid.gdb.log" || true
+              sudo -n timeout --signal=INT --kill-after=5s 8s strace -f -tt -s 128 -p "$apache_pid" \
+                -o "diagnostics/httpd-$apache_pid.strace.log" || true
+            done < <(pgrep -u "$(id -u)" -x httpd || true)
+          fi
+          set +e
+          wait "$test_pid"
+          test_status=$?
+          set -e
+          printf '%s\n' "$test_status" > diagnostics/brew-test.exit
+          find /tmp -maxdepth 5 -type f \( -name httpd-error.log -o -name httpd.conf -o -name httpd-fpm.conf -o -name fpm.conf -o -name index.php \) -print0 |
+            while IFS= read -r -d '' retained_file; do
+              printf '\nFILE: %s\n' "$retained_file"
+              cat "$retained_file"
+            done > diagnostics/retained-test-files.txt
+          cat diagnostics/brew-test.log diagnostics/retained-test-files.txt
+          printf 'CLI exit: %s; brew test exit: %s\n' "$cli_status" "$test_status"
+          exit "$test_status"
+      - name: Upload diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: arm64-http-${{ matrix.formula }}
+          path: diagnostics/
+          if-no-files-found: warn
+          retention-days: 7
