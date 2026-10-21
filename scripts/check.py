@@ -70,7 +70,11 @@ def installed_bytes(phase):
 
 def capture(phase):
  php=Path('/opt/local/bin/php'+SHORT) if MAC else Path('/usr/local/php')/MINOR/'bin/php'
- assert os.path.samefile(shutil.which('php'),php),'Wrong PHP selected by PATH'
+ selected=Path(shutil.which('php'))
+ # Ubuntu's production installer copies the executable to /usr/bin/phpX.Y.
+ # Verify byte identity; inode identity would incorrectly reject that copy.
+ save(phase+'-selected-php',{'selected':str(selected),'resolved':str(selected.resolve()),'package_path':str(php),'selected_sha256':sha(selected),'package_sha256':sha(php)})
+ assert sha(selected)==sha(php),'Selected PHP bytes differ from the approved runtime'
  file_output=run(phase+'-architecture',['file','-L',php]).decode()
  assert ('arm64' in file_output or 'aarch64' in file_output) if ARM else ('x86_64' in file_output or 'x86-64' in file_output)
  installer=next(f for f in CONFIG['metadata'] if f['name']=='install.sh');assert sha('/tmp/install.sh')==installer['sha256'],'setup-php used a different installer'
