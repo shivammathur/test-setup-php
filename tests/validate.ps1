@@ -167,7 +167,19 @@ foreach ($entry in @(@{Root=$public; Label='public'}, @{Root=$runtime; Label='bu
     if ($LASTEXITCODE -ne 0 -or "$cgiOutput" -notmatch [regex]::Escape("PHP $PhpVersion")) { throw "CGI startup failed for $label" }
     # Exercise PhpManager's public download selection, DLL inspection, copying
     # and php.ini activation, rather than loading a manually supplied DLL.
-    Install-PhpExtension -Extension xdebug -Version $xdebugVersion -Path $root -Verbose 4>&1 | Tee-Object "evidence/$label-phpmanager.txt" | Write-Host
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        try {
+            Install-PhpExtension -Extension xdebug -Version $xdebugVersion -Path $root -Verbose 4>&1 | Tee-Object "evidence/$label-phpmanager.txt" -Append | Write-Host
+            break
+        } catch {
+            $status = [int]$_.Exception.Response.StatusCode
+            if ($attempt -eq 3 -or $status -notin @(429, 500, 502, 503, 504)) { throw }
+            $message = "PhpManager download returned HTTP $status; retrying attempt $attempt"
+            $message | Add-Content "evidence/$label-phpmanager.txt"
+            Write-Warning $message
+            Start-Sleep -Seconds (10 * $attempt)
+        }
+    }
     Get-ChildItem "$root/ext/*xdebug*.dll" | Get-FileHash -Algorithm SHA256 | Format-List | Out-String | Set-Content "evidence/$label-xdebug-checksum.txt"
     $env:EXPECTED_XDEBUG_VERSION = $xdebugVersion
     Invoke-CheckedPhp $root @('-c',"$root/php.ini",(Join-Path $PSScriptRoot 'xdebug.php')) "$label-xdebug" | Write-Host
