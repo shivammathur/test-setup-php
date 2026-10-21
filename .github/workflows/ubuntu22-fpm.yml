@@ -1,0 +1,54 @@
+name: Diagnose published PHP 5 on Ubuntu 22.04
+run-name: PHP 5 FPM diagnostics ${{ inputs.ticket }}
+on:
+  push:
+    branches: [feature/php5-release-smoke-20261021]
+  workflow_dispatch:
+    inputs:
+      ticket:
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  validate:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: python3 -m compileall -q scripts
+  diagnostic:
+    if: github.event_name == 'workflow_dispatch'
+    name: PHP ${{ matrix.php }} on ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.3', '5.4', '5.5']
+        runner: [ubuntu-22.04, ubuntu-22.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    env:
+      PHP_SERIES: ${{ matrix.php }}
+      RUNNER_LABEL: ${{ matrix.runner }}
+      GH_TOKEN: ${{ github.token }}
+      update: 'true'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: python3 scripts/check.py before
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+      - name: Collect FPM diagnostics and remaining smoke coverage
+        run: python3 scripts/fpm-diagnostic.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fpm-${{ matrix.php }}-${{ matrix.runner }}
+          path: results/
+          if-no-files-found: error
+          retention-days: 90
