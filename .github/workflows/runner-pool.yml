@@ -1,0 +1,44 @@
+name: Temporary runner pool
+run-name: Runner pool runner-pool-20261021-145853-72ed52
+
+on:
+  push:
+    branches: [feature/configuration-rebuild-runner-pool-20261021]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s tests -v
+
+  runner:
+    needs: validate
+    name: Runner ${{ matrix.platform }}-${{ matrix.slot }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 360
+    environment: runner-pool-20261021-145853-72ed52
+    strategy:
+      fail-fast: false
+      matrix: {"include": [{"arch": "arm64", "os": "macos-15", "platform": "macos-15-arm64", "slot": "1", "secret": "RUNNER_JIT_ARM64_1"}, {"arch": "arm64", "os": "macos-15", "platform": "macos-15-arm64", "slot": "2", "secret": "RUNNER_JIT_ARM64_2"}, {"arch": "arm64", "os": "macos-26", "platform": "macos-26-arm", "slot": "3", "secret": "RUNNER_JIT_ARM64_3"}, {"arch": "arm64", "os": "macos-26", "platform": "macos-26-arm", "slot": "4", "secret": "RUNNER_JIT_ARM64_4"}, {"arch": "arm64", "os": "macos-26", "platform": "macos-26-arm", "slot": "5", "secret": "RUNNER_JIT_ARM64_5"}]}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare standalone Python supervisor
+        if: matrix.platform != 'linux'
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - name: Serve one job with a temporary runner
+        env:
+          RUNNER_JIT_CONFIG: ${{ matrix.slot == '1' && secrets.RUNNER_JIT_ARM64_1 || matrix.slot == '2' && secrets.RUNNER_JIT_ARM64_2 || matrix.slot == '3' && secrets.RUNNER_JIT_ARM64_3 || matrix.slot == '4' && secrets.RUNNER_JIT_ARM64_4 || matrix.slot == '5' && secrets.RUNNER_JIT_ARM64_5 }}
+          POOL_ARCH: ${{ matrix.arch }}
+          POOL_SLOT: ${{ matrix.slot }}
+          POOL_PLATFORM: ${{ matrix.platform }}
+        run: python3 scripts/runner_pool.py serve
