@@ -3,18 +3,26 @@ on:
   push:
     branches: [feature/published-php-brew-checks-20261021]
   workflow_dispatch:
+    inputs:
+      macos:
+        description: Selected macOS formula and runner cases
+        type: string
+        default: '{"include":[]}'
+      linux:
+        description: Selected Linux formula and runner cases
+        type: string
+        default: '{"include":[]}'
 permissions:
   contents: read
 jobs:
   check_macos:
+    if: github.event_name == 'push' || inputs.macos != '{"include":[]}'
     name: ${{ matrix.formula }} on ${{ matrix.runner }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 35
     strategy:
       fail-fast: false
-      matrix:
-        runner: [macos-15, macos-26, xcode-27]
-        formula: ['php@5.6', 'php@5.6-debug', 'php@5.6-zts', 'php@5.6-debug-zts', 'php@7.0', 'php@7.0-debug', 'php@7.0-zts', 'php@7.0-debug-zts', 'php@7.1', 'php@7.1-debug', 'php@7.1-zts', 'php@7.1-debug-zts', 'php@7.2', 'php@7.2-debug', 'php@7.2-zts', 'php@7.2-debug-zts', 'php@7.3', 'php@7.3-debug', 'php@7.3-zts', 'php@7.3-debug-zts', 'php@7.4', 'php@7.4-debug', 'php@7.4-zts', 'php@7.4-debug-zts', 'php@8.0', 'php@8.0-debug', 'php@8.0-zts', 'php@8.0-debug-zts', 'php@8.1', 'php@8.1-debug', 'php@8.1-zts', 'php@8.1-debug-zts', 'php@8.2', 'php@8.2-debug', 'php@8.2-zts', 'php@8.2-debug-zts', 'php@8.3', 'php@8.3-debug', 'php@8.3-zts', 'php@8.3-debug-zts', 'php@8.4', 'php@8.4-debug', 'php@8.4-zts', 'php@8.4-debug-zts', 'php', 'php-debug', 'php-zts', 'php-debug-zts']
+      matrix: ${{ github.event_name == 'workflow_dispatch' && fromJSON(inputs.macos) || fromJSON('{"runner":["macos-15","macos-26","xcode-27"],"formula":["php@5.6","php@5.6-debug","php@5.6-zts","php@5.6-debug-zts","php@7.0","php@7.0-debug","php@7.0-zts","php@7.0-debug-zts","php@7.1","php@7.1-debug","php@7.1-zts","php@7.1-debug-zts","php@7.2","php@7.2-debug","php@7.2-zts","php@7.2-debug-zts","php@7.3","php@7.3-debug","php@7.3-zts","php@7.3-debug-zts","php@7.4","php@7.4-debug","php@7.4-zts","php@7.4-debug-zts","php@8.0","php@8.0-debug","php@8.0-zts","php@8.0-debug-zts","php@8.1","php@8.1-debug","php@8.1-zts","php@8.1-debug-zts","php@8.2","php@8.2-debug","php@8.2-zts","php@8.2-debug-zts","php@8.3","php@8.3-debug","php@8.3-zts","php@8.3-debug-zts","php@8.4","php@8.4-debug","php@8.4-zts","php@8.4-debug-zts","php","php-debug","php-zts","php-debug-zts"]}') }}
     defaults:
       run:
         shell: bash
@@ -34,6 +42,7 @@ jobs:
         run: |
           set -euo pipefail
           brew tap shivammathur/php
+          brew trust shivammathur/php
           brew install "shivammathur/php/$FORMULA"
       - name: Link installed formula
         run: |
@@ -64,14 +73,13 @@ jobs:
           brew install httpd
           brew test "shivammathur/php/$FORMULA"
   check_linux:
+    if: github.event_name == 'push' || inputs.linux != '{"include":[]}'
     name: ${{ matrix.formula }} on ${{ matrix.runner }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 35
     strategy:
       fail-fast: false
-      matrix:
-        runner: [ubuntu-24.04, ubuntu-24.04-arm]
-        formula: ['php@5.6', 'php@5.6-debug', 'php@5.6-zts', 'php@5.6-debug-zts', 'php@7.0', 'php@7.0-debug', 'php@7.0-zts', 'php@7.0-debug-zts', 'php@7.1', 'php@7.1-debug', 'php@7.1-zts', 'php@7.1-debug-zts', 'php@7.2', 'php@7.2-debug', 'php@7.2-zts', 'php@7.2-debug-zts', 'php@7.3', 'php@7.3-debug', 'php@7.3-zts', 'php@7.3-debug-zts', 'php@7.4', 'php@7.4-debug', 'php@7.4-zts', 'php@7.4-debug-zts', 'php@8.0', 'php@8.0-debug', 'php@8.0-zts', 'php@8.0-debug-zts', 'php@8.1', 'php@8.1-debug', 'php@8.1-zts', 'php@8.1-debug-zts', 'php@8.2', 'php@8.2-debug', 'php@8.2-zts', 'php@8.2-debug-zts', 'php@8.3', 'php@8.3-debug', 'php@8.3-zts', 'php@8.3-debug-zts', 'php@8.4', 'php@8.4-debug', 'php@8.4-zts', 'php@8.4-debug-zts', 'php', 'php-debug', 'php-zts', 'php-debug-zts']
+      matrix: ${{ github.event_name == 'workflow_dispatch' && fromJSON(inputs.linux) || fromJSON('{"runner":["ubuntu-24.04","ubuntu-24.04-arm"],"formula":["php@5.6","php@5.6-debug","php@5.6-zts","php@5.6-debug-zts","php@7.0","php@7.0-debug","php@7.0-zts","php@7.0-debug-zts","php@7.1","php@7.1-debug","php@7.1-zts","php@7.1-debug-zts","php@7.2","php@7.2-debug","php@7.2-zts","php@7.2-debug-zts","php@7.3","php@7.3-debug","php@7.3-zts","php@7.3-debug-zts","php@7.4","php@7.4-debug","php@7.4-zts","php@7.4-debug-zts","php@8.0","php@8.0-debug","php@8.0-zts","php@8.0-debug-zts","php@8.1","php@8.1-debug","php@8.1-zts","php@8.1-debug-zts","php@8.2","php@8.2-debug","php@8.2-zts","php@8.2-debug-zts","php@8.3","php@8.3-debug","php@8.3-zts","php@8.3-debug-zts","php@8.4","php@8.4-debug","php@8.4-zts","php@8.4-debug-zts","php","php-debug","php-zts","php-debug-zts"]}') }}
     container:
       image: ghcr.io/homebrew/brew:main # zizmor: ignore[unpinned-images] Use the supported Homebrew container.
       options: --user=linuxbrew
@@ -94,6 +102,7 @@ jobs:
         run: |
           set -euo pipefail
           brew tap shivammathur/php
+          brew trust shivammathur/php
           brew install "shivammathur/php/$FORMULA"
       - name: Link installed formula
         run: |
