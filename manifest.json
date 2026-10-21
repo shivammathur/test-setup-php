@@ -1,0 +1,1338 @@
+{
+  "schema": 1,
+  "scope": "Published PHP 5.6 release canary; unchanged existing installation smoke harness; 12 native Ubuntu runner jobs / 48 variant installations",
+  "jobs": [
+    {
+      "minor": "5.6",
+      "runner": "ubuntu-22.04",
+      "id": "php-builder-5.6-ubuntu-22.04",
+      "repo": "php-builder",
+      "build_id": "public-release-82162962",
+      "release_id": 82162962,
+      "release_tag": "5.6",
+      "release_url": "https://github.com/shivammathur/php-builder/releases/tag/5.6",
+      "cases": [
+        {
+          "id": "amd64-nts-release",
+          "arch": "amd64",
+          "ts": "nts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6+ubuntu22.04.tar.zst",
+            "download_name": "php_5.6+ubuntu22.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6%2Bubuntu22.04.tar.zst",
+            "asset_id": 662664320,
+            "bytes": 17942562,
+            "sha256": "df8818ff2f46cd30488b992c71c1657d2b9c615838e9d6da9f7d5484bd8dff01",
+            "github_digest": "sha256:df8818ff2f46cd30488b992c71c1657d2b9c615838e9d6da9f7d5484bd8dff01",
+            "updated_at": "2026-10-21T13:50:49Z"
+          }
+        },
+        {
+          "id": "amd64-zts-release",
+          "arch": "amd64",
+          "ts": "zts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-zts+ubuntu22.04.tar.zst",
+            "download_name": "php_5.6-zts+ubuntu22.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-zts%2Bubuntu22.04.tar.zst",
+            "asset_id": 662664327,
+            "bytes": 18232261,
+            "sha256": "a179b37504493b0baf105b4afa63aeb9f1b654bafb307ab7df6a7ded5523791f",
+            "github_digest": "sha256:a179b37504493b0baf105b4afa63aeb9f1b654bafb307ab7df6a7ded5523791f",
+            "updated_at": "2026-10-21T13:50:51Z"
+          }
+        },
+        {
+          "id": "amd64-nts-debug",
+          "arch": "amd64",
+          "ts": "nts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-dbgsym+ubuntu22.04.tar.zst",
+            "download_name": "php_5.6-dbgsym+ubuntu22.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-dbgsym%2Bubuntu22.04.tar.zst",
+            "asset_id": 662664379,
+            "bytes": 89568322,
+            "sha256": "43b79327e073719b11b6ccaf25d3354bb05b07b2c321d9d082b6d14daabf1898",
+            "github_digest": "sha256:43b79327e073719b11b6ccaf25d3354bb05b07b2c321d9d082b6d14daabf1898",
+            "updated_at": "2026-10-21T13:51:38Z"
+          }
+        },
+        {
+          "id": "amd64-zts-debug",
+          "arch": "amd64",
+          "ts": "zts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-zts-dbgsym+ubuntu22.04.tar.zst",
+            "download_name": "php_5.6-zts-dbgsym+ubuntu22.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-zts-dbgsym%2Bubuntu22.04.tar.zst",
+            "asset_id": 662664376,
+            "bytes": 92183903,
+            "sha256": "b2a4a0a582242ddeca55704584a0eaf161b16230052bedd0d05f2fc49b9ad3da",
+            "github_digest": "sha256:b2a4a0a582242ddeca55704584a0eaf161b16230052bedd0d05f2fc49b9ad3da",
+            "updated_at": "2026-10-21T13:51:33Z"
+          }
+        }
+      ],
+      "version": "5.6.40"
+    },
+    {
+      "minor": "5.6",
+      "runner": "ubuntu-24.04",
+      "id": "php-builder-5.6-ubuntu-24.04",
+      "repo": "php-builder",
+      "build_id": "public-release-82162962",
+      "release_id": 82162962,
+      "release_tag": "5.6",
+      "release_url": "https://github.com/shivammathur/php-builder/releases/tag/5.6",
+      "cases": [
+        {
+          "id": "amd64-nts-release",
+          "arch": "amd64",
+          "ts": "nts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6+ubuntu24.04.tar.zst",
+            "download_name": "php_5.6+ubuntu24.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6%2Bubuntu24.04.tar.zst",
+            "asset_id": 662664345,
+            "bytes": 17571345,
+            "sha256": "27b97908c8e0fdf7543456af2d7671e43ed450e9383498d81d5ad6c3efeee530",
+            "github_digest": "sha256:27b97908c8e0fdf7543456af2d7671e43ed450e9383498d81d5ad6c3efeee530",
+            "updated_at": "2026-10-21T13:50:48Z"
+          }
+        },
+        {
+          "id": "amd64-zts-release",
+          "arch": "amd64",
+          "ts": "zts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-zts+ubuntu24.04.tar.zst",
+            "download_name": "php_5.6-zts+ubuntu24.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-zts%2Bubuntu24.04.tar.zst",
+            "asset_id": 662664342,
+            "bytes": 17834714,
+            "sha256": "e3e1d1a76c15c98dff55be497f40918de29ce457cfe74ae755e398964ebe9cf1",
+            "github_digest": "sha256:e3e1d1a76c15c98dff55be497f40918de29ce457cfe74ae755e398964ebe9cf1",
+            "updated_at": "2026-10-21T13:50:50Z"
+          }
+        },
+        {
+          "id": "amd64-nts-debug",
+          "arch": "amd64",
+          "ts": "nts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-dbgsym+ubuntu24.04.tar.zst",
+            "download_name": "php_5.6-dbgsym+ubuntu24.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-dbgsym%2Bubuntu24.04.tar.zst",
+            "asset_id": 662664404,
+            "bytes": 88809305,
+            "sha256": "6a597feb5ef752d849baa6d6d4f01fbd738acdbb752b432e9c5789b84c5d3b1c",
+            "github_digest": "sha256:6a597feb5ef752d849baa6d6d4f01fbd738acdbb752b432e9c5789b84c5d3b1c",
+            "updated_at": "2026-10-21T13:51:36Z"
+          }
+        },
+        {
+          "id": "amd64-zts-debug",
+          "arch": "amd64",
+          "ts": "zts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-zts-dbgsym+ubuntu24.04.tar.zst",
+            "download_name": "php_5.6-zts-dbgsym+ubuntu24.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-zts-dbgsym%2Bubuntu24.04.tar.zst",
+            "asset_id": 662664394,
+            "bytes": 91128992,
+            "sha256": "e1617e28a332d3cbc6ce99a15f4b0e8ee79e8264b39f8a52ea96527998be76ae",
+            "github_digest": "sha256:e1617e28a332d3cbc6ce99a15f4b0e8ee79e8264b39f8a52ea96527998be76ae",
+            "updated_at": "2026-10-21T13:51:33Z"
+          }
+        }
+      ],
+      "version": "5.6.40"
+    },
+    {
+      "minor": "5.6",
+      "runner": "ubuntu-26.04",
+      "id": "php-builder-5.6-ubuntu-26.04",
+      "repo": "php-builder",
+      "build_id": "public-release-82162962",
+      "release_id": 82162962,
+      "release_tag": "5.6",
+      "release_url": "https://github.com/shivammathur/php-builder/releases/tag/5.6",
+      "cases": [
+        {
+          "id": "amd64-nts-release",
+          "arch": "amd64",
+          "ts": "nts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6+ubuntu26.04.tar.zst",
+            "download_name": "php_5.6+ubuntu26.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6%2Bubuntu26.04.tar.zst",
+            "asset_id": 662664331,
+            "bytes": 17747753,
+            "sha256": "fabbc78d800a919c299b8ba28fb8d337f6892b4ab7bce31a9a1c3b068c007409",
+            "github_digest": "sha256:fabbc78d800a919c299b8ba28fb8d337f6892b4ab7bce31a9a1c3b068c007409",
+            "updated_at": "2026-10-21T13:50:36Z"
+          }
+        },
+        {
+          "id": "amd64-zts-release",
+          "arch": "amd64",
+          "ts": "zts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-zts+ubuntu26.04.tar.zst",
+            "download_name": "php_5.6-zts+ubuntu26.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-zts%2Bubuntu26.04.tar.zst",
+            "asset_id": 662664340,
+            "bytes": 18015619,
+            "sha256": "591428ca8ac0dc09d1cb96f1aec5f9369f60bd87b3fcddfde179b80e71d9d483",
+            "github_digest": "sha256:591428ca8ac0dc09d1cb96f1aec5f9369f60bd87b3fcddfde179b80e71d9d483",
+            "updated_at": "2026-10-21T13:50:48Z"
+          }
+        },
+        {
+          "id": "amd64-nts-debug",
+          "arch": "amd64",
+          "ts": "nts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-dbgsym+ubuntu26.04.tar.zst",
+            "download_name": "php_5.6-dbgsym+ubuntu26.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-dbgsym%2Bubuntu26.04.tar.zst",
+            "asset_id": 662664392,
+            "bytes": 89609697,
+            "sha256": "34dbd3106a55bf447006ce87a012a06a2e67ed0237702215abb0dad8294526a3",
+            "github_digest": "sha256:34dbd3106a55bf447006ce87a012a06a2e67ed0237702215abb0dad8294526a3",
+            "updated_at": "2026-10-21T13:51:46Z"
+          }
+        },
+        {
+          "id": "amd64-zts-debug",
+          "arch": "amd64",
+          "ts": "zts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-zts-dbgsym+ubuntu26.04.tar.zst",
+            "download_name": "php_5.6-zts-dbgsym+ubuntu26.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-zts-dbgsym%2Bubuntu26.04.tar.zst",
+            "asset_id": 662664386,
+            "bytes": 91763969,
+            "sha256": "977041c1da43ea7de4ebcb53f9de97c75f295818d79e038ef5b2ad9649c8a970",
+            "github_digest": "sha256:977041c1da43ea7de4ebcb53f9de97c75f295818d79e038ef5b2ad9649c8a970",
+            "updated_at": "2026-10-21T13:51:36Z"
+          }
+        }
+      ],
+      "version": "5.6.40"
+    },
+    {
+      "minor": "5.6",
+      "runner": "ubuntu-22.04-arm",
+      "id": "php-builder-5.6-ubuntu-22.04-arm",
+      "repo": "php-builder",
+      "build_id": "public-release-82162962",
+      "release_id": 82162962,
+      "release_tag": "5.6",
+      "release_url": "https://github.com/shivammathur/php-builder/releases/tag/5.6",
+      "cases": [
+        {
+          "id": "arm64-nts-release",
+          "arch": "arm64",
+          "ts": "nts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6+ubuntu22.04_arm64.tar.zst",
+            "download_name": "php_5.6+ubuntu22.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6%2Bubuntu22.04_arm64.tar.zst",
+            "asset_id": 662664334,
+            "bytes": 17940297,
+            "sha256": "1fe379ace0326501783fc02a48a24c9389aff4fb9c905c11dc2d51c0359a601a",
+            "github_digest": "sha256:1fe379ace0326501783fc02a48a24c9389aff4fb9c905c11dc2d51c0359a601a",
+            "updated_at": "2026-10-21T13:50:52Z"
+          }
+        },
+        {
+          "id": "arm64-zts-release",
+          "arch": "arm64",
+          "ts": "zts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-zts+ubuntu22.04_arm64.tar.zst",
+            "download_name": "php_5.6-zts+ubuntu22.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-zts%2Bubuntu22.04_arm64.tar.zst",
+            "asset_id": 662664339,
+            "bytes": 18295122,
+            "sha256": "3acc0e08e7a17bdec86fe2057b9eb603d67243b00fc8fb1313825189cda41149",
+            "github_digest": "sha256:3acc0e08e7a17bdec86fe2057b9eb603d67243b00fc8fb1313825189cda41149",
+            "updated_at": "2026-10-21T13:50:50Z"
+          }
+        },
+        {
+          "id": "arm64-nts-debug",
+          "arch": "arm64",
+          "ts": "nts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-dbgsym+ubuntu22.04_arm64.tar.zst",
+            "download_name": "php_5.6-dbgsym+ubuntu22.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-dbgsym%2Bubuntu22.04_arm64.tar.zst",
+            "asset_id": 662664387,
+            "bytes": 87721570,
+            "sha256": "1a23f23f29a65fcc2e013e412f7afef23a7a6f8bceaf40c49a17ab67ccf56078",
+            "github_digest": "sha256:1a23f23f29a65fcc2e013e412f7afef23a7a6f8bceaf40c49a17ab67ccf56078",
+            "updated_at": "2026-10-21T13:51:39Z"
+          }
+        },
+        {
+          "id": "arm64-zts-debug",
+          "arch": "arm64",
+          "ts": "zts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-zts-dbgsym+ubuntu22.04_arm64.tar.zst",
+            "download_name": "php_5.6-zts-dbgsym+ubuntu22.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-zts-dbgsym%2Bubuntu22.04_arm64.tar.zst",
+            "asset_id": 662664388,
+            "bytes": 90106411,
+            "sha256": "d17f858a4eb2f490fbf0521d71381df6b60d6e7a1e1300b012abdd8924a2b035",
+            "github_digest": "sha256:d17f858a4eb2f490fbf0521d71381df6b60d6e7a1e1300b012abdd8924a2b035",
+            "updated_at": "2026-10-21T13:51:38Z"
+          }
+        }
+      ],
+      "version": "5.6.40"
+    },
+    {
+      "minor": "5.6",
+      "runner": "ubuntu-24.04-arm",
+      "id": "php-builder-5.6-ubuntu-24.04-arm",
+      "repo": "php-builder",
+      "build_id": "public-release-82162962",
+      "release_id": 82162962,
+      "release_tag": "5.6",
+      "release_url": "https://github.com/shivammathur/php-builder/releases/tag/5.6",
+      "cases": [
+        {
+          "id": "arm64-nts-release",
+          "arch": "arm64",
+          "ts": "nts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6+ubuntu24.04_arm64.tar.zst",
+            "download_name": "php_5.6+ubuntu24.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6%2Bubuntu24.04_arm64.tar.zst",
+            "asset_id": 662664928,
+            "bytes": 17563856,
+            "sha256": "66bb7e0baf863c593780a8cc8ffe7a642f284364b3f561b3430f5d0b60e3b5dc",
+            "github_digest": "sha256:66bb7e0baf863c593780a8cc8ffe7a642f284364b3f561b3430f5d0b60e3b5dc",
+            "updated_at": "2026-10-21T13:50:57Z"
+          }
+        },
+        {
+          "id": "arm64-zts-release",
+          "arch": "arm64",
+          "ts": "zts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-zts+ubuntu24.04_arm64.tar.zst",
+            "download_name": "php_5.6-zts+ubuntu24.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-zts%2Bubuntu24.04_arm64.tar.zst",
+            "asset_id": 662665526,
+            "bytes": 17867083,
+            "sha256": "3b33d8352f0549547bbc854fac45139d3182b736fae40d3380c20988a602b610",
+            "github_digest": "sha256:3b33d8352f0549547bbc854fac45139d3182b736fae40d3380c20988a602b610",
+            "updated_at": "2026-10-21T13:50:52Z"
+          }
+        },
+        {
+          "id": "arm64-nts-debug",
+          "arch": "arm64",
+          "ts": "nts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-dbgsym+ubuntu24.04_arm64.tar.zst",
+            "download_name": "php_5.6-dbgsym+ubuntu24.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-dbgsym%2Bubuntu24.04_arm64.tar.zst",
+            "asset_id": 662665303,
+            "bytes": 86673024,
+            "sha256": "0c661aa4d094c49a59fd9fa1c1e6a2af4735d4f642162e266ecc86c1410960a6",
+            "github_digest": "sha256:0c661aa4d094c49a59fd9fa1c1e6a2af4735d4f642162e266ecc86c1410960a6",
+            "updated_at": "2026-10-21T13:51:42Z"
+          }
+        },
+        {
+          "id": "arm64-zts-debug",
+          "arch": "arm64",
+          "ts": "zts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-zts-dbgsym+ubuntu24.04_arm64.tar.zst",
+            "download_name": "php_5.6-zts-dbgsym+ubuntu24.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-zts-dbgsym%2Bubuntu24.04_arm64.tar.zst",
+            "asset_id": 662665538,
+            "bytes": 88925311,
+            "sha256": "4ac320afbb580661dd90bbd422640daf95cc61ae6c9e8bc327ac160f51bf50d5",
+            "github_digest": "sha256:4ac320afbb580661dd90bbd422640daf95cc61ae6c9e8bc327ac160f51bf50d5",
+            "updated_at": "2026-10-21T13:51:43Z"
+          }
+        }
+      ],
+      "version": "5.6.40"
+    },
+    {
+      "minor": "5.6",
+      "runner": "ubuntu-26.04-arm",
+      "id": "php-builder-5.6-ubuntu-26.04-arm",
+      "repo": "php-builder",
+      "build_id": "public-release-82162962",
+      "release_id": 82162962,
+      "release_tag": "5.6",
+      "release_url": "https://github.com/shivammathur/php-builder/releases/tag/5.6",
+      "cases": [
+        {
+          "id": "arm64-nts-release",
+          "arch": "arm64",
+          "ts": "nts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6+ubuntu26.04_arm64.tar.zst",
+            "download_name": "php_5.6+ubuntu26.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6%2Bubuntu26.04_arm64.tar.zst",
+            "asset_id": 662665599,
+            "bytes": 17519883,
+            "sha256": "1c796ee0b4b85614dd98d4ea096223c4d9f037baf8416f4588ebf21982f15e8f",
+            "github_digest": "sha256:1c796ee0b4b85614dd98d4ea096223c4d9f037baf8416f4588ebf21982f15e8f",
+            "updated_at": "2026-10-21T13:51:04Z"
+          }
+        },
+        {
+          "id": "arm64-zts-release",
+          "arch": "arm64",
+          "ts": "zts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-zts+ubuntu26.04_arm64.tar.zst",
+            "download_name": "php_5.6-zts+ubuntu26.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-zts%2Bubuntu26.04_arm64.tar.zst",
+            "asset_id": 662665693,
+            "bytes": 17811553,
+            "sha256": "158d362b1e27513c97a73406a568db1565cd45c475e31efea652a24343e9df5c",
+            "github_digest": "sha256:158d362b1e27513c97a73406a568db1565cd45c475e31efea652a24343e9df5c",
+            "updated_at": "2026-10-21T13:51:02Z"
+          }
+        },
+        {
+          "id": "arm64-nts-debug",
+          "arch": "arm64",
+          "ts": "nts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-dbgsym+ubuntu26.04_arm64.tar.zst",
+            "download_name": "php_5.6-dbgsym+ubuntu26.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-dbgsym%2Bubuntu26.04_arm64.tar.zst",
+            "asset_id": 662665643,
+            "bytes": 87101525,
+            "sha256": "42e8fb2050c7fbb46f20d72482e2f22d5c0084597c5aae573bfadf8ced1fb0c1",
+            "github_digest": "sha256:42e8fb2050c7fbb46f20d72482e2f22d5c0084597c5aae573bfadf8ced1fb0c1",
+            "updated_at": "2026-10-21T13:51:45Z"
+          }
+        },
+        {
+          "id": "arm64-zts-debug",
+          "arch": "arm64",
+          "ts": "zts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-builder-231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173.sh",
+            "sha256": "231dbd7f42eec897fe2b2a4388ac5c8bef471476de0b9fdab90948c71c75a173",
+            "repository": "shivammathur/php-builder",
+            "revision": "1df604b7cf76bb2d05ed011800b2eaf63f88ad7e"
+          },
+          "archive": {
+            "name": "php_5.6-zts-dbgsym+ubuntu26.04_arm64.tar.zst",
+            "download_name": "php_5.6-zts-dbgsym+ubuntu26.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-builder/releases/download/5.6/php_5.6-zts-dbgsym%2Bubuntu26.04_arm64.tar.zst",
+            "asset_id": 662665731,
+            "bytes": 89081813,
+            "sha256": "3c4f153e41295a3897ad2dfa53b1a02bcbaad79bbcaaba1bf4337a40badcc8ba",
+            "github_digest": "sha256:3c4f153e41295a3897ad2dfa53b1a02bcbaad79bbcaaba1bf4337a40badcc8ba",
+            "updated_at": "2026-10-21T13:51:46Z"
+          }
+        }
+      ],
+      "version": "5.6.40"
+    },
+    {
+      "minor": "5.6",
+      "runner": "ubuntu-22.04",
+      "id": "php-ubuntu-5.6-ubuntu-22.04",
+      "repo": "php-ubuntu",
+      "build_id": "public-release-39619287",
+      "release_id": 39619287,
+      "release_tag": "builds",
+      "release_url": "https://github.com/shivammathur/php-ubuntu/releases/tag/builds",
+      "cases": [
+        {
+          "id": "amd64-nts-release",
+          "arch": "amd64",
+          "ts": "nts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-nts+ubuntu22.04.tar.zst",
+            "download_name": "php_5.6-nts+ubuntu22.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-nts%2Bubuntu22.04.tar.zst",
+            "asset_id": 662667651,
+            "bytes": 20427056,
+            "sha256": "c36fec7860ccafd1b5dc208b613421b0a15a42ce2212b325ee73b4f30c15c7ee",
+            "github_digest": "sha256:c36fec7860ccafd1b5dc208b613421b0a15a42ce2212b325ee73b4f30c15c7ee",
+            "updated_at": "2026-10-21T13:51:30Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-nts+ubuntu22.04.tar.zst",
+            "asset_id": 613067982,
+            "sha256": "142ff206c30d8f1099798df026b012acb5de71184c3d5fdf8f2ee6529a030c1c"
+          }
+        },
+        {
+          "id": "amd64-zts-release",
+          "arch": "amd64",
+          "ts": "zts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-zts+ubuntu22.04.tar.zst",
+            "download_name": "php_5.6-zts+ubuntu22.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-zts%2Bubuntu22.04.tar.zst",
+            "asset_id": 662668064,
+            "bytes": 20585124,
+            "sha256": "dfa00d28d367eba9528caf533520483e9d881fcf718977642a439cf5b3857a72",
+            "github_digest": "sha256:dfa00d28d367eba9528caf533520483e9d881fcf718977642a439cf5b3857a72",
+            "updated_at": "2026-10-21T13:51:47Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-zts+ubuntu22.04.tar.zst",
+            "asset_id": 613068161,
+            "sha256": "e3570e19409fded7d4a7a3ad5814a2ef94fef7f4e644061d9bdfa444bab71645"
+          }
+        },
+        {
+          "id": "amd64-nts-debug",
+          "arch": "amd64",
+          "ts": "nts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-nts-dbgsym+ubuntu22.04.tar.zst",
+            "download_name": "php_5.6-nts-dbgsym+ubuntu22.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-nts-dbgsym%2Bubuntu22.04.tar.zst",
+            "asset_id": 662667946,
+            "bytes": 58321578,
+            "sha256": "06fa683a124f4a70717ea34fdddb2192a35867d54a41babefdfeb86fd2e1e3f5",
+            "github_digest": "sha256:06fa683a124f4a70717ea34fdddb2192a35867d54a41babefdfeb86fd2e1e3f5",
+            "updated_at": "2026-10-21T13:51:58Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-nts-dbgsym+ubuntu22.04.tar.zst",
+            "asset_id": 613067486,
+            "sha256": "0746a12de907057e924cacc47b1ca83bf9758fde48faec804ebaddea4508177d"
+          }
+        },
+        {
+          "id": "amd64-zts-debug",
+          "arch": "amd64",
+          "ts": "zts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-zts-dbgsym+ubuntu22.04.tar.zst",
+            "download_name": "php_5.6-zts-dbgsym+ubuntu22.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-zts-dbgsym%2Bubuntu22.04.tar.zst",
+            "asset_id": 662668088,
+            "bytes": 60449528,
+            "sha256": "ad93f8bc160cf792667831a4b3bff620b070c4dc12b6cc8b45a8b2e664c54821",
+            "github_digest": "sha256:ad93f8bc160cf792667831a4b3bff620b070c4dc12b6cc8b45a8b2e664c54821",
+            "updated_at": "2026-10-21T13:52:15Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-zts-dbgsym+ubuntu22.04.tar.zst",
+            "asset_id": 613067784,
+            "sha256": "1854f3f2121b04bd11bbfc5b00efc08a66a7e0781c40a65a29deb9de9ee7e084"
+          }
+        }
+      ],
+      "version": "5.6.40"
+    },
+    {
+      "minor": "5.6",
+      "runner": "ubuntu-24.04",
+      "id": "php-ubuntu-5.6-ubuntu-24.04",
+      "repo": "php-ubuntu",
+      "build_id": "public-release-39619287",
+      "release_id": 39619287,
+      "release_tag": "builds",
+      "release_url": "https://github.com/shivammathur/php-ubuntu/releases/tag/builds",
+      "cases": [
+        {
+          "id": "amd64-nts-release",
+          "arch": "amd64",
+          "ts": "nts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-nts+ubuntu24.04.tar.zst",
+            "download_name": "php_5.6-nts+ubuntu24.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-nts%2Bubuntu24.04.tar.zst",
+            "asset_id": 662668117,
+            "bytes": 32119518,
+            "sha256": "f0a28404389051ab7cefb08f1a44f38d8e51a2031e74b5a449732e51eee592e9",
+            "github_digest": "sha256:f0a28404389051ab7cefb08f1a44f38d8e51a2031e74b5a449732e51eee592e9",
+            "updated_at": "2026-10-21T13:51:57Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-nts+ubuntu24.04.tar.zst",
+            "asset_id": 613070174,
+            "sha256": "a7dbb7015afd4a1833b6661df881ca864714e19650348af0eedaaa425d5bf133"
+          }
+        },
+        {
+          "id": "amd64-zts-release",
+          "arch": "amd64",
+          "ts": "zts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-zts+ubuntu24.04.tar.zst",
+            "download_name": "php_5.6-zts+ubuntu24.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-zts%2Bubuntu24.04.tar.zst",
+            "asset_id": 662668249,
+            "bytes": 32234469,
+            "sha256": "606b2db76a6f96ffbfdefc97a74c326c9b5d463356c95ed653776236ff7a6a5f",
+            "github_digest": "sha256:606b2db76a6f96ffbfdefc97a74c326c9b5d463356c95ed653776236ff7a6a5f",
+            "updated_at": "2026-10-21T13:51:51Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-zts+ubuntu24.04.tar.zst",
+            "asset_id": 613070485,
+            "sha256": "630ad86b3caa8e9c02021208bead0176073d3284750c6cbe2ff5b4c4287520bd"
+          }
+        },
+        {
+          "id": "amd64-nts-debug",
+          "arch": "amd64",
+          "ts": "nts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-nts-dbgsym+ubuntu24.04.tar.zst",
+            "download_name": "php_5.6-nts-dbgsym+ubuntu24.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-nts-dbgsym%2Bubuntu24.04.tar.zst",
+            "asset_id": 662668145,
+            "bytes": 70906618,
+            "sha256": "5c69fecd18478184a4f5cb8b75d0cf1b7bb7b6248fb6262d552882fa321efebd",
+            "github_digest": "sha256:5c69fecd18478184a4f5cb8b75d0cf1b7bb7b6248fb6262d552882fa321efebd",
+            "updated_at": "2026-10-21T13:52:17Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-nts-dbgsym+ubuntu24.04.tar.zst",
+            "asset_id": 613069469,
+            "sha256": "d5617428dc0a4abbd8497e0afa4f689285a1572033d156740b412bed1b59c8ed"
+          }
+        },
+        {
+          "id": "amd64-zts-debug",
+          "arch": "amd64",
+          "ts": "zts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-zts-dbgsym+ubuntu24.04.tar.zst",
+            "download_name": "php_5.6-zts-dbgsym+ubuntu24.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-zts-dbgsym%2Bubuntu24.04.tar.zst",
+            "asset_id": 662668357,
+            "bytes": 72168455,
+            "sha256": "91c9a6c029bb9eedff4a51550cae98bac80cb63aed490a502b0ca1210c6571be",
+            "github_digest": "sha256:91c9a6c029bb9eedff4a51550cae98bac80cb63aed490a502b0ca1210c6571be",
+            "updated_at": "2026-10-21T13:52:20Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-zts-dbgsym+ubuntu24.04.tar.zst",
+            "asset_id": 613069790,
+            "sha256": "94f6bd9658f9e94f9bec90da4a80d2c2a039e1bdbe8c23feffdca580b197d8aa"
+          }
+        }
+      ],
+      "version": "5.6.40"
+    },
+    {
+      "minor": "5.6",
+      "runner": "ubuntu-26.04",
+      "id": "php-ubuntu-5.6-ubuntu-26.04",
+      "repo": "php-ubuntu",
+      "build_id": "public-release-39619287",
+      "release_id": 39619287,
+      "release_tag": "builds",
+      "release_url": "https://github.com/shivammathur/php-ubuntu/releases/tag/builds",
+      "cases": [
+        {
+          "id": "amd64-nts-release",
+          "arch": "amd64",
+          "ts": "nts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-nts+ubuntu26.04.tar.zst",
+            "download_name": "php_5.6-nts+ubuntu26.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-nts%2Bubuntu26.04.tar.zst",
+            "asset_id": 662668400,
+            "bytes": 30108481,
+            "sha256": "ec646403ceec26ea51bfa4454ec6cc509b7422b2e9c3b23e8bb520c0a6089ebb",
+            "github_digest": "sha256:ec646403ceec26ea51bfa4454ec6cc509b7422b2e9c3b23e8bb520c0a6089ebb",
+            "updated_at": "2026-10-21T13:51:59Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-nts+ubuntu26.04.tar.zst",
+            "asset_id": 613072571,
+            "sha256": "8534ebc599c86495576a817f27916a90dfbf308a9d4f99e567c7e8eadc73735c"
+          }
+        },
+        {
+          "id": "amd64-zts-release",
+          "arch": "amd64",
+          "ts": "zts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-zts+ubuntu26.04.tar.zst",
+            "download_name": "php_5.6-zts+ubuntu26.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-zts%2Bubuntu26.04.tar.zst",
+            "asset_id": 662668455,
+            "bytes": 30225040,
+            "sha256": "02f89062917863a61cbd62d04808b6b0e4798681cc97349a6b962e582fc24902",
+            "github_digest": "sha256:02f89062917863a61cbd62d04808b6b0e4798681cc97349a6b962e582fc24902",
+            "updated_at": "2026-10-21T13:51:45Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-zts+ubuntu26.04.tar.zst",
+            "asset_id": 613072762,
+            "sha256": "61527bdb48d4f6b19187d8119057a588aabefb0987e67189ac0f6aca81239480"
+          }
+        },
+        {
+          "id": "amd64-nts-debug",
+          "arch": "amd64",
+          "ts": "nts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-nts-dbgsym+ubuntu26.04.tar.zst",
+            "download_name": "php_5.6-nts-dbgsym+ubuntu26.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-nts-dbgsym%2Bubuntu26.04.tar.zst",
+            "asset_id": 662668414,
+            "bytes": 69232856,
+            "sha256": "4aa8ecace96b58e46a430de73bdd68b2bc47f9cda6999131b547fd2df9143664",
+            "github_digest": "sha256:4aa8ecace96b58e46a430de73bdd68b2bc47f9cda6999131b547fd2df9143664",
+            "updated_at": "2026-10-21T13:52:18Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-nts-dbgsym+ubuntu26.04.tar.zst",
+            "asset_id": 613072032,
+            "sha256": "cbcc1a81858fcf86916d77a0e0edc440a42df5ffe69b953aa85e86d598b05355"
+          }
+        },
+        {
+          "id": "amd64-zts-debug",
+          "arch": "amd64",
+          "ts": "zts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-zts-dbgsym+ubuntu26.04.tar.zst",
+            "download_name": "php_5.6-zts-dbgsym+ubuntu26.04.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-zts-dbgsym%2Bubuntu26.04.tar.zst",
+            "asset_id": 662668648,
+            "bytes": 71301439,
+            "sha256": "806886b596b7101c1ea57692114fbac10433a9dc2a87869fa4073a40ae690d89",
+            "github_digest": "sha256:806886b596b7101c1ea57692114fbac10433a9dc2a87869fa4073a40ae690d89",
+            "updated_at": "2026-10-21T13:52:22Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-zts-dbgsym+ubuntu26.04.tar.zst",
+            "asset_id": 613072338,
+            "sha256": "7c49c4ba46fbb68ee3f305a4a36b358bfe83451b51b052dce39d7da535da5f8c"
+          }
+        }
+      ],
+      "version": "5.6.40"
+    },
+    {
+      "minor": "5.6",
+      "runner": "ubuntu-22.04-arm",
+      "id": "php-ubuntu-5.6-ubuntu-22.04-arm",
+      "repo": "php-ubuntu",
+      "build_id": "public-release-39619287",
+      "release_id": 39619287,
+      "release_tag": "builds",
+      "release_url": "https://github.com/shivammathur/php-ubuntu/releases/tag/builds",
+      "cases": [
+        {
+          "id": "arm64-nts-release",
+          "arch": "arm64",
+          "ts": "nts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-nts+ubuntu22.04_arm64.tar.zst",
+            "download_name": "php_5.6-nts+ubuntu22.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-nts%2Bubuntu22.04_arm64.tar.zst",
+            "asset_id": 662668746,
+            "bytes": 20515073,
+            "sha256": "3c0d8650b8c7fc00203d1816ca6c7a3b49a3258a1948de00b1f905dd0dd1bc48",
+            "github_digest": "sha256:3c0d8650b8c7fc00203d1816ca6c7a3b49a3258a1948de00b1f905dd0dd1bc48",
+            "updated_at": "2026-10-21T13:51:55Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-nts+ubuntu22.04_arm64.tar.zst",
+            "asset_id": 613069035,
+            "sha256": "aa1e3d34a7334f2bbe47bc5c258439151643fb7ac5a88aacb59cc2be48d33138"
+          }
+        },
+        {
+          "id": "arm64-zts-release",
+          "arch": "arm64",
+          "ts": "zts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-zts+ubuntu22.04_arm64.tar.zst",
+            "download_name": "php_5.6-zts+ubuntu22.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-zts%2Bubuntu22.04_arm64.tar.zst",
+            "asset_id": 662668832,
+            "bytes": 20699704,
+            "sha256": "05437386dfeefafd7ae323962b73ceb02e7bb8e70e549d52e5394cddd40ed434",
+            "github_digest": "sha256:05437386dfeefafd7ae323962b73ceb02e7bb8e70e549d52e5394cddd40ed434",
+            "updated_at": "2026-10-21T13:51:51Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-zts+ubuntu22.04_arm64.tar.zst",
+            "asset_id": 613069217,
+            "sha256": "f95e8ad53c26bf9ef197acd02ddab9a06a88c1c2137cd62854161d7dcaf9a2e2"
+          }
+        },
+        {
+          "id": "arm64-nts-debug",
+          "arch": "arm64",
+          "ts": "nts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-nts-dbgsym+ubuntu22.04_arm64.tar.zst",
+            "download_name": "php_5.6-nts-dbgsym+ubuntu22.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-nts-dbgsym%2Bubuntu22.04_arm64.tar.zst",
+            "asset_id": 662668785,
+            "bytes": 57993271,
+            "sha256": "3cfe642814da8c1f656199f431903b74868e9d6f80f13a3616bbfdfd2c1230f0",
+            "github_digest": "sha256:3cfe642814da8c1f656199f431903b74868e9d6f80f13a3616bbfdfd2c1230f0",
+            "updated_at": "2026-10-21T13:52:16Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-nts-dbgsym+ubuntu22.04_arm64.tar.zst",
+            "asset_id": 613068417,
+            "sha256": "4baab8105ae6d1d590fe91e19d076449a80091b8a77ae92bfa566321ff5c9ab7"
+          }
+        },
+        {
+          "id": "arm64-zts-debug",
+          "arch": "arm64",
+          "ts": "zts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-zts-dbgsym+ubuntu22.04_arm64.tar.zst",
+            "download_name": "php_5.6-zts-dbgsym+ubuntu22.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-zts-dbgsym%2Bubuntu22.04_arm64.tar.zst",
+            "asset_id": 662668949,
+            "bytes": 59901250,
+            "sha256": "c665a3533b782b400ea7248b057cf9119054ee3b53cbafc3f124031e09b5788f",
+            "github_digest": "sha256:c665a3533b782b400ea7248b057cf9119054ee3b53cbafc3f124031e09b5788f",
+            "updated_at": "2026-10-21T13:52:15Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-zts-dbgsym+ubuntu22.04_arm64.tar.zst",
+            "asset_id": 613068754,
+            "sha256": "2cca6f87a4880ff27b6057a8fccf6b13e3165f08b74609dd5216b6261d078121"
+          }
+        }
+      ],
+      "version": "5.6.40"
+    },
+    {
+      "minor": "5.6",
+      "runner": "ubuntu-24.04-arm",
+      "id": "php-ubuntu-5.6-ubuntu-24.04-arm",
+      "repo": "php-ubuntu",
+      "build_id": "public-release-39619287",
+      "release_id": 39619287,
+      "release_tag": "builds",
+      "release_url": "https://github.com/shivammathur/php-ubuntu/releases/tag/builds",
+      "cases": [
+        {
+          "id": "arm64-nts-release",
+          "arch": "arm64",
+          "ts": "nts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-nts+ubuntu24.04_arm64.tar.zst",
+            "download_name": "php_5.6-nts+ubuntu24.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-nts%2Bubuntu24.04_arm64.tar.zst",
+            "asset_id": 662668997,
+            "bytes": 29581790,
+            "sha256": "fd07a13ee940ebbd3c91bf15b40c325fe991a2f07d9463f78ac2debf9ad1e39c",
+            "github_digest": "sha256:fd07a13ee940ebbd3c91bf15b40c325fe991a2f07d9463f78ac2debf9ad1e39c",
+            "updated_at": "2026-10-21T13:52:06Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-nts+ubuntu24.04_arm64.tar.zst",
+            "asset_id": 613071569,
+            "sha256": "b635b40b5f28754299a015ca9813ee6c2c34574810b47d988af62762578e6315"
+          }
+        },
+        {
+          "id": "arm64-zts-release",
+          "arch": "arm64",
+          "ts": "zts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-zts+ubuntu24.04_arm64.tar.zst",
+            "download_name": "php_5.6-zts+ubuntu24.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-zts%2Bubuntu24.04_arm64.tar.zst",
+            "asset_id": 662669202,
+            "bytes": 29777606,
+            "sha256": "27fc413d612ff1099d73d5e9f87d176fa9f15e4ca8722faff4d31c3c6b8bc768",
+            "github_digest": "sha256:27fc413d612ff1099d73d5e9f87d176fa9f15e4ca8722faff4d31c3c6b8bc768",
+            "updated_at": "2026-10-21T13:52:05Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-zts+ubuntu24.04_arm64.tar.zst",
+            "asset_id": 613071800,
+            "sha256": "2dc68b2dd1db2e29889032388ddbe723d509787b93bdacf6f672ecd002478ab5"
+          }
+        },
+        {
+          "id": "arm64-nts-debug",
+          "arch": "arm64",
+          "ts": "nts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-nts-dbgsym+ubuntu24.04_arm64.tar.zst",
+            "download_name": "php_5.6-nts-dbgsym+ubuntu24.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-nts-dbgsym%2Bubuntu24.04_arm64.tar.zst",
+            "asset_id": 662669100,
+            "bytes": 66541172,
+            "sha256": "c4ed7359f47669fda2116bf20dbca1f2094f7bdd4df96379cce368ea92515b5d",
+            "github_digest": "sha256:c4ed7359f47669fda2116bf20dbca1f2094f7bdd4df96379cce368ea92515b5d",
+            "updated_at": "2026-10-21T13:52:21Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-nts-dbgsym+ubuntu24.04_arm64.tar.zst",
+            "asset_id": 613070894,
+            "sha256": "661ab06dd8e31ac783538b231a26ba3f64872c8e541e2c9bc1e8a91f0301450d"
+          }
+        },
+        {
+          "id": "arm64-zts-debug",
+          "arch": "arm64",
+          "ts": "zts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-zts-dbgsym+ubuntu24.04_arm64.tar.zst",
+            "download_name": "php_5.6-zts-dbgsym+ubuntu24.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-zts-dbgsym%2Bubuntu24.04_arm64.tar.zst",
+            "asset_id": 662669251,
+            "bytes": 68522720,
+            "sha256": "90e2f7a8f331e8a318f8451b346a0968c185719cab87a1102f4730d9ecccd62c",
+            "github_digest": "sha256:90e2f7a8f331e8a318f8451b346a0968c185719cab87a1102f4730d9ecccd62c",
+            "updated_at": "2026-10-21T13:52:23Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-zts-dbgsym+ubuntu24.04_arm64.tar.zst",
+            "asset_id": 613071295,
+            "sha256": "a0a7f86576997bcfcff6f925a051d3652d20a996ce986392fb6b0e7682fae0f6"
+          }
+        }
+      ],
+      "version": "5.6.40"
+    },
+    {
+      "minor": "5.6",
+      "runner": "ubuntu-26.04-arm",
+      "id": "php-ubuntu-5.6-ubuntu-26.04-arm",
+      "repo": "php-ubuntu",
+      "build_id": "public-release-39619287",
+      "release_id": 39619287,
+      "release_tag": "builds",
+      "release_url": "https://github.com/shivammathur/php-ubuntu/releases/tag/builds",
+      "cases": [
+        {
+          "id": "arm64-nts-release",
+          "arch": "arm64",
+          "ts": "nts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-nts+ubuntu26.04_arm64.tar.zst",
+            "download_name": "php_5.6-nts+ubuntu26.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-nts%2Bubuntu26.04_arm64.tar.zst",
+            "asset_id": 662669300,
+            "bytes": 28505503,
+            "sha256": "40520fe3a77b82e3bb7d882fd306f2e8d6941569c3b2799c33b8be3d5622e234",
+            "github_digest": "sha256:40520fe3a77b82e3bb7d882fd306f2e8d6941569c3b2799c33b8be3d5622e234",
+            "updated_at": "2026-10-21T13:52:16Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-nts+ubuntu26.04_arm64.tar.zst",
+            "asset_id": 613073626,
+            "sha256": "7efd5ba36085ab63ce573adf639289c5f3f5b555c50188026a2dc7228f3db655"
+          }
+        },
+        {
+          "id": "arm64-zts-release",
+          "arch": "arm64",
+          "ts": "zts",
+          "build": "release",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-zts+ubuntu26.04_arm64.tar.zst",
+            "download_name": "php_5.6-zts+ubuntu26.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-zts%2Bubuntu26.04_arm64.tar.zst",
+            "asset_id": 662669473,
+            "bytes": 28639179,
+            "sha256": "49eb22c6c07543d9601b276c1037953f0efd6554b1dd15ebb88fea07bcaab3e8",
+            "github_digest": "sha256:49eb22c6c07543d9601b276c1037953f0efd6554b1dd15ebb88fea07bcaab3e8",
+            "updated_at": "2026-10-21T13:52:06Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-zts+ubuntu26.04_arm64.tar.zst",
+            "asset_id": 613073851,
+            "sha256": "b27000a0a9285c56a8f84eda0fc451dc8a219c81eeb8d3c1aa81ca99f1d127a9"
+          }
+        },
+        {
+          "id": "arm64-nts-debug",
+          "arch": "arm64",
+          "ts": "nts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-nts-dbgsym+ubuntu26.04_arm64.tar.zst",
+            "download_name": "php_5.6-nts-dbgsym+ubuntu26.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-nts-dbgsym%2Bubuntu26.04_arm64.tar.zst",
+            "asset_id": 662669386,
+            "bytes": 66112808,
+            "sha256": "67391dc0c863b6faf9e10d2d12ee53683a69cd427ce047877e16e1f0217edfcf",
+            "github_digest": "sha256:67391dc0c863b6faf9e10d2d12ee53683a69cd427ce047877e16e1f0217edfcf",
+            "updated_at": "2026-10-21T13:52:20Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-nts-dbgsym+ubuntu26.04_arm64.tar.zst",
+            "asset_id": 613073046,
+            "sha256": "24732da28ac91a348647e2490e54aa1f0f2793265578626c7a48379f10b736c1"
+          }
+        },
+        {
+          "id": "arm64-zts-debug",
+          "arch": "arm64",
+          "ts": "zts",
+          "build": "debug",
+          "installer": {
+            "path": "installers/php-ubuntu-630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf.sh",
+            "sha256": "630a87d04f67b2a81bc476607d6a1725acb354f78ed83fa9eef400e0e82bdbcf",
+            "repository": "shivammathur/php-ubuntu",
+            "revision": "3ea439753134ae7aff89b22bc54bd228d9229a36"
+          },
+          "archive": {
+            "name": "php_5.6-zts-dbgsym+ubuntu26.04_arm64.tar.zst",
+            "download_name": "php_5.6-zts-dbgsym+ubuntu26.04_arm64.tar.zst",
+            "url": "https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_5.6-zts-dbgsym%2Bubuntu26.04_arm64.tar.zst",
+            "asset_id": 662669572,
+            "bytes": 67697857,
+            "sha256": "0264736cc859b11c7f726c65c9da7d52a514369f987f6c2e250f2235184dc989",
+            "github_digest": "sha256:0264736cc859b11c7f726c65c9da7d52a514369f987f6c2e250f2235184dc989",
+            "updated_at": "2026-10-21T13:52:24Z"
+          },
+          "version_alias": {
+            "name": "php_5.6.40-zts-dbgsym+ubuntu26.04_arm64.tar.zst",
+            "asset_id": 613073334,
+            "sha256": "848072e8242c8e7f3b351ff49467de624555661b1cb9ca4f4db74e3892716c4b"
+          }
+        }
+      ],
+      "version": "5.6.40"
+    }
+  ]
+}
