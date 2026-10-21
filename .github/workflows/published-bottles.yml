@@ -1,0 +1,147 @@
+name: Test all published Homebrew PHP bottles
+on:
+  push:
+    branches: [feature/published-homebrew-bottles-20261021]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      macos: ${{ steps.plan.outputs.macos }}
+      linux: ${{ steps.plan.outputs.linux }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - id: plan
+        run: python3 scripts/plan.py
+  install_macos:
+    needs: plan
+    name: ${{ matrix.formula }} on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.macos) }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+      HOMEBREW_NO_ANALYTICS: 1
+      FORMULA: ${{ matrix.formula }}
+      EXPECTED_TAG: ${{ matrix.tag }}
+    steps:
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@4790763c0a3ba4036f72634dc079c4a7dfcd4878
+        with:
+          core: true
+          cask: false
+          stable: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Ensure Python is available
+        run: |
+          if ! command -v python3 >/dev/null; then
+            sudo apt-get -o Acquire::Retries=3 update
+            sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends python3
+          fi
+      - name: Start without preinstalled PHP or its configuration
+        run: python3 scripts/clean_runner.py
+      - name: Install published bottle through setup-php
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        env:
+          update: 'true'
+          debug: ${{ matrix.debug }}
+          phpts: ${{ matrix.phpts }}
+          use_package_cache: 'false'
+          SETUP_PHP_BREW_WATCHDOG: 'false'
+        with:
+          php-version: ${{ matrix.series }}
+          extensions: opcache
+          coverage: none
+          tools: none
+      - name: Verify exact bottle, configuration, CLI, CGI, FPM and LDAP
+        run: python3 scripts/check_install.py
+      - name: Run the formula integration test
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          brew install httpd
+          brew test "shivammathur/php/$FORMULA" 2>&1 | tee results/brew-test.log
+      - name: Retain evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: published-${{ matrix.formula }}-${{ matrix.tag }}-${{ github.run_attempt }}
+          path: results/
+          if-no-files-found: warn
+          retention-days: 90
+  install_linux:
+    needs: plan
+    name: ${{ matrix.formula }} on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.linux) }}
+    container:
+      image: ghcr.io/homebrew/brew:main # zizmor: ignore[unpinned-images] Test the supported Homebrew image.
+      options: --user=linuxbrew
+    defaults:
+      run:
+        shell: bash
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+      HOMEBREW_NO_ANALYTICS: 1
+      FORMULA: ${{ matrix.formula }}
+      EXPECTED_TAG: ${{ matrix.tag }}
+    steps:
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@4790763c0a3ba4036f72634dc079c4a7dfcd4878
+        with:
+          core: true
+          cask: false
+          stable: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Ensure Python is available
+        run: |
+          if ! command -v python3 >/dev/null; then
+            sudo apt-get -o Acquire::Retries=3 update
+            sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends python3
+          fi
+      - name: Start without preinstalled PHP or its configuration
+        run: python3 scripts/clean_runner.py
+      - name: Install ordinary public Homebrew bottle
+        run: |
+          set -euo pipefail
+          unset HOMEBREW_GITHUB_PACKAGES_TOKEN HOMEBREW_GITHUB_API_TOKEN GH_TOKEN
+          brew tap shivammathur/php
+          brew install --force-bottle "shivammathur/php/$FORMULA"
+      - name: Verify exact bottle, configuration, CLI, CGI, FPM and LDAP
+        run: python3 scripts/check_install.py
+      - name: Run the formula integration test
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          brew install httpd
+          brew test "shivammathur/php/$FORMULA" 2>&1 | tee results/brew-test.log
+      - name: Retain evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: published-${{ matrix.formula }}-${{ matrix.tag }}-${{ github.run_attempt }}
+          path: results/
+          if-no-files-found: warn
+          retention-days: 90

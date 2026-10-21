@@ -1,0 +1,1061 @@
+{
+  "public_commit": "51c75cafd84fdb4d8017ba517e37c39a0908e2bc",
+  "releases": [
+    {
+      "formula": "php@5.6",
+      "series": "5.6",
+      "version": "5.6.40",
+      "revision": 18,
+      "rebuild": 2,
+      "package": "5.6.40_18",
+      "debug": "false",
+      "phpts": "nts",
+      "variant": "normal",
+      "bottles": {
+        "arm64_golden_gate": "d11f6bbe512cb6e504f922f6f6ed183c2f5e426cb034083bb323d11da3e5b7aa",
+        "arm64_linux": "46eacafdbbbcfff394a6e73df786850bb29d36fcf877ec826c4cef8467977727",
+        "arm64_sequoia": "7334ec4d1405efbb53f7c7104c8112b6bffc202471b12e6119f1dc3d7dd434d5",
+        "arm64_tahoe": "212472e375bf246f465f464ec504168da376e10fdefadd54d99cb0938656a914",
+        "x86_64_linux": "90ed766472cb39c7d8f8fb1a7330742e77f9c8e0e409cba80567e7b1b0cde2f8"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/2e922830b542a067a306870dffd20040f34fb05c.tar.gz",
+        "sha256": "04c58a4a21c99f3a8df74c37141231691497ebf50a5dce3479f168de7b6f3a5e"
+      }
+    },
+    {
+      "formula": "php@5.6-debug",
+      "series": "5.6",
+      "version": "5.6.40",
+      "revision": 18,
+      "rebuild": 2,
+      "package": "5.6.40_18",
+      "debug": "true",
+      "phpts": "nts",
+      "variant": "debug",
+      "bottles": {
+        "arm64_golden_gate": "ba229699059ccefa7bf0479b3a5a6ac0af194c47c8b3b942011b7f9a1eac2deb",
+        "arm64_linux": "d2af230e39ff59673bcb3148c22c431966f58ce7b8cc3bc68bb03589392b81ee",
+        "arm64_sequoia": "dfbdc08883d76193c3dfd0c265f476377f809019cb3d24bc10c4ea267695127f",
+        "arm64_tahoe": "efee304eec3a96228e1b5748a467f6c8af8908d1f48567042571f99e0c5389aa",
+        "x86_64_linux": "cfd441daa6ac232bb6a397d2ab2852a546d5f6caff9b38623bc181a48d8a4157"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/2e922830b542a067a306870dffd20040f34fb05c.tar.gz",
+        "sha256": "04c58a4a21c99f3a8df74c37141231691497ebf50a5dce3479f168de7b6f3a5e"
+      }
+    },
+    {
+      "formula": "php@5.6-debug-zts",
+      "series": "5.6",
+      "version": "5.6.40",
+      "revision": 9,
+      "rebuild": 1,
+      "package": "5.6.40_9",
+      "debug": "true",
+      "phpts": "ts",
+      "variant": "debug-zts",
+      "bottles": {
+        "arm64_golden_gate": "e55f3f632a0568d92b1f7e3cd516ac6d3da51e3dac901cc9833f9875a90445cb",
+        "arm64_linux": "7dbf31cdacec31e811ac93cbcf9afca3b347955f6d5550457f6bd72e3a006105",
+        "arm64_sequoia": "9a41fc6157f82291243f143f26d9650586678553dfbcabadc1a8063071d116b5",
+        "arm64_tahoe": "86efc2771bec77d02070b5c949f94f4e019d0c93d0178f5a28dc695372cca8dd",
+        "x86_64_linux": "b06ac010c16cf745eeea635c3cfd48d1a55106aae52f2d1ca54ddf9e054732e8"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/2e922830b542a067a306870dffd20040f34fb05c.tar.gz",
+        "sha256": "04c58a4a21c99f3a8df74c37141231691497ebf50a5dce3479f168de7b6f3a5e"
+      }
+    },
+    {
+      "formula": "php@5.6-zts",
+      "series": "5.6",
+      "version": "5.6.40",
+      "revision": 10,
+      "rebuild": 1,
+      "package": "5.6.40_10",
+      "debug": "false",
+      "phpts": "ts",
+      "variant": "zts",
+      "bottles": {
+        "arm64_golden_gate": "15b53e6679b00a974abef3d6349f3cfdcaa0cdc0522e6cf9ede8edaaa974cb65",
+        "arm64_linux": "4e1131c627477db9d5d0dfd71ce965e2d65936b72585fb85de167b42670d3441",
+        "arm64_sequoia": "a235e99a4414c4aa5d61ed9316c861211f52029ff09a709346515e9096b3b83c",
+        "arm64_tahoe": "24b20a3869b5ad585580254d238eea91ced01aa5ec96f12e1117c3eba7d7fcc1",
+        "x86_64_linux": "b4b9c44056734d75da8588511c0b4a9e5f515fd26b964a3c50fdbda85189cc5e"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/2e922830b542a067a306870dffd20040f34fb05c.tar.gz",
+        "sha256": "04c58a4a21c99f3a8df74c37141231691497ebf50a5dce3479f168de7b6f3a5e"
+      }
+    },
+    {
+      "formula": "php@7.0",
+      "series": "7.0",
+      "version": "7.0.33",
+      "revision": 20,
+      "rebuild": 1,
+      "package": "7.0.33_20",
+      "debug": "false",
+      "phpts": "nts",
+      "variant": "normal",
+      "bottles": {
+        "arm64_golden_gate": "81d546914c0219494631429446ec2dd8856efb8a0a11a6660edcd6d6a80c971e",
+        "arm64_linux": "ee67639f9dd18770e94b9368d698fe641f046bca2189b80b21b56ecec3b2b794",
+        "arm64_sequoia": "99e80cf8b4f08c92eb454e39f5a481d7c0f927a317bbeb1e178ecba30cfda12d",
+        "arm64_tahoe": "3a9d31a1127f3188514bc83420efc4b18ebb1716d66422614d2ad0bb77a7727b",
+        "x86_64_linux": "dfa8bbb225f1c84241082025cbe797f8a4f4e80a297a9c1821bd7d4b9c04c83a"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/76d932fdc0b984a1a8d9bd42bd04fb386e36135f.tar.gz",
+        "sha256": "c7363edcfbae285748026db1e4dc70d119fead29f49c13fc42a0067d1b093241"
+      }
+    },
+    {
+      "formula": "php@7.0-debug",
+      "series": "7.0",
+      "version": "7.0.33",
+      "revision": 19,
+      "rebuild": 1,
+      "package": "7.0.33_19",
+      "debug": "true",
+      "phpts": "nts",
+      "variant": "debug",
+      "bottles": {
+        "arm64_golden_gate": "98780738604025e1fdbd0534e3164c5da75a6573dcfd95c9fe393e5b39ab809b",
+        "arm64_linux": "f00a995047502f6b736e136c561654143099ef4dc18513823703fe075a91821f",
+        "arm64_sequoia": "934d24b631a691cc2f0f6c16e793382d24ba06cfdb9199755a1d756a5492bc6f",
+        "arm64_tahoe": "9f32474faa6acdf4461c2bc2f46be5e3718ef9859c26dd66d13f79daa0739ff0",
+        "x86_64_linux": "9572485037be1fba9174310a6746144ed8770c83ecaafeebde2af0e45087ce62"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/76d932fdc0b984a1a8d9bd42bd04fb386e36135f.tar.gz",
+        "sha256": "c7363edcfbae285748026db1e4dc70d119fead29f49c13fc42a0067d1b093241"
+      }
+    },
+    {
+      "formula": "php@7.0-debug-zts",
+      "series": "7.0",
+      "version": "7.0.33",
+      "revision": 9,
+      "rebuild": 1,
+      "package": "7.0.33_9",
+      "debug": "true",
+      "phpts": "ts",
+      "variant": "debug-zts",
+      "bottles": {
+        "arm64_golden_gate": "99badfad9ece4929f89c3a06713d626eb605a0f188b9906f9033ae8a5ff4107a",
+        "arm64_linux": "47eb5556985ccf3e415090dc995b85f1935f202294b67ec19f84ac2a17d523f2",
+        "arm64_sequoia": "1aec83f4bc8e405e4b18e8353fad265c7e0fdb443ca521371943d9278174438b",
+        "arm64_tahoe": "eacda0decb0be399d035f6ab9dcd947a9bbbe72ebf96ad4476d8800839f1fb22",
+        "x86_64_linux": "19dfdaaa5ccf8b043a16dedc2e621f0529e0b6f16c2f44abe5f19e15d84ff274"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/76d932fdc0b984a1a8d9bd42bd04fb386e36135f.tar.gz",
+        "sha256": "c7363edcfbae285748026db1e4dc70d119fead29f49c13fc42a0067d1b093241"
+      }
+    },
+    {
+      "formula": "php@7.0-zts",
+      "series": "7.0",
+      "version": "7.0.33",
+      "revision": 10,
+      "rebuild": 1,
+      "package": "7.0.33_10",
+      "debug": "false",
+      "phpts": "ts",
+      "variant": "zts",
+      "bottles": {
+        "arm64_golden_gate": "93b63568a3487e1572a8bbb3879b838333a9b604e7c4b3b47a4b88614d60797e",
+        "arm64_linux": "646f1fb486947face3e76549be9f98b5a28ddeb5839b1486d5c8b17bdefaf13c",
+        "arm64_sequoia": "c22c7c1ed5b753c0ebea511f9eac001c0346486f561e8027f3d2446fc79d6e6c",
+        "arm64_tahoe": "9dbbed7dfbc0f9a22dd6f1e5af1b74f96e8de30902632784296888a14475abf9",
+        "x86_64_linux": "10bef54c58c4291fd0a94bbefad6c007c0fe4c91dbd200eeb841d32507f7c121"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/76d932fdc0b984a1a8d9bd42bd04fb386e36135f.tar.gz",
+        "sha256": "c7363edcfbae285748026db1e4dc70d119fead29f49c13fc42a0067d1b093241"
+      }
+    },
+    {
+      "formula": "php@7.1",
+      "series": "7.1",
+      "version": "7.1.33",
+      "revision": 18,
+      "rebuild": 1,
+      "package": "7.1.33_18",
+      "debug": "false",
+      "phpts": "nts",
+      "variant": "normal",
+      "bottles": {
+        "arm64_golden_gate": "d9162ddf5217748ea5c0c992b5b5ba9e8315799030472b92934768d5d4441dff",
+        "arm64_linux": "84c07e393405e4a3809588840b94f85502503b503418efd3eb3fcea276275e89",
+        "arm64_sequoia": "9bfc5b4a56f576738afc5f03901a56ed0e54b077c9ea59101981db001ebada33",
+        "arm64_tahoe": "16fceac181d58a41253b7dd0b0e188cb16e0bad5f15cf6cbf42364298da313a6",
+        "x86_64_linux": "b921b24152eb630100a9c45430504d6bd4600081f31feaa24894870d5d1341a1"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/85accd17bbbe667724a4901e0b3eec4f5fabddaa.tar.gz",
+        "sha256": "f5c5326b49a1b2c0fb6049ba6e237e7ad3df4a3f75885509f591b71c15232f44"
+      }
+    },
+    {
+      "formula": "php@7.1-debug",
+      "series": "7.1",
+      "version": "7.1.33",
+      "revision": 18,
+      "rebuild": 1,
+      "package": "7.1.33_18",
+      "debug": "true",
+      "phpts": "nts",
+      "variant": "debug",
+      "bottles": {
+        "arm64_golden_gate": "9c53ba3bb21be8bd05283c558ae28fa4925c3c6f3606dd32583c3ce4154767fa",
+        "arm64_linux": "2f7aea022c541d5eae08e2b62ca0a1bb0fb30e1b0c4402d416944dcf38298740",
+        "arm64_sequoia": "cace32fe70a947b19f5b2bd304a349496d49b3e271bad606f609cf802620d263",
+        "arm64_tahoe": "1394ca292c27ba1669a166b11101603408eecd5b311b7d4505dc1117c09fd186",
+        "x86_64_linux": "77d13cc3536393f7f379a242bbf7e7502bc4ffc0b58fed9e342b1e70063044c9"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/85accd17bbbe667724a4901e0b3eec4f5fabddaa.tar.gz",
+        "sha256": "f5c5326b49a1b2c0fb6049ba6e237e7ad3df4a3f75885509f591b71c15232f44"
+      }
+    },
+    {
+      "formula": "php@7.1-debug-zts",
+      "series": "7.1",
+      "version": "7.1.33",
+      "revision": 9,
+      "rebuild": 1,
+      "package": "7.1.33_9",
+      "debug": "true",
+      "phpts": "ts",
+      "variant": "debug-zts",
+      "bottles": {
+        "arm64_golden_gate": "f22c17e4dafd9b1b187bb88f874b9b9f3c8be8d9ba346b957aed83ffc1a83184",
+        "arm64_linux": "8386375eb92f74ab9e70422bbb575edf9a98ffbc60c378ac9d82d9aafcdef014",
+        "arm64_sequoia": "ffb356f4a2bc079efc65c8fcf0e6c6b00385cb993d894713846fdbba36530bd1",
+        "arm64_tahoe": "3d25998f103efa41b53615d98f14c5d84e38f308755c3fddee746d9e3163b56c",
+        "x86_64_linux": "d5383d8e330e13f3f8b586b3aa2ca72f8b7e913c61d622980ee3ef920cf0bf71"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/85accd17bbbe667724a4901e0b3eec4f5fabddaa.tar.gz",
+        "sha256": "f5c5326b49a1b2c0fb6049ba6e237e7ad3df4a3f75885509f591b71c15232f44"
+      }
+    },
+    {
+      "formula": "php@7.1-zts",
+      "series": "7.1",
+      "version": "7.1.33",
+      "revision": 9,
+      "rebuild": 1,
+      "package": "7.1.33_9",
+      "debug": "false",
+      "phpts": "ts",
+      "variant": "zts",
+      "bottles": {
+        "arm64_golden_gate": "da0762d34562a854508f4d49a9b9471278a72154f67058661707f3283774e908",
+        "arm64_linux": "d930160fe9dde42a70ec63f29e7d96048b9448c5cde1d1d5ca1674f4e65ab1d0",
+        "arm64_sequoia": "70cc7028e188dc67e09bdcaa90f04bb982414fd3406e8ea1204b4bcbc9566876",
+        "arm64_tahoe": "61c798cd9c0d98124528f5a9c9d23afd1cabe74db45d87e5898b19c871906781",
+        "x86_64_linux": "551f090fe0f24e86354075c00333cabac001bbd40c981d4b32fd38032ad0d6e7"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/85accd17bbbe667724a4901e0b3eec4f5fabddaa.tar.gz",
+        "sha256": "f5c5326b49a1b2c0fb6049ba6e237e7ad3df4a3f75885509f591b71c15232f44"
+      }
+    },
+    {
+      "formula": "php@7.2",
+      "series": "7.2",
+      "version": "7.2.34",
+      "revision": 19,
+      "rebuild": 1,
+      "package": "7.2.34_19",
+      "debug": "false",
+      "phpts": "nts",
+      "variant": "normal",
+      "bottles": {
+        "arm64_golden_gate": "ab89ab0ea8640c77b1e9106f943faf36a5cd2dc2b5e7d5753b655b06ddf7b0f2",
+        "arm64_linux": "4b5fb3bd17efc26f0b39e3cef6aed0aee777579fb8df6739f30b61cc479ccca2",
+        "arm64_sequoia": "b2b622d5abfe1f4931d489d679900343718c4cc14965b5eb25bf733a6ab9a9db",
+        "arm64_tahoe": "7bd7207bac9563aa7a69514f6d360c6e9339de2ae063985e64331adc1c523e35",
+        "x86_64_linux": "583715a20b5311fb65f4e98e4b2de4fe54637847f9122bc8d4d98d0e1fe53cb2"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/f4457d3e8b14e8fd31f70dde5b19e6799fe71538.tar.gz",
+        "sha256": "2beaaef99d934c31390a83e51dd61f981004fca474aa4655573292409ce83ca4"
+      }
+    },
+    {
+      "formula": "php@7.2-debug",
+      "series": "7.2",
+      "version": "7.2.34",
+      "revision": 19,
+      "rebuild": 1,
+      "package": "7.2.34_19",
+      "debug": "true",
+      "phpts": "nts",
+      "variant": "debug",
+      "bottles": {
+        "arm64_golden_gate": "41b86638128364b1b206fa9564aa4aadd72e0c6ce9753c3663eed941f91540e0",
+        "arm64_linux": "4babe24265f8b3360f879d093cace59928df62d910d7d0c798a498a00aa73afe",
+        "arm64_sequoia": "4608fd10fb0dad2e839e5c03150a4735b2f87402c0b6c0c6c313ae1f23c4e341",
+        "arm64_tahoe": "4143a2ee39938f17456304829d21766280af4900116dc0d122c7bfa297b27813",
+        "x86_64_linux": "90b7343de557dd15e75ce2c3807ac03b27be016ddc1e1c0b60bd00f44a2fb28b"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/f4457d3e8b14e8fd31f70dde5b19e6799fe71538.tar.gz",
+        "sha256": "2beaaef99d934c31390a83e51dd61f981004fca474aa4655573292409ce83ca4"
+      }
+    },
+    {
+      "formula": "php@7.2-debug-zts",
+      "series": "7.2",
+      "version": "7.2.34",
+      "revision": 9,
+      "rebuild": 1,
+      "package": "7.2.34_9",
+      "debug": "true",
+      "phpts": "ts",
+      "variant": "debug-zts",
+      "bottles": {
+        "arm64_golden_gate": "3f1875b9f4140dba929642df21be44c37200c214de4fbb20ed3082dbe6514403",
+        "arm64_linux": "0235a6fb878b6a14f9ac3cbf3be9f36560ece51619d006e165cf02a333b9dfdf",
+        "arm64_sequoia": "665ce6b85d761e924c0ab15a7b7e7a719d32070ecf67c530a666ffea67a71dd5",
+        "arm64_tahoe": "de733fbf35fbb87166331e5a8ec787dd1620b7c16fe83346211bb9589c1cb3a8",
+        "x86_64_linux": "1d9260f1157b2ad9563241293ca8d9528f98b1bf05858974450d6728947baac2"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/f4457d3e8b14e8fd31f70dde5b19e6799fe71538.tar.gz",
+        "sha256": "2beaaef99d934c31390a83e51dd61f981004fca474aa4655573292409ce83ca4"
+      }
+    },
+    {
+      "formula": "php@7.2-zts",
+      "series": "7.2",
+      "version": "7.2.34",
+      "revision": 9,
+      "rebuild": 1,
+      "package": "7.2.34_9",
+      "debug": "false",
+      "phpts": "ts",
+      "variant": "zts",
+      "bottles": {
+        "arm64_golden_gate": "d4d98b30669df5b8617be3eae3f8f7d2dd6317f8d6f6e7db716f0337b7723711",
+        "arm64_linux": "0bb046fe19f29c323ac77d5638fde5c56b2caf89164a3ee4ac177e5e2acb0935",
+        "arm64_sequoia": "df1ae47cb17a0222f486f75321b4fc5002ee2f724d789ff8432dc5c6bb8f4267",
+        "arm64_tahoe": "2aa0e8f8f66786d8dd3d6e4710772babc81b8e5deb1b51fc9010679d91b8c82c",
+        "x86_64_linux": "dc2078f6a03ac86c7ad3b63c367f3a8ffda83e47d216ac8a1931d6e910fd7a2b"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/f4457d3e8b14e8fd31f70dde5b19e6799fe71538.tar.gz",
+        "sha256": "2beaaef99d934c31390a83e51dd61f981004fca474aa4655573292409ce83ca4"
+      }
+    },
+    {
+      "formula": "php@7.3",
+      "series": "7.3",
+      "version": "7.3.33",
+      "revision": 17,
+      "rebuild": 1,
+      "package": "7.3.33_17",
+      "debug": "false",
+      "phpts": "nts",
+      "variant": "normal",
+      "bottles": {
+        "arm64_golden_gate": "9ffe5e87568a7cbb3bf7c51948eec5c5e3603b800a80b2bb5ac5d5088dd71d4b",
+        "arm64_linux": "d200ad4a85162254fb7f268fa37c8eed26e2594228739d24089c5bb2ddea29d3",
+        "arm64_sequoia": "65a97970f74bfcd70111e731270f888d95cc0c056e2d51efc6b8f12691ad244a",
+        "arm64_tahoe": "eb5e2d3a075145181962c8ac82306a751d4864f89e80644e71be659b96cf8180",
+        "x86_64_linux": "0da86dec666a31a7872149876abf671ff5b170f041f151dbe8d7350f3b92c674"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/ca7964825059d3d64b3e6854b18c60fc82ed6916.tar.gz",
+        "sha256": "6675a93f6e215cb6cf0f2af4ecc8b17f9dbe26b65588d26c550c131a6e6eff29"
+      }
+    },
+    {
+      "formula": "php@7.3-debug",
+      "series": "7.3",
+      "version": "7.3.33",
+      "revision": 17,
+      "rebuild": 1,
+      "package": "7.3.33_17",
+      "debug": "true",
+      "phpts": "nts",
+      "variant": "debug",
+      "bottles": {
+        "arm64_golden_gate": "a8cedf1102290843906d04687ca11ca915cfc56a8ca03361b87d48b09bb3f0ac",
+        "arm64_linux": "00f2e5e4327f6a37fc22468fa183b3c09d9811c8ece9c2b3eb72c3360ab4add8",
+        "arm64_sequoia": "ea53ae0565977a9dd65d3c68d2fc05175fab0512e4fe97a062bc3f048f5fe599",
+        "arm64_tahoe": "34d21ade000efc2dfd0f2dcb2f65c8acdac04a42d216cdaa3f1bad520acb01a6",
+        "x86_64_linux": "24c4587133b2aaad55e205050494b317e0a0f719ef56f32cfa923be5b717a76c"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/ca7964825059d3d64b3e6854b18c60fc82ed6916.tar.gz",
+        "sha256": "6675a93f6e215cb6cf0f2af4ecc8b17f9dbe26b65588d26c550c131a6e6eff29"
+      }
+    },
+    {
+      "formula": "php@7.3-debug-zts",
+      "series": "7.3",
+      "version": "7.3.33",
+      "revision": 9,
+      "rebuild": 1,
+      "package": "7.3.33_9",
+      "debug": "true",
+      "phpts": "ts",
+      "variant": "debug-zts",
+      "bottles": {
+        "arm64_golden_gate": "540b653f3a110766dd56b8ed15f7798b552eb331550c194f28669d8ddde3af02",
+        "arm64_linux": "af8142d05c19d78bc5c40ff4a8ea7b71b68e4d9edf9c0c86a735f66aacd4a243",
+        "arm64_sequoia": "b9d4881047e0735867a6b0c2ffd455ced563b8c4462496e22bd3c48fd0d049de",
+        "arm64_tahoe": "a34c78827ded23dc264cb240fd90f0eafb1c8a3fffeda7aa3af095d3f129d999",
+        "x86_64_linux": "aa75e5190970e6577b4d3a79cbd4bf3d36ebb1b929125f7d6fe4544deecd91cf"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/ca7964825059d3d64b3e6854b18c60fc82ed6916.tar.gz",
+        "sha256": "6675a93f6e215cb6cf0f2af4ecc8b17f9dbe26b65588d26c550c131a6e6eff29"
+      }
+    },
+    {
+      "formula": "php@7.3-zts",
+      "series": "7.3",
+      "version": "7.3.33",
+      "revision": 9,
+      "rebuild": 1,
+      "package": "7.3.33_9",
+      "debug": "false",
+      "phpts": "ts",
+      "variant": "zts",
+      "bottles": {
+        "arm64_golden_gate": "5bb4317d46acc7a7ab1bfd3e490dfa6cb65da558829feb2c0d9a84d91ffda51a",
+        "arm64_linux": "fb93ce32c4aac91e6343436e999320e4a3bf6bf35cae826875895647d43cb7be",
+        "arm64_sequoia": "bf09435894f39c5d44b1db4aff2bedcb3c245d5d26d999bb0ca31ca7731f9dd9",
+        "arm64_tahoe": "12672da74580826fb15d99dc2a93a7441542f9a61670a12cf9dd6c464c0c86dd",
+        "x86_64_linux": "33ee0a8caee628b2fc3a25b0a7d2aa3b99a55e0640f828bf05634b0f2a970962"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/ca7964825059d3d64b3e6854b18c60fc82ed6916.tar.gz",
+        "sha256": "6675a93f6e215cb6cf0f2af4ecc8b17f9dbe26b65588d26c550c131a6e6eff29"
+      }
+    },
+    {
+      "formula": "php@7.4",
+      "series": "7.4",
+      "version": "7.4.33",
+      "revision": 16,
+      "rebuild": 1,
+      "package": "7.4.33_16",
+      "debug": "false",
+      "phpts": "nts",
+      "variant": "normal",
+      "bottles": {
+        "arm64_golden_gate": "36105d0804c5cf4a1ecfd5995a2ceca6814bb62d4abb23ad3ef8bd247852f264",
+        "arm64_linux": "002038c186324095857674c02bcdfabfd821080c86c79bd8344b2141d9824592",
+        "arm64_sequoia": "c01d4502c475e1908844fecc5e94a7a609aa8dcef832641621deb93563a01484",
+        "arm64_tahoe": "47bb2b53b20ac9b562f6f83a2f64e9c015738ec66fe8daa57bc7c4445e4c261f",
+        "x86_64_linux": "6387ec877b339cb1f5e0e103d2681d227959ae126129d7edfbddd676123bb655"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/066522cf9c489c59d41bfca7cbfb08eb36fe4cd4.tar.gz",
+        "sha256": "da5bc8dd8f95b172b9be7a355f5e0b783a409c01100d305ff234af207bd39552"
+      }
+    },
+    {
+      "formula": "php@7.4-debug",
+      "series": "7.4",
+      "version": "7.4.33",
+      "revision": 17,
+      "rebuild": 1,
+      "package": "7.4.33_17",
+      "debug": "true",
+      "phpts": "nts",
+      "variant": "debug",
+      "bottles": {
+        "arm64_golden_gate": "03df0734467746b04db9eaefa9cc037d032207816a62a1cd8fcc1408e87875ec",
+        "arm64_linux": "b22fb5359d928194035dae1401cc42adb297661b28cdcdf71a281412133c91ec",
+        "arm64_sequoia": "6bbeae41a51a54199b5c112fa3633bc2051377747deb0be0269de12ff0acb870",
+        "arm64_tahoe": "917ca474e4df4791f23014c2e235207ad53085811eaaa8fadec7f3f1ba45a7e2",
+        "x86_64_linux": "28023ed3627c69ec4ffa40a6718927273ad0a4013d7c1ecdd897897b80fc5b96"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/066522cf9c489c59d41bfca7cbfb08eb36fe4cd4.tar.gz",
+        "sha256": "da5bc8dd8f95b172b9be7a355f5e0b783a409c01100d305ff234af207bd39552"
+      }
+    },
+    {
+      "formula": "php@7.4-debug-zts",
+      "series": "7.4",
+      "version": "7.4.33",
+      "revision": 9,
+      "rebuild": 1,
+      "package": "7.4.33_9",
+      "debug": "true",
+      "phpts": "ts",
+      "variant": "debug-zts",
+      "bottles": {
+        "arm64_golden_gate": "bb71f9519d194b3bdf2e62e73f7b16ef788152e5f4e91015dbb18b337cf9ed00",
+        "arm64_linux": "96b8810b0ac74a4898af6315fb14f563497469bb425cf650842d2f803648859c",
+        "arm64_sequoia": "b4e9c4b6f79a8e7c0dfb8ba7201db7a59c91e046269b5029ba28d842a2323393",
+        "arm64_tahoe": "6aea27fb2f79e4bf63cb8d2ef38d122ebf9d4c82a6e6e81d2e96c46299c7f9f4",
+        "x86_64_linux": "015ef67c6ae3b96a387638c8ca561f2db258c4320fff81163fc20bc56130316c"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/066522cf9c489c59d41bfca7cbfb08eb36fe4cd4.tar.gz",
+        "sha256": "da5bc8dd8f95b172b9be7a355f5e0b783a409c01100d305ff234af207bd39552"
+      }
+    },
+    {
+      "formula": "php@7.4-zts",
+      "series": "7.4",
+      "version": "7.4.33",
+      "revision": 9,
+      "rebuild": 1,
+      "package": "7.4.33_9",
+      "debug": "false",
+      "phpts": "ts",
+      "variant": "zts",
+      "bottles": {
+        "arm64_golden_gate": "1c7ea5498a7c54b6bacdf7a29433acec25440fa95e41538df64515589e7a90ad",
+        "arm64_linux": "17eaf170458581218972177de41672ecb630e7228fa5a49ff731dea5f1ee7541",
+        "arm64_sequoia": "d576046ed12d2deba55ec8c3e0e47b2d70d67f3be53d82269b652f6da8fed9c7",
+        "arm64_tahoe": "aa7e7139aee6459f0b9fc160ce1709557dc98abed5491b1b78ef050d187d950b",
+        "x86_64_linux": "19f23392aa6a07386548fc57451fa1f5ab016fb213b4a1301fe08daab0b54a80"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/066522cf9c489c59d41bfca7cbfb08eb36fe4cd4.tar.gz",
+        "sha256": "da5bc8dd8f95b172b9be7a355f5e0b783a409c01100d305ff234af207bd39552"
+      }
+    },
+    {
+      "formula": "php@8.0",
+      "series": "8.0",
+      "version": "8.0.30",
+      "revision": 13,
+      "rebuild": 1,
+      "package": "8.0.30_13",
+      "debug": "false",
+      "phpts": "nts",
+      "variant": "normal",
+      "bottles": {
+        "arm64_golden_gate": "5d31161f970c93f2466bfdcf59d79619fb7064c43c23967e56d1455902951fff",
+        "arm64_linux": "f83cd7bf6e3d7cac4b9c1abe5e6b9c159fb04cc01934f2b5d22341283a4bbd5a",
+        "arm64_sequoia": "662f4b6373e15852934955a40c96ee18d4e411ccf11791457aeba67fce9de85c",
+        "arm64_tahoe": "d439ece4c0e0056a988986d6a2349c4d92c3210d64ae1d487d37d1ed31555f8b",
+        "x86_64_linux": "e1fcfa012895c8b8f3fe79559c09a0266137553adb19b854f05d1608da64d344"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/5f8af80e6bdfe5d80880abccc4e7cb415c26ca42.tar.gz",
+        "sha256": "75a276a0a65cb6ad4dfab2db6fa0719601b593bfa99fd1936105952465e4e111"
+      }
+    },
+    {
+      "formula": "php@8.0-debug",
+      "series": "8.0",
+      "version": "8.0.30",
+      "revision": 13,
+      "rebuild": 1,
+      "package": "8.0.30_13",
+      "debug": "true",
+      "phpts": "nts",
+      "variant": "debug",
+      "bottles": {
+        "arm64_golden_gate": "b122029b3b5f2e3892e0cdd28111840eea57da8f0f32969c4528522d44b97248",
+        "arm64_linux": "7f5e0cbfd918ea396615fea3c88ac99e66604db31810972dd03b828d59bf9293",
+        "arm64_sequoia": "653ad67d8c71c1247eb975e610d0f49f8144c2cb595b7fa4636f7ab9e9024024",
+        "arm64_tahoe": "f3a8e09a23a5b9776d6fddab3415869950046301b9627c9abb1df50195c2a32e",
+        "x86_64_linux": "131f5b92371a9ab135f7d635122705128d1a50bcfacca980dcb7a83fb0931c28"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/5f8af80e6bdfe5d80880abccc4e7cb415c26ca42.tar.gz",
+        "sha256": "75a276a0a65cb6ad4dfab2db6fa0719601b593bfa99fd1936105952465e4e111"
+      }
+    },
+    {
+      "formula": "php@8.0-debug-zts",
+      "series": "8.0",
+      "version": "8.0.30",
+      "revision": 10,
+      "rebuild": 1,
+      "package": "8.0.30_10",
+      "debug": "true",
+      "phpts": "ts",
+      "variant": "debug-zts",
+      "bottles": {
+        "arm64_golden_gate": "af0e673dca19cc9cecdb52989352e3ab33386f1c355051ab85f1aac91a981aec",
+        "arm64_linux": "0dc4fb210059000403b4729575f022bf563d84a43d262e7110f10d7535418294",
+        "arm64_sequoia": "8ea6da1565e8dc9266e00de693da5afdcc42f5520c12ab0e030d0bdf5c884710",
+        "arm64_tahoe": "de1a96dd917fe09f0c05678dbf923e2cd60de293d04f36b719584dc3963813bb",
+        "x86_64_linux": "514d1d5a61402049d5899123c1f6b40fa9100ce3ab647965766311c12d244621"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/5f8af80e6bdfe5d80880abccc4e7cb415c26ca42.tar.gz",
+        "sha256": "75a276a0a65cb6ad4dfab2db6fa0719601b593bfa99fd1936105952465e4e111"
+      }
+    },
+    {
+      "formula": "php@8.0-zts",
+      "series": "8.0",
+      "version": "8.0.30",
+      "revision": 10,
+      "rebuild": 1,
+      "package": "8.0.30_10",
+      "debug": "false",
+      "phpts": "ts",
+      "variant": "zts",
+      "bottles": {
+        "arm64_golden_gate": "ee66cb387908c661829e62e58fdb2457ac24cb45e004a9aa5637e864699bbd7d",
+        "arm64_linux": "3c4abbf231f82e7f48f0dd2589f88cca899390cc4e31ddb76a152393c041bb10",
+        "arm64_sequoia": "55ec145922f8117821c7045b254e4a511424125aa458248c682402cf098399fa",
+        "arm64_tahoe": "21c17fa5304a418e0b0880328388b359c58f48201014ba5aa9c70a09be2432b4",
+        "x86_64_linux": "a854b61142f82ad7626f2aee43066867572412389dbccd008dfacd33a6041a46"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/5f8af80e6bdfe5d80880abccc4e7cb415c26ca42.tar.gz",
+        "sha256": "75a276a0a65cb6ad4dfab2db6fa0719601b593bfa99fd1936105952465e4e111"
+      }
+    },
+    {
+      "formula": "php@8.1",
+      "series": "8.1",
+      "version": "8.1.34",
+      "revision": 4,
+      "rebuild": 1,
+      "package": "8.1.34_4",
+      "debug": "false",
+      "phpts": "nts",
+      "variant": "normal",
+      "bottles": {
+        "arm64_golden_gate": "1324018ed774ca370ef8edc40d478a5a6663502da49b90ca14924444b84c1485",
+        "arm64_linux": "be977ccd66b974bc76d33139ed2ab2e8197cdb3630b5311889a3ce67eebd2a2f",
+        "arm64_sequoia": "635d9cbb3b8ba60d5800983c58e468b4c001543e508e59123acdc07db82a385c",
+        "arm64_tahoe": "0d9d72b3243bd9a63de37dac335bfe9566ac207fd634b643ee571a86c94de241",
+        "x86_64_linux": "5097001a49163dd33ff09c801130b1948b4aff44a9c24620f49f5d9639add561"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/6fe2f0f6ccaeecd47dfc40513296097dee722d44.tar.gz",
+        "sha256": "558e79567d4c910b009f757984a3a07a440ad5aa56c0df0edd6c51484c5b5594"
+      }
+    },
+    {
+      "formula": "php@8.1-debug",
+      "series": "8.1",
+      "version": "8.1.34",
+      "revision": 4,
+      "rebuild": 1,
+      "package": "8.1.34_4",
+      "debug": "true",
+      "phpts": "nts",
+      "variant": "debug",
+      "bottles": {
+        "arm64_golden_gate": "8f65c39ab04b4bd3caf6218d262a45edeb3fdff60f3720386a2ec0e2d03f9236",
+        "arm64_linux": "157165e7edd6f14bdaff9cffd2ec78aa72e53df26158c8dea664309f4f6f7896",
+        "arm64_sequoia": "fd4e6ee08654a4842b54484aae3692e8b836ea02d62b10d6d286a95ece98c0ea",
+        "arm64_tahoe": "4abba7989816b1e6af84bdee89c0a92ba9501f7524c203ac07dbe87c97ce2f46",
+        "x86_64_linux": "b6153ff85fc25e25d93203deb0cfb2855a6f6fb1caff9b033bf5d72090012131"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/6fe2f0f6ccaeecd47dfc40513296097dee722d44.tar.gz",
+        "sha256": "558e79567d4c910b009f757984a3a07a440ad5aa56c0df0edd6c51484c5b5594"
+      }
+    },
+    {
+      "formula": "php@8.1-debug-zts",
+      "series": "8.1",
+      "version": "8.1.34",
+      "revision": 4,
+      "rebuild": 1,
+      "package": "8.1.34_4",
+      "debug": "true",
+      "phpts": "ts",
+      "variant": "debug-zts",
+      "bottles": {
+        "arm64_golden_gate": "b98000450f2bc374ca867ed1d4d9ea391b33e9769b2f20059b3d5724407c886c",
+        "arm64_linux": "06c8f32f4bca35590c02e40de4d39f1615ddeb062e7bffd4aa41b07400ba9b26",
+        "arm64_sequoia": "7bb13007437223b3e1153bdc2c9555e29e446b6240e35c89c5aa7eea53b0ed09",
+        "arm64_tahoe": "6c06d836d8a1760b6f2b78e5acd1ef96b735fc1a3d1f56d38269d34afb3ddefd",
+        "x86_64_linux": "dd7acd95bcc29237e85bb1a598a9b1ef92ca3d9b642f34579cab735580da86b4"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/6fe2f0f6ccaeecd47dfc40513296097dee722d44.tar.gz",
+        "sha256": "558e79567d4c910b009f757984a3a07a440ad5aa56c0df0edd6c51484c5b5594"
+      }
+    },
+    {
+      "formula": "php@8.1-zts",
+      "series": "8.1",
+      "version": "8.1.34",
+      "revision": 4,
+      "rebuild": 1,
+      "package": "8.1.34_4",
+      "debug": "false",
+      "phpts": "ts",
+      "variant": "zts",
+      "bottles": {
+        "arm64_golden_gate": "a29503dc8c96368a2db2911a84d9fd64d579da7f0cf81d2e04dfdb8423c878b2",
+        "arm64_linux": "51d4d7db488bb7dcb155680462e4f0f88db95c7a9f0c95c89686757ecfdf4e00",
+        "arm64_sequoia": "d0e6d87931dfbb4ed3bd02e4792481547ab12eaa1d910c69b8b1d287799c0890",
+        "arm64_tahoe": "faeb0fe0a9a6140b6b7f3f88b3e25e5f333630329d9bd72a0716838583044e10",
+        "x86_64_linux": "9755e064216627954b9b2811239db308d58ee24e720ff3e9a21224c2c21ece7b"
+      },
+      "source": {
+        "url": "https://github.com/shivammathur/php-src-backports/archive/6fe2f0f6ccaeecd47dfc40513296097dee722d44.tar.gz",
+        "sha256": "558e79567d4c910b009f757984a3a07a440ad5aa56c0df0edd6c51484c5b5594"
+      }
+    },
+    {
+      "formula": "php@8.2",
+      "series": "8.2",
+      "version": "8.2.35",
+      "revision": 0,
+      "rebuild": 0,
+      "package": "8.2.35",
+      "debug": "false",
+      "phpts": "nts",
+      "variant": "normal",
+      "bottles": {
+        "arm64_golden_gate": "29cd3ba96e58759b50b368894d8741aed84712c9d1575dc0cb3c0437f868ad63",
+        "arm64_linux": "09d0be2b86070d9e9fdeac5996981d51eab35715f84cd214d707c1992d57d506",
+        "arm64_sequoia": "815eea7c4e7d2a3fe2f56d6da77dd244ea9f74f5385091a6708f958cc03af90b",
+        "arm64_tahoe": "d7c8ada060b502bad26ba38e893a0f5578bd7b4d9d14be0e041f98696ab71679",
+        "x86_64_linux": "c7cb1eb4de20993fcf96ad35d3f89d7f5337407899fcb31b12ebc9da2cf49aaf"
+      },
+      "source": {
+        "url": "https://www.php.net/distributions/php-8.2.35.tar.xz",
+        "sha256": "5737b98601fe5ab1b8c5db0c82ed3158acb9283ed3081ffe2faffb9ac81455e6"
+      }
+    },
+    {
+      "formula": "php@8.2-debug",
+      "series": "8.2",
+      "version": "8.2.35",
+      "revision": 0,
+      "rebuild": 0,
+      "package": "8.2.35",
+      "debug": "true",
+      "phpts": "nts",
+      "variant": "debug",
+      "bottles": {
+        "arm64_golden_gate": "a95248904483194d8b01e593e8c2e1d14411c5823eb8b7e8180f53830ffa723e",
+        "arm64_linux": "8e9fdd4bce7b3241ba63aba0946a654b9eb8c1b200b1ea13d05ddc323402be0f",
+        "arm64_sequoia": "ffeeda89f2bc797069c51456e60d91363aa58d27d46ee843c986e3a1f386b848",
+        "arm64_tahoe": "0cb108f1956b191f16d41b6612e3f583a56dc3a1255eeab1d06ed8f46e8d41e6",
+        "x86_64_linux": "35f857a46503d1a6542a0f4f3f974e7cf1cd56992fdb2f8f215a5fbd1bee7a7d"
+      },
+      "source": {
+        "url": "https://www.php.net/distributions/php-8.2.35.tar.xz",
+        "sha256": "5737b98601fe5ab1b8c5db0c82ed3158acb9283ed3081ffe2faffb9ac81455e6"
+      }
+    },
+    {
+      "formula": "php@8.2-debug-zts",
+      "series": "8.2",
+      "version": "8.2.35",
+      "revision": 0,
+      "rebuild": 0,
+      "package": "8.2.35",
+      "debug": "true",
+      "phpts": "ts",
+      "variant": "debug-zts",
+      "bottles": {
+        "arm64_golden_gate": "3d05a3f8347f144b6b41df03526a9b6ef060326019dc588e7a40edb6bf6fc2b4",
+        "arm64_linux": "5fe83629139ee6123ca80a153e3459f77528fba9a660839846acb9b7cf3c54c5",
+        "arm64_sequoia": "f131ad55782bff29557ea304bf9b0b72fa5ce4abebd64dee05159b181b3ec0a2",
+        "arm64_tahoe": "8c266d8ab41e1c44d7a20c9b9a8ee5956b5bf25f2aab6c8890c775accbc6acf5",
+        "x86_64_linux": "496ebabb8db2980af6808d34ed39ccb810b222ce6fc8180091d29a4dabba04ed"
+      },
+      "source": {
+        "url": "https://www.php.net/distributions/php-8.2.35.tar.xz",
+        "sha256": "5737b98601fe5ab1b8c5db0c82ed3158acb9283ed3081ffe2faffb9ac81455e6"
+      }
+    },
+    {
+      "formula": "php@8.2-zts",
+      "series": "8.2",
+      "version": "8.2.35",
+      "revision": 0,
+      "rebuild": 0,
+      "package": "8.2.35",
+      "debug": "false",
+      "phpts": "ts",
+      "variant": "zts",
+      "bottles": {
+        "arm64_golden_gate": "4a72408a493dddae8eaac78d08d504659594d9bb97352473b29fc1597923fbb1",
+        "arm64_linux": "146267e7fcd9584e2053730bad96829ddd9cc13de73d29e84be59dd776a7e3bf",
+        "arm64_sequoia": "ce1945c209b111a8635a050c69720706592aa6b63a9e2945e28f18aed5582d45",
+        "arm64_tahoe": "6006f7f82d26993e011aff508c1abf6f2a1fc2fda3e94fb7cd4a0ca53ce15154",
+        "x86_64_linux": "c008199b02177c10d2807f93cc1bf7217fce43b457cfdfc787f0920558931f3d"
+      },
+      "source": {
+        "url": "https://www.php.net/distributions/php-8.2.35.tar.xz",
+        "sha256": "5737b98601fe5ab1b8c5db0c82ed3158acb9283ed3081ffe2faffb9ac81455e6"
+      }
+    },
+    {
+      "formula": "php@8.3",
+      "series": "8.3",
+      "version": "8.3.36",
+      "revision": 0,
+      "rebuild": 0,
+      "package": "8.3.36",
+      "debug": "false",
+      "phpts": "nts",
+      "variant": "normal",
+      "bottles": {
+        "arm64_golden_gate": "4c17f71c2a3bae81342b7455bbadd6e3d0434d6fb48acf30c7a2bfba6636349f",
+        "arm64_linux": "bf424f99b908e904fd13c0252ee9cf60886e89d229fa0195fc217ecdd7436e4c",
+        "arm64_sequoia": "fe59284f279b71605bec7a28f9062a77d82bad87f254407b6acf738665c3cd82",
+        "arm64_tahoe": "989b91fda50c95d53582e21c59b4a6bcf29f78cb381b465c0d773c461660956d",
+        "x86_64_linux": "ab1bccbc9bc24b16ba07d72148eb50c4aa151c069549c98b2f3e852502744254"
+      },
+      "source": {
+        "url": "https://www.php.net/distributions/php-8.3.36.tar.xz",
+        "sha256": "dd54693aa334c5c4d72e9aee96b082c2473750a18a6c1d105789c93a3b1692fd"
+      }
+    },
+    {
+      "formula": "php@8.3-debug",
+      "series": "8.3",
+      "version": "8.3.36",
+      "revision": 0,
+      "rebuild": 0,
+      "package": "8.3.36",
+      "debug": "true",
+      "phpts": "nts",
+      "variant": "debug",
+      "bottles": {
+        "arm64_golden_gate": "d44eab2a20a80ebaa325d4f08b768971ead21beb27d4eb7640e7b1429c8b1dd2",
+        "arm64_linux": "60f64297f932a5779e3f438cc28e0c654b617de646a1d8eac8dc025f29d049a4",
+        "arm64_sequoia": "f61da65881b3f8a21d4761bb9fd404a3e6ac3f4007114fefa239e302ff958879",
+        "arm64_tahoe": "ad07ab3a6f72eb1b76c365acccacc4d8b45d2e0c7216eb5b29e22229daff18cc",
+        "x86_64_linux": "1def7515efd4c40408d8046f88f43900c11bc8dd91ce2c7f7ac4b7422d021595"
+      },
+      "source": {
+        "url": "https://www.php.net/distributions/php-8.3.36.tar.xz",
+        "sha256": "dd54693aa334c5c4d72e9aee96b082c2473750a18a6c1d105789c93a3b1692fd"
+      }
+    },
+    {
+      "formula": "php@8.3-debug-zts",
+      "series": "8.3",
+      "version": "8.3.36",
+      "revision": 0,
+      "rebuild": 0,
+      "package": "8.3.36",
+      "debug": "true",
+      "phpts": "ts",
+      "variant": "debug-zts",
+      "bottles": {
+        "arm64_golden_gate": "3bb1370a40b38788bd3b11e1610ee3795917d1dd01c091f10427644586080d5f",
+        "arm64_linux": "23e4462ac60a8dd6428c1b13b3629e5e19c4f55b8dab1d85418d0cc0752ae6f8",
+        "arm64_sequoia": "ac953336fe17052f002e87992640635a01499e93ee90e8b23572bdea79690bb1",
+        "arm64_tahoe": "a5d7d97c6bd9c28f192d52ebab6de366bda3fa89dd538000be5514990023c8f0",
+        "x86_64_linux": "82965b88ce4faeb01fe53399e981464c6e9c56bde9e334bf40b4e899fc774ba1"
+      },
+      "source": {
+        "url": "https://www.php.net/distributions/php-8.3.36.tar.xz",
+        "sha256": "dd54693aa334c5c4d72e9aee96b082c2473750a18a6c1d105789c93a3b1692fd"
+      }
+    },
+    {
+      "formula": "php@8.3-zts",
+      "series": "8.3",
+      "version": "8.3.36",
+      "revision": 0,
+      "rebuild": 0,
+      "package": "8.3.36",
+      "debug": "false",
+      "phpts": "ts",
+      "variant": "zts",
+      "bottles": {
+        "arm64_golden_gate": "c7ec0e00532e765b9d805eea41c363f482ef680549ee3a6bda20a19fe9175dde",
+        "arm64_linux": "f2872a9d410192b6994f6bd79fb3f88f8a809dc926f69b785414b6779488b324",
+        "arm64_sequoia": "128f6fbe452dc16205102ad7999baaa6cf41fcca9234ab4c0f03e69930bd0620",
+        "arm64_tahoe": "472047974aaf3aafd8d1c9c16fadda5b65046d54b33fcfd1dc77ca77368309f9",
+        "x86_64_linux": "4fa7659778d768bbb8eba88b8fdd79f25f77f42526bd53a14b1c4727cdb6528b"
+      },
+      "source": {
+        "url": "https://www.php.net/distributions/php-8.3.36.tar.xz",
+        "sha256": "dd54693aa334c5c4d72e9aee96b082c2473750a18a6c1d105789c93a3b1692fd"
+      }
+    },
+    {
+      "formula": "php@8.4",
+      "series": "8.4",
+      "version": "8.4.27",
+      "revision": 0,
+      "rebuild": 0,
+      "package": "8.4.27",
+      "debug": "false",
+      "phpts": "nts",
+      "variant": "normal",
+      "bottles": {
+        "arm64_golden_gate": "ff8b4f5a3507034347fd2bee3389101c76ba2c7986df6db63e5d1e835069d618",
+        "arm64_linux": "0fac36b6ceb61056db8bb09e9a1621efb7b12959e5e18851a270b5157b361f03",
+        "arm64_sequoia": "a293afd2427f61ba0b7db22788563872500f94a3074846a73dfa17713161e712",
+        "arm64_tahoe": "239f1c37271d94f2f296e0e113799598db39f15b83994f1c9203233dbb5520ed",
+        "x86_64_linux": "bedfa98abbd8ee3fac202e32f04cb8f23ad8761ab03284c87af3a03cce3a8e01"
+      },
+      "source": {
+        "url": "https://www.php.net/distributions/php-8.4.27.tar.xz",
+        "sha256": "dcf93923b0e38e0d5252b25b796520b5a47761a08b3488b6d0b5d1115764d3f0"
+      }
+    },
+    {
+      "formula": "php@8.4-debug",
+      "series": "8.4",
+      "version": "8.4.27",
+      "revision": 0,
+      "rebuild": 0,
+      "package": "8.4.27",
+      "debug": "true",
+      "phpts": "nts",
+      "variant": "debug",
+      "bottles": {
+        "arm64_golden_gate": "aed4f97fc90d3a74058eda5e20bf78b7781e95ddf1e55ed356a893377636a2a3",
+        "arm64_linux": "7b87c176bab8a7812d6dda8113f665b4443ab0965726ffe8f0fedceea8b8d339",
+        "arm64_sequoia": "4005f82b68cd2c72990f6a2f8f6b2316988dbd9f3d53d9cd0001357e6eb7d88a",
+        "arm64_tahoe": "c75ae91a80d49e9158fcd4653c4be0ce13be07eacf9b8353f046db7375faaa31",
+        "x86_64_linux": "93498a261b8fd38a06739e8614f4068b35f6d751748ebeb06e1b75ed7758edcd"
+      },
+      "source": {
+        "url": "https://www.php.net/distributions/php-8.4.27.tar.xz",
+        "sha256": "dcf93923b0e38e0d5252b25b796520b5a47761a08b3488b6d0b5d1115764d3f0"
+      }
+    },
+    {
+      "formula": "php@8.4-debug-zts",
+      "series": "8.4",
+      "version": "8.4.27",
+      "revision": 0,
+      "rebuild": 0,
+      "package": "8.4.27",
+      "debug": "true",
+      "phpts": "ts",
+      "variant": "debug-zts",
+      "bottles": {
+        "arm64_golden_gate": "b802d29e09c8de37242156e13a63c11711d519dee973765108c9987c4852c22b",
+        "arm64_linux": "7b5e358dbddd9ddd62c329ddb17e6cb32d479def1f150091db0e3bbe01dcacff",
+        "arm64_sequoia": "565f80ddf5a822e2e39b4a9eeb5f0911d52c0f9b87d2c2841b16c4332fe4b780",
+        "arm64_tahoe": "e8ceda9b2a14acf8a6d5c3feb2894d14aa70b4b4d2ee1e3930111280314352ae",
+        "x86_64_linux": "8d69c40bf27575ef68a98fb490dde68826f2dba27736ff20ea4d12c506accd23"
+      },
+      "source": {
+        "url": "https://www.php.net/distributions/php-8.4.27.tar.xz",
+        "sha256": "dcf93923b0e38e0d5252b25b796520b5a47761a08b3488b6d0b5d1115764d3f0"
+      }
+    },
+    {
+      "formula": "php@8.4-zts",
+      "series": "8.4",
+      "version": "8.4.27",
+      "revision": 0,
+      "rebuild": 0,
+      "package": "8.4.27",
+      "debug": "false",
+      "phpts": "ts",
+      "variant": "zts",
+      "bottles": {
+        "arm64_golden_gate": "94558852d4169729e1bf23ad9051685ad67b3b9578450176c5f3fa33cfffb6c8",
+        "arm64_linux": "067d697ef1619cdaa708881407a28c044ca727dcd928e4b721065633c85310c7",
+        "arm64_sequoia": "96be0bf9f2795ed5d6a32ceb606cc8fbfbc8466b792ac9d19f3b5928d1ba8ce7",
+        "arm64_tahoe": "9cbc65c1b523ad16f3f34477ca4e85232cf2d5445c5307eeb475bef04de7e4a7",
+        "x86_64_linux": "04c71d85271ab139ebea931d30b3a78c5400e4e8bce85e8588dd000aa0d57058"
+      },
+      "source": {
+        "url": "https://www.php.net/distributions/php-8.4.27.tar.xz",
+        "sha256": "dcf93923b0e38e0d5252b25b796520b5a47761a08b3488b6d0b5d1115764d3f0"
+      }
+    },
+    {
+      "formula": "php",
+      "series": "8.5",
+      "version": "8.5.12",
+      "revision": 0,
+      "rebuild": 0,
+      "package": "8.5.12",
+      "debug": "false",
+      "phpts": "nts",
+      "variant": "normal",
+      "bottles": {
+        "arm64_golden_gate": "f1e0fd8fe964717266ce38abebe9a983dc0af8b715243e0ce5583dd97ccc89f6",
+        "arm64_linux": "0bb50086c66e6a98c0ef3a06607e2a76016ef823a37860a48e9cadb72ab1f4aa",
+        "arm64_sequoia": "cb9ddf71fed03676742520a54793b13e71b8af1e199c6e5e19f2ae2cc44a38e6",
+        "arm64_tahoe": "b4df566572ee4181b45e163c5735fc9a279f51d62934d7a4c9d306b31bf09030",
+        "x86_64_linux": "ae61002f774800327481f4cec0654b31ca34c3139c9d06ab15e6eaa8c520692a"
+      },
+      "source": {
+        "url": "https://www.php.net/distributions/php-8.5.12.tar.xz",
+        "sha256": "08bc2eba2a588654ade1357174aa646b761556c862dda0678345ee29ed481209"
+      }
+    },
+    {
+      "formula": "php-debug",
+      "series": "8.5",
+      "version": "8.5.12",
+      "revision": 0,
+      "rebuild": 0,
+      "package": "8.5.12",
+      "debug": "true",
+      "phpts": "nts",
+      "variant": "debug",
+      "bottles": {
+        "arm64_golden_gate": "ae79b53e21c28c2b43e029c48fb05b7f1c19b21afa9abc01fbb2e8c938a2c32d",
+        "arm64_linux": "db9f135ae17c92766235fdf00a2e97433b3dfc74dcc76392d96b7cb88ee62263",
+        "arm64_sequoia": "4b37a55264c1c61d2eb859590de8281eaeb93a5115577fa1978bf6e71a202c29",
+        "arm64_tahoe": "3d6b4cfb19118c3fcc7f9ca71c2a41146333de8eaefdfc680a498f49db6db81f",
+        "x86_64_linux": "cdc139ecba71698b5cf96fb72457f6f992e8a30f3383ef9e2ccbc3a9d75025db"
+      },
+      "source": {
+        "url": "https://www.php.net/distributions/php-8.5.12.tar.xz",
+        "sha256": "08bc2eba2a588654ade1357174aa646b761556c862dda0678345ee29ed481209"
+      }
+    },
+    {
+      "formula": "php-debug-zts",
+      "series": "8.5",
+      "version": "8.5.12",
+      "revision": 0,
+      "rebuild": 0,
+      "package": "8.5.12",
+      "debug": "true",
+      "phpts": "ts",
+      "variant": "debug-zts",
+      "bottles": {
+        "arm64_golden_gate": "58dd0c72e4a87888cc3a86f587f82166471778caafb3d4d659f88b73a539be11",
+        "arm64_linux": "418a46da3e04d27f9d4c8766d4bf484787b1138b8e12e240e3e9f6c0f5aaa6ba",
+        "arm64_sequoia": "48c0ecbbf9c239ddcd1e1ab8fce4081ad162d310f8cb364becc15c4897358898",
+        "arm64_tahoe": "54936b152d95382e577ee987454cf2fa32904f43ae193422bdc4923f01d5910a",
+        "x86_64_linux": "044123f8feeba80d1cede85f76171b8c20e45623e3d1cb7efa06660726d05d2d"
+      },
+      "source": {
+        "url": "https://www.php.net/distributions/php-8.5.12.tar.xz",
+        "sha256": "08bc2eba2a588654ade1357174aa646b761556c862dda0678345ee29ed481209"
+      }
+    },
+    {
+      "formula": "php-zts",
+      "series": "8.5",
+      "version": "8.5.12",
+      "revision": 0,
+      "rebuild": 0,
+      "package": "8.5.12",
+      "debug": "false",
+      "phpts": "ts",
+      "variant": "zts",
+      "bottles": {
+        "arm64_golden_gate": "10dd0dee5c8876669a7512371f24b04edccb8bca9cb3f897cde3ef1d58398101",
+        "arm64_linux": "42fb0bfa38275640b8e9f019bc86ce228c708c1bd357f1f0ae82814667a56c25",
+        "arm64_sequoia": "d03f165f27479248fe080eaa374f3b4924e2aa87826e8270d76010017fb4116f",
+        "arm64_tahoe": "a80055f28f34cddfd3dab50621e4796da97599c6576440f6ed4ac848cb6c55e2",
+        "x86_64_linux": "8bdb02b3bc910daac98a5e4dd87f1cfb5531d0c360d473c1e30b4d6a7deff772"
+      },
+      "source": {
+        "url": "https://www.php.net/distributions/php-8.5.12.tar.xz",
+        "sha256": "08bc2eba2a588654ade1357174aa646b761556c862dda0678345ee29ed481209"
+      }
+    }
+  ]
+}
