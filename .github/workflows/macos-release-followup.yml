@@ -1,0 +1,63 @@
+name: Published macOS setup-php follow-up
+run-name: macOS release follow-up ${{ inputs.ticket }}
+on:
+  workflow_dispatch:
+    inputs:
+      ticket:
+        type: string
+        required: true
+      cases:
+        description: Reviewed incomplete cases as JSON objects with php and runner
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  smoke:
+    if: github.event_name == 'workflow_dispatch'
+    name: PHP ${{ matrix.php }} on ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(inputs.cases) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    env:
+      PHP_SERIES: ${{ matrix.php }}
+      PHP_VERSION: ${{ matrix.php }}
+      RUNNER_LABEL: ${{ matrix.runner }}
+      GH_TOKEN: ${{ github.token }}
+      update: 'true'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Verify public publication metadata
+        run: python3 scripts/check.py before
+      - name: Remove preinstalled PHP on this disposable runner
+        run: bash scripts/cold-runner.sh
+      - name: Install published PHP with setup-php
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+      - name: Check installed bytes, startup, default extensions and SAPIs
+        run: python3 scripts/check.py base
+      - name: Install Imagick with setup-php
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+          extensions: imagick
+      - name: Check Imagick and extension inventory
+        run: python3 scripts/check.py imagick
+      - name: Save smoke report
+        run: python3 scripts/check.py finish
+      - name: Retain logs and provenance
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: smoke-${{ matrix.php }}-${{ matrix.runner }}-${{ github.run_attempt }}
+          path: results/
+          if-no-files-found: error
+          retention-days: 90
