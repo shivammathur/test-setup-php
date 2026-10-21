@@ -1,0 +1,191 @@
+name: Isolate published ARM64 ZTS Apache shutdown
+on:
+  push:
+    branches: [feature/arm64-zts-shutdown-isolation-20261021]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    name: ${{ matrix.formula }} ARM64 HTTP diagnostics
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        formula: [php@8.0-zts, php@8.1-zts, php@8.2-zts, php@8.2-debug-zts, php-zts, php-debug-zts, php@8.3-zts]
+    container:
+      image: ghcr.io/homebrew/brew:main # zizmor: ignore[unpinned-images] Match the installation-test container.
+      options: --user=linuxbrew --cap-add=SYS_PTRACE --security-opt seccomp=unconfined
+    defaults:
+      run:
+        shell: bash
+    env:
+      FORMULA: ${{ matrix.formula }}
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+      HOMEBREW_NO_ANALYTICS: 1
+    steps:
+      - name: Install diagnostic tools
+        run: |
+          sudo -n apt-get update
+          sudo -n apt-get install --no-install-recommends -y gdb strace procps
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@4790763c0a3ba4036f72634dc079c4a7dfcd4878
+        with:
+          core: true
+          cask: false
+          stable: false
+      - name: Tap trust install and link published bottle
+        run: |
+          set -euo pipefail
+          brew tap shivammathur/php
+          brew trust shivammathur/php
+          brew install "shivammathur/php/$FORMULA" httpd
+          while IFS= read -r installed; do
+            case "$installed" in
+              php|php@*|php-debug|php-zts|php-debug-zts)
+                if [ "$installed" != "$FORMULA" ]; then brew unlink "$installed"; fi
+                ;;
+            esac
+          done < <(brew list --formula -1)
+          brew link --overwrite --force "$FORMULA"
+          mkdir -p diagnostics
+          brew config > diagnostics/brew-config.txt
+          brew cat "shivammathur/php/$FORMULA" > diagnostics/formula.rb
+          cp "$(brew --prefix "$FORMULA")/INSTALL_RECEIPT.json" diagnostics/INSTALL_RECEIPT.json
+          command -v php
+          php --version
+          php --ini
+          php --modules
+          php-cgi --version
+          php-fpm --test
+      - name: Compare HTTP responses and Apache shutdown modes
+        timeout-minutes: 8
+        run: |
+          set -euo pipefail
+          httpd_prefix=$(brew --prefix httpd)
+          php_prefix=$(brew --prefix "$FORMULA")
+          wait_for_exit() {
+            local target_pid=$1
+            for _ in $(seq 1 20); do
+              if ! kill -0 "$target_pid" 2>/dev/null; then return 0; fi
+              sleep 0.25
+            done
+            return 1
+          }
+          overall=0
+          printf 'mode\tcurl_exit\thttp_status\texpected_body\tapache_shutdown\tfpm_shutdown\n' > diagnostics/results.tsv
+          for mode in prefork-X prefork-foreground event-foreground fpm-proxy-X; do
+            case_dir="$PWD/diagnostics/$mode"
+            mkdir -p "$case_dir"
+            printf '<?php\necho "Hello world!" . PHP_EOL;\nvar_dump(ldap_connect());\n' > "$case_dir/index.php"
+            cat > "$case_dir/httpd.conf" <<CONF
+          Listen 18080
+          ServerName localhost:18080
+          DocumentRoot "$case_dir"
+          ErrorLog "$case_dir/httpd-error.log"
+          ServerRoot "$httpd_prefix"
+          PidFile "$case_dir/httpd.pid"
+          Mutex file:$case_dir default
+          LoadModule authz_core_module lib/httpd/modules/mod_authz_core.so
+          LoadModule unixd_module lib/httpd/modules/mod_unixd.so
+          LoadModule dir_module lib/httpd/modules/mod_dir.so
+          DirectoryIndex index.php
+          CONF
+            fpm_pid=''
+            fpm_shutdown=not_applicable
+            if [ "$mode" = fpm-proxy-X ]; then
+              cat >> "$case_dir/httpd.conf" <<CONF
+          LoadModule mpm_event_module lib/httpd/modules/mod_mpm_event.so
+          LoadModule proxy_module lib/httpd/modules/mod_proxy.so
+          LoadModule proxy_fcgi_module lib/httpd/modules/mod_proxy_fcgi.so
+          <FilesMatch \.(php|phar)$>
+            SetHandler "proxy:fcgi://127.0.0.1:18081"
+          </FilesMatch>
+          CONF
+              cat > "$case_dir/fpm.conf" <<CONF
+          [global]
+          daemonize=no
+          [www]
+          listen = 127.0.0.1:18081
+          pm = dynamic
+          pm.max_children = 5
+          pm.start_servers = 2
+          pm.min_spare_servers = 1
+          pm.max_spare_servers = 3
+          CONF
+              setsid "$php_prefix/sbin/php-fpm" -y "$case_dir/fpm.conf" > "$case_dir/fpm-output.log" 2>&1 &
+              fpm_pid=$!
+            else
+              mpm=prefork
+              [ "$mode" != event-foreground ] || mpm=event
+              cat >> "$case_dir/httpd.conf" <<CONF
+          LoadModule mpm_${mpm}_module lib/httpd/modules/mod_mpm_${mpm}.so
+          LoadModule php_module $php_prefix/lib/httpd/modules/libphp.so
+          <FilesMatch \.(php|phar)$>
+            SetHandler application/x-httpd-php
+          </FilesMatch>
+          CONF
+            fi
+            case "$mode" in
+              *-X) apache_args=(-X) ;;
+              *) apache_args=(-D FOREGROUND) ;;
+            esac
+            setsid "$httpd_prefix/bin/httpd" "${apache_args[@]}" -f "$case_dir/httpd.conf" > "$case_dir/httpd-output.log" 2>&1 &
+            apache_pid=$!
+            sleep 2
+            curl_exit=0
+            : > "$case_dir/response.txt"
+            curl --silent --show-error --max-time 10 --output "$case_dir/response.txt" \
+              --write-out '%{http_code}' http://127.0.0.1:18080/ > "$case_dir/http-status.txt" 2> "$case_dir/curl-error.log" || curl_exit=$?
+            http_status=$(cat "$case_dir/http-status.txt")
+            expected_body=false
+            if [ "$curl_exit" = 0 ] && [ "$http_status" = 200 ] && grep -qx 'Hello world!' "$case_dir/response.txt" && grep -Eq 'resource\(|object\(LDAP' "$case_dir/response.txt"; then
+              expected_body=true
+            else
+              overall=1
+            fi
+            printf '\nMODE: %s; curl exit: %s; HTTP status: %s; expected body: %s\n' "$mode" "$curl_exit" "$http_status" "$expected_body"
+            cat "$case_dir/response.txt" "$case_dir/curl-error.log"
+            date -u +%FT%TZ > "$case_dir/before-term.txt"
+            ps -eo pid,ppid,stat,wchan:32,args > "$case_dir/processes-before-term.txt"
+            kill -TERM "$apache_pid" 2>/dev/null || true
+            if wait_for_exit "$apache_pid"; then
+              apache_shutdown=0
+              wait "$apache_pid" || apache_shutdown=$?
+              [ "$apache_shutdown" = 0 ] || overall=1
+            else
+              apache_shutdown=timed_out
+              overall=1
+              sudo -n timeout --kill-after=5s 20s gdb -nx -q -batch \
+                -ex 'set debuginfod enabled off' -ex 'set pagination off' \
+                -ex 'thread apply all bt' -p "$apache_pid" 2>&1 | tee "$case_dir/shutdown.gdb.log" || true
+            fi
+            ps -eo pid,ppid,stat,wchan:32,args > "$case_dir/processes-after-term.txt"
+            kill -KILL -- "-$apache_pid" 2>/dev/null || true
+            wait "$apache_pid" 2>/dev/null || true
+            if [ -n "$fpm_pid" ]; then
+              kill -TERM "$fpm_pid" 2>/dev/null || true
+              if wait_for_exit "$fpm_pid"; then
+                fpm_shutdown=0
+                wait "$fpm_pid" || fpm_shutdown=$?
+                [ "$fpm_shutdown" = 0 ] || overall=1
+              else
+                fpm_shutdown=timed_out
+                overall=1
+              fi
+              kill -KILL -- "-$fpm_pid" 2>/dev/null || true
+              wait "$fpm_pid" 2>/dev/null || true
+            fi
+            printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$mode" "$curl_exit" "$http_status" "$expected_body" "$apache_shutdown" "$fpm_shutdown" | tee -a diagnostics/results.tsv
+          done
+          exit "$overall"
+      - name: Upload diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: arm64-http-${{ matrix.formula }}
+          path: diagnostics/
+          if-no-files-found: warn
+          retention-days: 7
