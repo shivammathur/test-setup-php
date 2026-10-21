@@ -18,7 +18,7 @@ def call(name,args,env=None,timeout=90):
 # Ensure this diagnostic uses the published interpreter selected by setup-php.
 assert sha(shutil.which('php'))==sha(PREFIX/'bin/php')
 original={str(p):sha(p) for p in [FPM,INI,*sorted(SCANS.glob('*.ini'))]}
-call('php-info',['php','-i'])
+call('php-inventory',['php',ROOT/'scripts/inventory.php'])
 call('fpm-default-1',['sudo',FPM,'-t'])
 call('fpm-default-2',['sudo',FPM,'-t'])
 call('fpm-no-ini',['sudo',FPM,'-n','-t'])
