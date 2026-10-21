@@ -1,0 +1,139 @@
+name: Published PHP 5.6 Homebrew canary
+on:
+  push:
+    branches: [feature/homebrew-security-php56-20261021]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  install_macos:
+    name: ${{ matrix.variant.name }} on ${{ matrix.platform.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - {runner: macos-15, tag: arm64_sequoia}
+          - {runner: macos-26, tag: arm64_tahoe}
+          - {runner: xcode-27, tag: arm64_golden_gate}
+        variant:
+          - {name: normal, formula: 'php@5.6', package: 5.6.40_18, debug: 'false', phpts: nts}
+          - {name: debug, formula: 'php@5.6-debug', package: 5.6.40_18, debug: 'true', phpts: nts}
+          - {name: zts, formula: 'php@5.6-zts', package: 5.6.40_10, debug: 'false', phpts: ts}
+          - {name: debug-zts, formula: 'php@5.6-debug-zts', package: 5.6.40_9, debug: 'true', phpts: ts}
+    runs-on: ${{ matrix.platform.runner }}
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+      HOMEBREW_NO_ANALYTICS: 1
+      FORMULA: ${{ matrix.variant.formula }}
+      EXPECTED_PACKAGE: ${{ matrix.variant.package }}
+      EXPECTED_TAG: ${{ matrix.platform.tag }}
+      EXPECTED_DEBUG: ${{ matrix.variant.debug }}
+      EXPECTED_PHPTS: ${{ matrix.variant.phpts }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@4790763c0a3ba4036f72634dc079c4a7dfcd4878
+        with:
+          core: true
+          cask: false
+          stable: false
+      - name: Install through setup-php on macOS
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        env:
+          update: true
+          debug: ${{ matrix.variant.debug }}
+          phpts: ${{ matrix.variant.phpts }}
+          use_package_cache: false
+          SETUP_PHP_BREW_WATCHDOG: false
+        with:
+          php-version: '5.6'
+          extensions: none
+          coverage: none
+          tools: none
+      - name: Verify exact bottle and run CLI CGI FPM and LDAP
+        shell: bash
+        run: python3 scripts/check_install.py
+      - name: Run the formula integration test
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          brew install httpd
+          brew test "shivammathur/php/$FORMULA" 2>&1 | tee results/brew-test.log
+      - name: Retain evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: php56-${{ matrix.variant.name }}-${{ matrix.platform.tag }}
+          path: results/
+          if-no-files-found: warn
+          retention-days: 90
+  install_linux:
+    name: ${{ matrix.variant.name }} on ${{ matrix.platform.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - {runner: ubuntu-24.04, tag: x86_64_linux}
+          - {runner: ubuntu-24.04-arm, tag: arm64_linux}
+        variant:
+          - {name: normal, formula: 'php@5.6', package: 5.6.40_18, debug: 'false', phpts: nts}
+          - {name: debug, formula: 'php@5.6-debug', package: 5.6.40_18, debug: 'true', phpts: nts}
+          - {name: zts, formula: 'php@5.6-zts', package: 5.6.40_10, debug: 'false', phpts: ts}
+          - {name: debug-zts, formula: 'php@5.6-debug-zts', package: 5.6.40_9, debug: 'true', phpts: ts}
+    runs-on: ${{ matrix.platform.runner }}
+    container:
+      image: ghcr.io/homebrew/brew:main
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+      HOMEBREW_NO_ANALYTICS: 1
+      FORMULA: ${{ matrix.variant.formula }}
+      EXPECTED_PACKAGE: ${{ matrix.variant.package }}
+      EXPECTED_TAG: ${{ matrix.platform.tag }}
+      EXPECTED_DEBUG: ${{ matrix.variant.debug }}
+      EXPECTED_PHPTS: ${{ matrix.variant.phpts }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@4790763c0a3ba4036f72634dc079c4a7dfcd4878
+        with:
+          core: true
+          cask: false
+          stable: false
+      - name: Install ordinary public Homebrew bottle on Linux
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset HOMEBREW_GITHUB_PACKAGES_TOKEN HOMEBREW_GITHUB_API_TOKEN GH_TOKEN
+          brew tap shivammathur/php
+          brew install "shivammathur/php/$FORMULA"
+      - name: Verify exact bottle and run CLI CGI FPM and LDAP
+        shell: bash
+        run: python3 scripts/check_install.py
+      - name: Run the formula integration test
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          brew install httpd
+          brew test "shivammathur/php/$FORMULA" 2>&1 | tee results/brew-test.log
+      - name: Retain evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: php56-${{ matrix.variant.name }}-${{ matrix.platform.tag }}
+          path: results/
+          if-no-files-found: warn
+          retention-days: 90
