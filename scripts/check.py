@@ -52,7 +52,7 @@ def installed_bytes(php):
         for m in tar:
             if not m.isfile():continue
             rel=m.name.removeprefix('./');assert not rel.startswith('/') and '..' not in Path(rel).parts
-            if not (rel.startswith(f'Cellar/php@{MINOR}/') and (rel.endswith('/bin/php') or rel.endswith('/bin/php-cgi') or rel.endswith('/sbin/php-fpm') or rel.endswith('.so'))):continue
+            if not (rel.startswith('Cellar/'+CONFIG['formula']+'/') and (rel.endswith('/bin/php') or rel.endswith('/bin/php-cgi') or rel.endswith('/sbin/php-fpm') or rel.endswith('.so'))):continue
             target=prefix/rel;h=hashlib.sha256()
             with tar.extractfile(m) as fp:
                 for c in iter(lambda:fp.read(1024*1024),b''):h.update(c)
