@@ -111,7 +111,8 @@ $runtimeExclusions = @('php_sybase_ct.dll')
 
 foreach ($root in @($public, $runtime)) {
     $ini = @('date.timezone=UTC', 'display_errors=stderr', 'log_errors=Off', "extension_dir=`"$root/ext`"", 'opcache.enable_cli=1')
-    foreach ($dll in Get-ChildItem "$root/ext/php_*.dll" | Sort-Object Name) {
+    # PHP 5.3 EXIF imports php_mbstring.dll; load mbstring first.
+    foreach ($dll in Get-ChildItem "$root/ext/php_*.dll" | Sort-Object @{Expression={ if ($_.Name -eq 'php_mbstring.dll') { 0 } else { 1 } }}, Name) {
         if ($dll.Name -in $runtimeExclusions -or $dll.Name -eq 'php_oci8_11g.dll') { continue }
         if ($dll.Name -eq 'php_opcache.dll') { $ini += "zend_extension=`"$($dll.FullName)`"" }
         else { $ini += "extension=$($dll.Name)" }

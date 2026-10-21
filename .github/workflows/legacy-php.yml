@@ -7,6 +7,10 @@ on:
         description: PHP versions to build or validate (JSON array)
         type: string
         default: '["5.3.29","5.4.45","5.5.38"]'
+      artifact-runs:
+        description: Existing build run IDs keyed by PHP version (JSON object)
+        type: string
+        default: '{}'
       artifact-run:
         description: Existing build run to validate without rebuilding
         type: string
@@ -18,7 +22,7 @@ permissions:
 
 jobs:
   build:
-    if: ${{ inputs.artifact-run == '' }}
+    if: ${{ inputs.artifact-run == '' && (inputs.artifact-runs == '' || inputs.artifact-runs == '{}') }}
     name: Build PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}
     runs-on: windows-2022
     timeout-minutes: 90
@@ -84,7 +88,7 @@ jobs:
         with:
           name: artifacts-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
           path: artifacts
-          run-id: ${{ inputs.artifact-run || github.run_id }}
+          run-id: ${{ fromJSON(inputs.artifact-runs || '{}')[matrix.php] || inputs.artifact-run || github.run_id }}
           github-token: ${{ github.token }}
       - name: Checkout PhpManager
         uses: actions/checkout@v6
