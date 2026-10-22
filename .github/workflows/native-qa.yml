@@ -1,0 +1,113 @@
+name: Brotli and dependent native artifact QA
+run-name: Brotli native QA (${{ inputs.phase }})
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        type: choice
+        options: [candidate, published]
+        default: candidate
+permissions:
+  actions: read
+  contents: read
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      value: ${{ steps.matrix.outputs.value }}
+    steps:
+      - name: Preserve source fixture line endings
+        shell: pwsh
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+      - id: matrix
+        run: echo "value=$(jq -c . native-matrix.json)" >> "$GITHUB_OUTPUT"
+  test:
+    name: PHP ${{ matrix.php }} ${{ matrix.arch }} native QA
+    needs: matrix
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.value) }}
+    steps:
+      - name: Preserve source fixture line endings
+        shell: pwsh
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: winlibs/winlib-builder
+          ref: d9336775b9e3271cff21c62ebe25fe0da0568289
+          path: winlib-builder
+      - uses: actions/checkout@v4
+        with:
+          repository: google/brotli
+          ref: db24a98aed38a16de78cc05ca15cdd8dc2a0d92d
+          path: upstream-brotli
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: x64
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: winlibs/winlib-builder
+          run-id: ${{ matrix.brotli_run }}
+          name: ${{ matrix.brotli_artifact }}
+          path: candidate-brotli
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: winlibs/winlib-builder
+          run-id: ${{ matrix.curl_run }}
+          name: ${{ matrix.curl_artifact }}
+          path: candidate-curl
+      - uses: actions/download-artifact@v4
+        if: matrix.jxl_run != ''
+        with:
+          github-token: ${{ github.token }}
+          repository: winlibs/winlib-builder
+          run-id: ${{ matrix.jxl_run }}
+          name: ${{ matrix.jxl_artifact }}
+          path: candidate-jxl
+      - name: Fetch canonical published packages
+        if: inputs.phase == 'published'
+        shell: pwsh
+        run: |
+          $packages = @{
+            'candidate-brotli' = 'https://downloads.php.net/~windows/php-sdk/deps/${{ matrix.vs }}/${{ matrix.arch }}/${{ matrix.brotli_artifact }}.zip'
+            'candidate-curl' = 'https://downloads.php.net/~windows/php-sdk/deps/${{ matrix.vs }}/${{ matrix.arch }}/${{ matrix.curl_artifact }}.zip'
+          }
+          if ('${{ matrix.jxl_run }}' -ne '') { $packages['candidate-jxl'] = '${{ matrix.jxl_url }}' }
+          foreach ($entry in $packages.GetEnumerator()) {
+            Invoke-WebRequest $entry.Value -OutFile "$($entry.Key).zip"
+            Remove-Item $entry.Key -Recurse -Force
+            Expand-Archive "$($entry.Key).zip" $entry.Key
+          }
+      - name: Compute compiler inputs
+        id: virtuals
+        shell: pwsh
+        run: ./winlib-builder/scripts/compute-virtuals.ps1 -version '${{ matrix.php }}' -arch '${{ matrix.arch }}' -sdk '${{ matrix.sdk }}'
+      - name: Fetch curl runtime dependencies
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./winlib-builder/scripts/fetch-deps.ps1 -lib curl -version '${{ matrix.php }}' -vs '${{ matrix.vs }}' -arch '${{ matrix.arch }}' -stability staging -workflow_run_ids '${{ inputs.phase == 'candidate' && matrix.brotli_run || '' }}'
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_arch }}
+          toolset: ${{ steps.virtuals.outputs.toolset }}
+          sdk: ${{ matrix.msvc_sdk }}
+      - name: Exercise Brotli and dependent binaries
+        shell: pwsh
+        run: |
+          ./scripts/native-qa.ps1 -Php '${{ matrix.php }}' -Vs '${{ matrix.vs }}' -Arch '${{ matrix.arch }}' `
+            -Generator '${{ steps.virtuals.outputs.vsinst }}' -MsArch '${{ steps.virtuals.outputs.msarch }}' `
+            -Toolset '${{ steps.virtuals.outputs.msts }}' -Sdk '${{ steps.virtuals.outputs.winsdk }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-${{ matrix.php }}-${{ matrix.arch }}-${{ inputs.phase }}
+          path: reports
+          if-no-files-found: error

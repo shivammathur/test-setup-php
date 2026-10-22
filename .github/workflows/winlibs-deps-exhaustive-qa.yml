@@ -1,0 +1,46 @@
+name: Brotli PHP artifact QA
+run-name: Brotli PHP QA (${{ inputs.phase }})
+on:
+  workflow_dispatch:
+    inputs:
+      matrix:
+        description: Exact PHP source-build artifact run IDs
+        required: true
+      phase:
+        type: choice
+        options: [candidate, published]
+        default: candidate
+permissions:
+  actions: read
+  contents: read
+jobs:
+  test:
+    name: PHP ${{ matrix.php }} artifact QA
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(inputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: x64
+      - name: Download exact PHP artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run_id }}
+          name: artifacts
+          path: artifacts
+      - name: Verify and exercise four PHP runtime variants
+        shell: pwsh
+        run: ./scripts/php-qa.ps1 -ArtifactsDirectory artifacts -RunId '${{ matrix.run_id }}' -PhpTarget '${{ matrix.php }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: php-${{ matrix.php }}-${{ inputs.phase }}
+          path: reports
+          if-no-files-found: error
