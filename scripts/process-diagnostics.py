@@ -49,7 +49,7 @@ for archive in sorted((workspace/'artifacts').glob('*.zip')):
     cases=[]
     selection={'proc':['ext/standard/tests/general_functions/proc_open_sockets3.phpt'],
         'cgi':['sapi/cgi/tests/002.phpt'],
-        'cli':['sapi/cli/tests/bug67429_1.phpt','sapi/cli/tests/php_cli_server_019.phpt'],
+        'cli':['sapi/cli/tests/bug67429_1.phpt','sapi/cli/tests/php_cli_server_019.phpt','sapi/cli/tests/bug71005.phpt'],
         'soap':['ext/soap/tests/gh23686/header-from-stringable.phpt']}[a.kind]
     test=','.join(selection)
     count=100 if a.kind=='proc' and variant=='x64-nts' else 20
