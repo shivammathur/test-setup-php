@@ -74,11 +74,14 @@ jobs:
           $ok = Invoke-CompatRunTestsPatch -Path (Resolve-Path php-src/run-tests.php).Path -PatchPath (Resolve-Path builder/php/BuildPhp/config/run-tests/run-tests-8.2-plus.patch).Path
           if (-not $ok) { throw 'Source workflow compatibility patch did not apply' }
       - name: Reproduce source-test failures and inspect dependencies
-        if: inputs.source-diagnostics && matrix.diagnostic_mode != 'process'
+        if: inputs.source-diagnostics && matrix.diagnostic_mode != 'process' && matrix.diagnostic_mode != 'com'
         run: python scripts/source-diagnostics.py --run-id '${{ matrix.run_id }}' --source-sha '${{ matrix.source_sha }}' --mode '${{ matrix.diagnostic_mode || 'full' }}'
       - name: Isolate process and CGI failures without libzip loaded
         if: inputs.source-diagnostics && matrix.diagnostic_mode == 'process'
         run: python scripts/process-diagnostics.py --run-id '${{ matrix.run_id }}' --source-sha '${{ matrix.source_sha }}' --kind '${{ matrix.focus }}'
+      - name: Isolate COM activation failure without ZIP loaded
+        if: inputs.source-diagnostics && matrix.diagnostic_mode == 'com'
+        run: python scripts/com-diagnostics.py --run-id '${{ matrix.run_id }}' --source-sha '${{ matrix.source_sha }}'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
