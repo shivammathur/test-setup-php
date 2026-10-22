@@ -6,6 +6,7 @@ $root = sys_get_temp_dir() . '/libzip-qa-' . bin2hex(random_bytes(8));
 mkdir($root);
 chdir($root);
 $results = [];
+$legacyPasswordCollisions = [];
 function check(bool $ok, string $message): void {
     if (!$ok) { throw new RuntimeException($message); }
 }
@@ -50,7 +51,22 @@ foreach ($methods as $methodName => $method) {
             check($st['size'] === strlen($payload) && $st['comp_method'] === $method && $st['encryption_method'] === $enc && $st['mtime'] === 1700000000, 'entry metadata');
             if ($enc !== ZipArchive::EM_NONE) {
                 check($z->setPassword('incorrect-password'), 'wrong password setup');
-                check(@$z->getFromIndex(0) === false, 'wrong password rejected');
+                $wrong = @$z->getFromIndex(0);
+                if (PHP_VERSION_ID < 80400 && $wrong !== false) {
+                    // PHP 8.2/8.3 return an empty string for read errors, and do not
+                    // perform the final CRC read for stored entries. Traditional
+                    // encryption's one-byte password check can collide. Both
+                    // behaviors were reproduced with libzip 1.12 and 1.12.1.
+                    check($wrong !== $payload, 'wrong password must never return plaintext');
+                    check($wrong === '' || ($enc === ZipArchive::EM_TRAD_PKWARE &&
+                        $method === ZipArchive::CM_STORE && strlen($wrong) === strlen($payload)),
+                        'legacy password collision return shape');
+                    $GLOBALS['legacyPasswordCollisions'][] = ['compression' => $methodName,
+                        'encryption' => $encryptionName, 'length' => strlen($wrong),
+                        'sha256' => hash('sha256', $wrong)];
+                } else {
+                    check($wrong === false, 'wrong password rejected');
+                }
             }
             check($z->setPassword('correct-password'), 'password setup');
             check($z->getFromName('dir/payload.bin') === $payload, 'name read');
@@ -146,6 +162,6 @@ if (PHP_VERSION_ID >= 80600) {
     });
 }
 $failures = array_values(array_filter($results, fn($r) => !$r['passed']));
-file_put_contents($report, json_encode(['php' => PHP_VERSION, 'libzip' => ZipArchive::LIBZIP_VERSION, 'cases' => $results, 'failures' => count($failures)], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+file_put_contents($report, json_encode(['php' => PHP_VERSION, 'libzip' => ZipArchive::LIBZIP_VERSION, 'cases' => $results, 'failures' => count($failures), 'legacyPasswordCollisions' => $legacyPasswordCollisions], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
 echo json_encode(['cases' => count($results), 'failures' => $failures], JSON_PRETTY_PRINT), "\n";
 exit($failures ? 1 : 0);
