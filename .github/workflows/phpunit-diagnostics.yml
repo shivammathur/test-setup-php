@@ -1,0 +1,148 @@
+name: PR 1138 JSON diagnostics and annotations
+on:
+  pull_request:
+    branches: [test/pr1138-diagnostics-base-20261022]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  checks: read
+env:
+  EXPECTED_ACTION_SHA: ee10122c0926cd825e47294b83d3e2ed93613dda
+jobs:
+  real:
+    name: PHPUnit ${{ matrix.phpunit }} (${{ matrix.os }}, ${{ matrix.order }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-latest]
+        phpunit: ['9', '10', '11', '12']
+        order: [normal, same-step]
+    env:
+      EVIDENCE_JOB_NAME: PHPUnit ${{ matrix.phpunit }} (${{ matrix.os }}, ${{ matrix.order }})
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: shivammathur/setup-php
+          ref: ee10122c0926cd825e47294b83d3e2ed93613dda
+          path: .setup-php
+      - uses: ./.setup-php
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: phpunit:${{ matrix.phpunit }}
+      - name: Verify installed matcher
+        run: node .github/tests/phpunit-matchers/exercise.cjs verify
+      - name: Register matcher in preceding step
+        if: matrix.order == 'normal'
+        shell: bash
+        run: echo "::add-matcher::$RUNNER_phpunit:${{ matrix.phpunit }}_CACHE/phpunit.json"
+      - name: Actual PHPUnit failures
+        run: node .github/tests/phpunit-matchers/exercise.cjs real failures ${{ matrix.phpunit }} ${{ matrix.order }}
+      - name: Actual PHPUnit risky
+        run: node .github/tests/phpunit-matchers/exercise.cjs real risky ${{ matrix.phpunit }} ${{ matrix.order }}
+      - name: Actual PHPUnit skips
+        run: node .github/tests/phpunit-matchers/exercise.cjs real skips ${{ matrix.phpunit }} ${{ matrix.order }}
+      - name: Actual PHPUnit issues
+        run: node .github/tests/phpunit-matchers/exercise.cjs real issues ${{ matrix.phpunit }} ${{ matrix.order }}
+      - name: Remove matcher and replay all output
+        run: node .github/tests/phpunit-matchers/exercise.cjs remove
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: real-${{ matrix.os }}-phpunit-${{ matrix.phpunit }}-${{ matrix.order }}
+          path: evidence/
+          if-no-files-found: error
+  layouts:
+    name: Layouts (${{ matrix.os }}, ${{ matrix.order }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-latest]
+        order: [normal, same-step]
+    env:
+      EVIDENCE_JOB_NAME: Layouts (${{ matrix.os }}, ${{ matrix.order }})
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: shivammathur/setup-php
+          ref: ee10122c0926cd825e47294b83d3e2ed93613dda
+          path: .setup-php
+      - uses: ./.setup-php
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: none
+      - name: Verify installed matcher
+        run: node .github/tests/phpunit-matchers/exercise.cjs verify
+      - name: Register matcher in preceding step
+        if: matrix.order == 'normal'
+        shell: bash
+        run: echo "::add-matcher::$RUNNER_none_CACHE/phpunit.json"
+      - name: Original layout plainBlank
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout plainBlank 0 ${{ matrix.order }}
+      - name: Original layout plainNoBlank
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout plainNoBlank 0 ${{ matrix.order }}
+      - name: Original layout customNoBlank
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout customNoBlank 0 ${{ matrix.order }}
+      - name: Original layout customBlank
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout customBlank 0 ${{ matrix.order }}
+      - name: Original layout explicitFailure
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout explicitFailure 0 ${{ matrix.order }}
+      - name: Original layout exception
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout exception 0 ${{ matrix.order }}
+      - name: Original layout customLocation
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout customLocation 0 ${{ matrix.order }}
+      - name: Original layout riskyBlank
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout riskyBlank 0 ${{ matrix.order }}
+      - name: Original layout skippedReasonNoBlank
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout skippedReasonNoBlank 0 ${{ matrix.order }}
+      - name: Original layout skippedNoReasonNoBlank
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout skippedNoReasonNoBlank 0 ${{ matrix.order }}
+      - name: Original layout skippedDependency
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout skippedDependency 0 ${{ matrix.order }}
+      - name: Original layout skippedNoReasonBlank
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout skippedNoReasonBlank 0 ${{ matrix.order }}
+      - name: Original layout skippedReasonBlank
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout skippedReasonBlank 0 ${{ matrix.order }}
+      - name: Original layout riskyNoBlank
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout riskyNoBlank 0 ${{ matrix.order }}
+      - name: Original layout error
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout error 0 ${{ matrix.order }}
+      - name: Original layout warning
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout warning 0 ${{ matrix.order }}
+      - name: Original layout notice
+        run: node .github/tests/phpunit-matchers/exercise.cjs layout notice 0 ${{ matrix.order }}
+      - name: Remove matcher and replay all output
+        run: node .github/tests/phpunit-matchers/exercise.cjs remove
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: layouts-${{ matrix.os }}-${{ matrix.order }}
+          path: evidence/
+          if-no-files-found: error
+  audit:
+    name: Verify live PR annotations
+    needs: [real, layouts]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Assert exact live messages severity locations and removal
+        run: node .github/tests/phpunit-matchers/audit.cjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: verified-annotations
+          path: |
+            verified-results.json
+            all-annotations.json
+          if-no-files-found: error
