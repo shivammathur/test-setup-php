@@ -93,7 +93,9 @@ jobs:
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: ./winlib-builder/scripts/fetch-deps.ps1 -lib curl -version '${{ matrix.php }}' -vs '${{ matrix.vs }}' -arch '${{ matrix.arch }}' -stability staging -workflow_run_ids '${{ inputs.phase == 'candidate' && matrix.brotli_run || '' }}'
+        run: |
+          New-Item -ItemType Directory -Force reports | Out-Null
+          ./winlib-builder/scripts/fetch-deps.ps1 -lib curl -version '${{ matrix.php }}' -vs '${{ matrix.vs }}' -arch '${{ matrix.arch }}' -stability staging -repository winlibs/winlib-builder -workflow_run_ids '${{ inputs.phase == 'candidate' && matrix.brotli_run || '' }}' *>&1 | Tee-Object reports/fetch-deps.log
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: ${{ matrix.msvc_arch }}
