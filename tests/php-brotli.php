@@ -5,7 +5,7 @@ function verify(bool $condition, string $message): void {
 }
 $version = curl_version();
 verify($version['version'] === '8.23.0', 'Unexpected curl version');
-verify(($version['brotli_version'] ?? '') === '1.2.1', 'Brotli 1.2.1 is not loaded');
+verify(($version['brotli_version'] ?? '') === 'brotli/1.2.1' && ($version['brotli_ver_num'] ?? 0) === 0x01002001, 'Unexpected Brotli version: ' . json_encode($version));
 verify(($version['features'] & CURL_VERSION_BROTLI) !== 0, 'Brotli support missing');
 verify(in_array('smb', $version['protocols'], true) && in_array('smbs', $version['protocols'], true), 'SMB/SMBS changed');
 $expected = file_get_contents($argv[2]);
