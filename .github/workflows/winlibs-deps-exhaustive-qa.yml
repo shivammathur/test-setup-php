@@ -45,8 +45,12 @@ jobs:
           name: artifacts
           path: artifacts
       - name: Verify and exercise four PHP runtime variants
+        if: ${{ !matrix.password_diagnostics }}
         shell: pwsh
         run: ./scripts/php-qa.ps1 -ArtifactsDirectory artifacts -RunId '${{ matrix.run_id }}' -PhpTarget '${{ matrix.php }}'
+      - name: Diagnose traditional ZIP password verification
+        if: ${{ matrix.password_diagnostics }}
+        run: python scripts/zip-password-diagnostics.py
       - name: Preserve PHP source line endings
         if: inputs.source-diagnostics
         run: git config --global core.autocrlf false
