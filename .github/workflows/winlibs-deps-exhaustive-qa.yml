@@ -66,7 +66,7 @@ jobs:
           if (-not $ok) { throw 'Source workflow compatibility patch did not apply' }
       - name: Reproduce source-test failures and inspect dependencies
         if: inputs.source-diagnostics
-        run: python scripts/source-diagnostics.py --run-id '${{ matrix.run_id }}' --source-sha '${{ matrix.source_sha }}'
+        run: python scripts/source-diagnostics.py --run-id '${{ matrix.run_id }}' --source-sha '${{ matrix.source_sha }}' --mode '${{ matrix.diagnostic_mode || 'full' }}'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

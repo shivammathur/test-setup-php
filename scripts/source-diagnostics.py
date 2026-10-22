@@ -9,7 +9,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 from pe_imports import closure
 
-p=argparse.ArgumentParser();p.add_argument('--run-id',required=True);p.add_argument('--source-sha',required=True);a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--run-id',required=True);p.add_argument('--source-sha',required=True);p.add_argument('--mode',choices=['full','soap'],default='full');a=p.parse_args()
 workspace=pathlib.Path.cwd();source=workspace/'php-src';reports=workspace/'reports/source-diagnostics';reports.mkdir(parents=True,exist_ok=True)
 assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=source,text=True).strip()==a.source_sha
 pattern=re.compile(r'^php-(?!debug-pack-|devel-pack-|test-pack-).+?-(nts-)?Win32-(v[sc]\d+)-(x64|x86)\.zip$')
@@ -21,6 +21,27 @@ for archive in sorted((workspace/'artifacts').glob('*.zip')):
     runtime=pathlib.Path(os.environ['RUNNER_TEMP'])/a.run_id/archive.stem
     php=runtime/'php.exe';cgi=runtime/'php-cgi.exe'
     assert php.is_file() and cgi.is_file()
+    if a.mode=='soap':
+        env=os.environ.copy();env.update(PATH=str(runtime)+os.pathsep+env['PATH'],TEST_PHP_EXECUTABLE=str(php),TEST_PHP_CGI_EXECUTABLE=str(cgi),SKIP_IO_CAPTURE_TESTS='1',NO_INTERACTION='1',REPORT_EXIT_STATUS='1')
+        deps=closure(runtime,'php.exe')
+        assert not any('brotli' in x or 'curl' in x for names in deps.values() for x in names)
+        soap_deps=closure(runtime/'ext','php_soap.dll')
+        assert not any('brotli' in x or 'curl' in x for names in soap_deps.values() for x in names)
+        modules=subprocess.run([str(php),'-n','-d','extension='+str(runtime/'ext/php_soap.dll'),'-m'],env=env,capture_output=True,text=True,check=True).stdout
+        assert re.search(r'^soap$',modules,re.M) and not re.search(r'^(curl|brotli)$',modules,re.M)
+        (out/'soap-modules.txt').write_text(modules);(out/'soap-imports.json').write_text(json.dumps({'php':deps,'soap':soap_deps},indent=2))
+        cases=[]
+        for iteration in range(20):
+            xml=out/f'soap-{iteration}.xml';env['TEST_PHP_JUNIT']=str(xml)
+            args=[str(php),'-n',str(source/'run-tests.php'),'-p',str(php),'-n','-d','extension_dir='+str(runtime/'ext'),'-q','--offline','--show-diff','--set-timeout','120','ext/soap/tests/content_type_header_injection.phpt']
+            result=subprocess.run(args,cwd=source,env=env,capture_output=True,text=True,timeout=180)
+            (out/f'soap-{iteration}.log').write_text(result.stdout+result.stderr)
+            tests=list(ET.parse(xml).getroot().iter('testcase')) if xml.exists() else []
+            errors=[{'name':t.attrib['name'],'details':c.text} for t in tests for c in t if c.tag in ['failure','error']]
+            ok=result.returncode==0 and len(tests)==1 and not errors and not any(c.tag=='skipped' for t in tests for c in t)
+            cases.append({'iteration':iteration,'exit':result.returncode,'ok':ok,'failures':errors});failed|=not ok
+        row={'variant':variant,'sourceSha':a.source_sha,'phpSha256':hashlib.sha256(php.read_bytes()).hexdigest(),'soapCases':cases}
+        rows.append(row);print(json.dumps(row),flush=True);continue
     deps=closure(runtime,'php-cgi.exe')
     assert not any('brotli' in x or 'curl' in x for names in deps.values() for x in names),deps
     (out/'cgi-imports.json').write_text(json.dumps(deps,indent=2))
