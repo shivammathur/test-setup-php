@@ -12,7 +12,7 @@ from pe_imports import closure
 p=argparse.ArgumentParser()
 p.add_argument('--run-id',required=True)
 p.add_argument('--source-sha',required=True)
-p.add_argument('--kind',choices=['proc','cgi'],required=True)
+p.add_argument('--kind',choices=['proc','cgi','cli'],required=True)
 a=p.parse_args()
 workspace=pathlib.Path.cwd()
 source=workspace/'php-src'
@@ -42,16 +42,19 @@ for archive in sorted((workspace/'artifacts').glob('*.zip')):
     assert not re.search(r'^(zip|curl|gd|brotli)$',modules.stdout,re.M)
     (out/'child-modules.txt').write_text(modules.stdout+modules.stderr)
     cases=[]
-    test='ext/standard/tests/general_functions/proc_open_sockets3.phpt' if a.kind=='proc' else 'sapi/cgi/tests/002.phpt'
+    selection={'proc':['ext/standard/tests/general_functions/proc_open_sockets3.phpt'],
+        'cgi':['sapi/cgi/tests/002.phpt'],
+        'cli':['sapi/cli/tests/bug67429_1.phpt','sapi/cli/tests/php_cli_server_019.phpt']}[a.kind]
+    test=','.join(selection)
     count=100 if a.kind=='proc' and variant=='x64-nts' else 20
     for iteration in range(count):
         xml=out/f'case-{iteration}.xml';env['TEST_PHP_JUNIT']=str(xml)
-        command=[str(php),'-n',str(source/'run-tests.php'),'-p',str(php),'-n','-q','--offline','--show-diff','--set-timeout','30',test]
+        command=[str(php),'-n',str(source/'run-tests.php'),'-p',str(php),'-n','-q','--offline','--show-diff','--set-timeout','30',*selection]
         result=subprocess.run(command,cwd=source,env=env,capture_output=True,text=True,timeout=90)
         (out/f'case-{iteration}.log').write_text(result.stdout+result.stderr)
         tests=list(ET.parse(xml).getroot().iter('testcase')) if xml.exists() else []
         errors=[{'test':t.attrib.get('name'),'type':c.tag,'text':c.text} for t in tests for c in t if c.tag in ['failure','error','skipped']]
-        ok=result.returncode==0 and len(tests)==1 and not errors
+        ok=result.returncode==0 and len(tests)==len(selection) and not errors
         cases.append({'iteration':iteration,'exit':result.returncode,'testCount':len(tests),'ok':ok,'errors':errors})
     direct=[]
     if a.kind=='cgi':
