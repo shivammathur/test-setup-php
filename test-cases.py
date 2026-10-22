@@ -30,9 +30,14 @@ for case in cases:
     else:
         status, warnings, installs, fallbacks, cache, expected, requested = manifest.read_text().splitlines()
         env = dict(os.environ, PHP_INI_SCAN_DIR=str(directory / 'conf.d'))
-        probe = subprocess.run([php, '-c', str(directory / 'php.ini'), '-d', 'display_errors=0', '-d', 'display_startup_errors=0', '-r', 'echo json_encode([extension_loaded("pecl_fixture"), phpversion("pecl_fixture")]);'], env=env, text=True, capture_output=True)
-        (directory / 'php-state.json').write_text(probe.stdout)
-        loaded, actual = json.loads(probe.stdout)
+        probe = subprocess.run([php, '-c', str(directory / 'php.ini'), '-d', 'display_errors=0', '-d', 'display_startup_errors=0', '-r', 'echo (int) extension_loaded("pecl_fixture"), "\\n", phpversion("pecl_fixture");'], env=env, text=True, capture_output=True)
+        if probe.returncode:
+            errors.append('PHP state probe failed: ' + probe.stderr)
+            loaded, actual = False, False
+        else:
+            loaded_text, actual = probe.stdout.split('\n', 1)
+            loaded, actual = loaded_text == '1', actual or False
+        (directory / 'php-state.json').write_text(json.dumps([loaded, actual]) + '\n')
         assertions = {
             'exit status': result.returncode == int(status),
             'warning annotations': output.count('::warning::') == int(warnings),
