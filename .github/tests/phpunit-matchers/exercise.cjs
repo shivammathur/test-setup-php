@@ -36,7 +36,17 @@ if (mode === 'verify') {
       issues: 'testUser(Warning|Notice)$'
     };
     const args = ['--colors=never', '--do-not-cache-result', ...(major === 9 ? ['--verbose'] : ['--display-skipped', '--display-incomplete', '--display-warnings', '--display-notices']), '--filter', filters[group], fixture];
-    const result = cp.spawnSync('phpunit', args, {encoding: 'utf8', shell: process.platform === 'win32'});
+    let command = 'phpunit';
+    let commandArgs = args;
+    if (process.platform === 'win32') {
+      const launcher = cp.execFileSync('where.exe', ['phpunit'], {encoding: 'utf8'}).split(/\r?\n/).find(file => /\.bat$/i.test(file));
+      assert.ok(launcher, 'Installed PHPUnit launcher');
+      const phar = launcher.replace(/\.bat$/i, '');
+      assert.ok(fs.existsSync(phar), phar);
+      command = 'php';
+      commandArgs = [phar, ...args];
+    }
+    const result = cp.spawnSync(command, commandArgs, {encoding: 'utf8'});
     if (result.error) throw result.error;
     output = result.stdout + result.stderr;
     const expectedStatus = group === 'failures' || (group === 'issues' && major === 9) ? 2 : 0;

@@ -39,7 +39,7 @@ jobs:
       - name: Register matcher in preceding step
         if: matrix.order == 'normal'
         shell: bash
-        run: echo "::add-matcher::$RUNNER_phpunit:${{ matrix.phpunit }}_CACHE/phpunit.json"
+        run: echo "::add-matcher::$RUNNER_TOOL_CACHE/phpunit.json"
       - name: Actual PHPUnit failures
         run: node .github/tests/phpunit-matchers/exercise.cjs real failures ${{ matrix.phpunit }} ${{ matrix.order }}
       - name: Actual PHPUnit risky
@@ -84,7 +84,7 @@ jobs:
       - name: Register matcher in preceding step
         if: matrix.order == 'normal'
         shell: bash
-        run: echo "::add-matcher::$RUNNER_none_CACHE/phpunit.json"
+        run: echo "::add-matcher::$RUNNER_TOOL_CACHE/phpunit.json"
       - name: Original layout plainBlank
         run: node .github/tests/phpunit-matchers/exercise.cjs layout plainBlank 0 ${{ matrix.order }}
       - name: Original layout plainNoBlank
