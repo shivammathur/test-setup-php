@@ -1,0 +1,99 @@
+name: PR 1138 PHPUnit matcher review
+
+on:
+  push:
+    branches: [test/pr1138-phpunit-matchers-20261022]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  layouts:
+    name: Layouts (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Checkout exact PR head
+        uses: actions/checkout@v7
+        with:
+          repository: shivammathur/setup-php
+          ref: 82bc8cd79fee22fe271046833ce98e50c7e1d5a2
+          path: .setup-php
+      - name: Install PHP using PR action
+        uses: ./.setup-php
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: none
+      - name: Verify installed matcher is exact PR artifact
+        run: node scripts/exercise.cjs verify
+      - name: Register all matchers
+        shell: bash
+        run: echo "::add-matcher::$RUNNER_TOOL_CACHE/phpunit.json"
+      - name: Trigger all eight matcher layouts
+        run: node scripts/exercise.cjs layouts
+      - name: Exercise error severity and boundary cases
+        run: node scripts/exercise.cjs edge-cases
+      - name: Remove original owner
+        shell: bash
+        run: echo "::remove-matcher owner=phpunit::"
+      - name: Replay after original owner removal
+        run: node scripts/exercise.cjs removed
+      - name: Remove full matcher file
+        shell: bash
+        run: echo "::remove-matcher::$RUNNER_TOOL_CACHE/phpunit.json"
+      - name: Upload raw evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: layouts-${{ matrix.os }}
+          path: evidence/
+          if-no-files-found: error
+
+  real:
+    name: PHPUnit ${{ matrix.phpunit }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-latest]
+        phpunit: ['9', '10', '11', '12']
+    steps:
+      - uses: actions/checkout@v7
+      - name: Checkout exact PR head
+        uses: actions/checkout@v7
+        with:
+          repository: shivammathur/setup-php
+          ref: 82bc8cd79fee22fe271046833ce98e50c7e1d5a2
+          path: .setup-php
+      - name: Install PHP and PHPUnit using PR action
+        uses: ./.setup-php
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: phpunit:${{ matrix.phpunit }}
+      - name: Verify installed matcher is exact PR artifact
+        run: node scripts/exercise.cjs verify
+      - name: Register all matchers
+        shell: bash
+        run: echo "::add-matcher::$RUNNER_TOOL_CACHE/phpunit.json"
+      - name: Execute real failure risky skipped and dependency fixtures
+        run: node scripts/exercise.cjs real ${{ matrix.phpunit }}
+      - name: Remove full matcher file
+        if: always()
+        shell: bash
+        run: echo "::remove-matcher::$RUNNER_TOOL_CACHE/phpunit.json"
+      - name: Upload raw evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: real-${{ matrix.os }}-phpunit-${{ matrix.phpunit }}
+          path: evidence/
+          if-no-files-found: error
