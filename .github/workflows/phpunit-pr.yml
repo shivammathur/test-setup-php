@@ -1,0 +1,37 @@
+name: PHPUnit PR annotation display
+on:
+  pull_request:
+    branches: [test/pr1138-display-base-20261022]
+permissions:
+  contents: read
+jobs:
+  annotations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      EXPECTED_ACTION_SHA: 8b29f158258c2340e00c6101086a80f1b580be74
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: shivammathur/setup-php
+          ref: 8b29f158258c2340e00c6101086a80f1b580be74
+          path: .setup-php
+      - uses: ./.setup-php
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: phpunit:12
+      - name: Verify installed matcher
+        run: node .github/tests/phpunit-matchers/exercise.cjs verify
+      - name: Register PHPUnit matcher
+        shell: bash
+        run: echo "::add-matcher::$RUNNER_TOOL_CACHE/phpunit.json"
+      - name: Trigger real PHPUnit errors warnings and notices
+        run: node .github/tests/phpunit-matchers/exercise.cjs real normal 12
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: pr-annotation-evidence
+          path: evidence/
+          if-no-files-found: error
