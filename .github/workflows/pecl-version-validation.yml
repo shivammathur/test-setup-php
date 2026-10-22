@@ -1,0 +1,191 @@
+name: Minimal PECL fix and performance validation
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 644590378555719cd3fcc110b9bfd17ca0a71d57
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - run: npm ci
+      - run: npm run format-check && npm run typecheck && npm test -- --runInBand
+      - run: npx eslint src/*.ts __tests__/*.ts && bash -n src/scripts/extensions/add_extensions.sh
+  fixtures:
+    name: Compiled cases / ${{ matrix.os }} / PHP ${{ matrix.php }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+        php: ['8.3', '8.5']
+        include:
+          - os: ubuntu-24.04
+            php: '5.6'
+          - os: ubuntu-24.04
+            php: '7.4'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 644590378555719cd3fcc110b9bfd17ca0a71d57
+          path: action
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 7769f838bc3079e8784d4a8b18b6266847c439f0
+          path: baseline
+          persist-credentials: false
+      - uses: ./action
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: none
+          tools: none
+          coverage: none
+      - name: Build and verify extension binaries
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          git -C action rev-parse HEAD > artifacts/source-sha.txt
+          bash build-fixtures.sh 2>&1 | tee artifacts/build.log
+      - name: Run all 24 cases with real PHP
+        shell: bash
+        run: python3 test-cases.py action
+      - name: Compare version-check timings and PHP process counts
+        shell: bash
+        run: python3 benchmark.py baseline action
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: compiled-${{ matrix.os }}-php${{ matrix.php }}
+          path: artifacts
+  live:
+    name: Live PECL stable and prerelease / PHP ${{ matrix.php }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.4']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 644590378555719cd3fcc110b9bfd17ca0a71d57
+          path: action
+          persist-credentials: false
+      - name: Install SQLSRV build dependency
+        run: sudo apt-get update -qq && sudo apt-get install -y unixodbc-dev
+      - name: Install pinned stable and prerelease through the full action
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts
+          git -C action rev-parse HEAD > artifacts/source-sha.txt
+          python3 run-action.py live "$PHP_VERSION" true false
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: live-php${{ matrix.php }}
+          path: artifacts
+  failures:
+    name: Full action / strict=${{ matrix.strict }} / startup=${{ matrix.startup }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        strict: ['false', 'true']
+        startup: ['false', 'true']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 644590378555719cd3fcc110b9bfd17ca0a71d57
+          path: action
+          persist-credentials: false
+      - uses: ./action
+        with:
+          php-version: '8.3'
+          extensions: apcu
+          tools: none
+          coverage: none
+          ini-file: development
+      - name: Reject unavailable version and verify actual outcome
+        env:
+          STRICT: ${{ matrix.strict }}
+          STARTUP: ${{ matrix.startup }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts
+          git -C action rev-parse HEAD > artifacts/source-sha.txt
+          python3 run-action.py failure 8.3 "$STRICT" "$STARTUP"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: action-strict-${{ matrix.strict }}-startup-${{ matrix.startup }}
+          path: artifacts
+  setup-time:
+    name: Setup timing / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 644590378555719cd3fcc110b9bfd17ca0a71d57
+          path: action
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 7769f838bc3079e8784d4a8b18b6266847c439f0
+          path: baseline
+          persist-credentials: false
+      - uses: ./action
+        with:
+          php-version: '8.3'
+          extensions: apcu
+          tools: none
+          coverage: none
+      - name: Compare complete action setup times
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts
+          git -C action rev-parse HEAD > artifacts/source-sha.txt
+          git -C baseline rev-parse HEAD > artifacts/baseline-sha.txt
+          python3 benchmark-action.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: setup-timing-${{ matrix.os }}
+          path: artifacts
