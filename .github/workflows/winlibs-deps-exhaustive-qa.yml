@@ -10,6 +10,10 @@ on:
         type: choice
         options: [candidate, published]
         default: candidate
+      source-diagnostics:
+        description: Run focused source-test diagnostics with the matrix source commit
+        type: boolean
+        default: false
 permissions:
   actions: read
   contents: read
@@ -38,6 +42,31 @@ jobs:
       - name: Verify and exercise four PHP runtime variants
         shell: pwsh
         run: ./scripts/php-qa.ps1 -ArtifactsDirectory artifacts -RunId '${{ matrix.run_id }}' -PhpTarget '${{ matrix.php }}'
+      - name: Preserve PHP source line endings
+        if: inputs.source-diagnostics
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+        if: inputs.source-diagnostics
+        with:
+          repository: php/php-src
+          ref: ${{ matrix.source_sha }}
+          path: php-src
+      - uses: actions/checkout@v4
+        if: inputs.source-diagnostics
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: ca1e342a29239a3423e4b721ee06678244e17bcf
+          path: builder
+      - name: Apply the source workflow test-runner compatibility patch
+        if: inputs.source-diagnostics
+        shell: pwsh
+        run: |
+          . ./builder/php/BuildPhp/private/Invoke-CompatRunTestsPatch.ps1
+          $ok = Invoke-CompatRunTestsPatch -Path (Resolve-Path php-src/run-tests.php).Path -PatchPath (Resolve-Path builder/php/BuildPhp/config/run-tests/run-tests-8.2-plus.patch).Path
+          if (-not $ok) { throw 'Source workflow compatibility patch did not apply' }
+      - name: Reproduce source-test failures and inspect dependencies
+        if: inputs.source-diagnostics
+        run: python scripts/source-diagnostics.py --run-id '${{ matrix.run_id }}' --source-sha '${{ matrix.source_sha }}'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
