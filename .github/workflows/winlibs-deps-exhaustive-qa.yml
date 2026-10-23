@@ -1,0 +1,59 @@
+name: Investigate PHP source failures
+run-name: PHP source failure investigation
+on:
+  workflow_dispatch:
+    inputs:
+      matrix:
+        required: true
+permissions:
+  actions: read
+  contents: read
+jobs:
+  investigate:
+    name: PHP ${{ matrix.php }} diagnostic evidence
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(inputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run_id }}
+          name: artifacts
+          path: artifacts
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+        with:
+          repository: php/php-src
+          ref: ${{ matrix.source_sha }}
+          path: php-src
+      - name: Install Windows debugger
+        shell: pwsh
+        run: ./scripts/install-debugger.ps1
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+      - name: Compile x86 callback control
+        shell: cmd
+        run: cl /nologo /LD /Zi /Od /W4 native\callback.c /link /out:callback-x86.dll
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile x64 callback control
+        shell: cmd
+        run: cl /nologo /LD /Zi /Od /W4 native\callback.c /link /out:callback-x64.dll
+      - name: Run pinned-binary investigations
+        run: python scripts/investigate.py --php '${{ matrix.php }}' --run-id '${{ matrix.run_id }}' --source-sha '${{ matrix.source_sha }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: php-${{ matrix.php }}-investigation
+          path: reports
+          if-no-files-found: error
