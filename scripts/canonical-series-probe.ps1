@@ -5,7 +5,19 @@ $rows = @()
 foreach ($expected in (Get-Content canonical-series.json -Raw | ConvertFrom-Json)) {
     $observed = [DateTimeOffset]::UtcNow.ToString('o')
     # Match Get-File's Invoke-WebRequest call, without cache-bypass headers or queries.
-    $response = Invoke-WebRequest -Uri $expected.url -TimeoutSec 60 -UseBasicParsing
+    $response = $null
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        try {
+            $response = Invoke-WebRequest -Uri $expected.url -TimeoutSec 60 -UseBasicParsing
+            break
+        } catch {
+            $message = $_.Exception.ToString()
+            $transient = $message -match 'forcibly closed|transport connection|connection reset'
+            if (-not $transient -or $attempt -eq 3) { throw }
+            Write-Host "Transient connection reset for $($expected.name), attempt $attempt; retrying the same URL"
+            Start-Sleep -Seconds (2 * $attempt)
+        }
+    }
     $bytes = $response.RawContentStream.ToArray()
     $hash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
     [IO.File]::WriteAllBytes((Join-Path $output $expected.name), $bytes)
