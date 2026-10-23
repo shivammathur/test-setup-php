@@ -50,7 +50,7 @@ for archive in sorted((workspace/'artifacts').glob('*.zip')):
     selection={'proc':['ext/standard/tests/general_functions/proc_open_sockets3.phpt'],
         'cgi':['sapi/cgi/tests/002.phpt'],
         'cli':['sapi/cli/tests/bug67429_1.phpt','sapi/cli/tests/php_cli_server_019.phpt','sapi/cli/tests/bug71005.phpt'],
-        'soap':['ext/soap/tests/gh23686/header-from-stringable.phpt'],
+        'soap':['ext/soap/tests/gh23686/header-from-stringable.phpt','ext/soap/tests/gh23686/schema-authorization-digest.phpt'],
         'openssl':['ext/openssl/tests/openssl_cms_sign_verify_nodetached_pem.phpt']}[a.kind]
     test=','.join(selection)
     count=100 if a.kind=='proc' and variant=='x64-nts' else 20
