@@ -14,6 +14,7 @@ import zipfile
 p=argparse.ArgumentParser()
 p.add_argument('--php',required=True);p.add_argument('--run-id',required=True);p.add_argument('--source-sha',required=True)
 p.add_argument('--focus',action='store_true')
+p.add_argument('--ffi-style',action='store_true')
 a=p.parse_args()
 assert sys.flags.utf8_mode, 'Run with PYTHONUTF8=1 for portable source and debugger evidence'
 workspace=Path.cwd();source=workspace/'php-src';reports=workspace/'reports';reports.mkdir(exist_ok=True)

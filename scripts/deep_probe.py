@@ -2,6 +2,25 @@ import json,os,re
 from pathlib import Path
 
 def run(a,workspace,source,reports,out,runtime,symbols,php,arch,variant,env,execute,save,cache_on,cache_off):
+    if a.ffi_style:
+        import xml.etree.ElementTree as ET
+        original=source/'ext/standard/tests/general_functions/sleep_alertable_win32.phpt'
+        content=original.read_text()
+        modified=content.replace('($callconv *PAPCFUNC)', '$callconv (*PAPCFUNC)').replace('($callconv *GetCurrentThread_t)', '$callconv (*GetCurrentThread_t)').replace('($callconv *QueueUserAPC_t)', '$callconv (*QueueUserAPC_t)').replace('($callconv *SleepEx_t)', '$callconv (*SleepEx_t)')
+        assert modified!=content and modified.count('$callconv (*')==4
+        test=original.with_name('sleep_alertable_win32-abi-isolated.phpt');test.write_text(modified)
+        results=[]
+        for mode,cache in [('nocache',cache_off),('opcache',cache_on)]:
+            xml=out/('ffi-abi-isolated-'+mode+'.xml');e=env.copy();e['TEST_PHP_JUNIT']=str(xml)
+            options=['-n','-d','extension_dir='+str(runtime/'ext'),'-q','--offline','--show-diff',*cache,test]
+            result=execute([php,'-n',source/'run-tests.php','-p',php,*options],e,source)
+            save(out/('ffi-abi-isolated-'+mode+'.json'),result)
+            cases=list(ET.parse(xml).getroot().iter('testcase')) if xml.exists() else []
+            assert len(cases)==1,(variant,mode,result)
+            results.append({'mode':mode,'exit':result.get('exit'),'issues':[c.tag for t in cases for c in t if c.tag in ('failure','error','skipped')]})
+        save(out/'ffi-abi-isolated-summary.json',results)
+        print(a.php,variant,'ffi-style',results,flush=True)
+        return
     cdb=Path(os.environ['CDB_ROOT'])/arch/'cdb.exe'
     dirs=[workspace,symbols]+[p for p in symbols.rglob('*') if p.is_dir()]
     symbol_path=';'.join(map(str,dirs))+';srv*'+str(out/'symbol-cache')+'*https://msdl.microsoft.com/download/symbols'

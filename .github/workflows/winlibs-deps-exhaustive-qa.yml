@@ -8,6 +8,9 @@ on:
       focus:
         type: boolean
         default: false
+      ffi-style:
+        type: boolean
+        default: false
       series-probe:
         type: boolean
         default: false
@@ -63,7 +66,7 @@ jobs:
         shell: cmd
         run: cl /nologo /LD /Zi /Od /W4 native\callback.c /link /out:callback-x64.dll
       - name: Run pinned-binary investigations
-        run: python scripts/investigate.py --php '${{ matrix.php }}' --run-id '${{ matrix.run_id }}' --source-sha '${{ matrix.source_sha }}' ${{ inputs.focus && '--focus' || '' }}
+        run: python scripts/investigate.py --php '${{ matrix.php }}' --run-id '${{ matrix.run_id }}' --source-sha '${{ matrix.source_sha }}' ${{ inputs.focus && '--focus' || '' }} ${{ inputs.ffi-style && '--ffi-style' || '' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
