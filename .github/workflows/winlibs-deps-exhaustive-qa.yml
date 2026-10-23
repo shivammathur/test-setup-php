@@ -5,6 +5,9 @@ on:
     inputs:
       matrix:
         required: true
+      focus:
+        type: boolean
+        default: false
 permissions:
   actions: read
   contents: read
@@ -56,7 +59,7 @@ jobs:
         shell: cmd
         run: cl /nologo /LD /Zi /Od /W4 native\callback.c /link /out:callback-x64.dll
       - name: Run pinned-binary investigations
-        run: python scripts/investigate.py --php '${{ matrix.php }}' --run-id '${{ matrix.run_id }}' --source-sha '${{ matrix.source_sha }}'
+        run: python scripts/investigate.py --php '${{ matrix.php }}' --run-id '${{ matrix.run_id }}' --source-sha '${{ matrix.source_sha }}' ${{ inputs.focus && '--focus' || '' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

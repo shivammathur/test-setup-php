@@ -13,6 +13,7 @@ import zipfile
 
 p=argparse.ArgumentParser()
 p.add_argument('--php',required=True);p.add_argument('--run-id',required=True);p.add_argument('--source-sha',required=True)
+p.add_argument('--focus',action='store_true')
 a=p.parse_args()
 assert sys.flags.utf8_mode, 'Run with PYTHONUTF8=1 for portable source and debugger evidence'
 workspace=Path.cwd();source=workspace/'php-src';reports=workspace/'reports';reports.mkdir(exist_ok=True)
@@ -69,6 +70,11 @@ for archive in sorted((workspace/'artifacts').glob('*.zip')):
         row['cases'].append(result)
         print(a.php,variant,label,result['exit'],len(errors),flush=True)
         return result
+    if a.focus:
+        from deep_probe import run
+        run(a,workspace,source,reports,out,runtime,symbols,php,arch,variant,env,execute,save,cache_on,cache_off)
+        rows.append(row);save(reports/'summary.json',rows)
+        continue
     original=source/'ext/standard/tests/ini_info/php_ini_loaded_file.phpt'
     fixed=original.with_name('php_ini_loaded_file-isolated.phpt')
     text=original.read_text();assert 'passthru("$php $args -n -r $code");' in text
