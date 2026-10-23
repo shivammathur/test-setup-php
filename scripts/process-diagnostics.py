@@ -12,7 +12,7 @@ from pe_imports import closure
 p=argparse.ArgumentParser()
 p.add_argument('--run-id',required=True)
 p.add_argument('--source-sha',required=True)
-p.add_argument('--kind',choices=['proc','cgi','cli','soap'],required=True)
+p.add_argument('--kind',choices=['proc','cgi','cli','soap','openssl'],required=True)
 a=p.parse_args()
 workspace=pathlib.Path.cwd()
 source=workspace/'php-src'
@@ -36,21 +36,22 @@ for archive in sorted((workspace/'artifacts').glob('*.zip')):
     env.update(PATH=str(runtime)+os.pathsep+env['PATH'],PHPRC=str(empty),PHP_INI_SCAN_DIR=str(out/'no-extra-ini'),
         TEST_PHP_EXECUTABLE=str(php),TEST_PHP_CGI_EXECUTABLE=str(cgi),SKIP_IO_CAPTURE_TESTS='1',NO_INTERACTION='1',REPORT_EXIT_STATUS='1')
     imports={exe:closure(runtime,exe) for exe in ['php.exe','php-cgi.exe']}
-    if a.kind=='soap':imports['php_soap.dll']=closure(runtime/'ext','php_soap.dll')
+    if a.kind in ['soap','openssl']:imports['php_'+a.kind+'.dll']=closure(runtime/'ext','php_'+a.kind+'.dll')
     assert not any('php_zip' in dll or 'libzip' in dll for graph in imports.values() for deps in graph.values() for dll in deps)
     (out/'imports.json').write_text(json.dumps(imports,indent=2))
     modules=subprocess.run([str(php),'-m'],env=env,capture_output=True,text=True,check=True)
     assert not re.search(r'^(zip|curl|gd|brotli)$',modules.stdout,re.M)
     (out/'child-modules.txt').write_text(modules.stdout+modules.stderr)
-    if a.kind=='soap':
-        modules=subprocess.run([str(php),'-n','-d','extension_dir='+str(runtime/'ext'),'-d','extension=php_soap.dll','-m'],env=env,capture_output=True,text=True,check=True)
-        assert re.search(r'^soap$',modules.stdout,re.M) and not re.search(r'^(zip|curl|gd|brotli)$',modules.stdout,re.M)
-        (out/'soap-modules.txt').write_text(modules.stdout+modules.stderr)
+    if a.kind in ['soap','openssl']:
+        modules=subprocess.run([str(php),'-n','-d','extension_dir='+str(runtime/'ext'),'-d','extension=php_'+a.kind+'.dll','-m'],env=env,capture_output=True,text=True,check=True)
+        assert re.search(r'^'+a.kind+'$',modules.stdout,re.M) and not re.search(r'^(zip|curl|gd|brotli)$',modules.stdout,re.M)
+        (out/(a.kind+'-modules.txt')).write_text(modules.stdout+modules.stderr)
     cases=[]
     selection={'proc':['ext/standard/tests/general_functions/proc_open_sockets3.phpt'],
         'cgi':['sapi/cgi/tests/002.phpt'],
         'cli':['sapi/cli/tests/bug67429_1.phpt','sapi/cli/tests/php_cli_server_019.phpt','sapi/cli/tests/bug71005.phpt'],
-        'soap':['ext/soap/tests/gh23686/header-from-stringable.phpt']}[a.kind]
+        'soap':['ext/soap/tests/gh23686/header-from-stringable.phpt'],
+        'openssl':['ext/openssl/tests/openssl_cms_sign_verify_nodetached_pem.phpt']}[a.kind]
     test=','.join(selection)
     count=100 if a.kind=='proc' and variant=='x64-nts' else 20
     for iteration in range(count):
@@ -75,7 +76,7 @@ for archive in sorted((workspace/'artifacts').glob('*.zip')):
         'cgiSha256':hashlib.sha256(cgi.read_bytes()).hexdigest(),'libzipLoaded':False,'test':test,'cases':cases,
         'directCgiCount':len(direct),'directCgiFailures':sum(not x['ok'] for x in direct),'failedCases':sum(not x['ok'] for x in cases)}
     rows.append(row)
-    if a.kind=='soap':row['soapSha256']=hashlib.sha256((runtime/'ext/php_soap.dll').read_bytes()).hexdigest()
+    if a.kind in ['soap','openssl']:row[a.kind+'Sha256']=hashlib.sha256((runtime/('ext/php_'+a.kind+'.dll')).read_bytes()).hexdigest()
     (reports/'summary.json').write_text(json.dumps(rows,indent=2))
     print(json.dumps({k:row[k] for k in ['variant','test','failedCases','directCgiCount','directCgiFailures','libzipLoaded']}),flush=True)
 assert len(rows)==4
