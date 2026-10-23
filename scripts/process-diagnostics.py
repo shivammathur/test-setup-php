@@ -51,18 +51,25 @@ for archive in sorted((workspace/'artifacts').glob('*.zip')):
         'cgi':['sapi/cgi/tests/002.phpt'],
         'cli':['sapi/cli/tests/bug67429_1.phpt','sapi/cli/tests/php_cli_server_019.phpt','sapi/cli/tests/bug71005.phpt'],
         'soap':['ext/soap/tests/gh23686/header-from-stringable.phpt','ext/soap/tests/gh23686/schema-authorization-digest.phpt'],
-        'openssl':['ext/openssl/tests/openssl_cms_sign_verify_nodetached_pem.phpt']}[a.kind]
+        'openssl':['ext/openssl/tests/openssl_cms_sign_verify_nodetached_pem.phpt','ext/openssl/tests/openssl_cms_sign_verify_detached.phpt']}[a.kind]
     test=','.join(selection)
     count=100 if a.kind=='proc' and variant=='x64-nts' else 20
+    if a.kind=='openssl':
+        count=40
+        opcache_args=['-d','zend_extension='+str(runtime/'ext/php_opcache.dll'),'-d','opcache.enable_cli=1']
+        cache_modules=subprocess.run([str(php),'-n','-d','extension_dir='+str(runtime/'ext'),'-d','extension=php_openssl.dll',*opcache_args,'-m'],env=env,capture_output=True,text=True,check=True)
+        assert 'Zend OPcache' in cache_modules.stdout and not re.search(r'^(zip|curl|gd|brotli)$',cache_modules.stdout,re.M)
+        (out/'openssl-opcache-modules.txt').write_text(cache_modules.stdout+cache_modules.stderr)
     for iteration in range(count):
         xml=out/f'case-{iteration}.xml';env['TEST_PHP_JUNIT']=str(xml)
-        command=[str(php),'-n',str(source/'run-tests.php'),'-p',str(php),'-n','-d','extension_dir='+str(runtime/'ext'),'-q','--offline','--show-diff','--set-timeout','30',*selection]
+        cache_options=opcache_args if a.kind=='openssl' and iteration>=20 else []
+        command=[str(php),'-n',str(source/'run-tests.php'),'-p',str(php),'-n','-d','extension_dir='+str(runtime/'ext'),*cache_options,'-q','--offline','--show-diff','--set-timeout','30',*selection]
         result=subprocess.run(command,cwd=source,env=env,capture_output=True,text=True,timeout=90)
         (out/f'case-{iteration}.log').write_text(result.stdout+result.stderr)
         tests=list(ET.parse(xml).getroot().iter('testcase')) if xml.exists() else []
         errors=[{'test':t.attrib.get('name'),'type':c.tag,'text':c.text} for t in tests for c in t if c.tag in ['failure','error','skipped']]
         ok=result.returncode==0 and len(tests)==len(selection) and not errors
-        cases.append({'iteration':iteration,'exit':result.returncode,'testCount':len(tests),'ok':ok,'errors':errors})
+        cases.append({'iteration':iteration,'exit':result.returncode,'testCount':len(tests),'ok':ok,'errors':errors,'opcache':bool(cache_options)})
     direct=[]
     if a.kind=='cgi':
         script=out/'ini-probe.php';script.write_text('<?php var_dump(ini_get("max_execution_time")); ?>')
