@@ -56,20 +56,30 @@ for archive in sorted((workspace/'artifacts').glob('*.zip')):
     count=100 if a.kind=='proc' and variant=='x64-nts' else 20
     if a.kind=='openssl':
         count=40
-        opcache_args=['-d','zend_extension='+str(runtime/'ext/php_opcache.dll'),'-d','opcache.enable_cli=1']
+        # Newer PHP includes OPcache in the runtime; only load a DLL when absent.
+        opcache_args=[] if re.search(r'^Zend OPcache$',modules.stdout,re.M) else ['-d','zend_extension='+(runtime/'ext/php_opcache.dll').as_posix()]
+        opcache_args+=['-d','opcache.enable=1','-d','opcache.enable_cli=1']
         cache_modules=subprocess.run([str(php),'-n','-d','extension_dir='+str(runtime/'ext'),'-d','extension=php_openssl.dll',*opcache_args,'-m'],env=env,capture_output=True,text=True,check=True)
-        assert 'Zend OPcache' in cache_modules.stdout and not re.search(r'^(zip|curl|gd|brotli)$',cache_modules.stdout,re.M)
+        assert not cache_modules.stderr and 'Zend OPcache' in cache_modules.stdout and not re.search(r'^(zip|curl|gd|brotli)$',cache_modules.stdout,re.M)
         (out/'openssl-opcache-modules.txt').write_text(cache_modules.stdout+cache_modules.stderr)
+        modes=[]
+        for enabled,options in [(False,['-d','opcache.enable_cli=0']),(True,opcache_args)]:
+            probe=subprocess.run([str(php),'-n',*options,'-r','echo json_encode(["loaded"=>extension_loaded("Zend OPcache"),"enabled"=>opcache_get_status(false)!==false]);'],env=env,capture_output=True,text=True,check=True)
+            result=json.loads(probe.stdout)
+            assert not probe.stderr and result['loaded'] and result['enabled']==enabled
+            modes.append({'requestedEnabled':enabled,'actual':result,'stderr':probe.stderr})
+        (out/'opcache-modes.json').write_text(json.dumps(modes,indent=2))
     for iteration in range(count):
         xml=out/f'case-{iteration}.xml';env['TEST_PHP_JUNIT']=str(xml)
-        cache_options=opcache_args if a.kind=='openssl' and iteration>=20 else []
+        cache_enabled=a.kind=='openssl' and iteration>=20
+        cache_options=opcache_args if cache_enabled else ['-d','opcache.enable_cli=0'] if a.kind=='openssl' else []
         command=[str(php),'-n',str(source/'run-tests.php'),'-p',str(php),'-n','-d','extension_dir='+str(runtime/'ext'),*cache_options,'-q','--offline','--show-diff','--set-timeout','30',*selection]
         result=subprocess.run(command,cwd=source,env=env,capture_output=True,text=True,timeout=90)
         (out/f'case-{iteration}.log').write_text(result.stdout+result.stderr)
         tests=list(ET.parse(xml).getroot().iter('testcase')) if xml.exists() else []
         errors=[{'test':t.attrib.get('name'),'type':c.tag,'text':c.text} for t in tests for c in t if c.tag in ['failure','error','skipped']]
         ok=result.returncode==0 and len(tests)==len(selection) and not errors
-        cases.append({'iteration':iteration,'exit':result.returncode,'testCount':len(tests),'ok':ok,'errors':errors,'opcache':bool(cache_options)})
+        cases.append({'iteration':iteration,'exit':result.returncode,'testCount':len(tests),'ok':ok,'errors':errors,'opcache':cache_enabled})
     direct=[]
     if a.kind=='cgi':
         script=out/'ini-probe.php';script.write_text('<?php var_dump(ini_get("max_execution_time")); ?>')
