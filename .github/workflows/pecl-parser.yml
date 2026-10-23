@@ -1,0 +1,126 @@
+name: PECL two-component version regression
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  resolver:
+    name: Live PECL resolver (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: b430072a48f512449579e9cdceffce40c31701ac
+          path: setup-php
+          persist-credentials: false
+      - name: Compare resolver against live PECL metadata
+        run: python3 scripts/check-pecl-versions.py setup-php/src/scripts/extensions/add_extensions.sh reports/pecl-versions.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: resolver-${{ matrix.os }}
+          path: reports/
+          if-no-files-found: error
+  install:
+    name: PHP ${{ matrix.php }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, macos-15]
+        php: ['8.4', '8.5']
+    env:
+      fail-fast: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: b430072a48f512449579e9cdceffce40c31701ac
+          path: setup-php
+          persist-credentials: false
+      - name: Setup base PHP
+        uses: ./setup-php
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: none
+          coverage: none
+          tools: none
+      - name: Require fresh extension installs and record expected versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports/binaries
+          git -C setup-php rev-parse HEAD | tee reports/setup-php-commit.txt
+          for extension in timezonedb redis; do
+            sudo rm -f "$(php-config --extension-dir)/$extension.so"
+            curl --fail --silent --show-error --location --retry 3 "https://pecl.php.net/rest/r/$extension/stable.txt" > "reports/$extension-expected.txt"
+          done
+      - name: Install unversioned timezonedb and stable Redis
+        uses: ./setup-php
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: timezonedb, redis-stable
+          coverage: none
+          tools: none
+      - name: Validate loaded extensions and timezone database
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -v | tee reports/php-version.txt
+          php --ri timezonedb | tee reports/timezonedb-info.txt
+          php --ri redis | tee reports/redis-info.txt
+          php <<'PHP' | tee reports/loaded-versions.json
+          <?php
+          $results = [];
+          foreach (['timezonedb', 'redis'] as $extension) {
+              $expected = trim(file_get_contents("reports/$extension-expected.txt"));
+              $actual = phpversion($extension);
+              if (!extension_loaded($extension) || $actual !== $expected) {
+                  throw new RuntimeException("$extension: expected $expected, got " . var_export($actual, true));
+              }
+              $results[$extension] = $actual;
+          }
+          $results['timezone_version'] = timezone_version_get();
+          $results['timezone_count'] = count(DateTimeZone::listIdentifiers());
+          if ($results['timezone_version'] !== $results['timezonedb'] || $results['timezone_count'] < 400) {
+              throw new RuntimeException('The installed timezone database is not active or is incomplete');
+          }
+          echo json_encode($results, JSON_PRETTY_PRINT), PHP_EOL;
+          PHP
+          for extension in timezonedb redis; do
+            cp "$(php-config --extension-dir)/$extension.so" reports/binaries/
+          done
+          file reports/binaries/*.so | tee reports/binary-types.txt
+          shasum -a 256 reports/binaries/*.so | tee reports/binary-checksums.txt
+      - name: Validate stable timezonedb selection
+        uses: ./setup-php
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: timezonedb-stable
+          coverage: none
+          tools: none
+      - name: Check stable timezonedb remains correct
+        shell: bash
+        run: |
+          php <<'PHP'
+          <?php
+          $expected = trim(file_get_contents('reports/timezonedb-expected.txt'));
+          if (phpversion('timezonedb') !== $expected) {
+              throw new RuntimeException('Wrong stable timezonedb version');
+          }
+          PHP
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: install-${{ matrix.os }}-php-${{ matrix.php }}
+          path: reports/
+          if-no-files-found: error
