@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import time
 import xml.etree.ElementTree as ET
 import zipfile
@@ -13,6 +14,7 @@ import zipfile
 p=argparse.ArgumentParser()
 p.add_argument('--php',required=True);p.add_argument('--run-id',required=True);p.add_argument('--source-sha',required=True)
 a=p.parse_args()
+assert sys.flags.utf8_mode, 'Run with PYTHONUTF8=1 for portable source and debugger evidence'
 workspace=Path.cwd();source=workspace/'php-src';reports=workspace/'reports';reports.mkdir(exist_ok=True)
 assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=source,text=True).strip()==a.source_sha
 expected=json.loads((workspace/'expected.json').read_text())[a.php]
@@ -24,8 +26,11 @@ def save(path,value):path.write_text(json.dumps(value,indent=2)+'\n')
 def execute(command,env,cwd,timeout=90):
     start=time.monotonic()
     try:
-        r=subprocess.run([str(c) for c in command],env=env,cwd=cwd,capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=timeout)
-        return {'command':[str(c) for c in command],'exit':r.returncode,'exitHex':hex(r.returncode & 0xffffffff),'stdout':r.stdout,'stderr':r.stderr,'seconds':time.monotonic()-start}
+        r=subprocess.run([str(c) for c in command],env=env,cwd=cwd,capture_output=True,timeout=timeout)
+        def decode(b):
+            try:return b.decode('utf-8')
+            except UnicodeDecodeError:return b.decode('cp1252',errors='replace')
+        return {'command':[str(c) for c in command],'exit':r.returncode,'exitHex':hex(r.returncode & 0xffffffff),'stdout':decode(r.stdout),'stderr':decode(r.stderr),'seconds':time.monotonic()-start}
     except subprocess.TimeoutExpired as e:
         return {'command':[str(c) for c in command],'timeout':True,'stdout':(e.stdout or b'').decode(errors='replace') if isinstance(e.stdout,bytes) else e.stdout,'stderr':(e.stderr or b'').decode(errors='replace') if isinstance(e.stderr,bytes) else e.stderr,'seconds':time.monotonic()-start}
 
@@ -92,6 +97,11 @@ echo "calling native stdcall invoker\\n";
 var_dump($ffi->invoke_stdcall($storage[0]));var_dump($called);
 '''.replace('CALLCONV',cc).replace('LIBPATH',json.dumps((workspace/('callback-'+arch+'.dll')).as_posix())))
     native_result=execute([php,'-n',*ffi_options,native],env,source);save(out/'ffi-native-control.json',native_result)
+    if arch=='x86':
+        native_ffi=[]
+        for mode in ['stdcall-void','cdecl-void','stdcall-int']:
+            native_ffi.append({'mode':mode,**execute([workspace/'libffi-control.exe',mode],env,source)})
+        save(out/'native-libffi.json',native_ffi)
     def debugger(label,script,options,children=False,timeout=180):
         cdb=Path(os.environ['CDB_ROOT'])/arch/'cdb.exe'
         stack='@esp' if arch=='x86' else '@rsp';ip='@eip' if arch=='x86' else '@rip'
@@ -130,6 +140,8 @@ set_error_handler(static function($severity,$message,$file,$line) {
     return false;
 });
 '''
+            # Trace the reserved name and every file operation to detect overlapping ownership.
+            php_body=php_body.replace('$vout= $outfile . ".vout";', '$vout= $outfile . ".vout";\nfwrite(STDERR, json_encode(["event"=>"allocated","pid"=>getmypid(),"time"=>microtime(true),"path"=>$outfile])."\\n");')
             for slot in range(6):
                 script=original_file.with_name(test+'-diagnostic-'+str(slot)+'.php')
                 script.write_text(php_body.replace('<?php','<?php'+handler,1));cms.append((test,script))
@@ -145,6 +157,17 @@ set_error_handler(static function($severity,$message,$file,$line) {
         with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
             cms_results=[r for batch in pool.map(cms_slot,cms) for r in batch]
         save(out/'cms-stress.json',cms_results)
+        # An A/B control reserves a unique per-process directory for the entire test lifetime.
+        private_cms=[]
+        for test,script in cms:
+            private=script.with_name(script.stem+'-private.php')
+            original_text=script.read_text()
+            private_text=original_text.replace('$outfile = tempnam(sys_get_temp_dir(), "ssl");', '$privateDir = sys_get_temp_dir()."/cms-".getmypid()."-".bin2hex(random_bytes(8));\nif (!mkdir($privateDir)) { throw new Exception("mkdir failed"); }\nregister_shutdown_function(static function() use ($privateDir) { foreach (glob($privateDir."/*") as $file) { @unlink($file); } @rmdir($privateDir); });\n$outfile = tempnam($privateDir, "ssl");')
+            assert private_text!=original_text
+            private.write_text(private_text);private_cms.append((test,private))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+            private_results=[r for batch in pool.map(cms_slot,private_cms) for r in batch]
+        save(out/'cms-private-directory.json',private_results)
     rows.append(row);save(reports/'summary.json',rows)
     print('FINISHED',a.php,variant,flush=True)
 assert len(rows)==4

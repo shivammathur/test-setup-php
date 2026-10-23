@@ -13,6 +13,8 @@ jobs:
     name: PHP ${{ matrix.php }} diagnostic evidence
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
+    env:
+      PYTHONUTF8: '1'
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(inputs.matrix) }}
@@ -37,12 +39,16 @@ jobs:
       - name: Install Windows debugger
         shell: pwsh
         run: ./scripts/install-debugger.ps1
+      - name: Fetch matching libffi SDK for native controls
+        run: python scripts/libffi-sdk.py '${{ matrix.php }}'
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x86
       - name: Compile x86 callback control
         shell: cmd
         run: cl /nologo /LD /Zi /Od /W4 native\callback.c /link /out:callback-x86.dll
+      - name: Compile native x86 libffi control
+        run: python scripts/libffi-sdk.py '${{ matrix.php }}' compile
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
