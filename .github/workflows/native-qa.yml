@@ -61,6 +61,8 @@ jobs:
           $env:PATH="$(Resolve-Path deps/bin);$env:PATH"
           if ('${{ matrix.kind }}' -eq 'sdk') {
             ./scripts/sdk-qa.ps1 -Vs '${{ matrix.vs }}' -Arch '${{ matrix.arch }}'
+          } elseif ('${{ matrix.kind }}' -eq 'apache') {
+            ./scripts/apache-qa.ps1 -Vs '${{ matrix.vs }}' -Arch '${{ matrix.arch }}'
           } elseif ('${{ matrix.kind }}' -eq 'graphics') {
             ./scripts/graphics-qa.ps1
           } else {
