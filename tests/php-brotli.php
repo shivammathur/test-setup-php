@@ -7,9 +7,10 @@ $version = curl_version();
 verify($version['version'] === '8.23.0', 'Unexpected curl version');
 verify(($version['brotli_version'] ?? '') === 'brotli/1.2.1' && ($version['brotli_ver_num'] ?? 0) === 0x01002001, 'Unexpected Brotli version: ' . json_encode($version));
 verify(($version['features'] & CURL_VERSION_BROTLI) !== 0, 'Brotli support missing');
+verify(($version['libz_version'] ?? '') === '1.3.2' && ($version['features'] & CURL_VERSION_LIBZ) !== 0, 'Unexpected curl zlib version');
 verify(in_array('smb', $version['protocols'], true) && in_array('smbs', $version['protocols'], true), 'SMB/SMBS changed');
 $expected = file_get_contents($argv[2]);
-$cases = 4;
+$cases = 5;
 foreach (['/valid', '/chunked', '/gzip', '/gzip-chunked', '/deflate'] as $path) {
     foreach (['return', 'callback'] as $mode) {
         $ch = curl_init($argv[1] . $path);
@@ -24,13 +25,15 @@ foreach (['/valid', '/chunked', '/gzip', '/gzip-chunked', '/deflate'] as $path) 
         $cases++;
     }
 }
-$ch=curl_init($argv[1] . '/invalid');
-curl_setopt_array($ch,[CURLOPT_ENCODING=>'',CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>20,CURLOPT_NOPROXY=>'*']);
-verify(curl_exec($ch)===false && curl_errno($ch)===CURLE_BAD_CONTENT_ENCODING,'Malformed Brotli must fail cleanly');
-unset($ch); $cases++;
+foreach (['/invalid', '/gzip-invalid'] as $path) {
+    $ch=curl_init($argv[1] . $path);
+    curl_setopt_array($ch,[CURLOPT_ENCODING=>'',CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>20,CURLOPT_NOPROXY=>'*']);
+    verify(curl_exec($ch)===false && curl_errno($ch)===CURLE_BAD_CONTENT_ENCODING,'Malformed compressed response must fail cleanly');
+    unset($ch); $cases++;
+}
 $multi=curl_multi_init();$handles=[];
 for($i=0;$i<8;$i++) {
-    $ch=curl_init($argv[1].($i%2?'/valid':'/chunked'));
+    $ch=curl_init($argv[1].['/valid','/chunked','/gzip','/gzip-chunked'][$i%4]);
     curl_setopt_array($ch,[CURLOPT_ENCODING=>'',CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>20,CURLOPT_NOPROXY=>'*']);
     curl_multi_add_handle($multi,$ch);$handles[]=$ch;
 }
