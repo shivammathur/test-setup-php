@@ -1,8 +1,8 @@
 {
   "include": [
     {
-      "id": "sdk-8.2-x64",
-      "kind": "sdk",
+      "id": "graphics-8.2-x64",
+      "kind": "graphics",
       "php": "8.2",
       "vs": "vs16",
       "arch": "x64",
@@ -11,12 +11,10 @@
       "msvc_arch": "x64",
       "msvc_sdk": "",
       "dependencies": {
-        "libbzip2": "libbzip2-1.0.8-vs16-x64.zip",
-        "liblzma": "liblzma-5.8.4-vs16-x64.zip",
-        "libzstd": "libzstd-1.5.7-vs16-x64.zip",
         "libffi": "libffi-3.8.0-1-vs16-x64.zip",
         "libintl": "libintl-1.0-vs16-x64.zip",
-        "libiconv": "libiconv-1.19-vs16-x64.zip"
+        "libiconv": "libiconv-1.19-vs16-x64.zip",
+        "libxml2": "libxml2-2.10.4-9-vs16-x64.zip"
       },
       "libraries": {
         "zlib": {
@@ -24,31 +22,36 @@
           "artifact": "zlib-1.3.2-1-vs16-x64",
           "type": "php"
         },
-        "libpng": {
-          "run": 40055990942,
-          "artifact": "libpng-1.6.59-vs16-x64",
-          "type": "php"
-        },
-        "libzip": {
-          "run": 40055991199,
-          "artifact": "libzip-1.12.1-vs16-x64",
-          "type": "php"
-        },
         "glib": {
           "run": 40057385953,
           "artifact": "glib-2.90.1-vs16-x64",
           "type": "php"
         },
-        "enchant": {
-          "run": 40057892494,
-          "artifact": "libenchant2-2.8.21-1-vs16-x64",
+        "libpng": {
+          "run": 40055990942,
+          "artifact": "libpng-1.6.59-vs16-x64",
           "type": "php"
+        },
+        "cairo": {
+          "run": 40056350843,
+          "artifact": "cairo-1.18.6-vs16-x64",
+          "type": "pecl"
+        },
+        "pango": {
+          "run": 40057892406,
+          "artifact": "pango-1.58.2-1-vs16-x64",
+          "type": "pecl"
+        },
+        "librrd": {
+          "run": 40058335313,
+          "artifact": "librrd-1.11.0-1-vs16-x64",
+          "type": "pecl"
         }
       }
     },
     {
-      "id": "sdk-8.2-x86",
-      "kind": "sdk",
+      "id": "graphics-8.2-x86",
+      "kind": "graphics",
       "php": "8.2",
       "vs": "vs16",
       "arch": "x86",
@@ -57,12 +60,10 @@
       "msvc_arch": "x86",
       "msvc_sdk": "",
       "dependencies": {
-        "libbzip2": "libbzip2-1.0.8-vs16-x86.zip",
-        "liblzma": "liblzma-5.8.4-vs16-x86.zip",
-        "libzstd": "libzstd-1.5.7-vs16-x86.zip",
         "libffi": "libffi-3.8.0-1-vs16-x86.zip",
         "libintl": "libintl-1.0-vs16-x86.zip",
-        "libiconv": "libiconv-1.19-vs16-x86.zip"
+        "libiconv": "libiconv-1.19-vs16-x86.zip",
+        "libxml2": "libxml2-2.10.4-9-vs16-x86.zip"
       },
       "libraries": {
         "zlib": {
@@ -70,77 +71,36 @@
           "artifact": "zlib-1.3.2-1-vs16-x86",
           "type": "php"
         },
-        "libpng": {
-          "run": 40055990942,
-          "artifact": "libpng-1.6.59-vs16-x86",
-          "type": "php"
-        },
-        "libzip": {
-          "run": 40055991199,
-          "artifact": "libzip-1.12.1-vs16-x86",
-          "type": "php"
-        },
         "glib": {
           "run": 40057385953,
           "artifact": "glib-2.90.1-vs16-x86",
           "type": "php"
         },
-        "enchant": {
-          "run": 40057892494,
-          "artifact": "libenchant2-2.8.21-1-vs16-x86",
-          "type": "php"
-        }
-      }
-    },
-    {
-      "id": "sdk-8.2-arm64",
-      "kind": "sdk",
-      "php": "8.2",
-      "vs": "vs16",
-      "arch": "arm64",
-      "runner": "windows-11-arm",
-      "sdk": "10.0.22621.0",
-      "msvc_arch": "amd64_arm64",
-      "msvc_sdk": "10.0.22621.0",
-      "dependencies": {
-        "libbzip2": "libbzip2-1.0.8-vs16-arm64.zip",
-        "liblzma": "liblzma-5.8.4-vs16-arm64.zip",
-        "libzstd": "libzstd-1.5.7-vs16-arm64.zip",
-        "libffi": "libffi-3.8.0-1-vs16-arm64.zip",
-        "libintl": "libintl-1.0-vs16-arm64.zip",
-        "libiconv": "libiconv-1.19-vs16-arm64.zip"
-      },
-      "libraries": {
-        "zlib": {
-          "run": 40055733307,
-          "artifact": "zlib-1.3.2-1-vs16-arm64",
-          "type": "php"
-        },
         "libpng": {
           "run": 40055990942,
-          "artifact": "libpng-1.6.59-vs16-arm64",
+          "artifact": "libpng-1.6.59-vs16-x86",
           "type": "php"
         },
-        "libzip": {
-          "run": 40055991199,
-          "artifact": "libzip-1.12.1-vs16-arm64",
-          "type": "php"
+        "cairo": {
+          "run": 40056350843,
+          "artifact": "cairo-1.18.6-vs16-x86",
+          "type": "pecl"
         },
-        "glib": {
-          "run": 40057385953,
-          "artifact": "glib-2.90.1-vs16-arm64",
-          "type": "php"
+        "pango": {
+          "run": 40057892406,
+          "artifact": "pango-1.58.2-1-vs16-x86",
+          "type": "pecl"
         },
-        "enchant": {
-          "run": 40057892494,
-          "artifact": "libenchant2-2.8.21-1-vs16-arm64",
-          "type": "php"
+        "librrd": {
+          "run": 40058335313,
+          "artifact": "librrd-1.11.0-1-vs16-x86",
+          "type": "pecl"
         }
       }
     },
     {
-      "id": "sdk-8.4-x64",
-      "kind": "sdk",
+      "id": "graphics-8.4-x64",
+      "kind": "graphics",
       "php": "8.4",
       "vs": "vs17",
       "arch": "x64",
@@ -149,12 +109,10 @@
       "msvc_arch": "x64",
       "msvc_sdk": "",
       "dependencies": {
-        "libbzip2": "libbzip2-1.0.8-1-vs17-x64.zip",
-        "liblzma": "liblzma-5.8.4-vs17-x64.zip",
-        "libzstd": "libzstd-1.5.7-vs17-x64.zip",
         "libffi": "libffi-3.8.0-1-vs17-x64.zip",
         "libintl": "libintl-1.0-vs17-x64.zip",
-        "libiconv": "libiconv-1.19-vs17-x64.zip"
+        "libiconv": "libiconv-1.19-vs17-x64.zip",
+        "libxml2": "libxml2-2.11.9-8-vs17-x64.zip"
       },
       "libraries": {
         "zlib": {
@@ -162,31 +120,36 @@
           "artifact": "zlib-1.3.2-1-vs17-x64",
           "type": "php"
         },
-        "libpng": {
-          "run": 40055990963,
-          "artifact": "libpng-1.6.59-vs17-x64",
-          "type": "php"
-        },
-        "libzip": {
-          "run": 40055991151,
-          "artifact": "libzip-1.12.1-vs17-x64",
-          "type": "php"
-        },
         "glib": {
           "run": 40057386123,
           "artifact": "glib-2.90.1-vs17-x64",
           "type": "php"
         },
-        "enchant": {
-          "run": 40057892579,
-          "artifact": "libenchant2-2.8.21-1-vs17-x64",
+        "libpng": {
+          "run": 40055990963,
+          "artifact": "libpng-1.6.59-vs17-x64",
           "type": "php"
+        },
+        "cairo": {
+          "run": 40056350906,
+          "artifact": "cairo-1.18.6-vs17-x64",
+          "type": "pecl"
+        },
+        "pango": {
+          "run": 40057892652,
+          "artifact": "pango-1.58.2-1-vs17-x64",
+          "type": "pecl"
+        },
+        "librrd": {
+          "run": 40058335114,
+          "artifact": "librrd-1.11.0-1-vs17-x64",
+          "type": "pecl"
         }
       }
     },
     {
-      "id": "sdk-8.4-x86",
-      "kind": "sdk",
+      "id": "graphics-8.4-x86",
+      "kind": "graphics",
       "php": "8.4",
       "vs": "vs17",
       "arch": "x86",
@@ -195,12 +158,10 @@
       "msvc_arch": "x86",
       "msvc_sdk": "",
       "dependencies": {
-        "libbzip2": "libbzip2-1.0.8-1-vs17-x86.zip",
-        "liblzma": "liblzma-5.8.4-vs17-x86.zip",
-        "libzstd": "libzstd-1.5.7-vs17-x86.zip",
         "libffi": "libffi-3.8.0-1-vs17-x86.zip",
         "libintl": "libintl-1.0-vs17-x86.zip",
-        "libiconv": "libiconv-1.19-vs17-x86.zip"
+        "libiconv": "libiconv-1.19-vs17-x86.zip",
+        "libxml2": "libxml2-2.11.9-8-vs17-x86.zip"
       },
       "libraries": {
         "zlib": {
@@ -208,77 +169,36 @@
           "artifact": "zlib-1.3.2-1-vs17-x86",
           "type": "php"
         },
-        "libpng": {
-          "run": 40055990963,
-          "artifact": "libpng-1.6.59-vs17-x86",
-          "type": "php"
-        },
-        "libzip": {
-          "run": 40055991151,
-          "artifact": "libzip-1.12.1-vs17-x86",
-          "type": "php"
-        },
         "glib": {
           "run": 40057386123,
           "artifact": "glib-2.90.1-vs17-x86",
           "type": "php"
         },
-        "enchant": {
-          "run": 40057892579,
-          "artifact": "libenchant2-2.8.21-1-vs17-x86",
-          "type": "php"
-        }
-      }
-    },
-    {
-      "id": "sdk-8.4-arm64",
-      "kind": "sdk",
-      "php": "8.4",
-      "vs": "vs17",
-      "arch": "arm64",
-      "runner": "windows-11-arm",
-      "sdk": "10.0.22621.0",
-      "msvc_arch": "arm64",
-      "msvc_sdk": "10.0.22621.0",
-      "dependencies": {
-        "libbzip2": "libbzip2-1.0.8-1-vs17-arm64.zip",
-        "liblzma": "liblzma-5.8.4-vs17-arm64.zip",
-        "libzstd": "libzstd-1.5.7-vs17-arm64.zip",
-        "libffi": "libffi-3.8.0-1-vs17-arm64.zip",
-        "libintl": "libintl-1.0-vs17-arm64.zip",
-        "libiconv": "libiconv-1.19-vs17-arm64.zip"
-      },
-      "libraries": {
-        "zlib": {
-          "run": 40055733435,
-          "artifact": "zlib-1.3.2-1-vs17-arm64",
-          "type": "php"
-        },
         "libpng": {
           "run": 40055990963,
-          "artifact": "libpng-1.6.59-vs17-arm64",
+          "artifact": "libpng-1.6.59-vs17-x86",
           "type": "php"
         },
-        "libzip": {
-          "run": 40055991151,
-          "artifact": "libzip-1.12.1-vs17-arm64",
-          "type": "php"
+        "cairo": {
+          "run": 40056350906,
+          "artifact": "cairo-1.18.6-vs17-x86",
+          "type": "pecl"
         },
-        "glib": {
-          "run": 40057386123,
-          "artifact": "glib-2.90.1-vs17-arm64",
-          "type": "php"
+        "pango": {
+          "run": 40057892652,
+          "artifact": "pango-1.58.2-1-vs17-x86",
+          "type": "pecl"
         },
-        "enchant": {
-          "run": 40057892579,
-          "artifact": "libenchant2-2.8.21-1-vs17-arm64",
-          "type": "php"
+        "librrd": {
+          "run": 40058335114,
+          "artifact": "librrd-1.11.0-1-vs17-x86",
+          "type": "pecl"
         }
       }
     },
     {
-      "id": "sdk-8.6-x64",
-      "kind": "sdk",
+      "id": "graphics-8.6-x64",
+      "kind": "graphics",
       "php": "8.6",
       "vs": "vs18",
       "arch": "x64",
@@ -287,12 +207,10 @@
       "msvc_arch": "x64",
       "msvc_sdk": "",
       "dependencies": {
-        "libbzip2": "libbzip2-1.0.8-1-vs18-x64.zip",
-        "liblzma": "liblzma-5.8.4-vs18-x64.zip",
-        "libzstd": "libzstd-1.5.7-vs18-x64.zip",
         "libffi": "libffi-3.8.0-1-vs18-x64.zip",
         "libintl": "libintl-1.0-vs18-x64.zip",
-        "libiconv": "libiconv-1.19-1-vs18-x64.zip"
+        "libiconv": "libiconv-1.19-1-vs18-x64.zip",
+        "libxml2": "libxml2-2.15.4-vs18-x64.zip"
       },
       "libraries": {
         "zlib": {
@@ -300,31 +218,36 @@
           "artifact": "zlib-1.3.2-1-vs18-x64",
           "type": "php"
         },
-        "libpng": {
-          "run": 40055990948,
-          "artifact": "libpng-1.6.59-vs18-x64",
-          "type": "php"
-        },
-        "libzip": {
-          "run": 40055996874,
-          "artifact": "libzip-1.12.1-vs18-x64",
-          "type": "php"
-        },
         "glib": {
           "run": 40057386767,
           "artifact": "glib-2.90.1-vs18-x64",
           "type": "php"
         },
-        "enchant": {
-          "run": 40057892260,
-          "artifact": "libenchant2-2.8.21-1-vs18-x64",
+        "libpng": {
+          "run": 40055990948,
+          "artifact": "libpng-1.6.59-vs18-x64",
           "type": "php"
+        },
+        "cairo": {
+          "run": 40056350893,
+          "artifact": "cairo-1.18.6-vs18-x64",
+          "type": "pecl"
+        },
+        "pango": {
+          "run": 40057892129,
+          "artifact": "pango-1.58.2-1-vs18-x64",
+          "type": "pecl"
+        },
+        "librrd": {
+          "run": 40058422158,
+          "artifact": "librrd-1.11.0-1-vs18-x64",
+          "type": "pecl"
         }
       }
     },
     {
-      "id": "sdk-8.6-x86",
-      "kind": "sdk",
+      "id": "graphics-8.6-x86",
+      "kind": "graphics",
       "php": "8.6",
       "vs": "vs18",
       "arch": "x86",
@@ -333,12 +256,10 @@
       "msvc_arch": "x86",
       "msvc_sdk": "",
       "dependencies": {
-        "libbzip2": "libbzip2-1.0.8-1-vs18-x86.zip",
-        "liblzma": "liblzma-5.8.4-vs18-x86.zip",
-        "libzstd": "libzstd-1.5.7-vs18-x86.zip",
         "libffi": "libffi-3.8.0-1-vs18-x86.zip",
         "libintl": "libintl-1.0-vs18-x86.zip",
-        "libiconv": "libiconv-1.19-1-vs18-x86.zip"
+        "libiconv": "libiconv-1.19-1-vs18-x86.zip",
+        "libxml2": "libxml2-2.15.4-vs18-x86.zip"
       },
       "libraries": {
         "zlib": {
@@ -346,71 +267,30 @@
           "artifact": "zlib-1.3.2-1-vs18-x86",
           "type": "php"
         },
-        "libpng": {
-          "run": 40055990948,
-          "artifact": "libpng-1.6.59-vs18-x86",
-          "type": "php"
-        },
-        "libzip": {
-          "run": 40055996874,
-          "artifact": "libzip-1.12.1-vs18-x86",
-          "type": "php"
-        },
         "glib": {
           "run": 40057386767,
           "artifact": "glib-2.90.1-vs18-x86",
           "type": "php"
         },
-        "enchant": {
-          "run": 40057892260,
-          "artifact": "libenchant2-2.8.21-1-vs18-x86",
-          "type": "php"
-        }
-      }
-    },
-    {
-      "id": "sdk-8.6-arm64",
-      "kind": "sdk",
-      "php": "8.6",
-      "vs": "vs18",
-      "arch": "arm64",
-      "runner": "windows-11-vs2026-arm",
-      "sdk": "10.0.26100.0",
-      "msvc_arch": "arm64",
-      "msvc_sdk": "10.0.26100.0",
-      "dependencies": {
-        "libbzip2": "libbzip2-1.0.8-1-vs18-arm64.zip",
-        "liblzma": "liblzma-5.8.4-vs18-arm64.zip",
-        "libzstd": "libzstd-1.5.7-vs18-arm64.zip",
-        "libffi": "libffi-3.8.0-1-vs18-arm64.zip",
-        "libintl": "libintl-1.0-vs18-arm64.zip",
-        "libiconv": "libiconv-1.19-1-vs18-arm64.zip"
-      },
-      "libraries": {
-        "zlib": {
-          "run": 40055733553,
-          "artifact": "zlib-1.3.2-1-vs18-arm64",
-          "type": "php"
-        },
         "libpng": {
           "run": 40055990948,
-          "artifact": "libpng-1.6.59-vs18-arm64",
+          "artifact": "libpng-1.6.59-vs18-x86",
           "type": "php"
         },
-        "libzip": {
-          "run": 40055996874,
-          "artifact": "libzip-1.12.1-vs18-arm64",
-          "type": "php"
+        "cairo": {
+          "run": 40056350893,
+          "artifact": "cairo-1.18.6-vs18-x86",
+          "type": "pecl"
         },
-        "glib": {
-          "run": 40057386767,
-          "artifact": "glib-2.90.1-vs18-arm64",
-          "type": "php"
+        "pango": {
+          "run": 40057892129,
+          "artifact": "pango-1.58.2-1-vs18-x86",
+          "type": "pecl"
         },
-        "enchant": {
-          "run": 40057892260,
-          "artifact": "libenchant2-2.8.21-1-vs18-arm64",
-          "type": "php"
+        "librrd": {
+          "run": 40058422158,
+          "artifact": "librrd-1.11.0-1-vs18-x86",
+          "type": "pecl"
         }
       }
     }
