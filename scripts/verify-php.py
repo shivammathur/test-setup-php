@@ -47,6 +47,22 @@ assert zp['php:source-commit']=='838fe0e338adb28f5662e5ac332b0f0eb96ba93a'
 assert any(v['id']=='CVE-2026-85091' and v.get('analysis',{}).get('state')=='resolved' and any(x['ref']==zlibs[0]['bom-ref'] for x in v.get('affects',[])) for v in bom.get('vulnerabilities',[])), 'Missing fixed zlib CVE claim'
 vex=json.loads((root/'extras/sbom/php.openvex.json').read_text())
 assert any(v['vulnerability']['name']=='CVE-2026-85091' and v['status']=='fixed' and any(p['@id']==zlibs[0]['bom-ref'] for p in v['products']) for v in vex['statements']), 'Missing fixed zlib OpenVEX statement'
+apache_evidence=None
+if f'apache-2.4.69-{a.vs}-{a.arch}' in manifest:
+    apaches=[c for c in components if c.get('name')=='apache']
+    assert len(apaches)==1 and apaches[0]['version']=='2.4.69', 'Wrong Apache SDK identity'
+    private_zlibs=[c for c in inherited_zlibs if c.get('purl','').startswith('pkg:vcpkg/zlib@')]
+    assert len(private_zlibs)==2 and all(c['version']=='1.3.2-winlibs.1' for c in private_zlibs), 'Unpatched Apache zlib identity'
+    assert {c['purl'].split('triplet=')[1].split('&')[0] for c in private_zlibs}=={a.arch+'-windows',a.arch+'-windows-static-md'}
+    for c in private_zlibs:
+        cp={p['name']:p['value'] for p in c['properties']}
+        assert cp['php:source-commit']=='838fe0e338adb28f5662e5ac332b0f0eb96ba93a'
+        assert c['bom-ref'] in deps[apaches[0]['bom-ref']], 'Missing Apache -> private zlib dependency'
+        assert any(v['id']=='CVE-2026-85091' and v.get('analysis',{}).get('state')=='resolved' and any(x['ref']==c['bom-ref'] for x in v.get('affects',[])) for v in bom['vulnerabilities']), 'Missing fixed Apache zlib CDX claim'
+        assert any(v['vulnerability']['name']=='CVE-2026-85091' and v['status']=='fixed' and any(p['@id']==c['bom-ref'] for p in v['products']) for v in vex['statements']), 'Missing fixed Apache zlib OpenVEX statement'
+    private_brotlis=[c for c in components if c.get('purl','').startswith('pkg:vcpkg/brotli@')]
+    assert len(private_brotlis)==1 and private_brotlis[0]['version']=='1.2.1', 'Wrong Apache Brotli version'
+    apache_evidence={'apache':apaches[0],'zlib':private_zlibs,'brotli':private_brotlis[0]}
 glibs=[c for c in components if c.get('name')=='glib']
 assert len(glibs)==1 and glibs[0]['version']=='2.90.1', 'Wrong GLib identity'
 gp={p['name']:p['value'] for p in glibs[0].get('properties',[])}
@@ -65,5 +81,5 @@ for artifact, entries in manifest.items():
             actual=hashlib.sha256((root/pathlib.Path(path).name).read_bytes()).hexdigest()
             assert actual==digest, ('Wrong runtime DLL',artifact,path)
             files[pathlib.Path(path).name]=actual
-pathlib.Path(a.report).write_text(json.dumps({'files':files,'brotli':brotlis[0],'curl':curls[0],'libzip':zips[0],'zlib':zlibs[0],'inheritedZlibIdentities':inherited_zlibs,'glib':glibs[0],'verified':True},indent=2))
+pathlib.Path(a.report).write_text(json.dumps({'files':files,'brotli':brotlis[0],'curl':curls[0],'libzip':zips[0],'zlib':zlibs[0],'inheritedZlibIdentities':inherited_zlibs,'glib':glibs[0],**({'apache':apache_evidence} if apache_evidence else {}),'verified':True},indent=2))
 print('PHP runtime DLL hashes, source identities and curl/Brotli dependency verified')

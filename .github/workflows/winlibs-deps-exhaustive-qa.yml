@@ -14,12 +14,16 @@ on:
         description: Probe canonical series through normal Windows requests
         type: boolean
         default: false
+      source-checks:
+        description: Repeat selected source failures using pinned artifacts
+        type: boolean
+        default: false
 permissions:
   actions: read
   contents: read
 jobs:
   test:
-    if: ${{ !inputs.series-probe }}
+    if: ${{ !inputs.series-probe && !inputs.source-checks }}
     name: PHP ${{ matrix.php }} artifact QA
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
@@ -47,6 +51,41 @@ jobs:
         if: always()
         with:
           name: php-${{ matrix.php }}-${{ inputs.phase }}
+          path: reports
+          if-no-files-found: error
+  source-checks:
+    if: inputs.source-checks
+    name: PHP ${{ matrix.php }} selected source tests
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      PYTHONUTF8: '1'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(inputs.matrix) }}
+    steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run_id }}
+          name: artifacts
+          path: artifacts
+      - uses: actions/checkout@v4
+        with:
+          repository: php/php-src
+          ref: ${{ matrix.source_sha }}
+          path: php-src
+      - run: python scripts/source-checks.py --php '${{ matrix.php }}' --run '${{ matrix.run_id }}' --source-sha '${{ matrix.source_sha }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-checks-${{ matrix.php }}-${{ inputs.phase }}
           path: reports
           if-no-files-found: error
   probe:
