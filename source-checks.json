@@ -81,5 +81,21 @@
         "test": "sapi/cgi/tests/004.phpt"
       }
     ]
+  },
+  "40061753145": {
+    "sourceSha": "4a51e519d7199bd80be1660b167179386c76aa48",
+    "hashes": {
+      "php-8.7.0-dev-Win32-vs18-x64.zip": "ee203eeadaf8decc457c20b4ec3e002857ac79c22fa3814ebab9139c16399524",
+      "php-8.7.0-dev-Win32-vs18-x86.zip": "383c81390ece2d2ae5ad45066e32525e79858104dc56cdd3e8f50055fd546b2f",
+      "php-8.7.0-dev-nts-Win32-vs18-x64.zip": "89e0377e555f5a95669b50f590f5581b0eb230e024b1e394c571eace4fa63d4e",
+      "php-8.7.0-dev-nts-Win32-vs18-x86.zip": "4ca6d2998e7271552a5306e8780dfa8d6b60c900ae1f33f89585fc6105675b93"
+    },
+    "cases": [
+      {
+        "variant": "x86-nts",
+        "mode": "opcache",
+        "test": "ext/soap/tests/content_type_header_injection.phpt"
+      }
+    ]
   }
 }
