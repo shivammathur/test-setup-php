@@ -42,7 +42,10 @@ zlibs=[c for c in components if c.get('name')=='zlib']
 assert len(zlibs)==1 and zlibs[0]['version']=='1.3.2-1','Wrong zlib build identity'
 zp={p['name']:p['value'] for p in zlibs[0].get('properties',[])}
 assert zp['php:source-commit']=='838fe0e338adb28f5662e5ac332b0f0eb96ba93a'
-assert any(v['id']=='CVE-2026-85091' and v.get('analysis',{}).get('state')=='resolved_with_pedigree' and any(x['ref']==zlibs[0]['bom-ref'] for x in v.get('affects',[])) for v in bom.get('vulnerabilities',[])), 'Missing fixed zlib CVE claim'
+# phpsdk_sbom.php normalizes resolved_with_pedigree to resolved for Dependency-Track.
+assert any(v['id']=='CVE-2026-85091' and v.get('analysis',{}).get('state')=='resolved' and any(x['ref']==zlibs[0]['bom-ref'] for x in v.get('affects',[])) for v in bom.get('vulnerabilities',[])), 'Missing fixed zlib CVE claim'
+vex=json.loads((root/'extras/sbom/php.openvex.json').read_text())
+assert any(v['vulnerability']['name']=='CVE-2026-85091' and v['status']=='fixed' and any(p['@id']==zlibs[0]['bom-ref'] for p in v['products']) for v in vex['statements']), 'Missing fixed zlib OpenVEX statement'
 glibs=[c for c in components if c.get('name')=='glib']
 assert len(glibs)==1 and glibs[0]['version']=='2.90.1', 'Wrong GLib identity'
 gp={p['name']:p['value'] for p in glibs[0].get('properties',[])}
