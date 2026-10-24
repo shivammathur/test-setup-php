@@ -36,7 +36,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except (ConnectionResetError,BrokenPipeError):pass
     def log_message(self,*args):pass
 
-server=http.server.ThreadingHTTPServer(('127.0.0.1',0),Handler)
+class Server(http.server.ThreadingHTTPServer):
+    # The PHP multi test opens eight connections together. Python 3.13's
+    # default listen backlog is only five, which can reject local bursts.
+    request_queue_size = 64
+
+server=Server(('127.0.0.1',0),Handler)
 threading.Thread(target=server.serve_forever,daemon=True).start()
 url=f'http://127.0.0.1:{server.server_port}'
 results=[]

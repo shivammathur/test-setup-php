@@ -38,5 +38,12 @@ for($i=0;$i<8;$i++) {
     curl_multi_add_handle($multi,$ch);$handles[]=$ch;
 }
 do { $status=curl_multi_exec($multi,$active);verify($status===CURLM_OK,'Multi operation failed');if($active) curl_multi_select($multi,0.1); } while($active);
-foreach($handles as $ch) {verify(curl_errno($ch)===0 && curl_multi_getcontent($ch)===$expected,'Multi decode mismatch');curl_multi_remove_handle($multi,$ch);$cases++;}
+while($info=curl_multi_info_read($multi)) {
+    verify($info['result']===CURLE_OK,'Multi transfer failed: '.json_encode(['result'=>$info['result'],'error'=>curl_error($info['handle']),'info'=>curl_getinfo($info['handle'])]));
+}
+foreach($handles as $ch) {
+    $content=curl_multi_getcontent($ch);
+    verify(curl_errno($ch)===0 && $content===$expected,'Multi decode mismatch: '.json_encode(['error'=>curl_error($ch),'info'=>curl_getinfo($ch),'bytes'=>strlen($content),'sha256'=>hash('sha256',$content),'expected_sha256'=>hash('sha256',$expected)]));
+    curl_multi_remove_handle($multi,$ch);$cases++;
+}
 echo json_encode(['php'=>PHP_VERSION,'curl'=>$version['version'],'brotli'=>$version['brotli_version'],'cases'=>$cases,'failures'=>0],JSON_PRETTY_PRINT),"\n";
