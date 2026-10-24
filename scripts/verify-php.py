@@ -38,7 +38,8 @@ assert len(zips)==1,'Expected exactly one libzip 1.12.1 identity'
 zp={p['name']:p['value'] for p in zips[0].get('properties',[])}
 assert zp['php:source-commit']=='5cccb1bd6a8dc1349e2bddceab771acc4ae635dd','Wrong libzip source commit'
 assert zips[0]['purl']=='pkg:generic/libzip@1.12.1'
-zlibs=[c for c in components if c.get('name')=='zlib']
+zlibs=[c for c in components if c.get('name')=='zlib' and c.get('purl','').startswith('pkg:generic/zlib@')]
+inherited_zlibs=[c for c in components if c.get('name')=='zlib' and c not in zlibs]
 assert len(zlibs)==1 and zlibs[0]['version']=='1.3.2-1','Wrong zlib build identity'
 zp={p['name']:p['value'] for p in zlibs[0].get('properties',[])}
 assert zp['php:source-commit']=='838fe0e338adb28f5662e5ac332b0f0eb96ba93a'
@@ -64,5 +65,5 @@ for artifact, entries in manifest.items():
             actual=hashlib.sha256((root/pathlib.Path(path).name).read_bytes()).hexdigest()
             assert actual==digest, ('Wrong runtime DLL',artifact,path)
             files[pathlib.Path(path).name]=actual
-pathlib.Path(a.report).write_text(json.dumps({'files':files,'brotli':brotlis[0],'curl':curls[0],'libzip':zips[0],'verified':True},indent=2))
+pathlib.Path(a.report).write_text(json.dumps({'files':files,'brotli':brotlis[0],'curl':curls[0],'libzip':zips[0],'zlib':zlibs[0],'inheritedZlibIdentities':inherited_zlibs,'glib':glibs[0],'verified':True},indent=2))
 print('PHP runtime DLL hashes, source identities and curl/Brotli dependency verified')
