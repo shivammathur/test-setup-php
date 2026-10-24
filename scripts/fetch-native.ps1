@@ -6,10 +6,16 @@ if($lane.Count -ne 1){throw 'Ambiguous native lane'}
 $lane=$lane[0]
 New-Item reports,packages,deps,build -ItemType Directory -Force | Out-Null
 $expected=Get-Content expected-hashes.json -Raw | ConvertFrom-Json -AsHashtable
+function Receive-Package([string]$Url, [string]$Destination) {
+  for($attempt=1;$attempt -le 3;$attempt++) {
+    try { Invoke-WebRequest $Url -OutFile $Destination; return }
+    catch { if($attempt -eq 3){throw}; Start-Sleep -Seconds (2*$attempt) }
+  }
+}
 foreach($entry in $lane.dependencies.PSObject.Properties) {
   $file=$entry.Value
   $url="https://downloads.php.net/~windows/php-sdk/deps/$($lane.vs)/$($lane.arch)/$file"
-  Invoke-WebRequest $url -OutFile "packages/$file"
+  Receive-Package $url "packages/$file"
   Expand-Archive "packages/$file" deps -Force
   "$url $((Get-FileHash "packages/$file" -Algorithm SHA256).Hash)" | Add-Content reports/unchanged-dependencies.txt
 }
@@ -17,12 +23,18 @@ foreach($entry in $lane.libraries.PSObject.Properties) {
   $item=$entry.Value;$destination="packages/$($entry.Name)"
   New-Item $destination -ItemType Directory -Force | Out-Null
   if($Phase -eq 'candidate') {
-    gh run download $item.run -R winlibs/winlib-builder -n $item.artifact -D $destination
-    if($LASTEXITCODE){throw "Artifact download failed: $($item.artifact)"}
+    for($attempt=1;$attempt -le 3;$attempt++) {
+      gh run download $item.run -R winlibs/winlib-builder -n $item.artifact -D $destination
+      if(!$LASTEXITCODE){break}
+      if($attempt -eq 3){throw "Artifact download failed: $($item.artifact)"}
+      Remove-Item $destination -Recurse -Force
+      New-Item $destination -ItemType Directory -Force | Out-Null
+      Start-Sleep -Seconds (2*$attempt)
+    }
   } else {
     $base=if($item.type -eq 'pecl'){'https://downloads.php.net/~windows/pecl/deps'}else{"https://downloads.php.net/~windows/php-sdk/deps/$($lane.vs)/$($lane.arch)"}
     $url="$base/$($item.artifact).zip"
-    Invoke-WebRequest $url -OutFile "$destination.zip"
+    Receive-Package $url "$destination.zip"
     Expand-Archive "$destination.zip" $destination -Force
     "$url $((Get-FileHash "$destination.zip" -Algorithm SHA256).Hash)" | Add-Content reports/canonical-packages.txt
   }

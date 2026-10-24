@@ -1,7 +1,7 @@
 $ErrorActionPreference='Stop'
 foreach($variant in @('shared','static')) {
-  $options=if($variant -eq 'static'){@('/DPNG_STATIC')}else{@()}
-  $libs=if($variant -eq 'static'){@('libpng_a.lib','zlib_a.lib')}else{@('libpng.lib')}
+  [string[]]$options=if($variant -eq 'static'){@('/DPNG_STATIC')}else{@()}
+  [string[]]$libs=if($variant -eq 'static'){@('libpng_a.lib','zlib_a.lib')}else{@('libpng.lib')}
   & cl.exe /nologo /W3 /O2 /MD @options /Ideps/include/libpng16 tests/png-roundtrip.c "/Febuild/png-$variant.exe" /link /LIBPATH:deps/lib @libs
   if($LASTEXITCODE){throw "PNG $variant compilation failed"}
   & "build/png-$variant.exe" | Tee-Object "reports/png-$variant.txt"
