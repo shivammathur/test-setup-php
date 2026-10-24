@@ -1,8 +1,8 @@
 {
   "include": [
     {
-      "id": "graphics-8.2-x64",
-      "kind": "graphics",
+      "id": "apache-8.2-x64",
+      "kind": "apache",
       "php": "8.2",
       "vs": "vs16",
       "arch": "x64",
@@ -11,47 +11,24 @@
       "msvc_arch": "x64",
       "msvc_sdk": "",
       "dependencies": {
-        "libffi": "libffi-3.8.0-1-vs16-x64.zip",
-        "libintl": "libintl-1.0-vs16-x64.zip",
-        "libiconv": "libiconv-1.19-vs16-x64.zip",
-        "libxml2": "libxml2-2.10.4-9-vs16-x64.zip"
+        "brotli": "brotli-1.2.1-vs16-x64.zip"
       },
       "libraries": {
+        "apache": {
+          "run": 40060502808,
+          "artifact": "apache-2.4.69-vs16-x64",
+          "type": "php"
+        },
         "zlib": {
           "run": 40055733307,
           "artifact": "zlib-1.3.2-1-vs16-x64",
           "type": "php"
-        },
-        "glib": {
-          "run": 40057385953,
-          "artifact": "glib-2.90.1-vs16-x64",
-          "type": "php"
-        },
-        "libpng": {
-          "run": 40055990942,
-          "artifact": "libpng-1.6.59-vs16-x64",
-          "type": "php"
-        },
-        "cairo": {
-          "run": 40056350843,
-          "artifact": "cairo-1.18.6-vs16-x64",
-          "type": "pecl"
-        },
-        "pango": {
-          "run": 40057892406,
-          "artifact": "pango-1.58.2-1-vs16-x64",
-          "type": "pecl"
-        },
-        "librrd": {
-          "run": 40058335313,
-          "artifact": "librrd-1.11.0-1-vs16-x64",
-          "type": "pecl"
         }
       }
     },
     {
-      "id": "graphics-8.2-x86",
-      "kind": "graphics",
+      "id": "apache-8.2-x86",
+      "kind": "apache",
       "php": "8.2",
       "vs": "vs16",
       "arch": "x86",
@@ -60,47 +37,50 @@
       "msvc_arch": "x86",
       "msvc_sdk": "",
       "dependencies": {
-        "libffi": "libffi-3.8.0-1-vs16-x86.zip",
-        "libintl": "libintl-1.0-vs16-x86.zip",
-        "libiconv": "libiconv-1.19-vs16-x86.zip",
-        "libxml2": "libxml2-2.10.4-9-vs16-x86.zip"
+        "brotli": "brotli-1.2.1-vs16-x86.zip"
       },
       "libraries": {
+        "apache": {
+          "run": 40060502808,
+          "artifact": "apache-2.4.69-vs16-x86",
+          "type": "php"
+        },
         "zlib": {
           "run": 40055733307,
           "artifact": "zlib-1.3.2-1-vs16-x86",
           "type": "php"
-        },
-        "glib": {
-          "run": 40057385953,
-          "artifact": "glib-2.90.1-vs16-x86",
-          "type": "php"
-        },
-        "libpng": {
-          "run": 40055990942,
-          "artifact": "libpng-1.6.59-vs16-x86",
-          "type": "php"
-        },
-        "cairo": {
-          "run": 40056350843,
-          "artifact": "cairo-1.18.6-vs16-x86",
-          "type": "pecl"
-        },
-        "pango": {
-          "run": 40057892406,
-          "artifact": "pango-1.58.2-1-vs16-x86",
-          "type": "pecl"
-        },
-        "librrd": {
-          "run": 40058335313,
-          "artifact": "librrd-1.11.0-1-vs16-x86",
-          "type": "pecl"
         }
       }
     },
     {
-      "id": "graphics-8.4-x64",
-      "kind": "graphics",
+      "id": "apache-8.2-arm64",
+      "kind": "apache",
+      "php": "8.2",
+      "vs": "vs16",
+      "arch": "arm64",
+      "runner": "windows-11-arm",
+      "sdk": "10.0.22621.0",
+      "msvc_arch": "amd64_arm64",
+      "msvc_sdk": "10.0.22621.0",
+      "dependencies": {
+        "brotli": "brotli-1.2.1-vs16-arm64.zip"
+      },
+      "libraries": {
+        "apache": {
+          "run": 40060502808,
+          "artifact": "apache-2.4.69-vs16-arm64",
+          "type": "php"
+        },
+        "zlib": {
+          "run": 40055733307,
+          "artifact": "zlib-1.3.2-1-vs16-arm64",
+          "type": "php"
+        }
+      }
+    },
+    {
+      "id": "apache-8.4-x64",
+      "kind": "apache",
       "php": "8.4",
       "vs": "vs17",
       "arch": "x64",
@@ -109,47 +89,24 @@
       "msvc_arch": "x64",
       "msvc_sdk": "",
       "dependencies": {
-        "libffi": "libffi-3.8.0-1-vs17-x64.zip",
-        "libintl": "libintl-1.0-vs17-x64.zip",
-        "libiconv": "libiconv-1.19-vs17-x64.zip",
-        "libxml2": "libxml2-2.11.9-8-vs17-x64.zip"
+        "brotli": "brotli-1.2.1-vs17-x64.zip"
       },
       "libraries": {
+        "apache": {
+          "run": 40060502796,
+          "artifact": "apache-2.4.69-vs17-x64",
+          "type": "php"
+        },
         "zlib": {
           "run": 40055733435,
           "artifact": "zlib-1.3.2-1-vs17-x64",
           "type": "php"
-        },
-        "glib": {
-          "run": 40057386123,
-          "artifact": "glib-2.90.1-vs17-x64",
-          "type": "php"
-        },
-        "libpng": {
-          "run": 40055990963,
-          "artifact": "libpng-1.6.59-vs17-x64",
-          "type": "php"
-        },
-        "cairo": {
-          "run": 40056350906,
-          "artifact": "cairo-1.18.6-vs17-x64",
-          "type": "pecl"
-        },
-        "pango": {
-          "run": 40057892652,
-          "artifact": "pango-1.58.2-1-vs17-x64",
-          "type": "pecl"
-        },
-        "librrd": {
-          "run": 40058335114,
-          "artifact": "librrd-1.11.0-1-vs17-x64",
-          "type": "pecl"
         }
       }
     },
     {
-      "id": "graphics-8.4-x86",
-      "kind": "graphics",
+      "id": "apache-8.4-x86",
+      "kind": "apache",
       "php": "8.4",
       "vs": "vs17",
       "arch": "x86",
@@ -158,47 +115,50 @@
       "msvc_arch": "x86",
       "msvc_sdk": "",
       "dependencies": {
-        "libffi": "libffi-3.8.0-1-vs17-x86.zip",
-        "libintl": "libintl-1.0-vs17-x86.zip",
-        "libiconv": "libiconv-1.19-vs17-x86.zip",
-        "libxml2": "libxml2-2.11.9-8-vs17-x86.zip"
+        "brotli": "brotli-1.2.1-vs17-x86.zip"
       },
       "libraries": {
+        "apache": {
+          "run": 40060502796,
+          "artifact": "apache-2.4.69-vs17-x86",
+          "type": "php"
+        },
         "zlib": {
           "run": 40055733435,
           "artifact": "zlib-1.3.2-1-vs17-x86",
           "type": "php"
-        },
-        "glib": {
-          "run": 40057386123,
-          "artifact": "glib-2.90.1-vs17-x86",
-          "type": "php"
-        },
-        "libpng": {
-          "run": 40055990963,
-          "artifact": "libpng-1.6.59-vs17-x86",
-          "type": "php"
-        },
-        "cairo": {
-          "run": 40056350906,
-          "artifact": "cairo-1.18.6-vs17-x86",
-          "type": "pecl"
-        },
-        "pango": {
-          "run": 40057892652,
-          "artifact": "pango-1.58.2-1-vs17-x86",
-          "type": "pecl"
-        },
-        "librrd": {
-          "run": 40058335114,
-          "artifact": "librrd-1.11.0-1-vs17-x86",
-          "type": "pecl"
         }
       }
     },
     {
-      "id": "graphics-8.6-x64",
-      "kind": "graphics",
+      "id": "apache-8.4-arm64",
+      "kind": "apache",
+      "php": "8.4",
+      "vs": "vs17",
+      "arch": "arm64",
+      "runner": "windows-11-arm",
+      "sdk": "10.0.22621.0",
+      "msvc_arch": "arm64",
+      "msvc_sdk": "10.0.22621.0",
+      "dependencies": {
+        "brotli": "brotli-1.2.1-vs17-arm64.zip"
+      },
+      "libraries": {
+        "apache": {
+          "run": 40060502796,
+          "artifact": "apache-2.4.69-vs17-arm64",
+          "type": "php"
+        },
+        "zlib": {
+          "run": 40055733435,
+          "artifact": "zlib-1.3.2-1-vs17-arm64",
+          "type": "php"
+        }
+      }
+    },
+    {
+      "id": "apache-8.6-x64",
+      "kind": "apache",
       "php": "8.6",
       "vs": "vs18",
       "arch": "x64",
@@ -207,47 +167,24 @@
       "msvc_arch": "x64",
       "msvc_sdk": "",
       "dependencies": {
-        "libffi": "libffi-3.8.0-1-vs18-x64.zip",
-        "libintl": "libintl-1.0-vs18-x64.zip",
-        "libiconv": "libiconv-1.19-1-vs18-x64.zip",
-        "libxml2": "libxml2-2.15.4-vs18-x64.zip"
+        "brotli": "brotli-1.2.1-vs18-x64.zip"
       },
       "libraries": {
+        "apache": {
+          "run": 40060502792,
+          "artifact": "apache-2.4.69-vs18-x64",
+          "type": "php"
+        },
         "zlib": {
           "run": 40055733553,
           "artifact": "zlib-1.3.2-1-vs18-x64",
           "type": "php"
-        },
-        "glib": {
-          "run": 40057386767,
-          "artifact": "glib-2.90.1-vs18-x64",
-          "type": "php"
-        },
-        "libpng": {
-          "run": 40055990948,
-          "artifact": "libpng-1.6.59-vs18-x64",
-          "type": "php"
-        },
-        "cairo": {
-          "run": 40056350893,
-          "artifact": "cairo-1.18.6-vs18-x64",
-          "type": "pecl"
-        },
-        "pango": {
-          "run": 40057892129,
-          "artifact": "pango-1.58.2-1-vs18-x64",
-          "type": "pecl"
-        },
-        "librrd": {
-          "run": 40058422158,
-          "artifact": "librrd-1.11.0-1-vs18-x64",
-          "type": "pecl"
         }
       }
     },
     {
-      "id": "graphics-8.6-x86",
-      "kind": "graphics",
+      "id": "apache-8.6-x86",
+      "kind": "apache",
       "php": "8.6",
       "vs": "vs18",
       "arch": "x86",
@@ -256,41 +193,44 @@
       "msvc_arch": "x86",
       "msvc_sdk": "",
       "dependencies": {
-        "libffi": "libffi-3.8.0-1-vs18-x86.zip",
-        "libintl": "libintl-1.0-vs18-x86.zip",
-        "libiconv": "libiconv-1.19-1-vs18-x86.zip",
-        "libxml2": "libxml2-2.15.4-vs18-x86.zip"
+        "brotli": "brotli-1.2.1-vs18-x86.zip"
       },
       "libraries": {
+        "apache": {
+          "run": 40060502792,
+          "artifact": "apache-2.4.69-vs18-x86",
+          "type": "php"
+        },
         "zlib": {
           "run": 40055733553,
           "artifact": "zlib-1.3.2-1-vs18-x86",
           "type": "php"
-        },
-        "glib": {
-          "run": 40057386767,
-          "artifact": "glib-2.90.1-vs18-x86",
+        }
+      }
+    },
+    {
+      "id": "apache-8.6-arm64",
+      "kind": "apache",
+      "php": "8.6",
+      "vs": "vs18",
+      "arch": "arm64",
+      "runner": "windows-11-vs2026-arm",
+      "sdk": "10.0.26100.0",
+      "msvc_arch": "arm64",
+      "msvc_sdk": "10.0.26100.0",
+      "dependencies": {
+        "brotli": "brotli-1.2.1-vs18-arm64.zip"
+      },
+      "libraries": {
+        "apache": {
+          "run": 40060502792,
+          "artifact": "apache-2.4.69-vs18-arm64",
           "type": "php"
         },
-        "libpng": {
-          "run": 40055990948,
-          "artifact": "libpng-1.6.59-vs18-x86",
+        "zlib": {
+          "run": 40055733553,
+          "artifact": "zlib-1.3.2-1-vs18-arm64",
           "type": "php"
-        },
-        "cairo": {
-          "run": 40056350893,
-          "artifact": "cairo-1.18.6-vs18-x86",
-          "type": "pecl"
-        },
-        "pango": {
-          "run": 40057892129,
-          "artifact": "pango-1.58.2-1-vs18-x86",
-          "type": "pecl"
-        },
-        "librrd": {
-          "run": 40058422158,
-          "artifact": "librrd-1.11.0-1-vs18-x86",
-          "type": "pecl"
         }
       }
     }
