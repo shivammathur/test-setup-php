@@ -1,0 +1,74 @@
+name: Zlib dependency native artifact QA
+run-name: Winlibs native QA (${{ inputs.phase }})
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        type: choice
+        options: [candidate, published]
+        default: candidate
+permissions:
+  actions: read
+  contents: read
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      value: ${{ steps.matrix.outputs.value }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        run: echo "value=$(jq -c . native-matrix.json)" >> "$GITHUB_OUTPUT"
+  test:
+    name: ${{ matrix.id }}
+    needs: matrix
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.value) }}
+    steps:
+      - name: Preserve fixture line endings
+        shell: pwsh
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: winlibs/winlib-builder
+          ref: master
+          path: winlib-builder
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: ${{ matrix.arch }}
+      - name: Compute compiler inputs
+        id: virtuals
+        shell: pwsh
+        run: ./winlib-builder/scripts/compute-virtuals.ps1 -version '${{ matrix.php }}' -arch '${{ matrix.arch }}' -sdk '${{ matrix.sdk }}'
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_arch }}
+          toolset: ${{ steps.virtuals.outputs.toolset }}
+          sdk: ${{ matrix.msvc_sdk }}
+      - name: Fetch and verify exact packages
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/fetch-native.ps1 -LaneId '${{ matrix.id }}' -Phase '${{ inputs.phase }}'
+      - name: Test packaged libraries
+        shell: pwsh
+        run: |
+          $env:PATH="$(Resolve-Path deps/bin);$env:PATH"
+          if ('${{ matrix.kind }}' -eq 'sdk') {
+            ./scripts/sdk-qa.ps1 -Vs '${{ matrix.vs }}' -Arch '${{ matrix.arch }}'
+          } elseif ('${{ matrix.kind }}' -eq 'graphics') {
+            ./scripts/graphics-qa.ps1
+          } else {
+            ./scripts/kafka-qa.ps1
+          }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-${{ matrix.id }}-${{ inputs.phase }}
+          path: reports
+          if-no-files-found: error

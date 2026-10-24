@@ -1,0 +1,71 @@
+name: Zlib dependency PHP artifact QA
+run-name: ${{ inputs.series-probe && 'Canonical staging series probe' || format('Zlib PHP QA ({0})', inputs.phase) }}
+on:
+  workflow_dispatch:
+    inputs:
+      matrix:
+        description: Exact PHP source-build artifact run IDs
+        required: true
+      phase:
+        type: choice
+        options: [candidate, published]
+        default: candidate
+      series-probe:
+        description: Probe canonical series through normal Windows requests
+        type: boolean
+        default: false
+permissions:
+  actions: read
+  contents: read
+jobs:
+  test:
+    if: ${{ !inputs.series-probe }}
+    name: PHP ${{ matrix.php }} artifact QA
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(inputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: x64
+      - name: Download exact PHP artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run_id }}
+          name: artifacts
+          path: artifacts
+      - name: Verify and exercise all four PHP runtime variants
+        shell: pwsh
+        run: ./scripts/php-qa.ps1 -ArtifactsDirectory artifacts -RunId '${{ matrix.run_id }}' -PhpTarget '${{ matrix.php }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: php-${{ matrix.php }}-${{ inputs.phase }}
+          path: reports
+          if-no-files-found: error
+  probe:
+    if: inputs.series-probe
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [windows-2022, windows-2025-vs2026]
+        sample: [1, 2, 3, 4]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch standard series URLs using the builder request method
+        shell: pwsh
+        run: ./scripts/canonical-series-probe.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: canonical-series-${{ matrix.runner }}-${{ matrix.sample }}
+          path: reports/canonical-series
+          if-no-files-found: error
