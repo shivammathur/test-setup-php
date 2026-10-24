@@ -1,0 +1,64 @@
+{
+  "40058115755": {
+    "sourceSha": "fdfd003940c88242e68afb99037c339ff36d4875",
+    "hashes": {
+      "php-8.6.0-dev-Win32-vs18-x64.zip": "18b067a93e434d5cf871c1714cc5ffcdeecbade512b7531b2268813cd1b363bb",
+      "php-8.6.0-dev-Win32-vs18-x86.zip": "226fa808fde14593789fe54e8660cbdee34a1737fc2254a40ca72114a8cc289e",
+      "php-8.6.0-dev-nts-Win32-vs18-x64.zip": "f296802685ac5f1c8519486ab07f542c30ea56e031b427ba729ca4cb22c0841f",
+      "php-8.6.0-dev-nts-Win32-vs18-x86.zip": "bda6f7d575b01b5cba54599eae8d4702c2693a6f68dedc44bc18c188cb0baab2"
+    },
+    "cases": [
+      {
+        "variant": "x64-nts",
+        "mode": "nocache",
+        "test": "ext/soap/tests/gh23686/header-from-stringable.phpt"
+      },
+      {
+        "variant": "x64-nts",
+        "mode": "opcache",
+        "test": "ext/soap/tests/gh23686/header-just-lf-separator.phpt"
+      },
+      {
+        "variant": "x64-ts",
+        "mode": "nocache",
+        "test": "ext/soap/tests/content_type_header_injection.phpt"
+      },
+      {
+        "variant": "x64-ts",
+        "mode": "nocache",
+        "test": "sapi/cli/tests/cli_server_persistent_string001.phpt"
+      },
+      {
+        "variant": "x64-ts",
+        "mode": "opcache",
+        "test": "sapi/cgi/tests/009.phpt"
+      },
+      {
+        "variant": "x64-ts",
+        "mode": "opcache",
+        "test": "sapi/cgi/tests/011.phpt"
+      },
+      {
+        "variant": "x86-nts",
+        "mode": "opcache",
+        "test": "sapi/cli/tests/bug66606_2.phpt"
+      }
+    ]
+  },
+  "40058115748": {
+    "sourceSha": "b93944eff9ef3fe67e60d4f257e30e4c24d01f8d",
+    "hashes": {
+      "php-8.7.0-dev-Win32-vs18-x64.zip": "ff7a9741cf6d9bee5439d5cf9920dcf14bc17e679fb101cfe85b99ce91497437",
+      "php-8.7.0-dev-Win32-vs18-x86.zip": "af6c801f027ef4d500abfb90a905afc148e35d0816f2bf5760a969902d6a7094",
+      "php-8.7.0-dev-nts-Win32-vs18-x64.zip": "76c41429a527e72be1f4e93f3a915df88dfcec64c08f56b1146617303b96ce84",
+      "php-8.7.0-dev-nts-Win32-vs18-x86.zip": "2a041639cfd13342792fb4573a55f0c0f8eedc5d54797d637da456270218dfba"
+    },
+    "cases": [
+      {
+        "variant": "x86-ts",
+        "mode": "nocache",
+        "test": "sapi/cli/tests/bug66606_1.phpt"
+      }
+    ]
+  }
+}
