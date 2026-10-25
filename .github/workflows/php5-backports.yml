@@ -1,0 +1,106 @@
+name: PHP 5 backport setup-php validation
+run-name: PHP 5.3–5.5 setup-php validation
+on:
+  push:
+    branches: [feature/php5-backport-setup-php-20261025]
+permissions:
+  contents: read
+  actions: read
+defaults:
+  run:
+    shell: bash
+jobs:
+  ubuntu:
+    name: PHP ${{ matrix.php }} / ${{ matrix.target.runner }}
+    runs-on: ${{ matrix.target.runner }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.3', '5.4', '5.5']
+        target:
+          - {runner: ubuntu-24.04, arch: x86_64}
+          - {runner: ubuntu-24.04-arm, arch: arm64}
+    env:
+      PHP_MINOR: ${{ matrix.php }}
+      EXPECTED_ARCHITECTURE: ${{ matrix.target.arch }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify reference release payload
+        run: bash scripts/prepare.sh ubuntu
+      - name: Install with setup-php
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: curl, dom, gd, iconv, intl, mbstring, mysqli, openssl, pdo_mysql, pdo_sqlite, soap, sockets, sqlite3, xml, zip, imagick
+          tools: composer:2.2.29
+          coverage: none
+          ini-values: memory_limit=256M, date.timezone=UTC
+        env:
+          update: true
+      - name: Verify exact build and functionality
+        run: bash scripts/verify.sh
+      - name: Save evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ubuntu-${{ matrix.php }}-${{ matrix.target.arch }}
+          path: ${{ runner.temp }}/evidence
+          if-no-files-found: error
+  darwin-inputs:
+    name: Wait for exact Darwin candidate artifacts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 185
+    steps:
+      - uses: actions/checkout@v7
+      - name: Wait for six candidate artifacts
+        run: bash scripts/prepare.sh wait-darwin
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: darwin-candidate-metadata
+          path: ${{ runner.temp }}/evidence
+          if-no-files-found: error
+  darwin:
+    needs: darwin-inputs
+    name: PHP ${{ matrix.php }} / ${{ matrix.target.runner }}
+    runs-on: ${{ matrix.target.runner }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.3', '5.4', '5.5']
+        target:
+          - {runner: macos-14, arch: arm64}
+          - {runner: macos-15-intel, arch: x86_64}
+    env:
+      PHP_MINOR: ${{ matrix.php }}
+      EXPECTED_ARCHITECTURE: ${{ matrix.target.arch }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: darwin-candidate-metadata
+          path: ${{ runner.temp }}/candidate-metadata
+      - name: Verify and select exact candidate payloads
+        run: bash scripts/prepare.sh darwin
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Install candidates with setup-php
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: curl, dom, gd, iconv, intl, mbstring, mysqli, openssl, pdo_mysql, pdo_sqlite, soap, sockets, sqlite3, xml, zip, imagick
+          tools: composer:2.2.29
+          coverage: none
+          ini-values: memory_limit=256M, date.timezone=UTC
+      - name: Verify exact build and functionality
+        run: bash scripts/verify.sh
+      - name: Save evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: darwin-${{ matrix.php }}-${{ matrix.target.arch }}
+          path: ${{ runner.temp }}/evidence
+          if-no-files-found: error
