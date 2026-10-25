@@ -1,0 +1,30 @@
+name: Windows session hardlink validation
+
+on:
+  push:
+    branches: [fix/windows-session-hardlink-validation]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: PHP ${{ matrix.php-version }} on Windows
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.4', '8.5']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-version }}
+      - name: Check session hardlink behavior
+        shell: pwsh
+        run: ./probe.ps1
+      - name: Save probe evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-session-hardlink-php-${{ matrix.php-version }}
+          path: report/
+          if-no-files-found: warn
