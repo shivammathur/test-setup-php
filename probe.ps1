@@ -16,6 +16,7 @@ if ($defaultCleanup -ne '1') {
 
 $upload = Join-Path $report 'upload.bin'
 [IO.File]::WriteAllBytes($upload, [byte[]]::new(65536))
+$progress = 'MARKER<?php echo "PHP_CANARY"; ?>'
 
 foreach ($cleanup in @(1, 0)) {
     $case = Join-Path $report "cleanup-$cleanup"
@@ -58,7 +59,7 @@ foreach ($cleanup in @(1, 0)) {
 
         $client.DefaultRequestHeaders.Add('Cookie', "PHPSESSID=$sid")
         $form = [System.Net.Http.MultipartFormDataContent]::new()
-        $form.Add([System.Net.Http.StringContent]::new('MARKER'), 'PHP_SESSION_UPLOAD_PROGRESS')
+        $form.Add([System.Net.Http.StringContent]::new($progress), 'PHP_SESSION_UPLOAD_PROGRESS')
         $file = [System.Net.Http.ByteArrayContent]::new([IO.File]::ReadAllBytes($upload))
         $form.Add($file, 'upload', 'upload.bin')
         $response = $client.PostAsync($url, $form).GetAwaiter().GetResult()
@@ -69,14 +70,23 @@ foreach ($cleanup in @(1, 0)) {
 
         $content = [IO.File]::ReadAllText($target)
         [IO.File]::WriteAllText((Join-Path $case 'target.txt'), $content)
-        $marker = $content.Contains('upload_progress_MARKER|')
-        "cleanup=$cleanup status=$status target_bytes=$([Text.Encoding]::UTF8.GetByteCount($content)) marker=$marker" |
+        $marker = $content.Contains("upload_progress_$progress|")
+        $served = $client.GetStringAsync("http://127.0.0.1:$port/empty.php").GetAwaiter().GetResult()
+        [IO.File]::WriteAllText((Join-Path $case 'served.txt'), $served)
+        $executed = $served.Contains('PHP_CANARY') -and -not $served.Contains('<?php')
+        "cleanup=$cleanup status=$status target_bytes=$([Text.Encoding]::UTF8.GetByteCount($content)) marker=$marker canary_executed=$executed" |
             Add-Content $results
         if ($cleanup -eq 0 -and -not $marker) {
             throw 'Hardlinked target did not retain the benign upload-progress marker'
         }
+        if ($cleanup -eq 0 -and -not $executed) {
+            throw 'The harmless PHP canary in the hardlinked target did not execute'
+        }
         if ($cleanup -eq 1 -and $content.Length -ne 0) {
             throw 'Hardlinked target was not restored with default cleanup'
+        }
+        if ($cleanup -eq 1 -and $served.Length -ne 0) {
+            throw 'The default-cleanup target unexpectedly served content'
         }
     } finally {
         $client.Dispose()
