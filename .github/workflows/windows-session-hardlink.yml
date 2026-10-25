@@ -18,6 +18,20 @@ jobs:
       - uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-version }}
+      - name: Use official PHP 8.5.12 Windows build
+        if: matrix.php-version == '8.5'
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'php-8.5.12.zip'
+          $url = 'https://downloads.php.net/~windows/releases/archives/php-8.5.12-Win32-vs17-x64.zip'
+          Invoke-WebRequest -Uri $url -OutFile $archive
+          $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne '660f3ff6ccbdf60f9607ef54bdba85ee22a58d61fd3633b38a93d57fb7c3d184') {
+            throw "Unexpected SHA256 for official PHP 8.5.12 binary: $hash"
+          }
+          $directory = Join-Path $env:RUNNER_TEMP 'php-8.5.12'
+          Expand-Archive -Path $archive -DestinationPath $directory
+          "PROBE_PHP=$(Join-Path $directory 'php.exe')" >> $env:GITHUB_ENV
       - name: Check session hardlink behavior
         shell: pwsh
         run: ./probe.ps1

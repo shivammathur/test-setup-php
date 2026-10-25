@@ -3,9 +3,13 @@ $ErrorActionPreference = 'Stop'
 $report = Join-Path $env:GITHUB_WORKSPACE 'report'
 New-Item -ItemType Directory -Path $report -Force | Out-Null
 $results = Join-Path $report 'results.txt'
-$version = (& php -r 'echo PHP_VERSION;').Trim()
-$defaultCleanup = (& php -r 'echo ini_get("session.upload_progress.cleanup");').Trim()
+$php = if ($env:PROBE_PHP) { $env:PROBE_PHP } else { (Get-Command php).Source }
+$version = (& $php -r 'echo PHP_VERSION;').Trim()
+$defaultCleanup = (& $php -r 'echo ini_get("session.upload_progress.cleanup");').Trim()
 "PHP_VERSION=$version`nDEFAULT_CLEANUP=$defaultCleanup" | Set-Content $results
+if ($env:PROBE_PHP -and $version -ne '8.5.12') {
+    throw "Expected the official PHP 8.5.12 binary, got $version"
+}
 if ($defaultCleanup -ne '1') {
     throw "Expected PHP's default session.upload_progress.cleanup=1, got $defaultCleanup"
 }
@@ -27,7 +31,6 @@ foreach ($cleanup in @(1, 0)) {
 
     $port = 18250 + $cleanup
     $url = "http://127.0.0.1:$port/index.php"
-    $php = (Get-Command php).Source
     $process = Start-Process -FilePath $php -ArgumentList @(
         '-d', "session.save_path=$sessions",
         '-d', 'session.save_handler=files',
