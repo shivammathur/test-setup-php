@@ -23,7 +23,11 @@ jobs:
         run: |
           New-Item -ItemType Directory evidence | Out-Null
           $response = Invoke-WebRequest 'https://www.php.net/include/download-instructions/windows.ps1' -UseBasicParsing
-          [IO.File]::WriteAllText("$pwd\evidence\windows.ps1", $response.Content)
+          if ($response.Content -is [byte[]]) {
+            [IO.File]::WriteAllBytes("$pwd\evidence\windows.ps1", $response.Content)
+          } else {
+            [IO.File]::WriteAllText("$pwd\evidence\windows.ps1", $response.Content)
+          }
           $response.Headers | ConvertTo-Json | Set-Content evidence/installer-headers.json
           Invoke-WebRequest 'https://downloads.php.net/~windows/releases/releases.json' -UseBasicParsing -OutFile evidence/releases.json
           @('', '', '', '1') | Set-Content installer-answers.txt -Encoding Ascii
