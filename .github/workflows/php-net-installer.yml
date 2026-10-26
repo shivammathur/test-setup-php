@@ -1,0 +1,45 @@
+name: PHP.net one-line Windows installer
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: PHP ${{ matrix.version }}
+    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['8.2', '8.2.35-1', '8.3', '8.3.36-1', '8.4', '8.4.27-1', '8.5', '8.5.12-1']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record live installer and release metadata
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory evidence | Out-Null
+          $response = Invoke-WebRequest 'https://www.php.net/include/download-instructions/windows.ps1' -UseBasicParsing
+          [IO.File]::WriteAllText("$pwd\evidence\windows.ps1", $response.Content)
+          $response.Headers | ConvertTo-Json | Set-Content evidence/installer-headers.json
+          Invoke-WebRequest 'https://downloads.php.net/~windows/releases/releases.json' -UseBasicParsing -OutFile evidence/releases.json
+          @('', '', '', '1') | Set-Content installer-answers.txt -Encoding Ascii
+      - name: Run the published one-line command
+        shell: cmd
+        run: |
+          powershell -c "& ([ScriptBlock]::Create((irm 'https://www.php.net/include/download-instructions/windows.ps1'))) -Version ${{ matrix.version }}" < installer-answers.txt > evidence\installer.log 2>&1
+          set "installer_exit=%ERRORLEVEL%"
+          type evidence\installer.log
+          exit /b %installer_exit%
+      - name: Verify installed rebuild and runtime
+        shell: powershell
+        run: ./verify.ps1 -Version '${{ matrix.version }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: installer-${{ matrix.version }}
+          path: evidence
+          if-no-files-found: error
