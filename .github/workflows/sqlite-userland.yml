@@ -1,0 +1,54 @@
+name: SQLite 3.54.1 comprehensive userland QA
+on:
+  push:
+    branches: [test/sqlite-3.54.1-comprehensive-20261027]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: sqlite-userland-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  sqlite:
+    name: ${{ matrix.target }} SQLite3 and PDO
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {target: PHP-8.2, run: '40405988043', runner: windows-2022}
+          - {target: PHP-8.3, run: '40405988230', runner: windows-2022}
+          - {target: PHP-8.4, run: '40405988819', runner: windows-2022}
+          - {target: PHP-8.5, run: '40409025249', runner: windows-2022}
+          - {target: PHP-8.6, run: '40406341124', runner: windows-2025-vs2026}
+          - {target: master, run: '40406340984', runner: windows-2025-vs2026}
+    steps:
+      - name: Checkout suite
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Validate runner failure gates
+        shell: pwsh
+        run: ./scripts/test-artifact-checks.ps1
+      - name: Download exact PHP build artifacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          github-token: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run }}
+          name: artifacts
+          path: artifacts
+      - name: Test all four PHP variants with OPcache off and on
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+          SQLITE_QA_TARGET: ${{ matrix.target }}
+        run: ./scripts/run-sqlite-suite.ps1 -Target $env:SQLITE_QA_TARGET
+      - name: Upload JSON, JUnit, provenance, configuration and logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: sqlite-userland-${{ matrix.target }}-${{ matrix.run }}
+          path: reports
+          if-no-files-found: error
+          retention-days: 30

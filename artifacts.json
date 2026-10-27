@@ -1,0 +1,301 @@
+{
+  "sqlite_version": "3.54.1",
+  "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+  "repository": "shivammathur/php-windows-builder",
+  "builds": [
+    {
+      "ref": "PHP-8.2",
+      "run": "40405988043",
+      "php_source_sha": "0cb9da1aadcc5fa5eef83a8cd1a3d360ce083c6b",
+      "builder_sha": "85fd26bc47fce05610a704c47d16a3a620ddb307",
+      "runner": "windows-2022",
+      "packages": [
+        {
+          "name": "php-8.2.36-dev-Win32-vs16-x64.zip",
+          "sha256": "9d9159a3560781406822c4b4ac767a36284455a0f48cc357d857be765ea68616",
+          "files": {
+            "php.exe": "2d4a2133b20eb63b7cb0f1d794ba7a4f774fb0a31a4c65f29cd750ee6081fa53",
+            "libsqlite3.dll": "01ac34cdf403ef3c44d4d1c14cda334ce5c4846376d75bced96ea95437a3f37e",
+            "ext/php_sqlite3.dll": "ad2b3947e57f1c0eb3deee81e13f81e5a84302442c10a3610ae4b5669994b137",
+            "ext/php_pdo_sqlite.dll": "ea56beaa3dbf1d022c4ec8e5600814ce86f825bd98fbe7d3eaea56a24f61dedb"
+          }
+        },
+        {
+          "name": "php-8.2.36-dev-Win32-vs16-x86.zip",
+          "sha256": "09e9d2aa217e9f0af4cd14cfc858af5c7d132f033dd248add3ef701040c0aaf9",
+          "files": {
+            "php.exe": "4169f180f79545d5108c4098e55b236c80c32609648d05721e6fc374c15ebe5f",
+            "libsqlite3.dll": "9b7b1680bdd414194e0ca7a369cb85e9abbe62469f8aa6745ba851e43437f633",
+            "ext/php_sqlite3.dll": "5d552266106456ec0d4a7e38d9f193e80b25acda9869e3aed921ad584527eb42",
+            "ext/php_pdo_sqlite.dll": "6e29de19dd57d78645ab5aaf697b61439c1cd2e04f6272e5ae60b829f3c2346e"
+          }
+        },
+        {
+          "name": "php-8.2.36-dev-nts-Win32-vs16-x64.zip",
+          "sha256": "304b1d994c3670989138bcf9016166482884f8cbbb22d1aa01327b75d15acb79",
+          "files": {
+            "php.exe": "999a383266109333e2e1a3c9c63b559f547286f124b128140c48c883e199b70f",
+            "libsqlite3.dll": "01ac34cdf403ef3c44d4d1c14cda334ce5c4846376d75bced96ea95437a3f37e",
+            "ext/php_sqlite3.dll": "cac5b99fb12e9a5ae124961a6a003bf0dea981dae52d184ddddde0d00716e4af",
+            "ext/php_pdo_sqlite.dll": "f07bd5dcff87ff9809aa52756628ade16e623019110d4c67735cea646706385a"
+          }
+        },
+        {
+          "name": "php-8.2.36-dev-nts-Win32-vs16-x86.zip",
+          "sha256": "830eae469ace1218e0dc8dbb6b5e57940be8340da8054cb13bd08402b600b006",
+          "files": {
+            "php.exe": "03d89339d1c2de356967f4c78e3ae164c1f4d3cca3ff57001ec2ca15209e0764",
+            "libsqlite3.dll": "9b7b1680bdd414194e0ca7a369cb85e9abbe62469f8aa6745ba851e43437f633",
+            "ext/php_sqlite3.dll": "1912d6c163c75f54c7d010b1b49f2154ec92bcaaeefc69052348a73f42db5713",
+            "ext/php_pdo_sqlite.dll": "b59ce6c05497ea74f620cc550c66979752bed18f5680f0e8b3716c084e5d89a8"
+          }
+        }
+      ]
+    },
+    {
+      "ref": "PHP-8.3",
+      "run": "40405988230",
+      "php_source_sha": "a6fefc914b9d2419193a2747c194591256fd0105",
+      "builder_sha": "85fd26bc47fce05610a704c47d16a3a620ddb307",
+      "runner": "windows-2022",
+      "packages": [
+        {
+          "name": "php-8.3.37-dev-Win32-vs16-x64.zip",
+          "sha256": "4c74533bf6864cc0a16b44bdae35f826b3d8ccfbdb3008d8b690bd07cde385ae",
+          "files": {
+            "php.exe": "e15729462c50c2c13047510eb64e1d0471d2bd35d4a3e260d7a994713822d76f",
+            "libsqlite3.dll": "01ac34cdf403ef3c44d4d1c14cda334ce5c4846376d75bced96ea95437a3f37e",
+            "ext/php_sqlite3.dll": "4f0d64128bd890d405a9f4ef54705c68135a5fc4d4180c99dc33932c93ecbcfa",
+            "ext/php_pdo_sqlite.dll": "051209e3bfed4f730c0e5ce70e791221c1515c9b63f5bd1100c9d8bc80d888de"
+          }
+        },
+        {
+          "name": "php-8.3.37-dev-Win32-vs16-x86.zip",
+          "sha256": "7c2f91bb2bf60e98a10f4c2b69b73ec547a0a26fe43503ae4641dea07050557e",
+          "files": {
+            "php.exe": "aa4d8d1bbdf02e51df462ade0f545ec85292449fc1f43641084acb82debc8396",
+            "libsqlite3.dll": "9b7b1680bdd414194e0ca7a369cb85e9abbe62469f8aa6745ba851e43437f633",
+            "ext/php_sqlite3.dll": "07ac3ba2816aad89f593c4bc63f46e7d5689f0f86939d6c69d9ce0dc1ac0a973",
+            "ext/php_pdo_sqlite.dll": "cbff3df53eb68260a9fab66b98415985c7f1c1c20853463251af693045394e7b"
+          }
+        },
+        {
+          "name": "php-8.3.37-dev-nts-Win32-vs16-x64.zip",
+          "sha256": "a5fa715716aab6924112b875d74a845ca0f43c87e00a296818454d85e47d80b1",
+          "files": {
+            "php.exe": "7d978af596b1df117997613208a16ee254492c25dc3d920bd966c0ab20be483c",
+            "libsqlite3.dll": "01ac34cdf403ef3c44d4d1c14cda334ce5c4846376d75bced96ea95437a3f37e",
+            "ext/php_sqlite3.dll": "e2deb2190b42c540e6fec2ddf314639bdd997e5e4e89445ad30a93c0e4d451f7",
+            "ext/php_pdo_sqlite.dll": "f8028d3af92d7959eb074f634a95190104bedcb128cd7593bcb0431b3cfb6ac3"
+          }
+        },
+        {
+          "name": "php-8.3.37-dev-nts-Win32-vs16-x86.zip",
+          "sha256": "3c72a24ca45f9a537677b82644212e91e833cf10b4bf94fe80ec7e7ade4bd164",
+          "files": {
+            "php.exe": "2453753a6f4914b1189fa8052bbc2bd317da72f2cad9e659b0d05f1cd3345d65",
+            "libsqlite3.dll": "9b7b1680bdd414194e0ca7a369cb85e9abbe62469f8aa6745ba851e43437f633",
+            "ext/php_sqlite3.dll": "519f452590e2798d235bf8b4db578c760480d17c1fe38196cfdda82f87bcdf27",
+            "ext/php_pdo_sqlite.dll": "9dc5842ade67d5dbd858941ab87588f276517d619e91810b6619bac881467606"
+          }
+        }
+      ]
+    },
+    {
+      "ref": "PHP-8.4",
+      "run": "40405988819",
+      "php_source_sha": "59f8e1d2653c39f8f6e3ef9ada7dac8264c82512",
+      "builder_sha": "85fd26bc47fce05610a704c47d16a3a620ddb307",
+      "runner": "windows-2022",
+      "packages": [
+        {
+          "name": "php-8.4.28-dev-Win32-vs17-x64.zip",
+          "sha256": "ef885b737241599663f8be66302af488d6ac3fb5232665d3f915c69785b178bb",
+          "files": {
+            "php.exe": "6407c4069e17c41d182731b4e4bf7bae967b6516e24f05466b4096bbf38ed245",
+            "libsqlite3.dll": "ba828487e098a0de0a1c657f7f2691393c726dbb3a520033247ed68bd00e1fea",
+            "ext/php_sqlite3.dll": "c3910714ae52963513eefad7e2600901f9e3568ffca5d64ac94090c76102971f",
+            "ext/php_pdo_sqlite.dll": "fa472e5a72b6b17b57ba2971292b0e5481efb757ed57b6758386e95011b6643d"
+          }
+        },
+        {
+          "name": "php-8.4.28-dev-Win32-vs17-x86.zip",
+          "sha256": "1b7e5727a48d36bc6678e4b3d2e5b9af7990fbf3b012f2f520faa6b9a31969e5",
+          "files": {
+            "php.exe": "295a07e8ec143d45769ae9cb08842b23524f253954b7fe274d50fefb7636cc11",
+            "libsqlite3.dll": "8d4aaa02e46d7ee1439334d401448c0ef486a47a0a33f282652cb009d14a5e73",
+            "ext/php_sqlite3.dll": "7d08bbef339586d370747dd18cadd1eb0681898e26230f3af9a3e88ee6fc078e",
+            "ext/php_pdo_sqlite.dll": "c6010544cbda845c47ec89ab99d5ec73b49df53b99e20111368f04dddfc86e6b"
+          }
+        },
+        {
+          "name": "php-8.4.28-dev-nts-Win32-vs17-x64.zip",
+          "sha256": "f0d517c9bea03815eec657c059d896440d2431042f1aa961bc95e148063474f5",
+          "files": {
+            "php.exe": "42ee78d530ff8bbaaa77b67e36c48b29c0eb1289bf57617d800bd4d4f5f41c08",
+            "libsqlite3.dll": "ba828487e098a0de0a1c657f7f2691393c726dbb3a520033247ed68bd00e1fea",
+            "ext/php_sqlite3.dll": "35c3f083f7b36e6ea1c4bef77d2c6f40300d28009d6d63f1c55fd783d6393304",
+            "ext/php_pdo_sqlite.dll": "25b5cf35f52bc8006caf8753e9354a93066d5cd9192a6caefc279cb37b93b4af"
+          }
+        },
+        {
+          "name": "php-8.4.28-dev-nts-Win32-vs17-x86.zip",
+          "sha256": "9b156bcdabd087db0119fbb6d5d03bcc7d2574ba2222e4a70ac1ac8f40c42190",
+          "files": {
+            "php.exe": "e997147ae9906379b86602ea80b8f8362b976449259dd22007e304f65cd3410d",
+            "libsqlite3.dll": "8d4aaa02e46d7ee1439334d401448c0ef486a47a0a33f282652cb009d14a5e73",
+            "ext/php_sqlite3.dll": "9ac8a237bee04f733deb3efcdf4385468d6e7a4babbfc3cfc0d66e0a56dcadb9",
+            "ext/php_pdo_sqlite.dll": "a7578996d3dccb7bdf2a18e52025280c86c686f6158f697856e783c318ffd678"
+          }
+        }
+      ]
+    },
+    {
+      "ref": "PHP-8.6",
+      "run": "40406341124",
+      "php_source_sha": "e5f67fb2da17d481e4a3fdbf8b4d5b86685ef7df",
+      "builder_sha": "85fd26bc47fce05610a704c47d16a3a620ddb307",
+      "runner": "windows-2025-vs2026",
+      "packages": [
+        {
+          "name": "php-8.6.0-dev-Win32-vs18-x64.zip",
+          "sha256": "8edfcd8d72a6c7b30bfa7b5534791c97b38972fddd6582378dcab9e763387053",
+          "files": {
+            "php.exe": "041a385b1629700bc4d533d5910adae58f0d35f4dab753514adad6218734c859",
+            "libsqlite3.dll": "b839e1845da93efca91a61cc5efd18a6296c0f643b17db5f80ce1b7240ae6fa1",
+            "ext/php_sqlite3.dll": "4bcb159b87e1e35d364d278c0caf3b43854ccc349b279be99b691e6680dc4463",
+            "ext/php_pdo_sqlite.dll": "4a5a2640ebf21d0a6a18aa994861daa77a6c70d97aa7eeb8264616db869431ea"
+          }
+        },
+        {
+          "name": "php-8.6.0-dev-Win32-vs18-x86.zip",
+          "sha256": "b68e3bd93f4d70986b7168f96c679ce402bb5724ca9115e0edb67aa55e534633",
+          "files": {
+            "php.exe": "49152241dab2fbd5591bb8f5fd7cfe561fa6137ea1eff39db756f8c91c943d06",
+            "libsqlite3.dll": "7337ab5a6a85f4c736d79441b7f66848611f2c3214b93d86da4f89b256617d63",
+            "ext/php_sqlite3.dll": "67cfd51df2b107f3ccd32bc981765728fc0074f32a4cfee8901fabd0503302b5",
+            "ext/php_pdo_sqlite.dll": "86a227b6a306a56ba3a4cbcfebdd5e703698674d432222eabee762e7f6cf9fea"
+          }
+        },
+        {
+          "name": "php-8.6.0-dev-nts-Win32-vs18-x64.zip",
+          "sha256": "ed4b50d5130e2570cf33c9a1499b3c6b6f5d7dac37eca2f860bcebae44543d3e",
+          "files": {
+            "php.exe": "cd2805f6266a11213483cea694dc60a939a37f6a3836395663e447178fde5d10",
+            "libsqlite3.dll": "b839e1845da93efca91a61cc5efd18a6296c0f643b17db5f80ce1b7240ae6fa1",
+            "ext/php_sqlite3.dll": "e1db6805904c1c33ed354347914aad6aa01c4d101c65b4cbb49d324c2f1bb59f",
+            "ext/php_pdo_sqlite.dll": "9b04ee5422faf05339f085fec0e5e7090a6db9cca3699f1c22f9761d54c0f650"
+          }
+        },
+        {
+          "name": "php-8.6.0-dev-nts-Win32-vs18-x86.zip",
+          "sha256": "1dcb28f9e6b86526a08ee38a02c7b505fe57cec68471f9337a9ab9fcf6a55f84",
+          "files": {
+            "php.exe": "1efc4bae3defc9f85f5da240096dd0fa1df2befb30fa01db5fdb57e89219375f",
+            "libsqlite3.dll": "7337ab5a6a85f4c736d79441b7f66848611f2c3214b93d86da4f89b256617d63",
+            "ext/php_sqlite3.dll": "b8fb387c30397b4e524a1369d05c6a627657475541d1fe1d4ddb0e081535a6aa",
+            "ext/php_pdo_sqlite.dll": "9ba17845c56eea55aa77fe93c1cdf741c6e797a473966fb9610fe50c7b6ba674"
+          }
+        }
+      ]
+    },
+    {
+      "ref": "master",
+      "run": "40406340984",
+      "php_source_sha": "3b8e98882e425907921c606496da424c33d12fab",
+      "builder_sha": "85fd26bc47fce05610a704c47d16a3a620ddb307",
+      "runner": "windows-2025-vs2026",
+      "packages": [
+        {
+          "name": "php-8.7.0-dev-Win32-vs18-x64.zip",
+          "sha256": "f62eaa73b45920487b01e8570714bab894fd42f3af1ab2d7e67dab6df4306d6f",
+          "files": {
+            "php.exe": "81f945ec63524716fdec8260b8129ba9cb59807a4c89ab7a8f0daa87a949fc46",
+            "libsqlite3.dll": "b839e1845da93efca91a61cc5efd18a6296c0f643b17db5f80ce1b7240ae6fa1",
+            "ext/php_sqlite3.dll": "fd751a9241b0b7eeb3519cf37f1ff3e91f7ed4f24e4e1232eda658fb2908d699",
+            "ext/php_pdo_sqlite.dll": "413654961c13ad811c2dc7db7406b5104430a77a5cacee0c9621ba6196f9be24"
+          }
+        },
+        {
+          "name": "php-8.7.0-dev-Win32-vs18-x86.zip",
+          "sha256": "0d1ced33fb5703c39f68b1f0c2fe457bf5470aec13ce9aa729d572b2ae02cb06",
+          "files": {
+            "php.exe": "9bcd3d58ba1cc1b1cf6f889b1b7e9d80565906f2101ef011adc5ff78688b7895",
+            "libsqlite3.dll": "7337ab5a6a85f4c736d79441b7f66848611f2c3214b93d86da4f89b256617d63",
+            "ext/php_sqlite3.dll": "73450d40056b76019e2d2e3968544dbfaa98ee92b6cc5df3ea95f538a28d25be",
+            "ext/php_pdo_sqlite.dll": "35e805b200d863de17372520d66812fd56eba0a3ab4ebccd983ef7e4a7f6c7d2"
+          }
+        },
+        {
+          "name": "php-8.7.0-dev-nts-Win32-vs18-x64.zip",
+          "sha256": "7388dae9d97d6d445de2f5e3cd2815dbd06ac9c94cc2a650303d7c71bbac54c6",
+          "files": {
+            "php.exe": "2ea6fe18f10313a93710ca4b88ddf86043a9afe162ba1568fe3a9a5535fdca94",
+            "libsqlite3.dll": "b839e1845da93efca91a61cc5efd18a6296c0f643b17db5f80ce1b7240ae6fa1",
+            "ext/php_sqlite3.dll": "c92a3e6d79ac83efe4624ee2e6d2ceacd7cfbced48fe1ef09d19c7d940b4d3a2",
+            "ext/php_pdo_sqlite.dll": "e25c845d20c9e36f056bf9fcb58580b131919a2a01befad9ba52b4b3aaa4a7f1"
+          }
+        },
+        {
+          "name": "php-8.7.0-dev-nts-Win32-vs18-x86.zip",
+          "sha256": "9a4d7f5b8554864b66069513c98d6992ada30058199bbb590ed179a40e315533",
+          "files": {
+            "php.exe": "ebafe2bc0f40123611ef9566a2c13d389d9c906403eda8da498db8e35293c2c0",
+            "libsqlite3.dll": "7337ab5a6a85f4c736d79441b7f66848611f2c3214b93d86da4f89b256617d63",
+            "ext/php_sqlite3.dll": "946eb681c9073bb925d687ad07185ed49719ee45fe979e0fa053da12f41376cb",
+            "ext/php_pdo_sqlite.dll": "de9a5c43892f7b84a47f1c92aae020c9a3e1eeee19cbac6ef7f85c6130ddfb69"
+          }
+        }
+      ]
+    },
+    {
+      "ref": "PHP-8.5",
+      "run": "40409025249",
+      "php_source_sha": "2546fe9e827ef7f2cd1a6c5b337454ba991f05b3",
+      "builder_sha": "85fd26bc47fce05610a704c47d16a3a620ddb307",
+      "runner": "windows-2022",
+      "packages": [
+        {
+          "name": "php-8.5.13-dev-Win32-vs17-x64.zip",
+          "sha256": "78efb310df17a514939f8e80db0c317f13f5d0e78095908dde72bb8cce1f26c5",
+          "files": {
+            "php.exe": "866ac2d50bce2280e182009d86c24c9c0087c0923cceef1fe298d24aea643742",
+            "libsqlite3.dll": "ba828487e098a0de0a1c657f7f2691393c726dbb3a520033247ed68bd00e1fea",
+            "ext/php_sqlite3.dll": "612f8c980392dd96d76bea8b47091dc9a97450d78024047964095072fd3a0372",
+            "ext/php_pdo_sqlite.dll": "41d81bc7b41d2f9ea6b77657c983349505f1f57c5e2fb29202ae30ebcab25758"
+          }
+        },
+        {
+          "name": "php-8.5.13-dev-Win32-vs17-x86.zip",
+          "sha256": "f02817aff7115559b8f44f8fd9dcab85ef3d8b5138bb8e79180249f2942ea359",
+          "files": {
+            "php.exe": "4ede050942e4d528ffaecd713a420787b19c18be7fdec0a2eeb708866ec56816",
+            "libsqlite3.dll": "8d4aaa02e46d7ee1439334d401448c0ef486a47a0a33f282652cb009d14a5e73",
+            "ext/php_sqlite3.dll": "0349285d07693cf2fc5000e545fe226ea3d32c9b87468586a14614a8bcf80e4e",
+            "ext/php_pdo_sqlite.dll": "f6722a96200e0be861848395d91894e23642eebb6e48ab36cff0ebe24d875c08"
+          }
+        },
+        {
+          "name": "php-8.5.13-dev-nts-Win32-vs17-x64.zip",
+          "sha256": "1ac2aa39088b11da757e58eb8457151bc3a05e9a991383223f295af1c1de67ce",
+          "files": {
+            "php.exe": "4028f6feff6bd7a19fca43247d3d7e88347586374afab77d53a4100ada668ed5",
+            "libsqlite3.dll": "ba828487e098a0de0a1c657f7f2691393c726dbb3a520033247ed68bd00e1fea",
+            "ext/php_sqlite3.dll": "26d7f32eb2e5d5fd4ad14e5852a08e94176355ce37887cafd18f8b7dc4f6a2a1",
+            "ext/php_pdo_sqlite.dll": "9bae8769cc35d3626a98a4c80b2156ab534fec7d39b323ad60710adfbd5ae41e"
+          }
+        },
+        {
+          "name": "php-8.5.13-dev-nts-Win32-vs17-x86.zip",
+          "sha256": "a933df5021226206c67729f861ae467d39e661c5bafc1eaaecc30618882a1a3d",
+          "files": {
+            "php.exe": "2eaa2dd0bcc387e1b48ee2697acd78de15a8fe2096229b88a66ccdb73edd1bde",
+            "libsqlite3.dll": "8d4aaa02e46d7ee1439334d401448c0ef486a47a0a33f282652cb009d14a5e73",
+            "ext/php_sqlite3.dll": "d9e0d97cc9d0b74fcad83425bcdae7fff08f97a08e4347a6a5e4804062045601",
+            "ext/php_pdo_sqlite.dll": "c0e9a885754ff6381c928381714d6922985fd068f6a9833fd2e6471e7435340c"
+          }
+        }
+      ]
+    }
+  ]
+}
