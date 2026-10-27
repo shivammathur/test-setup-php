@@ -15,7 +15,10 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: brotli
-      - run: |         
+        env:
+          update: true
+      - run: |        
+          php -r "echo phpversion('brotli') . PHP_EOL;"
           php -v
           php -m
       
