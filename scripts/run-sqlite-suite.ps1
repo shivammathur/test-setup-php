@@ -79,7 +79,7 @@ foreach($package in $build.packages){
         @('[PHP]',"extension_dir=`"$dest/ext`"",'extension=sqlite3','extension=pdo_sqlite',$opcacheConfig,"opcache.enable_cli=$opcache",'opcache.jit=disable','opcache.file_update_protection=0','date.timezone=UTC','error_reporting=-1','display_errors=1','display_startup_errors=1','log_errors=0','memory_limit=256M',"sqlite3.extension_dir=`"$fixtureDir`"") | Set-Content $ini -Encoding ascii
         Invoke-Php "$dest/php.exe" @('-c',$ini,'-v') "$report/php-version.log"
         Invoke-Php "$dest/php.exe" @('-c',$ini,'-m') "$report/php-modules.log"
-        Invoke-Php "$dest/php.exe" @('-c',$ini,"$root/tests/sqlite/harness-selftest.php","$report/harness-selftest") "$report/harness-selftest.log"
+        Invoke-Php "$dest/php.exe" @('-c',$ini,"$root/tests/sqlite/harness-selftest.php","$dest/selftest-$opcache") "$report/harness-selftest.log"
         Invoke-Php "$dest/php.exe" @('-c',$ini,"$root/tests/sqlite/run.php","--work=$dest/work-$opcache","--report=$report") "$report/suite.log"
         $result=Get-Content "$report/results.json" -Raw | ConvertFrom-Json
         Assert-Report $result $v $opcache
