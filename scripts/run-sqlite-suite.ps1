@@ -63,12 +63,20 @@ foreach($package in $build.packages){
     $package | ConvertTo-Json -Depth 10 | Set-Content "$packageReports/artifact.json"
     $env:PATH="$dest;$env:SystemRoot\System32;$env:SystemRoot"
     $scan=New-Item -ItemType Directory -Path "$dest/empty-ini-scan";$env:PHP_INI_SCAN_DIR=$scan.FullName
-    $env:SQLITE_QA_EXTENSION="$work/extension-$($v.Arch)/qaextension.dll";$env:SQLITE_QA_LIBRARY="$dest/libsqlite3.dll"
+    $fixtureDir=(Resolve-Path "$work/extension-$($v.Arch)").Path
+    $env:SQLITE_QA_EXTENSION=Join-Path $fixtureDir 'qaextension.dll';$env:SQLITE_QA_LIBRARY="$dest/libsqlite3.dll"
     foreach($opcache in 0,1){
       $report=New-Item -ItemType Directory -Path "$packageReports/opcache-$opcache"
       try{
         $ini="$report/php.ini"
-        @('[PHP]',"extension_dir=`"$dest/ext`"",'extension=sqlite3','extension=pdo_sqlite','zend_extension=opcache',"opcache.enable_cli=$opcache",'opcache.jit=disable','opcache.file_update_protection=0','date.timezone=UTC','error_reporting=-1','display_errors=1','display_startup_errors=1','log_errors=0','memory_limit=256M',"sqlite3.extension_dir=`"$work/extension-$($v.Arch)`"") | Set-Content $ini -Encoding ascii
+        $opcacheConfig=if([version]($v.Version -replace '-dev$','') -lt [version]'8.5.0'){
+          $dll=Join-Path $dest 'ext/php_opcache.dll';if(!(Test-Path $dll)){throw 'Required OPcache DLL missing for PHP < 8.5'}
+          'zend_extension="'+$dll+'"'
+        }else{
+          if(Test-Path (Join-Path $dest 'ext/php_opcache.dll')){throw 'Unexpected OPcache DLL for PHP >= 8.5'}
+          '; OPcache is statically linked in PHP >= 8.5'
+        }
+        @('[PHP]',"extension_dir=`"$dest/ext`"",'extension=sqlite3','extension=pdo_sqlite',$opcacheConfig,"opcache.enable_cli=$opcache",'opcache.jit=disable','opcache.file_update_protection=0','date.timezone=UTC','error_reporting=-1','display_errors=1','display_startup_errors=1','log_errors=0','memory_limit=256M',"sqlite3.extension_dir=`"$fixtureDir`"") | Set-Content $ini -Encoding ascii
         Invoke-Php "$dest/php.exe" @('-c',$ini,'-v') "$report/php-version.log"
         Invoke-Php "$dest/php.exe" @('-c',$ini,'-m') "$report/php-modules.log"
         Invoke-Php "$dest/php.exe" @('-c',$ini,"$root/tests/sqlite/harness-selftest.php","$report/harness-selftest") "$report/harness-selftest.log"

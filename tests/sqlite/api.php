@@ -82,7 +82,7 @@ $t->test($driver.'/api/statements-binding-metadata-errors',function()use($t,$dri
  $t->same(true,$t->call($q,'getAttribute',[pdoConstant('ATTR_READONLY_STATEMENT')]));$t->same(false,$t->call($s,'getAttribute',[pdoConstant('ATTR_READONLY_STATEMENT')]));
  $v=null;$t->call($q,'bindColumn',['i',&$v,PDO::PARAM_INT]);$t->same(true,$t->call($q,'fetch',[PDO::FETCH_BOUND]));$t->same(6,$v);$t->call($q,'closeCursor');
  ob_start();$t->call($s,'debugDumpParams');$dump=ob_get_clean();$t->ok(str_contains($dump,'Params:  3'),'debug parameter count');
- $t->same('00000',$t->call($s,'errorCode'));$t->same('00000',$t->call($s,'errorInfo')[0]);$t->throws(fn()=>$t->call($s,'nextRowset'));$t->same(false,$t->call($s,'setAttribute',[999999,1]));
+ $t->same('00000',$t->call($s,'errorCode'));$t->same('00000',$t->call($s,'errorInfo')[0]);$t->throws(fn()=>$t->call($s,'nextRowset'));if(PHP_VERSION_ID>=80500)$t->same(false,$t->call($s,'setAttribute',[999999,1]));else $t->throws(fn()=>$t->call($s,'setAttribute',[999999,1]),'/support/i',PDOException::class);
  $t->throws(fn()=>$d->rows('SELECT ?',[1,2]));
  if(PHP_VERSION_ID>=80500){$q=$t->call($d->db,'prepare',['SELECT 1 UNION ALL SELECT 2']);$t->same(false,$t->call($q,'getAttribute',[Pdo\Sqlite::ATTR_BUSY_STATEMENT]));$t->same(0,$t->call($q,'getAttribute',[Pdo\Sqlite::ATTR_EXPLAIN_STATEMENT]));$t->call($q,'setAttribute',[Pdo\Sqlite::ATTR_EXPLAIN_STATEMENT,2]);$t->call($q,'execute');$t->ok(count($t->call($q,'fetchAll'))>0,'PDO explain mode');$t->call($q,'closeCursor');}
 });
