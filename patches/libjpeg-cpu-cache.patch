@@ -1,0 +1,39 @@
+diff --git a/simd/jsimd.c b/simd/jsimd.c
+--- a/simd/jsimd.c
++++ b/simd/jsimd.c
+@@ -34,6 +34,16 @@
+ #include "jsimd.h"
+ #include "jsimdint.h"
+
++#if defined(_MSC_VER) && (SIMD_ARCHITECTURE == X86_64 || \
++                           SIMD_ARCHITECTURE == I386)
++#include <intrin.h>
++/* Winlibs: Cache invariant CPU capabilities, not per-instance environment
++ * overrides.  Atomic access avoids both data races and a TLS dependency.
++ * Repeating CPUID for every image is particularly costly in Windows VMs.
++ */
++static volatile long winlibs_cpu_support = (long)JSIMD_UNDEFINED;
++#endif
++
+ #if SIMD_ARCHITECTURE == X86_64 || SIMD_ARCHITECTURE == I386
+
+ /*
+@@ -67,7 +77,18 @@
+   if (simd_support != JSIMD_UNDEFINED)
+     return;
+
++#if defined(_MSC_VER) && (SIMD_ARCHITECTURE == X86_64 || \
++                           SIMD_ARCHITECTURE == I386)
++  simd_support = (unsigned int)_InterlockedCompareExchange(
++    &winlibs_cpu_support, 0, 0);
++  if (simd_support == JSIMD_UNDEFINED) {
++    simd_support = jpeg_simd_cpu_support();
++    _InterlockedCompareExchange(&winlibs_cpu_support, (long)simd_support,
++                                (long)JSIMD_UNDEFINED);
++  }
++#else
+   simd_support = jpeg_simd_cpu_support();
++#endif
+
+ #ifndef NO_GETENV
+   /* Force different settings through environment variables */

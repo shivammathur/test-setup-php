@@ -1,15 +1,6 @@
 name: JPEG native artifact performance
 on:
   workflow_dispatch:
-  push:
-    branches: [test/libjpeg-3.2.1-20261030]
-    paths:
-      - .github/workflows/jpeg-native.yml
-      - native-plan.json
-      - scripts/test-native.ps1
-      - scripts/benchmark.py
-      - tests/jpeg-bench.c
-      - tests/jpeg-consumer.c
 permissions:
   contents: read
   actions: read

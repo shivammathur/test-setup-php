@@ -63,6 +63,8 @@ def main():
     variants = {'candidate': config['candidate'], 'scalar': config['candidate']}
     if config.get('baseline'):
         variants = {'baseline': config['baseline'], **variants}
+    if config.get('uncached'):
+        variants['uncached'] = config['uncached']
     rounds = config.get('rounds', 9)
     if rounds < 7:
         raise ValueError('At least seven paired rounds are required')
@@ -103,7 +105,7 @@ def main():
                         raise RuntimeError('Wrong native library version/ABI')
                 trials[variant].append(result)
         comparisons = {}
-        for baseline in [v for v in ('baseline', 'scalar') if v in trials]:
+        for baseline in [v for v in ('baseline', 'scalar', 'uncached') if v in trials]:
             ratios = [c['seconds'] / b['seconds'] for c, b in zip(trials['candidate'], trials[baseline])]
             median = statistics.median(ratios)
             interval = confidence_interval(ratios)
