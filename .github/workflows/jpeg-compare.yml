@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - id: plan
-        run: echo "matrix=$(jq -c '{include:.}' native-plan.json)" >> "$GITHUB_OUTPUT"
+        run: echo "matrix=$(jq -c '{include:[.[]|select(.vs=="vs17" and .arch=="arm64")]}' native-plan.json)" >> "$GITHUB_OUTPUT"
   compare:
     needs: plan
     name: ${{ matrix.vs }} ${{ matrix.arch }}

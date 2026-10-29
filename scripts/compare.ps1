@@ -40,4 +40,4 @@ python scripts/benchmark.py --config reports/benchmark-config.json --output repo
 $performanceStatus = $LASTEXITCODE
 ConvertTo-Json -InputObject @($failures) | Set-Content reports/correctness-failures.json
 if ($failures.Count) { throw ($failures -join '; ') }
-if ($performanceStatus) { throw 'Performance differences exceeded the fixed regression threshold; inspect all comparisons' }
+if ($performanceStatus) { throw 'Benchmark harness or performance gate failed; inspect Python output and JSON report' }

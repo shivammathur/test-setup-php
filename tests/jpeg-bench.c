@@ -30,6 +30,11 @@ static size_t decode(unsigned char *jpeg,unsigned long size,unsigned char *rgb,i
 }
 int main(int argc,char **argv) {
     int w,h,q,progressive,iterations,x,y,i;unsigned char *rgb,*jpeg=NULL;unsigned long size=0;size_t bytes=0;double start,elapsed;
+#ifdef _WIN32
+    if(!SetProcessAffinityMask(GetCurrentProcess(),1) || !SetPriorityClass(GetCurrentProcess(),HIGH_PRIORITY_CLASS)) {
+        fprintf(stderr,"Could not configure benchmark scheduling: %lu\n",GetLastError());return 50;
+    }
+#endif
     if(argc<7)return 1;
     w=atoi(argv[2]);h=atoi(argv[3]);q=atoi(argv[4]);progressive=atoi(argv[5]);iterations=atoi(argv[6]);
     if(w<1||w>4096||h<1||h>4096||q<0||q>100||iterations<1||iterations>100000)return 2;

@@ -1,5 +1,4 @@
 import argparse
-import ctypes
 import hashlib
 import json
 import math
@@ -29,16 +28,6 @@ def run(command, scalar=False):
     if scalar:
         env['JSIMD_FORCENONE'] = '1'
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
-    if os.name == 'nt':
-        kernel = ctypes.WinDLL('kernel32', use_last_error=True)
-        kernel.SetProcessAffinityMask.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
-        kernel.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
-        if not kernel.SetProcessAffinityMask(int(process._handle), 1):
-            process.kill()
-            raise ctypes.WinError(ctypes.get_last_error())
-        if not kernel.SetPriorityClass(int(process._handle), 0x80):
-            process.kill()
-            raise ctypes.WinError(ctypes.get_last_error())
     out, err = process.communicate(timeout=180)
     if process.returncode or err.strip():
         raise RuntimeError(f'Benchmark failed: {command!r}\n{out}\n{err}')
