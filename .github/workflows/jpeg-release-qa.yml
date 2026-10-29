@@ -20,6 +20,7 @@ jobs:
           echo "native=$(jq -c '{include:.native}' release-plan.json)" >> "$GITHUB_OUTPUT"
           echo "php=$(jq -c '{include:.php}' release-plan.json)" >> "$GITHUB_OUTPUT"
   native:
+    if: ${{ fromJSON(needs.plan.outputs.native).include[0] != null }}
     needs: plan
     name: native ${{ matrix.vs }} ${{ matrix.arch }}
     runs-on: ${{ matrix.runner }}
@@ -60,6 +61,7 @@ jobs:
           path: reports
           if-no-files-found: error
   php:
+    if: ${{ fromJSON(needs.plan.outputs.php).include[0] != null }}
     needs: plan
     name: PHP ${{ matrix.target }}
     runs-on: ${{ matrix.runner }}
