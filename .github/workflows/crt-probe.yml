@@ -1,5 +1,7 @@
 name: CRT environment compatibility and lookup cost
 on:
+  push:
+    branches: [test/libjpeg-crt-compat-20261030]
   workflow_dispatch:
 permissions:
   contents: read
