@@ -47,11 +47,29 @@ int main(void) {
     if(WaitForMultipleObjects(8,threads,TRUE,60000)!=WAIT_OBJECT_0)return 23;
     for(i=0;i<8;i++){if(!GetExitCodeThread(threads[i],&result)||result)return 24;CloseHandle(threads[i]);}CloseHandle(gate);
     mask=roundtrip(JSIMD_UNDEFINED);
+    _putenv_s("JSIMD_FORCENONE","0");roundtrip(mask);
+    _putenv_s("JSIMD_FORCENONE","11");roundtrip(mask);
+    _putenv_s("JSIMD_FORCENONE","true");roundtrip(mask);
+    _putenv_s("JSIMD_FORCENONE","");roundtrip(mask);
+    _putenv_s("jsimd_forcenone","1");roundtrip(0);
+    _putenv_s("jsimd_forcenone","");roundtrip(mask);
+    _wputenv_s(L"JSIMD_FORCENONE",L"1");roundtrip(0);
+    _wputenv_s(L"JSIMD_FORCENONE",L"");roundtrip(mask);
+    SetEnvironmentVariableA("JSIMD_FORCENONE","1");roundtrip(0);
+    SetEnvironmentVariableA("JSIMD_FORCENONE",NULL);roundtrip(mask);
     _putenv_s("JSIMD_FORCENONE","1");roundtrip(0);
     _putenv_s("JSIMD_FORCENONE","");roundtrip(mask);
 #if defined(_M_IX86) || defined(_M_X64)
     _putenv_s("JSIMD_FORCESSE2","1");roundtrip(mask & (JSIMD_SSE2|JSIMD_SSE));
     _putenv_s("JSIMD_FORCESSE2","");roundtrip(mask);
+#if defined(_M_IX86)
+    _putenv_s("JSIMD_FORCESSE","1");roundtrip(mask & (JSIMD_SSE|JSIMD_MMX));
+    _putenv_s("JSIMD_FORCESSE","");roundtrip(mask);
+    _putenv_s("JSIMD_FORCEMMX","1");roundtrip(mask & JSIMD_MMX);
+    _putenv_s("JSIMD_FORCEMMX","");roundtrip(mask);
+    _putenv_s("JSIMD_FORCE3DNOW","1");roundtrip(mask & (JSIMD_3DNOW|JSIMD_MMX));
+    _putenv_s("JSIMD_FORCE3DNOW","");roundtrip(mask);
+#endif
 #endif
     printf("{\"passed\":true,\"threads\":8,\"concurrent_roundtrips\":800,\"simd_mask\":%u,\"cpu_query_microseconds\":%.6f,\"environment_changes_preserved\":true}\n",mask,cpu_query_us);
     return 0;
