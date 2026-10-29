@@ -1,0 +1,65 @@
+name: JPEG CRT compatibility candidates
+on:
+  push:
+    branches: [test/libjpeg-crt-compat-20261030]
+    paths: ['.github/workflows/jpeg-compat.yml', 'scripts/**', 'tests/jpeg-*', 'tests/review.c', 'tests/startup-getenv.patch', 'native-plan.json']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: plan
+        run: echo "matrix=$(jq -c '{include:.}' native-plan.json)" >> "$GITHUB_OUTPUT"
+  compare:
+    needs: plan
+    name: ${{ matrix.vs }} ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - name: Preserve source bytes
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: winlibs/winlib-builder
+          ref: 0a3eb556ea0a723e38ad93628c119195d170f25b
+          path: builder
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/libjpeg
+          ref: 85e7e7b3adf7d17fabd57a1b7f8953c3815f157c
+          path: candidate-src
+      - name: Compute compiler inputs
+        id: virtuals
+        shell: powershell
+        run: ./builder/scripts/compute-virtuals.ps1 -version '${{ matrix.php }}' -arch '${{ matrix.arch }}' -sdk '${{ matrix.sdk }}'
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_arch }}
+          toolset: ${{ steps.virtuals.outputs.toolset }}
+          sdk: ${{ matrix.sdk }}
+      - uses: ilammy/setup-nasm@v1
+        if: matrix.arch != 'arm64'
+      - name: Build candidates and run upstream tests
+        shell: pwsh
+        run: ./scripts/build-compat.ps1 -VsInst '${{ steps.virtuals.outputs.vsinst }}' -MsArch '${{ steps.virtuals.outputs.msarch }}' -MsTs '${{ steps.virtuals.outputs.msts }}' -Sdk '${{ matrix.sdk }}'
+      - name: Check compatibility and measure both environment states
+        shell: pwsh
+        run: ./scripts/compare-compat.ps1 -Vs '${{ matrix.vs }}' -Arch '${{ matrix.arch }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jpeg-crt-compat-${{ matrix.vs }}-${{ matrix.arch }}
+          path: reports
+          if-no-files-found: error
