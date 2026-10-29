@@ -1,0 +1,87 @@
+name: Exact JPEG release artifact QA
+on:
+  push:
+    branches: [test/libjpeg-3.2.1-release-20261030]
+    paths: [release-plan.json]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      native: ${{ steps.plan.outputs.native }}
+      php: ${{ steps.plan.outputs.php }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: plan
+        shell: bash
+        run: |
+          echo "native=$(jq -c '{include:.native}' release-plan.json)" >> "$GITHUB_OUTPUT"
+          echo "php=$(jq -c '{include:.php}' release-plan.json)" >> "$GITHUB_OUTPUT"
+  native:
+    needs: plan
+    name: native ${{ matrix.vs }} ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.native) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          repository: winlibs/winlib-builder
+          run-id: ${{ matrix.run_id }}
+          artifact-ids: ${{ matrix.artifact_id }}
+          github-token: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+          merge-multiple: true
+          path: candidate
+      - uses: actions/checkout@v6
+        with:
+          repository: winlibs/winlib-builder
+          ref: ${{ matrix.builder_sha }}
+          path: builder
+      - name: Compute compiler inputs
+        id: virtuals
+        shell: powershell
+        run: ./builder/scripts/compute-virtuals.ps1 -version '${{ matrix.php }}' -arch '${{ matrix.arch }}' -sdk '${{ matrix.sdk }}'
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_arch }}
+          toolset: ${{ steps.virtuals.outputs.toolset }}
+          sdk: ${{ matrix.sdk }}
+      - name: Verify and link installed library
+        shell: pwsh
+        run: ./scripts/test-native-artifact.ps1 -Vs '${{ matrix.vs }}' -Arch '${{ matrix.arch }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jpeg-native-${{ matrix.vs }}-${{ matrix.arch }}
+          path: reports
+          if-no-files-found: error
+  php:
+    needs: plan
+    name: PHP ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.php) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run_id }}
+          artifact-ids: ${{ matrix.artifact_id }}
+          github-token: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+          merge-multiple: true
+          path: artifacts
+      - name: Test all exact PHP runtime archives
+        shell: pwsh
+        run: ./scripts/test-php-artifacts.ps1 -PhpTarget '${{ matrix.target }}' -PlanFile release-plan.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jpeg-php-${{ matrix.target }}
+          path: reports
+          if-no-files-found: error
