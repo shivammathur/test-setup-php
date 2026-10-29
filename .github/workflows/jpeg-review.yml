@@ -1,0 +1,56 @@
+name: Review JPEG Windows environment semantics
+on:
+  push:
+    branches: [test/libjpeg-patch-review-20261030]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86]
+    steps:
+      - name: Preserve source bytes
+        shell: pwsh
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: winlibs/libjpeg
+          ref: 5e31759d415fef210f96b75bab79fe22aa77680a
+          path: original-src
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/libjpeg
+          ref: 4324213718242f94b2df8ee099ef71283c076610
+          path: patched-src
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+      - uses: ilammy/setup-nasm@v1
+      - name: Build and compare environment semantics
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory reports | Out-Null
+          $platform = if ('${{ matrix.arch }}' -eq 'x86') { 'Win32' } else { 'x64' }
+          foreach ($variant in @('original', 'patched')) {
+            cmake -S "$variant-src" -B "$variant-build" -G 'Visual Studio 17 2022' -A $platform -DWITH_JPEG8=1 -DWITH_CRT_DLL=1 -DENABLE_SHARED=0 -DWITH_TURBOJPEG=0 -DREQUIRE_SIMD=1
+            if ($LASTEXITCODE) { throw 'Configure failed' }
+            cmake --build "$variant-build" --config RelWithDebInfo --target jpeg-static
+            if ($LASTEXITCODE) { throw 'Build failed' }
+            & cl /nologo /O2 /MD /W4 "/I$variant-build" "/I$variant-src/src" "/I$variant-src/simd" tests/review.c /link "/LIBPATH:$variant-build/RelWithDebInfo" libjpeg_a.lib "/OUT:$variant-review.exe"
+            if ($LASTEXITCODE) { throw 'Probe compilation failed' }
+            & "./$variant-review.exe" $variant | Tee-Object -FilePath "reports/$variant.json"
+            if ($LASTEXITCODE) { throw 'Probe failed' }
+            Get-FileHash "$variant-build/RelWithDebInfo/libjpeg_a.lib" | ConvertTo-Json | Set-Content "reports/$variant-library-hash.json"
+          }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jpeg-patch-review-${{ matrix.arch }}
+          path: reports
+          if-no-files-found: error
