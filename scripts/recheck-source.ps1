@@ -28,8 +28,13 @@ $env:REPORT_EXIT_STATUS = '1'
 $source = Join-Path $PWD 'php-src'
 $revision = & git -C $source rev-parse HEAD
 if ($revision -ne $row.source_sha) { throw 'Source commit mismatch' }
+$testBlobs = @{}
 foreach ($test in $row.tests) {
     if ($test -notmatch '^[a-zA-Z0-9_./-]+\.phpt$' -or $test.Contains('..') -or !(Test-Path (Join-Path $source $test))) { throw 'Invalid source test path' }
+    $expectedBlob = & git -C $source rev-parse "HEAD:$test"
+    $actualBlob = & git -C $source hash-object --no-filters -- $test
+    if ($LASTEXITCODE -or $actualBlob -ne $expectedBlob) { throw "Source test bytes differ from Git: $test" }
+    $testBlobs[$test] = $actualBlob
 }
 Push-Location $source
 try {
@@ -41,5 +46,5 @@ if ($code -ne 0) { throw "Source recheck failed: $code" }
 [xml] $xml = Get-Content $env:TEST_PHP_JUNIT -Raw
 $cases = @($xml.SelectNodes('//testcase'))
 if ($cases.Count -ne $row.tests.Count -or $xml.SelectNodes('//testcase/failure|//testcase/error|//testcase/skipped').Count) { throw 'Recheck failed, skipped, or omitted a case' }
-@{passed=$true;run_id=$row.run_id;runtime=$row.runtime_name;sha256=$hash;source_sha=$revision;tests=$row.tests;arch=$row.arch;ts=$row.ts;opcache=$row.opcache;test_type=$row.test_type;gd_loaded=($gdLoaded -eq '1')} |
+@{passed=$true;run_id=$row.run_id;runtime=$row.runtime_name;sha256=$hash;source_sha=$revision;tests=$row.tests;test_blob_ids=$testBlobs;arch=$row.arch;ts=$row.ts;opcache=$row.opcache;test_type=$row.test_type;gd_loaded=($gdLoaded -eq '1')} |
     ConvertTo-Json -Depth 5 | Set-Content (Join-Path $reports 'summary.json')
