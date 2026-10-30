@@ -19,7 +19,7 @@ try {
     check((imagetypes() & IMG_JPG) !== 0, 'JPEG appears in supported image types');
     $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'jpeg-321-' . getmypid();
     if (!is_dir($dir)) mkdir($dir);
-    foreach ([[1, 1], [1, 33], [2, 17], [17, 2], [31, 33], [128, 65]] as [$width, $height]) {
+    foreach ([[1, 1], [1, 33], [2, 17], [17, 2], [31, 33], [128, 65], [257, 259], [1920, 1080], [1921, 1081]] as [$width, $height]) {
         foreach ([false, true] as $progressive) {
             $name = "{$width}x{$height}-" . ($progressive ? 'progressive' : 'baseline');
             $im = imagecreatetruecolor($width, $height);
@@ -32,6 +32,7 @@ try {
             $data = ob_get_clean();
             check($encoded && is_string($data) && strlen($data) > 100, "$name encoded");
             check(str_starts_with($data, "\xff\xd8") && str_ends_with($data, "\xff\xd9"), "$name JPEG markers");
+            check(str_contains($data, $progressive ? "\xff\xc2" : "\xff\xc0"), "$name expected frame type");
             $meta = getimagesizefromstring($data);
             check($meta[0] === $width && $meta[1] === $height && $meta[2] === IMAGETYPE_JPEG, "$name metadata");
             $file = $dir . DIRECTORY_SEPARATOR . "$name.jpg";
