@@ -1,36 +1,37 @@
 [
   {
-    "target": "PHP-8.6",
+    "target": "master",
     "runner": "windows-2025-vs2026",
     "arch": "x86",
     "ts": "ts",
-    "opcache": "nocache",
-    "test_type": "php",
-    "run_id": 40976570672,
-    "artifact_id": 12943536862,
-    "source_sha": "86780e22e84122b58f1904ca93b6c0cba5bb8a7d",
+    "opcache": "opcache",
+    "test_type": "ext",
+    "run_id": 40976571121,
+    "artifact_id": 12943877132,
+    "source_sha": "b3c2d71743b506016186ddc49f5c5bb19fd9b4c1",
     "builder_sha": "6cd651ff8a1e3b660d80a43647b20cd3fe5f30cf",
-    "runtime_name": "php-8.6.0-dev-Win32-vs18-x86.zip",
-    "runtime_sha256": "2c57fa34fcf16cee3e6677d5cd6fce5ef0cb8d758a8fecda236844c2dfce102b",
+    "runtime_name": "php-8.7.0-dev-Win32-vs18-x86.zip",
+    "runtime_sha256": "ab20c73308d354eea3019ff12d6a301f34e9fdd0213c40f48f372433ad2dbd65",
     "tests": [
-      "sapi/cli/tests/bug65066_511.phpt"
+      "ext/soap/tests/gh23686/header-from-stringable.phpt",
+      "ext/soap/tests/gh23686/header-just-lf-separator.phpt"
     ]
   },
   {
     "target": "master",
     "runner": "windows-2025-vs2026",
     "arch": "x64",
-    "ts": "nts",
-    "opcache": "nocache",
-    "test_type": "php",
+    "ts": "ts",
+    "opcache": "opcache",
+    "test_type": "ext",
     "run_id": 40976571121,
     "artifact_id": 12943877132,
     "source_sha": "b3c2d71743b506016186ddc49f5c5bb19fd9b4c1",
     "builder_sha": "6cd651ff8a1e3b660d80a43647b20cd3fe5f30cf",
-    "runtime_name": "php-8.7.0-dev-nts-Win32-vs18-x64.zip",
-    "runtime_sha256": "389862e0d0ce803af8dda12713fa9fe8ef7e0ccf9a8dba2789cd15c11637738c",
+    "runtime_name": "php-8.7.0-dev-Win32-vs18-x64.zip",
+    "runtime_sha256": "b13bc7da6bc6673f1b9b9c60fe5f5dafaf0f15efa28dfe3381c6ad73826dfbdf",
     "tests": [
-      "sapi/cgi/tests/007.phpt"
+      "ext/standard/tests/http/ghsa-52jp-hrpf-2jff-001.phpt"
     ]
   }
 ]
