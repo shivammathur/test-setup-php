@@ -6,34 +6,33 @@
     "ts": "ts",
     "opcache": "opcache",
     "test_type": "ext",
-    "run_id": 40976571121,
-    "artifact_id": 12943877132,
+    "run_id": 41006724128,
+    "artifact_id": 12956900778,
     "source_sha": "b3c2d71743b506016186ddc49f5c5bb19fd9b4c1",
     "builder_sha": "6cd651ff8a1e3b660d80a43647b20cd3fe5f30cf",
     "runtime_name": "php-8.7.0-dev-Win32-vs18-x86.zip",
-    "runtime_sha256": "ab20c73308d354eea3019ff12d6a301f34e9fdd0213c40f48f372433ad2dbd65",
+    "runtime_sha256": "b4a45f77c39e2720bcc60b36263a1463e259294d17273944c405c380e9debb85",
     "tests": [
-      "ext/soap/tests/gh23686/header-from-stringable.phpt",
-      "ext/soap/tests/gh23686/header-just-lf-separator.phpt"
+      "ext/soap/tests/bugs/relative_redirect_path.phpt"
     ],
-    "validation_revision": 2
+    "validation_revision": 3
   },
   {
     "target": "master",
     "runner": "windows-2025-vs2026",
-    "arch": "x64",
+    "arch": "x86",
     "ts": "ts",
     "opcache": "opcache",
-    "test_type": "ext",
-    "run_id": 40976571121,
-    "artifact_id": 12943877132,
+    "test_type": "php",
+    "run_id": 41006724128,
+    "artifact_id": 12956900778,
     "source_sha": "b3c2d71743b506016186ddc49f5c5bb19fd9b4c1",
     "builder_sha": "6cd651ff8a1e3b660d80a43647b20cd3fe5f30cf",
-    "runtime_name": "php-8.7.0-dev-Win32-vs18-x64.zip",
-    "runtime_sha256": "b13bc7da6bc6673f1b9b9c60fe5f5dafaf0f15efa28dfe3381c6ad73826dfbdf",
+    "runtime_name": "php-8.7.0-dev-Win32-vs18-x86.zip",
+    "runtime_sha256": "b4a45f77c39e2720bcc60b36263a1463e259294d17273944c405c380e9debb85",
     "tests": [
-      "ext/standard/tests/http/ghsa-52jp-hrpf-2jff-001.phpt"
+      "sapi/cli/tests/php_cli_server_005.phpt"
     ],
-    "validation_revision": 2
+    "validation_revision": 3
   }
 ]

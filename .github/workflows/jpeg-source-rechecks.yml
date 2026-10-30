@@ -1,4 +1,4 @@
-name: Recheck PHP source test failures with exact JPEG candidate artifacts
+name: Recheck PHP source test failures with exact runtime artifacts
 on:
   push:
     branches: [test/libjpeg-3.2.1-release-20261030]
@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
-    name: ${{ matrix.target }} ${{ matrix.arch }} ${{ matrix.ts }} ${{ matrix.opcache }}
+    name: ${{ matrix.target }} ${{ matrix.arch }} ${{ matrix.ts }} ${{ matrix.opcache }} ${{ matrix.test_type }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/download-artifact@v4
@@ -51,6 +51,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: recheck-${{ matrix.target }}-${{ matrix.arch }}-${{ matrix.ts }}-${{ matrix.opcache }}
+          name: recheck-${{ matrix.target }}-${{ matrix.arch }}-${{ matrix.ts }}-${{ matrix.opcache }}-${{ matrix.test_type }}
           path: reports
           if-no-files-found: error
