@@ -1,123 +1,168 @@
 {
-  "phase": "candidate-native",
-  "native": [
+  "phase": "php_final_candidate_runs",
+  "native": [],
+  "php": [
     {
-      "php": "8.2",
-      "vs": "vs16",
-      "arch": "x64",
+      "target": "PHP-8.2",
       "runner": "windows-2022",
-      "msvc_arch": "x64",
-      "sdk": "10.0.19041.0",
-      "run_id": 40956251587,
-      "artifact_id": 12934280965,
-      "library_sha256": "f0dcd4eb24c9aad079a9cd127268faa5afe9888c52dac5603db181df8f0e5ad0",
-      "builder_sha": "0a3eb556ea0a723e38ad93628c119195d170f25b",
-      "simd_enabled": true
+      "run_id": 40976570678,
+      "artifact_id": 12943203148,
+      "artifact_sha256": "ed22043beb278134451a40427737c7c822c0326bf3b558b8e5a7ea7395334400",
+      "source_sha": "084271b8fd895b8cdfdcb9552bdd3575e94e65bf",
+      "builder_sha": "6cd651ff8a1e3b660d80a43647b20cd3fe5f30cf",
+      "runtime_archives": [
+        {
+          "name": "php-8.2.36-dev-Win32-vs16-x64.zip",
+          "sha256": "12fa9cab3a32fa1fb5b0b665d6047da42d03d0b5375703d19cb8abc2d502cfe6"
+        },
+        {
+          "name": "php-8.2.36-dev-Win32-vs16-x86.zip",
+          "sha256": "b5c5bc4843d4a38394390febcfa739172bf2e01cf135a72b645cb4434b471e72"
+        },
+        {
+          "name": "php-8.2.36-dev-nts-Win32-vs16-x64.zip",
+          "sha256": "951ca8c593d77976875c46364f45f09c287d803523938c5990d6c32f08359d84"
+        },
+        {
+          "name": "php-8.2.36-dev-nts-Win32-vs16-x86.zip",
+          "sha256": "7f277d4ea3c131c6a2c7da3e299510cdde6317633e3234994fee69d04c87b90a"
+        }
+      ]
     },
     {
-      "php": "8.2",
-      "vs": "vs16",
-      "arch": "arm64",
-      "runner": "windows-11-arm",
-      "msvc_arch": "amd64_arm64",
-      "sdk": "10.0.22621.0",
-      "run_id": 40956251587,
-      "artifact_id": 12934141753,
-      "library_sha256": "2d30a2eb2d77a9a0dbf6298f266e1a7cdc1f4aa5308d10e4798b5e4928189b47",
-      "builder_sha": "0a3eb556ea0a723e38ad93628c119195d170f25b",
-      "simd_enabled": true
-    },
-    {
-      "php": "8.2",
-      "vs": "vs16",
-      "arch": "x86",
+      "target": "PHP-8.3",
       "runner": "windows-2022",
-      "msvc_arch": "x86",
-      "sdk": "10.0.19041.0",
-      "run_id": 40956251587,
-      "artifact_id": 12933153190,
-      "library_sha256": "a4d1ec0a1356ea55f36dd35216a635dd648b14c404c5c233db3f88230c83a3fc",
-      "builder_sha": "0a3eb556ea0a723e38ad93628c119195d170f25b",
-      "simd_enabled": true
+      "run_id": 40976570695,
+      "artifact_id": 12943257917,
+      "artifact_sha256": "24663e5a1fc07a0b08218e0be0270aa865543379c7093daeb6b06760d28c6434",
+      "source_sha": "d25eef4d9cbb071c7ee5a5a670de0db21df6dc11",
+      "builder_sha": "6cd651ff8a1e3b660d80a43647b20cd3fe5f30cf",
+      "runtime_archives": [
+        {
+          "name": "php-8.3.37-dev-Win32-vs16-x64.zip",
+          "sha256": "ce144f9215055a86392c5b35845ac76324f474c4ba4b3d46d66f2078499a70da"
+        },
+        {
+          "name": "php-8.3.37-dev-Win32-vs16-x86.zip",
+          "sha256": "cb3c3df2bb305790530071627353a16bea7569bb0cc2037c70832e254500da74"
+        },
+        {
+          "name": "php-8.3.37-dev-nts-Win32-vs16-x64.zip",
+          "sha256": "cdf477a8c8ae17fe2957a78412a77e424e5aa6cfeb0c5905b8ab76af2349b154"
+        },
+        {
+          "name": "php-8.3.37-dev-nts-Win32-vs16-x86.zip",
+          "sha256": "8662a2afd157f6c3f31ce5c2fa11f6acb64151fd3ada7b087fdc49bcee1df0df"
+        }
+      ]
     },
     {
-      "php": "8.4",
-      "vs": "vs17",
-      "arch": "x86",
+      "target": "PHP-8.4",
       "runner": "windows-2022",
-      "msvc_arch": "x86",
-      "sdk": "10.0.22621.0",
-      "run_id": 40956257039,
-      "artifact_id": 12933587601,
-      "library_sha256": "a90e584af32f702e3baa31e0ea98029891e5258a906948112892e963449eb234",
-      "builder_sha": "0a3eb556ea0a723e38ad93628c119195d170f25b",
-      "simd_enabled": true
+      "run_id": 40976570634,
+      "artifact_id": 12944405743,
+      "artifact_sha256": "909e422f8f8d8ec9ebd7898d79c307f9cb0d51834a5737353a6b26f0f40db659",
+      "source_sha": "5e7bad4748317a9bf06a2ece93ac2755d81c4579",
+      "builder_sha": "6cd651ff8a1e3b660d80a43647b20cd3fe5f30cf",
+      "runtime_archives": [
+        {
+          "name": "php-8.4.28-dev-Win32-vs17-x64.zip",
+          "sha256": "b7bddd53be47e4c78dda753f53a6769249851a8a111a82c325930a8d8d9a71e7"
+        },
+        {
+          "name": "php-8.4.28-dev-Win32-vs17-x86.zip",
+          "sha256": "62b09dac0ed86333d964dd5e6e987e50172cdf01c25ed34dac2f26d4ebcb235d"
+        },
+        {
+          "name": "php-8.4.28-dev-nts-Win32-vs17-x64.zip",
+          "sha256": "09e0f8d2b3adf5c7f2e28abe2dfcd6b97eb90e5102c96ae7b473ef236ad98fef"
+        },
+        {
+          "name": "php-8.4.28-dev-nts-Win32-vs17-x86.zip",
+          "sha256": "158aeb3d81a909e81fceaa681937a29aaf3168f63fced50b3b38980d3a6b53cb"
+        }
+      ]
     },
     {
-      "php": "8.4",
-      "vs": "vs17",
-      "arch": "x64",
+      "target": "PHP-8.5",
       "runner": "windows-2022",
-      "msvc_arch": "x64",
-      "sdk": "10.0.22621.0",
-      "run_id": 40956257039,
-      "artifact_id": 12933172977,
-      "library_sha256": "e144e6325497cf598d737af0636259ea23419051b8f3dc1827dfb2da8c9c848b",
-      "builder_sha": "0a3eb556ea0a723e38ad93628c119195d170f25b",
-      "simd_enabled": true
+      "run_id": 40976570778,
+      "artifact_id": 12942729324,
+      "artifact_sha256": "fffe9b1217625cd26ba06aa3e7792cf11ecccdb9c2530537cf1ba4868b49f29c",
+      "source_sha": "02e0623f5e15a414f382a1685b44bfeca1e6b9a2",
+      "builder_sha": "6cd651ff8a1e3b660d80a43647b20cd3fe5f30cf",
+      "runtime_archives": [
+        {
+          "name": "php-8.5.13-dev-Win32-vs17-x64.zip",
+          "sha256": "bc4e68c4ddb5893adb05190805a57db9e6f0468b85df6f6e8b301ade7e921ac9"
+        },
+        {
+          "name": "php-8.5.13-dev-Win32-vs17-x86.zip",
+          "sha256": "d742142f97c382dd79d16d434b1f1b7eaca807cfce408d31b9b1272fd2a4f67c"
+        },
+        {
+          "name": "php-8.5.13-dev-nts-Win32-vs17-x64.zip",
+          "sha256": "be3df990689fc4ffabd8b2afa60545ef33d77b43ea8815b08ab9d1a8ea42a743"
+        },
+        {
+          "name": "php-8.5.13-dev-nts-Win32-vs17-x86.zip",
+          "sha256": "6de3c595fbb643eefdec936655d5c28203982d71704d264597e1b836ed6f3c8d"
+        }
+      ]
     },
     {
-      "php": "8.4",
-      "vs": "vs17",
-      "arch": "arm64",
-      "runner": "windows-11-arm",
-      "msvc_arch": "arm64",
-      "sdk": "10.0.22621.0",
-      "run_id": 40956257039,
-      "artifact_id": 12932997947,
-      "library_sha256": "d60b6b27581d5d177d58a9c0db2877dacd94193621e1b9ddc58e01d4593409ab",
-      "builder_sha": "0a3eb556ea0a723e38ad93628c119195d170f25b",
-      "simd_enabled": true
-    },
-    {
-      "php": "8.6",
-      "vs": "vs18",
-      "arch": "x64",
+      "target": "PHP-8.6",
       "runner": "windows-2025-vs2026",
-      "msvc_arch": "x64",
-      "sdk": "10.0.26100.0",
-      "run_id": 40956262074,
-      "artifact_id": 12934175910,
-      "library_sha256": "2dcaae4b07599517f83a5b55f384af0c8262b96d14c32170a8f5dd93bf984ff7",
-      "builder_sha": "0a3eb556ea0a723e38ad93628c119195d170f25b",
-      "simd_enabled": true
+      "run_id": 40976570672,
+      "artifact_id": 12943536862,
+      "artifact_sha256": "460ecdc1d4001c2ba2281b2b3faa1d3870825b2c42bb9767080e4d5cdf634b80",
+      "source_sha": "86780e22e84122b58f1904ca93b6c0cba5bb8a7d",
+      "builder_sha": "6cd651ff8a1e3b660d80a43647b20cd3fe5f30cf",
+      "runtime_archives": [
+        {
+          "name": "php-8.6.0-dev-Win32-vs18-x64.zip",
+          "sha256": "1cfad31fe487841e651873fc15ca9c02df0df3fd8e7fc42d04417071c7525e16"
+        },
+        {
+          "name": "php-8.6.0-dev-Win32-vs18-x86.zip",
+          "sha256": "2c57fa34fcf16cee3e6677d5cd6fce5ef0cb8d758a8fecda236844c2dfce102b"
+        },
+        {
+          "name": "php-8.6.0-dev-nts-Win32-vs18-x64.zip",
+          "sha256": "6133e729170ea03a49e3f2960837a43242132ef09d5ebb07f8bb465b158fdfee"
+        },
+        {
+          "name": "php-8.6.0-dev-nts-Win32-vs18-x86.zip",
+          "sha256": "f58232ba5056ced742110104dd8136e2fc0ecd92b33102c8fcd6876ea9521566"
+        }
+      ]
     },
     {
-      "php": "8.6",
-      "vs": "vs18",
-      "arch": "x86",
+      "target": "master",
       "runner": "windows-2025-vs2026",
-      "msvc_arch": "x86",
-      "sdk": "10.0.26100.0",
-      "run_id": 40956262074,
-      "artifact_id": 12933692640,
-      "library_sha256": "c4fdb7e4ed80103b57250911ee88cc3aa368b82acbfabd2c1a600428cbfdc216",
-      "builder_sha": "0a3eb556ea0a723e38ad93628c119195d170f25b",
-      "simd_enabled": true
-    },
-    {
-      "php": "8.6",
-      "vs": "vs18",
-      "arch": "arm64",
-      "runner": "windows-11-vs2026-arm",
-      "msvc_arch": "arm64",
-      "sdk": "10.0.26100.0",
-      "run_id": 40956262074,
-      "artifact_id": 12932558844,
-      "library_sha256": "1a1415fb70aaa73976d7c6a29e429583380637f43c074ade67e9ecf231e86fe4",
-      "builder_sha": "0a3eb556ea0a723e38ad93628c119195d170f25b",
-      "simd_enabled": true
+      "run_id": 40976571121,
+      "artifact_id": 12943877132,
+      "artifact_sha256": "7ba6a6df28d9895bca5c97719db44a64ad5bcc2dee33afeafb2de768b63fae27",
+      "source_sha": "b3c2d71743b506016186ddc49f5c5bb19fd9b4c1",
+      "builder_sha": "6cd651ff8a1e3b660d80a43647b20cd3fe5f30cf",
+      "runtime_archives": [
+        {
+          "name": "php-8.7.0-dev-Win32-vs18-x64.zip",
+          "sha256": "b13bc7da6bc6673f1b9b9c60fe5f5dafaf0f15efa28dfe3381c6ad73826dfbdf"
+        },
+        {
+          "name": "php-8.7.0-dev-Win32-vs18-x86.zip",
+          "sha256": "ab20c73308d354eea3019ff12d6a301f34e9fdd0213c40f48f372433ad2dbd65"
+        },
+        {
+          "name": "php-8.7.0-dev-nts-Win32-vs18-x64.zip",
+          "sha256": "389862e0d0ce803af8dda12713fa9fe8ef7e0ccf9a8dba2789cd15c11637738c"
+        },
+        {
+          "name": "php-8.7.0-dev-nts-Win32-vs18-x86.zip",
+          "sha256": "a2ed4e4f5bccc805e5b3d34aebd798047e3a770096b5330783e3ddf63156f4f9"
+        }
+      ]
     }
-  ],
-  "php": []
+  ]
 }
