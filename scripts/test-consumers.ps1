@@ -14,7 +14,7 @@ foreach ($package in $row.packages) {
     Expand-Archive $zip "packages/$($package.key)" -Force
     $proof += @{name=$package.name;sha256=$hash;url=$package.url;run_id=$package.run_id;artifact_id=$package.artifact_id}
 }
-& ./builder/scripts/fetch-deps.ps1 -lib libtiff -version $row.php -vs $row.vs -arch $row.arch -stability staging -workflow_run_ids $row.override_runs -destination deps
+& ./builder/scripts/fetch-deps.ps1 -lib libtiff -version $row.php -vs $row.vs -arch $row.arch -stability staging -workflow_run_ids $row.override_runs -repository winlibs/winlib-builder -destination deps
 if ((Get-FileHash deps/lib/libjpeg_a.lib -Algorithm SHA256).Hash.ToLowerInvariant() -ne $row.library_sha256) { throw 'Resolved JPEG differs from accepted SDK' }
 $env:PATH = "$(Join-Path $PWD 'packages/tiff/bin');$(Join-Path $PWD 'packages/heif/bin');$env:PATH"
 function Build-Check([string]$name, [string]$source, [string[]]$arguments) {
