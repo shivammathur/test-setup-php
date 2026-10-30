@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import pathlib
 import re
 import subprocess
@@ -26,7 +27,7 @@ echo "DIAGNOSTICS ", json_encode(compact('peak', 'exceptionCount', 'traceFrames'
 script = evidence / 'profile.php'
 script.write_text(code)
 results = []
-for variant in ('before', 'after', 'revert-pcre'):
+for variant in os.environ.get('PROFILE_VARIANTS', 'before,after,revert-pcre').split(','):
     artifact = root / 'known-builds' / ('php83-x86-' + variant)
     metadata = json.loads((artifact / 'summary.json').read_text())
     for name, expected in metadata['binary_sha256'].items():

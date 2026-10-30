@@ -1,0 +1,47 @@
+name: PHP 8.3 x86 stack and memory confirmation
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  confirm:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    env:
+      NO_INTERACTION: '1'
+      REPORT_EXIT_STATUS: '1'
+      PROFILE_VARIANTS: after,revert-callback-argument-check,noinline-callback-helper
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: php/php-src
+          ref: f35ed4fb5cf44ef9ecc48e105b6a53b590d54f0b
+          path: php-src
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 41001222080
+          pattern: php83-x86-after
+          path: known-builds
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 41001843429
+          pattern: php83-x86-*
+          path: known-builds
+      - name: Profile the isolated change using existing binaries
+        run: python ci/profile.py
+      - name: Confirm memory threshold and upstream test on unmodified after binary
+        run: python ci/confirm.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: php83-x86-confirmation
+          path: |
+            profile-evidence
+            confirmation-evidence
+          if-no-files-found: error
+          retention-days: 14
