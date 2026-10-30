@@ -16,7 +16,7 @@ Import-Module ./builder/php/BuildPhp -Force
     Set-PhpIniForTests -BuildDirectory $directory -Arch $arch -Opcache $mode -TestType $type
 } $work $row.arch $row.opcache $row.test_type
 $gdLoaded = & $php -c "$bin/php-test.ini" -r 'echo extension_loaded("gd") ? "1" : "0";'
-if ($LASTEXITCODE -or $gdLoaded -ne $(if ($row.test_type -eq 'ext') { '1' } else { '0' })) { throw 'Unexpected GD loading in test environment' }
+if ($LASTEXITCODE -or $gdLoaded -ne '0') { throw "Focused HTTP/CLI recheck unexpectedly loaded GD (output: $gdLoaded, exit: $LASTEXITCODE)" }
 $env:PATH = "$bin;$env:PATH"
 $env:TEST_PHP_EXECUTABLE = $php
 $env:TEST_PHP_CGI_EXECUTABLE = Join-Path $bin 'php-cgi.exe'
