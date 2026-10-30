@@ -1,0 +1,53 @@
+name: JPEG dependent library artifact QA
+on:
+  push:
+    paths: [consumer-plan.json]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.plan.outputs.include }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: plan
+        run: echo "include=$(jq -c . consumer-plan.json)" >> "$GITHUB_OUTPUT"
+  consumers:
+    needs: plan
+    runs-on: ${{ matrix.runner }}
+    name: ${{ matrix.vs }} ${{ matrix.arch }} ${{ matrix.phase }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.include) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: winlibs/winlib-builder
+          ref: ${{ matrix.builder_sha }}
+          path: builder
+      - id: virtuals
+        shell: powershell
+        run: ./builder/scripts/compute-virtuals.ps1 -version '${{ matrix.php }}' -arch '${{ matrix.arch }}' -sdk '${{ matrix.sdk }}'
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_arch }}
+          toolset: ${{ steps.virtuals.outputs.toolset }}
+          sdk: ${{ matrix.sdk }}
+      - name: Verify archives and exercise installed codecs
+        shell: pwsh
+        env:
+          CONSUMER_ROW: ${{ toJSON(matrix) }}
+          GH_TOKEN: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+          GITHUB_TOKEN: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+        run: ./scripts/test-consumers.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: consumers-${{ matrix.vs }}-${{ matrix.arch }}-${{ matrix.phase }}
+          path: reports
+          if-no-files-found: error
