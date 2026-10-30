@@ -1,0 +1,15 @@
+diff --git a/Zend/zend_objects.c b/Zend/zend_objects.c
+index 8d9bbcc6aa7..a900d85042d 100644
+--- a/Zend/zend_objects.c
++++ b/Zend/zend_objects.c
+@@ -99,6 +99,10 @@ ZEND_API void zend_objects_destroy_object(zend_object *object)
+ 	zend_function *destructor = object->ce->destructor;
+ 
+ 	if (destructor) {
++		if (ZEND_HAS_OOM()) {
++			return;
++		}
++
+ 		zend_object *old_exception;
+ 		const zend_op *old_opline_before_exception = NULL;
+ 

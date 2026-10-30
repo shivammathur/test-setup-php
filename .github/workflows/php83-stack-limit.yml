@@ -1,0 +1,73 @@
+name: PHP 8.3 Windows x86 stack-limit isolation
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    name: ${{ matrix.variant }}
+    runs-on: windows-2022
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: before
+            ref: 54b4c1a67cfdf6d4144579fb574f75ff75e7f67b
+          - variant: after-merge
+            ref: c1a5f468d09fc4afc5d738872d5b1d4e87ff1e39
+          - variant: after
+            ref: f35ed4fb5cf44ef9ecc48e105b6a53b590d54f0b
+          - variant: revert-call-api
+            ref: f35ed4fb5cf44ef9ecc48e105b6a53b590d54f0b
+          - variant: revert-pcre
+            ref: f35ed4fb5cf44ef9ecc48e105b6a53b590d54f0b
+          - variant: revert-vm
+            ref: f35ed4fb5cf44ef9ecc48e105b6a53b590d54f0b
+          - variant: revert-backtrace
+            ref: f35ed4fb5cf44ef9ecc48e105b6a53b590d54f0b
+          - variant: revert-exceptions
+            ref: f35ed4fb5cf44ef9ecc48e105b6a53b590d54f0b
+          - variant: revert-destructor-guard
+            ref: f35ed4fb5cf44ef9ecc48e105b6a53b590d54f0b
+    env:
+      PHP_BUILD_CACHE_BASE_DIR: C:\build-cache
+      PHP_BUILD_OBJ_DIR: C:\obj
+      PHP_BUILD_CACHE_SDK_DIR: C:\build-cache\sdk
+      PHP_BUILD_SDK_BRANCH: php-sdk-2.8.4
+      PHP_BUILD_CRT: vs16
+      PLATFORM: x86
+      THREAD_SAFE: '0'
+      INTRINSICS: ''
+      OPCACHE: '0'
+      ASAN: '0'
+      CLANG_TOOLSET: '0'
+      VARIANT: ${{ matrix.variant }}
+      NO_INTERACTION: '1'
+      REPORT_EXIT_STATUS: '1'
+    steps:
+      - name: Git line endings
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: php/php-src
+          ref: ${{ matrix.ref }}
+          path: php-src
+      - name: Prepare isolated change
+        run: python ci/prepare.py
+      - name: Build snapshot with upstream configuration
+        working-directory: php-src
+        shell: cmd
+        run: .github\scripts\windows\build.bat > ..\evidence\build.log 2>&1
+      - name: Run unmodified regression test and collect binaries
+        run: python ci/verify.py
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: php83-x86-${{ matrix.variant }}
+          path: evidence
+          if-no-files-found: error
+          retention-days: 14
