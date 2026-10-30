@@ -1,9 +1,10 @@
-name: PHP 8.3 Windows x86 stack-limit isolation
+name: PHP 8.3 Windows x86 PCRE isolation
 on:
   push:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 jobs:
   compare:
     name: ${{ matrix.variant }}
@@ -13,23 +14,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - variant: before
-            ref: 54b4c1a67cfdf6d4144579fb574f75ff75e7f67b
-          - variant: after-merge
-            ref: c1a5f468d09fc4afc5d738872d5b1d4e87ff1e39
-          - variant: after
+          - variant: revert-callback-argument-check
             ref: f35ed4fb5cf44ef9ecc48e105b6a53b590d54f0b
-          - variant: revert-call-api
+          - variant: revert-callback-result-handling
             ref: f35ed4fb5cf44ef9ecc48e105b6a53b590d54f0b
-          - variant: revert-pcre
+          - variant: revert-callback-result-null-check
             ref: f35ed4fb5cf44ef9ecc48e105b6a53b590d54f0b
-          - variant: revert-vm
+          - variant: revert-callback-result-allocation
             ref: f35ed4fb5cf44ef9ecc48e105b6a53b590d54f0b
-          - variant: revert-backtrace
+          - variant: revert-pcre-emalloc
             ref: f35ed4fb5cf44ef9ecc48e105b6a53b590d54f0b
-          - variant: revert-exceptions
+          - variant: revert-populate-subpat-checks
             ref: f35ed4fb5cf44ef9ecc48e105b6a53b590d54f0b
-          - variant: revert-destructor-guard
+          - variant: noinline-callback-helper
             ref: f35ed4fb5cf44ef9ecc48e105b6a53b590d54f0b
     env:
       PHP_BUILD_CACHE_BASE_DIR: C:\build-cache
@@ -69,5 +66,25 @@ jobs:
         with:
           name: php83-x86-${{ matrix.variant }}
           path: evidence
+          if-no-files-found: error
+          retention-days: 14
+  profile:
+    name: Profile existing before/after binaries
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 41001222080
+          path: known-builds
+      - name: Profile recursion with original binaries
+        run: python ci/profile.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: php83-recursion-profile
+          path: profile-evidence
           if-no-files-found: error
           retention-days: 14

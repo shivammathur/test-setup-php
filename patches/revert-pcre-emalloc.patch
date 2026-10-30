@@ -1,0 +1,11 @@
+--- a/ext/pcre/php_pcre.c
++++ b/ext/pcre/php_pcre.c
+@@ -194,7 +194,7 @@
+ 
+ static void *php_pcre_emalloc(PCRE2_SIZE size, void *data)
+ {
+-	return emalloc(size);
++	return femalloc(size, /* fallible */ true);
+ }
+ 
+ static void php_pcre_efree(void *block, void *data)

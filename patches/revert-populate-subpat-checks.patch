@@ -1,0 +1,82 @@
+--- a/ext/pcre/php_pcre.c
++++ b/ext/pcre/php_pcre.c
+@@ -1037,10 +1037,16 @@
+ 				add_offset_pair(
+ 					subpats, subject, offsets[2*i], offsets[2*i+1],
+ 					subpat_names[i], unmatched_as_null);
++				if (ZEND_HAS_OOM()) {
++					return FAILURE;
++				}
+ 			}
+ 			if (unmatched_as_null) {
+ 				for (i = count; i < num_subpats; i++) {
+ 					add_offset_pair(subpats, NULL, PCRE2_UNSET, PCRE2_UNSET, subpat_names[i], 1);
++					if (ZEND_HAS_OOM()) {
++						return FAILURE;
++					}
+ 				}
+ 			}
+ 		} else {
+@@ -1051,6 +1057,9 @@
+ 					add_named(subpats, subpat_names[i], &val, offsets[2*i] == PCRE2_UNSET);
+ 				}
+ 				zend_hash_next_index_insert(Z_ARRVAL_P(subpats), &val);
++				if (ZEND_HAS_OOM()) {
++					return FAILURE;
++				}
+ 			}
+ 			if (unmatched_as_null) {
+ 				for (i = count; i < num_subpats; i++) {
+@@ -1059,6 +1068,9 @@
+ 						zend_hash_add(Z_ARRVAL_P(subpats), subpat_names[i], &val);
+ 					}
+ 					zend_hash_next_index_insert(Z_ARRVAL_P(subpats), &val);
++					if (ZEND_HAS_OOM()) {
++						return FAILURE;
++					}
+ 				}
+ 			}
+ 		}
+@@ -1067,10 +1079,16 @@
+ 			for (i = 0; i < count; i++) {
+ 				add_offset_pair(
+ 					subpats, subject, offsets[2*i], offsets[2*i+1], NULL, unmatched_as_null);
++				if (ZEND_HAS_OOM()) {
++					return FAILURE;
++				}
+ 			}
+ 			if (unmatched_as_null) {
+ 				for (i = count; i < num_subpats; i++) {
+ 					add_offset_pair(subpats, NULL, PCRE2_UNSET, PCRE2_UNSET, NULL, 1);
++					if (ZEND_HAS_OOM()) {
++						return FAILURE;
++					}
+ 				}
+ 			}
+ 		} else {
+@@ -1078,10 +1096,16 @@
+ 				populate_match_value(
+ 					&val, subject, offsets[2*i], offsets[2*i+1], unmatched_as_null);
+ 				zend_hash_next_index_insert(Z_ARRVAL_P(subpats), &val);
++				if (ZEND_HAS_OOM()) {
++					return FAILURE;
++				}
+ 			}
+ 			if (unmatched_as_null) {
+ 				for (i = count; i < num_subpats; i++) {
+ 					add_next_index_null(subpats);
++					if (ZEND_HAS_OOM()) {
++						return FAILURE;
++					}
+ 				}
+ 			}
+ 		}
+@@ -1090,7 +1114,7 @@
+ 	if (mark) {
+ 		add_assoc_string_ex(subpats, "MARK", sizeof("MARK") - 1, (char *)mark);
+ 	}
+-	return SUCCESS;
++	return ZEND_HAS_OOM() ? FAILURE : SUCCESS;
+ }
+ 
+ static void php_do_pcre_match(INTERNAL_FUNCTION_PARAMETERS, int global) /* {{{ */

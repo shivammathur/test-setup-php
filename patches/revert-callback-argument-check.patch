@@ -1,0 +1,15 @@
+--- a/ext/pcre/php_pcre.c
++++ b/ext/pcre/php_pcre.c
+@@ -1593,7 +1593,11 @@
+ 	zval	     arg;				/* Argument to pass to function */
+ 
+ 	array_init_size(&arg, count + (mark ? 1 : 0));
+-	populate_subpat_array(&arg, subject, offsets, subpat_names, num_subpats, count, mark, flags);
++	zend_result result = populate_subpat_array(&arg, subject, offsets, subpat_names, num_subpats, count, mark, flags);
++	if (UNEXPECTED(result == FAILURE)) {
++		zval_ptr_dtor(&arg);
++		return NULL;
++	}
+ 
+ 	fci->retval = &retval;
+ 	fci->param_count = 1;

@@ -48,7 +48,7 @@ for name in ('php.exe', 'php8.dll', 'php_zend_test.dll'):
 for name in ('php8.pdb', 'php.pdb', 'php_zend_test.pdb'):
     if (build / name).exists():
         shutil.copy2(build / name, binary_dir / name)
-for relative in ('Zend/zend_execute_API.obj', 'Zend/zend_objects.obj', 'Zend/zend_execute.obj', 'Zend/zend_builtin_functions.obj', 'Zend/zend_alloc.obj'):
+for relative in ('Zend/zend_execute_API.obj', 'Zend/zend_objects.obj', 'Zend/zend_execute.obj', 'Zend/zend_builtin_functions.obj', 'Zend/zend_alloc.obj', 'ext/pcre/php_pcre.obj'):
     path = build / relative
     if path.exists():
         shutil.copy2(path, binary_dir / path.name)
