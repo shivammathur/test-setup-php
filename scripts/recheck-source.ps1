@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $row = $env:RECHECK_ROW | ConvertFrom-Json
-if ($row.test_type -ne 'ext') { throw 'Expected the extension test environment' }
+if ($row.test_type -notin @('php', 'ext')) { throw 'Invalid test environment' }
 $archive = Join-Path $PWD "artifacts/$($row.runtime_name)"
 $hash = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($hash -ne $row.runtime_sha256) { throw 'Runtime archive hash mismatch' }
@@ -12,9 +12,11 @@ Expand-Archive $archive -DestinationPath $bin -Force
 $php = Join-Path $bin 'php.exe'
 Import-Module ./builder/php/BuildPhp -Force
 & (Get-Module BuildPhp) {
-    param($directory, $arch, $mode)
-    Set-PhpIniForTests -BuildDirectory $directory -Arch $arch -Opcache $mode -TestType ext
-} $work $row.arch $row.opcache
+    param($directory, $arch, $mode, $type)
+    Set-PhpIniForTests -BuildDirectory $directory -Arch $arch -Opcache $mode -TestType $type
+} $work $row.arch $row.opcache $row.test_type
+$gdLoaded = & $php -c "$bin/php-test.ini" -r 'echo extension_loaded("gd") ? "1" : "0";'
+if ($LASTEXITCODE -or $gdLoaded -ne $(if ($row.test_type -eq 'ext') { '1' } else { '0' })) { throw 'Unexpected GD loading in test environment' }
 $env:PATH = "$bin;$env:PATH"
 $env:TEST_PHP_EXECUTABLE = $php
 $env:TEST_PHP_CGI_EXECUTABLE = Join-Path $bin 'php-cgi.exe'
@@ -39,5 +41,5 @@ if ($code -ne 0) { throw "Source recheck failed: $code" }
 [xml] $xml = Get-Content $env:TEST_PHP_JUNIT -Raw
 $cases = @($xml.SelectNodes('//testcase'))
 if ($cases.Count -ne $row.tests.Count -or $xml.SelectNodes('//testcase/failure|//testcase/error|//testcase/skipped').Count) { throw 'Recheck failed, skipped, or omitted a case' }
-@{passed=$true;run_id=$row.run_id;runtime=$row.runtime_name;sha256=$hash;source_sha=$revision;tests=$row.tests;arch=$row.arch;ts=$row.ts;opcache=$row.opcache} |
+@{passed=$true;run_id=$row.run_id;runtime=$row.runtime_name;sha256=$hash;source_sha=$revision;tests=$row.tests;arch=$row.arch;ts=$row.ts;opcache=$row.opcache;test_type=$row.test_type;gd_loaded=($gdLoaded -eq '1')} |
     ConvertTo-Json -Depth 5 | Set-Content (Join-Path $reports 'summary.json')
