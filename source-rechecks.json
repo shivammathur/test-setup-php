@@ -1,0 +1,36 @@
+[
+  {
+    "target": "PHP-8.6",
+    "runner": "windows-2025-vs2026",
+    "arch": "x86",
+    "ts": "nts",
+    "opcache": "opcache",
+    "test_type": "ext",
+    "run_id": 40976570672,
+    "artifact_id": 12943536862,
+    "source_sha": "86780e22e84122b58f1904ca93b6c0cba5bb8a7d",
+    "builder_sha": "6cd651ff8a1e3b660d80a43647b20cd3fe5f30cf",
+    "runtime_name": "php-8.6.0-dev-nts-Win32-vs18-x86.zip",
+    "runtime_sha256": "f58232ba5056ced742110104dd8136e2fc0ecd92b33102c8fcd6876ea9521566",
+    "tests": [
+      "ext/soap/tests/gh23686/redact-not-first.phpt"
+    ]
+  },
+  {
+    "target": "PHP-8.6",
+    "runner": "windows-2025-vs2026",
+    "arch": "x64",
+    "ts": "ts",
+    "opcache": "opcache",
+    "test_type": "ext",
+    "run_id": 40976570672,
+    "artifact_id": 12943536862,
+    "source_sha": "86780e22e84122b58f1904ca93b6c0cba5bb8a7d",
+    "builder_sha": "6cd651ff8a1e3b660d80a43647b20cd3fe5f30cf",
+    "runtime_name": "php-8.6.0-dev-Win32-vs18-x64.zip",
+    "runtime_sha256": "1cfad31fe487841e651873fc15ca9c02df0df3fd8e7fc42d04417071c7525e16",
+    "tests": [
+      "ext/standard/tests/http/ghsa-52jp-hrpf-2jff-001.phpt"
+    ]
+  }
+]

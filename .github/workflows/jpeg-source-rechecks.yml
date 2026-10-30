@@ -1,0 +1,56 @@
+name: Recheck PHP source test failures with exact JPEG candidate artifacts
+on:
+  push:
+    branches: [test/libjpeg-3.2.1-release-20261030]
+    paths: [source-rechecks.json]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: plan
+        shell: bash
+        run: echo "matrix=$(jq -c '{include:.}' source-rechecks.json)" >> "$GITHUB_OUTPUT"
+  recheck:
+    needs: plan
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    name: ${{ matrix.target }} ${{ matrix.arch }} ${{ matrix.ts }} ${{ matrix.opcache }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run_id }}
+          artifact-ids: ${{ matrix.artifact_id }}
+          github-token: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+          merge-multiple: true
+          path: artifacts
+      - uses: actions/checkout@v6
+        with:
+          repository: php/php-src
+          ref: ${{ matrix.source_sha }}
+          path: php-src
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: ${{ matrix.builder_sha }}
+          path: builder
+      - name: Run the original source tests with the exact runtime
+        shell: pwsh
+        env:
+          RECHECK_ROW: ${{ toJSON(matrix) }}
+        run: ./scripts/recheck-source.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: recheck-${{ matrix.target }}-${{ matrix.arch }}-${{ matrix.ts }}-${{ matrix.opcache }}
+          path: reports
+          if-no-files-found: error
