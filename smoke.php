@@ -27,6 +27,14 @@ if ($extension === 'swoole') {
         throw new RuntimeException('Coroutine scheduler did not complete');
     }
     echo "Coroutine channel round trip passed.\n";
+} elseif ($extension === 'redis') {
+    $redis = new Redis();
+    $redis->setOption(Redis::OPT_SERIALIZER, Redis::SERIALIZER_PHP);
+    $payload = ['version' => $expected, 'values' => [1, 2, 3]];
+    if ($redis->_unserialize($redis->_serialize($payload)) !== $payload) {
+        throw new RuntimeException('Redis serialization round trip failed');
+    }
+    echo "Redis serialization round trip passed.\n";
 } elseif ($extension === 'vld') {
     if (ini_get('vld.active') === false || ini_get('vld.execute') === false) {
         throw new RuntimeException('VLD ini directives missing');

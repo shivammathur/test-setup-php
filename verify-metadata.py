@@ -9,7 +9,8 @@ latest = releases[0]
 version = latest.findtext("p:v", namespaces=namespace)
 state = latest.findtext("p:s", namespaces=namespace)
 assert version == os.environ["EXPECTED_VERSION"], (version, os.environ["EXPECTED_VERSION"])
-assert state == os.environ["EXPECTED_STATE"], (state, os.environ["EXPECTED_STATE"])
+expected_state = os.environ.get("EXPECTED_RELEASE_STATE", os.environ["EXPECTED_STATE"])
+assert state == expected_state, (state, expected_state)
 stable = next((release.findtext("p:v", namespaces=namespace) for release in releases
                if release.findtext("p:s", namespaces=namespace) == "stable"), None)
 print(f'{os.environ["EXTENSION"]}: latest={version}, state={state}, latest stable={stable}')
