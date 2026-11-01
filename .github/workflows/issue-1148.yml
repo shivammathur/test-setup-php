@@ -1,0 +1,112 @@
+name: Issue 1148 - PECL minimum stability
+
+on:
+  push:
+    branches:
+      - fix/test-issue-1148-minimum-stability
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  extensions:
+    name: PHP ${{ matrix.php }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04, macos-15]
+        php: ['8.3', '8.5']
+    defaults:
+      run:
+        shell: bash
+    env:
+      fail-fast: 'true'
+    steps:
+      - name: Checkout validation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout develop
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: shivammathur/setup-php
+          ref: develop
+          fetch-depth: 2
+          path: setup-php
+          persist-credentials: false
+
+      - name: Verify revision and reproduce baseline selection
+        env:
+          EXPECTED_REF: 3600327193a894d3efc01fe92bddd5a3eed4e1ef
+        run: |
+          mkdir -p evidence
+          git -C setup-php rev-parse HEAD | tee evidence/setup-php-ref.txt
+          test "$(git -C setup-php rev-parse HEAD)" = "$EXPECTED_REF"
+          git -C setup-php show HEAD^:src/scripts/extensions/add_extensions.sh > evidence/baseline.sh
+          . evidence/baseline.sh
+          get() { cat fixtures/ev.xml; }
+          baseline=$(get_pecl_version ev beta)
+          printf 'Baseline ev-beta=%s\n' "$baseline" | tee evidence/baseline.txt
+          test "$baseline" = 1.1.6RC1
+          bash --version | tee evidence/bash-version.txt
+
+      - name: Run resolver and exact-pin regression checks
+        run: bash regression.sh setup-php/src/scripts/extensions/add_extensions.sh | tee evidence/regression.txt
+
+      - name: Check macOS system Bash compatibility
+        if: runner.os == 'macOS'
+        run: /bin/bash regression.sh setup-php/src/scripts/extensions/add_extensions.sh | tee evidence/regression-system-bash.txt
+
+      - name: Install newest beta-or-stable release
+        uses: ./setup-php
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ev-beta
+          coverage: none
+          tools: none
+
+      - name: Inspect and exercise selected stable release
+        env:
+          EXPECTED_PHP: ${{ matrix.php }}
+        run: bash inspect.sh 1.2.3 stable
+
+      - name: Install an explicit RC pin
+        uses: ./setup-php
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ev-1.1.6RC1
+          coverage: none
+          tools: none
+
+      - name: Inspect and exercise the exact RC pin
+        env:
+          EXPECTED_PHP: ${{ matrix.php }}
+        run: bash inspect.sh 1.1.6RC1 pinned
+
+      - name: Restore beta-or-stable release from cache
+        uses: ./setup-php
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ev-beta
+          coverage: none
+          tools: none
+
+      - name: Verify restored artifact and runtime behavior
+        env:
+          EXPECTED_PHP: ${{ matrix.php }}
+        run: |
+          bash inspect.sh 1.2.3 restored
+          cmp evidence/stable/ev.so evidence/restored/ev.so
+
+      - name: Upload extension binaries and validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: issue-1148-${{ matrix.os }}-php-${{ matrix.php }}
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 14
