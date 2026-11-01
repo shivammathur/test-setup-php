@@ -1,0 +1,138 @@
+name: PR 1147 - Ubuntu 26.04 source extension
+
+on:
+  push:
+    branches:
+      - fix/test-pr-1147-ubuntu-26.04
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  encoding:
+    name: ${{ matrix.variant }} / PHP 8.5 / Ubuntu 26.04
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: without-change
+            ref: 0825094f510ce82d8c8eb374495e8d7b14358e4f
+            expected: failure
+          - variant: with-change
+            ref: c1d52391611da0427e28ca6cb83df77bf0568905
+            expected: success
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout validation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout setup-php revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ matrix.ref }}
+          path: setup-php
+          persist-credentials: false
+
+      - name: Verify runner and source revision
+        env:
+          EXPECTED_REF: ${{ matrix.ref }}
+        run: |
+          mkdir -p evidence
+          {
+            cat /etc/os-release
+            bash --version
+            git -C setup-php rev-parse HEAD
+            sed -n '122,135p' setup-php/src/scripts/extensions/source.sh
+          } | tee evidence/environment.txt
+          . /etc/os-release
+          test "$VERSION_ID" = 26.04
+          test "${BASH_VERSINFO[0]}.${BASH_VERSINFO[1]}" = 5.3
+          test "$(git -C setup-php rev-parse HEAD)" = "$EXPECTED_REF"
+          test -z "${ENCODING_PATH+x}"
+          test -z "${encoding_PATH+x}"
+          test ! -e /tmp/ext-encoding-1.0.0
+
+      - name: Setup PHP and build encoding 1.0.0
+        id: setup
+        continue-on-error: true
+        uses: ./setup-php
+        with:
+          php-version: '8.5'
+          extensions: encoding-pmmp/ext-encoding@1.0.0
+          coverage: none
+          tools: none
+        env:
+          fail-fast: 'true'
+
+      - name: Verify expected setup result
+        env:
+          ACTUAL_OUTCOME: ${{ steps.setup.outcome }}
+          EXPECTED_OUTCOME: ${{ matrix.expected }}
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          printf 'variant=%s expected=%s actual=%s\n' "$VARIANT" "$EXPECTED_OUTCOME" "$ACTUAL_OUTCOME" | tee evidence/outcome.txt
+          test "$ACTUAL_OUTCOME" = "$EXPECTED_OUTCOME"
+          php --version | tee evidence/php-version.txt
+          php -r 'exit(PHP_MAJOR_VERSION === 8 && PHP_MINOR_VERSION === 5 ? 0 : 1);'
+          test -d /tmp/ext-encoding-1.0.0/.git
+          git -C /tmp/ext-encoding-1.0.0 rev-parse HEAD | tee evidence/extension-commit.txt
+          test "$(git -C /tmp/ext-encoding-1.0.0 describe --tags --exact-match)" = 1.0.0
+          if [ "$VARIANT" = without-change ]; then
+            php -r 'exit(extension_loaded("encoding") ? 1 : 0);'
+            test ! -e /tmp/ext-encoding-1.0.0/modules/encoding.so
+            test ! -e "$(php-config --extension-dir)/encoding.so"
+            echo 'Baseline reproduced: encoding was neither built nor loaded.' | tee -a evidence/outcome.txt
+          else
+            php -r 'if (!extension_loaded("encoding") || phpversion("encoding") !== "1.0.0") { exit(1); }'
+          fi
+
+      - name: Inspect and exercise the built extension
+        if: matrix.variant == 'with-change'
+        run: |
+          php --ri encoding | tee evidence/encoding-info.txt
+          built=/tmp/ext-encoding-1.0.0/modules/encoding.so
+          installed="$(php-config --extension-dir)/encoding.so"
+          test -s "$built"
+          cmp "$built" "$installed"
+          cp "$built" evidence/encoding.so
+          file evidence/encoding.so | tee evidence/file.txt
+          readelf -h -d evidence/encoding.so > evidence/readelf.txt
+          ldd evidence/encoding.so | tee evidence/ldd.txt
+          if grep -q 'not found' evidence/ldd.txt; then exit 1; fi
+          sha256sum evidence/encoding.so | tee evidence/SHA256SUMS
+          php smoke.php | tee evidence/smoke-installed.txt
+          php -n -d "extension=$built" smoke.php | tee evidence/smoke-isolated.txt
+
+      - name: Run upstream PHPT suite
+        if: matrix.variant == 'with-change'
+        working-directory: /tmp/ext-encoding-1.0.0
+        env:
+          NO_INTERACTION: '1'
+          REPORT_EXIT_STATUS: '1'
+        run: |
+          php -n run-tests.php -n -d extension="$PWD/modules/encoding.so" -q --show-diff tests | tee "$GITHUB_WORKSPACE/evidence/phpt.txt"
+
+      - name: Collect build and test diagnostics
+        if: always()
+        run: |
+          mkdir -p evidence
+          if [ -d /tmp/ext-encoding-1.0.0 ]; then
+            find /tmp/ext-encoding-1.0.0 -type f \( -name config.log -o -name '*.diff' -o -name '*.out' -o -name '*.log' -o -name '*.exp' \) -exec cp --parents {} evidence/ \;
+          fi
+
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pr-1147-${{ matrix.variant }}
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 14
