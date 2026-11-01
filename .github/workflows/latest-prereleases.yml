@@ -1,0 +1,82 @@
+name: Issue 1148 - Latest beta and alpha releases
+
+on:
+  push:
+    branches:
+      - fix/test-issue-1148-latest-prereleases
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  extensions:
+    name: ${{ matrix.extension.name }}-${{ matrix.extension.state }} / PHP ${{ matrix.php }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04, macos-15]
+        php: ['8.3', '8.5']
+        extension:
+          - name: vld
+            state: beta
+            version: '0.19.1'
+          - name: swoole
+            state: alpha
+            version: '6.3.0RC1'
+    defaults:
+      run:
+        shell: bash
+    env:
+      fail-fast: 'true'
+      EXTENSION: ${{ matrix.extension.name }}
+      EXPECTED_STATE: ${{ matrix.extension.state }}
+      EXPECTED_VERSION: ${{ matrix.extension.version }}
+      EXPECTED_PHP: ${{ matrix.php }}
+    steps:
+      - name: Checkout validation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout develop
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: shivammathur/setup-php
+          ref: develop
+          path: setup-php
+          persist-credentials: false
+
+      - name: Verify revision and live PECL release state
+        env:
+          EXPECTED_REF: 3600327193a894d3efc01fe92bddd5a3eed4e1ef
+        run: |
+          mkdir -p evidence
+          git -C setup-php rev-parse HEAD | tee evidence/setup-php-ref.txt
+          test "$(git -C setup-php rev-parse HEAD)" = "$EXPECTED_REF"
+          curl -fsSL --retry 3 "https://pecl.php.net/rest/r/$EXTENSION/allreleases.xml" -o evidence/allreleases.xml
+          python3 verify-metadata.py | tee evidence/metadata.txt
+          bash --version | tee evidence/bash-version.txt
+          bash resolve.sh | tee evidence/resolved.txt
+
+      - name: Install requested prerelease channel
+        uses: ./setup-php
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.extension.name }}-${{ matrix.extension.state }}
+          coverage: none
+          tools: none
+
+      - name: Inspect extension artifact and exercise functionality
+        run: bash inspect.sh
+
+      - name: Upload binaries and validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: latest-${{ matrix.extension.name }}-${{ matrix.os }}-php-${{ matrix.php }}
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 14
