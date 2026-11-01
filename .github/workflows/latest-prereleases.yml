@@ -1,0 +1,227 @@
+name: Issue 1148 - Release selection
+
+on:
+  push:
+    branches:
+      - fix/test-issue-1148-release-selection
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  extensions:
+    name: ${{ matrix.extension.name }}-${{ matrix.extension.state }} / PHP ${{ matrix.php }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04, macos-15, windows-2022]
+        php: ['8.3', '8.5']
+        extension:
+          - name: vld
+            state: beta
+            version: '0.19.1'
+            release-state: beta
+            previous: ''
+          - name: swoole
+            state: alpha
+            version: '6.3.0RC1'
+            release-state: alpha
+            previous: ''
+          - name: redis
+            state: beta
+            version: '6.3.0'
+            release-state: stable
+            previous: '6.2.0'
+        include:
+          - os: ubuntu-24.04
+            php: '8.5'
+            extension:
+              name: swoole
+              state: '6.3.0rc1'
+              version: '6.3.0RC1'
+              release-state: alpha
+              previous: ''
+          - os: ubuntu-24.04
+            php: '8.3'
+            extension:
+              name: vld
+              state: '0.19.0'
+              version: '0.19.0'
+              release-state: beta
+              previous: ''
+          - os: ubuntu-24.04
+            php: '8.3'
+            extension:
+              name: redis
+              state: '6.2.0'
+              version: '6.2.0'
+              release-state: stable
+              previous: ''
+          - os: ubuntu-24.04
+            php: '8.5'
+            extension:
+              name: redis
+              state: ''
+              version: '6.3.0'
+              release-state: stable
+              previous: ''
+          - os: macos-15
+            php: '8.5'
+            extension:
+              name: swoole
+              state: '6.3.0rc1'
+              version: '6.3.0RC1'
+              release-state: alpha
+              previous: ''
+          - os: macos-15
+            php: '8.3'
+            extension:
+              name: vld
+              state: '0.19.0'
+              version: '0.19.0'
+              release-state: beta
+              previous: ''
+          - os: macos-15
+            php: '8.3'
+            extension:
+              name: redis
+              state: '6.2.0'
+              version: '6.2.0'
+              release-state: stable
+              previous: ''
+          - os: macos-15
+            php: '8.5'
+            extension:
+              name: redis
+              state: ''
+              version: '6.3.0'
+              release-state: stable
+              previous: ''
+          - os: windows-2022
+            php: '8.5'
+            extension:
+              name: swoole
+              state: '6.3.0rc1'
+              version: '6.3.0RC1'
+              release-state: alpha
+              previous: ''
+          - os: windows-2022
+            php: '8.3'
+            extension:
+              name: vld
+              state: '0.19.0'
+              version: '0.19.0'
+              release-state: beta
+              previous: ''
+          - os: windows-2022
+            php: '8.3'
+            extension:
+              name: redis
+              state: '6.2.0'
+              version: '6.2.0'
+              release-state: stable
+              previous: ''
+          - os: windows-2022
+            php: '8.5'
+            extension:
+              name: redis
+              state: ''
+              version: '6.3.0'
+              release-state: stable
+              previous: ''
+    defaults:
+      run:
+        shell: bash
+    env:
+      fail-fast: 'true'
+      EXTENSION: ${{ matrix.extension.name }}
+      EXPECTED_STATE: ${{ matrix.extension.state }}
+      EXPECTED_VERSION: ${{ matrix.extension.version }}
+      EXPECTED_RELEASE_STATE: ${{ matrix.extension.release-state }}
+      EXPECTED_PHP: ${{ matrix.php }}
+    steps:
+      - name: Checkout validation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Checkout develop
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: shivammathur/setup-php
+          ref: develop
+          path: setup-php
+          persist-credentials: false
+
+      - name: Verify revision and live PECL release state
+        env:
+          EXPECTED_REF: 9331c55df181b60550e1dda5e73c672c73dd2672
+        run: |
+          mkdir -p evidence
+          git -C setup-php rev-parse HEAD | tee evidence/setup-php-ref.txt
+          test "$(git -C setup-php rev-parse HEAD)" = "$EXPECTED_REF"
+          curl -fsSL --retry 3 "https://pecl.php.net/rest/r/$EXTENSION/allreleases.xml" -o evidence/allreleases.xml
+          if [ "$RUNNER_OS" = Windows ]; then
+            python verify-metadata.py | tee evidence/metadata.txt
+          else
+            python3 verify-metadata.py | tee evidence/metadata.txt
+          fi
+          bash --version | tee evidence/bash-version.txt
+
+      - name: Configure Homebrew PCRE2 headers for Swoole
+        if: runner.os == 'macOS' && matrix.extension.name == 'swoole'
+        run: |
+          pcre2_prefix=$(brew --prefix pcre2)
+          test -r "$pcre2_prefix/include/pcre2.h"
+          printf 'SWOOLE_CONFIGURE_PREFIX_OPTS=CPPFLAGS=-I%s/include\n' "$pcre2_prefix" | tee evidence/build-prerequisites.txt >> "$GITHUB_ENV"
+
+      - name: Seed an older installed release on Windows
+        if: runner.os == 'Windows' && matrix.php == '8.3' && matrix.extension.previous != ''
+        uses: ./setup-php
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.extension.name }}-${{ matrix.extension.previous }}
+          coverage: none
+          tools: none
+
+      - name: Verify older installed release
+        if: runner.os == 'Windows' && matrix.php == '8.3' && matrix.extension.previous != ''
+        shell: pwsh
+        env:
+          EXPECTED_PREVIOUS: ${{ matrix.extension.previous }}
+        run: |
+          php -r 'if (phpversion(getenv("EXTENSION")) !== getenv("EXPECTED_PREVIOUS")) { exit(1); }'
+          if ($LASTEXITCODE) { throw 'Older release was not installed' }
+
+      - name: Install requested prerelease channel
+        uses: ./setup-php
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.extension.name }}${{ matrix.extension.state && format('-{0}', matrix.extension.state) || '' }}
+          coverage: none
+          tools: none
+
+      - name: Verify the selected release
+        if: runner.os != 'Windows'
+        run: bash resolve.sh | tee evidence/resolved.txt
+
+      - name: Inspect extension artifact and exercise functionality
+        if: runner.os != 'Windows'
+        run: bash inspect.sh
+
+      - name: Inspect Windows DLL and exercise functionality
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./inspect.ps1
+
+      - name: Upload binaries and validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-${{ matrix.extension.name }}-${{ matrix.extension.state || 'default' }}-${{ matrix.os }}-php-${{ matrix.php }}
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 14
