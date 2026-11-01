@@ -61,6 +61,13 @@ jobs:
           bash --version | tee evidence/bash-version.txt
           bash resolve.sh | tee evidence/resolved.txt
 
+      - name: Configure Homebrew PCRE2 headers for Swoole
+        if: runner.os == 'macOS' && matrix.extension.name == 'swoole'
+        run: |
+          pcre2_prefix=$(brew --prefix pcre2)
+          test -r "$pcre2_prefix/include/pcre2.h"
+          printf 'SWOOLE_CONFIGURE_PREFIX_OPTS=CPPFLAGS=-I%s/include\n' "$pcre2_prefix" | tee evidence/build-prerequisites.txt >> "$GITHUB_ENV"
+
       - name: Install requested prerelease channel
         uses: ./setup-php
         with:
