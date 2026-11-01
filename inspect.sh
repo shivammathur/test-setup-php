@@ -21,4 +21,9 @@ else
   otool -L "$evidence/ev.so" | tee "$evidence/dependencies.txt"
 fi
 shasum -a 256 "$evidence/ev.so" | tee "$evidence/SHA256SUMS"
-php -n -d "extension=$PWD/$evidence/ev.so" smoke.php "$expected" | tee "$evidence/smoke-isolated.txt"
+php_opts=(-n)
+if ! php -n -r 'exit(extension_loaded("sockets") ? 0 : 1);'; then
+  test -s "$ext_dir/sockets.so"
+  php_opts+=(-d "extension=$ext_dir/sockets.so")
+fi
+php "${php_opts[@]}" -d "extension=$PWD/$evidence/ev.so" smoke.php "$expected" | tee "$evidence/smoke-isolated.txt"
