@@ -1,0 +1,79 @@
+name: Validate php-src Chocolatey download retries
+on:
+  push:
+    branches: [test/windows-ci-sql-storage-20261104]
+permissions:
+  contents: read
+jobs:
+  probe:
+    name: Probe windows-2022 / ${{ matrix.attempt }}
+    runs-on: windows-2022
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        attempt: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Probe actual storage with the production selector
+        shell: pwsh
+        run: |
+          .github/scripts/collect-setup-logs.ps1 -Before
+          function global:choco {
+              $global:LASTEXITCODE = 0
+              $args | ConvertTo-Json | Out-File "$env:RUNNER_TEMP\setup-diagnostics\selected-install-arguments.json"
+              Write-Host "Selected installation arguments: $args"
+          }
+          .github/scripts/windows/setup-mssql.ps1
+          Get-Partition -DriveLetter C, D | Get-Disk | Select-Object Number, FriendlyName, PhysicalSectorSize, LogicalSectorSize |
+              ConvertTo-Json | Out-File "$env:RUNNER_TEMP\setup-diagnostics\physical-disks.json"
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: probe-${{ matrix.attempt }}-${{ job.status }}
+          path: ${{ runner.temp }}\setup-diagnostics
+          retention-days: 3
+          if-no-files-found: error
+  retry:
+    name: Retry ${{ matrix.os }} / ${{ matrix.scenario }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-2025-vs2026]
+        scenario: [fixtures, feed-recovery, download-recovery]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Record runner details
+        shell: pwsh
+        run: .github/scripts/collect-setup-logs.ps1 -Before
+      - name: Exercise retry behavior
+        shell: pwsh
+        run: .github/scripts/test-retry.ps1 -Scenario '${{ matrix.scenario }}'
+      - name: Exercise drive-selection cases
+        if: matrix.scenario == 'fixtures'
+        shell: pwsh
+        run: .github/scripts/test-storage.ps1
+      - name: Verify SQL Server ODBC connection
+        if: matrix.scenario != 'fixtures'
+        shell: pwsh
+        run: .github/scripts/verify-sql.ps1
+      - name: Verify 32-bit ODBC connection
+        if: matrix.scenario != 'fixtures'
+        shell: pwsh
+        run: C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -NoProfile -File .github/scripts/verify-sql.ps1
+      - name: Capture diagnostics
+        if: always()
+        shell: pwsh
+        env:
+          CAPTURE_FULL: ${{ job.status != 'success' }}
+        run: .github/scripts/collect-setup-logs.ps1
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: retry-${{ matrix.os }}-${{ matrix.scenario }}-${{ job.status }}
+          path: ${{ runner.temp }}\setup-diagnostics
+          retention-days: 14
+          if-no-files-found: error
