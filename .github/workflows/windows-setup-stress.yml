@@ -1,0 +1,306 @@
+name: Validate php-src Windows SQL setup fix
+on:
+  push:
+    branches: [test/windows-ci-setup-fix-20261104]
+permissions:
+  contents: read
+jobs:
+  setup:
+    name: ${{ matrix.os }} / attempt ${{ matrix.attempt }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: windows-2022, attempt: 1}
+          - {os: windows-2022, attempt: 2}
+          - {os: windows-2022, attempt: 3}
+          - {os: windows-2022, attempt: 4}
+          - {os: windows-2022, attempt: 5}
+          - {os: windows-2022, attempt: 6}
+          - {os: windows-2022, attempt: 7}
+          - {os: windows-2022, attempt: 8}
+          - {os: windows-2022, attempt: 9}
+          - {os: windows-2022, attempt: 10}
+          - {os: windows-2022, attempt: 11}
+          - {os: windows-2022, attempt: 12}
+          - {os: windows-2022, attempt: 13}
+          - {os: windows-2022, attempt: 14}
+          - {os: windows-2022, attempt: 15}
+          - {os: windows-2022, attempt: 16}
+          - {os: windows-2022, attempt: 17}
+          - {os: windows-2022, attempt: 18}
+          - {os: windows-2022, attempt: 19}
+          - {os: windows-2022, attempt: 20}
+          - {os: windows-2022, attempt: 21}
+          - {os: windows-2022, attempt: 22}
+          - {os: windows-2022, attempt: 23}
+          - {os: windows-2022, attempt: 24}
+          - {os: windows-2022, attempt: 25}
+          - {os: windows-2022, attempt: 26}
+          - {os: windows-2022, attempt: 27}
+          - {os: windows-2022, attempt: 28}
+          - {os: windows-2022, attempt: 29}
+          - {os: windows-2022, attempt: 30}
+          - {os: windows-2022, attempt: 31}
+          - {os: windows-2022, attempt: 32}
+          - {os: windows-2022, attempt: 33}
+          - {os: windows-2022, attempt: 34}
+          - {os: windows-2022, attempt: 35}
+          - {os: windows-2022, attempt: 36}
+          - {os: windows-2022, attempt: 37}
+          - {os: windows-2022, attempt: 38}
+          - {os: windows-2022, attempt: 39}
+          - {os: windows-2022, attempt: 40}
+          - {os: windows-2022, attempt: 41}
+          - {os: windows-2022, attempt: 42}
+          - {os: windows-2022, attempt: 43}
+          - {os: windows-2022, attempt: 44}
+          - {os: windows-2022, attempt: 45}
+          - {os: windows-2022, attempt: 46}
+          - {os: windows-2022, attempt: 47}
+          - {os: windows-2022, attempt: 48}
+          - {os: windows-2022, attempt: 49}
+          - {os: windows-2022, attempt: 50}
+          - {os: windows-2022, attempt: 51}
+          - {os: windows-2022, attempt: 52}
+          - {os: windows-2022, attempt: 53}
+          - {os: windows-2022, attempt: 54}
+          - {os: windows-2022, attempt: 55}
+          - {os: windows-2022, attempt: 56}
+          - {os: windows-2022, attempt: 57}
+          - {os: windows-2022, attempt: 58}
+          - {os: windows-2022, attempt: 59}
+          - {os: windows-2022, attempt: 60}
+          - {os: windows-2022, attempt: 61}
+          - {os: windows-2022, attempt: 62}
+          - {os: windows-2022, attempt: 63}
+          - {os: windows-2022, attempt: 64}
+          - {os: windows-2022, attempt: 65}
+          - {os: windows-2022, attempt: 66}
+          - {os: windows-2022, attempt: 67}
+          - {os: windows-2022, attempt: 68}
+          - {os: windows-2022, attempt: 69}
+          - {os: windows-2022, attempt: 70}
+          - {os: windows-2022, attempt: 71}
+          - {os: windows-2022, attempt: 72}
+          - {os: windows-2022, attempt: 73}
+          - {os: windows-2022, attempt: 74}
+          - {os: windows-2022, attempt: 75}
+          - {os: windows-2022, attempt: 76}
+          - {os: windows-2022, attempt: 77}
+          - {os: windows-2022, attempt: 78}
+          - {os: windows-2022, attempt: 79}
+          - {os: windows-2022, attempt: 80}
+          - {os: windows-2022, attempt: 81}
+          - {os: windows-2022, attempt: 82}
+          - {os: windows-2022, attempt: 83}
+          - {os: windows-2022, attempt: 84}
+          - {os: windows-2022, attempt: 85}
+          - {os: windows-2022, attempt: 86}
+          - {os: windows-2022, attempt: 87}
+          - {os: windows-2022, attempt: 88}
+          - {os: windows-2022, attempt: 89}
+          - {os: windows-2022, attempt: 90}
+          - {os: windows-2022, attempt: 91}
+          - {os: windows-2022, attempt: 92}
+          - {os: windows-2022, attempt: 93}
+          - {os: windows-2022, attempt: 94}
+          - {os: windows-2022, attempt: 95}
+          - {os: windows-2022, attempt: 96}
+          - {os: windows-2022, attempt: 97}
+          - {os: windows-2022, attempt: 98}
+          - {os: windows-2022, attempt: 99}
+          - {os: windows-2022, attempt: 100}
+          - {os: windows-2022, attempt: 101}
+          - {os: windows-2022, attempt: 102}
+          - {os: windows-2022, attempt: 103}
+          - {os: windows-2022, attempt: 104}
+          - {os: windows-2022, attempt: 105}
+          - {os: windows-2022, attempt: 106}
+          - {os: windows-2022, attempt: 107}
+          - {os: windows-2022, attempt: 108}
+          - {os: windows-2022, attempt: 109}
+          - {os: windows-2022, attempt: 110}
+          - {os: windows-2022, attempt: 111}
+          - {os: windows-2022, attempt: 112}
+          - {os: windows-2022, attempt: 113}
+          - {os: windows-2022, attempt: 114}
+          - {os: windows-2022, attempt: 115}
+          - {os: windows-2022, attempt: 116}
+          - {os: windows-2022, attempt: 117}
+          - {os: windows-2022, attempt: 118}
+          - {os: windows-2022, attempt: 119}
+          - {os: windows-2022, attempt: 120}
+          - {os: windows-2022, attempt: 121}
+          - {os: windows-2022, attempt: 122}
+          - {os: windows-2022, attempt: 123}
+          - {os: windows-2022, attempt: 124}
+          - {os: windows-2022, attempt: 125}
+          - {os: windows-2022, attempt: 126}
+          - {os: windows-2022, attempt: 127}
+          - {os: windows-2022, attempt: 128}
+          - {os: windows-2022, attempt: 129}
+          - {os: windows-2022, attempt: 130}
+          - {os: windows-2022, attempt: 131}
+          - {os: windows-2022, attempt: 132}
+          - {os: windows-2022, attempt: 133}
+          - {os: windows-2022, attempt: 134}
+          - {os: windows-2022, attempt: 135}
+          - {os: windows-2022, attempt: 136}
+          - {os: windows-2022, attempt: 137}
+          - {os: windows-2022, attempt: 138}
+          - {os: windows-2022, attempt: 139}
+          - {os: windows-2022, attempt: 140}
+          - {os: windows-2022, attempt: 141}
+          - {os: windows-2022, attempt: 142}
+          - {os: windows-2022, attempt: 143}
+          - {os: windows-2022, attempt: 144}
+          - {os: windows-2022, attempt: 145}
+          - {os: windows-2022, attempt: 146}
+          - {os: windows-2022, attempt: 147}
+          - {os: windows-2022, attempt: 148}
+          - {os: windows-2022, attempt: 149}
+          - {os: windows-2022, attempt: 150}
+          - {os: windows-2022, attempt: 151}
+          - {os: windows-2022, attempt: 152}
+          - {os: windows-2022, attempt: 153}
+          - {os: windows-2022, attempt: 154}
+          - {os: windows-2022, attempt: 155}
+          - {os: windows-2022, attempt: 156}
+          - {os: windows-2022, attempt: 157}
+          - {os: windows-2022, attempt: 158}
+          - {os: windows-2022, attempt: 159}
+          - {os: windows-2022, attempt: 160}
+          - {os: windows-2022, attempt: 161}
+          - {os: windows-2022, attempt: 162}
+          - {os: windows-2022, attempt: 163}
+          - {os: windows-2022, attempt: 164}
+          - {os: windows-2022, attempt: 165}
+          - {os: windows-2022, attempt: 166}
+          - {os: windows-2022, attempt: 167}
+          - {os: windows-2022, attempt: 168}
+          - {os: windows-2022, attempt: 169}
+          - {os: windows-2022, attempt: 170}
+          - {os: windows-2022, attempt: 171}
+          - {os: windows-2022, attempt: 172}
+          - {os: windows-2022, attempt: 173}
+          - {os: windows-2022, attempt: 174}
+          - {os: windows-2022, attempt: 175}
+          - {os: windows-2022, attempt: 176}
+          - {os: windows-2022, attempt: 177}
+          - {os: windows-2022, attempt: 178}
+          - {os: windows-2022, attempt: 179}
+          - {os: windows-2022, attempt: 180}
+          - {os: windows-2022, attempt: 181}
+          - {os: windows-2022, attempt: 182}
+          - {os: windows-2022, attempt: 183}
+          - {os: windows-2022, attempt: 184}
+          - {os: windows-2022, attempt: 185}
+          - {os: windows-2022, attempt: 186}
+          - {os: windows-2022, attempt: 187}
+          - {os: windows-2022, attempt: 188}
+          - {os: windows-2022, attempt: 189}
+          - {os: windows-2022, attempt: 190}
+          - {os: windows-2022, attempt: 191}
+          - {os: windows-2022, attempt: 192}
+          - {os: windows-2022, attempt: 193}
+          - {os: windows-2022, attempt: 194}
+          - {os: windows-2022, attempt: 195}
+          - {os: windows-2022, attempt: 196}
+          - {os: windows-2022, attempt: 197}
+          - {os: windows-2022, attempt: 198}
+          - {os: windows-2022, attempt: 199}
+          - {os: windows-2022, attempt: 200}
+          - {os: windows-2022, attempt: 201}
+          - {os: windows-2022, attempt: 202}
+          - {os: windows-2022, attempt: 203}
+          - {os: windows-2022, attempt: 204}
+          - {os: windows-2022, attempt: 205}
+          - {os: windows-2022, attempt: 206}
+          - {os: windows-2022, attempt: 207}
+          - {os: windows-2022, attempt: 208}
+          - {os: windows-2022, attempt: 209}
+          - {os: windows-2022, attempt: 210}
+          - {os: windows-2022, attempt: 211}
+          - {os: windows-2022, attempt: 212}
+          - {os: windows-2022, attempt: 213}
+          - {os: windows-2022, attempt: 214}
+          - {os: windows-2022, attempt: 215}
+          - {os: windows-2022, attempt: 216}
+          - {os: windows-2022, attempt: 217}
+          - {os: windows-2022, attempt: 218}
+          - {os: windows-2022, attempt: 219}
+          - {os: windows-2022, attempt: 220}
+          - {os: windows-2022, attempt: 221}
+          - {os: windows-2022, attempt: 222}
+          - {os: windows-2022, attempt: 223}
+          - {os: windows-2022, attempt: 224}
+          - {os: windows-2022, attempt: 225}
+          - {os: windows-2022, attempt: 226}
+          - {os: windows-2022, attempt: 227}
+          - {os: windows-2022, attempt: 228}
+          - {os: windows-2022, attempt: 229}
+          - {os: windows-2022, attempt: 230}
+          - {os: windows-2022, attempt: 231}
+          - {os: windows-2022, attempt: 232}
+          - {os: windows-2022, attempt: 233}
+          - {os: windows-2022, attempt: 234}
+          - {os: windows-2022, attempt: 235}
+          - {os: windows-2022, attempt: 236}
+          - {os: windows-2022, attempt: 237}
+          - {os: windows-2022, attempt: 238}
+          - {os: windows-2022, attempt: 239}
+          - {os: windows-2022, attempt: 240}
+          - {os: windows-2025-vs2026, attempt: 1}
+          - {os: windows-2025-vs2026, attempt: 2}
+          - {os: windows-2025-vs2026, attempt: 3}
+          - {os: windows-2025-vs2026, attempt: 4}
+          - {os: windows-2025-vs2026, attempt: 5}
+          - {os: windows-2025-vs2026, attempt: 6}
+          - {os: windows-2025-vs2026, attempt: 7}
+          - {os: windows-2025-vs2026, attempt: 8}
+          - {os: windows-2025-vs2026, attempt: 9}
+          - {os: windows-2025-vs2026, attempt: 10}
+          - {os: windows-2025-vs2026, attempt: 11}
+          - {os: windows-2025-vs2026, attempt: 12}
+          - {os: windows-2025-vs2026, attempt: 13}
+          - {os: windows-2025-vs2026, attempt: 14}
+          - {os: windows-2025-vs2026, attempt: 15}
+          - {os: windows-2025-vs2026, attempt: 16}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Record runner details
+        shell: pwsh
+        run: .github/scripts/collect-setup-logs.ps1 -Before
+      - name: Setup MySQL (original commands)
+        shell: cmd
+        run: |
+          mysqld --initialize-insecure
+          mysqld --install
+          net start MySQL
+          mysql --port=3306 --user=root --password="" -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'Password12!'; FLUSH PRIVILEGES;"
+      - name: Setup MSSQL on D with download retries
+        shell: pwsh
+        run: .github/scripts/retry-choco.ps1
+      - name: Verify SQL Server ODBC connection
+        shell: pwsh
+        run: .github/scripts/verify-sql.ps1
+      - name: Verify 32-bit ODBC connection
+        shell: pwsh
+        run: C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -NoProfile -File .github/scripts/verify-sql.ps1
+      - name: Capture SQL setup and engine diagnostics
+        if: always()
+        shell: pwsh
+        env:
+          CAPTURE_FULL: ${{ job.status != 'success' }}
+        run: .github/scripts/collect-setup-logs.ps1
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: setup-${{ matrix.os }}-${{ matrix.attempt }}-${{ job.status }}
+          path: ${{ runner.temp }}\setup-diagnostics
+          retention-days: 14
+          if-no-files-found: error
