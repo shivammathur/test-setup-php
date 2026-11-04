@@ -1,0 +1,41 @@
+name: Validate php-src Chocolatey download retries
+on:
+  push:
+    branches: [test/windows-ci-setup-stress-20261104]
+permissions:
+  contents: read
+jobs:
+  retry:
+    name: Retry / ${{ matrix.scenario }}
+    runs-on: windows-2022
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [fixtures, feed-recovery, download-recovery]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Record runner details
+        shell: pwsh
+        run: .github/scripts/collect-setup-logs.ps1 -Before
+      - name: Exercise retry behavior
+        shell: pwsh
+        run: .github/scripts/test-retry.ps1 -Scenario '${{ matrix.scenario }}'
+      - name: Verify SQL Server ODBC connection
+        if: matrix.scenario != 'fixtures'
+        shell: pwsh
+        run: .github/scripts/verify-sql.ps1
+      - name: Capture diagnostics
+        if: always()
+        shell: pwsh
+        env:
+          CAPTURE_FULL: ${{ job.status != 'success' }}
+        run: .github/scripts/collect-setup-logs.ps1
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: retry-${{ matrix.scenario }}-${{ job.status }}
+          path: ${{ runner.temp }}\setup-diagnostics
+          retention-days: 14
+          if-no-files-found: error
