@@ -1,0 +1,107 @@
+name: Diagnose php-src Windows setup
+
+on:
+  push:
+    branches:
+      - test/windows-ci-setup-20261104
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    name: ${{ matrix.os }} / attempt ${{ matrix.attempt }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-2025]
+        attempt: [1, 2, 3, 4]
+    env:
+      PHP_BUILD_CRT: ${{ matrix.os == 'windows-2025' && 'vs18' || 'vs16' }}
+    steps:
+      - name: Record runner details
+        shell: pwsh
+        run: |
+          $diagnostics = Join-Path $env:RUNNER_TEMP 'setup-diagnostics'
+          New-Item -ItemType Directory -Path $diagnostics -Force | Out-Null
+          Get-CimInstance Win32_OperatingSystem | Format-List * | Out-File "$diagnostics\operating-system.txt"
+          Get-CimInstance Win32_Processor | Format-List * | Out-File "$diagnostics\processor.txt"
+          Get-Volume | Format-List * | Out-File "$diagnostics\volumes.txt"
+          fsutil fsinfo sectorinfo C: 2>&1 | Tee-Object "$diagnostics\sectors-c.txt"
+          fsutil fsinfo sectorinfo D: 2>&1 | Tee-Object "$diagnostics\sectors-d.txt"
+          Get-Service | Where-Object Name -Match 'SQL|MySQL|postgres' | Format-List * | Out-File "$diagnostics\services-before.txt"
+          exit 0
+      - name: Setup MySQL (same php-src commands)
+        shell: cmd
+        run: |
+          mysqld --initialize-insecure
+          mysqld --install
+          net start MySQL
+          mysql --port=3306 --user=root --password="" -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'Password12!'; FLUSH PRIVILEGES;"
+      - name: Setup MSSQL (same php-src command)
+        shell: pwsh
+        run: |
+          choco install sql-server-express -y --no-progress --install-arguments="/SECURITYMODE=SQL /SAPWD=Password12!"
+      - name: Setup PostgreSQL (same php-src commands)
+        shell: pwsh
+        run: |
+          $postgresService = if ($env:PHP_BUILD_CRT -eq "vs18") { "postgresql-x64-17" } else { "postgresql-x64-14" }
+          Set-Service -Name $postgresService -StartupType manual -Status Running
+          pwsh -Command { $env:PGPASSWORD="root"; & "$env:PGBIN\psql" -U postgres -c "ALTER USER postgres WITH PASSWORD 'Password12!';" }
+      - name: Verify SQL Server using php-src ODBC connection
+        shell: pwsh
+        run: |
+          $connection = [System.Data.Odbc.OdbcConnection]::new('Driver={ODBC Driver 17 for SQL Server};Server=(local)\SQLEXPRESS;Database=master;uid=sa;pwd=Password12!;Connection Timeout=10')
+          try {
+            $connection.Open()
+            $command = $connection.CreateCommand()
+            $command.CommandText = 'SELECT @@VERSION'
+            $version = $command.ExecuteScalar()
+            $version | Tee-Object (Join-Path $env:RUNNER_TEMP 'setup-diagnostics\sql-version.txt')
+          } finally {
+            $connection.Dispose()
+          }
+      - name: Capture installer, database, and Windows logs
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $diagnostics = Join-Path $env:RUNNER_TEMP 'setup-diagnostics'
+          New-Item -ItemType Directory -Path $diagnostics -Force | Out-Null
+          $sqlRoot = 'C:\Program Files\Microsoft SQL Server'
+          if (Test-Path $sqlRoot) {
+            Get-ChildItem $sqlRoot -Recurse -File -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -match '\\Setup Bootstrap\\Log\\.*\.(txt|log)$' -or $_.Name -match '^ERRORLOG(\.[0-9]+)?$' } |
+              ForEach-Object {
+                $target = Join-Path "$diagnostics\sql" $_.FullName.Substring($sqlRoot.Length + 1)
+                New-Item -ItemType Directory -Path (Split-Path $target) -Force | Out-Null
+                Copy-Item -LiteralPath $_.FullName -Destination $target -Force
+                if ($_.Name -eq 'Summary.txt' -or $_.Name -eq 'ERRORLOG') {
+                  Write-Host "::group::$($_.FullName)"
+                  Get-Content -LiteralPath $_.FullName -Tail 160
+                  Write-Host '::endgroup::'
+                }
+              }
+          }
+          Copy-Item 'C:\ProgramData\chocolatey\logs\chocolatey.log' "$diagnostics\chocolatey.log" -ErrorAction SilentlyContinue
+          Get-ChildItem 'C:\ProgramData\MySQL', 'C:\Program Files\MySQL' -Filter '*.err' -Recurse -File -ErrorAction SilentlyContinue |
+            ForEach-Object { Copy-Item $_.FullName (Join-Path $diagnostics $_.Name) -Force }
+          Get-Service | Where-Object Name -Match 'SQL|MySQL|postgres' | Format-List * | Out-File "$diagnostics\services-after.txt"
+          Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = (Get-Date).AddHours(-1) } -ErrorAction SilentlyContinue |
+            Where-Object { $_.ProviderName -match 'SQL|MySQL|MsiInstaller|Application Error|Windows Error Reporting' } |
+            Format-List TimeCreated, ProviderName, Id, LevelDisplayName, Message |
+            Out-File "$diagnostics\application-events.txt"
+          Get-ChildItem "$diagnostics\sql" -Filter '*.txt' -Recurse -File -ErrorAction SilentlyContinue |
+            Select-String -Pattern 'error|failed|exception|exit code|startup handle|recovery handle' |
+            Out-File "$diagnostics\sql-error-summary.txt"
+          exit 0
+      - name: Upload setup diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: setup-${{ matrix.os }}-${{ matrix.attempt }}
+          path: ${{ runner.temp }}\setup-diagnostics
+          if-no-files-found: error
+          retention-days: 14
