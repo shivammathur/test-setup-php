@@ -1,0 +1,76 @@
+name: Validate SQL Server location with PHP CI
+on:
+  push:
+    branches: [test/windows-ci-sql-location-20261104]
+permissions:
+  contents: read
+jobs:
+  windows:
+    name: PHP ${{ matrix.php }} / ${{ matrix.arch }} / SQL ${{ matrix.drive }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {php: '8.2', ref: f7754d61c0e6649e32498f7707001966371d1f6e, os: windows-2022, crt: vs16, arch: x64, drive: C}
+          - {php: '8.2', ref: f7754d61c0e6649e32498f7707001966371d1f6e, os: windows-2022, crt: vs16, arch: x64, drive: D}
+          - {php: '8.2', ref: f7754d61c0e6649e32498f7707001966371d1f6e, os: windows-2022, crt: vs16, arch: x86, drive: C}
+          - {php: '8.2', ref: f7754d61c0e6649e32498f7707001966371d1f6e, os: windows-2022, crt: vs16, arch: x86, drive: D}
+          - {php: '8.6', ref: 1d49bd117400e27f0e4f803fb18532068d8465ea, os: windows-2025-vs2026, crt: vs18, arch: x64, drive: C}
+          - {php: '8.6', ref: 1d49bd117400e27f0e4f803fb18532068d8465ea, os: windows-2025-vs2026, crt: vs18, arch: x64, drive: D}
+    env:
+      PHP_BUILD_CACHE_BASE_DIR: C:\build-cache
+      PHP_BUILD_OBJ_DIR: C:\obj
+      PHP_BUILD_CACHE_SDK_DIR: C:\build-cache\sdk
+      PHP_BUILD_SDK_BRANCH: php-sdk-2.8.4
+      PHP_BUILD_CRT: ${{ matrix.crt }}
+      PLATFORM: ${{ matrix.arch }}
+      THREAD_SAFE: ${{ matrix.arch == 'x64' && '1' || '0' }}
+      TEST_SQL_DRIVE: ${{ matrix.drive }}
+    steps:
+      - name: Checkout PHP source
+        uses: actions/checkout@v7
+        with:
+          repository: shivammathur/php-src
+          ref: ${{ matrix.ref }}
+          persist-credentials: false
+      - name: Checkout test harness
+        uses: actions/checkout@v7
+        with:
+          path: .ci-harness
+          persist-credentials: false
+      - name: Record runner details
+        shell: pwsh
+        run: .ci-harness/.github/scripts/collect-setup-logs.ps1 -Before
+      - name: Prepare exact production SQL setup scripts
+        shell: pwsh
+        run: .ci-harness/.github/scripts/prepare-source.ps1
+      - name: Run complete PHP Windows setup action
+        uses: ./.github/actions/setup-windows
+      - name: Verify SQL service restart, paths, database creation and 64-bit ODBC
+        shell: pwsh
+        run: .ci-harness/.github/scripts/verify-sql.ps1 -Restart
+      - name: Verify 32-bit ODBC and database creation
+        shell: pwsh
+        run: C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe -NoProfile -File .ci-harness/.github/scripts/verify-sql.ps1
+      - name: Build PHP using its CI build scripts
+        shell: cmd
+        run: .github\scripts\windows\build.bat
+      - name: Test built PHP against SQL Server, MySQL and PostgreSQL
+        shell: pwsh
+        run: .ci-harness/.github/scripts/test-php-databases.ps1
+      - name: Capture diagnostics
+        if: always()
+        shell: pwsh
+        env:
+          CAPTURE_FULL: ${{ job.status != 'success' }}
+        run: .ci-harness/.github/scripts/collect-setup-logs.ps1
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: php-${{ matrix.php }}-${{ matrix.arch }}-sql-${{ matrix.drive }}-${{ job.status }}
+          path: ${{ runner.temp }}\setup-diagnostics
+          retention-days: 14
+          if-no-files-found: error
