@@ -1,0 +1,61 @@
+name: PHPStan Composer versus PHAR PIE Turbo
+on: push
+permissions:
+  contents: read
+jobs:
+  phpstan:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        method: [composer, pie]
+        trial: [1, 2, 3]
+    runs-on: ${{ matrix.os }}
+    env:
+      fail_fast: 'true'
+      BENCHMARK_METHOD: ${{ matrix.method }}
+      BENCHMARK_TRIAL: ${{ matrix.trial }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Start setup timer
+        run: node fixtures/timing.cjs start
+      - name: Install PHPStan through Composer on develop
+        if: matrix.method == 'composer'
+        uses: shivammathur/setup-php@272385f548491a7f203e55f74bc8690771f2601f
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: phpstan:2.3.5
+      - name: Install PHPStan PHAR and Turbo during tool configuration
+        if: matrix.method == 'pie'
+        uses: shivammathur/setup-php@8c48ec02a2b82423e2348801bbe3ffe659734f87
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: phpstan:2.3.5
+      - name: Record setup duration
+        if: always()
+        run: node fixtures/timing.cjs finish
+      - name: Run PHPStan and verify Turbo on Unix
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          phpstan --version
+          php fixtures/check.php "$(command -v phpstan)" "$BENCHMARK_METHOD"
+      - name: Run PHPStan and verify Turbo on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          phpstan --version
+          $phar = Join-Path (Split-Path (Get-Command phpstan -CommandType Application).Source) 'phpstan'
+          php fixtures/check.php $phar $env:BENCHMARK_METHOD
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: phpstan-turbo-${{ runner.os }}-${{ matrix.method }}-${{ matrix.trial }}
+          path: |
+            artifacts/
+            !artifacts/cache/**
