@@ -1,0 +1,104 @@
+name: PHPStan direct metadata versus Composer and PIE
+on: push
+permissions:
+  contents: read
+jobs:
+  phpstan:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        method: [composer, pie, direct]
+        trial: [1, 2, 3]
+    runs-on: ${{ matrix.os }}
+    env:
+      fail_fast: 'true'
+      BENCHMARK_METHOD: ${{ matrix.method }}
+      BENCHMARK_TRIAL: ${{ matrix.trial }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Checkout resolver for generic extension validation
+        if: matrix.method == 'direct' && matrix.trial == 1
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: shivammathur/setup-php
+          ref: 71131f5558527b5ca7f36e75e432375e1f9c53b9
+          path: setup-php
+          persist-credentials: false
+      - name: Start setup timer
+        run: node fixtures/timing.cjs start
+      - name: Install PHPStan through Composer on develop
+        if: matrix.method == 'composer'
+        uses: shivammathur/setup-php@272385f548491a7f203e55f74bc8690771f2601f
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: phpstan:2.3.5
+      - name: Install PHPStan PHAR and Turbo during tool configuration
+        if: matrix.method == 'pie'
+        uses: shivammathur/setup-php@8c48ec02a2b82423e2348801bbe3ffe659734f87
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: phpstan:2.3.5
+      - name: Install PHPStan PHAR and resolve Turbo directly from metadata
+        if: matrix.method == 'direct'
+        uses: shivammathur/setup-php@71131f5558527b5ca7f36e75e432375e1f9c53b9
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: phpstan:2.3.5
+      - name: Record setup duration
+        if: always()
+        run: node fixtures/timing.cjs finish
+      - name: Run PHPStan and verify Turbo on Unix
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          phpstan --version
+          php fixtures/check.php "$(command -v phpstan)" "${{ matrix.method == 'composer' && 'composer' || 'pie' }}"
+      - name: Run PHPStan and verify Turbo on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          phpstan --version
+          $phpstan_command = Get-Command phpstan -CommandType Application | Select-Object -First 1
+          $phar = Join-Path (Split-Path $phpstan_command.Source) 'phpstan'
+          php fixtures/check.php $phar '${{ matrix.method == 'composer' && 'composer' || 'pie' }}'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Validate generic resolver and install another extension on Unix
+        if: matrix.method == 'direct' && matrix.trial == 1 && runner.os != 'Windows'
+        shell: bash
+        run: bash fixtures/extensions.sh
+      - name: Validate generic resolver and install another extension on Windows
+        if: matrix.method == 'direct' && matrix.trial == 1 && runner.os == 'Windows'
+        shell: pwsh
+        run: ./fixtures/extensions.ps1
+      - name: Disable Turbo activation to test repeated configuration
+        if: matrix.method == 'direct' && matrix.trial == 1
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then
+            php fixtures/disable-turbo.php
+          else
+            sudo -E "$(command -v php)" fixtures/disable-turbo.php
+          fi
+      - name: Re-enable Turbo during repeated tool configuration
+        if: matrix.method == 'direct' && matrix.trial == 1
+        uses: shivammathur/setup-php@71131f5558527b5ca7f36e75e432375e1f9c53b9
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: phpstan:2.3.5
+      - name: Verify Turbo loads after repeated configuration
+        if: matrix.method == 'direct' && matrix.trial == 1
+        run: php --ri phpstan_turbo
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: phpstan-turbo-${{ runner.os }}-${{ matrix.method }}-${{ matrix.trial }}
+          path: |
+            artifacts/
+            !artifacts/cache/**
