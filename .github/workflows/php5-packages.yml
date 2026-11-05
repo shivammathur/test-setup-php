@@ -1,0 +1,63 @@
+name: Validate refreshed PHP 5 dependency packages
+on: push
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+jobs:
+  candidate:
+    name: PHP ${{ matrix.php }} on ${{ matrix.runner }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.3', '5.4', '5.5']
+        runner: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04, ubuntu-22.04-arm, ubuntu-24.04-arm, ubuntu-26.04-arm]
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: shivammathur/php5-ubuntu
+          ref: e3329ad9362ecbcd86ca4a1c69b16c7728293d78
+          path: package-source
+      - name: Prepare refreshed release candidate
+        run: |
+          set -euo pipefail
+          command -v zstd >/dev/null || sudo apt-get install -y zstd
+          arch=$(uname -m)
+          suffix=''
+          if [[ "$arch" = aarch64 ]]; then arch=arm64; suffix=-arm64; fi
+          mkdir -p "$RUNNER_TEMP/original" "$RUNNER_TEMP/packages" "$RUNNER_TEMP/report" "$RUNNER_TEMP/task"
+          gh release download builds --repo shivammathur/php5-ubuntu --dir "$RUNNER_TEMP/original" \
+            --pattern "php-$PHP_VERSION$suffix.tar.zst" --pattern "php-$PHP_VERSION-build$suffix.tar.zst" \
+            --pattern php5-SHA256SUMS --pattern php5-source-manifest.json
+          (
+            cd "$RUNNER_TEMP/original"
+            grep -F " ./php-$PHP_VERSION$suffix.tar.zst" php5-SHA256SUMS | sha256sum -c -
+            grep -F " ./php-$PHP_VERSION-build$suffix.tar.zst" php5-SHA256SUMS | sha256sum -c -
+          )
+          python3 refresh-packages.py "$RUNNER_TEMP/original/php-$PHP_VERSION$suffix.tar.zst" \
+            package-source/deps "$RUNNER_TEMP/packages" --no-xz --level 1
+          cp "$RUNNER_TEMP/original/php-$PHP_VERSION-build$suffix.tar.zst" "$RUNNER_TEMP/packages/"
+          cp "$RUNNER_TEMP/packages/"*.json "$RUNNER_TEMP/report/"
+          {
+            echo "EXPECTED_ARCHITECTURE=$arch"
+            echo "PHP_FULL_VERSION=$(jq -r --arg version "$PHP_VERSION" '.sources[$version].version' "$RUNNER_TEMP/original/php5-source-manifest.json")"
+            echo "BACKPORT_TASK_DIR=$RUNNER_TEMP/task"
+            echo "PACKAGE_DIR=$RUNNER_TEMP/packages"
+            echo "REPORT_DIR=$RUNNER_TEMP/report"
+          } >> "$GITHUB_ENV"
+      - name: Validate dependencies, extensions, tools and server SAPIs
+        run: bash package-source/scripts/backports/test.sh
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: php-${{ matrix.php }}-${{ matrix.runner }}
+          path: ${{ runner.temp }}/report
+          if-no-files-found: warn
