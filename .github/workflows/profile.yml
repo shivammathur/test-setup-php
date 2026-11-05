@@ -8,12 +8,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        pie-version: [1.5.5, 1.6.0-rc.1]
     runs-on: ${{ matrix.os }}
     env:
       fail_fast: 'true'
       verbose: 'true'
       PIE_PROFILE_PHAR: ${{ github.workspace }}/profile-pie.phar
       PIE_PROFILE_FILE: ${{ github.workspace }}/artifacts/pie-profile.jsonl
+      PIE_VERSION: ${{ matrix.pie-version }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -38,5 +40,5 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: pie-profile-${{ runner.os }}
+          name: pie-profile-${{ runner.os }}-${{ matrix.pie-version }}
           path: artifacts/

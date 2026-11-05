@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const root = 'setup-php/src/scripts/';
 function edit(file, from, to) {
   const p = root + file;
-  const original = fs.readFileSync(p, 'utf8');
+  const original = fs.readFileSync(p, 'utf8').replace(/\r\n/g, '\n');
   if (!original.includes(from)) throw new Error('Missing profile anchor: ' + file + ': ' + from);
   fs.writeFileSync(p, original.replace(from, to));
 }
@@ -18,3 +18,6 @@ edit('extensions/add_extensions.sh', '  if ! command -v pie >/dev/null 2>&1; the
 edit('extensions/add_extensions.sh', '  if php_config=$(command -v php-config); then', '  printf "PROFILE pie.bootstrap.end\\n"\n  php -d phar.readonly=0 "$GITHUB_WORKSPACE/fixtures/instrument-pie.php" "$(command -v pie)"\n  if php_config=$(command -v php-config); then');
 edit('extensions/add_extensions.sh', '  sudo -E "$(command -v pie)" "${pie_args[@]}" >/dev/null 2>&1 || return $?', '  printf "PROFILE pie.install.start\\n"\n  sudo -E "$PIE_PROFILE_PHAR" "${pie_args[@]}" -vvv || return $?\n  printf "PROFILE pie.install.end\\n"');
 edit('extensions/add_extensions.sh', '  enable_extension "$extension" "$prefix"\n  check_extension "$extension"', '  printf "PROFILE enable.start\\n"\n  enable_extension "$extension" "$prefix"\n  printf "PROFILE enable.end\\n"\n  check_extension "$extension"\n  printf "PROFILE loaded-check.end\\n"');
+for (const file of ['extensions/add_extensions.sh', 'extensions/add_extensions.ps1']) {
+  edit(file, 'https://github.com/php/pie/releases/latest/download/pie.phar', `https://github.com/php/pie/releases/download/${process.env.PIE_VERSION}/pie.phar`);
+}
