@@ -18,6 +18,7 @@ jobs:
             phpts: ts
     runs-on: ${{ matrix.os }}
     env:
+      GITHUB_TOKEN: ${{ github.token }}
       PHPTS: ${{ matrix.phpts }}
       fail_fast: 'true'
       BENCHMARK_METHOD: independent
