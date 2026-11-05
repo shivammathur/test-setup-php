@@ -3,8 +3,8 @@ declare(strict_types=1);
 $files = [php_ini_loaded_file(), ...preg_split('/,\s*/', php_ini_scanned_files() ?: '')];
 foreach (array_filter($files) as $file) {
     $content = file_get_contents(trim($file));
-    $content = preg_replace('/^[ \t]*(?:zend_)?extension\s*=.*phpstan_turbo.*(?:\R|$)/mi', '', $content);
-    if (file_put_contents(trim($file), $content) === false) {
+    $updated = preg_replace('/^[ \t]*(?:zend_)?extension\s*=.*phpstan_turbo.*(?:\R|$)/mi', '', $content);
+    if ($updated !== $content && file_put_contents(trim($file), $updated) === false) {
         throw new RuntimeException("Could not update $file");
     }
 }

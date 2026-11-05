@@ -8,8 +8,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        method: [before, optimized, optimized-rc]
-        trial: [1, 2, 3]
+        method: [optimized, optimized-rc]
+        trial: [1]
     runs-on: ${{ matrix.os }}
     env:
       fail_fast: 'true'
@@ -62,7 +62,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Remove Turbo activation to test cached package recovery
         if: matrix.method != 'before' && matrix.trial == 1
-        run: php fixtures/disable-turbo.php
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then
+            php fixtures/disable-turbo.php
+          else
+            sudo -E "$(command -v php)" fixtures/disable-turbo.php
+          fi
       - name: Reconfigure cached Turbo package
         if: matrix.method != 'before' && matrix.trial == 1
         uses: shivammathur/setup-php@f609f813932daaccdd83b64f559221c2630120ed
