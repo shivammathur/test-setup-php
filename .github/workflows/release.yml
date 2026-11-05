@@ -1,0 +1,81 @@
+name: Validate independent extension release resolver
+on: push
+permissions:
+  contents: read
+jobs:
+  extensions:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            phpts: nts
+          - os: macos-latest
+            phpts: nts
+          - os: windows-latest
+            phpts: nts
+          - os: windows-latest
+            phpts: ts
+    runs-on: ${{ matrix.os }}
+    env:
+      PHPTS: ${{ matrix.phpts }}
+      fail_fast: 'true'
+      BENCHMARK_METHOD: independent
+      BENCHMARK_TRIAL: 1
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: shivammathur/setup-php
+          ref: dd0b4afbfb07e5b3fbbab94d595a791ee69a8dc2
+          path: setup-php
+          persist-credentials: false
+      - name: Start setup timer
+        run: node fixtures/timing.cjs start
+      - name: Setup PHPStan PHAR and Turbo
+        uses: ./setup-php
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: phpstan:2.3.5
+      - name: Record setup duration
+        if: always()
+        run: node fixtures/timing.cjs finish
+      - name: Validate PHPStan and native Turbo on Unix
+        if: runner.os != 'Windows'
+        shell: bash
+        run: php fixtures/check.php "$(command -v phpstan)" pie
+      - name: Validate PHPStan and native Turbo on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $command = Get-Command phpstan -CommandType Application | Select-Object -First 1
+          $phar = Join-Path (Split-Path $command.Source) 'phpstan'
+          php fixtures/check.php $phar pie
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Disable Turbo activation for repeat configuration test
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then
+            php fixtures/disable-turbo.php
+          else
+            sudo -E "$(command -v php)" fixtures/disable-turbo.php
+          fi
+      - name: Reconfigure and test binary and VCS installation on Unix
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          bash -c 'source "$0"; cd "$GITHUB_WORKSPACE"; source fixtures/extensions.sh' "$GITHUB_WORKSPACE/setup-php/src/scripts/run.sh"
+      - name: Reconfigure and test binary installation on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./fixtures/extensions.ps1
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: extension-release-${{ runner.os }}-${{ matrix.phpts }}
+          path: |
+            artifacts/
+            !artifacts/cache/**
