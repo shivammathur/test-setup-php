@@ -5,8 +5,8 @@ source "$src/scripts/unix.sh"
 source "$src/scripts/extensions/add_extensions.sh"
 version=$(php -r 'echo PHP_MAJOR_VERSION,".",PHP_MINOR_VERSION;')
 ext_dir=$(php -r 'echo ini_get("extension_dir");')
-ini_dir=$(php -r 'echo trim(explode(",", php_ini_scanned_files())[0]) ? dirname(trim(explode(",", php_ini_scanned_files())[0])) : dirname(php_ini_loaded_file());')
-pecl_file="$ini_dir/99-pie-test.ini"
+pecl_file=$(php -r 'echo php_ini_loaded_file();')
+ini_dir=$(dirname "$pecl_file")
 runner=github-hosted
 php fixtures/resolver-check.php "$GITHUB_WORKSPACE/setup-php" "$(command -v composer)"
 pie_install fastjson latest false

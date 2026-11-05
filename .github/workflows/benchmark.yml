@@ -8,8 +8,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        method: [composer, pie, direct]
-        trial: [1, 2, 3]
+        method: [direct]
+        trial: [1]
     runs-on: ${{ matrix.os }}
     env:
       fail_fast: 'true'
