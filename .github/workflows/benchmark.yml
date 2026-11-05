@@ -1,0 +1,82 @@
+name: PHPStan PIE binary install performance
+on: push
+permissions:
+  contents: read
+jobs:
+  phpstan:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        method: [before, optimized, optimized-rc]
+        trial: [1, 2, 3]
+    runs-on: ${{ matrix.os }}
+    env:
+      fail_fast: 'true'
+      BENCHMARK_METHOD: ${{ matrix.method }}
+      BENCHMARK_TRIAL: ${{ matrix.trial }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Start setup timer
+        run: node fixtures/timing.cjs start
+      - name: Install PHPStan PHAR and Turbo before optimization
+        if: matrix.method == 'before'
+        uses: shivammathur/setup-php@8c48ec02a2b82423e2348801bbe3ffe659734f87
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: phpstan:2.3.5
+      - name: Install PHPStan PHAR and Turbo with stable PIE after optimization
+        if: matrix.method == 'optimized'
+        uses: shivammathur/setup-php@f609f813932daaccdd83b64f559221c2630120ed
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: phpstan:2.3.5
+      - name: Install PHPStan PHAR and Turbo with prerelease PIE after optimization
+        if: matrix.method == 'optimized-rc'
+        uses: shivammathur/setup-php@f609f813932daaccdd83b64f559221c2630120ed
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: pie:1.6.0-rc.1, phpstan:2.3.5
+      - name: Record setup duration
+        if: always()
+        run: node fixtures/timing.cjs finish
+      - name: Run PHPStan and verify Turbo on Unix
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          phpstan --version
+          php fixtures/check.php "$(command -v phpstan)" pie
+      - name: Run PHPStan and verify Turbo on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          phpstan --version
+          $phpstan_command = Get-Command phpstan -CommandType Application | Select-Object -First 1
+          $phar = Join-Path (Split-Path $phpstan_command.Source) 'phpstan'
+          php fixtures/check.php $phar pie
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Remove Turbo activation to test cached package recovery
+        if: matrix.method != 'before' && matrix.trial == 1
+        run: php fixtures/disable-turbo.php
+      - name: Reconfigure cached Turbo package
+        if: matrix.method != 'before' && matrix.trial == 1
+        uses: shivammathur/setup-php@f609f813932daaccdd83b64f559221c2630120ed
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: ${{ matrix.method == 'optimized-rc' && 'pie:1.6.0-rc.1, phpstan:2.3.5' || 'phpstan:2.3.5' }}
+      - name: Verify Turbo is loaded after reconfiguration
+        if: matrix.method != 'before' && matrix.trial == 1
+        run: php --ri phpstan_turbo
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: phpstan-turbo-${{ runner.os }}-${{ matrix.method }}-${{ matrix.trial }}
+          path: |
+            artifacts/
+            !artifacts/cache/**

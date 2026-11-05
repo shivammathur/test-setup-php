@@ -1,0 +1,16 @@
+<?php
+declare(strict_types=1);
+$files = [php_ini_loaded_file(), ...preg_split('/,\s*/', php_ini_scanned_files() ?: '')];
+foreach (array_filter($files) as $file) {
+    $content = file_get_contents(trim($file));
+    $content = preg_replace('/^[ \t]*(?:zend_)?extension\s*=.*phpstan_turbo.*(?:\R|$)/mi', '', $content);
+    if (file_put_contents(trim($file), $content) === false) {
+        throw new RuntimeException("Could not update $file");
+    }
+}
+$process = proc_open([PHP_BINARY, '-r', 'exit(extension_loaded("phpstan_turbo") ? 1 : 0);'], [0 => ['pipe', 'r'], 1 => STDOUT, 2 => STDERR], $pipes);
+fclose($pipes[0]);
+if (proc_close($process) !== 0) {
+    throw new RuntimeException('Turbo is still loaded after removing activation');
+}
+echo "Turbo disabled; the PIE package and binary remain cached.\n";
