@@ -43,4 +43,11 @@ $platform['arch'] = 'arm64';
 $platform['libc'] = 'bsdlibc';
 $assets = array('assets' => array(array('name' => 'php_native-1.9.0_php8.5-arm64-darwin-bsdlibc.zip', 'url' => 'correct')));
 verify(PieRelease::selectAsset($assets, PieRelease::assetNames($old, $platform))['url'] === 'correct', 'macOS asset was not matched');
-echo "Version constraints, stable/prerelease selection, minified metadata, source-only latest, and native ABI selection passed.\n";
+$unsupported = array('packages' => array($name => array(release('1.0.0', array(), array('lib-unknown' => '*')))));
+try {
+    PieRelease::selectPackage($unsupported, $name, '*', 'native', 'linux');
+    throw new LogicException('Unknown system dependency was silently accepted');
+} catch (RuntimeException $expected) {
+    verify(strpos($expected->getMessage(), 'Dependency requires the existing installer') !== false, 'Unexpected dependency failure');
+}
+echo "Version constraints, stability, minified metadata, source-only latest, dependency checks, and native ABI selection passed.\n";

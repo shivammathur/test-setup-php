@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: shivammathur/setup-php
-          ref: 71131f5558527b5ca7f36e75e432375e1f9c53b9
+          ref: 6b0fedcc81f5020134eeb793ad59a58e85b92bce
           path: setup-php
           persist-credentials: false
       - name: Start setup timer
@@ -45,7 +45,7 @@ jobs:
           tools: phpstan:2.3.5
       - name: Install PHPStan PHAR and resolve Turbo directly from metadata
         if: matrix.method == 'direct'
-        uses: shivammathur/setup-php@71131f5558527b5ca7f36e75e432375e1f9c53b9
+        uses: shivammathur/setup-php@6b0fedcc81f5020134eeb793ad59a58e85b92bce
         with:
           php-version: '8.5'
           coverage: none
@@ -87,7 +87,7 @@ jobs:
           fi
       - name: Re-enable Turbo during repeated tool configuration
         if: matrix.method == 'direct' && matrix.trial == 1
-        uses: shivammathur/setup-php@71131f5558527b5ca7f36e75e432375e1f9c53b9
+        uses: shivammathur/setup-php@6b0fedcc81f5020134eeb793ad59a58e85b92bce
         with:
           php-version: '8.5'
           coverage: none
