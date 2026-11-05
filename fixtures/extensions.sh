@@ -15,6 +15,9 @@ else
   result=$?
   [ "$result" = 2 ] || { echo "Expected source-required status 2, got $result"; exit 1; }
 fi
+if [ "$(uname -s)" = Darwin ]; then
+  export CPATH="$(brew --prefix)/include${CPATH:+:$CPATH}"
+fi
 if ! pie_install apcu latest true; then
   echo 'The existing VCS builder failed to install the selected APCu release'
   exit 1
