@@ -1,0 +1,42 @@
+name: Profile PHPStan PIE installation
+on: push
+permissions:
+  contents: read
+jobs:
+  profile:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      fail_fast: 'true'
+      verbose: 'true'
+      PIE_PROFILE_PHAR: ${{ github.workspace }}/profile-pie.phar
+      PIE_PROFILE_FILE: ${{ github.workspace }}/artifacts/pie-profile.jsonl
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: shivammathur/setup-php
+          ref: 8c48ec02a2b82423e2348801bbe3ffe659734f87
+          path: setup-php
+          persist-credentials: false
+      - name: Add test-only profiling
+        run: |
+          node -e "require('node:fs').mkdirSync('artifacts', {recursive:true})"
+          node fixtures/profile.cjs
+      - uses: ./setup-php
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: phpstan:2.3.5
+      - name: Check loaded Turbo
+        run: php --ri phpstan_turbo
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: pie-profile-${{ runner.os }}
+          path: artifacts/
