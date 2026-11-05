@@ -4,7 +4,16 @@ $files = [php_ini_loaded_file(), ...preg_split('/,\s*/', php_ini_scanned_files()
 foreach (array_filter($files) as $file) {
     $content = file_get_contents(trim($file));
     $updated = preg_replace('/^[ \t]*(?:zend_)?extension\s*=.*phpstan_turbo.*(?:\R|$)/mi', '', $content);
-    if ($updated !== $content && file_put_contents(trim($file), $updated) === false) {
+    if ($updated === $content) {
+        continue;
+    }
+    if (is_link(trim($file))) {
+        if (!unlink(trim($file))) {
+            throw new RuntimeException("Could not disable $file");
+        }
+        continue;
+    }
+    if (file_put_contents(trim($file), $updated) === false) {
         throw new RuntimeException("Could not update $file");
     }
 }
