@@ -105,12 +105,11 @@ Function Add-PieExtension {
   if (-not (Test-Path $pie_path -PathType Leaf)) {
     Add-Tool https://github.com/php/pie/releases/latest/download/pie.phar pie '-V' >$null 2>&1
   }
-  $php_path = Join-Path $php_dir 'php.exe'
-  $pie_args = @('install', $package, '--no-interaction', '--skip-enable-extension', "--with-php-path=$php_path")
+  $pie_args = @('install', $package, '--no-interaction', '--skip-enable-extension')
   if (-not $allow_source) {
     $pie_args += @('--no-build-tools-check', '--suppress-download-url-method=composer-default', '--suppress-download-url-method=pre-packaged-source')
   }
-  & $php_path $pie_path @pie_args >$null 2>&1
+  & pie @pie_args >$null 2>&1
   if ($LASTEXITCODE -ne 0) {
     throw "Could not install $package using PIE (exit code $LASTEXITCODE)"
   }
