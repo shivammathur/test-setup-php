@@ -1,0 +1,64 @@
+name: Profile PHPStan Composer and PHAR installation
+on: push
+permissions:
+  contents: read
+jobs:
+  profile:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        method: [composer, release]
+    runs-on: ${{ matrix.os }}
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      PHPTS: nts
+      fail_fast: 'true'
+      BENCHMARK_METHOD: ${{ matrix.method }}
+      BENCHMARK_TRIAL: '1'
+      BENCHMARK_REF: ${{ matrix.method == 'composer' && '272385f548491a7f203e55f74bc8690771f2601f' || '1b329c0a857425f3fdc4f28d5b9e5ab50394b41a' }}
+      INSTALL_PROFILE_DIR: ${{ github.workspace }}/artifacts
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: shivammathur/setup-php
+          ref: ${{ env.BENCHMARK_REF }}
+          path: setup-php
+          persist-credentials: false
+      - name: Instrument the test checkout
+        run: |
+          node -e "require('fs').mkdirSync('artifacts', {recursive:true})"
+          node fixtures/profile.cjs setup-php
+      - name: Start setup timer
+        run: node fixtures/timing.cjs start
+      - name: Profile setup
+        uses: ./setup-php
+        with:
+          php-version: '8.5.12'
+          coverage: none
+          tools: phpstan:2.3.5
+      - name: Record setup duration
+        if: always()
+        run: node fixtures/timing.cjs finish
+      - name: Verify PHPStan and Turbo on Unix
+        if: runner.os != 'Windows'
+        shell: bash
+        run: php fixtures/check.php "$(command -v phpstan)" "$BENCHMARK_METHOD"
+      - name: Verify PHPStan and Turbo on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $command = Get-Command phpstan -CommandType Application | Select-Object -First 1
+          $phar = Join-Path (Split-Path $command.Source) 'phpstan'
+          php fixtures/check.php $phar $env:BENCHMARK_METHOD
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: phpstan-profile-${{ runner.os }}-${{ matrix.method }}
+          path: |
+            artifacts/
+            !artifacts/cache/**
