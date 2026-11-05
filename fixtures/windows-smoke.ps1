@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-. ./fixtures/add_extensions.ps1
+Invoke-Expression ((Get-Content ./fixtures/add_extensions.ps1 -Raw).Replace('>$null 2>&1', '2>&1 | Out-Host'))
 $php_dir = Split-Path (Get-Command php).Source
 $bin_dir = Split-Path (Get-Command pie -CommandType Application).Source
 Import-Module (Join-Path $bin_dir 'PhpManager/PhpManager.psm1') -Force

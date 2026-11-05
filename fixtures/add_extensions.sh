@@ -197,7 +197,7 @@ pie_install() {
   if [ "$allow_source" != 'true' ]; then
     pie_args+=(--no-build-tools-check --suppress-download-url-method=composer-default --suppress-download-url-method=pre-packaged-source)
   fi
-  pie "${pie_args[@]}" >/dev/null 2>&1 || return $?
+  sudo -E "$(command -v pie)" "${pie_args[@]}" >/dev/null 2>&1 || return $?
   sudo rm -f /tmp/php"${version:?}"_extensions
   enable_extension "$extension" "$prefix"
   check_extension "$extension"

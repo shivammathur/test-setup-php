@@ -10,22 +10,27 @@ ini_dir="${ini_file[0]%/*}"
 scan_dir="$ini_dir/conf.d"
 pecl_file="$scan_dir/99-pecl.ini"
 ext_dir="$(php -r 'echo ini_get("extension_dir");')"
-actual_pie="$(command -v pie)"
-pie_call=0
-pie() {
-  pie_call=$((pie_call + 1))
-  "$actual_pie" "$@" > "artifacts/pie-$pie_call.log" 2>&1
-}
+export ACTUAL_PIE="$(command -v pie)"
+mkdir -p fixtures/bin
+cat > fixtures/bin/pie <<'SCRIPT'
+#!/usr/bin/env bash
+exec "$ACTUAL_PIE" "$@" > "$PIE_LOG" 2>&1
+SCRIPT
+chmod +x fixtures/bin/pie
+export PATH="$PWD/fixtures/bin:$PATH"
+export PIE_LOG="$PWD/artifacts/pie-1.log"
 if ! pie_install phpstan_turbo phpstan/turbo:2.3.5 false; then
   cat artifacts/pie-*.log
   exit 1
 fi
 grep -Fq 'Pre-packaged binary found:' artifacts/pie-1.log
+export PIE_LOG="$PWD/artifacts/pie-2.log"
 if pie_install apcu apcu/apcu:5.1.28 false; then
   echo 'A source-only package was accepted in binary-only mode'
   exit 1
 fi
 grep -Eq 'All download URL methods|all.*suppressed|suppressed.*all|suppressed' artifacts/pie-2.log
+export PIE_LOG="$PWD/artifacts/pie-3.log"
 if ! pie_install apcu apcu/apcu:5.1.28 true; then
   cat artifacts/pie-*.log
   exit 1
