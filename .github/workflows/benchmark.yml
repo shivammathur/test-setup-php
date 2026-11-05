@@ -1,0 +1,83 @@
+name: Benchmark PHPStan Composer versus PHAR and Turbo
+on: push
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        method: [composer, release]
+        trial: [1, 2, 3]
+    runs-on: ${{ matrix.os }}
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      PHPTS: nts
+      fail_fast: 'true'
+      BENCHMARK_METHOD: ${{ matrix.method }}
+      BENCHMARK_TRIAL: ${{ matrix.trial }}
+      BENCHMARK_REF: ${{ matrix.method == 'composer' && '272385f548491a7f203e55f74bc8690771f2601f' || '1b329c0a857425f3fdc4f28d5b9e5ab50394b41a' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Start setup timer
+        run: node fixtures/timing.cjs start
+      - name: Setup PHPStan with Composer on develop
+        if: matrix.method == 'composer'
+        uses: shivammathur/setup-php@272385f548491a7f203e55f74bc8690771f2601f
+        with:
+          php-version: '8.5.12'
+          coverage: none
+          tools: phpstan:2.3.5
+      - name: Setup PHPStan PHAR and Turbo using release metadata
+        if: matrix.method == 'release'
+        uses: shivammathur/setup-php@1b329c0a857425f3fdc4f28d5b9e5ab50394b41a
+        with:
+          php-version: '8.5.12'
+          coverage: none
+          tools: phpstan:2.3.5
+      - name: Record setup duration
+        if: always()
+        run: node fixtures/timing.cjs finish
+      - name: Verify PHPStan and Turbo on Unix
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          php -r 'exit(PHP_VERSION === "8.5.12" ? 0 : 1);'
+          php fixtures/check.php "$(command -v phpstan)" "$BENCHMARK_METHOD"
+      - name: Verify PHPStan and Turbo on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          php -r 'exit(PHP_VERSION === "8.5.12" ? 0 : 1);'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $command = Get-Command phpstan -CommandType Application | Select-Object -First 1
+          $phar = Join-Path (Split-Path $command.Source) 'phpstan'
+          php fixtures/check.php $phar $env:BENCHMARK_METHOD
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: phpstan-benchmark-${{ runner.os }}-${{ matrix.method }}-${{ matrix.trial }}
+          path: |
+            artifacts/
+            !artifacts/cache/**
+  summary:
+    needs: benchmark
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          pattern: phpstan-benchmark-*
+          path: results
+      - run: python3 fixtures/summarize.py results
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: phpstan-benchmark-summary
+          path: benchmark-summary.json
