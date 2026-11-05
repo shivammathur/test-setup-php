@@ -37,6 +37,7 @@ function runPhpstan(string $name, array $arguments, int $expectedExit): string
 
 $launcher = realpath($argv[1]);
 $method = $argv[2] ?? 'pie';
+check(in_array($method, ['composer', 'pie'], true), 'Unknown install method: ' . json_encode($argv));
 putenv('PHPSTAN_INSTALL_METHOD=' . $method);
 check(is_string($launcher), 'PHPStan launcher not found');
 $phar = $launcher;
