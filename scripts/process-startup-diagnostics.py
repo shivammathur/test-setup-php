@@ -20,7 +20,7 @@ for archive in sorted((root/'artifacts').glob('*.zip')):
   executable,mode,iteration=pair;started=time.monotonic()
   try:
    r=subprocess.run([str(runtime/executable),'-n',str(runtime/(mode+'.php'))],cwd=runtime,env=env,capture_output=True,timeout=60)
-   expected=b'plain|ok' if mode=='plain' else b'zlib=1.4|ok'
+   expected=b'plain|ok' if mode=='plain' else ('zlib='+spec.get('zlibVersion','1.4')+'|ok').encode()
    passed=r.returncode==0 and r.stdout.rstrip().endswith(expected) and not r.stderr
    row={'executable':executable,'mode':mode,'iteration':iteration,'exit':r.returncode,'stdoutSha256':hashlib.sha256(r.stdout).hexdigest(),'passed':passed,'seconds':time.monotonic()-started}
    if not passed:row.update(stdout=r.stdout.decode(errors='replace'),stderr=r.stderr.decode(errors='replace'))
