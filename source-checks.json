@@ -100,5 +100,56 @@
         "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
       }
     ]
+  },
+  "42224628407": {
+    "sourceSha": "cc0e8fefd1f9a5a2e161f258be1e1e9753580433",
+    "hashes": {
+      "php-8.7.0-dev-Win32-vs18-x64.zip": "11ef52c894f0ad4ed77c470d0c7034abfd0d4356e06a6af300afb5b715c9d4f9",
+      "php-8.7.0-dev-Win32-vs18-x86.zip": "2a4d4d6ab1a96acba8296e157bb3f476485ad1a61e2f52c3d6070218fef2385f",
+      "php-8.7.0-dev-nts-Win32-vs18-x64.zip": "ae39dd8ab761e2d8e25b8ed2d7289b16cd522b6a1f5ecd2ae9eb5524a68761fe",
+      "php-8.7.0-dev-nts-Win32-vs18-x86.zip": "cdb229b45edb88393928b54b5b4e01bf4feba206d646e93cc5c3a4004f53807b"
+    },
+    "cases": [
+      {
+        "variant": "x64-nts",
+        "mode": "nocache",
+        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
+      },
+      {
+        "variant": "x64-nts",
+        "mode": "opcache",
+        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
+      },
+      {
+        "variant": "x64-ts",
+        "mode": "nocache",
+        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
+      },
+      {
+        "variant": "x64-ts",
+        "mode": "opcache",
+        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
+      },
+      {
+        "variant": "x86-nts",
+        "mode": "nocache",
+        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
+      },
+      {
+        "variant": "x86-nts",
+        "mode": "opcache",
+        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
+      },
+      {
+        "variant": "x86-ts",
+        "mode": "nocache",
+        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
+      },
+      {
+        "variant": "x86-ts",
+        "mode": "opcache",
+        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
+      }
+    ]
   }
 }
