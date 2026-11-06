@@ -6,12 +6,14 @@ manifest=json.loads(pathlib.Path('expected-hashes.json').read_text())
 expected=json.loads(pathlib.Path('expected-components.json').read_text())[a.php][a.arch]
 bom=json.loads((root/'extras/sbom/php.cdx.json').read_text())
 components=bom['components'];deps={d['ref']:d.get('dependsOn',[]) for d in bom['dependencies']}
+php_ref=bom['metadata']['component']['bom-ref']
 verified=[];files={}
 for item in expected:
     wanted=item['component'];purl=wanted['purl']
-    matches=[c for c in components if c.get('name')==wanted['name'] and c.get('purl')==purl]
+    matches=[c for c in components if c.get('bom-ref')==wanted['bom-ref'] and c.get('name')==wanted['name'] and c.get('purl')==purl]
     assert len(matches)==1,(wanted['name'],'missing or duplicate',matches)
     c=matches[0];assert c['version']==wanted['version'],(wanted['name'],'wrong package variant')
+    assert c['bom-ref'] in deps[php_ref],(wanted['name'],'not a direct PHP dependency')
     props={p['name']:p['value'] for p in c.get('properties',[])}
     want={p['name']:p['value'] for p in wanted.get('properties',[])}
     for key in ['php:source-commit','php:arch','php:vs']:
@@ -43,6 +45,20 @@ assert all(c['bom-ref'] in deps[apache['bom-ref']] for c in private)
 for name in ['libcurl','libzip','libpng','glib','libssh2']:
     cs=[c for c in verified if c['name']==name];assert len(cs)==1
     assert sdk['bom-ref'] in deps.get(cs[0]['bom-ref'],[]),(name,'Missing zlib dependency')
-assert all(c['bom-ref'] in deps for c in components),'Incomplete SBOM graph'
+component_refs={c['bom-ref'] for c in components}
+assert len(component_refs)==len(components),'Duplicate SBOM identity'
+assert all(ref in component_refs or ref==php_ref for ref in deps),'Unknown dependency node'
+assert all(ref in component_refs for refs in deps.values() for ref in refs),'Unresolved dependency edge'
+reachable=set();pending=[php_ref]
+while pending:
+    ref=pending.pop()
+    if ref in reachable:continue
+    reachable.add(ref);pending.extend(deps.get(ref,[]))
+# Deferred Apache ships an existing disconnected vcpkg inventory. Require it unchanged.
+apache_artifact=next(item['artifact'] for item in expected if item['component']['name']=='apache')
+original_disconnected=json.loads(pathlib.Path('expected-apache-disconnected.json').read_text())[apache_artifact]
+actual_disconnected={c['bom-ref']:c for c in components if c['bom-ref'] not in reachable}
+assert actual_disconnected==original_disconnected,'New or changed disconnected SBOM component'
+assert all(c['bom-ref'] in deps for c in verified),'Missing package dependency graph'
 pathlib.Path(a.report).write_text(json.dumps({'verified':True,'files':files,'components':verified,'zlib':zlibs},indent=2))
 print('Exact candidate package identities, runtime DLL hashes, zlib 1.4, and unchanged Apache private zlib verified')
