@@ -151,5 +151,86 @@
         "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
       }
     ]
+  },
+  "42228455781": {
+    "sourceSha": "13b89e20cb041467b3b194b02f8c676a82f5dacb",
+    "hashes": {
+      "php-8.6.1-dev-Win32-vs18-x64.zip": "ac8faf94d5c2b3e41bcadd9abb57b92bf3e32ecb302af521a7e23843de9a0718",
+      "php-8.6.1-dev-Win32-vs18-x86.zip": "d6dfae2d2d7e9f47497fd60b0fb996e5e6b0625de64fa213a0652cef5e3b231f",
+      "php-8.6.1-dev-nts-Win32-vs18-x64.zip": "0056fb498a1d04dcff98b9afad3a4fdbeff45d876d26561ecf41e6f29232259f",
+      "php-8.6.1-dev-nts-Win32-vs18-x86.zip": "824f60641ba0d8e73142419d9648dc6763548dec3cfea2aa2f6efd01df9d6beb"
+    },
+    "cases": [
+      {
+        "variant": "x64-nts",
+        "mode": "opcache",
+        "test": "ext/soap/tests/bugs/cookie_parse_options_offset.phpt"
+      },
+      {
+        "variant": "x64-nts",
+        "mode": "opcache",
+        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
+      },
+      {
+        "variant": "x64-ts",
+        "mode": "nocache",
+        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
+      },
+      {
+        "variant": "x64-ts",
+        "mode": "opcache",
+        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
+      },
+      {
+        "variant": "x86-nts",
+        "mode": "nocache",
+        "test": "ext/soap/tests/gh23686/header-from-stringable.phpt"
+      },
+      {
+        "variant": "x86-nts",
+        "mode": "nocache",
+        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
+      },
+      {
+        "variant": "x86-nts",
+        "mode": "nocache",
+        "test": "sapi/cli/tests/oom_request_parsing_next_request.phpt"
+      },
+      {
+        "variant": "x86-nts",
+        "mode": "opcache",
+        "test": "ext/session/tests/rfc1867_incomplete_class_reserved_props.phpt"
+      },
+      {
+        "variant": "x86-nts",
+        "mode": "opcache",
+        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
+      },
+      {
+        "variant": "x86-nts",
+        "mode": "opcache",
+        "test": "sapi/cgi/tests/009.phpt"
+      },
+      {
+        "variant": "x86-ts",
+        "mode": "nocache",
+        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
+      },
+      {
+        "variant": "x86-ts",
+        "mode": "opcache",
+        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
+      },
+      {
+        "variant": "x86-ts",
+        "mode": "opcache",
+        "test": "sapi/cgi/tests/010.phpt"
+      },
+      {
+        "variant": "x86-ts",
+        "mode": "opcache",
+        "test": "sapi/cgi/tests/011.phpt"
+      }
+    ]
   }
 }
