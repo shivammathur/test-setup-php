@@ -30,7 +30,9 @@ for archive in sorted((root/'artifacts').glob('*.zip')):
   cache=[*opcache,'-d','opcache.enable=1','-d','opcache.enable_cli=1'] if case['mode']=='opcache' else ['-d','opcache.enable_cli=0']
   for repeat in range(3):
    label=f'{index:02}-{case["mode"]}-{repeat}';xml=out/(label+'.xml');testenv=env.copy();testenv['TEST_PHP_JUNIT']=str(xml)
-   cmd=[str(php),'-n',str(source/'run-tests.php'),'-p',str(php),'-n','-c',str(ini),'-d','extension_dir='+str(runtime/'ext'),'-q','--offline','--show-diff',*cache,str(test)]
+   # This PHPT explicitly tests no INI; forwarding the harness's -c contradicts that precondition.
+   ini_args=[] if case['test']=='ext/standard/tests/ini_info/php_ini_loaded_file.phpt' else ['-c',str(ini)]
+   cmd=[str(php),'-n',str(source/'run-tests.php'),'-p',str(php),'-n',*ini_args,'-d','extension_dir='+str(runtime/'ext'),'-q','--offline','--show-diff',*cache,str(test)]
    start=time.monotonic()
    try:
     r=subprocess.run(cmd,cwd=source,env=testenv,capture_output=True,timeout=120)
@@ -38,7 +40,7 @@ for archive in sorted((root/'artifacts').glob('*.zip')):
    except subprocess.TimeoutExpired as e:result={'timeout':True,'stdout':(e.stdout or b'').decode(errors='replace'),'stderr':(e.stderr or b'').decode(errors='replace')}
    tests=list(ET.parse(xml).getroot().iter('testcase')) if xml.exists() else []
    issues=[{'type':c.tag,'text':c.text} for t in tests for c in t if c.tag in ['failure','error','skipped']]
-   row={'php':a.php,'sourceRun':a.run,'sourceSha':a.source_sha,'archiveSha256':digest,'variant':variant,'test':case['test'],'originalTestSha256':original,'mode':case['mode'],'repeat':repeat,'cases':len(tests),'issues':issues,'seconds':time.monotonic()-start,**result}
+   row={'php':a.php,'sourceRun':a.run,'sourceSha':a.source_sha,'archiveSha256':digest,'variant':variant,'test':case['test'],'originalTestSha256':original,'mode':case['mode'],'explicitIni':bool(ini_args),'repeat':repeat,'cases':len(tests),'issues':issues,'seconds':time.monotonic()-start,**result}
    assert hashlib.sha256(test.read_bytes()).hexdigest()==original
    (out/(label+'.json')).write_text(json.dumps(row,indent=2));rows.append(row)
    print(variant,case['test'],case['mode'],repeat,result.get('exit'),issues,flush=True)
