@@ -1,0 +1,85 @@
+name: Repeat exact PHP source suites
+run-name: Repeat exact PHP source suites (${{ inputs.phase }})
+on:
+  workflow_dispatch:
+    inputs:
+      matrix:
+        required: true
+        type: string
+      phase:
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  source-suite:
+    name: PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }} ${{ matrix.opcache }} ${{ matrix.test_type }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(inputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: ${{ matrix.builder_sha }}
+          path: builder
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run_id }}
+          name: artifacts
+          path: artifacts
+      - name: Verify exact runtime artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $expected = Get-Content source-suite-hashes.json -Raw | ConvertFrom-Json -AsHashtable
+          $rows = @()
+          foreach ($entry in $expected['${{ matrix.run_id }}'].GetEnumerator()) {
+            $file = Join-Path artifacts $entry.Key
+            $actual = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actual -ne $entry.Value) { throw "Artifact digest mismatch: $file" }
+            $rows += @{ file = $entry.Key; sha256 = $actual }
+          }
+          if ($rows.Count -ne 4) { throw 'Expected four runtime archives' }
+          $rows | ConvertTo-Json | Set-Content artifacts/artifact-hashes.json
+      - name: Resolve dependency cache
+        id: cache
+        shell: pwsh
+        run: |
+          Import-Module ./builder/php/BuildPhp -Force
+          $info = Get-DepsCacheInfo -PhpVersion '${{ matrix.php_version }}' -Arch '${{ matrix.arch }}' -LibsBuildRuns '${{ matrix.libs }}' -IncludeDefaultRunsKey
+          Set-Content packages.txt -Value ($info.Packages -join "`n")
+          Add-Content $env:GITHUB_OUTPUT "key=$($info.CacheKey)"
+          Add-Content $env:GITHUB_OUTPUT "directory=$($info.CacheDir)"
+      - uses: actions/cache@v4
+        id: deps
+        with:
+          path: ${{ steps.cache.outputs.directory }}
+          key: ${{ steps.cache.outputs.key }}-${{ hashFiles('packages.txt') }}
+      - name: Repeat original complete source suite
+        shell: pwsh
+        env:
+          DEPS_DIR: ${{ steps.cache.outputs.directory }}
+          DEPS_CACHE_HIT: ${{ steps.deps.outputs.cache-hit }}
+          LIBS_BUILD_RUNS: ${{ matrix.libs }}
+          GITHUB_TOKEN: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Import-Module ./builder/php/BuildPhp -Force
+          Set-Location artifacts
+          Invoke-PhpTests -PhpVersion '${{ matrix.php_version }}' -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}' -Opcache '${{ matrix.opcache }}' -TestType '${{ matrix.test_type }}' -SourceRepository php/php-src -SourceRef '${{ matrix.source_sha }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-suite-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}-${{ matrix.opcache }}-${{ matrix.test_type }}-${{ inputs.phase }}
+          path: |
+            artifacts/test-*.xml
+            artifacts/test-*.log
+            artifacts/artifact-hashes.json
+          if-no-files-found: error
