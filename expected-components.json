@@ -1218,6 +1218,132 @@
             }
           }
         ]
+      },
+      {
+        "artifact": "sqlite3-3.54.1-1-vs16-x64",
+        "component": {
+          "type": "library",
+          "bom-ref": "pkg:php-windows-deps/sqlite3@3.54.1-1",
+          "name": "sqlite3",
+          "version": "3.54.1-1",
+          "purl": "pkg:generic/sqlite@3.54.1",
+          "licenses": [
+            {
+              "license": {
+                "id": "blessing"
+              }
+            }
+          ],
+          "copyright": "NONE",
+          "supplier": {
+            "name": "Winlibs"
+          },
+          "externalReferences": [
+            {
+              "type": "distribution",
+              "url": "https://downloads.php.net/~windows/php-sdk/deps/vs16/x64/sqlite3-3.54.1-1-vs16-x64.zip"
+            },
+            {
+              "type": "website",
+              "url": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "type": "vcs",
+              "url": "https://github.com/sqlite/sqlite/tree/version-3.54.1"
+            },
+            {
+              "type": "vcs",
+              "url": "git+https://github.com/winlibs/sqlite3.git@9652784a43e2719e1ab71f3276b87e5be8a66696"
+            }
+          ],
+          "properties": [
+            {
+              "name": "php:library",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:component",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:version",
+              "value": "3.54.1-1"
+            },
+            {
+              "name": "php:upstream-version",
+              "value": "3.54.1"
+            },
+            {
+              "name": "php:source-origin",
+              "value": "winlibs-fork"
+            },
+            {
+              "name": "php:upstream-repository",
+              "value": "sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-url",
+              "value": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-tag",
+              "value": "version-3.54.1"
+            },
+            {
+              "name": "php:source-repository",
+              "value": "winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-url",
+              "value": "https://github.com/winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-ref",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:source-commit",
+              "value": "9652784a43e2719e1ab71f3276b87e5be8a66696"
+            },
+            {
+              "name": "php:input-version",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:vs",
+              "value": "vs16"
+            },
+            {
+              "name": "php:arch",
+              "value": "x64"
+            },
+            {
+              "name": "php:php-version",
+              "value": "8.2"
+            },
+            {
+              "name": "php:package-file-name",
+              "value": "sqlite3-3.54.1-1-vs16-x64.zip"
+            },
+            {
+              "name": "php:download-location",
+              "value": "https://downloads.php.net/~windows/php-sdk/deps/vs16/x64/sqlite3-3.54.1-1-vs16-x64.zip"
+            }
+          ],
+          "cpe": "cpe:2.3:a:sqlite:sqlite:3.54.1:*:*:*:*:*:*:*",
+          "pedigree": {
+            "ancestors": [
+              {
+                "type": "library",
+                "bom-ref": "urn:php:upstream:sqlite3:3.54.1",
+                "name": "sqlite3",
+                "version": "3.54.1",
+                "purl": "pkg:generic/sqlite@3.54.1"
+              }
+            ],
+            "notes": "Built from winlibs/sqlite3 ref sqlite3-3.54.1-1 at commit 9652784a43e2719e1ab71f3276b87e5be8a66696 with upstream identity sqlite/sqlite tag version-3.54.1."
+          }
+        }
       }
     ],
     "x86": [
@@ -2438,6 +2564,132 @@
             }
           }
         ]
+      },
+      {
+        "artifact": "sqlite3-3.54.1-1-vs16-x86",
+        "component": {
+          "type": "library",
+          "bom-ref": "pkg:php-windows-deps/sqlite3@3.54.1-1",
+          "name": "sqlite3",
+          "version": "3.54.1-1",
+          "purl": "pkg:generic/sqlite@3.54.1",
+          "licenses": [
+            {
+              "license": {
+                "id": "blessing"
+              }
+            }
+          ],
+          "copyright": "NONE",
+          "supplier": {
+            "name": "Winlibs"
+          },
+          "externalReferences": [
+            {
+              "type": "distribution",
+              "url": "https://downloads.php.net/~windows/php-sdk/deps/vs16/x86/sqlite3-3.54.1-1-vs16-x86.zip"
+            },
+            {
+              "type": "website",
+              "url": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "type": "vcs",
+              "url": "https://github.com/sqlite/sqlite/tree/version-3.54.1"
+            },
+            {
+              "type": "vcs",
+              "url": "git+https://github.com/winlibs/sqlite3.git@9652784a43e2719e1ab71f3276b87e5be8a66696"
+            }
+          ],
+          "properties": [
+            {
+              "name": "php:library",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:component",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:version",
+              "value": "3.54.1-1"
+            },
+            {
+              "name": "php:upstream-version",
+              "value": "3.54.1"
+            },
+            {
+              "name": "php:source-origin",
+              "value": "winlibs-fork"
+            },
+            {
+              "name": "php:upstream-repository",
+              "value": "sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-url",
+              "value": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-tag",
+              "value": "version-3.54.1"
+            },
+            {
+              "name": "php:source-repository",
+              "value": "winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-url",
+              "value": "https://github.com/winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-ref",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:source-commit",
+              "value": "9652784a43e2719e1ab71f3276b87e5be8a66696"
+            },
+            {
+              "name": "php:input-version",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:vs",
+              "value": "vs16"
+            },
+            {
+              "name": "php:arch",
+              "value": "x86"
+            },
+            {
+              "name": "php:php-version",
+              "value": "8.2"
+            },
+            {
+              "name": "php:package-file-name",
+              "value": "sqlite3-3.54.1-1-vs16-x86.zip"
+            },
+            {
+              "name": "php:download-location",
+              "value": "https://downloads.php.net/~windows/php-sdk/deps/vs16/x86/sqlite3-3.54.1-1-vs16-x86.zip"
+            }
+          ],
+          "cpe": "cpe:2.3:a:sqlite:sqlite:3.54.1:*:*:*:*:*:*:*",
+          "pedigree": {
+            "ancestors": [
+              {
+                "type": "library",
+                "bom-ref": "urn:php:upstream:sqlite3:3.54.1",
+                "name": "sqlite3",
+                "version": "3.54.1",
+                "purl": "pkg:generic/sqlite@3.54.1"
+              }
+            ],
+            "notes": "Built from winlibs/sqlite3 ref sqlite3-3.54.1-1 at commit 9652784a43e2719e1ab71f3276b87e5be8a66696 with upstream identity sqlite/sqlite tag version-3.54.1."
+          }
+        }
       }
     ]
   },
@@ -3660,6 +3912,132 @@
             }
           }
         ]
+      },
+      {
+        "artifact": "sqlite3-3.54.1-1-vs16-x64",
+        "component": {
+          "type": "library",
+          "bom-ref": "pkg:php-windows-deps/sqlite3@3.54.1-1",
+          "name": "sqlite3",
+          "version": "3.54.1-1",
+          "purl": "pkg:generic/sqlite@3.54.1",
+          "licenses": [
+            {
+              "license": {
+                "id": "blessing"
+              }
+            }
+          ],
+          "copyright": "NONE",
+          "supplier": {
+            "name": "Winlibs"
+          },
+          "externalReferences": [
+            {
+              "type": "distribution",
+              "url": "https://downloads.php.net/~windows/php-sdk/deps/vs16/x64/sqlite3-3.54.1-1-vs16-x64.zip"
+            },
+            {
+              "type": "website",
+              "url": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "type": "vcs",
+              "url": "https://github.com/sqlite/sqlite/tree/version-3.54.1"
+            },
+            {
+              "type": "vcs",
+              "url": "git+https://github.com/winlibs/sqlite3.git@9652784a43e2719e1ab71f3276b87e5be8a66696"
+            }
+          ],
+          "properties": [
+            {
+              "name": "php:library",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:component",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:version",
+              "value": "3.54.1-1"
+            },
+            {
+              "name": "php:upstream-version",
+              "value": "3.54.1"
+            },
+            {
+              "name": "php:source-origin",
+              "value": "winlibs-fork"
+            },
+            {
+              "name": "php:upstream-repository",
+              "value": "sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-url",
+              "value": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-tag",
+              "value": "version-3.54.1"
+            },
+            {
+              "name": "php:source-repository",
+              "value": "winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-url",
+              "value": "https://github.com/winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-ref",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:source-commit",
+              "value": "9652784a43e2719e1ab71f3276b87e5be8a66696"
+            },
+            {
+              "name": "php:input-version",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:vs",
+              "value": "vs16"
+            },
+            {
+              "name": "php:arch",
+              "value": "x64"
+            },
+            {
+              "name": "php:php-version",
+              "value": "8.2"
+            },
+            {
+              "name": "php:package-file-name",
+              "value": "sqlite3-3.54.1-1-vs16-x64.zip"
+            },
+            {
+              "name": "php:download-location",
+              "value": "https://downloads.php.net/~windows/php-sdk/deps/vs16/x64/sqlite3-3.54.1-1-vs16-x64.zip"
+            }
+          ],
+          "cpe": "cpe:2.3:a:sqlite:sqlite:3.54.1:*:*:*:*:*:*:*",
+          "pedigree": {
+            "ancestors": [
+              {
+                "type": "library",
+                "bom-ref": "urn:php:upstream:sqlite3:3.54.1",
+                "name": "sqlite3",
+                "version": "3.54.1",
+                "purl": "pkg:generic/sqlite@3.54.1"
+              }
+            ],
+            "notes": "Built from winlibs/sqlite3 ref sqlite3-3.54.1-1 at commit 9652784a43e2719e1ab71f3276b87e5be8a66696 with upstream identity sqlite/sqlite tag version-3.54.1."
+          }
+        }
       }
     ],
     "x86": [
@@ -4880,6 +5258,132 @@
             }
           }
         ]
+      },
+      {
+        "artifact": "sqlite3-3.54.1-1-vs16-x86",
+        "component": {
+          "type": "library",
+          "bom-ref": "pkg:php-windows-deps/sqlite3@3.54.1-1",
+          "name": "sqlite3",
+          "version": "3.54.1-1",
+          "purl": "pkg:generic/sqlite@3.54.1",
+          "licenses": [
+            {
+              "license": {
+                "id": "blessing"
+              }
+            }
+          ],
+          "copyright": "NONE",
+          "supplier": {
+            "name": "Winlibs"
+          },
+          "externalReferences": [
+            {
+              "type": "distribution",
+              "url": "https://downloads.php.net/~windows/php-sdk/deps/vs16/x86/sqlite3-3.54.1-1-vs16-x86.zip"
+            },
+            {
+              "type": "website",
+              "url": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "type": "vcs",
+              "url": "https://github.com/sqlite/sqlite/tree/version-3.54.1"
+            },
+            {
+              "type": "vcs",
+              "url": "git+https://github.com/winlibs/sqlite3.git@9652784a43e2719e1ab71f3276b87e5be8a66696"
+            }
+          ],
+          "properties": [
+            {
+              "name": "php:library",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:component",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:version",
+              "value": "3.54.1-1"
+            },
+            {
+              "name": "php:upstream-version",
+              "value": "3.54.1"
+            },
+            {
+              "name": "php:source-origin",
+              "value": "winlibs-fork"
+            },
+            {
+              "name": "php:upstream-repository",
+              "value": "sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-url",
+              "value": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-tag",
+              "value": "version-3.54.1"
+            },
+            {
+              "name": "php:source-repository",
+              "value": "winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-url",
+              "value": "https://github.com/winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-ref",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:source-commit",
+              "value": "9652784a43e2719e1ab71f3276b87e5be8a66696"
+            },
+            {
+              "name": "php:input-version",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:vs",
+              "value": "vs16"
+            },
+            {
+              "name": "php:arch",
+              "value": "x86"
+            },
+            {
+              "name": "php:php-version",
+              "value": "8.2"
+            },
+            {
+              "name": "php:package-file-name",
+              "value": "sqlite3-3.54.1-1-vs16-x86.zip"
+            },
+            {
+              "name": "php:download-location",
+              "value": "https://downloads.php.net/~windows/php-sdk/deps/vs16/x86/sqlite3-3.54.1-1-vs16-x86.zip"
+            }
+          ],
+          "cpe": "cpe:2.3:a:sqlite:sqlite:3.54.1:*:*:*:*:*:*:*",
+          "pedigree": {
+            "ancestors": [
+              {
+                "type": "library",
+                "bom-ref": "urn:php:upstream:sqlite3:3.54.1",
+                "name": "sqlite3",
+                "version": "3.54.1",
+                "purl": "pkg:generic/sqlite@3.54.1"
+              }
+            ],
+            "notes": "Built from winlibs/sqlite3 ref sqlite3-3.54.1-1 at commit 9652784a43e2719e1ab71f3276b87e5be8a66696 with upstream identity sqlite/sqlite tag version-3.54.1."
+          }
+        }
       }
     ]
   },
@@ -6102,6 +6606,132 @@
             }
           }
         ]
+      },
+      {
+        "artifact": "sqlite3-3.54.1-1-vs17-x64",
+        "component": {
+          "type": "library",
+          "bom-ref": "pkg:php-windows-deps/sqlite3@3.54.1-1",
+          "name": "sqlite3",
+          "version": "3.54.1-1",
+          "purl": "pkg:generic/sqlite@3.54.1",
+          "licenses": [
+            {
+              "license": {
+                "id": "blessing"
+              }
+            }
+          ],
+          "copyright": "NONE",
+          "supplier": {
+            "name": "Winlibs"
+          },
+          "externalReferences": [
+            {
+              "type": "distribution",
+              "url": "https://downloads.php.net/~windows/php-sdk/deps/vs17/x64/sqlite3-3.54.1-1-vs17-x64.zip"
+            },
+            {
+              "type": "website",
+              "url": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "type": "vcs",
+              "url": "https://github.com/sqlite/sqlite/tree/version-3.54.1"
+            },
+            {
+              "type": "vcs",
+              "url": "git+https://github.com/winlibs/sqlite3.git@9652784a43e2719e1ab71f3276b87e5be8a66696"
+            }
+          ],
+          "properties": [
+            {
+              "name": "php:library",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:component",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:version",
+              "value": "3.54.1-1"
+            },
+            {
+              "name": "php:upstream-version",
+              "value": "3.54.1"
+            },
+            {
+              "name": "php:source-origin",
+              "value": "winlibs-fork"
+            },
+            {
+              "name": "php:upstream-repository",
+              "value": "sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-url",
+              "value": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-tag",
+              "value": "version-3.54.1"
+            },
+            {
+              "name": "php:source-repository",
+              "value": "winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-url",
+              "value": "https://github.com/winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-ref",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:source-commit",
+              "value": "9652784a43e2719e1ab71f3276b87e5be8a66696"
+            },
+            {
+              "name": "php:input-version",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:vs",
+              "value": "vs17"
+            },
+            {
+              "name": "php:arch",
+              "value": "x64"
+            },
+            {
+              "name": "php:php-version",
+              "value": "8.4"
+            },
+            {
+              "name": "php:package-file-name",
+              "value": "sqlite3-3.54.1-1-vs17-x64.zip"
+            },
+            {
+              "name": "php:download-location",
+              "value": "https://downloads.php.net/~windows/php-sdk/deps/vs17/x64/sqlite3-3.54.1-1-vs17-x64.zip"
+            }
+          ],
+          "cpe": "cpe:2.3:a:sqlite:sqlite:3.54.1:*:*:*:*:*:*:*",
+          "pedigree": {
+            "ancestors": [
+              {
+                "type": "library",
+                "bom-ref": "urn:php:upstream:sqlite3:3.54.1",
+                "name": "sqlite3",
+                "version": "3.54.1",
+                "purl": "pkg:generic/sqlite@3.54.1"
+              }
+            ],
+            "notes": "Built from winlibs/sqlite3 ref sqlite3-3.54.1-1 at commit 9652784a43e2719e1ab71f3276b87e5be8a66696 with upstream identity sqlite/sqlite tag version-3.54.1."
+          }
+        }
       }
     ],
     "x86": [
@@ -7322,6 +7952,132 @@
             }
           }
         ]
+      },
+      {
+        "artifact": "sqlite3-3.54.1-1-vs17-x86",
+        "component": {
+          "type": "library",
+          "bom-ref": "pkg:php-windows-deps/sqlite3@3.54.1-1",
+          "name": "sqlite3",
+          "version": "3.54.1-1",
+          "purl": "pkg:generic/sqlite@3.54.1",
+          "licenses": [
+            {
+              "license": {
+                "id": "blessing"
+              }
+            }
+          ],
+          "copyright": "NONE",
+          "supplier": {
+            "name": "Winlibs"
+          },
+          "externalReferences": [
+            {
+              "type": "distribution",
+              "url": "https://downloads.php.net/~windows/php-sdk/deps/vs17/x86/sqlite3-3.54.1-1-vs17-x86.zip"
+            },
+            {
+              "type": "website",
+              "url": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "type": "vcs",
+              "url": "https://github.com/sqlite/sqlite/tree/version-3.54.1"
+            },
+            {
+              "type": "vcs",
+              "url": "git+https://github.com/winlibs/sqlite3.git@9652784a43e2719e1ab71f3276b87e5be8a66696"
+            }
+          ],
+          "properties": [
+            {
+              "name": "php:library",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:component",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:version",
+              "value": "3.54.1-1"
+            },
+            {
+              "name": "php:upstream-version",
+              "value": "3.54.1"
+            },
+            {
+              "name": "php:source-origin",
+              "value": "winlibs-fork"
+            },
+            {
+              "name": "php:upstream-repository",
+              "value": "sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-url",
+              "value": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-tag",
+              "value": "version-3.54.1"
+            },
+            {
+              "name": "php:source-repository",
+              "value": "winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-url",
+              "value": "https://github.com/winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-ref",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:source-commit",
+              "value": "9652784a43e2719e1ab71f3276b87e5be8a66696"
+            },
+            {
+              "name": "php:input-version",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:vs",
+              "value": "vs17"
+            },
+            {
+              "name": "php:arch",
+              "value": "x86"
+            },
+            {
+              "name": "php:php-version",
+              "value": "8.4"
+            },
+            {
+              "name": "php:package-file-name",
+              "value": "sqlite3-3.54.1-1-vs17-x86.zip"
+            },
+            {
+              "name": "php:download-location",
+              "value": "https://downloads.php.net/~windows/php-sdk/deps/vs17/x86/sqlite3-3.54.1-1-vs17-x86.zip"
+            }
+          ],
+          "cpe": "cpe:2.3:a:sqlite:sqlite:3.54.1:*:*:*:*:*:*:*",
+          "pedigree": {
+            "ancestors": [
+              {
+                "type": "library",
+                "bom-ref": "urn:php:upstream:sqlite3:3.54.1",
+                "name": "sqlite3",
+                "version": "3.54.1",
+                "purl": "pkg:generic/sqlite@3.54.1"
+              }
+            ],
+            "notes": "Built from winlibs/sqlite3 ref sqlite3-3.54.1-1 at commit 9652784a43e2719e1ab71f3276b87e5be8a66696 with upstream identity sqlite/sqlite tag version-3.54.1."
+          }
+        }
       }
     ]
   },
@@ -8544,6 +9300,132 @@
             }
           }
         ]
+      },
+      {
+        "artifact": "sqlite3-3.54.1-1-vs17-x64",
+        "component": {
+          "type": "library",
+          "bom-ref": "pkg:php-windows-deps/sqlite3@3.54.1-1",
+          "name": "sqlite3",
+          "version": "3.54.1-1",
+          "purl": "pkg:generic/sqlite@3.54.1",
+          "licenses": [
+            {
+              "license": {
+                "id": "blessing"
+              }
+            }
+          ],
+          "copyright": "NONE",
+          "supplier": {
+            "name": "Winlibs"
+          },
+          "externalReferences": [
+            {
+              "type": "distribution",
+              "url": "https://downloads.php.net/~windows/php-sdk/deps/vs17/x64/sqlite3-3.54.1-1-vs17-x64.zip"
+            },
+            {
+              "type": "website",
+              "url": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "type": "vcs",
+              "url": "https://github.com/sqlite/sqlite/tree/version-3.54.1"
+            },
+            {
+              "type": "vcs",
+              "url": "git+https://github.com/winlibs/sqlite3.git@9652784a43e2719e1ab71f3276b87e5be8a66696"
+            }
+          ],
+          "properties": [
+            {
+              "name": "php:library",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:component",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:version",
+              "value": "3.54.1-1"
+            },
+            {
+              "name": "php:upstream-version",
+              "value": "3.54.1"
+            },
+            {
+              "name": "php:source-origin",
+              "value": "winlibs-fork"
+            },
+            {
+              "name": "php:upstream-repository",
+              "value": "sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-url",
+              "value": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-tag",
+              "value": "version-3.54.1"
+            },
+            {
+              "name": "php:source-repository",
+              "value": "winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-url",
+              "value": "https://github.com/winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-ref",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:source-commit",
+              "value": "9652784a43e2719e1ab71f3276b87e5be8a66696"
+            },
+            {
+              "name": "php:input-version",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:vs",
+              "value": "vs17"
+            },
+            {
+              "name": "php:arch",
+              "value": "x64"
+            },
+            {
+              "name": "php:php-version",
+              "value": "8.4"
+            },
+            {
+              "name": "php:package-file-name",
+              "value": "sqlite3-3.54.1-1-vs17-x64.zip"
+            },
+            {
+              "name": "php:download-location",
+              "value": "https://downloads.php.net/~windows/php-sdk/deps/vs17/x64/sqlite3-3.54.1-1-vs17-x64.zip"
+            }
+          ],
+          "cpe": "cpe:2.3:a:sqlite:sqlite:3.54.1:*:*:*:*:*:*:*",
+          "pedigree": {
+            "ancestors": [
+              {
+                "type": "library",
+                "bom-ref": "urn:php:upstream:sqlite3:3.54.1",
+                "name": "sqlite3",
+                "version": "3.54.1",
+                "purl": "pkg:generic/sqlite@3.54.1"
+              }
+            ],
+            "notes": "Built from winlibs/sqlite3 ref sqlite3-3.54.1-1 at commit 9652784a43e2719e1ab71f3276b87e5be8a66696 with upstream identity sqlite/sqlite tag version-3.54.1."
+          }
+        }
       }
     ],
     "x86": [
@@ -9764,6 +10646,132 @@
             }
           }
         ]
+      },
+      {
+        "artifact": "sqlite3-3.54.1-1-vs17-x86",
+        "component": {
+          "type": "library",
+          "bom-ref": "pkg:php-windows-deps/sqlite3@3.54.1-1",
+          "name": "sqlite3",
+          "version": "3.54.1-1",
+          "purl": "pkg:generic/sqlite@3.54.1",
+          "licenses": [
+            {
+              "license": {
+                "id": "blessing"
+              }
+            }
+          ],
+          "copyright": "NONE",
+          "supplier": {
+            "name": "Winlibs"
+          },
+          "externalReferences": [
+            {
+              "type": "distribution",
+              "url": "https://downloads.php.net/~windows/php-sdk/deps/vs17/x86/sqlite3-3.54.1-1-vs17-x86.zip"
+            },
+            {
+              "type": "website",
+              "url": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "type": "vcs",
+              "url": "https://github.com/sqlite/sqlite/tree/version-3.54.1"
+            },
+            {
+              "type": "vcs",
+              "url": "git+https://github.com/winlibs/sqlite3.git@9652784a43e2719e1ab71f3276b87e5be8a66696"
+            }
+          ],
+          "properties": [
+            {
+              "name": "php:library",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:component",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:version",
+              "value": "3.54.1-1"
+            },
+            {
+              "name": "php:upstream-version",
+              "value": "3.54.1"
+            },
+            {
+              "name": "php:source-origin",
+              "value": "winlibs-fork"
+            },
+            {
+              "name": "php:upstream-repository",
+              "value": "sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-url",
+              "value": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-tag",
+              "value": "version-3.54.1"
+            },
+            {
+              "name": "php:source-repository",
+              "value": "winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-url",
+              "value": "https://github.com/winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-ref",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:source-commit",
+              "value": "9652784a43e2719e1ab71f3276b87e5be8a66696"
+            },
+            {
+              "name": "php:input-version",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:vs",
+              "value": "vs17"
+            },
+            {
+              "name": "php:arch",
+              "value": "x86"
+            },
+            {
+              "name": "php:php-version",
+              "value": "8.4"
+            },
+            {
+              "name": "php:package-file-name",
+              "value": "sqlite3-3.54.1-1-vs17-x86.zip"
+            },
+            {
+              "name": "php:download-location",
+              "value": "https://downloads.php.net/~windows/php-sdk/deps/vs17/x86/sqlite3-3.54.1-1-vs17-x86.zip"
+            }
+          ],
+          "cpe": "cpe:2.3:a:sqlite:sqlite:3.54.1:*:*:*:*:*:*:*",
+          "pedigree": {
+            "ancestors": [
+              {
+                "type": "library",
+                "bom-ref": "urn:php:upstream:sqlite3:3.54.1",
+                "name": "sqlite3",
+                "version": "3.54.1",
+                "purl": "pkg:generic/sqlite@3.54.1"
+              }
+            ],
+            "notes": "Built from winlibs/sqlite3 ref sqlite3-3.54.1-1 at commit 9652784a43e2719e1ab71f3276b87e5be8a66696 with upstream identity sqlite/sqlite tag version-3.54.1."
+          }
+        }
       }
     ]
   },
@@ -11108,6 +12116,132 @@
             }
           }
         ]
+      },
+      {
+        "artifact": "sqlite3-3.54.1-1-vs18-x64",
+        "component": {
+          "type": "library",
+          "bom-ref": "pkg:php-windows-deps/sqlite3@3.54.1-1",
+          "name": "sqlite3",
+          "version": "3.54.1-1",
+          "purl": "pkg:generic/sqlite@3.54.1",
+          "licenses": [
+            {
+              "license": {
+                "id": "blessing"
+              }
+            }
+          ],
+          "copyright": "NONE",
+          "supplier": {
+            "name": "Winlibs"
+          },
+          "externalReferences": [
+            {
+              "type": "distribution",
+              "url": "https://downloads.php.net/~windows/php-sdk/deps/vs18/x64/sqlite3-3.54.1-1-vs18-x64.zip"
+            },
+            {
+              "type": "website",
+              "url": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "type": "vcs",
+              "url": "https://github.com/sqlite/sqlite/tree/version-3.54.1"
+            },
+            {
+              "type": "vcs",
+              "url": "git+https://github.com/winlibs/sqlite3.git@9652784a43e2719e1ab71f3276b87e5be8a66696"
+            }
+          ],
+          "properties": [
+            {
+              "name": "php:library",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:component",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:version",
+              "value": "3.54.1-1"
+            },
+            {
+              "name": "php:upstream-version",
+              "value": "3.54.1"
+            },
+            {
+              "name": "php:source-origin",
+              "value": "winlibs-fork"
+            },
+            {
+              "name": "php:upstream-repository",
+              "value": "sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-url",
+              "value": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-tag",
+              "value": "version-3.54.1"
+            },
+            {
+              "name": "php:source-repository",
+              "value": "winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-url",
+              "value": "https://github.com/winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-ref",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:source-commit",
+              "value": "9652784a43e2719e1ab71f3276b87e5be8a66696"
+            },
+            {
+              "name": "php:input-version",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:vs",
+              "value": "vs18"
+            },
+            {
+              "name": "php:arch",
+              "value": "x64"
+            },
+            {
+              "name": "php:php-version",
+              "value": "8.6"
+            },
+            {
+              "name": "php:package-file-name",
+              "value": "sqlite3-3.54.1-1-vs18-x64.zip"
+            },
+            {
+              "name": "php:download-location",
+              "value": "https://downloads.php.net/~windows/php-sdk/deps/vs18/x64/sqlite3-3.54.1-1-vs18-x64.zip"
+            }
+          ],
+          "cpe": "cpe:2.3:a:sqlite:sqlite:3.54.1:*:*:*:*:*:*:*",
+          "pedigree": {
+            "ancestors": [
+              {
+                "type": "library",
+                "bom-ref": "urn:php:upstream:sqlite3:3.54.1",
+                "name": "sqlite3",
+                "version": "3.54.1",
+                "purl": "pkg:generic/sqlite@3.54.1"
+              }
+            ],
+            "notes": "Built from winlibs/sqlite3 ref sqlite3-3.54.1-1 at commit 9652784a43e2719e1ab71f3276b87e5be8a66696 with upstream identity sqlite/sqlite tag version-3.54.1."
+          }
+        }
       }
     ],
     "x86": [
@@ -12450,6 +13584,132 @@
             }
           }
         ]
+      },
+      {
+        "artifact": "sqlite3-3.54.1-1-vs18-x86",
+        "component": {
+          "type": "library",
+          "bom-ref": "pkg:php-windows-deps/sqlite3@3.54.1-1",
+          "name": "sqlite3",
+          "version": "3.54.1-1",
+          "purl": "pkg:generic/sqlite@3.54.1",
+          "licenses": [
+            {
+              "license": {
+                "id": "blessing"
+              }
+            }
+          ],
+          "copyright": "NONE",
+          "supplier": {
+            "name": "Winlibs"
+          },
+          "externalReferences": [
+            {
+              "type": "distribution",
+              "url": "https://downloads.php.net/~windows/php-sdk/deps/vs18/x86/sqlite3-3.54.1-1-vs18-x86.zip"
+            },
+            {
+              "type": "website",
+              "url": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "type": "vcs",
+              "url": "https://github.com/sqlite/sqlite/tree/version-3.54.1"
+            },
+            {
+              "type": "vcs",
+              "url": "git+https://github.com/winlibs/sqlite3.git@9652784a43e2719e1ab71f3276b87e5be8a66696"
+            }
+          ],
+          "properties": [
+            {
+              "name": "php:library",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:component",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:version",
+              "value": "3.54.1-1"
+            },
+            {
+              "name": "php:upstream-version",
+              "value": "3.54.1"
+            },
+            {
+              "name": "php:source-origin",
+              "value": "winlibs-fork"
+            },
+            {
+              "name": "php:upstream-repository",
+              "value": "sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-url",
+              "value": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-tag",
+              "value": "version-3.54.1"
+            },
+            {
+              "name": "php:source-repository",
+              "value": "winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-url",
+              "value": "https://github.com/winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-ref",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:source-commit",
+              "value": "9652784a43e2719e1ab71f3276b87e5be8a66696"
+            },
+            {
+              "name": "php:input-version",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:vs",
+              "value": "vs18"
+            },
+            {
+              "name": "php:arch",
+              "value": "x86"
+            },
+            {
+              "name": "php:php-version",
+              "value": "8.6"
+            },
+            {
+              "name": "php:package-file-name",
+              "value": "sqlite3-3.54.1-1-vs18-x86.zip"
+            },
+            {
+              "name": "php:download-location",
+              "value": "https://downloads.php.net/~windows/php-sdk/deps/vs18/x86/sqlite3-3.54.1-1-vs18-x86.zip"
+            }
+          ],
+          "cpe": "cpe:2.3:a:sqlite:sqlite:3.54.1:*:*:*:*:*:*:*",
+          "pedigree": {
+            "ancestors": [
+              {
+                "type": "library",
+                "bom-ref": "urn:php:upstream:sqlite3:3.54.1",
+                "name": "sqlite3",
+                "version": "3.54.1",
+                "purl": "pkg:generic/sqlite@3.54.1"
+              }
+            ],
+            "notes": "Built from winlibs/sqlite3 ref sqlite3-3.54.1-1 at commit 9652784a43e2719e1ab71f3276b87e5be8a66696 with upstream identity sqlite/sqlite tag version-3.54.1."
+          }
+        }
       }
     ]
   },
@@ -13794,6 +15054,132 @@
             }
           }
         ]
+      },
+      {
+        "artifact": "sqlite3-3.54.1-1-vs18-x64",
+        "component": {
+          "type": "library",
+          "bom-ref": "pkg:php-windows-deps/sqlite3@3.54.1-1",
+          "name": "sqlite3",
+          "version": "3.54.1-1",
+          "purl": "pkg:generic/sqlite@3.54.1",
+          "licenses": [
+            {
+              "license": {
+                "id": "blessing"
+              }
+            }
+          ],
+          "copyright": "NONE",
+          "supplier": {
+            "name": "Winlibs"
+          },
+          "externalReferences": [
+            {
+              "type": "distribution",
+              "url": "https://downloads.php.net/~windows/php-sdk/deps/vs18/x64/sqlite3-3.54.1-1-vs18-x64.zip"
+            },
+            {
+              "type": "website",
+              "url": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "type": "vcs",
+              "url": "https://github.com/sqlite/sqlite/tree/version-3.54.1"
+            },
+            {
+              "type": "vcs",
+              "url": "git+https://github.com/winlibs/sqlite3.git@9652784a43e2719e1ab71f3276b87e5be8a66696"
+            }
+          ],
+          "properties": [
+            {
+              "name": "php:library",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:component",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:version",
+              "value": "3.54.1-1"
+            },
+            {
+              "name": "php:upstream-version",
+              "value": "3.54.1"
+            },
+            {
+              "name": "php:source-origin",
+              "value": "winlibs-fork"
+            },
+            {
+              "name": "php:upstream-repository",
+              "value": "sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-url",
+              "value": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-tag",
+              "value": "version-3.54.1"
+            },
+            {
+              "name": "php:source-repository",
+              "value": "winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-url",
+              "value": "https://github.com/winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-ref",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:source-commit",
+              "value": "9652784a43e2719e1ab71f3276b87e5be8a66696"
+            },
+            {
+              "name": "php:input-version",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:vs",
+              "value": "vs18"
+            },
+            {
+              "name": "php:arch",
+              "value": "x64"
+            },
+            {
+              "name": "php:php-version",
+              "value": "8.6"
+            },
+            {
+              "name": "php:package-file-name",
+              "value": "sqlite3-3.54.1-1-vs18-x64.zip"
+            },
+            {
+              "name": "php:download-location",
+              "value": "https://downloads.php.net/~windows/php-sdk/deps/vs18/x64/sqlite3-3.54.1-1-vs18-x64.zip"
+            }
+          ],
+          "cpe": "cpe:2.3:a:sqlite:sqlite:3.54.1:*:*:*:*:*:*:*",
+          "pedigree": {
+            "ancestors": [
+              {
+                "type": "library",
+                "bom-ref": "urn:php:upstream:sqlite3:3.54.1",
+                "name": "sqlite3",
+                "version": "3.54.1",
+                "purl": "pkg:generic/sqlite@3.54.1"
+              }
+            ],
+            "notes": "Built from winlibs/sqlite3 ref sqlite3-3.54.1-1 at commit 9652784a43e2719e1ab71f3276b87e5be8a66696 with upstream identity sqlite/sqlite tag version-3.54.1."
+          }
+        }
       }
     ],
     "x86": [
@@ -15136,6 +16522,132 @@
             }
           }
         ]
+      },
+      {
+        "artifact": "sqlite3-3.54.1-1-vs18-x86",
+        "component": {
+          "type": "library",
+          "bom-ref": "pkg:php-windows-deps/sqlite3@3.54.1-1",
+          "name": "sqlite3",
+          "version": "3.54.1-1",
+          "purl": "pkg:generic/sqlite@3.54.1",
+          "licenses": [
+            {
+              "license": {
+                "id": "blessing"
+              }
+            }
+          ],
+          "copyright": "NONE",
+          "supplier": {
+            "name": "Winlibs"
+          },
+          "externalReferences": [
+            {
+              "type": "distribution",
+              "url": "https://downloads.php.net/~windows/php-sdk/deps/vs18/x86/sqlite3-3.54.1-1-vs18-x86.zip"
+            },
+            {
+              "type": "website",
+              "url": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "type": "vcs",
+              "url": "https://github.com/sqlite/sqlite/tree/version-3.54.1"
+            },
+            {
+              "type": "vcs",
+              "url": "git+https://github.com/winlibs/sqlite3.git@9652784a43e2719e1ab71f3276b87e5be8a66696"
+            }
+          ],
+          "properties": [
+            {
+              "name": "php:library",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:component",
+              "value": "sqlite3"
+            },
+            {
+              "name": "php:version",
+              "value": "3.54.1-1"
+            },
+            {
+              "name": "php:upstream-version",
+              "value": "3.54.1"
+            },
+            {
+              "name": "php:source-origin",
+              "value": "winlibs-fork"
+            },
+            {
+              "name": "php:upstream-repository",
+              "value": "sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-url",
+              "value": "https://github.com/sqlite/sqlite"
+            },
+            {
+              "name": "php:upstream-tag",
+              "value": "version-3.54.1"
+            },
+            {
+              "name": "php:source-repository",
+              "value": "winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-url",
+              "value": "https://github.com/winlibs/sqlite3"
+            },
+            {
+              "name": "php:source-ref",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:source-commit",
+              "value": "9652784a43e2719e1ab71f3276b87e5be8a66696"
+            },
+            {
+              "name": "php:input-version",
+              "value": "sqlite3-3.54.1-1"
+            },
+            {
+              "name": "php:vs",
+              "value": "vs18"
+            },
+            {
+              "name": "php:arch",
+              "value": "x86"
+            },
+            {
+              "name": "php:php-version",
+              "value": "8.6"
+            },
+            {
+              "name": "php:package-file-name",
+              "value": "sqlite3-3.54.1-1-vs18-x86.zip"
+            },
+            {
+              "name": "php:download-location",
+              "value": "https://downloads.php.net/~windows/php-sdk/deps/vs18/x86/sqlite3-3.54.1-1-vs18-x86.zip"
+            }
+          ],
+          "cpe": "cpe:2.3:a:sqlite:sqlite:3.54.1:*:*:*:*:*:*:*",
+          "pedigree": {
+            "ancestors": [
+              {
+                "type": "library",
+                "bom-ref": "urn:php:upstream:sqlite3:3.54.1",
+                "name": "sqlite3",
+                "version": "3.54.1",
+                "purl": "pkg:generic/sqlite@3.54.1"
+              }
+            ],
+            "notes": "Built from winlibs/sqlite3 ref sqlite3-3.54.1-1 at commit 9652784a43e2719e1ab71f3276b87e5be8a66696 with upstream identity sqlite/sqlite tag version-3.54.1."
+          }
+        }
       }
     ]
   }
