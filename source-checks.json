@@ -163,73 +163,8 @@
     "cases": [
       {
         "variant": "x64-nts",
-        "mode": "opcache",
-        "test": "ext/soap/tests/bugs/cookie_parse_options_offset.phpt"
-      },
-      {
-        "variant": "x64-nts",
-        "mode": "opcache",
-        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
-      },
-      {
-        "variant": "x64-ts",
         "mode": "nocache",
         "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
-      },
-      {
-        "variant": "x64-ts",
-        "mode": "opcache",
-        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
-      },
-      {
-        "variant": "x86-nts",
-        "mode": "nocache",
-        "test": "ext/soap/tests/gh23686/header-from-stringable.phpt"
-      },
-      {
-        "variant": "x86-nts",
-        "mode": "nocache",
-        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
-      },
-      {
-        "variant": "x86-nts",
-        "mode": "nocache",
-        "test": "sapi/cli/tests/oom_request_parsing_next_request.phpt"
-      },
-      {
-        "variant": "x86-nts",
-        "mode": "opcache",
-        "test": "ext/session/tests/rfc1867_incomplete_class_reserved_props.phpt"
-      },
-      {
-        "variant": "x86-nts",
-        "mode": "opcache",
-        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
-      },
-      {
-        "variant": "x86-nts",
-        "mode": "opcache",
-        "test": "sapi/cgi/tests/009.phpt"
-      },
-      {
-        "variant": "x86-ts",
-        "mode": "nocache",
-        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
-      },
-      {
-        "variant": "x86-ts",
-        "mode": "opcache",
-        "test": "ext/standard/tests/ini_info/php_ini_loaded_file.phpt"
-      },
-      {
-        "variant": "x86-ts",
-        "mode": "opcache",
-        "test": "sapi/cgi/tests/010.phpt"
-      },
-      {
-        "variant": "x86-ts",
-        "mode": "opcache",
-        "test": "sapi/cgi/tests/011.phpt"
       }
     ]
   },
