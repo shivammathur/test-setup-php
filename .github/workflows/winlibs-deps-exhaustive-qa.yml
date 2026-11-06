@@ -86,6 +86,9 @@ jobs:
           ref: ${{ matrix.source_sha }}
           path: php-src
       - run: python scripts/source-checks.py --php '${{ matrix.php }}' --run '${{ matrix.run_id }}' --source-sha '${{ matrix.source_sha }}'
+      - name: Exercise repeated PHP CLI and CGI startup
+        if: ${{ always() && matrix.php == '8.6' }}
+        run: python scripts/process-startup-qa.py --run '${{ matrix.run_id }}'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
