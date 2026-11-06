@@ -1,0 +1,58 @@
+{
+  "include": [
+    {
+      "id": "kafka-8.2-x64",
+      "kind": "kafka",
+      "php": "8.2",
+      "vs": "vs16",
+      "arch": "x64",
+      "runner": "windows-2022",
+      "sdk": "10.0.19041.0",
+      "msvc_arch": "x64",
+      "msvc_sdk": "",
+      "dependencies": {
+        "libzstd": "libzstd-1.5.7-vs16-x64.zip",
+        "openssl": "openssl-3.0.22.pl2-vs16-x64.zip"
+      },
+      "libraries": {
+        "zlib": {
+          "run": 42216024267,
+          "artifact": "zlib-1.4-vs16-x64",
+          "type": "php"
+        },
+        "librdkafka": {
+          "run": 42216622227,
+          "artifact": "librdkafka-2.16.0-vs16-x64",
+          "type": "pecl"
+        }
+      }
+    },
+    {
+      "id": "kafka-8.2-x86",
+      "kind": "kafka",
+      "php": "8.2",
+      "vs": "vs16",
+      "arch": "x86",
+      "runner": "windows-2022",
+      "sdk": "10.0.19041.0",
+      "msvc_arch": "x86",
+      "msvc_sdk": "",
+      "dependencies": {
+        "libzstd": "libzstd-1.5.7-vs16-x86.zip",
+        "openssl": "openssl-3.0.22.pl2-vs16-x86.zip"
+      },
+      "libraries": {
+        "zlib": {
+          "run": 42216024267,
+          "artifact": "zlib-1.4-vs16-x86",
+          "type": "php"
+        },
+        "librdkafka": {
+          "run": 42216622227,
+          "artifact": "librdkafka-2.16.0-vs16-x86",
+          "type": "pecl"
+        }
+      }
+    }
+  ]
+}
