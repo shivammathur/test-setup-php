@@ -6,6 +6,10 @@ on:
       matrix:
         description: Exact PHP source-build artifact run IDs
         required: true
+      startup-diagnostics:
+        description: Capture CGI startup crash diagnostics
+        type: boolean
+        default: false
       source-suites:
         required: false
         type: boolean
@@ -27,7 +31,7 @@ permissions:
   contents: read
 jobs:
   test:
-    if: ${{ !inputs.series-probe && !inputs.source-checks && !inputs.source-suites }}
+    if: ${{ !inputs.series-probe && !inputs.source-checks && !inputs.source-suites && !inputs.startup-diagnostics }}
     name: PHP ${{ matrix.php }} artifact QA
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
@@ -185,4 +189,60 @@ jobs:
             artifacts/test-*.xml
             artifacts/test-*.log
             artifacts/artifact-hashes.json
+          if-no-files-found: error
+
+  startup-diagnostics:
+    if: inputs.startup-diagnostics
+    name: PHP ${{ matrix.php }} CGI crash diagnostics
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(inputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.PHP_WINDOWS_BUILDER_TOKEN || secrets.GH_TOKEN || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run_id }}
+          name: artifacts
+          path: artifacts
+      - name: Enable diagnostic crash dumps
+        shell: pwsh
+        run: |
+          $dump = Join-Path $pwd 'reports/dumps'
+          New-Item -ItemType Directory -Path $dump -Force | Out-Null
+          foreach ($name in @('php.exe', 'php-cgi.exe')) {
+            $key = "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\$name"
+            New-Item -Path $key -Force | Out-Null
+            New-ItemProperty $key -Name DumpFolder -Value $dump -PropertyType ExpandString -Force | Out-Null
+            New-ItemProperty $key -Name DumpType -Value 1 -PropertyType DWord -Force | Out-Null
+            New-ItemProperty $key -Name DumpCount -Value 20 -PropertyType DWord -Force | Out-Null
+          }
+          Get-ChildItem 'C:/Program Files (x86)/Windows Kits','C:/Program Files/Windows Kits' -Filter cdb.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName | Set-Content reports/debugger-paths.txt
+          exit 0
+      - name: Capture plain and zlib startup outcomes
+        run: python scripts/process-startup-diagnostics.py --run '${{ matrix.run_id }}'
+      - name: Collect Windows crash events and analyze available dumps
+        if: always()
+        shell: pwsh
+        run: |
+          $events = Get-WinEvent -FilterHashtable @{LogName='Application'; Id=1000,1001; StartTime=(Get-Date).AddHours(-1)} -ErrorAction SilentlyContinue
+          @($events | ForEach-Object { @{id=$_.Id;time=$_.TimeCreated.ToString('o');message=$_.Message;xml=$_.ToXml()} }) | ConvertTo-Json -Depth 5 | Set-Content reports/windows-crashes.json
+          $cdb = Get-Content reports/debugger-paths.txt -ErrorAction SilentlyContinue | Where-Object { $_ -match '/x64/|\\x64\\' } | Select-Object -First 1
+          if ($cdb) {
+            foreach ($dump in Get-ChildItem reports/dumps -Filter '*.dmp') {
+              & $cdb -z $dump.FullName -y "srv*$env:RUNNER_TEMP/symbols*https://msdl.microsoft.com/download/symbols;$env:RUNNER_TEMP/startup-diagnostics/x64-nts;$env:RUNNER_TEMP/startup-diagnostics/x64-ts;$env:RUNNER_TEMP/startup-diagnostics/x86-nts;$env:RUNNER_TEMP/startup-diagnostics/x86-ts" -c '.ecxr; k; lm; !analyze -v; q' 2>&1 | Set-Content ($dump.FullName + '.txt')
+            }
+          }
+          exit 0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: startup-diagnostics-${{ matrix.php }}-${{ inputs.phase }}
+          path: reports
           if-no-files-found: error
