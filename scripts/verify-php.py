@@ -25,13 +25,19 @@ for item in expected:
             files[binary.name]=actual
     verified.append(c)
 zlibs=[c for c in components if c['name']=='zlib']
-assert len(zlibs)==3 and {c['version'] for c in zlibs}=={'1.4'},('Stale/duplicate zlib identities',zlibs)
-for z in zlibs:
-    props={p['name']:p['value'] for p in z.get('properties',[])}
-    assert props['php:source-commit']=='cf7eb981cf4fce56a88608c68fd3f255a2c452c9'
+assert len(zlibs)==3,('Unexpected zlib identities',zlibs)
 sdk=next(c for c in zlibs if c['purl']=='pkg:generic/zlib@1.4')
-private=[c for c in zlibs if c['purl'].startswith('pkg:vcpkg/zlib@1.4?')]
+assert {p['name']:p['value'] for p in sdk.get('properties',[])}['php:source-commit']=='cf7eb981cf4fce56a88608c68fd3f255a2c452c9'
+private=[c for c in zlibs if c['purl'].startswith('pkg:vcpkg/zlib@')]
 assert len(private)==2 and {c['purl'].split('triplet=')[1].split('&')[0] for c in private}=={a.arch+'-windows',a.arch+'-windows-static-md'}
+baseline=next(item['privateZlib'] for item in expected if item['component']['name']=='apache')
+for wanted in baseline:
+    matches=[c for c in private if c['purl']==wanted['purl']]
+    assert len(matches)==1 and matches[0]['version']==wanted['version'],'Deferred Apache package changed'
+    actual={p['name']:p['value'] for p in matches[0].get('properties',[])}
+    original={p['name']:p['value'] for p in wanted.get('properties',[])}
+    for key,value in original.items():
+        assert actual.get(key)==value,('Deferred Apache zlib provenance changed',key)
 apache=next(c for c in verified if c['name']=='apache')
 assert all(c['bom-ref'] in deps[apache['bom-ref']] for c in private)
 for name in ['libcurl','libzip','libpng','glib','libssh2']:
@@ -39,4 +45,4 @@ for name in ['libcurl','libzip','libpng','glib','libssh2']:
     assert sdk['bom-ref'] in deps.get(cs[0]['bom-ref'],[]),(name,'Missing zlib dependency')
 assert all(c['bom-ref'] in deps for c in components),'Incomplete SBOM graph'
 pathlib.Path(a.report).write_text(json.dumps({'verified':True,'files':files,'components':verified,'zlib':zlibs},indent=2))
-print('Exact candidate package identities, runtime DLL hashes, and all three zlib 1.4 identities verified')
+print('Exact candidate package identities, runtime DLL hashes, zlib 1.4, and unchanged Apache private zlib verified')
