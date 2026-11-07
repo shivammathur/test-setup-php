@@ -8,7 +8,7 @@ function Verify($extension, $expected) {
   Assert ($LASTEXITCODE -eq 0) 'Extension verification failed'
 }
 try {
-  if ($env:PIE_CHANNEL -eq 'nightly') { Add-Tool https://php.github.io/pie/pie.phar pie '-V' }
+  if ($env:PIE_CHANNEL -eq 'nightly') { Add-Tool https://php.github.io/pie/pie-nightly.phar pie '-V' }
   if ($env:TARGET_PHP -ne '8.0') {
     node fixtures/pie-timing.cjs start binary
     Add-PieExtension fastjson 0.10.2 $false
