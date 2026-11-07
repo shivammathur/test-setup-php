@@ -1,8 +1,6 @@
 name: GH-25213 Windows OPcache regression
 run-name: GH-25213 ${{ inputs.build-run-id && format('comparison with build {0}', inputs.build-run-id) || 'release baseline' }}
 on:
-  push:
-    branches: [test/gh25213-windows-opcache]
   workflow_dispatch:
     inputs:
       build-run-id:
@@ -13,6 +11,31 @@ permissions:
   contents: read
   actions: read
 jobs:
+  platform-guard:
+    if: ${{ inputs.build-run-id != '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-src
+          ref: 568b5d0b24cc7cdaae037d3e4fd49427afb05032
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - name: Verify regression is Windows only
+        shell: bash
+        run: |
+          php -n run-tests.php -n -q ext/opcache/tests/jit/gh25213.phpt | tee guard.log
+          grep -q 'reason: Windows only' guard.log
+      - uses: actions/upload-artifact@v7
+        with:
+          name: gh25213-platform-guard-${{ matrix.os }}
+          path: guard.log
   regression:
     runs-on: windows-2022
     timeout-minutes: 25
@@ -58,13 +81,16 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $provenance = Get-Content downloads/fixed/provenance.json -Raw | ConvertFrom-Json
           $suffix = if ('${{ matrix.ts }}' -eq 'nts') { '-nts' } else { '' }
-          $pattern = '^php-8\.4\.[0-9]+[^-]*' + $suffix + '-Win32-vs17-${{ matrix.arch }}\.zip$'
+          $pattern = '^php-8\.4\.[0-9]+(?:-dev)?' + $suffix + '-Win32-vs17-${{ matrix.arch }}\.zip$'
           $archives = @(Get-ChildItem downloads/fixed/*.zip | Where-Object Name -Match $pattern)
           if ($archives.Count -ne 1) { throw 'Expected exactly one fixed runtime archive' }
           $archive = $archives[0]
           $hash = (Get-FileHash $archive.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($provenance.arch -ne '${{ matrix.arch }}' -or $provenance.ts -ne '${{ matrix.ts }}' -or
-              $provenance.runtime_sha256 -ne $hash -or $provenance.source_ref -ne 'fix/gh25213-windows-jit-buffer') {
+              $provenance.runtime_sha256 -ne $hash -or $provenance.source_ref -ne 'fix/gh25213-windows-jit-buffer' -or
+              $provenance.source_sha -ne '568b5d0b24cc7cdaae037d3e4fd49427afb05032' -or
+              $provenance.source_repository -ne 'shivammathur/php-src' -or
+              $provenance.build_run -ne '${{ inputs.build-run-id }}') {
             throw 'Fixed artifact provenance mismatch'
           }
           Copy-Item downloads/fixed/provenance.json results/fixed-provenance.json
@@ -73,6 +99,38 @@ jobs:
         if: ${{ inputs.build-run-id != '' }}
         shell: pwsh
         run: ./scripts/test.ps1 -Php runtime/fixed/php.exe -Label fixed -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}'
+      - name: Checkout exact regression source
+        if: ${{ inputs.build-run-id != '' }}
+        uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-src
+          ref: 568b5d0b24cc7cdaae037d3e4fd49427afb05032
+          path: source
+      - name: Confirm PHPT fails before and passes after the fix
+        if: ${{ inputs.build-run-id != '' }}
+        shell: pwsh
+        env:
+          NO_INTERACTION: '1'
+          REPORT_EXIT_STATUS: '1'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($label in @('baseline', 'fixed')) {
+            $php = (Resolve-Path "runtime/$label/php.exe").Path
+            $dll = (Resolve-Path "runtime/$label/ext/php_opcache.dll").Path
+            $env:TEST_PHP_EXECUTABLE = $php
+            $env:TEST_PHP_JUNIT = "$env:GITHUB_WORKSPACE/results/$label-phpt.xml"
+            & $php -n source/run-tests.php -n -d "zend_extension=$dll" -d opcache.enable_cli=1 -q --show-diff `
+              source/ext/opcache/tests/jit/gh25213.phpt | Tee-Object "results/$label-phpt.txt"
+            $exitCode = $LASTEXITCODE
+            $expected = if ($label -eq 'baseline') { 'FAIL GH-25213' } else { 'PASS GH-25213' }
+            if (!(Select-String -Quiet -Path "results/$label-phpt.txt" -Pattern $expected) -or
+                ($label -eq 'fixed' -and $exitCode -ne 0) -or ($label -eq 'baseline' -and $exitCode -eq 0)) {
+              throw "Unexpected $label PHPT result: $exitCode"
+            }
+            Get-ChildItem source/ext/opcache/tests/jit/gh25213.* |
+              Where-Object Extension -In @('.out', '.diff', '.log') |
+              Copy-Item -Destination "results/$label/"
+          }
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v7

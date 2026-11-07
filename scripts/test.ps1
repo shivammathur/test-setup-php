@@ -79,6 +79,8 @@ foreach ($reattach in @($false, $true)) {
                 if (!$info.jit.enabled -or $info.jit.buffer_size -lt 60000000 -or [bool]$info.jit.on -ne ($mode -eq 'tracing')) {
                     throw "JIT configuration did not take effect: $($startLine[0])"
                 }
+            } elseif ($info.jit.enabled) {
+                throw "JIT was not disabled for the control: $($startLine[0])"
             }
             $shouldCrash = $ExpectBug -and $mode -in @('tracing', 'off')
             if ($shouldCrash) {
