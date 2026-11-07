@@ -126,12 +126,31 @@ jobs:
         shell: pwsh
         run: ./scripts/test.ps1 -Php runtime/fixed/php.exe -Label fixed -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}'
       - name: Checkout exact regression source
-        if: ${{ inputs.build-run-id != '' }}
         uses: actions/checkout@v6
         with:
           repository: shivammathur/php-src
           ref: 568b5d0b24cc7cdaae037d3e4fd49427afb05032
           path: source
+      - name: Diagnose GH-25165 on the unmodified release
+        if: ${{ inputs.build-run-id == '' }}
+        shell: pwsh
+        env:
+          NO_INTERACTION: '1'
+          REPORT_EXIT_STATUS: '1'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $php = (Resolve-Path runtime/baseline/php.exe).Path
+          $dll = (Resolve-Path runtime/baseline/ext/php_opcache.dll).Path
+          $env:TEST_PHP_EXECUTABLE = $php
+          & $php -n source/run-tests.php -n -d "zend_extension=$dll" -d opcache.enable_cli=1 -q --no-color --show-diff `
+            source/ext/opcache/tests/jit/gh25165.phpt | Tee-Object results/baseline-gh25165.txt
+          $exitCode = $LASTEXITCODE
+          @{ exit=$exitCode; baseline='8.4.27-1'; test='gh25165.phpt' } |
+            ConvertTo-Json | Set-Content results/baseline-gh25165.json
+          if (!(Select-String -Quiet -Path results/baseline-gh25165.txt -Pattern '(PASS|FAIL) GH-25165')) {
+            throw 'The diagnostic did not execute'
+          }
+          exit 0
       - name: Confirm PHPT fails before and passes after the fix
         if: ${{ inputs.build-run-id != '' }}
         shell: pwsh
