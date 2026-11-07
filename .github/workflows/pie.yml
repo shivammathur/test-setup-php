@@ -1,0 +1,59 @@
+name: Validate PIE CLI helpers
+on: push
+permissions:
+  contents: read
+jobs:
+  pie:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest, php: '8.5', phpts: nts, pie: stable}
+          - {os: macos-latest, php: '8.5', phpts: nts, pie: stable}
+          - {os: windows-latest, php: '8.5', phpts: nts, pie: stable}
+          - {os: windows-latest, php: '8.5', phpts: ts, pie: stable}
+          - {os: ubuntu-latest, php: '8.0', phpts: nts, pie: stable}
+          - {os: windows-latest, php: '8.0', phpts: nts, pie: stable}
+          - {os: ubuntu-latest, php: '8.5', phpts: nts, pie: nightly}
+          - {os: macos-latest, php: '8.5', phpts: nts, pie: nightly}
+          - {os: windows-latest, php: '8.5', phpts: nts, pie: nightly}
+    runs-on: ${{ matrix.os }}
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      PHPTS: ${{ matrix.phpts }}
+      PIE_CHANNEL: ${{ matrix.pie }}
+      TARGET_PHP: ${{ matrix.php }}
+      PIE_DEBUG_PROCESS_COUNT: '1'
+      fail_fast: 'true'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: shivammathur/setup-php
+          ref: 933e5da531f4df6639eefcdaa1f3cf6b3fa4791e
+          path: setup-php
+          persist-credentials: false
+      - uses: ./setup-php
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ':apcu'
+          coverage: none
+          tools: none
+      - name: Validate Unix helper
+        if: runner.os != 'Windows'
+        shell: bash
+        run: bash -c 'source "$0"; cd "$GITHUB_WORKSPACE"; source fixtures/pie.sh' "$GITHUB_WORKSPACE/setup-php/src/scripts/run.sh"
+      - name: Validate Windows helper
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./fixtures/pie.ps1
+      - name: Sanitize diagnostic logs
+        if: always()
+        run: node fixtures/pie-timing.cjs sanitize
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: pie-${{ runner.os }}-${{ matrix.php }}-${{ matrix.phpts }}-${{ matrix.pie }}
+          path: artifacts/pie-*
