@@ -11,6 +11,31 @@ permissions:
   contents: read
   actions: read
 jobs:
+  wait-builder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Wait for completed and validated build artifacts
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN_ID: ${{ inputs.build-run-id }}
+        run: |
+          if [[ -z "$BUILD_RUN_ID" ]]; then exit 0; fi
+          [[ "$BUILD_RUN_ID" =~ ^[0-9]+$ ]]
+          for attempt in $(seq 1 150); do
+            run=$(gh api "repos/shivammathur/php-windows-builder/actions/runs/$BUILD_RUN_ID")
+            if [[ $(jq -r .head_branch <<< "$run") != 'test/gh25213-windows-opcache' ]]; then
+              echo 'Unexpected builder branch'; exit 1
+            fi
+            if [[ $(jq -r .status <<< "$run") == completed ]]; then
+              [[ $(jq -r .conclusion <<< "$run") == success ]]
+              exit $?
+            fi
+            echo "Waiting for builder run $BUILD_RUN_ID (poll $attempt)"
+            sleep 45
+          done
+          echo 'Timed out waiting for build artifacts'; exit 1
   platform-guard:
     if: ${{ inputs.build-run-id != '' }}
     strategy:
@@ -37,6 +62,7 @@ jobs:
           name: gh25213-platform-guard-${{ matrix.os }}
           path: guard.log
   regression:
+    needs: wait-builder
     runs-on: windows-2022
     timeout-minutes: 25
     strategy:
