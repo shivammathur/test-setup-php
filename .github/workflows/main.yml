@@ -1,0 +1,82 @@
+name: GH-25213 Windows OPcache regression
+run-name: GH-25213 ${{ inputs.build-run-id && format('comparison with build {0}', inputs.build-run-id) || 'release baseline' }}
+on:
+  push:
+    branches: [test/gh25213-windows-opcache]
+  workflow_dispatch:
+    inputs:
+      build-run-id:
+        description: php-windows-builder run containing the fixed artifacts
+        required: false
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  regression:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86]
+        ts: [ts, nts]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install latest PHP 8.4 Windows release
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force results | Out-Null
+          $releases = Invoke-RestMethod 'https://windows.php.net/downloads/releases/releases.json'
+          $release = $releases.'8.4'
+          if ($release.version -ne '8.4.27-1') { throw "Baseline changed: $($release.version)" }
+          $package = $release.'${{ matrix.ts }}-vs17-${{ matrix.arch }}'.zip
+          $url = "https://windows.php.net/downloads/releases/$($package.path)"
+          Invoke-WebRequest $url -OutFile baseline.zip
+          $hash = (Get-FileHash baseline.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne $package.sha256) { throw 'Official baseline checksum mismatch' }
+          Expand-Archive baseline.zip runtime/baseline
+          @{ version=$release.version; url=$url; sha256=$hash; manifest=$release } |
+            ConvertTo-Json -Depth 8 | Set-Content results/baseline-provenance.json
+      - name: Reproduce release crash and verify controls
+        shell: pwsh
+        run: ./scripts/test.ps1 -Php runtime/baseline/php.exe -Label baseline -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}' -ExpectBug
+      - name: Download fixed build artifacts
+        if: ${{ inputs.build-run-id != '' }}
+        uses: actions/download-artifact@v8
+        with:
+          name: gh25213-${{ matrix.arch }}-${{ matrix.ts }}
+          path: downloads/fixed
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ inputs.build-run-id }}
+          github-token: ${{ github.token }}
+      - name: Verify and extract fixed artifact
+        if: ${{ inputs.build-run-id != '' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $provenance = Get-Content downloads/fixed/provenance.json -Raw | ConvertFrom-Json
+          $suffix = if ('${{ matrix.ts }}' -eq 'nts') { '-nts' } else { '' }
+          $pattern = '^php-8\.4\.[0-9]+[^-]*' + $suffix + '-Win32-vs17-${{ matrix.arch }}\.zip$'
+          $archives = @(Get-ChildItem downloads/fixed/*.zip | Where-Object Name -Match $pattern)
+          if ($archives.Count -ne 1) { throw 'Expected exactly one fixed runtime archive' }
+          $archive = $archives[0]
+          $hash = (Get-FileHash $archive.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($provenance.arch -ne '${{ matrix.arch }}' -or $provenance.ts -ne '${{ matrix.ts }}' -or
+              $provenance.runtime_sha256 -ne $hash -or $provenance.source_ref -ne 'fix/gh25213-windows-jit-buffer') {
+            throw 'Fixed artifact provenance mismatch'
+          }
+          Copy-Item downloads/fixed/provenance.json results/fixed-provenance.json
+          Expand-Archive $archive.FullName runtime/fixed
+      - name: Verify fixed artifacts with identical workloads
+        if: ${{ inputs.build-run-id != '' }}
+        shell: pwsh
+        run: ./scripts/test.ps1 -Php runtime/fixed/php.exe -Label fixed -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}'
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gh25213-results-${{ matrix.arch }}-${{ matrix.ts }}
+          path: results
+          if-no-files-found: error
