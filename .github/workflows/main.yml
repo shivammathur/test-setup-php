@@ -25,12 +25,15 @@ jobs:
           [[ "$BUILD_RUN_ID" =~ ^[0-9]+$ ]]
           for attempt in $(seq 1 150); do
             run=$(gh api "repos/shivammathur/php-windows-builder/actions/runs/$BUILD_RUN_ID")
-            if [[ $(jq -r .head_branch <<< "$run") != 'test/gh25213-windows-opcache' ]]; then
-              echo 'Unexpected builder branch'; exit 1
+            if [[ $(jq -r .path <<< "$run") != '.github/workflows/test-php-libs-from-source.yml' ]]; then
+              echo 'Unexpected source-build workflow'; exit 1
+            fi
+            jobs=$(gh api "repos/shivammathur/php-windows-builder/actions/runs/$BUILD_RUN_ID/jobs?per_page=100")
+            if [[ $(jq '[.jobs[] | select(.name == "artifacts" and .conclusion == "success")] | length' <<< "$jobs") == 1 ]]; then
+              exit 0
             fi
             if [[ $(jq -r .status <<< "$run") == completed ]]; then
-              [[ $(jq -r .conclusion <<< "$run") == success ]]
-              exit $?
+              echo 'Build completed without merged artifacts'; exit 1
             fi
             echo "Waiting for builder run $BUILD_RUN_ID (poll $attempt)"
             sleep 45
@@ -47,7 +50,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: shivammathur/php-src
-          ref: 568b5d0b24cc7cdaae037d3e4fd49427afb05032
+          ref: 743f3d968ee9d780fc9c5455d3f8c8298ce292d1
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
@@ -95,31 +98,45 @@ jobs:
         if: ${{ inputs.build-run-id != '' }}
         uses: actions/download-artifact@v8
         with:
-          name: gh25213-${{ matrix.arch }}-${{ matrix.ts }}
+          name: artifacts
           path: downloads/fixed
           repository: shivammathur/php-windows-builder
           run-id: ${{ inputs.build-run-id }}
           github-token: ${{ github.token }}
       - name: Verify and extract fixed artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
         if: ${{ inputs.build-run-id != '' }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $provenance = Get-Content downloads/fixed/provenance.json -Raw | ConvertFrom-Json
           $suffix = if ('${{ matrix.ts }}' -eq 'nts') { '-nts' } else { '' }
           $pattern = '^php-8\.4\.[0-9]+(?:-dev)?' + $suffix + '-Win32-vs17-${{ matrix.arch }}\.zip$'
           $archives = @(Get-ChildItem downloads/fixed/*.zip | Where-Object Name -Match $pattern)
           if ($archives.Count -ne 1) { throw 'Expected exactly one fixed runtime archive' }
           $archive = $archives[0]
           $hash = (Get-FileHash $archive.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($provenance.arch -ne '${{ matrix.arch }}' -or $provenance.ts -ne '${{ matrix.ts }}' -or
-              $provenance.runtime_sha256 -ne $hash -or $provenance.source_ref -ne 'fix/gh25213-windows-jit-buffer' -or
-              $provenance.source_sha -ne '568b5d0b24cc7cdaae037d3e4fd49427afb05032' -or
-              $provenance.source_repository -ne 'shivammathur/php-src' -or
-              $provenance.build_run -ne '${{ inputs.build-run-id }}') {
-            throw 'Fixed artifact provenance mismatch'
+          $runId = '${{ inputs.build-run-id }}'
+          $headers = @{ Authorization="Bearer $env:GH_TOKEN"; Accept='application/vnd.github+json' }
+          $api = "https://api.github.com/repos/shivammathur/php-windows-builder/actions/runs/$runId"
+          $run = Invoke-RestMethod $api -Headers $headers
+          if ($run.path -ne '.github/workflows/test-php-libs-from-source.yml' -or $run.head_branch -ne 'master') {
+            throw 'Unexpected build workflow or branch'
           }
-          Copy-Item downloads/fixed/provenance.json results/fixed-provenance.json
+          $jobs = Invoke-RestMethod "$api/jobs?per_page=100" -Headers $headers
+          $resolver = @($jobs.jobs | Where-Object { $_.name -eq 'resolve-runner' -and $_.conclusion -eq 'success' })
+          if ($resolver.Count -ne 1) { throw 'Missing successful source resolution job' }
+          $logUrl = "https://api.github.com/repos/shivammathur/php-windows-builder/actions/jobs/$($resolver[0].id)/logs"
+          $log = (Invoke-WebRequest $logUrl -Headers $headers).Content
+          $sourceSha = '743f3d968ee9d780fc9c5455d3f8c8298ce292d1'
+          if ($log -notmatch "(?m)^\S+\s+$sourceSha\s*$" -or $log -notmatch 'repository: shivammathur/php-src') {
+            throw 'Builder source commit or repository does not match the fix'
+          }
+          $log | Set-Content results/source-resolution.log
+          @{ source_sha=$sourceSha; source_repository='shivammathur/php-src'; build_run=$runId;
+             builder_sha=$run.head_sha; runtime_archive=$archive.Name; runtime_sha256=$hash;
+             arch='${{ matrix.arch }}'; ts='${{ matrix.ts }}' } |
+            ConvertTo-Json | Set-Content results/fixed-provenance.json
           Expand-Archive $archive.FullName runtime/fixed
       - name: Verify fixed artifacts with identical workloads
         if: ${{ inputs.build-run-id != '' }}
@@ -129,28 +146,8 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: shivammathur/php-src
-          ref: 568b5d0b24cc7cdaae037d3e4fd49427afb05032
+          ref: 743f3d968ee9d780fc9c5455d3f8c8298ce292d1
           path: source
-      - name: Diagnose GH-25165 on the unmodified release
-        if: ${{ inputs.build-run-id == '' }}
-        shell: pwsh
-        env:
-          NO_INTERACTION: '1'
-          REPORT_EXIT_STATUS: '1'
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $php = (Resolve-Path runtime/baseline/php.exe).Path
-          $dll = (Resolve-Path runtime/baseline/ext/php_opcache.dll).Path
-          $env:TEST_PHP_EXECUTABLE = $php
-          & $php -n source/run-tests.php -n -d "zend_extension=$dll" -d opcache.enable_cli=1 -q --no-color --show-diff `
-            source/ext/opcache/tests/jit/gh25165.phpt | Tee-Object results/baseline-gh25165.txt
-          $exitCode = $LASTEXITCODE
-          @{ exit=$exitCode; baseline='8.4.27-1'; test='gh25165.phpt' } |
-            ConvertTo-Json | Set-Content results/baseline-gh25165.json
-          if (!(Select-String -Quiet -Path results/baseline-gh25165.txt -Pattern '(PASS|FAIL) GH-25165')) {
-            throw 'The diagnostic did not execute'
-          }
-          exit 0
       - name: Confirm PHPT fails before and passes after the fix
         if: ${{ inputs.build-run-id != '' }}
         shell: pwsh
@@ -164,7 +161,7 @@ jobs:
             $dll = (Resolve-Path "runtime/$label/ext/php_opcache.dll").Path
             $env:TEST_PHP_EXECUTABLE = $php
             $env:TEST_PHP_JUNIT = "$env:GITHUB_WORKSPACE/results/$label-phpt.xml"
-            & $php -n source/run-tests.php -n -d "zend_extension=$dll" -d opcache.enable_cli=1 -q --show-diff `
+            & $php -n source/run-tests.php -n -d "zend_extension=$dll" -d opcache.enable_cli=1 -q --no-color --show-diff `
               source/ext/opcache/tests/jit/gh25213.phpt | Tee-Object "results/$label-phpt.txt"
             $exitCode = $LASTEXITCODE
             $expected = if ($label -eq 'baseline') { 'FAIL GH-25213' } else { 'PASS GH-25213' }
