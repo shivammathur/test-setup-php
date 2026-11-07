@@ -4,7 +4,7 @@ mkdir -p artifacts
 install_pie() { if pie_install "$@"; then return 0; else return $?; fi; }
 trap 'cp /tmp/pie-*.log artifacts/ 2>/dev/null || true' EXIT
 if [ "$PIE_CHANNEL" = nightly ]; then
-  add_tool https://php.github.io/pie/pie-nightly.phar pie '-V'
+  add_tool https://php.github.io/pie/pie-nightly.phar pie '-V' || exit 1
 fi
 if [ "$TARGET_PHP" != 8.0 ]; then
   node fixtures/pie-timing.cjs start binary
@@ -23,7 +23,7 @@ if [ "$TARGET_PHP" != 8.0 ]; then
     echo 'Wrong installed version incorrectly satisfied a pin'; exit 1
   fi
   php fixtures/pie-verify.php fastjson 0.10.2
-  disable_extension_helper fastjson true
+  disable_extension_helper fastjson true || exit 1
   sudo rm -f /tmp/php"$version"_extensions
   node fixtures/pie-timing.cjs start reenable
   install_pie fastjson 'iliaal/fastjson:0.10.2' false
@@ -36,7 +36,9 @@ if pie_install apcu 'apcu/apcu:5.1.28' false; then
 fi
 node fixtures/pie-timing.cjs end source_blocked
 grep -q 'AllDownloadUrlMethodsSuppressed' /tmp/pie-apcu.log
-! check_extension apcu
+if check_extension apcu; then
+  echo 'Source-only extension is loaded after binary-only request'; exit 1
+fi
 if [ "$TARGET_PHP" = 8.0 ]; then
   grep -q 'Target PHP installation:.*8.0.' /tmp/pie-apcu.log
   [ -x "$tool_path_dir/pie-cli" ]

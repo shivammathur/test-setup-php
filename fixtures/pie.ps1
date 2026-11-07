@@ -43,6 +43,10 @@ try {
     Assert ($log -match 'Target PHP installation:.*8.0\.') 'PIE did not target PHP 8.0'
     Assert (Test-Path "$bin_dir/pie-cli.exe") 'Standalone PIE missing'
   }
+  if ($env:PIE_CHANNEL -eq 'nightly') {
+    php fixtures/pie-pkgconfig.php (Join-Path $bin_dir 'pie')
+    Assert ($LASTEXITCODE -eq 0) 'pkg-config diagnostics failed'
+  }
   Write-Host 'PIE Windows checks passed'
 } finally {
   Get-ChildItem "$env:TEMP/pie-*.log" -ErrorAction SilentlyContinue | Copy-Item -Destination artifacts
