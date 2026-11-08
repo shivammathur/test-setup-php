@@ -7,42 +7,50 @@ $diagnostics = Join-Path $env:GITHUB_WORKSPACE diagnostics
 New-Item $root, $diagnostics -ItemType Directory -Force | Out-Null
 Start-Transcript "$diagnostics/transcript.txt"
 $tsSuffix = if ($env:PHP_TS -eq 'nts') { '-nts' } else { '' }
-$asset = "php-$env:PHP_VERSION.0-dev$tsSuffix-Win32-vs18-$env:PHP_ARCH.zip"
-$fixture = Join-Path $root $asset
-for ($attempt = 0; $attempt -lt 3; $attempt++) {
-  & gh release download "php$env:PHP_VERSION" --repo shivammathur/php-builder-windows --pattern $asset --dir $root --clobber
-  if ($LASTEXITCODE -eq 0) { break }
+$branch = if ($env:PHP_VERSION -eq '8.6') { 'PHP-8.6' } else { 'master' }
+$header = (Microsoft.PowerShell.Utility\Invoke-WebRequest "https://raw.githubusercontent.com/php/php-src/$branch/main/php_version.h").Content
+if ($header -notmatch 'PHP_VERSION "([^"]+)"') { throw 'Could not resolve PHP version' }
+$semver = $Matches[1]
+$fixtures = @{}
+foreach ($version in @("$env:PHP_VERSION.0-dev", $semver) | Select-Object -Unique) {
+  $asset = "php-$version$tsSuffix-Win32-vs18-$env:PHP_ARCH.zip"
+  for ($attempt = 0; $attempt -lt 3; $attempt++) {
+    & gh release download "php$env:PHP_VERSION" --repo shivammathur/php-builder-windows --pattern $asset --dir $root --clobber
+    if ($LASTEXITCODE -eq 0) { break }
+  }
+  if ($LASTEXITCODE -ne 0) { throw "Failed to obtain PHP archive fixture: $asset" }
+  $fixtures[$asset] = Join-Path $root $asset
+  Get-FileHash $fixtures[$asset] | Format-List
 }
-if ($LASTEXITCODE -ne 0) { throw 'Failed to obtain PHP archive fixture' }
-Get-FileHash $fixture | Format-List
 $hashes = Get-Content "$PSScriptRoot/extension-sha256.json" -Raw | ConvertFrom-Json -AsHashtable
-$script:requests = [System.Collections.Generic.List[string]]::new()
-$script:failMirror = $false
+$requestState = @{requests=[System.Collections.Generic.List[string]]::new(); failMirror=$false}
 function Invoke-WebRequest {
   param([string]$Uri, [string]$OutFile, [int]$TimeoutSec)
   if ($Uri -like 'https://github.com/shivammathur/php-extensions-windows/*') {
-    $script:requests.Add("github:$Uri")
+    $requestState.requests.Add("github:$Uri")
     throw "Injected GitHub HTTP 504: $Uri"
   }
   if ($Uri -like 'https://artifacts.php-extensions-windows.setup-php.com/*') {
-    $script:requests.Add("r2:$Uri")
-    if ($script:failMirror) { throw 'Injected mirror outage' }
+    $requestState.requests.Add("r2:$Uri")
+    if ($requestState.failMirror) { throw 'Injected mirror outage' }
     Microsoft.PowerShell.Utility\Invoke-WebRequest -Uri $Uri -OutFile $OutFile -TimeoutSec $TimeoutSec
     return
   }
   if ($Uri -like '*php-builder-windows*' -and $Uri -like '*.zip') {
-    if (-not $Uri.EndsWith("/$asset")) { throw "Unexpected archive selection: $Uri" }
-    Copy-Item $fixture $OutFile -Force
+    $fileName = $Uri.Split('/')[-1]
+    if (-not $fixtures.ContainsKey($fileName)) { throw "Unexpected archive selection: $Uri" }
+    Copy-Item $fixtures[$fileName] $OutFile -Force
     return
   }
+  if ($Uri -like '*main/php_version.h') { return $header }
   if ($OutFile) { Microsoft.PowerShell.Utility\Invoke-WebRequest -Uri $Uri -OutFile $OutFile -TimeoutSec $TimeoutSec }
   else { Microsoft.PowerShell.Utility\Invoke-WebRequest -Uri $Uri -TimeoutSec $TimeoutSec }
 }
 $results = @()
 foreach ($installer in 'Get-Php.ps1', 'Get-PhpNightly.ps1') {
   foreach ($outage in $false, $true) {
-    $script:failMirror = $outage
-    $script:requests.Clear()
+    $requestState.failMirror = $outage
+    $requestState.requests.Clear()
     $dir = Join-Path $root "$installer-$outage"
     $installerError = $null
     try {
@@ -50,8 +58,8 @@ foreach ($installer in 'Get-Php.ps1', 'Get-PhpNightly.ps1') {
     } catch { $installerError = $_.Exception.Message }
     if (-not $outage -and $installerError) { throw $installerError }
     if ($outage -and $installerError -notlike '*Failed to download the assets*php-extensions-windows*') { throw "Unexpected outage outcome: $installerError" }
-    $githubCount = @($script:requests | Where-Object { $_ -like 'github:*' }).Count
-    $mirrorCount = @($script:requests | Where-Object { $_ -like 'r2:*' }).Count
+    $githubCount = @($requestState.requests | Where-Object { $_ -like 'github:*' }).Count
+    $mirrorCount = @($requestState.requests | Where-Object { $_ -like 'r2:*' }).Count
     if ($githubCount -ne $(if ($outage) { 3 } else { 6 })) { throw "Unexpected primary attempts: $githubCount" }
     if ($mirrorCount -ne $(if ($outage) { 1 } else { 2 })) { throw "Unexpected mirror attempts: $mirrorCount" }
     $php = Get-Php -Path $dir
