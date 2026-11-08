@@ -22,6 +22,7 @@ jobs:
         shell: pwsh
         env:
           PHP_VERSION: ${{ matrix.php }}
+          GH_TOKEN: ${{ github.token }}
         run: ./scripts/installer-failure.ps1
       - name: Upload evidence
         if: always()

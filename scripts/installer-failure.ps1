@@ -1,15 +1,25 @@
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+$PSNativeCommandUseErrorActionPreference = $false
 Import-Module PhpManager -RequiredVersion 1.36.1
 $root = Join-Path $env:RUNNER_TEMP interrupted-installer
 $diagnostics = Join-Path $env:GITHUB_WORKSPACE diagnostics
 New-Item $root, $diagnostics -ItemType Directory -Force | Out-Null
 Start-Transcript "$diagnostics/transcript.txt"
 $installer = Join-Path $root Get-PhpNightly.ps1
-Invoke-WebRequest https://github.com/shivammathur/php-builder-windows/releases/latest/download/Get-PhpNightly.ps1 -OutFile $installer
+function Download-Fixture([string]$Tag, [string]$Asset) {
+  for ($attempt = 1; $attempt -le 3; $attempt++) {
+    & gh release download $Tag --repo shivammathur/php-builder-windows --pattern $Asset --dir $root --clobber
+    if ($LASTEXITCODE -eq 0 -and (Test-Path (Join-Path $root $Asset))) { return }
+    Start-Sleep -Seconds 2
+  }
+  throw "Could not download fixture $Tag/$Asset"
+}
+Download-Fixture php8.7 Get-PhpNightly.ps1
 $fixture = Join-Path $root nightly.zip
 $asset = "php-$env:PHP_VERSION.0-dev-nts-Win32-vs18-x64.zip"
-Invoke-WebRequest "https://github.com/shivammathur/php-builder-windows/releases/download/php$env:PHP_VERSION/$asset" -OutFile $fixture
+Download-Fixture "php$env:PHP_VERSION" $asset
+Move-Item (Join-Path $root $asset) $fixture -Force
 Get-FileHash $installer, $fixture | Format-List
 $original = Get-Content $installer -Raw
 $optionalLine = '"xdebug", "pcov" | ForEach-Object'
