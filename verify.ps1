@@ -27,7 +27,11 @@ public static class NativeFixture {
     private static FileStream Open(string path, bool write) {
         SafeFileHandle h = CreateFileW(path, write ? 0x40000000u : 0x80000000u,
             7, IntPtr.Zero, write ? 2u : 3u, 0x80, IntPtr.Zero);
-        if (h.IsInvalid) { throw new Win32Exception(Marshal.GetLastWin32Error(), path); }
+        if (h.IsInvalid) {
+            int error = Marshal.GetLastWin32Error();
+            h.Dispose();
+            throw new Win32Exception(error, path + ": " + new Win32Exception(error).Message);
+        }
         if (GetFileType(h) != 1) { h.Dispose(); throw new IOException("Not a disk file: " + path); }
         return new FileStream(h, write ? FileAccess.Write : FileAccess.Read);
     }
@@ -77,18 +81,35 @@ try {
     Start-Service LanmanServer
     New-SmbShare -Name $share -Path $allowed -FullAccess ([Security.Principal.WindowsIdentity]::GetCurrent().Name) | Out-Null
     $shareCreated = $true
-    $native = foreach ($path in @("\\.\$allowed\NUL", "\\.\UNC\localhost\$share\NUL")) {
-        $contents = [NativeFixture]::Read($path)
-        if ($contents -cne $nulPayload) { throw "Native fixture is not the expected file: $path" }
-        @{ path = $path; content = $contents; type = 'FILE_TYPE_DISK' }
+    if ([NativeFixture]::Read("\\.\$allowed\NUL") -cne $nulPayload) { throw 'Local NUL fixture invalid' }
+    Get-SmbShareAccess -Name $share | Select-Object AccountName, AccessControlType, AccessRight |
+        ConvertTo-Json | Set-Content reports/share-access.json
+    $native = @()
+    foreach ($server in @('localhost', $env:COMPUTERNAME, '127.0.0.1')) {
+        foreach ($prefix in @('\\.\UNC\', '\\?\UNC\', '\\')) {
+            foreach ($name in @('ok.txt', 'NUL')) {
+                $path = "$prefix$server\$share\$name"
+                $record = [ordered]@{ path = $path; server = $server; prefix = $prefix; name = $name; content = $null; error = $null; code = $null }
+                try { $record.content = [NativeFixture]::Read($path) }
+                catch {
+                    $error = $_.Exception.GetBaseException()
+                    $record.error = $error.Message
+                    $record.code = $error.NativeErrorCode
+                }
+                $native += [pscustomobject]$record
+            }
+        }
     }
-    $native | ConvertTo-Json | Set-Content reports/native-controls.json
+    $native | ConvertTo-Json -Depth 4 | Set-Content reports/native-controls.json
+    $native | Format-Table path, content, code -AutoSize
+    $working = $native | Where-Object { $_.prefix -eq '\\.\UNC\' -and $_.name -eq 'ok.txt' -and $_.content -ceq $ordinaryPayload } | Select-Object -First 1
+    $server = if ($working) { $working.server } else { 'localhost' }
 
     $cases = @(
         @{ id = 'local-ordinary'; path = "\\.\$allowed\ok.txt"; mode = 'none'; payload = $ordinaryPayload },
         @{ id = 'local-nul'; path = "\\.\$allowed\NUL"; mode = 'none'; payload = $nulPayload },
-        @{ id = 'unc-ordinary'; path = "\\.\UNC\localhost\$share\ok.txt"; mode = 'none'; payload = $ordinaryPayload },
-        @{ id = 'unc-nul'; path = "\\.\UNC\localhost\$share\NUL"; mode = 'none'; payload = $nulPayload; regression = $true },
+        @{ id = 'unc-ordinary'; path = "\\.\UNC\$server\$share\ok.txt"; mode = 'none'; payload = $ordinaryPayload },
+        @{ id = 'unc-nul'; path = "\\.\UNC\$server\$share\NUL"; mode = 'none'; payload = $nulPayload; regression = $true },
         @{ id = 'basedir-ordinary'; path = "\\.\$allowed\ok.txt"; mode = 'startup'; payload = $ordinaryPayload },
         @{ id = 'basedir-nul-startup'; path = "\\.\$allowed\NUL"; mode = 'startup'; payload = $nulPayload; regression = $true },
         @{ id = 'basedir-nul-runtime'; path = "\\.\$allowed\NUL"; mode = 'runtime'; payload = $nulPayload; regression = $true },
@@ -97,6 +118,7 @@ try {
     )
     $code = (Get-Content probe.php -Raw) -replace '^<\?php\s*', ''
     $summary = @()
+    $failures = @()
     foreach ($case in $cases) {
         $observations = @{}
         foreach ($variant in @('parent', 'pr')) {
@@ -114,15 +136,17 @@ try {
             $readOk = $result.read.value -is [string] -and $result.read.value -ceq $case.payload
             $observations[$variant] = $readOk
             if ($case.denied) {
-                if ($result.read.value -cne $false) { throw "Negative control failed: $variant / $($case.id)" }
+                if ($result.read.value -cne $false) { $failures += "Negative control failed: $variant / $($case.id)" }
             } elseif (!$case.regression -and !$readOk) {
-                throw "Positive control failed: $variant / $($case.id)"
+                $failures += "Positive control failed: $variant / $($case.id)"
             }
         }
         $verdict = 'control passed'
         if ($case.regression) {
-            if (!$observations.parent) { throw "Baseline did not pass: $($case.id); no regression conclusion is valid" }
-            $verdict = if ($observations.pr) { 'not reproduced' } else { 'regression confirmed' }
+            $verdict = if (!$observations.parent) { 'not confirmed: parent also fails' }
+                elseif ($observations.pr) { 'not reproduced' } else { 'regression confirmed' }
+        } elseif ($failures -match [regex]::Escape($case.id)) {
+            $verdict = 'control failed'
         }
         $summary += [pscustomobject]@{ case = $case.id; parentRead = $observations.parent; prRead = $observations.pr; verdict = $verdict }
     }
@@ -132,6 +156,7 @@ try {
     $table | Set-Content reports/summary.md
     $table | Add-Content $env:GITHUB_STEP_SUMMARY
     $summary | Format-Table -AutoSize
+    if ($failures.Count) { throw ($failures -join "`n") }
 } finally {
     if ($shareCreated) { Remove-SmbShare -Name $share -Force }
     if (![NativeFixture]::DeleteFileW("\\?\$allowed\NUL")) { Write-Warning 'NUL fixture cleanup failed' }

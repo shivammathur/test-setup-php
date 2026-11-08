@@ -4,12 +4,19 @@ on:
   push:
     branches: [test/pr24246-path-regressions-20261108]
   workflow_dispatch:
+    inputs:
+      rebuild:
+        description: Rebuild both pinned source revisions instead of reusing validated artifacts
+        type: boolean
+        default: false
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   build:
+    if: ${{ inputs.rebuild == true }}
     name: Build ${{ matrix.source.variant }} ${{ matrix.ts }}
     runs-on: windows-2022
     timeout-minutes: 90
@@ -61,6 +68,7 @@ jobs:
   verify:
     name: Compare ${{ matrix.os }} ${{ matrix.ts }}
     needs: build
+    if: ${{ !cancelled() && needs.build.result != 'failure' }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
@@ -74,6 +82,8 @@ jobs:
         with:
           pattern: php-*-${{ matrix.ts }}
           path: binaries
+          run-id: ${{ inputs.rebuild && github.run_id || '42464153753' }}
+          github-token: ${{ github.token }}
       - name: Compare native-verified fixtures with both PHP builds
         shell: pwsh
         env:
