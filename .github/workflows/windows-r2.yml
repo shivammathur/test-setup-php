@@ -1,0 +1,36 @@
+name: Windows extension R2 fallback
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fallback:
+    name: PHP ${{ matrix.php }} ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: windows-2022
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.6', '8.7']
+        arch: [x64, x86]
+        ts: [nts, ts]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install PhpManager
+        shell: pwsh
+        run: Install-Module PhpManager -RequiredVersion 1.36.1 -Force -Scope CurrentUser
+      - name: Test both installers with unavailable GitHub downloads
+        shell: pwsh
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          PHP_ARCH: ${{ matrix.arch }}
+          PHP_TS: ${{ matrix.ts }}
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/check-fallback.ps1
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: r2-${{ matrix.php }}-${{ matrix.arch }}-${{ matrix.ts }}
+          path: diagnostics
+          if-no-files-found: error
