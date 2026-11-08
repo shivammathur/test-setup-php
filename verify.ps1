@@ -92,9 +92,9 @@ try {
                 $record = [ordered]@{ path = $path; server = $server; prefix = $prefix; name = $name; content = $null; error = $null; code = $null }
                 try { $record.content = [NativeFixture]::Read($path) }
                 catch {
-                    $error = $_.Exception.GetBaseException()
-                    $record.error = $error.Message
-                    $record.code = $error.NativeErrorCode
+                    $nativeError = $_.Exception.GetBaseException()
+                    $record.error = $nativeError.Message
+                    $record.code = $nativeError.NativeErrorCode
                 }
                 $native += [pscustomobject]$record
             }
