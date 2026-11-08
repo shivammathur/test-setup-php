@@ -1,0 +1,55 @@
+name: Windows nightly extension diagnostics
+on: push
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    name: PHP ${{ matrix.php }} ${{ matrix.ts }}
+    runs-on: windows-2022
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.6', '8.7']
+        ts: [nts, ts]
+    env:
+      PHPTS: ${{ matrix.ts }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: a08b58bc778766a626d96201dacf04a86a0d6aea
+          path: setup-php
+          persist-credentials: false
+      - name: Reproduce setup-php
+        id: setup
+        continue-on-error: true
+        uses: ./setup-php
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: xml, opcache, xdebug, pcov, gd
+          ini-values: post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata
+      - name: Inspect installed and pristine release artifacts
+        if: always()
+        shell: pwsh
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+          SETUP_OUTCOME: ${{ steps.setup.outcome }}
+        run: ./scripts/diagnose.ps1
+      - name: Upload diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: php-${{ matrix.php }}-${{ matrix.ts }}-diagnostics
+          path: diagnostics
+          if-no-files-found: error
+      - name: Assert setup succeeded
+        if: always()
+        shell: pwsh
+        env:
+          SETUP_OUTCOME: ${{ steps.setup.outcome }}
+        run: |
+          if ($env:SETUP_OUTCOME -ne 'success') { throw "setup-php outcome: $env:SETUP_OUTCOME" }
