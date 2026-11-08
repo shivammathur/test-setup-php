@@ -1,0 +1,32 @@
+name: Nightly installer interrupted download
+on: push
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    name: PHP ${{ matrix.php }} interrupted extension download
+    runs-on: windows-2022
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.6', '8.7']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install PhpManager
+        shell: pwsh
+        run: Install-Module PhpManager -RequiredVersion 1.36.1 -Force -Scope CurrentUser
+      - name: Check original and reordered installer
+        shell: pwsh
+        env:
+          PHP_VERSION: ${{ matrix.php }}
+        run: ./scripts/installer-failure.ps1
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: interrupted-php-${{ matrix.php }}
+          path: diagnostics
+          if-no-files-found: error

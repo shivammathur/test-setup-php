@@ -1,5 +1,9 @@
 name: Windows nightly extension diagnostics
-on: push
+on:
+  push:
+    paths:
+      - .github/workflows/windows-nightly.yml
+      - scripts/diagnose.ps1
 permissions:
   contents: read
 jobs:
