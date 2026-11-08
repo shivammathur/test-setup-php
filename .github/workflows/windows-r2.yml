@@ -1,0 +1,46 @@
+name: Released Windows installer integration
+on: push
+permissions:
+  contents: read
+jobs:
+  setup:
+    name: PHP ${{ matrix.php }} ${{ matrix.ts }} ${{ matrix.coverage }}
+    runs-on: windows-2022
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.6', '8.7']
+        ts: [nts, ts]
+        coverage: [xdebug, pcov]
+    steps:
+      - uses: shivammathur/setup-php@a08b58bc778766a626d96201dacf04a86a0d6aea
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: openssl, curl, mbstring
+          coverage: ${{ matrix.coverage }}
+          tools: none
+        env:
+          PHPTS: ${{ matrix.ts }}
+      - name: Check runtime and downloaded installer
+        shell: pwsh
+        env:
+          EXPECTED_COVERAGE: ${{ matrix.coverage }}
+          EXPECTED_TS: ${{ matrix.ts }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          php -v
+          php --ini
+          php -r 'foreach (["openssl", "curl", "mbstring", getenv("EXPECTED_COVERAGE")] as $extension) { if (!extension_loaded($extension)) { fwrite(STDERR, "Missing $extension\n"); exit(1); } } if (PHP_ZTS !== (int)(getenv("EXPECTED_TS") === "ts")) { exit(2); } echo json_encode(["version" => PHP_VERSION, "zts" => PHP_ZTS, "extension_dir" => ini_get("extension_dir"), "extensions" => get_loaded_extensions()], JSON_PRETTY_PRINT), PHP_EOL;'
+          if ($LASTEXITCODE -ne 0) { throw 'Runtime validation failed' }
+          $installer = Get-Content C:/tools/php/Get-PhpNightly.ps1 -Raw
+          if (-not $installer.Contains('https://artifacts.php-extensions-windows.setup-php.com/')) { throw 'Released installer is missing the R2 fallback' }
+          New-Item diagnostics -ItemType Directory -Force | Out-Null
+          Copy-Item C:/tools/php/Get-PhpNightly.ps1,C:/tools/php/php.ini diagnostics
+          Get-FileHash C:/tools/php/ext/php_xdebug.dll,C:/tools/php/ext/php_pcov.dll | ConvertTo-Json | Set-Content diagnostics/extension-hashes.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: setup-${{ matrix.php }}-${{ matrix.ts }}-${{ matrix.coverage }}
+          path: diagnostics
+          if-no-files-found: warn
