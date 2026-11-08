@@ -110,12 +110,15 @@ try {
         @{ id = 'local-nul'; path = "\\.\$allowed\NUL"; mode = 'none'; payload = $nulPayload },
         @{ id = 'unc-ordinary'; path = "\\.\UNC\$server\$share\ok.txt"; mode = 'none'; payload = $ordinaryPayload },
         @{ id = 'unc-nul'; path = "\\.\UNC\$server\$share\NUL"; mode = 'none'; payload = $nulPayload; regression = $true },
-        @{ id = 'basedir-ordinary'; path = "\\.\$allowed\ok.txt"; mode = 'startup'; payload = $ordinaryPayload },
-        @{ id = 'basedir-nul-startup'; path = "\\.\$allowed\NUL"; mode = 'startup'; payload = $nulPayload; regression = $true },
-        @{ id = 'basedir-nul-runtime'; path = "\\.\$allowed\NUL"; mode = 'runtime'; payload = $nulPayload; regression = $true },
-        @{ id = 'basedir-outside-denied'; path = "\\.\$root\outside\ok.txt"; mode = 'startup'; denied = $true },
         @{ id = 'plain-nul-denied'; path = "$allowed\NUL"; mode = 'none'; denied = $true }
     )
+    foreach ($mode in @('startup', 'runtime')) {
+        $cases += @(
+            @{ id = "basedir-ordinary-$mode"; path = "\\.\$allowed\ok.txt"; mode = $mode; payload = $ordinaryPayload },
+            @{ id = "basedir-nul-$mode"; path = "\\.\$allowed\NUL"; mode = $mode; payload = $nulPayload; regression = $true },
+            @{ id = "basedir-outside-denied-$mode"; path = "\\.\$root\outside\ok.txt"; mode = $mode; denied = $true }
+        )
+    }
     $code = (Get-Content probe.php -Raw) -replace '^<\?php\s*', ''
     $summary = @()
     $failures = @()
@@ -123,7 +126,8 @@ try {
         $observations = @{}
         foreach ($variant in @('parent', 'pr')) {
             $arguments = @('-n', '-d', 'display_errors=stderr')
-            if ($case.mode -eq 'startup') { $arguments += @('-d', "open_basedir=\\.\$allowed") }
+            # Single-quoted INI values preserve the two leading backslashes.
+            if ($case.mode -eq 'startup') { $arguments += @('-d', "open_basedir='\\.\$allowed'") }
             $arguments += @('-r', $code, '--', $case.path, $case.mode, "\\.\$allowed")
             $output = & $executables[$variant] @arguments
             if ($LASTEXITCODE) { throw "$variant / $($case.id) exited with $LASTEXITCODE" }
@@ -132,6 +136,7 @@ try {
             $expectedZts = if ($env:PHPTS -eq 'ts') { 1 } else { 0 }
             if ($result.zts -ne $expectedZts -or $result.bits -ne 64) { throw 'Incorrect PHP runtime' }
             if ($case.mode -ne 'none' -and !$result.open_basedir) { throw 'open_basedir was not enabled' }
+            if ($case.mode -eq 'startup' -and $result.open_basedir -cne "\\.\$allowed") { throw 'Startup INI path changed spelling' }
             if ($case.mode -eq 'runtime' -and $result.setting.value -ceq $false) { throw 'ini_set failed' }
             $readOk = $result.read.value -is [string] -and $result.read.value -ceq $case.payload
             $observations[$variant] = $readOk
