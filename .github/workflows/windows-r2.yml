@@ -29,14 +29,15 @@ jobs:
           EXPECTED_TS: ${{ matrix.ts }}
         run: |
           $ErrorActionPreference = 'Stop'
-          php -v
-          php --ini
-          php -r 'foreach (["openssl", "curl", "mbstring", getenv("EXPECTED_COVERAGE")] as $extension) { if (!extension_loaded($extension)) { fwrite(STDERR, "Missing $extension\n"); exit(1); } } if (PHP_ZTS !== (int)(getenv("EXPECTED_TS") === "ts")) { exit(2); } echo json_encode(["version" => PHP_VERSION, "zts" => PHP_ZTS, "extension_dir" => ini_get("extension_dir"), "extensions" => get_loaded_extensions()], JSON_PRETTY_PRINT), PHP_EOL;'
-          if ($LASTEXITCODE -ne 0) { throw 'Runtime validation failed' }
-          $installer = Get-Content C:/tools/php/Get-PhpNightly.ps1 -Raw
-          if (-not $installer.Contains('https://artifacts.php-extensions-windows.setup-php.com/')) { throw 'Released installer is missing the R2 fallback' }
           New-Item diagnostics -ItemType Directory -Force | Out-Null
           Copy-Item C:/tools/php/Get-PhpNightly.ps1,C:/tools/php/php.ini diagnostics
+          php -v
+          php --ini
+          php -r 'foreach (["openssl", "curl", "mbstring", getenv("EXPECTED_COVERAGE")] as $extension) { if (!extension_loaded($extension)) { fwrite(STDERR, "Missing $extension\n"); exit(1); } } if ((bool)PHP_ZTS !== (getenv("EXPECTED_TS") === "ts")) { exit(2); } echo json_encode(["version" => PHP_VERSION, "zts" => PHP_ZTS, "extension_dir" => ini_get("extension_dir"), "extensions" => get_loaded_extensions()], JSON_PRETTY_PRINT), PHP_EOL;'
+          if ($LASTEXITCODE -ne 0) { throw "Runtime validation failed: exit $LASTEXITCODE" }
+          $installer = Get-Content C:/tools/php/Get-PhpNightly.ps1 -Raw
+          if (-not $installer.Contains('https://artifacts.php-extensions-windows.setup-php.com/')) { throw 'Released installer is missing the R2 fallback' }
+          if ((Get-FileHash C:/tools/php/Get-PhpNightly.ps1).Hash.ToLowerInvariant() -ne 'ace7f6fcecc56db795e3e1179b87cab28f8a03e549e901ccad7b02a06d6c36b8') { throw 'Installed script does not match the published SHA256' }
           Get-FileHash C:/tools/php/ext/php_xdebug.dll,C:/tools/php/ext/php_pcov.dll | ConvertTo-Json | Set-Content diagnostics/extension-hashes.json
       - uses: actions/upload-artifact@v7
         if: always()
