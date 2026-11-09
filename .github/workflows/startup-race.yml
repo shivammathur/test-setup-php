@@ -1,6 +1,9 @@
 name: Windows OPcache startup race
-run-name: Windows OPcache startup race (${{ inputs.flavor }})
+run-name: Windows OPcache startup race (${{ inputs.flavor || 'baseline' }})
 on:
+  push:
+    branches: [test/windows-opcache-startup-20261109]
+    paths: [.github/workflows/startup-race.yml, scripts/startup-race.ps1]
   workflow_dispatch:
     inputs:
       flavor:
@@ -21,7 +24,7 @@ jobs:
       - id: matrix
         shell: pwsh
         env:
-          FLAVOR: ${{ inputs.flavor }}
+          FLAVOR: ${{ inputs.flavor || 'baseline' }}
         run: |
           $rows = @(Get-Content debug-manifest.json -Raw | ConvertFrom-Json | Where-Object { $_.flavor -eq $env:FLAVOR })
           if (-not $rows.Count) { throw 'No matching artifacts' }
