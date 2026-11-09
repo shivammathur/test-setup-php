@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)] [string] $Branch, [switch] $Regressions)
+param([Parameter(Mandatory)] [string] $Branch, [switch] $Regressions, [switch] $EnableJit)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
@@ -78,7 +78,8 @@ foreach ($zip in $runtimeZips) {
         $ini = @('[PHP]', "extension_dir=`"$phpPath/ext`"", 'extension=curl', 'display_errors=0', 'display_startup_errors=0', 'log_errors=1', 'error_reporting=-1', "error_log=`"$logPath/php-errors.log`"", 'date.timezone=UTC', 'cgi.force_redirect=0', 'cgi.fix_pathinfo=1', "session.save_path=`"$logPath`"")
         if ($Regressions) { $ini += @('extension=intl', 'session.use_trans_sid=1', 'opcache.record_warnings=1') }
         $enabled = if ($cache -eq 'opcache') { 1 } else { 0 }
-        $ini += @("opcache.enable=$enabled", "opcache.enable_cli=$enabled", "opcache.jit=tracing", "opcache.jit_buffer_size=$(if ($enabled) {'64M'} else {'0'})")
+        $ini += @("opcache.enable=$enabled", "opcache.enable_cli=$enabled")
+        if ($EnableJit) { $ini += @('opcache.jit=tracing', "opcache.jit_buffer_size=$(if ($enabled) {'64M'} else {'0'})") }
         if ($enabled -and (Test-Path "$phpRoot/ext/php_opcache.dll")) { $ini += 'zend_extension=opcache' }
         $ini | Set-Content "$phpRoot/php.ini"
         $handlerConfig = if ($ts -eq 'ts') {
@@ -123,7 +124,7 @@ DocumentRoot "$document"
         $originalPath = $env:PATH
         $caseStarted = Get-Date
         $server = $null; $client = $null
-        $result = @{ label=$label; passed=$false; phpArchive=$zip.Name; phpSha256=$sha; checks=@() }
+        $result = @{ jitExplicitlyEnabled=[bool]$EnableJit; label=$label; passed=$false; phpArchive=$zip.Name; phpSha256=$sha; checks=@() }
         try {
             $env:PATH = "$apache/bin;$phpRoot;$originalPath"
             & $httpd -v *> "$report/apache-version.txt"

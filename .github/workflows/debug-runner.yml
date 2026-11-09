@@ -1,0 +1,96 @@
+name: Diagnose core test runner fast-fail
+on:
+  push:
+    branches: [test/windows-opcache-startup-20261109]
+    paths: [.github/workflows/debug-runner.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.config.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: config
+        shell: pwsh
+        run: |
+          $rows=@(Get-Content debug-manifest.json -Raw | ConvertFrom-Json | Where-Object { $_.branch -eq 'PHP-8.4' -and $_.arch -eq 'x64' })
+          "matrix=$(@{include=$rows} | ConvertTo-Json -Depth 6 -Compress)" >> $env:GITHUB_OUTPUT
+  debug:
+    needs: config
+    name: ${{ matrix.branch }} ${{ matrix.flavor }} core runner
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.config.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: test/windows-opcache-startup-20261109
+          path: builder
+      - uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.PAT || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run }}
+          name: artifacts
+          path: reports
+      - name: Install Microsoft runtimes and debugger
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach ($arch in 'x64','x86') {
+            $installer=Join-Path $env:RUNNER_TEMP "vc_redist.$arch.exe"
+            Invoke-WebRequest "https://aka.ms/vc14/vc_redist.$arch.exe" -OutFile $installer
+            $signature=Get-AuthenticodeSignature $installer
+            if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw 'Invalid runtime installer signature' }
+            $p=Start-Process $installer -ArgumentList '/install','/quiet','/norestart' -PassThru -Wait
+            if ($p.ExitCode -notin 0,1638,3010) { throw "Runtime installer failed: $($p.ExitCode)" }
+          }
+          $cdb=Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/Debuggers/${{ matrix.arch }}/cdb.exe'
+          if (-not (Test-Path $cdb)) {
+            $installer=Join-Path $env:RUNNER_TEMP 'winsdksetup.exe'
+            Invoke-WebRequest 'https://go.microsoft.com/fwlink/?linkid=2382321' -OutFile $installer
+            $signature=Get-AuthenticodeSignature $installer
+            if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw 'Invalid SDK installer signature' }
+            $p=Start-Process $installer -ArgumentList '/quiet','/norestart','/features','OptionId.WindowsDesktopDebuggers' -PassThru -Wait
+            if ($p.ExitCode -notin 0,3010) { throw "Debugger installer failed: $($p.ExitCode)" }
+          }
+          if (-not (Test-Path $cdb)) { throw 'Debugger executable missing' }
+      - name: Capture core runner fast-fail with unchanged binaries
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $entry=@(Get-Content debug-manifest.json -Raw | ConvertFrom-Json | Where-Object { $_.branch -eq '${{ matrix.branch }}' -and $_.arch -eq '${{ matrix.arch }}' -and $_.flavor -eq '${{ matrix.flavor }}' })[0]
+          $symbols=Join-Path $env:RUNNER_TEMP 'runner-symbols'
+          foreach ($item in @(@{name=$entry.runtime;sha=$entry.runtimeSha256},@{name=$entry.debugPack;sha=$entry.debugSha256})) {
+            if ((Get-FileHash "reports/$($item.name)" -Algorithm SHA256).Hash.ToLowerInvariant() -ne $item.sha) { throw 'Artifact hash mismatch' }
+          }
+          Expand-Archive "reports/$($entry.debugPack)" $symbols
+          $env:PHP_TEST_SYMBOLS="$symbols;srv*$env:RUNNER_TEMP/ms-symbols*https://msdl.microsoft.com/download/symbols"
+          $env:PHP_TEST_DEBUGGER=Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/Debuggers/x64/cdb.exe'
+          $version=[regex]::Match($entry.runtime,'^php-(.+?)-nts-Win32-').Groups[1].Value
+          Import-Module (Join-Path (Get-Location).Path 'builder/php/BuildPhp') -Force
+          Push-Location reports
+          try {
+            Invoke-PhpTests -PhpVersion $version -Arch x64 -Ts nts -Opcache opcache -TestType php -SourceRepository $entry.sourceRepo -SourceRef $entry.sourceSha
+          } finally {
+            Get-ChildItem -File | Where-Object { $_.Name -match '^php-.*\.(zip|json)$' } | Remove-Item
+            Pop-Location
+          }
+          if (-not (Test-Path reports/runner-crash.dmp)) { throw 'No runner fast-fail captured; inspect logs' }
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: core-runner-${{ matrix.flavor }}
+          path: reports
+          if-no-files-found: error
+          retention-days: 14
