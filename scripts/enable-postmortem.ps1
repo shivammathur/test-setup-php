@@ -24,6 +24,7 @@ if ($zip.Count -ne 1) { throw 'Ambiguous canary runtime' }
 $canary=Join-Path $env:RUNNER_TEMP 'dump-canary'
 Expand-Archive $zip[0].FullName $canary -Force
 Copy-Item "$canary/php.exe" "$canary/php-dump-check.exe"
+Get-ChildItem Env: | Where-Object { $_.Name -match '(?i)(token|secret|password|credential|authorization)' } | ForEach-Object { Remove-Item "Env:$($_.Name)" }
 $info=[Diagnostics.ProcessStartInfo]::new("$canary/php.exe")
 $info.UseShellExecute=$false
 foreach ($arg in @('-n','-r','sleep(10);')) { $info.ArgumentList.Add($arg) }
@@ -34,7 +35,6 @@ try {
 } finally { if (-not $running.HasExited) { $running.Kill();$running.WaitForExit() };$running.Dispose() }
 
 # Keep diagnostics from inheriting authentication material.
-Get-ChildItem Env: | Where-Object { $_.Name -match '(?i)(token|secret|password|credential|authorization)' } | ForEach-Object { Remove-Item "Env:$($_.Name)" }
 $start=[Diagnostics.ProcessStartInfo]::new("$canary/php-dump-check.exe")
 $start.UseShellExecute=$false;$start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true
 foreach ($arg in @('-n','-d',"extension_dir=$canary/ext",'-d','extension=zend_test','-r','zend_test_crash();')) { $start.ArgumentList.Add($arg) }
