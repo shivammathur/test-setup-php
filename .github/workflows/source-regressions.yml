@@ -1,8 +1,5 @@
 name: PHP focused source regressions
 on:
-  push:
-    branches: [test/apache-php-2.4.70-20261109]
-    paths: [scripts/source-regressions.ps1, .github/workflows/source-regressions.yml]
   workflow_dispatch:
 permissions:
   contents: read

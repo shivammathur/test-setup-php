@@ -8,7 +8,7 @@ $entry = $manifest.branches[$Branch]
 $report = New-Item reports -ItemType Directory -Force
 $cases = [Collections.Generic.List[object]]::new()
 $testsRoot = (Resolve-Path source).Path
-$selected = @('Zend/tests/record_errors_001.phpt', 'ext/zend_test/tests/system_id_reinitialization.phpt', 'ext/standard/tests/ini_info/php_ini_loaded_file.phpt', 'sapi/cgi/tests/006.phpt', 'sapi/cgi/tests/011.phpt')
+$selected = @('Zend/tests/record_errors_001.phpt', 'ext/standard/tests/ini_info/php_ini_loaded_file.phpt', 'sapi/cgi/tests/006.phpt', 'sapi/cgi/tests/011.phpt')
 $available = @($selected | Where-Object { Test-Path (Join-Path $testsRoot $_) })
 foreach ($file in $entry.php.GetEnumerator()) {
     $zip = Join-Path "$root/artifacts" $file.Key
@@ -31,6 +31,25 @@ foreach ($file in $entry.php.GetEnumerator()) {
                 if (Test-Path "$phpRoot/ext/php_opcache.dll") { $settings += @('-d', 'zend_extension=opcache') }
                 $settings += @('-d', 'opcache.enable_cli=1', '-d', 'opcache.jit_buffer_size=64M', '-d', 'opcache.jit=tracing', '-d', 'opcache.record_warnings=1')
             } else { $settings += @('-d', 'opcache.enable_cli=0') }
+            $systemIdTest = Join-Path $testsRoot 'ext/zend_test/tests/system_id_reinitialization.phpt'
+            if (Test-Path $systemIdTest) {
+                # run-tests.php incorrectly probes phpdbg extensions through CLI with phpdbg's -rr option.
+                # Execute the upstream FILE/PHPDBG sections directly, with its required INI setting.
+                $phpt = Get-Content $systemIdTest -Raw
+                $fixture = [regex]::Match($phpt, '(?s)--FILE--\r?\n(.*?)--EXPECTF--').Groups[1].Value
+                $commands = [regex]::Match($phpt, '(?s)--PHPDBG--\r?\n(.*?)--FILE--').Groups[1].Value
+                $fixturePath = Join-Path $report.FullName "$variant-$cache-system-id.php"
+                $fixture | Set-Content $fixturePath
+                $probe = & $php -n @settings -d zend_test.register_system_entropy=1 -r 'echo json_encode([extension_loaded("zend_test"), ini_get("zend_test.register_system_entropy")]);'
+                if ($LASTEXITCODE -ne 0 -or ($probe -join '').Trim() -ne '[true,"1"]') { throw "zend_test did not load correctly: $probe" }
+                $phpdbg = Join-Path $phpRoot 'phpdbg.exe'
+                $output = $commands | & $phpdbg -n -qIb @settings -d zend_test.register_system_entropy=1 $fixturePath 2>&1 | Out-String
+                $code = $LASTEXITCODE
+                $output | Set-Content (Join-Path $report.FullName "$variant-$cache-system-id.log")
+                $runs = [regex]::Matches($output, '(?m)^prompt> Done\r?$').Count
+                $passed = $code -eq 0 -and $runs -eq 3 -and $output -notmatch '(?i)failed to register system entropy|warning:|fatal error|parse error'
+                $cases.Add(@{ label="$variant-$cache-system-id"; exitCode=$(if ($passed) {0} else {1}); runs=$runs; extensionProbe=$probe; upstreamFixtureSha256=(Get-FileHash $systemIdTest -Algorithm SHA256).Hash })
+            }
             $label = "$variant-$cache"
             $env:TEST_PHP_JUNIT = Join-Path $report.FullName "$label.xml"
             # Pass INI settings individually: a forced -c contaminates php_ini_loaded_file's -n subprocess.
