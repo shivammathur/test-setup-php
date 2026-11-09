@@ -50,7 +50,7 @@ function Start-CapturedProcess([string] $Exe, [string[]] $Arguments) {
     return @{process=$process; stdout=$process.StandardOutput.ReadToEndAsync(); stderr=$process.StandardError.ReadToEndAsync()}
 }
 $launches=[Collections.Generic.List[object]]::new()
-for ($batch=0; $batch -lt 32; $batch++) {
+for ($batch=0; $batch -lt 2; $batch++) {
     $processes = @(1..64 | ForEach-Object { Start-CapturedProcess $php $arguments })
     foreach ($item in $processes) {
         $p=$item.process
@@ -69,10 +69,10 @@ if (-not @(Get-ChildItem $dumps -Filter '*.dmp').Count) {
     for ($batch=0; $batch -lt 128; $batch++) {
         $processes = @(1..16 | ForEach-Object {
             $label = "live-$batch-$_"
-            $dump = Join-Path $dumps "$label.dmp"
+            $dump = (Join-Path $dumps "$label.dmp").Replace('\', '/')
             $commandFile = Join-Path $report "$label.commands.txt"
-            ('sxd -c2 ".echo CRASH_CAPTURED; .dump /ma ' + $dump + '; .exr -1; .ecxr; kv; q" av; g') | Set-Content $commandFile
-            $capture = Start-CapturedProcess $cdb (@('-hd','-G','-cf',$commandFile,$php) + $arguments)
+            ('sxd -c2 ".echo CRASH_CAPTURED; .dump /ma ' + $dump + '; .reload /f php8.dll; .reload /f php-cgi.exe; .exr -1; r; kv; q" av; g') | Set-Content $commandFile
+            $capture = Start-CapturedProcess $cdb (@('-hd','-G','-y',$symbolPath,'-cf',$commandFile,$php) + $arguments)
             $capture.label=$label
             $capture
         })
@@ -80,7 +80,7 @@ if (-not @(Get-ChildItem $dumps -Filter '*.dmp').Count) {
             $p=$item.process
             if (-not $p.WaitForExit(120000)) { $p.Kill($true); $p.WaitForExit() }
             $output=$item.stdout.GetAwaiter().GetResult()+$item.stderr.GetAwaiter().GetResult()
-            if ($output -match 'CRASH_CAPTURED|error|failed' -or -not $output.Contains('CGI_STARTUP_OK')) { $output | Set-Content "$report/$($item.label).log" }
+            if ($output -match '(?m)^CRASH_CAPTURED\r?$|Unable to create|ERROR:' -or -not $output.Contains('CGI_STARTUP_OK')) { $output | Set-Content "$report/$($item.label).log" }
             Remove-Item "$report/$($item.label).commands.txt"
             $p.Dispose()
         }
