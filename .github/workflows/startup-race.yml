@@ -3,7 +3,7 @@ run-name: Windows OPcache startup race (${{ inputs.flavor || 'baseline' }})
 on:
   push:
     branches: [test/windows-opcache-startup-20261109]
-    paths: [.github/workflows/startup-race.yml, scripts/startup-race.ps1]
+    paths: [.github/workflows/startup-race.yml]
   workflow_dispatch:
     inputs:
       flavor:
@@ -11,6 +11,9 @@ on:
         options: [baseline, fixed]
         default: baseline
         required: true
+      target:
+        description: Optional branch and architecture filter
+        required: false
 permissions:
   contents: read
   actions: read
@@ -25,8 +28,9 @@ jobs:
         shell: pwsh
         env:
           FLAVOR: ${{ inputs.flavor || 'baseline' }}
+          TARGET: ${{ inputs.target }}
         run: |
-          $rows = @(Get-Content debug-manifest.json -Raw | ConvertFrom-Json | Where-Object { $_.flavor -eq $env:FLAVOR })
+          $rows = @(Get-Content debug-manifest.json -Raw | ConvertFrom-Json | Where-Object { $_.flavor -eq $env:FLAVOR -and (-not $env:TARGET -or "$($_.branch)-$($_.arch)" -eq $env:TARGET) })
           if (-not $rows.Count) { throw 'No matching artifacts' }
           "matrix=$(@{include=$rows} | ConvertTo-Json -Depth 6 -Compress)" >> $env:GITHUB_OUTPUT
   debug:
