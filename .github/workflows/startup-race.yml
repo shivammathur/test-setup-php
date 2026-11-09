@@ -1,0 +1,82 @@
+name: Windows OPcache startup race
+run-name: Windows OPcache startup race (${{ inputs.flavor }})
+on:
+  workflow_dispatch:
+    inputs:
+      flavor:
+        type: choice
+        options: [baseline, fixed]
+        default: baseline
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: matrix
+        shell: pwsh
+        env:
+          FLAVOR: ${{ inputs.flavor }}
+        run: |
+          $rows = @(Get-Content debug-manifest.json -Raw | ConvertFrom-Json | Where-Object { $_.flavor -eq $env:FLAVOR })
+          if (-not $rows.Count) { throw 'No matching artifacts' }
+          "matrix=$(@{include=$rows} | ConvertTo-Json -Depth 6 -Compress)" >> $env:GITHUB_OUTPUT
+  debug:
+    needs: matrix
+    name: ${{ matrix.branch }} ${{ matrix.arch }} ${{ matrix.flavor }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.PAT || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run }}
+          name: artifacts
+          path: artifacts
+      - uses: actions/checkout@v6
+        with:
+          repository: ${{ matrix.sourceRepo }}
+          ref: ${{ matrix.sourceSha }}
+          path: source
+      - name: Install Microsoft runtimes and debugger
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach ($arch in 'x64','x86') {
+            $installer=Join-Path $env:RUNNER_TEMP "vc_redist.$arch.exe"
+            Invoke-WebRequest "https://aka.ms/vc14/vc_redist.$arch.exe" -OutFile $installer
+            $signature=Get-AuthenticodeSignature $installer
+            if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw 'Invalid runtime installer signature' }
+            $p=Start-Process $installer -ArgumentList '/install','/quiet','/norestart' -PassThru -Wait
+            if ($p.ExitCode -notin 0,1638,3010) { throw "Runtime installer failed: $($p.ExitCode)" }
+          }
+          $cdb=Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/Debuggers/${{ matrix.arch }}/cdb.exe'
+          if (-not (Test-Path $cdb)) {
+            $installer=Join-Path $env:RUNNER_TEMP 'winsdksetup.exe'
+            Invoke-WebRequest 'https://go.microsoft.com/fwlink/?linkid=2382321' -OutFile $installer
+            $signature=Get-AuthenticodeSignature $installer
+            if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw 'Invalid SDK installer signature' }
+            $p=Start-Process $installer -ArgumentList '/quiet','/norestart','/features','OptionId.WindowsDesktopDebuggers' -PassThru -Wait
+            if ($p.ExitCode -notin 0,3010) { throw "Debugger installer failed: $($p.ExitCode)" }
+          }
+          if (-not (Test-Path $cdb)) { throw 'Debugger executable missing' }
+      - name: Force both startup race windows
+        shell: pwsh
+        run: ./scripts/startup-race.ps1 -Branch '${{ matrix.branch }}' -Arch '${{ matrix.arch }}' -Flavor '${{ matrix.flavor }}'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: startup-${{ matrix.flavor }}-${{ matrix.branch }}-${{ matrix.arch }}
+          path: reports
+          if-no-files-found: error
+          retention-days: 14
