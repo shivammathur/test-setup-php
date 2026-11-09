@@ -108,10 +108,10 @@ LoadModule filter_module modules/mod_filter.so
 LoadModule deflate_module modules/mod_deflate.so
 LoadModule brotli_module modules/mod_brotli.so
 $handlerConfig
+SetOutputFilter BROTLI_COMPRESS;DEFLATE
 DocumentRoot "$document"
 <Directory "$document">
     Require all granted
-    SetOutputFilter BROTLI_COMPRESS;DEFLATE
     <FilesMatch \.php$>
         SetHandler application/x-httpd-php
     </FilesMatch>
