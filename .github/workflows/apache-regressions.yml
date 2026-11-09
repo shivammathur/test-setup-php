@@ -1,8 +1,5 @@
 name: Apache Windows regression validation
 on:
-  push:
-    branches: [test/apache-php-2.4.70-20261109]
-    paths: [scripts/**, tests/**, .github/workflows/apache-regressions.yml]
   workflow_dispatch:
 permissions:
   contents: read

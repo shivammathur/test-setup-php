@@ -1,0 +1,67 @@
+name: PHP focused source regressions
+on:
+  push:
+    branches: [test/apache-php-2.4.70-20261109]
+    paths: [scripts/source-regressions.ps1, .github/workflows/source-regressions.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: matrix
+        shell: pwsh
+        run: |
+          $manifest = Get-Content manifest.json -Raw | ConvertFrom-Json -AsHashtable
+          $rows = @($manifest.branches.Keys | ForEach-Object { $entry=$manifest.branches[$_]; @{ branch=$_; php_run=$entry.run; runner=$entry.runner; source_sha=$entry.sourceSha } })
+          "matrix=$(@{ include=$rows } | ConvertTo-Json -Depth 5 -Compress)" >> $env:GITHUB_OUTPUT
+  integration:
+    needs: matrix
+    name: ${{ matrix.branch }} source regressions
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Download exact PHP source-build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.PAT || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.php_run }}
+          name: artifacts
+          path: artifacts
+      - name: Install current Visual C++ runtimes
+        shell: pwsh
+        run: |
+          foreach ($arch in 'x64', 'x86') {
+            $installer = Join-Path $env:RUNNER_TEMP "vc_redist.$arch.exe"
+            Invoke-WebRequest "https://aka.ms/vc14/vc_redist.$arch.exe" -OutFile $installer
+            $signature = Get-AuthenticodeSignature $installer
+            if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {
+              throw "Invalid Microsoft runtime signature for $arch"
+            }
+            $process = Start-Process $installer -ArgumentList '/install', '/quiet', '/norestart' -Wait -PassThru
+            if ($process.ExitCode -notin 0, 1638, 3010) { throw "Visual C++ runtime $arch installation failed: $($process.ExitCode)" }
+          }
+      - uses: actions/checkout@v6
+        with:
+          repository: php/php-src
+          ref: ${{ matrix.source_sha }}
+          path: source
+      - name: Run focused tests with exact PHP artifacts
+        shell: pwsh
+        run: ./scripts/source-regressions.ps1 -Branch '${{ matrix.branch }}'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: source-regressions-${{ matrix.branch }}
+          path: reports
+          if-no-files-found: error
