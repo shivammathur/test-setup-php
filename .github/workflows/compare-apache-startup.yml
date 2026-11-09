@@ -12,6 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        runner: [windows-2022, windows-2025-vs2026]
+        branch: [PHP-8.4, PHP-8.5, PHP-8.6]
         include:
           - branch: PHP-8.4
             run: 42617704979
@@ -19,7 +21,7 @@ jobs:
             run: 42617704609
           - branch: PHP-8.6
             run: 42617704802
-    runs-on: windows-2025-vs2026
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
@@ -67,13 +69,7 @@ jobs:
       - name: Capture natural crashes without attaching a debugger
         shell: pwsh
         run: |
-          $dumpDirectory=(New-Item dumps -ItemType Directory -Force).FullName
-          $key='HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps\php-cgi.exe'
-          New-Item $key -Force | Out-Null
-          New-ItemProperty $key -Name DumpFolder -Value $dumpDirectory -PropertyType ExpandString -Force | Out-Null
-          New-ItemProperty $key -Name DumpType -Value 2 -PropertyType DWord -Force | Out-Null
-          New-ItemProperty $key -Name DumpCount -Value 3 -PropertyType DWord -Force | Out-Null
-          New-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting' -Name DontShowUI -Value 1 -PropertyType DWord -Force | Out-Null
+          ./scripts/enable-postmortem.ps1
           $outcomes=@(foreach ($repeat in 1..15) {
             try {
               ./scripts/apache-php.ps1 -Branch '${{ matrix.branch }}' -Regressions -Architecture x86 -ThreadSafety nts -CacheModes opcache -ReportDirectory "reports/repeat-$repeat"
@@ -82,6 +78,7 @@ jobs:
               Write-Host "Repeat $repeat failed: $($_.Exception.Message)"
               @{repeat=$repeat;passed=$false;error=$_.Exception.Message}
             }
+            Get-ChildItem dumps -Filter '*.dmp' | Sort-Object LastWriteTime -Descending | Select-Object -Skip 3 | Remove-Item -Force
           })
           $outcomes | ConvertTo-Json -Depth 5 | Set-Content reports/comparison.json
           Write-Host "Natural failures: $(@($outcomes | Where-Object { -not $_.passed }).Count)/$($outcomes.Count)"
@@ -93,13 +90,13 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: natural-apache-${{ matrix.branch }}
+          name: natural-apache-${{ matrix.branch }}-${{ matrix.runner }}
           path: reports
           if-no-files-found: error
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: natural-dumps-${{ matrix.branch }}
+          name: natural-dumps-${{ matrix.branch }}-${{ matrix.runner }}
           path: dumps
           if-no-files-found: ignore
           retention-days: 7
