@@ -2,6 +2,13 @@ $ErrorActionPreference='Stop'
 $PSNativeCommandUseErrorActionPreference=$false
 New-Item reports -ItemType Directory -Force | Out-Null
 $dumpDirectory=(New-Item dumps -ItemType Directory -Force).FullName
+# CI hosts suppress fault reporting through the inherited process error mode.
+Add-Type -TypeDefinition 'using System.Runtime.InteropServices; public static class CrashReporting { [DllImport("kernel32.dll")] public static extern uint GetErrorMode(); [DllImport("kernel32.dll")] public static extern uint SetErrorMode(uint mode); }'
+$previousMode=[CrashReporting]::GetErrorMode()
+$null=[CrashReporting]::SetErrorMode($previousMode -band [uint32]4294967293)
+@{previous=$previousMode;current=[CrashReporting]::GetErrorMode()} | ConvertTo-Json | Set-Content reports/error-mode.json
+Set-Service WerSvc -StartupType Manual
+Start-Service WerSvc
 $archive=Join-Path $env:RUNNER_TEMP 'procdump.zip'
 Invoke-WebRequest 'https://download.sysinternals.com/files/Procdump.zip' -OutFile $archive
 $tools=Join-Path $env:RUNNER_TEMP 'procdump'
@@ -28,6 +35,6 @@ if (-not $process.WaitForExit(60000)) { $process.Kill($true);throw 'Post-mortem 
 $found=@(Get-ChildItem dumps -Filter 'php-dump-check*.dmp')
 @{exitCode=$process.ExitCode;dumps=$found.Count;stdout=$out.GetAwaiter().GetResult();stderr=$err.GetAwaiter().GetResult()} | ConvertTo-Json | Set-Content reports/dump-canary.json
 $process.Dispose()
-if (-not $found.Count) { throw 'Post-mortem capture did not produce a canary dump' }
+if (-not $found.Count) { Get-Content reports/dump-canary.json; Get-Content reports/error-mode.json; throw 'Post-mortem capture did not produce a canary dump' }
 $found | Remove-Item -Force
 Write-Host 'Verified post-mortem crash capture; no debugger attaches before a crash.'

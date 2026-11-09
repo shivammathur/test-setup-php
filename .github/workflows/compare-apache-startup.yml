@@ -2,7 +2,7 @@ name: Compare natural Apache CGI startup failures
 on:
   push:
     branches: [test/windows-opcache-startup-20261109]
-    paths: [.github/workflows/compare-apache-startup.yml, comparison-manifest.json]
+    paths: [.github/workflows/compare-apache-startup.yml, comparison-manifest.json, scripts/enable-postmortem.ps1]
   workflow_dispatch:
 permissions:
   contents: read
