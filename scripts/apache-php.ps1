@@ -76,7 +76,7 @@ foreach ($zip in $runtimeZips) {
         $config = (Join-Path $report 'httpd.conf').Replace('\', '/')
         $logPath = $report.Replace('\', '/')
         $ini = @('[PHP]', "extension_dir=`"$phpPath/ext`"", 'extension=curl', 'display_errors=0', 'display_startup_errors=0', 'log_errors=1', 'error_reporting=-1', "error_log=`"$logPath/php-errors.log`"", 'date.timezone=UTC', 'cgi.force_redirect=0', 'cgi.fix_pathinfo=1', "session.save_path=`"$logPath`"")
-        if ($Regressions) { $ini += @('extension=intl', 'session.use_trans_sid=1') }
+        if ($Regressions) { $ini += @('extension=intl', 'session.use_trans_sid=1', 'opcache.record_warnings=1') }
         $enabled = if ($cache -eq 'opcache') { 1 } else { 0 }
         $ini += @("opcache.enable=$enabled", "opcache.enable_cli=$enabled")
         if ($enabled -and (Test-Path "$phpRoot/ext/php_opcache.dll")) { $ini += 'zend_extension=opcache' }
@@ -121,13 +121,11 @@ DocumentRoot "$document"
 </Directory>
 "@ | Set-Content $config
         $originalPath = $env:PATH
+        $caseStarted = Get-Date
         $server = $null; $client = $null
         $result = @{ label=$label; passed=$false; phpArchive=$zip.Name; phpSha256=$sha; checks=@() }
         try {
-            $env:PATH = if ($Regressions) {
-                $cleanPath = @($originalPath -split ';' | Where-Object { $_ -and -not (Test-Path (Join-Path $_ 'php.exe')) }) -join ';'
-                "$apache/bin;$cleanPath"
-            } else { "$apache/bin;$phpRoot;$originalPath" }
+            $env:PATH = "$apache/bin;$phpRoot;$originalPath"
             & $httpd -v *> "$report/apache-version.txt"
             & $httpd -t -f $config *> "$report/config-check.txt"
             $server = Start-Process $httpd -ArgumentList @('-X','-f',"`"$config`"") -PassThru -RedirectStandardOutput "$report/stdout.log" -RedirectStandardError "$report/stderr.log"
@@ -201,6 +199,7 @@ DocumentRoot "$document"
                     if ($generation -gt 0) {
                         Stop-Process -Id $server.Id -Force
                         $server.WaitForExit(); $server.Dispose()
+                        Remove-Item "$report/httpd.pid" -ErrorAction SilentlyContinue
                         $server = Start-Process $httpd -ArgumentList @('-X','-f',"`"$config`"") -PassThru -RedirectStandardOutput "$report/stdout-$generation.log" -RedirectStandardError "$report/stderr-$generation.log"
                         $ready = $false
                         for ($attempt=0; $attempt -lt 30; $attempt++) {
@@ -214,6 +213,7 @@ DocumentRoot "$document"
                     $requests = 0
                     for ($batch=0; $batch -lt 4; $batch++) {
                         $tasks = @(1..64 | ForEach-Object { $client.GetAsync("$regressionUrl`?request=$generation-$batch-$_") })
+                        [Threading.Tasks.Task]::WhenAll([Threading.Tasks.Task[]]$tasks).GetAwaiter().GetResult()
                         foreach ($task in $tasks) {
                             $response = $task.GetAwaiter().GetResult()
                             try {
@@ -232,12 +232,12 @@ DocumentRoot "$document"
                     if ($server.HasExited) { throw "Apache crashed after regression load: $($server.ExitCode)" }
                     $generations.Add(@{ generation=$generation; pid=$server.Id; requests=$requests; sample=$data })
                 }
-                $result.regressions = @{ generations=$generations.ToArray(); requests=768; concurrentRequests=64; coldStarts=3; phpDirectoryOnPath=$false; loadFileDirectives=$false }
-                $result.checks += 'GH-22023 startup settings with concurrent sessions; curl/intl without PHP PATH or LoadFile; GH-16900 date formatter; NTLM build feature'
+                $result.regressions = @{ generations=$generations.ToArray(); requests=768; concurrentRequests=64; coldStarts=3; phpDirectoryOnPath=$true; loadFileDirectives=$false }
+                $result.checks += 'GH-22023 startup settings with concurrent sessions; curl/intl with standard PHP PATH and no LoadFile; GH-16900 date formatter; NTLM build feature'
             }
             if (Test-Path "$report/php-errors.log") {
                 $errors = Get-Content "$report/php-errors.log" -Raw
-                $unexpected = if ($Regressions) { @($errors -split "`n" | Where-Object { $_.Trim() -and $_ -notmatch 'PHP Deprecated:.*session\.use_trans_sid.*deprecated.*Unknown on line 0' }) } else { @($errors -split "`n" | Where-Object { $_.Trim() }) }
+                $unexpected = @(if ($Regressions) { @($errors -split "`n" | Where-Object { $_.Trim() -and $_ -notmatch 'PHP Deprecated:.*session\.use_trans_sid.*deprecated.*Unknown on line 0' }) } else { @($errors -split "`n" | Where-Object { $_.Trim() }) })
                 if ($unexpected.Count) { throw "PHP logged unexpected errors: $($unexpected -join [Environment]::NewLine)" }
                 $result.expectedStartupDeprecations = @($errors -split "`n" | Where-Object { $_ -match 'PHP Deprecated:.*session\.use_trans_sid.*deprecated' }).Count
             }
@@ -255,6 +255,11 @@ DocumentRoot "$document"
         } finally {
             if ($client) { $client.Dispose() }
             if ($server) { $server.Refresh(); if (-not $server.HasExited) { Stop-Process -Id $server.Id -Force }; $server.Dispose() }
+            if ($Regressions) {
+                Get-WinEvent -FilterHashtable @{ LogName='Application'; Id=1000,1001; StartTime=$caseStarted } -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Message -match 'php-cgi\.exe|httpd\.exe|php8(?:ts)?\.dll' } |
+                    Select-Object TimeCreated, Id, Message | ConvertTo-Json -Depth 5 | Set-Content "$report/windows-crashes.json"
+            }
             $env:PATH = $originalPath
             $result | ConvertTo-Json -Depth 10 | Set-Content "$report/result.json"
             $cases.Add($result)
