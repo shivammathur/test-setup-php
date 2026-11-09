@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)] [string] $Branch)
+param([Parameter(Mandatory)] [string] $Branch, [switch] $Regressions)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
@@ -66,6 +66,7 @@ foreach ($zip in $runtimeZips) {
         $document = (Join-Path $report 'htdocs').Replace('\', '/')
         New-Item $document -ItemType Directory -Force | Out-Null
         Copy-Item tests/endpoint.php "$document/index.php"
+        if ($Regressions) { Copy-Item tests/regressions.php "$document/regressions.php"; Copy-Item tests/record-errors.php "$document/record-errors.php" }
         $payload = [Text.Encoding]::UTF8.GetBytes(('Apache and PHP compression integration.' * 4096))
         [IO.File]::WriteAllBytes("$document/payload.txt", $payload)
         $payloadSha = Get-Sha $payload
@@ -75,6 +76,7 @@ foreach ($zip in $runtimeZips) {
         $config = (Join-Path $report 'httpd.conf').Replace('\', '/')
         $logPath = $report.Replace('\', '/')
         $ini = @('[PHP]', "extension_dir=`"$phpPath/ext`"", 'extension=curl', 'display_errors=0', 'display_startup_errors=0', 'log_errors=1', 'error_reporting=-1', "error_log=`"$logPath/php-errors.log`"", 'date.timezone=UTC', 'cgi.force_redirect=0', 'cgi.fix_pathinfo=1', "session.save_path=`"$logPath`"")
+        if ($Regressions) { $ini += @('extension=intl', 'session.use_trans_sid=1') }
         $enabled = if ($cache -eq 'opcache') { 1 } else { 0 }
         $ini += @("opcache.enable=$enabled", "opcache.enable_cli=$enabled")
         if ($enabled -and (Test-Path "$phpRoot/ext/php_opcache.dll")) { $ini += 'zend_extension=opcache' }
@@ -98,7 +100,8 @@ SetEnv PHPRC "$phpPath"
 ServerRoot "$apache"
 ServerName 127.0.0.1
 Listen 127.0.0.1:$port
-ThreadsPerChild 16
+ThreadsPerChild $(if ($Regressions) { 250 } else { 16 })
+$(if ($Regressions) { "AddDefaultCharset UTF-8" })
 PidFile "$logPath/httpd.pid"
 ErrorLog "$logPath/apache-errors.log"
 LoadModule authz_core_module modules/mod_authz_core.so
@@ -121,7 +124,10 @@ DocumentRoot "$document"
         $server = $null; $client = $null
         $result = @{ label=$label; passed=$false; phpArchive=$zip.Name; phpSha256=$sha; checks=@() }
         try {
-            $env:PATH = "$apache/bin;$phpRoot;$originalPath"
+            $env:PATH = if ($Regressions) {
+                $cleanPath = @($originalPath -split ';' | Where-Object { $_ -and -not (Test-Path (Join-Path $_ 'php.exe')) }) -join ';'
+                "$apache/bin;$cleanPath"
+            } else { "$apache/bin;$phpRoot;$originalPath" }
             & $httpd -v *> "$report/apache-version.txt"
             & $httpd -t -f $config *> "$report/config-check.txt"
             $server = Start-Process $httpd -ArgumentList @('-X','-f',"`"$config`"") -PassThru -RedirectStandardOutput "$report/stdout.log" -RedirectStandardError "$report/stderr.log"
@@ -188,11 +194,58 @@ DocumentRoot "$document"
                 Assert-Equal $loadedPhp.Count 1 'Loaded PHP Apache module count'
                 Assert-Equal (Get-FileHash $loadedPhp[0].file -Algorithm SHA256).Hash (Get-FileHash "$phpRoot/php8apache2_4.dll" -Algorithm SHA256).Hash 'Loaded PHP Apache module hash'
             }
+            if ($Regressions) {
+                $regressionUrl = "http://127.0.0.1:$port/regressions.php"
+                $generations = [Collections.Generic.List[object]]::new()
+                for ($generation=0; $generation -lt 3; $generation++) {
+                    if ($generation -gt 0) {
+                        Stop-Process -Id $server.Id -Force
+                        $server.WaitForExit(); $server.Dispose()
+                        $server = Start-Process $httpd -ArgumentList @('-X','-f',"`"$config`"") -PassThru -RedirectStandardOutput "$report/stdout-$generation.log" -RedirectStandardError "$report/stderr-$generation.log"
+                        $ready = $false
+                        for ($attempt=0; $attempt -lt 30; $attempt++) {
+                            $server.Refresh()
+                            if ($server.HasExited) { throw "Apache generation $generation exited: $($server.ExitCode)" }
+                            try { $null = Read-Http $client "http://127.0.0.1:$port/payload.txt"; $ready=$true; break }
+                            catch { Start-Sleep -Milliseconds 500 }
+                        }
+                        if (-not $ready) { throw 'Restarted Apache did not become ready' }
+                    }
+                    $requests = 0
+                    for ($batch=0; $batch -lt 4; $batch++) {
+                        $tasks = @(1..64 | ForEach-Object { $client.GetAsync("$regressionUrl`?request=$generation-$batch-$_") })
+                        foreach ($task in $tasks) {
+                            $response = $task.GetAwaiter().GetResult()
+                            try {
+                                $body = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+                                Assert-Equal ([int]$response.StatusCode) 200 "Regression response: $body"
+                                $data = $body | ConvertFrom-Json
+                                Assert-Equal $data.passed $true 'Regression endpoint checks'
+                                Assert-Equal $data.php $cli.version 'Regression PHP version'
+                                Assert-Equal $data.trans_sid '1' 'Startup deprecation trigger enabled'
+                                if ($ts -eq 'ts') { Assert-Equal $data.pid $server.Id 'Stable Apache process' }
+                                $requests++
+                            } finally { $response.Dispose() }
+                        }
+                    }
+                    $server.Refresh()
+                    if ($server.HasExited) { throw "Apache crashed after regression load: $($server.ExitCode)" }
+                    $generations.Add(@{ generation=$generation; pid=$server.Id; requests=$requests; sample=$data })
+                }
+                $result.regressions = @{ generations=$generations.ToArray(); requests=768; concurrentRequests=64; coldStarts=3; phpDirectoryOnPath=$false; loadFileDirectives=$false }
+                $result.checks += 'GH-22023 startup settings with concurrent sessions; curl/intl without PHP PATH or LoadFile; GH-16900 date formatter; NTLM build feature'
+            }
             if (Test-Path "$report/php-errors.log") {
                 $errors = Get-Content "$report/php-errors.log" -Raw
-                if ($errors.Trim()) { throw "PHP logged errors: $errors" }
+                $unexpected = if ($Regressions) { @($errors -split "`n" | Where-Object { $_.Trim() -and $_ -notmatch 'PHP Deprecated:.*session\.use_trans_sid.*deprecated.*Unknown on line 0' }) } else { @($errors -split "`n" | Where-Object { $_.Trim() }) }
+                if ($unexpected.Count) { throw "PHP logged unexpected errors: $($unexpected -join [Environment]::NewLine)" }
+                $result.expectedStartupDeprecations = @($errors -split "`n" | Where-Object { $_ -match 'PHP Deprecated:.*session\.use_trans_sid.*deprecated' }).Count
             }
-            $result.checks += 'Repeated requests; exact loaded Apache/PHP modules; clean PHP error log'
+            $result.checks += 'Repeated requests; exact loaded Apache/PHP modules; no unexpected PHP errors'
+            if (Test-Path "$report/apache-errors.log") {
+                $apacheErrors = Get-Content "$report/apache-errors.log" -Raw
+                if ($apacheErrors -match '(?i)access violation|3221225477|segmentation fault|\[(?:[^\]]*:)?(?:error|crit|alert|emerg)\]') { throw "Apache logged errors: $apacheErrors" }
+            }
             $result.passed = $true
             Write-Host "PASS $Branch $label"
         } catch {
