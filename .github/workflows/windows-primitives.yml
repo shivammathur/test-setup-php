@@ -1,0 +1,68 @@
+name: Compare Windows shared-memory primitives
+on:
+  push:
+    branches: [test/vs18-on-windows-2022-20261109]
+    paths: [.github/workflows/windows-primitives.yml, tests/windows-memory-probe.c]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+      - name: Compile one static x86 probe for both operating systems
+        shell: pwsh
+        run: |
+          $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $vs=& $vswhere -latest -products '*' -version '[17.0,18.0)' -property installationPath
+          if (-not $vs) { throw 'VS17 not found' }
+          @"
+          @echo off
+          call "$vs\Common7\Tools\VsDevCmd.bat" -arch=x86 -host_arch=x64
+          if errorlevel 1 exit /b 1
+          cl /nologo /W4 /WX /O2 /MT /Zi /Fe:windows-memory-probe.exe tests\windows-memory-probe.c
+          exit /b %errorlevel%
+          "@ | Set-Content compile-probe.cmd
+          & cmd /d /c compile-probe.cmd
+          if ($LASTEXITCODE -ne 0) { throw 'Native probe build failed' }
+          Get-FileHash windows-memory-probe.exe -Algorithm SHA256 | Select-Object Hash | ConvertTo-Json | Set-Content probe-sha256.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-memory-probe
+          path: |
+            windows-memory-probe.exe
+            windows-memory-probe.pdb
+            probe-sha256.json
+            tests/windows-memory-probe.c
+  test:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [windows-2022, windows-2025-vs2026]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows-memory-probe
+          path: probe
+      - name: Record platform and measure Windows primitives
+        shell: pwsh
+        run: |
+          ./scripts/record-platform.ps1
+          $expected=(Get-Content probe/probe-sha256.json -Raw | ConvertFrom-Json).Hash
+          if ((Get-FileHash probe/windows-memory-probe.exe -Algorithm SHA256).Hash -ne $expected) { throw 'Probe binary hash mismatch' }
+          foreach ($repeat in 1..3) {
+            & ./probe/windows-memory-probe.exe > "reports/memory-probe-$repeat.json"
+            if ($LASTEXITCODE -ne 0) { throw 'Native probe failed' }
+            Get-Content "reports/memory-probe-$repeat.json" -Raw | ConvertFrom-Json | ConvertTo-Json -Depth 6
+          }
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: windows-primitives-${{ matrix.runner }}
+          path: reports
+          if-no-files-found: error
