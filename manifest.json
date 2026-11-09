@@ -2126,11 +2126,76 @@
           "vs": "vs17"
         }
       }
+    },
+    "PHP-8.5": {
+      "run": 42617704609,
+      "sourceSha": "084afea4ca23b397692825fa024e401ab46b0b05",
+      "apacheRun": 42608143259,
+      "vs": "vs17",
+      "runner": "windows-2022",
+      "php": {
+        "php-8.5.14-dev-Win32-vs17-x64.zip": {
+          "sha256": "ff3ac5e2bea77960a8fd097b6b50f2a37ff904f5ef43a27f9d0d63e27dc3b1b3",
+          "arch": "x64",
+          "ts": "ts",
+          "vs": "vs17"
+        },
+        "php-8.5.14-dev-Win32-vs17-x86.zip": {
+          "sha256": "cbd71715b121ff6ba544a8f8be846735cd2e28b3b92158cc39d3eee2c658641d",
+          "arch": "x86",
+          "ts": "ts",
+          "vs": "vs17"
+        },
+        "php-8.5.14-dev-nts-Win32-vs17-x64.zip": {
+          "sha256": "1e0b6617c176e9e61dc7c3ca0d8a4d84a1d077cad5d306502588b915c76d358e",
+          "arch": "x64",
+          "ts": "nts",
+          "vs": "vs17"
+        },
+        "php-8.5.14-dev-nts-Win32-vs17-x86.zip": {
+          "sha256": "cbb0537becd0849250250a9ce8a12c0b02b2ab2c96b71164e5d1c0930917f21b",
+          "arch": "x86",
+          "ts": "nts",
+          "vs": "vs17"
+        }
+      }
+    },
+    "PHP-8.6": {
+      "run": 42617704802,
+      "sourceSha": "1f1d646bb2816f08711cb1aa78859484357ed30a",
+      "apacheRun": 42608142955,
+      "vs": "vs18",
+      "runner": "windows-2025-vs2026",
+      "php": {
+        "php-8.6.1-dev-Win32-vs18-x64.zip": {
+          "sha256": "a29497cc507aee9dcec43f30980cacee7534dbb052ac3e8e65cad3d4819cdc1a",
+          "arch": "x64",
+          "ts": "ts",
+          "vs": "vs18"
+        },
+        "php-8.6.1-dev-Win32-vs18-x86.zip": {
+          "sha256": "9a5b6d0425cfba17a9555f9b8b5d132f908ea399a37bbf0758d0bd887aeb2bb3",
+          "arch": "x86",
+          "ts": "ts",
+          "vs": "vs18"
+        },
+        "php-8.6.1-dev-nts-Win32-vs18-x64.zip": {
+          "sha256": "973f2148386d536d60ce45a3830b345d194e584c1472f233a5958c0f6a1b329b",
+          "arch": "x64",
+          "ts": "nts",
+          "vs": "vs18"
+        },
+        "php-8.6.1-dev-nts-Win32-vs18-x86.zip": {
+          "sha256": "746101ea13b9d0ea3644fc7b74ca01d3845e423c694d82e462309cea095f91b3",
+          "arch": "x86",
+          "ts": "nts",
+          "vs": "vs18"
+        }
+      }
     }
   },
   "testBranches": [
-    "PHP-8.2",
-    "PHP-8.3",
-    "PHP-8.4"
+    "PHP-8.5",
+    "PHP-8.6"
   ]
 }
