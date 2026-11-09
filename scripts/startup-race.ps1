@@ -75,19 +75,21 @@ foreach ($phase in $phases) {
         $creatorCommands='.symopt+0x410; .lines -e; dx @$debuggerRootNamespace.Debugger.Settings.EngineInitialization.ResolveAmbiguousBreakpoints = true; bu /1 '+$module+'!accel_post_startup ".echo POST_STARTUP;"; g'
         $creator=Start-Debugger ($phase.name+'-creator') $creatorCommands $arguments
         Wait-Marker $creator 'POST_STARTUP'
-        $breakpoint='bp /1 `'+$module+'!ZendAccelerator.c:'+$lines[0]+'` ".echo CREATOR_PAUSED; kv; ?? '+$module+'!smm_shared_globals; ?? '+$module+'!accel_shared_globals;"; g'
+        $location=if ($phase.name -eq 'shared-globals') { $module+'!zend_shared_alloc_lock' } else { '`'+$module+'!ZendAccelerator.c:'+$lines[0]+'`' }
+        $breakpoint='bp /1 '+$location+' ".echo CREATOR_PAUSED; kv; ?? '+$module+'!smm_shared_globals; ?? '+$module+'!accel_shared_globals;"; g'
         $creator.process.StandardInput.WriteLine($breakpoint); $creator.process.StandardInput.Flush()
         Wait-Marker $creator 'CREATOR_PAUSED'
         # Optimized x86 line tables can point at the preceding unlock call.
         $creator.process.StandardInput.WriteLine('u @$ip L1; .echo INSTRUCTION_READY'); $creator.process.StandardInput.Flush()
         Wait-Marker $creator 'INSTRUCTION_READY'
         $creatorLog=Get-Content $creator.log -Raw
+        if ($phase.name -eq 'shared-globals' -and $creatorLog -notmatch 'struct _zend_accel_shared_globals \* 0x0+(?:`0+)?\r?\n') { throw 'Creator has already initialized shared globals' }
         if ($phase.name -eq 'jit-buffer' -and $creatorLog -match '(?m)^.*\bcall\s+\w+!zend_shared_alloc_unlock\b[^\r\n]*\r?\nINSTRUCTION_READY') {
             $creator.process.StandardInput.WriteLine('p; .echo INNER_LOCK_RELEASED'); $creator.process.StandardInput.Flush()
             Wait-Marker $creator 'INNER_LOCK_RELEASED'
         }
         $dump=(Join-Path $report ($phase.name+'.dmp')).Replace('\','/')
-        $peerCommands='.symopt+0x410; sxd -c2 ".echo PEER_CRASHED; .dump /ma '+$dump+'; .exr -1; r; kv; ?? '+$module+'!smm_shared_globals; ?? '+$module+'!accel_shared_globals; ?? '+$module+'!dasm_ptr; q" av; bu /1 '+$module+'!accel_post_startup ".echo PEER_STARTING; gc"; g'
+        $peerCommands='.symopt+0x410; sxd -c2 ".echo PEER_CRASHED; .dump /m '+$dump+'; .exr -1; r; kv; ?? '+$module+'!smm_shared_globals; ?? '+$module+'!accel_shared_globals; ?? '+$module+'!dasm_ptr; q" av; bu /1 '+$module+'!accel_post_startup ".echo PEER_STARTING; gc"; g'
         $peer=Start-Debugger ($phase.name+'-peer') $peerCommands $arguments
         Wait-Marker $peer 'PEER_STARTING'
         if ($Flavor -eq 'baseline') {
