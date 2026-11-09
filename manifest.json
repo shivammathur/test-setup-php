@@ -2192,13 +2192,42 @@
           "vs": "vs18"
         }
       }
+    },
+    "master": {
+      "run": 42617704828,
+      "sourceSha": "d6df3fa82fe8ffa346c0af6897b6b70f375937a7",
+      "apacheRun": 42608142955,
+      "vs": "vs18",
+      "runner": "windows-2025-vs2026",
+      "php": {
+        "php-8.7.0-dev-Win32-vs18-x64.zip": {
+          "sha256": "8c9908fad27d799c4ad6d4ad28cafb78cc7819be53ae1907d373ad38449681a2",
+          "arch": "x64",
+          "ts": "ts",
+          "vs": "vs18"
+        },
+        "php-8.7.0-dev-Win32-vs18-x86.zip": {
+          "sha256": "78115dff8838dc04918094070ff92503387975895a3904d83387c4d5ec8afaac",
+          "arch": "x86",
+          "ts": "ts",
+          "vs": "vs18"
+        },
+        "php-8.7.0-dev-nts-Win32-vs18-x64.zip": {
+          "sha256": "403716eeb03891b48893471a0b4759faa8a0bd35dcf8fe07d859a12ac1c6cb0d",
+          "arch": "x64",
+          "ts": "nts",
+          "vs": "vs18"
+        },
+        "php-8.7.0-dev-nts-Win32-vs18-x86.zip": {
+          "sha256": "c6a634c59341a1c49568b34a270e5b831e855aa204a66a48e08b09c59f7d6ffa",
+          "arch": "x86",
+          "ts": "nts",
+          "vs": "vs18"
+        }
+      }
     }
   },
   "testBranches": [
-    "PHP-8.2",
-    "PHP-8.3",
-    "PHP-8.4",
-    "PHP-8.5",
-    "PHP-8.6"
+    "master"
   ]
 }
