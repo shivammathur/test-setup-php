@@ -1,11 +1,11 @@
-param([Parameter(Mandatory)] [string] $Branch, [switch] $Regressions, [switch] $EnableJit)
+param([Parameter(Mandatory)] [string] $Branch, [switch] $Regressions, [switch] $EnableJit, [string] $Architecture = '', [string] $ThreadSafety = '', [string[]] $CacheModes = @('nocache', 'opcache'), [string] $ReportDirectory = 'reports')
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
 $root = (Get-Location).Path
 $manifest = Get-Content manifest.json -Raw | ConvertFrom-Json -AsHashtable
 $entry = $manifest.branches[$Branch]
-$reportRoot = Join-Path $root 'reports'
+$reportRoot = Join-Path $root $ReportDirectory
 New-Item $reportRoot -ItemType Directory -Force | Out-Null
 $cases = [Collections.Generic.List[object]]::new()
 $hashes = [Collections.Generic.List[object]]::new()
@@ -36,7 +36,10 @@ function Decode-Body([byte[]] $Bytes, [string] $Encoding) {
     finally { $decoder.Dispose(); $inputStream.Dispose(); $outputStream.Dispose() }
 }
 $runtimeZips = @(Get-ChildItem artifacts -Filter 'php-*.zip' -File | Where-Object { $_.Name -match '^php-(?!debug-pack-|devel-pack-|test-pack-).+?-(?:nts-)?Win32-v[sc]\d+-(x64|x86)\.zip$' })
-Assert-Equal $runtimeZips.Count 4 'PHP runtime archive count'
+Assert-Equal $runtimeZips.Count $entry.php.Count 'PHP runtime archive count'
+$runtimeZips = @($runtimeZips | Where-Object { $metadata=$entry.php[$_.Name]; (-not $Architecture -or $metadata.arch -eq $Architecture) -and (-not $ThreadSafety -or $metadata.ts -eq $ThreadSafety) })
+if (-not $runtimeZips.Count) { throw 'No runtime matched the selected architecture and thread safety' }
+$expectedCases = $runtimeZips.Count * $CacheModes.Count
 foreach ($arch in 'x64', 'x86') {
     foreach ($file in $manifest.apache[$arch].files.GetEnumerator()) {
         $path = Join-Path "$root/apache/$arch" $file.Key
@@ -59,7 +62,7 @@ foreach ($zip in $runtimeZips) {
     $apache = (Resolve-Path "apache/$arch").Path.Replace('\', '/')
     $phpPath = $phpRoot.Replace('\', '/')
     $httpd = "$apache/bin/httpd.exe"
-    foreach ($cache in 'nocache', 'opcache') {
+    foreach ($cache in $CacheModes) {
         $label = "$arch-$ts-$cache"
         $report = Join-Path $reportRoot $label
         New-Item $report -ItemType Directory -Force | Out-Null
@@ -270,4 +273,4 @@ DocumentRoot "$document"
 $serverArchives = @($manifest.apache.GetEnumerator() | ForEach-Object { @{ arch=$_.Key; url=$_.Value.url; sha256=$_.Value.sha256; sha512=$_.Value.sha512 } })
 $summary = @{ branch=$Branch; sourceSha=$entry.sourceSha; phpRun=$entry.run; apacheSdkRun=$entry.apacheRun; apacheProvider='Apache Lounge'; apacheArchives=$serverArchives; archives=$hashes.ToArray(); cases=$cases.ToArray(); passed=@($cases | Where-Object { $_.passed }).Count }
 $summary | ConvertTo-Json -Depth 12 | Set-Content "$reportRoot/summary.json"
-if ($cases.Count -ne 8 -or $summary.passed -ne 8) { throw "Passed $($summary.passed)/8 Apache/PHP integration cases" }
+if ($cases.Count -ne $expectedCases -or $summary.passed -ne $expectedCases) { throw "Passed $($summary.passed)/$expectedCases Apache/PHP integration cases" }
