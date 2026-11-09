@@ -59,7 +59,7 @@ jobs:
           foreach ($arch in 'x64', 'x86') {
             $server = $manifest.apache[$arch]
             $zip = Join-Path $env:RUNNER_TEMP "apache-lounge-$arch.zip"
-            Invoke-WebRequest $server.url -OutFile $zip -Headers @{ Referer='https://www.apachelounge.com/download/' }
+            Invoke-WebRequest $server.url -OutFile $zip -UserAgent 'Mozilla/5.0' -Headers @{ Referer='https://www.apachelounge.com/download/' }
             foreach ($algorithm in 'SHA256', 'SHA512') {
               if ((Get-FileHash $zip -Algorithm $algorithm).Hash.ToLowerInvariant() -ne $server[$algorithm.ToLowerInvariant()]) {
                 throw "Apache Lounge $arch $algorithm mismatch"
@@ -68,6 +68,7 @@ jobs:
             $extract = Join-Path $env:RUNNER_TEMP "apache-lounge-$arch"
             Expand-Archive $zip $extract -Force
             Move-Item (Join-Path $extract $server.rootDirectory) "apache/$arch"
+          }
       - name: Test Apache module and CGI with exact PHP artifacts
         shell: pwsh
         run: ./scripts/apache-php.ps1 -Branch '${{ matrix.branch }}'
