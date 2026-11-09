@@ -1,5 +1,5 @@
 name: Validate matched-source compiler artifacts
-run-name: Compare ${{ inputs.compiler }} artifacts from ${{ inputs.build-run }}
+run-name: Compare ${{ inputs.compiler }} on ${{ inputs.runner }} host ${{ inputs.replica }} from ${{ inputs.build-run }}
 on:
   push:
     branches: [test/vs18-on-windows-2022-20261109]
@@ -13,18 +13,21 @@ on:
         type: choice
         options: [vs17, vs18]
         required: true
+      runner:
+        type: choice
+        options: [windows-2022, windows-2025-vs2026]
+        required: true
+      replica:
+        description: Independent host number
+        default: '1'
+        required: true
 permissions:
   contents: read
   actions: read
 jobs:
   compare:
     if: github.event_name == 'workflow_dispatch'
-    strategy:
-      fail-fast: false
-      matrix:
-        runner: [windows-2022, windows-2025-vs2026]
-        replica: [1, 2, 3]
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ inputs.runner }}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
@@ -117,13 +120,13 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: compiler-apache-${{ inputs.compiler }}-${{ matrix.runner }}-${{ matrix.replica }}
+          name: compiler-apache-${{ inputs.compiler }}-${{ inputs.runner }}-${{ inputs.replica }}
           path: reports
           if-no-files-found: error
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: compiler-dumps-${{ inputs.compiler }}-${{ matrix.runner }}-${{ matrix.replica }}
+          name: compiler-dumps-${{ inputs.compiler }}-${{ inputs.runner }}-${{ inputs.replica }}
           path: dumps
           if-no-files-found: ignore
           retention-days: 7
