@@ -1,0 +1,68 @@
+name: OPcache concurrent startup and regressions
+on:
+  push:
+    branches: [test/windows-opcache-startup-20261109]
+    paths: [.github/workflows/startup-stress.yml, scripts/startup-stress.ps1]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.config.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6
+      - id: config
+        shell: pwsh
+        run: |
+          $manifest=Get-Content manifest.json -Raw | ConvertFrom-Json -AsHashtable
+          $rows=@(foreach ($branch in $manifest.branches.Keys) {
+            $entry=$manifest.branches[$branch]
+            foreach ($file in $entry.php.Values) { @{branch=$branch; arch=$file.arch; ts=$file.ts; run=$entry.run; sourceSha=$entry.sourceSha; runner=$entry.runner} }
+          })
+          "matrix=$(@{include=$rows} | ConvertTo-Json -Depth 6 -Compress)" >> $env:GITHUB_OUTPUT
+  test:
+    needs: config
+    name: ${{ matrix.branch }} ${{ matrix.arch }} ${{ matrix.ts }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.config.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.PAT || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ matrix.run }}
+          name: artifacts
+          path: artifacts
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-src
+          ref: ${{ matrix.sourceSha }}
+          path: source
+      - name: Install Microsoft runtimes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach ($arch in 'x64','x86') {
+            $installer=Join-Path $env:RUNNER_TEMP "vc_redist.$arch.exe"
+            Invoke-WebRequest "https://aka.ms/vc14/vc_redist.$arch.exe" -OutFile $installer
+            $signature=Get-AuthenticodeSignature $installer
+            if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw 'Invalid runtime installer signature' }
+            $p=Start-Process $installer -ArgumentList '/install','/quiet','/norestart' -PassThru -Wait
+            if ($p.ExitCode -notin 0,1638,3010) { throw "Runtime installer failed: $($p.ExitCode)" }
+          }
+      - name: Test cold concurrent startups and OPcache regressions
+        shell: pwsh
+        run: ./scripts/startup-stress.ps1 -Branch '${{ matrix.branch }}' -Arch '${{ matrix.arch }}' -Ts '${{ matrix.ts }}'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: startup-stress-${{ matrix.arch }}-${{ matrix.ts }}
+          path: reports
+          if-no-files-found: error
