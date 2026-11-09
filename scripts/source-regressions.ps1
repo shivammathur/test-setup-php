@@ -50,6 +50,32 @@ foreach ($file in $entry.php.GetEnumerator()) {
                 $passed = $code -eq 0 -and $runs -eq 3 -and $output -notmatch '(?i)failed to register system entropy|warning:|fatal error|parse error'
                 $cases.Add(@{ label="$variant-$cache-system-id"; exitCode=$(if ($passed) {0} else {1}); runs=$runs; extensionProbe=$probe; upstreamFixtureSha256=(Get-FileHash $systemIdTest -Algorithm SHA256).Hash })
             }
+            if ($file.Value.ts -eq 'nts' -and $cache -eq 'opcache') {
+                $cgiFixture = Join-Path $report.FullName "$variant-cgi-startup.php"
+                '<?php header("Content-Type: text/plain"); echo "CGI_STARTUP_OK";' | Set-Content $cgiFixture
+                $launches = [Collections.Generic.List[object]]::new()
+                for ($batch=0; $batch -lt 8; $batch++) {
+                    $processes = @(1..64 | ForEach-Object {
+                        $start = [Diagnostics.ProcessStartInfo]::new((Join-Path $phpRoot 'php-cgi.exe'))
+                        $start.UseShellExecute = $false
+                        $start.RedirectStandardOutput = $true; $start.RedirectStandardError = $true
+                        foreach ($argument in @('-n') + $settings + @($cgiFixture)) { $start.ArgumentList.Add($argument) }
+                        $process = [Diagnostics.Process]::new(); $process.StartInfo=$start
+                        $null=$process.Start()
+                        @{ process=$process; stdout=$process.StandardOutput.ReadToEndAsync(); stderr=$process.StandardError.ReadToEndAsync() }
+                    })
+                    foreach ($item in $processes) {
+                        $process=$item.process
+                        if (-not $process.WaitForExit(30000)) { $process.Kill(); $process.WaitForExit() }
+                        $stdout=$item.stdout.GetAwaiter().GetResult(); $stderr=$item.stderr.GetAwaiter().GetResult()
+                        $launches.Add(@{ pid=$process.Id; exitCode=$process.ExitCode; passed=($process.ExitCode -eq 0 -and $stdout.Contains('CGI_STARTUP_OK')); stdout=$stdout; stderr=$stderr })
+                        $process.Dispose()
+                    }
+                }
+                $launches | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $report.FullName "$variant-cgi-startup.json")
+                $bad = @($launches | Where-Object { -not $_.passed }).Count
+                $cases.Add(@{ label="$variant-cgi-startup"; exitCode=$(if ($bad) {1} else {0}); passed=($launches.Count-$bad); failed=$bad; total=$launches.Count })
+            }
             $label = "$variant-$cache"
             $env:TEST_PHP_JUNIT = Join-Path $report.FullName "$label.xml"
             # Pass INI settings individually: a forced -c contaminates php_ini_loaded_file's -n subprocess.
