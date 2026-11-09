@@ -1,0 +1,107 @@
+name: Validate matched-source compiler artifacts
+run-name: Compare ${{ inputs.compiler }} artifacts from ${{ inputs.build-run }}
+on:
+  push:
+    branches: [test/windows-opcache-startup-20261109]
+    paths: [.github/workflows/compare-compiler-artifacts.yml]
+  workflow_dispatch:
+    inputs:
+      build-run:
+        description: Matched-source compiler build run
+        required: true
+      compiler:
+        type: choice
+        options: [vs17, vs18]
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  compare:
+    if: github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [windows-2022, windows-2025-vs2026]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.PAT || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ inputs.build-run }}
+          name: compiler-${{ inputs.compiler }}
+          path: artifacts
+      - name: Pin runtime artifacts and provenance
+        shell: pwsh
+        env:
+          BUILD_RUN: ${{ inputs.build-run }}
+          COMPILER: ${{ inputs.compiler }}
+        run: ./scripts/prepare-compiler-manifest.ps1
+      - name: Install current Visual C++ runtimes
+        shell: pwsh
+        run: |
+          foreach ($arch in 'x64', 'x86') {
+            $installer = Join-Path $env:RUNNER_TEMP "vc_redist.$arch.exe"
+            Invoke-WebRequest "https://aka.ms/vc14/vc_redist.$arch.exe" -OutFile $installer
+            $signature = Get-AuthenticodeSignature $installer
+            if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {
+              throw "Invalid Microsoft runtime signature for $arch"
+            }
+            $process = Start-Process $installer -ArgumentList '/install', '/quiet', '/norestart' -Wait -PassThru
+            if ($process.ExitCode -notin 0, 1638, 3010) { throw "Visual C++ runtime $arch installation failed: $($process.ExitCode)" }
+          }
+      - name: Install checksum-pinned Apache Lounge servers
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $manifest = Get-Content manifest.json -Raw | ConvertFrom-Json -AsHashtable
+          New-Item apache -ItemType Directory -Force | Out-Null
+          foreach ($arch in 'x64', 'x86') {
+            $server = $manifest.apache[$arch]
+            $zip = Join-Path $env:RUNNER_TEMP "apache-lounge-$arch.zip"
+            Invoke-WebRequest $server.url -OutFile $zip -UserAgent 'Mozilla/5.0' -Headers @{ Referer='https://www.apachelounge.com/download/' }
+            foreach ($algorithm in 'SHA256', 'SHA512') {
+              if ((Get-FileHash $zip -Algorithm $algorithm).Hash.ToLowerInvariant() -ne $server[$algorithm.ToLowerInvariant()]) {
+                throw "Apache Lounge $arch $algorithm mismatch"
+              }
+            }
+            $extract = Join-Path $env:RUNNER_TEMP "apache-lounge-$arch"
+            Expand-Archive $zip $extract -Force
+            Move-Item (Join-Path $extract $server.rootDirectory) "apache/$arch"
+          }
+      - name: Compare natural Apache behavior
+        shell: pwsh
+        run: |
+          ./scripts/enable-postmortem.ps1
+          $outcomes=@(foreach ($repeat in 1..15) {
+            try {
+              ./scripts/apache-php.ps1 -Branch comparison -Regressions -Architecture x86 -ThreadSafety nts -CacheModes opcache -ReportDirectory "reports/repeat-$repeat"
+              @{repeat=$repeat;passed=$true}
+            } catch {
+              Write-Host "Repeat $repeat failed: $($_.Exception.Message)"
+              @{repeat=$repeat;passed=$false;error=$_.Exception.Message}
+            }
+            Get-ChildItem dumps -Filter '*.dmp' | Sort-Object LastWriteTime -Descending | Select-Object -Skip 3 | Remove-Item -Force
+          })
+          $outcomes | ConvertTo-Json -Depth 5 | Set-Content reports/comparison.json
+          Write-Host "Natural failures: $(@($outcomes | Where-Object { -not $_.passed }).Count)/$($outcomes.Count)"
+      - name: Analyze captured dumps
+        if: always()
+        shell: pwsh
+        run: ./scripts/analyze-natural-dumps.ps1 -Branch comparison
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: compiler-apache-${{ inputs.compiler }}-${{ matrix.runner }}
+          path: reports
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: compiler-dumps-${{ inputs.compiler }}-${{ matrix.runner }}
+          path: dumps
+          if-no-files-found: ignore
+          retention-days: 7
