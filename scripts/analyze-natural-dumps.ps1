@@ -18,5 +18,5 @@ Expand-Archive $pack[0].FullName $symbols -Force
 (Get-FileHash $pack[0].FullName -Algorithm SHA256) | ConvertTo-Json | Set-Content reports/debug-pack.json
 foreach ($dump in $dumps) {
     $out=Join-Path (Resolve-Path reports).Path ($dump.BaseName+'.stack.txt')
-    & $cdb -z $dump.FullName -y "$symbols;srv*$env:RUNNER_TEMP/symbol-cache*https://msdl.microsoft.com/download/symbols" -logo $out -c '.symopt+0x410;.lines -e;.reload /f;.ecxr;kv;!analyze -v;lmv m php8;lmv m php_opcache;q'
+    & $cdb -z $dump.FullName -y "$symbols;srv*$env:RUNNER_TEMP/symbol-cache*https://msdl.microsoft.com/download/symbols" -logo $out -c '.symopt+0x410;.lines -e;.reload /f;.ecxr;kv;!analyze -v;lmv m php8;lmv m php_opcache;uf php8!accel_post_startup;uf php8!zend_shared_alloc_startup;q'
 }
