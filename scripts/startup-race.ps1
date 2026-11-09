@@ -26,6 +26,8 @@ $module = if (Test-Path "$phpRoot/ext/php_opcache.dll") { 'php_opcache' } else {
 $fixture = Join-Path $report 'startup.php'
 '<?php $s=opcache_get_status(false); if (!$s || !$s["opcache_enabled"]) exit(1); echo "CGI_STARTUP_OK"; usleep(3000000);' | Set-Content $fixture
 $source = Get-Content source/ext/opcache/ZendAccelerator.c
+$postStartupLine = @(for ($i=0; $i -lt $source.Count; $i++) { if ($source[$i] -match '^static zend_result accel_post_startup\(void\)$') { $i } })
+if ($postStartupLine.Count -ne 1) { throw 'Cannot locate startup function' }
 $phases = @(
     @{name='shared-globals'; pattern='if (zend_accel_init_shm() == FAILURE)'},
     @{name='jit-buffer'; pattern='ZCG(last_restart_time) = ZCSG(last_restart_time);'}
@@ -64,7 +66,7 @@ foreach ($phase in $phases) {
     $creator=$null; $peer=$null
     $result=@{phase=$phase.name; flavor=$Flavor; passed=$false}
     try {
-        $lines=@(for ($i=0; $i -lt $source.Count; $i++) { if ($source[$i].Contains($phase.pattern)) { $i+1 } })
+        $lines=@(for ($i=$postStartupLine[0]; $i -lt $source.Count; $i++) { if ($source[$i].Contains($phase.pattern)) { $i+1 } })
         if ($lines.Count -ne 1) { throw "Ambiguous source breakpoint: $($phase.pattern)" }
         $result.sourceLine=$lines[0]
         $arguments=@('-n','-d',"extension_dir=$phpRoot/ext",'-d','extension=zend_test','-d','opcache.enable_cli=1','-d',"opcache.cache_id=race-$([guid]::NewGuid())",'-d','opcache.jit=tracing','-d','opcache.jit_buffer_size=64M')
@@ -77,7 +79,7 @@ foreach ($phase in $phases) {
         $creator.process.StandardInput.WriteLine($breakpoint); $creator.process.StandardInput.Flush()
         Wait-Marker $creator 'CREATOR_PAUSED'
         $dump=(Join-Path $report ($phase.name+'.dmp')).Replace('\','/')
-        $peerCommands='.symopt+0x410; sxd -c2 ".echo PEER_CRASHED; .dump /ma '+$dump+'; .reload /f; .exr -1; r; kv; ?? '+$module+'!smm_shared_globals; ?? '+$module+'!accel_shared_globals; ?? '+$module+'!dasm_ptr; ?? *'+$module+'!dasm_ptr; q" av; bu /1 '+$module+'!accel_post_startup ".echo PEER_STARTING; gc"; g'
+        $peerCommands='.symopt+0x410; sxd -c2 ".echo PEER_CRASHED; .dump /ma '+$dump+'; .exr -1; r; kv; ?? '+$module+'!smm_shared_globals; ?? '+$module+'!accel_shared_globals; ?? '+$module+'!dasm_ptr; q" av; bu /1 '+$module+'!accel_post_startup ".echo PEER_STARTING; gc"; g'
         $peer=Start-Debugger ($phase.name+'-peer') $peerCommands $arguments
         Wait-Marker $peer 'PEER_STARTING'
         if ($Flavor -eq 'baseline') {

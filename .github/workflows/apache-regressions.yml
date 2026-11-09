@@ -1,5 +1,8 @@
 name: Apache Windows regression validation
 on:
+  push:
+    branches: [test/windows-opcache-startup-20261109]
+    paths: [.github/workflows/apache-regressions.yml, manifest.json]
   workflow_dispatch:
 permissions:
   contents: read
