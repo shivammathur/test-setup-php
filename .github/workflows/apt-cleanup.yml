@@ -1,0 +1,270 @@
+name: Issue 1156 apt cleanup and regressions
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+defaults:
+  run:
+    shell: bash
+env:
+  EVIDENCE: ${{ github.workspace }}/evidence
+  ACTION_ROOT: ${{ github.workspace }}/action
+  BASELINE_ROOT: ${{ github.workspace }}/baseline
+  APT_FAST_SOURCE: ${{ github.workspace }}/evidence/apt-fast
+jobs:
+  regression-runner:
+    name: Regression suite (runner)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout regression tests
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install test prerequisites
+        run: |
+          mkdir -p evidence
+          bash tests/bootstrap.sh 2>&1 | tee evidence/bootstrap.log
+      - name: Checkout exact develop fix
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 25b6ac8dcd472abc6860aae023aac6a3009358f4
+          path: action
+          persist-credentials: false
+      - name: Checkout released baseline from the issue
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: eb7c497e18156a6bbabfef1d3a82760b9eda3962
+          path: baseline
+          persist-credentials: false
+      - name: Start with both temporary artifacts absent
+        run: sudo env GITHUB_ACTIONS=true EVIDENCE="$EVIDENCE" bash tests/prepare-state.sh
+      - name: Prove the reported baseline failure and fixed cleanup
+        run: sudo env GITHUB_ACTIONS=true EVIDENCE="$EVIDENCE" ACTION_ROOT="$ACTION_ROOT" BASELINE_ROOT="$BASELINE_ROOT" bash tests/baseline-proof.sh 2>&1 | tee evidence/baseline-proof.log
+      - name: Check all 96 cleanup and error-path combinations
+        run: sudo env GITHUB_ACTIONS=true ACTION_ROOT="$ACTION_ROOT" bash tests/cleanup.sh 2>&1 | tee evidence/cleanup.log
+      - name: Test real apt-get and apt-fast config upgrades and repair
+        run: sudo env GITHUB_ACTIONS=true ACTION_ROOT="$ACTION_ROOT" APT_FAST_SOURCE="$APT_FAST_SOURCE" bash tests/conffile.sh 2>&1 | tee evidence/conffile.log
+      - name: Collect package artifacts and apt logs
+        if: always()
+        run: |
+          sudo cp /tmp/apt-integration.log evidence/ 2>/dev/null || true
+          sudo cp /tmp/package-*.deb evidence/ 2>/dev/null || true
+          git -C action rev-parse HEAD > evidence/action-sha.txt
+      - name: Upload regression evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: regression-runner
+          path: evidence/
+          if-no-files-found: error
+  action-runner:
+    name: Full action (runner, ${{ matrix.mode }}, apt=${{ matrix.apt }}, marker=${{ matrix.marker }})
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [auto, self-hosted]
+        apt: ['false', 'true']
+        marker: ['false', 'true']
+    env:
+      runner: ${{ matrix.mode == 'self-hosted' && 'self-hosted' || '' }}
+      EXISTING_APT: ${{ matrix.apt }}
+      EXISTING_MARKER: ${{ matrix.marker }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout regression tests
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install test prerequisites
+        run: |
+          mkdir -p evidence
+          bash tests/bootstrap.sh 2>&1 | tee evidence/bootstrap.log
+      - name: Checkout exact develop fix
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 25b6ac8dcd472abc6860aae023aac6a3009358f4
+          path: action
+          persist-credentials: false
+      - name: Prepare and fingerprint initial filesystem state
+        run: sudo env GITHUB_ACTIONS=true EVIDENCE="$EVIDENCE" APT_FAST_SOURCE="$APT_FAST_SOURCE" EXISTING_APT="$EXISTING_APT" EXISTING_MARKER="$EXISTING_MARKER" bash tests/prepare-state.sh
+      - name: Setup PHP 8.5
+        id: setup
+        uses: ./action
+        with:
+          php-version: '8.5'
+          extensions: curl, mbstring, intl, pdo_mysql, gd
+          coverage: xdebug
+          tools: composer:v2
+          ini-values: post_max_size=256M, date.timezone=Asia/Kolkata
+      - name: Validate cleanup and PHP runtime
+        env:
+          ACTUAL_VERSION: ${{ steps.setup.outputs.php-version }}
+        run: |
+          [[ "$ACTUAL_VERSION" = 8.5.* ]]
+          bash tests/verify-state.sh | tee evidence/first-cleanup.log
+          bash tests/verify-php.sh | tee evidence/first-php.log
+      - name: Repeat Setup PHP 8.5
+        id: repeat
+        uses: ./action
+        with:
+          php-version: '8.5'
+          extensions: curl, mbstring, intl, pdo_mysql, gd
+          coverage: xdebug
+          tools: composer:v2
+          ini-values: post_max_size=256M, date.timezone=Asia/Kolkata
+      - name: Validate repeated setup and cleanup
+        env:
+          ACTUAL_VERSION: ${{ steps.repeat.outputs.php-version }}
+        run: |
+          [[ "$ACTUAL_VERSION" = 8.5.* ]]
+          bash tests/verify-state.sh | tee evidence/repeated-cleanup.log
+          bash tests/verify-php.sh | tee evidence/repeated-php.log
+      - name: Record installed package state
+        if: always()
+        run: |
+          dpkg-query -W > evidence/packages.txt
+          git -C action rev-parse HEAD > evidence/action-sha.txt
+      - name: Upload full action evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: action-runner-${{ matrix.mode }}-apt-${{ matrix.apt }}-marker-${{ matrix.marker }}
+          path: evidence/
+          if-no-files-found: error
+  regression-container:
+    name: Regression suite (container)
+    runs-on: ubuntu-latest
+    container: ubuntu:latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout regression tests
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install test prerequisites
+        run: |
+          mkdir -p evidence
+          bash tests/bootstrap.sh 2>&1 | tee evidence/bootstrap.log
+      - name: Checkout exact develop fix
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 25b6ac8dcd472abc6860aae023aac6a3009358f4
+          path: action
+          persist-credentials: false
+      - name: Checkout released baseline from the issue
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: eb7c497e18156a6bbabfef1d3a82760b9eda3962
+          path: baseline
+          persist-credentials: false
+      - name: Start with both temporary artifacts absent
+        run: sudo env GITHUB_ACTIONS=true EVIDENCE="$EVIDENCE" bash tests/prepare-state.sh
+      - name: Prove the reported baseline failure and fixed cleanup
+        run: sudo env GITHUB_ACTIONS=true EVIDENCE="$EVIDENCE" ACTION_ROOT="$ACTION_ROOT" BASELINE_ROOT="$BASELINE_ROOT" bash tests/baseline-proof.sh 2>&1 | tee evidence/baseline-proof.log
+      - name: Check all 96 cleanup and error-path combinations
+        run: sudo env GITHUB_ACTIONS=true ACTION_ROOT="$ACTION_ROOT" bash tests/cleanup.sh 2>&1 | tee evidence/cleanup.log
+      - name: Test real apt-get and apt-fast config upgrades and repair
+        run: sudo env GITHUB_ACTIONS=true ACTION_ROOT="$ACTION_ROOT" APT_FAST_SOURCE="$APT_FAST_SOURCE" bash tests/conffile.sh 2>&1 | tee evidence/conffile.log
+      - name: Collect package artifacts and apt logs
+        if: always()
+        run: |
+          sudo cp /tmp/apt-integration.log evidence/ 2>/dev/null || true
+          sudo cp /tmp/package-*.deb evidence/ 2>/dev/null || true
+          git -C action rev-parse HEAD > evidence/action-sha.txt
+      - name: Upload regression evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: regression-container
+          path: evidence/
+          if-no-files-found: error
+  action-container:
+    name: Full action (container, ${{ matrix.mode }}, apt=${{ matrix.apt }}, marker=${{ matrix.marker }})
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [auto, self-hosted]
+        apt: ['false', 'true']
+        marker: ['false', 'true']
+    env:
+      ImageOS: ''
+      ImageVersion: ''
+      runner: ${{ matrix.mode == 'self-hosted' && 'self-hosted' || '' }}
+      EXISTING_APT: ${{ matrix.apt }}
+      EXISTING_MARKER: ${{ matrix.marker }}
+    runs-on: ubuntu-latest
+    container: ubuntu:latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout regression tests
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install test prerequisites
+        run: |
+          mkdir -p evidence
+          bash tests/bootstrap.sh 2>&1 | tee evidence/bootstrap.log
+      - name: Checkout exact develop fix
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 25b6ac8dcd472abc6860aae023aac6a3009358f4
+          path: action
+          persist-credentials: false
+      - name: Prepare and fingerprint initial filesystem state
+        run: sudo env GITHUB_ACTIONS=true EVIDENCE="$EVIDENCE" APT_FAST_SOURCE="$APT_FAST_SOURCE" EXISTING_APT="$EXISTING_APT" EXISTING_MARKER="$EXISTING_MARKER" bash tests/prepare-state.sh
+      - name: Setup PHP 8.5
+        id: setup
+        uses: ./action
+        with:
+          php-version: '8.5'
+          extensions: curl, mbstring, intl, pdo_mysql, gd
+          coverage: xdebug
+          tools: composer:v2
+          ini-values: post_max_size=256M, date.timezone=Asia/Kolkata
+      - name: Validate cleanup and PHP runtime
+        env:
+          ACTUAL_VERSION: ${{ steps.setup.outputs.php-version }}
+        run: |
+          [[ "$ACTUAL_VERSION" = 8.5.* ]]
+          bash tests/verify-state.sh | tee evidence/first-cleanup.log
+          bash tests/verify-php.sh | tee evidence/first-php.log
+      - name: Repeat Setup PHP 8.5
+        id: repeat
+        uses: ./action
+        with:
+          php-version: '8.5'
+          extensions: curl, mbstring, intl, pdo_mysql, gd
+          coverage: xdebug
+          tools: composer:v2
+          ini-values: post_max_size=256M, date.timezone=Asia/Kolkata
+      - name: Validate repeated setup and cleanup
+        env:
+          ACTUAL_VERSION: ${{ steps.repeat.outputs.php-version }}
+        run: |
+          [[ "$ACTUAL_VERSION" = 8.5.* ]]
+          bash tests/verify-state.sh | tee evidence/repeated-cleanup.log
+          bash tests/verify-php.sh | tee evidence/repeated-php.log
+      - name: Record installed package state
+        if: always()
+        run: |
+          dpkg-query -W > evidence/packages.txt
+          git -C action rev-parse HEAD > evidence/action-sha.txt
+      - name: Upload full action evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: action-container-${{ matrix.mode }}-apt-${{ matrix.apt }}-marker-${{ matrix.marker }}
+          path: evidence/
+          if-no-files-found: error
