@@ -107,7 +107,7 @@ jobs:
               } finally {
                 $caseTimer.Stop();$result.caseMilliseconds=$caseTimer.Elapsed.TotalMilliseconds
                 $dumps=@(Get-ChildItem dumps -File -Filter '*.dmp')
-                $result.dumps=@($dumps.Name)
+                $result.dumps=@($dumps | ForEach-Object { $_.Name })
                 $dumps | Move-Item -Destination "dumps/$variant" -Force
                 Get-ChildItem "dumps/$variant" -Filter '*.dmp' | Sort-Object LastWriteTime -Descending | Select-Object -Skip 3 | Remove-Item -Force
               }

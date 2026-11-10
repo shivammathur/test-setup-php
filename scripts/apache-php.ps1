@@ -259,6 +259,7 @@ DocumentRoot "$document"
                         if ($cacheOwner.Process.HasExited) { throw 'Cache owner exited during the test' }
                     }
                     $requests = 0
+                    $data = $null
                     for ($batch=0; $batch -lt $regressionBatchCount; $batch++) {
                         $batchTimer=[Diagnostics.Stopwatch]::StartNew()
                         $tasks = @(1..64 | ForEach-Object { $client.GetAsync("$regressionUrl`?request=$generation-$batch-$_") })
