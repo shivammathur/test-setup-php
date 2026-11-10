@@ -78,8 +78,23 @@ foreach ($phase in $phases) {
         # The lock helper can have many inline instances in optimized builds.
         # Select the exact startup call site using the matching source and PDB.
         $location='`'+$module+'!ZendAccelerator.c:'+$lines[0]+'`'
-        $breakpoint='bp /1 '+$location+' ".echo CREATOR_PAUSED; kv; ?? '+$module+'!smm_shared_globals; ?? '+$module+'!accel_shared_globals;"; g'
-        $creator.process.StandardInput.WriteLine($breakpoint); $creator.process.StandardInput.Flush()
+        $onBreak=' ".echo CREATOR_PAUSED; kv; ?? '+$module+'!smm_shared_globals; ?? '+$module+'!accel_shared_globals;"'
+        $creator.process.StandardInput.WriteLine('bp /1 '+$location+$onBreak)
+        $creator.process.StandardInput.WriteLine('.echo BREAKPOINT_RESOLVED'); $creator.process.StandardInput.Flush()
+        Wait-Marker $creator 'BREAKPOINT_RESOLVED'
+        $breakpointLog=Get-Content $creator.log -Raw
+        if ($breakpointLog.Contains('Ambiguous symbol error')) {
+            # PGO can duplicate this source line inside accel_post_startup().
+            # Use every matching instruction address reported by the PDB.
+            $pattern='(?m)^Matched: '+[regex]::Escape($module)+'!accel_post_startup(?:\+0x[0-9a-f]+)? \(([0-9a-f`]+)\)\r?$'
+            $addresses=@([regex]::Matches($breakpointLog,$pattern) | ForEach-Object { $_.Groups[1].Value.Replace('`','') } | Select-Object -Unique)
+            if (-not $addresses.Count) { throw 'Cannot resolve startup source breakpoint addresses' }
+            $result.breakpointAddresses=$addresses
+            foreach ($address in $addresses) { $creator.process.StandardInput.WriteLine('bp /1 0x'+$address+$onBreak) }
+            $creator.process.StandardInput.WriteLine('.echo CONCRETE_BREAKPOINTS_SET'); $creator.process.StandardInput.Flush()
+            Wait-Marker $creator 'CONCRETE_BREAKPOINTS_SET'
+        }
+        $creator.process.StandardInput.WriteLine('g'); $creator.process.StandardInput.Flush()
         Wait-Marker $creator 'CREATOR_PAUSED'
         # Optimized x86 line tables can point at the preceding unlock call.
         $creator.process.StandardInput.WriteLine('u @$ip L1; .echo INSTRUCTION_READY'); $creator.process.StandardInput.Flush()
