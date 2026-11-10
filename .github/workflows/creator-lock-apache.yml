@@ -1,0 +1,147 @@
+name: Compare OPcache creator-lock Apache performance
+run-name: Creator-lock ${{ inputs.mode }} host ${{ inputs.replica }}
+on:
+  push:
+    branches: [test/windows-opcache-creator-lock-20261110]
+    paths: [.github/workflows/creator-lock-apache.yml]
+  workflow_dispatch:
+    inputs:
+      baseline-run:
+        required: true
+      fixed-run:
+        required: true
+      mode:
+        type: choice
+        options: [cold, warm]
+        required: true
+      replica:
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  compare:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.PAT || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ inputs.baseline-run }}
+          name: build-base86
+          path: builds/base86
+      - uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.PAT || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ inputs.fixed-run }}
+          name: build-fix86
+          path: builds/fix86
+      - name: Verify matched build artifacts
+        shell: pwsh
+        run: |
+          ./scripts/prepare-build.ps1 -Variants @('base86','fix86') -BuildRuns @('${{ inputs.baseline-run }}','${{ inputs.fixed-run }}')
+          $base=Get-Content builds/base86/comparison.json -Raw | ConvertFrom-Json
+          $fixed=Get-Content builds/fix86/comparison.json -Raw | ConvertFrom-Json
+          foreach ($property in 'compiler','arch','ts','depsSeries','depsVs','apacheRun') {
+            if ($base.$property -ne $fixed.$property) { throw "Mismatched $property" }
+          }
+          if (($base.compilers.sha256 -join ',') -ne ($fixed.compilers.sha256 -join ',')) { throw 'Compiler executable hashes differ' }
+          ./scripts/record-platform.ps1
+      - name: Install current Visual C++ runtimes
+        shell: pwsh
+        run: |
+          foreach ($arch in 'x64', 'x86') {
+            $installer = Join-Path $env:RUNNER_TEMP "vc_redist.$arch.exe"
+            Invoke-WebRequest "https://aka.ms/vc14/vc_redist.$arch.exe" -OutFile $installer
+            $signature = Get-AuthenticodeSignature $installer
+            if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {
+              throw "Invalid Microsoft runtime signature for $arch"
+            }
+            $process = Start-Process $installer -ArgumentList '/install', '/quiet', '/norestart' -Wait -PassThru
+            if ($process.ExitCode -notin 0, 1638, 3010) { throw "Visual C++ runtime $arch installation failed: $($process.ExitCode)" }
+          }
+      - name: Install checksum-pinned Apache Lounge servers
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $manifest = Get-Content manifest.json -Raw | ConvertFrom-Json -AsHashtable
+          New-Item apache -ItemType Directory -Force | Out-Null
+          foreach ($arch in 'x64', 'x86') {
+            $server = $manifest.apache[$arch]
+            $zip = Join-Path $env:RUNNER_TEMP "apache-lounge-$arch.zip"
+            Invoke-WebRequest $server.url -OutFile $zip -UserAgent 'Mozilla/5.0' -Headers @{ Referer='https://www.apachelounge.com/download/' }
+            foreach ($algorithm in 'SHA256', 'SHA512') {
+              if ((Get-FileHash $zip -Algorithm $algorithm).Hash.ToLowerInvariant() -ne $server[$algorithm.ToLowerInvariant()]) {
+                throw "Apache Lounge $arch $algorithm mismatch"
+              }
+            }
+            $extract = Join-Path $env:RUNNER_TEMP "apache-lounge-$arch"
+            Expand-Archive $zip $extract -Force
+            Move-Item (Join-Path $extract $server.rootDirectory) "apache/$arch"
+          }
+      - name: Compare alternating baseline and patched trials
+        shell: pwsh
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          New-Item artifacts -ItemType Directory -Force | Out-Null
+          Copy-Item builds/base86/* artifacts -Force
+          ./scripts/enable-postmortem.ps1
+          foreach ($variant in 'base86','fix86') { New-Item "dumps/$variant" -ItemType Directory -Force | Out-Null }
+          $outcomes=@(foreach ($repeat in 1..15) {
+            $order=if ($repeat % 2) { @('base86','fix86') } else { @('fix86','base86') }
+            foreach ($variant in $order) {
+              Copy-Item "builds/$variant/*" artifacts -Force
+              $caseTimer=[Diagnostics.Stopwatch]::StartNew()
+              $result=@{repeat=$repeat;variant=$variant;mode=$env:MODE;passed=$false}
+              try {
+                ./scripts/apache-php.ps1 -Branch $variant -Regressions -Architecture x86 -ThreadSafety nts -CacheModes opcache -KeepCache:($env:MODE -eq 'warm') -BenchmarkOnly:($env:MODE -eq 'warm') -ReportDirectory "reports/$variant-$repeat"
+                $result.passed=$true
+              } catch {
+                $result.error=$_.Exception.Message
+                Write-Host "Repeat $repeat $variant failed: $($result.error)"
+              } finally {
+                $caseTimer.Stop();$result.caseMilliseconds=$caseTimer.Elapsed.TotalMilliseconds
+                $dumps=@(Get-ChildItem dumps -File -Filter '*.dmp')
+                $result.dumps=@($dumps.Name)
+                $dumps | Move-Item -Destination "dumps/$variant" -Force
+                Get-ChildItem "dumps/$variant" -Filter '*.dmp' | Sort-Object LastWriteTime -Descending | Select-Object -Skip 3 | Remove-Item -Force
+              }
+              $result
+            }
+          })
+          $outcomes | ConvertTo-Json -Depth 6 | Set-Content reports/comparison.json
+      - name: Analyze dumps with matching symbols
+        if: always()
+        shell: pwsh
+        run: |
+          foreach ($variant in 'base86','fix86') {
+            ./scripts/analyze-natural-dumps.ps1 -Branch $variant -ArtifactDirectory "builds/$variant" -DumpDirectory "dumps/$variant"
+          }
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: creator-lock-${{ inputs.mode }}-${{ inputs.replica }}
+          path: reports
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: creator-lock-dumps-${{ inputs.mode }}-${{ inputs.replica }}
+          path: dumps
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Require patched runs and both warm benchmarks to pass
+        if: always()
+        shell: pwsh
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          $outcomes=Get-Content reports/comparison.json -Raw | ConvertFrom-Json
+          if (@($outcomes).Count -ne 30) { throw 'Incomplete trial count' }
+          $required=@($outcomes | Where-Object { $_.variant -eq 'fix86' -or $env:MODE -eq 'warm' })
+          if (@($required | Where-Object { -not $_.passed -or $_.dumps.Count }).Count) { throw 'Required trials failed or crashed' }

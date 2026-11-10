@@ -1,0 +1,96 @@
+name: Validate OPcache creator-lock source
+run-name: Creator-lock ${{ inputs.mode }} ${{ inputs.variant }}
+on:
+  push:
+    branches: [test/windows-opcache-creator-lock-20261110]
+    paths: [.github/workflows/creator-lock-source.yml]
+  workflow_dispatch:
+    inputs:
+      build-run:
+        required: true
+      variant:
+        required: true
+      arch:
+        type: choice
+        options: [x86, x64]
+        required: true
+      ts:
+        type: choice
+        options: [nts, ts]
+        required: true
+      mode:
+        type: choice
+        options: [stress, controlled]
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  validate:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.PAT || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ inputs.build-run }}
+          name: build-${{ inputs.variant }}
+          path: builds/${{ inputs.variant }}
+      - name: Verify source and runtime artifacts
+        id: prepare
+        shell: pwsh
+        run: |
+          ./scripts/prepare-build.ps1 -Variants @('${{ inputs.variant }}') -BuildRuns @('${{ inputs.build-run }}')
+          New-Item artifacts -ItemType Directory -Force | Out-Null
+          Copy-Item 'builds/${{ inputs.variant }}/*' artifacts -Force
+          ./scripts/record-platform.ps1
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-src
+          ref: ${{ steps.prepare.outputs.source-sha }}
+          path: source
+      - name: Install Microsoft runtimes and debugger
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach ($arch in 'x64','x86') {
+            $installer=Join-Path $env:RUNNER_TEMP "vc_redist.$arch.exe"
+            Invoke-WebRequest "https://aka.ms/vc14/vc_redist.$arch.exe" -OutFile $installer
+            $signature=Get-AuthenticodeSignature $installer
+            if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw 'Invalid runtime installer signature' }
+            $p=Start-Process $installer -ArgumentList '/install','/quiet','/norestart' -PassThru -Wait
+            if ($p.ExitCode -notin 0,1638,3010) { throw "Runtime installer failed: $($p.ExitCode)" }
+          }
+          $cdb=Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/Debuggers/${{ inputs.arch }}/cdb.exe'
+          if (-not (Test-Path $cdb)) {
+            $installer=Join-Path $env:RUNNER_TEMP 'winsdksetup.exe'
+            Invoke-WebRequest 'https://go.microsoft.com/fwlink/?linkid=2382321' -OutFile $installer
+            $signature=Get-AuthenticodeSignature $installer
+            if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw 'Invalid SDK installer signature' }
+            $p=Start-Process $installer -ArgumentList '/quiet','/norestart','/features','OptionId.WindowsDesktopDebuggers' -PassThru -Wait
+            if ($p.ExitCode -notin 0,3010) { throw "Debugger installer failed: $($p.ExitCode)" }
+          }
+          if (-not (Test-Path $cdb)) { throw 'Debugger executable missing' }
+      - name: Validate source patch
+        shell: pwsh
+        env:
+          MODE: ${{ inputs.mode }}
+          VARIANT: ${{ inputs.variant }}
+          ARCH: ${{ inputs.arch }}
+          TS: ${{ inputs.ts }}
+        run: |
+          if ($env:MODE -eq 'controlled') {
+            if ($env:TS -ne 'nts') { throw 'Controlled debugger validation uses NTS artifacts' }
+            ./scripts/startup-race.ps1 -Branch $env:VARIANT -Arch $env:ARCH -Flavor fixed
+          } else {
+            ./scripts/startup-stress.ps1 -Branch $env:VARIANT -Arch $env:ARCH -Ts $env:TS
+          }
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: creator-source-${{ inputs.mode }}-${{ inputs.variant }}
+          path: reports
+          if-no-files-found: error
