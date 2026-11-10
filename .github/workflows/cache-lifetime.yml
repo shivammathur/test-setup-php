@@ -1,5 +1,5 @@
 name: Test Windows OPcache cache lifetime
-run-name: Cache lifetime on ${{ inputs.runner }} host ${{ inputs.replica }}
+run-name: ${{ inputs.backend }} on ${{ inputs.runner }} host ${{ inputs.replica }}
 on:
   push:
     branches: [test/windows-2025-opcache-cache-lifetime-20261110]
@@ -20,6 +20,11 @@ on:
       replica:
         description: Independent host number
         default: '1'
+        required: true
+      backend:
+        type: choice
+        options: [retained, fastcgi]
+        default: retained
         required: true
 permissions:
   contents: read
@@ -84,13 +89,13 @@ jobs:
         run: |
           ./scripts/enable-postmortem.ps1
           $outcomes=@(foreach ($repeat in 1..15) {
-            $order=if ($repeat % 2) { @('baseline','retained') } else { @('retained','baseline') }
+            $order=if ($repeat % 2) { @('baseline','${{ inputs.backend }}') } else { @('${{ inputs.backend }}','baseline') }
             foreach ($mode in $order) {
               $before=@(Get-ChildItem dumps -Filter '*.dmp' | Select-Object -ExpandProperty Name)
               $caseTimer=[Diagnostics.Stopwatch]::StartNew()
               $outcome=@{repeat=$repeat;mode=$mode;passed=$false}
               try {
-                ./scripts/apache-php.ps1 -Branch comparison -Regressions -Architecture x86 -ThreadSafety nts -CacheModes opcache -KeepCache:($mode -eq 'retained') -ReportDirectory "reports/$mode-$repeat"
+                ./scripts/apache-php.ps1 -Branch comparison -Regressions -Architecture x86 -ThreadSafety nts -CacheModes opcache -KeepCache:($mode -ne 'baseline') -FastCgi:($mode -eq 'fastcgi') -ReportDirectory "reports/$mode-$repeat"
                 $outcome.passed=$true
               } catch {
                 $outcome.error=$_.Exception.Message
@@ -104,7 +109,7 @@ jobs:
             }
           })
           $outcomes | ConvertTo-Json -Depth 6 | Set-Content reports/comparison.json
-          foreach ($mode in 'baseline','retained') {
+          foreach ($mode in 'baseline','${{ inputs.backend }}') {
             $rows=@($outcomes | Where-Object { $_.mode -eq $mode })
             Write-Host "$mode failures: $(@($rows | Where-Object { -not $_.passed }).Count)/$($rows.Count)"
           }
@@ -115,20 +120,20 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: cache-lifetime-${{ inputs.runner }}-${{ inputs.replica }}
+          name: cache-lifetime-${{ inputs.backend }}-${{ inputs.runner }}-${{ inputs.replica }}
           path: reports
           if-no-files-found: error
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: cache-lifetime-dumps-${{ inputs.runner }}-${{ inputs.replica }}
+          name: cache-lifetime-dumps-${{ inputs.backend }}-${{ inputs.runner }}-${{ inputs.replica }}
           path: dumps
           if-no-files-found: ignore
           retention-days: 7
-      - name: Require all retained-cache cases to pass
+      - name: Require all mitigation cases to pass
         if: always()
         shell: pwsh
         run: |
           $outcomes=Get-Content reports/comparison.json -Raw | ConvertFrom-Json
-          $candidate=@($outcomes | Where-Object { $_.mode -eq 'retained' })
-          if ($candidate.Count -ne 15 -or @($candidate | Where-Object { -not $_.passed -or $_.dumps.Count }).Count) { throw 'Retained-cache mitigation did not pass every case without crashes' }
+          $candidate=@($outcomes | Where-Object { $_.mode -eq '${{ inputs.backend }}' })
+          if ($candidate.Count -ne 15 -or @($candidate | Where-Object { -not $_.passed -or $_.dumps.Count }).Count) { throw 'Cache lifetime mitigation did not pass every case without crashes' }

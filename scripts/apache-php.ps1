@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)] [string] $Branch, [switch] $Regressions, [switch] $EnableJit, [switch] $KeepCache, [string] $Architecture = '', [string] $ThreadSafety = '', [string[]] $CacheModes = @('nocache', 'opcache'), [string] $ReportDirectory = 'reports')
+param([Parameter(Mandatory)] [string] $Branch, [switch] $Regressions, [switch] $EnableJit, [switch] $KeepCache, [switch] $FastCgi, [string] $Architecture = '', [string] $ThreadSafety = '', [string[]] $CacheModes = @('nocache', 'opcache'), [string] $ReportDirectory = 'reports')
 . $PSScriptRoot/cache-owner.ps1
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -92,6 +92,13 @@ foreach ($zip in $runtimeZips) {
         $ini | Set-Content "$phpRoot/php.ini"
         $handlerConfig = if ($ts -eq 'ts') {
             "LoadModule php_module `"$phpPath/php8apache2_4.dll`"`nPHPIniDir `"$phpPath`""
+        } elseif ($FastCgi) {
+            @"
+LoadModule proxy_module modules/mod_proxy.so
+LoadModule proxy_fcgi_module modules/mod_proxy_fcgi.so
+ProxyRequests Off
+ProxyFCGIBackendType GENERIC
+"@
         } else {
             @"
 LoadModule actions_module modules/mod_actions.so
@@ -105,6 +112,7 @@ SetEnv PHPRC "$phpPath"
 </Directory>
 "@
         }
+        $phpHandler=if ($FastCgi) { '"proxy:fcgi://127.0.0.1:@FASTCGI_PORT@"' } else { 'application/x-httpd-php' }
         @"
 ServerRoot "$apache"
 ServerName 127.0.0.1
@@ -125,7 +133,7 @@ DocumentRoot "$document"
 <Directory "$document">
     Require all granted
     <FilesMatch \.php$>
-        SetHandler application/x-httpd-php
+        SetHandler $phpHandler
     </FilesMatch>
 </Directory>
 "@ | Set-Content $config
@@ -135,12 +143,13 @@ DocumentRoot "$document"
         $batchMetrics=[Collections.Generic.List[object]]::new()
         $ownerMetrics=[Collections.Generic.List[object]]::new()
         $cacheChecks=[Collections.Generic.List[object]]::new()
-        $result = @{ keepCache=[bool]$KeepCache; jitExplicitlyEnabled=[bool]$EnableJit; label=$label; passed=$false; phpArchive=$zip.Name; phpSha256=$sha; checks=@() }
+        $result = @{ fastCgi=[bool]$FastCgi;keepCache=[bool]$KeepCache; jitExplicitlyEnabled=[bool]$EnableJit; label=$label; passed=$false; phpArchive=$zip.Name; phpSha256=$sha; checks=@() }
         try {
             $env:PATH = "$apache/bin;$phpRoot;$originalPath"
             if ($KeepCache) {
                 if ($ts -ne 'nts' -or $cache -ne 'opcache') { throw 'Cache lifetime test requires NTS CGI with OPcache' }
-                $cacheOwner=Start-CacheOwner -PhpRoot $phpRoot -Report "$report/owner-1"
+                $cacheOwner=Start-CacheOwner -PhpRoot $phpRoot -Report "$report/owner-1" -Children $(if ($FastCgi) {64} else {0})
+                if ($FastCgi) { (Get-Content $config -Raw).Replace('@FASTCGI_PORT@',[string]$cacheOwner.Port) | Set-Content $config }
             }
             & $httpd -v *> "$report/apache-version.txt"
             & $httpd -t -f $config *> "$report/config-check.txt"
@@ -197,7 +206,9 @@ DocumentRoot "$document"
             $server.Refresh()
             $modules = @($server.Modules | ForEach-Object { @{ name=$_.ModuleName; file=$_.FileName } })
             $modules | ConvertTo-Json -Depth 4 | Set-Content "$report/loaded-modules.json"
-            foreach ($relative in $manifest.apache[$arch].verifyModules) {
+            $verifyModules=@($manifest.apache[$arch].verifyModules)
+            if ($FastCgi) { $verifyModules+=@('modules/mod_proxy.so','modules/mod_proxy_fcgi.so') }
+            foreach ($relative in $verifyModules) {
                 $name = [IO.Path]::GetFileName($relative)
                 $loaded = @($modules | Where-Object { $_.name -ieq $name })
                 Assert-Equal $loaded.Count 1 "Loaded Apache module count: $name"
@@ -211,6 +222,7 @@ DocumentRoot "$document"
             if ($Regressions) {
                 $regressionUrl = "http://127.0.0.1:$port/regressions.php"
                 $generations = [Collections.Generic.List[object]]::new()
+                $workerPids=[Collections.Generic.HashSet[int]]::new()
                 $cacheUrl="http://127.0.0.1:$port/cache-state.php"
                 $prime=[Text.Encoding]::UTF8.GetString((Read-Http $client "$cacheUrl`?mode=prime").bytes) | ConvertFrom-Json
                 Assert-Equal $prime.compiled $true 'Cache proof compiled'
@@ -218,7 +230,8 @@ DocumentRoot "$document"
                 for ($generation=0; $generation -lt 3; $generation++) {
                     if ($generation -gt 0) {
                         if ($KeepCache -and $generation -eq 1) {
-                            $replacement=Start-CacheOwner -PhpRoot $phpRoot -Report "$report/owner-2"
+                            $replacement=Start-CacheOwner -PhpRoot $phpRoot -Report "$report/owner-2" -Children $(if ($FastCgi) {64} else {0})
+                            if ($FastCgi) { (Get-Content $config -Raw).Replace("fcgi://127.0.0.1:$($cacheOwner.Port)","fcgi://127.0.0.1:$($replacement.Port)") | Set-Content $config }
                             $ownerMetrics.Add((Stop-CacheOwner -Owner $cacheOwner))
                             $cacheOwner=$replacement
                         }
@@ -259,6 +272,7 @@ DocumentRoot "$document"
                                 Assert-Equal $data.php $cli.version 'Regression PHP version'
                                 Assert-Equal $data.trans_sid '1' 'Startup deprecation trigger enabled'
                                 if ($ts -eq 'ts') { Assert-Equal $data.pid $server.Id 'Stable Apache process' }
+                                $null=$workerPids.Add([int]$data.pid)
                                 $requests++
                             } finally { $response.Dispose() }
                         }
@@ -301,6 +315,8 @@ DocumentRoot "$document"
                     Assert-Equal $state.cached $true 'Shared cache persists after reset'
                     $cacheChecks.Add(@{phase='after-reprime';state=$state})
                 }
+                if ($FastCgi -and $workerPids.Count -lt 2) { throw 'FastCGI did not use multiple worker processes' }
+                $result.workerPids=@($workerPids)
                 $result.regressions = @{ generations=$generations.ToArray(); requests=768; concurrentRequests=64; coldStarts=3; phpDirectoryOnPath=$true; loadFileDirectives=$false }
                 $result.checks += 'GH-22023 startup settings with concurrent sessions; curl/intl with standard PHP PATH and no LoadFile; GH-16900 date formatter; NTLM build feature'
             }
