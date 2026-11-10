@@ -30,8 +30,15 @@ for variant in baseline fixed; do
   bash -euo pipefail <<'CASE'
 source "/tmp/$variant-functions.sh"
 sudo() { "$@"; }
+if [[ "$variant" = fixed ]]; then
+  debconf_fix=DEBIAN_FRONTEND=noninteractive
+  trap ':' EXIT
+  set_apt_install
+  [[ "$apt_install" = *' apt-get '* ]]
+else
+  link_apt_fast
+fi
 apt_install=true
-link_apt_fast
 before=$(trap -p EXIT)
 install_packages simulated-package
 if [[ "$variant" = fixed ]]; then [[ $(trap -p EXIT) = "$before" ]]; fi
@@ -43,6 +50,6 @@ CASE
     echo 'PASS: original released functions reproduce the real symlink leak'
   else
     [[ ! -e /usr/bin/apt-fast && ! -L /usr/bin/apt-fast ]]
-    echo 'PASS: fixed functions preserve the EXIT trap and clean the symlink'
+    echo 'PASS: fixed functions preserve the EXIT trap without creating temporary files'
   fi
 done

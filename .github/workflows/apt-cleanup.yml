@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: shivammathur/setup-php
-          ref: 25b6ac8dcd472abc6860aae023aac6a3009358f4
+          ref: a5c0723242ec134b7d3f016fa99f21eb1d5c10be
           path: action
           persist-credentials: false
       - name: Checkout released baseline from the issue
@@ -50,7 +50,7 @@ jobs:
       - name: Check all 96 cleanup and error-path combinations
         run: sudo env GITHUB_ACTIONS=true ACTION_ROOT="$ACTION_ROOT" bash tests/cleanup.sh 2>&1 | tee evidence/cleanup.log
       - name: Test real apt-get and apt-fast config upgrades and repair
-        run: sudo env GITHUB_ACTIONS=true ACTION_ROOT="$ACTION_ROOT" APT_FAST_SOURCE="$APT_FAST_SOURCE" bash tests/conffile.sh 2>&1 | tee evidence/conffile.log
+        run: sudo env GITHUB_ACTIONS=true ACTION_ROOT="$ACTION_ROOT" BASELINE_ROOT="$BASELINE_ROOT" EVIDENCE="$EVIDENCE" APT_FAST_SOURCE="$APT_FAST_SOURCE" bash tests/conffile.sh 2>&1 | tee evidence/conffile.log
       - name: Collect package artifacts and apt logs
         if: always()
         run: |
@@ -91,7 +91,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: shivammathur/setup-php
-          ref: 25b6ac8dcd472abc6860aae023aac6a3009358f4
+          ref: a5c0723242ec134b7d3f016fa99f21eb1d5c10be
           path: action
           persist-credentials: false
       - name: Prepare and fingerprint initial filesystem state
@@ -110,7 +110,7 @@ jobs:
           ACTUAL_VERSION: ${{ steps.setup.outputs.php-version }}
         run: |
           [[ "$ACTUAL_VERSION" = 8.5.* ]]
-          bash tests/verify-state.sh | tee evidence/first-cleanup.log
+          bash -x tests/verify-state.sh 2>&1 | tee evidence/first-cleanup.log
           bash tests/verify-php.sh | tee evidence/first-php.log
       - name: Repeat Setup PHP 8.5
         id: repeat
@@ -126,7 +126,7 @@ jobs:
           ACTUAL_VERSION: ${{ steps.repeat.outputs.php-version }}
         run: |
           [[ "$ACTUAL_VERSION" = 8.5.* ]]
-          bash tests/verify-state.sh | tee evidence/repeated-cleanup.log
+          bash -x tests/verify-state.sh 2>&1 | tee evidence/repeated-cleanup.log
           bash tests/verify-php.sh | tee evidence/repeated-php.log
       - name: Record installed package state
         if: always()
@@ -158,7 +158,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: shivammathur/setup-php
-          ref: 25b6ac8dcd472abc6860aae023aac6a3009358f4
+          ref: a5c0723242ec134b7d3f016fa99f21eb1d5c10be
           path: action
           persist-credentials: false
       - name: Checkout released baseline from the issue
@@ -175,7 +175,7 @@ jobs:
       - name: Check all 96 cleanup and error-path combinations
         run: sudo env GITHUB_ACTIONS=true ACTION_ROOT="$ACTION_ROOT" bash tests/cleanup.sh 2>&1 | tee evidence/cleanup.log
       - name: Test real apt-get and apt-fast config upgrades and repair
-        run: sudo env GITHUB_ACTIONS=true ACTION_ROOT="$ACTION_ROOT" APT_FAST_SOURCE="$APT_FAST_SOURCE" bash tests/conffile.sh 2>&1 | tee evidence/conffile.log
+        run: sudo env GITHUB_ACTIONS=true ACTION_ROOT="$ACTION_ROOT" BASELINE_ROOT="$BASELINE_ROOT" EVIDENCE="$EVIDENCE" APT_FAST_SOURCE="$APT_FAST_SOURCE" bash tests/conffile.sh 2>&1 | tee evidence/conffile.log
       - name: Collect package artifacts and apt logs
         if: always()
         run: |
@@ -219,7 +219,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: shivammathur/setup-php
-          ref: 25b6ac8dcd472abc6860aae023aac6a3009358f4
+          ref: a5c0723242ec134b7d3f016fa99f21eb1d5c10be
           path: action
           persist-credentials: false
       - name: Prepare and fingerprint initial filesystem state
@@ -238,7 +238,7 @@ jobs:
           ACTUAL_VERSION: ${{ steps.setup.outputs.php-version }}
         run: |
           [[ "$ACTUAL_VERSION" = 8.5.* ]]
-          bash tests/verify-state.sh | tee evidence/first-cleanup.log
+          bash -x tests/verify-state.sh 2>&1 | tee evidence/first-cleanup.log
           bash tests/verify-php.sh | tee evidence/first-php.log
       - name: Repeat Setup PHP 8.5
         id: repeat
@@ -254,7 +254,7 @@ jobs:
           ACTUAL_VERSION: ${{ steps.repeat.outputs.php-version }}
         run: |
           [[ "$ACTUAL_VERSION" = 8.5.* ]]
-          bash tests/verify-state.sh | tee evidence/repeated-cleanup.log
+          bash -x tests/verify-state.sh 2>&1 | tee evidence/repeated-cleanup.log
           bash tests/verify-php.sh | tee evidence/repeated-php.log
       - name: Record installed package state
         if: always()

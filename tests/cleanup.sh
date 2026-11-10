@@ -5,12 +5,17 @@ awk '/^# Variables$/ {exit} {print}' "${ACTION_ROOT:?}/src/scripts/linux.sh" > /
 cat > /tmp/run-case.sh <<'CASE'
 set -euo pipefail
 source /tmp/linux-functions.sh
-sudo() { "$@"; }
+sudo() {
+  if [[ $1 = DEBIAN_FRONTEND=noninteractive ]]; then mock_install "$@"; else "$@"; fi
+}
 update_lists() { echo update >> /tmp/events; }
 fix_broken_packages() { echo repair >> /tmp/events; }
 filter_packages() { printf '%s\n' "$@"; }
 mock_install() {
-  [[ -x /usr/bin/apt-fast ]] || return 99
+  local expected_installer=apt-get
+  [[ "$existing_apt" = false ]] || expected_installer=apt-fast
+  [[ $2 = "$expected_installer" && " $* " = *' -o Dpkg::Options::=--force-confnew '* ]] || return 99
+  if [[ "$existing_apt" = false && ( -e /usr/bin/apt-fast || -L /usr/bin/apt-fast ) ]]; then return 96; fi
   if [[ "$existing_marker" = false && -e /etc/dpkg/dpkg.cfg.d/force-confnew ]]; then return 98; fi
   if [[ "$entry" != nested && $(grep -c '^install ' /tmp/events) -eq 0 && "$BASHPID" != "$caller_pid" ]]; then return 97; fi
   printf 'install %s\n' "$*" >> /tmp/events
@@ -19,20 +24,20 @@ mock_install() {
     retry) [[ $(grep -c '^install ' /tmp/events) -gt 1 ]] || return 42 ;;
   esac
 }
-apt_install=mock_install
+debconf_fix=DEBIAN_FRONTEND=noninteractive
+trap 'echo caller-exit >> /tmp/events' EXIT
+before=$(trap -p EXIT)
+set_apt_install
 caller_pid=$BASHPID
 case "$entry" in
   helper) self_hosted_helper ;;
   direct|nested|repeat)
-    link_apt_fast
-    before=$(trap -p EXIT)
     if [[ "$entry" = nested ]]; then
       (install_packages simulated-package)
     else
       install_packages simulated-package
     fi
     [[ $(trap -p EXIT) = "$before" ]] || { echo 'Caller EXIT trap was replaced' >&2; exit 90; }
-    [[ -x /usr/bin/apt-fast ]] || { echo 'apt-fast removed before caller exited' >&2; exit 91; }
     if [[ "$entry" = repeat ]]; then
       install_packages second-package
     fi
@@ -52,7 +57,7 @@ for existing_apt in false true; do
           if "$existing_apt"; then ln -s /bin/true /usr/bin/apt-fast; fi
           if "$existing_marker"; then echo original-marker > /etc/dpkg/dpkg.cfg.d/force-confnew; fi
           status=0
-          export entry mode final_status existing_marker
+          export entry mode final_status existing_marker existing_apt
           bash /tmp/run-case.sh > /tmp/case-output 2>&1 || status=$?
           expected=$final_status
           [[ "$mode" != fail ]] || expected=42
@@ -68,6 +73,7 @@ for existing_apt in false true; do
           else
             [[ ! -e /etc/dpkg/dpkg.cfg.d/force-confnew ]] || problems+=('temporary marker leaked')
           fi
+          [[ $(grep -c '^caller-exit$' /tmp/events) -eq 1 ]] || problems+=('caller EXIT trap lost')
           calls=1
           [[ "$mode" = success ]] || calls=2
           if [[ "$entry" = repeat && "$mode" != fail ]]; then ((calls+=1)); fi
