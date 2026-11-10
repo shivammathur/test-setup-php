@@ -75,7 +75,9 @@ foreach ($phase in $phases) {
         $creatorCommands='.symopt+0x410; .lines -e; dx @$debuggerRootNamespace.Debugger.Settings.EngineInitialization.ResolveAmbiguousBreakpoints = true; bu /1 '+$module+'!accel_post_startup ".echo POST_STARTUP;"; g'
         $creator=Start-Debugger ($phase.name+'-creator') $creatorCommands $arguments
         Wait-Marker $creator 'POST_STARTUP'
-        $location=if ($phase.name -eq 'shared-globals') { $module+'!zend_shared_alloc_lock' } else { '`'+$module+'!ZendAccelerator.c:'+$lines[0]+'`' }
+        # The lock helper can have many inline instances in optimized builds.
+        # Select the exact startup call site using the matching source and PDB.
+        $location='`'+$module+'!ZendAccelerator.c:'+$lines[0]+'`'
         $breakpoint='bp /1 '+$location+' ".echo CREATOR_PAUSED; kv; ?? '+$module+'!smm_shared_globals; ?? '+$module+'!accel_shared_globals;"; g'
         $creator.process.StandardInput.WriteLine($breakpoint); $creator.process.StandardInput.Flush()
         Wait-Marker $creator 'CREATOR_PAUSED'
