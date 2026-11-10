@@ -106,7 +106,7 @@ foreach ($phase in $phases) {
             Wait-Marker $creator 'INNER_LOCK_RELEASED'
         }
         $dump=(Join-Path $report ($phase.name+'.dmp')).Replace('\','/')
-        $peerCommands='.symopt+0x410; sxd -c2 ".echo PEER_CRASHED; .dump /m '+$dump+'; .exr -1; r; kv; ?? '+$module+'!smm_shared_globals; ?? '+$module+'!accel_shared_globals; ?? '+$module+'!dasm_ptr; q" av; bu /1 '+$module+'!accel_post_startup ".echo PEER_STARTING; gc"; g'
+        $peerCommands='.symopt+0x410; sxd -c2 ".echo PEER_CRASHED; .dump /m '+$dump+'; .exr -1; r; kv; ?? '+$module+'!smm_shared_globals; ?? '+$module+'!accel_shared_globals; ?? '+$module+'!dasm_ptr; q" av; bu /1 php8!php_execute_script ".echo PEER_REQUEST_STARTED; gc"; bu /1 '+$module+'!accel_post_startup ".echo PEER_STARTING; gc"; g'
         $peer=Start-Debugger ($phase.name+'-peer') $peerCommands $arguments
         Wait-Marker $peer 'PEER_STARTING'
         if ($Flavor -eq 'baseline') {
@@ -118,6 +118,7 @@ foreach ($phase in $phases) {
         } else {
             Start-Sleep -Seconds 2
             if ($peer.process.HasExited) { throw 'Peer completed before creator initialized shared memory' }
+            if ((Get-Content $peer.log -Raw) -match '(?m)^PEER_REQUEST_STARTED\r?$') { throw 'Peer reached request execution before creator initialized shared memory' }
             $result.peerWaited=$true
         }
         $creator.process.StandardInput.WriteLine('bc *; g'); $creator.process.StandardInput.Flush()
@@ -126,6 +127,8 @@ foreach ($phase in $phases) {
         if ($Flavor -eq 'fixed') {
             $peerText=Finish-Debugger $peer
             if (-not $peerText.Contains('CGI_STARTUP_OK') -or $peerText -match '(?m)^PEER_CRASHED\r?$|Access violation - code') { throw 'Peer failed after creator resumed' }
+            if ($peerText -notmatch '(?m)^PEER_REQUEST_STARTED\r?$') { throw 'Peer did not hit the request execution breakpoint after creator resumed' }
+            $result.peerRequestWaitVerified=$true
         }
         $result.passed=$true
         Write-Host "PASS $Flavor $($phase.name) $Branch $Arch"
