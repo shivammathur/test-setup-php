@@ -93,12 +93,14 @@ foreach ($zip in $runtimeZips) {
         $handlerConfig = if ($ts -eq 'ts') {
             "LoadModule php_module `"$phpPath/php8apache2_4.dll`"`nPHPIniDir `"$phpPath`""
         } elseif ($FastCgi) {
-            @"
+            @'
 LoadModule proxy_module modules/mod_proxy.so
 LoadModule proxy_fcgi_module modules/mod_proxy_fcgi.so
 ProxyRequests Off
 ProxyFCGIBackendType GENERIC
-"@
+ProxyFCGISetEnvIf "reqenv('SCRIPT_FILENAME') =~ m#^/([A-Za-z]:/.*)$#" SCRIPT_FILENAME "$1"
+ProxyFCGISetEnvIf "reqenv('PATH_TRANSLATED') =~ m#^/([A-Za-z]:/.*)$#" PATH_TRANSLATED "$1"
+'@
         } else {
             @"
 LoadModule actions_module modules/mod_actions.so
@@ -112,7 +114,7 @@ SetEnv PHPRC "$phpPath"
 </Directory>
 "@
         }
-        $phpHandler=if ($FastCgi) { '"proxy:fcgi://127.0.0.1:@FASTCGI_PORT@"' } else { 'application/x-httpd-php' }
+        $phpHandler=if ($FastCgi) { '"proxy:fcgi://127.0.0.1:@FASTCGI_PORT@/"' } else { 'application/x-httpd-php' }
         @"
 ServerRoot "$apache"
 ServerName 127.0.0.1
