@@ -1,0 +1,134 @@
+name: Test Windows OPcache cache lifetime
+run-name: Cache lifetime on ${{ inputs.runner }} host ${{ inputs.replica }}
+on:
+  push:
+    branches: [test/windows-2025-opcache-cache-lifetime-20261110]
+    paths: [.github/workflows/cache-lifetime.yml]
+  workflow_dispatch:
+    inputs:
+      build-run:
+        description: Matched-source compiler build run
+        required: true
+      compiler:
+        type: choice
+        options: [vs17, vs18]
+        required: true
+      runner:
+        type: choice
+        options: [windows-2022, windows-2025-vs2026]
+        required: true
+      replica:
+        description: Independent host number
+        default: '1'
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  compare:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.PAT || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ inputs.build-run }}
+          name: compiler-${{ inputs.compiler }}
+          path: artifacts
+      - name: Pin runtime artifacts and provenance
+        shell: pwsh
+        env:
+          BUILD_RUN: ${{ inputs.build-run }}
+          COMPILER: ${{ inputs.compiler }}
+        run: ./scripts/prepare-compiler-manifest.ps1
+      - name: Record test platform
+        shell: pwsh
+        run: ./scripts/record-platform.ps1
+      - name: Install current Visual C++ runtimes
+        shell: pwsh
+        run: |
+          foreach ($arch in 'x64', 'x86') {
+            $installer = Join-Path $env:RUNNER_TEMP "vc_redist.$arch.exe"
+            Invoke-WebRequest "https://aka.ms/vc14/vc_redist.$arch.exe" -OutFile $installer
+            $signature = Get-AuthenticodeSignature $installer
+            if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {
+              throw "Invalid Microsoft runtime signature for $arch"
+            }
+            $process = Start-Process $installer -ArgumentList '/install', '/quiet', '/norestart' -Wait -PassThru
+            if ($process.ExitCode -notin 0, 1638, 3010) { throw "Visual C++ runtime $arch installation failed: $($process.ExitCode)" }
+          }
+      - name: Install checksum-pinned Apache Lounge servers
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $manifest = Get-Content manifest.json -Raw | ConvertFrom-Json -AsHashtable
+          New-Item apache -ItemType Directory -Force | Out-Null
+          foreach ($arch in 'x64', 'x86') {
+            $server = $manifest.apache[$arch]
+            $zip = Join-Path $env:RUNNER_TEMP "apache-lounge-$arch.zip"
+            Invoke-WebRequest $server.url -OutFile $zip -UserAgent 'Mozilla/5.0' -Headers @{ Referer='https://www.apachelounge.com/download/' }
+            foreach ($algorithm in 'SHA256', 'SHA512') {
+              if ((Get-FileHash $zip -Algorithm $algorithm).Hash.ToLowerInvariant() -ne $server[$algorithm.ToLowerInvariant()]) {
+                throw "Apache Lounge $arch $algorithm mismatch"
+              }
+            }
+            $extract = Join-Path $env:RUNNER_TEMP "apache-lounge-$arch"
+            Expand-Archive $zip $extract -Force
+            Move-Item (Join-Path $extract $server.rootDirectory) "apache/$arch"
+          }
+      - name: Compare unchanged CGI with retained shared cache
+        shell: pwsh
+        run: |
+          ./scripts/enable-postmortem.ps1
+          $outcomes=@(foreach ($repeat in 1..15) {
+            $order=if ($repeat % 2) { @('baseline','retained') } else { @('retained','baseline') }
+            foreach ($mode in $order) {
+              $before=@(Get-ChildItem dumps -Filter '*.dmp' | Select-Object -ExpandProperty Name)
+              $caseTimer=[Diagnostics.Stopwatch]::StartNew()
+              $outcome=@{repeat=$repeat;mode=$mode;passed=$false}
+              try {
+                ./scripts/apache-php.ps1 -Branch comparison -Regressions -Architecture x86 -ThreadSafety nts -CacheModes opcache -KeepCache:($mode -eq 'retained') -ReportDirectory "reports/$mode-$repeat"
+                $outcome.passed=$true
+              } catch {
+                $outcome.error=$_.Exception.Message
+                Write-Host "Repeat $repeat $mode failed: $($_.Exception.Message)"
+              } finally {
+                $caseTimer.Stop();$outcome.caseMilliseconds=$caseTimer.Elapsed.TotalMilliseconds
+                $outcome.dumps=@(Get-ChildItem dumps -Filter '*.dmp' | Where-Object { $_.Name -notin $before } | Select-Object -ExpandProperty Name)
+                Get-ChildItem dumps -Filter '*.dmp' | Sort-Object LastWriteTime -Descending | Select-Object -Skip 3 | Remove-Item -Force
+              }
+              $outcome
+            }
+          })
+          $outcomes | ConvertTo-Json -Depth 6 | Set-Content reports/comparison.json
+          foreach ($mode in 'baseline','retained') {
+            $rows=@($outcomes | Where-Object { $_.mode -eq $mode })
+            Write-Host "$mode failures: $(@($rows | Where-Object { -not $_.passed }).Count)/$($rows.Count)"
+          }
+      - name: Analyze captured dumps
+        if: always()
+        shell: pwsh
+        run: ./scripts/analyze-natural-dumps.ps1 -Branch comparison
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cache-lifetime-${{ inputs.runner }}-${{ inputs.replica }}
+          path: reports
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cache-lifetime-dumps-${{ inputs.runner }}-${{ inputs.replica }}
+          path: dumps
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Require all retained-cache cases to pass
+        if: always()
+        shell: pwsh
+        run: |
+          $outcomes=Get-Content reports/comparison.json -Raw | ConvertFrom-Json
+          $candidate=@($outcomes | Where-Object { $_.mode -eq 'retained' })
+          if ($candidate.Count -ne 15 -or @($candidate | Where-Object { -not $_.passed -or $_.dumps.Count }).Count) { throw 'Retained-cache mitigation did not pass every case without crashes' }
