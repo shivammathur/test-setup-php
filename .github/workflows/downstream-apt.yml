@@ -1,0 +1,83 @@
+name: Downstream installers without apt-fast
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  downstream:
+    name: PHP ${{ matrix.php }} / ${{ matrix.os }} / ${{ matrix.backend }} / ${{ matrix.ts }} / ${{ matrix.debug }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6', '8.7']
+        backend: [cache]
+        ts: [nts]
+        debug: ['false']
+        include:
+          - {os: ubuntu-24.04, php: '5.6', backend: cache, ts: zts, debug: 'false'}
+          - {os: ubuntu-24.04, php: '7.4', backend: cache, ts: zts, debug: 'false'}
+          - {os: ubuntu-24.04, php: '8.5', backend: cache, ts: zts, debug: 'false'}
+          - {os: ubuntu-24.04, php: '8.5', backend: cache, ts: nts, debug: 'true'}
+          - {os: ubuntu-24.04, php: '8.5', backend: builder, ts: zts, debug: 'true'}
+          - {os: ubuntu-24.04, php: '5.6', backend: builder, ts: zts, debug: 'false'}
+    env:
+      update: 'true'
+      phpts: ${{ matrix.ts }}
+      debug: ${{ matrix.debug }}
+      use_builds_cache: ${{ matrix.backend == 'cache' && 'true' || 'false' }}
+      EXPECTED_PHP: ${{ matrix.php }}
+      EXPECTED_TS: ${{ matrix.ts }}
+      EXPECTED_DEBUG: ${{ matrix.debug }}
+      BACKEND: ${{ matrix.backend }}
+    steps:
+      - name: Remove every apt-fast executable or symlink
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          while apt_fast_path=$(command -v apt-fast); do
+            [[ "$apt_fast_path" = /* ]]
+            sudo rm -f "$apt_fast_path"
+            hash -r
+          done
+          sudo rm -f /usr/bin/apt-fast /tmp/install.sh
+          if command -v apt-fast; then exit 1; fi
+          [[ ! -e /usr/bin/apt-fast && ! -L /usr/bin/apt-fast ]]
+          cat /etc/os-release > evidence/os-release.txt
+          command -v apt-get | tee evidence/initial-apt.txt
+      - name: Force installation through the downstream installer
+        id: setup
+        uses: shivammathur/setup-php@a5c0723242ec134b7d3f016fa99f21eb1d5c10be
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+      - name: Verify runtime and record the exact downloaded installer
+        shell: bash
+        env:
+          ACTUAL_PHP: ${{ steps.setup.outputs.php-version }}
+        run: |
+          set -euo pipefail
+          [[ "$ACTUAL_PHP" = "$EXPECTED_PHP".* ]]
+          if command -v apt-fast; then exit 1; fi
+          [[ ! -e /usr/bin/apt-fast && ! -L /usr/bin/apt-fast ]]
+          [[ -s /tmp/install.sh ]]
+          cp /tmp/install.sh evidence/downstream-install.sh
+          sha256sum /tmp/install.sh | tee evidence/downstream-sha256.txt
+          php -v | tee evidence/php-version.txt
+          # shellcheck disable=SC2016
+          php -r '$v=getenv("EXPECTED_PHP"); if (strpos(PHP_VERSION, $v . ".") !== 0) {exit(1);} if ((bool) PHP_ZTS !== (getenv("EXPECTED_TS") === "zts")) {exit(2);} if ((bool) PHP_DEBUG !== (getenv("EXPECTED_DEBUG") === "true")) {exit(3);} echo "PASS PHP ",PHP_VERSION," ZTS=",PHP_ZTS," DEBUG=",PHP_DEBUG,"\n";' | tee evidence/runtime-check.txt
+          echo "PASS: $BACKEND installer succeeded without apt-fast and did not create a symlink" | tee evidence/result.txt
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: downstream-${{ matrix.os }}-${{ matrix.php }}-${{ matrix.backend }}-${{ matrix.ts }}-${{ matrix.debug }}
+          path: evidence/
+          if-no-files-found: error
