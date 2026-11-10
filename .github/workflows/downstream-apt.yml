@@ -72,7 +72,16 @@ jobs:
           sha256sum /tmp/install.sh | tee evidence/downstream-sha256.txt
           php -v | tee evidence/php-version.txt
           # shellcheck disable=SC2016
-          php -r '$v=getenv("EXPECTED_PHP"); if (strpos(PHP_VERSION, $v . ".") !== 0) {exit(1);} if ((bool) PHP_ZTS !== (getenv("EXPECTED_TS") === "zts")) {exit(2);} if ((bool) PHP_DEBUG !== (getenv("EXPECTED_DEBUG") === "true")) {exit(3);} echo "PASS PHP ",PHP_VERSION," ZTS=",PHP_ZTS," DEBUG=",PHP_DEBUG,"\n";' | tee evidence/runtime-check.txt
+          php -r '$v=getenv("EXPECTED_PHP"); if (strpos(PHP_VERSION, $v . ".") !== 0) {exit(1);} if ((bool) PHP_ZTS !== (getenv("EXPECTED_TS") === "zts")) {exit(2);} echo "PASS PHP ",PHP_VERSION," ZTS=",PHP_ZTS," DEBUG=",PHP_DEBUG,"\n";' | tee evidence/runtime-check.txt
+          if [[ "$EXPECTED_DEBUG" = true ]]; then
+            php_binary=$(readlink -f "$(command -v php)")
+            build_id=$(readelf -n "$php_binary" | awk '/Build ID:/ {print $3}')
+            [[ -n "$build_id" ]]
+            debug_file="/usr/lib/debug/.build-id/${build_id:0:2}/${build_id:2}.debug"
+            [[ -s "$debug_file" ]]
+            file "$debug_file" | tee evidence/debug-symbols.txt
+            sha256sum "$php_binary" "$debug_file" >> evidence/debug-symbols.txt
+          fi
           echo "PASS: $BACKEND installer succeeded without apt-fast and did not create a symlink" | tee evidence/result.txt
       - name: Upload evidence
         if: always()
