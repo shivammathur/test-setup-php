@@ -1,0 +1,113 @@
+name: All PHP Darwin versions through setup-php
+on:
+  push:
+    branches: [test/php-darwin-all-versions-20261111]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: PHP ${{ matrix.php }} / ${{ matrix.runner }} / ${{ matrix.packs && 'packs' || 'php-only' }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6', '8.7']
+        runner: [macos-15, macos-15-intel]
+        packs: [true]
+        include:
+          - {php: '8.5', runner: macos-15, packs: false}
+          - {php: '8.5', runner: macos-15-intel, packs: false}
+          - {php: '8.6', runner: macos-15, packs: false}
+          - {php: '8.6', runner: macos-15-intel, packs: false}
+          - {php: '8.7', runner: macos-15, packs: false}
+          - {php: '8.7', runner: macos-15-intel, packs: false}
+    env:
+      PHP_VERSION: ${{ matrix.php }}
+      use_builds_cache: 'true'
+      PHP_DARWIN_CACHE_ONLY: 'true'
+      PHP_DARWIN_SOURCE_CACHE_READ_ONLY: 'true'
+      PHP_DARWIN_REQUIRE_CACHE: 'true'
+      PHP_DARWIN_REQUIRE_PACKS: ${{ matrix.packs }}
+      PHP_DARWIN_REQUIRE_XDEBUG: ${{ matrix.packs }}
+      PHP_DARWIN_REQUIRE_PCOV: ${{ matrix.packs && matrix.php != '5.6' && matrix.php != '7.0' }}
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Fetch the reviewed cache checks
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: shivammathur/php-darwin
+          ref: 63d85dc2f2da174cd620f706c9922c86bb9df04e
+          path: .cache-tools
+          persist-credentials: false
+      - uses: ./.cache-tools/.github/actions/node-runtime
+      - name: Prepare a cold cache-only installation
+        shell: bash
+        run: |
+          case '${{ matrix.runner }}' in
+            macos-15) test "$(uname -m)" = arm64 ;;
+            macos-15-intel) test "$(uname -m)" = x86_64 ;;
+          esac
+          bash .cache-tools/scripts/build/cleanup-taps.sh
+          bash .cache-tools/scripts/tests/helpers/remove-preinstalled-php.sh
+          bash .cache-tools/scripts/build/archive-tools.sh
+          bash .cache-tools/scripts/tests/helpers/prepare-e2e.sh
+          "$PHP_DARWIN_NODE" - <<'NODE'
+          const fs = require('node:fs');
+          const {packs, supportsPack} = require('./.cache-tools/scripts/installer/install-extensions.cjs');
+          const enabled = process.env.PHP_DARWIN_REQUIRE_PACKS === 'true';
+          const names = enabled ? Object.keys(packs).filter(name => supportsPack(name, process.env.PHP_VERSION)) : [];
+          const cached = enabled ? fs.readFileSync(`.cache-tools/conf/cached-extensions/${process.env.PHP_VERSION}`, 'utf8').trim().split(/\s+/) : [];
+          fs.appendFileSync(process.env.GITHUB_ENV, `CACHE_EXTENSIONS=${[...cached, ...names].join(', ')}\n`);
+          NODE
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Setup PHP cold
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ env.CACHE_EXTENSIONS }}
+          tools: none
+          ini-file: production
+        env:
+          BASH_ENV: ${{ github.workspace }}/scripts/measure-installer.sh
+          INSTALL_PHASE: cold
+      - name: Check cold PHP and requested optional packs
+        run: bash .cache-tools/scripts/tests/e2e/setup-php.test.sh
+      - name: Setup PHP warm
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ env.CACHE_EXTENSIONS }}
+          tools: none
+          ini-file: production
+        env:
+          BASH_ENV: ${{ github.workspace }}/scripts/measure-installer.sh
+          INSTALL_PHASE: warm
+      - name: Check warm PHP and requested optional packs
+        run: bash .cache-tools/scripts/tests/e2e/setup-php.test.sh
+      - name: Report installer timing
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/install-timings.jsonl" ]; then
+            cat "$RUNNER_TEMP/install-timings.jsonl" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Save installation evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: install-${{ matrix.php }}-${{ matrix.runner }}-${{ matrix.packs && 'packs' || 'php-only' }}
+          path: |
+            ${{ runner.temp }}/install-timings.jsonl
+            ${{ runner.temp }}/php-darwin-setup-install-*.log
+            ${{ runner.temp }}/php-darwin-e2e-release-manifest.json
+            ${{ runner.temp }}/php-darwin-e2e-installed-formulae.json
+          if-no-files-found: error
