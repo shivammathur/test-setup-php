@@ -1,0 +1,69 @@
+name: SQLSRV PHP 8.7 runtime validation
+on: push
+permissions:
+  actions: read
+  contents: read
+jobs:
+  validate:
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86]
+        ts: [ts, nts]
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      BUILD_SHA: f8eaa0f58958c3c824dfa423ba3fb7709e6eda00
+      PHP_ARCH: ${{ matrix.arch }}
+      PHP_TS: ${{ matrix.ts }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Download matching PHP runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $suffix = if ($env:PHP_TS -eq 'nts') { '-nts' } else { '' }
+          $package = "php-8.7.0-dev$suffix-Win32-vs18-$env:PHP_ARCH.zip"
+          gh release download php8.7 --repo shivammathur/php-builder-windows --pattern $package --output php.zip
+          if ($LASTEXITCODE) { throw 'Runtime download failed' }
+          Expand-Archive php.zip php
+      - name: Download rebuilt extension artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $build = gh run list --repo shivammathur/php-extensions-windows --commit $env:BUILD_SHA --workflow build.yml --json databaseId --jq '.[0].databaseId'
+          if ($LASTEXITCODE -or -not $build) { throw 'Build run not found' }
+          $names = @("sqlsrv_8.7_$env:PHP_TS`_$env:PHP_ARCH", "pdo_sqlsrv_8.7_$env:PHP_TS`_$env:PHP_ARCH")
+          $ready = $false
+          for ($attempt = 0; $attempt -lt 90; $attempt++) {
+            $artifacts = @(gh api "repos/shivammathur/php-extensions-windows/actions/runs/$build/artifacts?per_page=100" --paginate --jq '.artifacts[].name')
+            if ($LASTEXITCODE) { throw 'Artifact listing failed' }
+            if (@($names | Where-Object { $_ -notin $artifacts }).Count -eq 0) {
+              $ready = $true
+              break
+            }
+            $status = gh run view $build --repo shivammathur/php-extensions-windows --json status --jq .status
+            if ($status -eq 'completed') { throw 'Build completed without the required artifacts' }
+            Start-Sleep -Seconds 10
+          }
+          if (-not $ready) { throw 'Timed out waiting for artifacts' }
+          foreach ($name in $names) {
+            gh run download $build --repo shivammathur/php-extensions-windows --name $name --dir ext
+            if ($LASTEXITCODE) { throw "Failed to download $name" }
+          }
+          Get-ChildItem ext/*.dll | Get-FileHash -Algorithm SHA256 | Format-Table -AutoSize
+      - name: Load both drivers and verify registration and configuration
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dlls = @(Get-ChildItem ext/*.dll | Sort-Object Name)
+          if ($dlls.Count -ne 2) { throw 'Expected exactly two DLLs' }
+          $phpArgs = @('-n')
+          foreach ($dll in $dlls) { $phpArgs += @('-d', "extension=$($dll.FullName)") }
+          & ./php/php.exe @phpArgs ./probe.php
+          if ($LASTEXITCODE) { throw 'Runtime validation failed' }
+          foreach ($extension in @('sqlsrv', 'pdo_sqlsrv')) {
+            & ./php/php.exe @phpArgs --ri $extension
+            if ($LASTEXITCODE) { throw "Module info failed for $extension" }
+          }
