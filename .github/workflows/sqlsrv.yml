@@ -14,7 +14,7 @@ jobs:
         ts: [ts, nts]
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      BUILD_SHA: 2f3e0f392f0e7182fd2cf9d342cf34007caaf7ec
+      BUILD_SHA: c5a5cbc3e88dc8d5b480eb831cf2b6a991791ae4
       PHP_ARCH: ${{ matrix.arch }}
       PHP_TS: ${{ matrix.ts }}
     steps:
