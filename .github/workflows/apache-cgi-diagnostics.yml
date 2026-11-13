@@ -1,5 +1,5 @@
 name: Diagnose source-built PHP CGI failures
-run-name: CGI diagnosis ${{ inputs.php-branch }} ${{ inputs.arch }} ${{ inputs.ts }}
+run-name: Startup diagnosis ${{ inputs.php-branch }} ${{ inputs.arch }} ${{ inputs.ts }} ${{ inputs.suite }}
 on:
   push:
     branches: [test/apache-2.4.71-20261113]
@@ -16,6 +16,10 @@ on:
         type: choice
         options: [ts, nts]
         default: ts
+      suite:
+        type: choice
+        options: [cgi, cli-server]
+        default: cgi
 permissions:
   contents: read
   actions: read
@@ -53,7 +57,7 @@ jobs:
           ./scripts/enable-postmortem.ps1 -Branch '${{ inputs.php-branch }}' -Arch '${{ inputs.arch }}' -Ts '${{ inputs.ts }}'
       - name: Compare unmodified CGI tests with OPcache disabled control
         shell: pwsh
-        run: ./scripts/diagnose-cgi.ps1 -Branch '${{ inputs.php-branch }}' -Arch '${{ inputs.arch }}' -Ts '${{ inputs.ts }}'
+        run: ./scripts/diagnose-cgi.ps1 -Branch '${{ inputs.php-branch }}' -Arch '${{ inputs.arch }}' -Ts '${{ inputs.ts }}' -Suite '${{ inputs.suite }}'
       - name: Analyze captured crashes with exact symbols
         if: ${{ !cancelled() }}
         shell: pwsh
