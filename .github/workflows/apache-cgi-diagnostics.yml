@@ -45,6 +45,11 @@ jobs:
           run-id: ${{ steps.metadata.outputs.run }}
           name: artifacts
           path: artifacts
+      - name: Preserve PHP source fixture line endings
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
       - uses: actions/checkout@v6
         with:
           repository: php/php-src

@@ -20,6 +20,7 @@ $env:TEST_PHP_CGI_EXECUTABLE=$cgi
 $env:TEST_PHPDBG_EXECUTABLE=Join-Path $phpRoot 'phpdbg.exe'
 $env:NO_INTERACTION='1';$env:REPORT_EXIT_STATUS='1';$env:SKIP_IO_CAPTURE_TESTS='1'
 $reports=(New-Item reports -ItemType Directory -Force).FullName
+$env:STARTUP_DIAGNOSTIC_LOG=Join-Path $reports 'process-exits.jsonl'
 $originals=@{}
 $testFiles=if ($Suite -eq 'cgi') { @(Get-ChildItem source/sapi/cgi/tests -Filter '*.phpt') } else { @(Get-ChildItem source/sapi/cli/tests -Filter 'php_cli_server*.phpt') }
 foreach ($file in $testFiles) {
@@ -34,6 +35,9 @@ $originals[$serverHelper]=[IO.File]::ReadAllText($serverHelper)
 foreach ($file in @($runner,$serverHelper)) {
     if (-not ($originals[$file].Contains("'suppress_errors' => true") -or $originals[$file].Contains('"suppress_errors" => true'))) { throw 'Fault-reporting option has changed' }
     $diagnostic=$originals[$file].Replace("'suppress_errors' => true","'suppress_errors' => false").Replace('"suppress_errors" => true','"suppress_errors" => false')
+    if ($file -eq $serverHelper) {
+        $diagnostic=$diagnostic.Replace('$status = proc_get_status($handle);', '$status = proc_get_status($handle); if (!$status["running"]) { file_put_contents(getenv("STARTUP_DIAGNOSTIC_LOG"), json_encode(["status"=>$status,"command"=>$cmd,"output"=>file_get_contents($output_file)])."\n", FILE_APPEND); }')
+    }
     [IO.File]::WriteAllText($file,$diagnostic)
 }
 git -C source diff | Set-Content reports/fault-reporting.patch
@@ -76,3 +80,5 @@ try {
     @{branch=$Branch;suite=$Suite;sourceSha=$entry.sourceSha;phpRun=$entry.run;runtime=$runtime[0].Key;sha256=$runtime[0].Value.sha256;arch=$Arch;ts=$Ts;trials=$trials.ToArray()} |
         ConvertTo-Json -Depth 6 | Set-Content reports/diagnosis.json
 }
+# This workflow collects diagnostic outcomes; PHPT failures are retained above.
+exit 0
