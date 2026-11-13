@@ -32,7 +32,7 @@ $originals[$serverHelper]=[IO.File]::ReadAllText($serverHelper)
 # run-tests.php and the built-in-server helper suppress child fault reporting.
 # Preserve runtime behavior while allowing the already-verified debugger to run.
 foreach ($file in @($runner,$serverHelper)) {
-    if (-not $originals[$file].Contains("'suppress_errors' => true")) { throw 'Fault-reporting option has changed' }
+    if (-not ($originals[$file].Contains("'suppress_errors' => true") -or $originals[$file].Contains('"suppress_errors" => true'))) { throw 'Fault-reporting option has changed' }
     $diagnostic=$originals[$file].Replace("'suppress_errors' => true","'suppress_errors' => false").Replace('"suppress_errors" => true','"suppress_errors" => false')
     [IO.File]::WriteAllText($file,$diagnostic)
 }
