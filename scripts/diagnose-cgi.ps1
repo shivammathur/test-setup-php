@@ -36,7 +36,11 @@ foreach ($file in @($runner,$serverHelper)) {
     if (-not ($originals[$file].Contains("'suppress_errors' => true") -or $originals[$file].Contains('"suppress_errors" => true'))) { throw 'Fault-reporting option has changed' }
     $diagnostic=$originals[$file].Replace("'suppress_errors' => true","'suppress_errors' => false").Replace('"suppress_errors" => true','"suppress_errors" => false')
     if ($file -eq $serverHelper) {
-        $diagnostic=$diagnostic.Replace('$status = proc_get_status($handle);', '$status = proc_get_status($handle); if (!$status["running"]) { file_put_contents(getenv("STARTUP_DIAGNOSTIC_LOG"), json_encode(["status"=>$status,"command"=>$cmd,"output"=>file_get_contents($output_file)])."\n", FILE_APPEND); }')
+        $needle='$status = proc_get_status($handle);'
+        $position=$diagnostic.IndexOf($needle)
+        if ($position -lt 0) { throw 'Server startup status check has changed' }
+        $trace='$status = proc_get_status($handle); if (!$status["running"]) { file_put_contents(getenv("STARTUP_DIAGNOSTIC_LOG"), json_encode(["status"=>$status,"command"=>$cmd,"output"=>file_get_contents($output_file)])."\n", FILE_APPEND); }'
+        $diagnostic=$diagnostic.Substring(0,$position)+$trace+$diagnostic.Substring($position+$needle.Length)
     }
     [IO.File]::WriteAllText($file,$diagnostic)
 }
