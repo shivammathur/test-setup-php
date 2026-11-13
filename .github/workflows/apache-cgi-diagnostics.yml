@@ -1,0 +1,66 @@
+name: Diagnose source-built PHP CGI failures
+run-name: CGI diagnosis ${{ inputs.php-branch }} ${{ inputs.arch }} ${{ inputs.ts }}
+on:
+  push:
+    branches: [test/apache-2.4.71-20261113]
+    paths: [.github/workflows/apache-cgi-diagnostics.yml]
+  workflow_dispatch:
+    inputs:
+      php-branch:
+        required: true
+      arch:
+        type: choice
+        options: [x64, x86]
+        default: x64
+      ts:
+        type: choice
+        options: [ts, nts]
+        default: ts
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - name: Resolve exact source and runtime
+        id: metadata
+        shell: pwsh
+        run: |
+          $manifest=Get-Content manifest.json -Raw | ConvertFrom-Json -AsHashtable
+          $entry=$manifest.branches['${{ inputs.php-branch }}']
+          "run=$($entry.run)" >> $env:GITHUB_OUTPUT
+          "source-sha=$($entry.sourceSha)" >> $env:GITHUB_OUTPUT
+      - uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.PAT || github.token }}
+          repository: shivammathur/php-windows-builder
+          run-id: ${{ steps.metadata.outputs.run }}
+          name: artifacts
+          path: artifacts
+      - uses: actions/checkout@v6
+        with:
+          repository: php/php-src
+          ref: ${{ steps.metadata.outputs.source-sha }}
+          path: source
+      - name: Enable verified post-mortem debugging
+        shell: pwsh
+        run: |
+          ./scripts/record-platform.ps1
+          ./scripts/enable-postmortem.ps1 -Branch '${{ inputs.php-branch }}' -Arch '${{ inputs.arch }}' -Ts '${{ inputs.ts }}'
+      - name: Compare unmodified CGI tests with OPcache disabled control
+        shell: pwsh
+        run: ./scripts/diagnose-cgi.ps1 -Branch '${{ inputs.php-branch }}' -Arch '${{ inputs.arch }}' -Ts '${{ inputs.ts }}'
+      - name: Analyze captured crashes with exact symbols
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: ./scripts/analyze-natural-dumps.ps1 -Branch '${{ inputs.php-branch }}' -Arch '${{ inputs.arch }}' -Ts '${{ inputs.ts }}'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: cgi-diagnosis-${{ inputs.php-branch }}-${{ inputs.arch }}-${{ inputs.ts }}
+          path: reports
+          if-no-files-found: error
