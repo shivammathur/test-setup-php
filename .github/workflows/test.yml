@@ -27,13 +27,13 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: shivammathur/powershell-phpmanager
-          ref: 017077af742288b307717264ae2b275c76c3c76f
+          ref: c6197e8a232773785f3a484ce310d49af1f60a73
           path: phpmanager
       - name: Install PHP and verify runtime, extensions, and serialized handoff
         env:
           VC_TAG: ${{ matrix.vcredist }}
           PHP_VERSION: ${{ matrix.php }}
-          PHPMANAGER_SHA: 017077af742288b307717264ae2b275c76c3c76f
+          PHPMANAGER_SHA: c6197e8a232773785f3a484ce310d49af1f60a73
         run: ./test.ps1
       - uses: actions/upload-artifact@v4
         with:
@@ -92,6 +92,8 @@ jobs:
           if ($php.ThreadSafe -ne ($env:EXPECTED_TS -eq 'ts')) { throw 'Incorrect thread safety.' }
           $module = Get-Module PhpManager
           if ($module.Path -notlike '*powershell-phpmanager-fix-vcredist-installation*') { throw 'Incorrect PhpManager source.' }
+          $installer = Join-Path (Split-Path $module.Path) "private/Install-PhpFromUrl.ps1"
+          if ((Get-FileHash $installer).Hash -ne "CD63A2F6CEA72813910A7DE30E2F4B20D631DE0D19970B10195C159D695FD8BD") { throw "Incorrect PhpManager revision." }
           $modules = php -m
           if ($LASTEXITCODE -ne 0) { throw 'php -m failed.' }
           $modules | Write-Host

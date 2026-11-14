@@ -22,12 +22,13 @@ New-Item -ItemType Directory $destination | Out-Null
     Install-PhpFromUrl -Url $url -Path $destination -PhpVersion $phpVersion -InstallVCRedist $true -Verbose
 } $url $destination
 if (!(Test-Path $runtime)) { throw 'VC++ 2012 x86 was not installed.' }
+Copy-Item "$destination\php.ini-production" "$destination\php.ini"
+Set-PhpIniKey -Path "$destination\php.ini" -Key date.timezone -Value UTC
+Set-PhpIniKey -Path "$destination\php.ini" -Key extension_dir -Value "$destination\ext"
 $installed = Get-Php -Path $destination
 if ($installed.MajorMinorVersion -ne $env:PHP_VERSION -or $installed.Architecture -ne 'x86') {
     throw "Incorrect PHP installed: $($installed.DisplayName)"
 }
-Copy-Item "$destination\php.ini-production" "$destination\php.ini"
-Set-PhpIniKey -Path "$destination\php.ini" -Key extension_dir -Value "$destination\ext"
 Enable-PhpExtension -Path $destination -Extension @('openssl', 'curl', 'mbstring', 'opcache')
 $versionOutput = & "$destination\php.exe" -v
 if ($LASTEXITCODE -ne 0) { throw 'php -v failed.' }
