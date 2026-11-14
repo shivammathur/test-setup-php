@@ -1,0 +1,39 @@
+name: PhpManager VcRedist compatibility
+on: push
+permissions:
+  contents: read
+jobs:
+  install:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [powershell, pwsh]
+        vcredist: [v3.0.333, v4.1.527, v5.0.2-beta3]
+        php: ['5.6']
+        include:
+          - shell: powershell
+            vcredist: v5.0.2-beta3
+            php: '5.5'
+          - shell: pwsh
+            vcredist: v5.0.2-beta3
+            php: '5.5'
+    name: PHP ${{ matrix.php }} / ${{ matrix.vcredist }} / ${{ matrix.shell }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: shivammathur/powershell-phpmanager
+          ref: 017077af742288b307717264ae2b275c76c3c76f
+          path: phpmanager
+      - name: Install PHP and verify runtime, extensions, and serialized handoff
+        shell: ${{ matrix.shell }}
+        env:
+          VC_TAG: ${{ matrix.vcredist }}
+          PHP_VERSION: ${{ matrix.php }}
+          PHPMANAGER_SHA: 017077af742288b307717264ae2b275c76c3c76f
+        run: ./test.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: php-${{ matrix.php }}-${{ matrix.vcredist }}-${{ matrix.shell }}
+          path: ${{ runner.temp }}/validation.json
