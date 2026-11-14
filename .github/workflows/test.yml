@@ -7,19 +7,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest]
-        php: [8.3]
+        os: [windows-latest]
+        php: [5.5, 5.6, 7.0]
           
     steps:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: apcu, bz2, ctype, curl, dom, fileinfo, gd, iconv, intl, json, libxml, mbstring, openssl, pcntl, posix, session, simplexml, xmlreader, xmlwriter, zip, zlib
-          coverage: none
-          ini-file: development
-          ini-values: apc.enable_cli=on, disable_functions=
         env:
-          verbose: true
+          verbose: vvv
       - run: |
           php -v
           php -m
