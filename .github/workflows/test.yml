@@ -19,6 +19,9 @@ jobs:
             vcredist: v5.0.2-beta3
             php: '5.5'
     name: PHP ${{ matrix.php }} / ${{ matrix.vcredist }} / ${{ matrix.shell }}
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/checkout@v7
@@ -27,7 +30,6 @@ jobs:
           ref: 017077af742288b307717264ae2b275c76c3c76f
           path: phpmanager
       - name: Install PHP and verify runtime, extensions, and serialized handoff
-        shell: ${{ matrix.shell }}
         env:
           VC_TAG: ${{ matrix.vcredist }}
           PHP_VERSION: ${{ matrix.php }}
@@ -36,4 +38,63 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: php-${{ matrix.php }}-${{ matrix.vcredist }}-${{ matrix.shell }}
+          path: ${{ runner.temp }}/validation.json
+  setup-php:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.5', '5.6']
+        thread-safety: [nts, ts]
+        include:
+          - php: '7.0'
+            thread-safety: nts
+    name: setup-php / PHP ${{ matrix.php }} / ${{ matrix.thread-safety }}
+    steps:
+      - name: Verify VC++ 2012 x86 is initially absent
+        if: matrix.php != '7.0'
+        shell: pwsh
+        run: |
+          if (Test-Path "$env:WINDIR\SysWOW64\msvcr110.dll") {
+            throw 'VC++ 2012 x86 is already installed.'
+          }
+      - uses: shivammathur/setup-php@e3f8801565e5acd20a2b482429cd1ff4fd63fc8d
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: openssl, curl, mbstring, opcache
+        env:
+          PHPTS: ${{ matrix.thread-safety }}
+      - name: Verify PHP, extensions, and PhpManager source
+        shell: pwsh
+        env:
+          EXPECTED_PHP: ${{ matrix.php }}
+          EXPECTED_TS: ${{ matrix.thread-safety }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          php -v
+          if ($LASTEXITCODE -ne 0) { throw 'php -v failed.' }
+          $php = Get-Php -Path 'C:\tools\php'
+          if ($php.MajorMinorVersion -ne $env:EXPECTED_PHP) { throw 'Incorrect PHP version.' }
+          if ($php.ThreadSafe -ne ($env:EXPECTED_TS -eq 'ts')) { throw 'Incorrect thread safety.' }
+          $module = Get-Module PhpManager
+          if ($module.Path -notlike '*powershell-phpmanager-fix-vcredist-installation*') { throw 'Incorrect PhpManager source.' }
+          $modules = php -m
+          if ($LASTEXITCODE -ne 0) { throw 'php -m failed.' }
+          $modules | Write-Host
+          foreach ($extension in @('openssl', 'curl', 'mbstring', 'Zend OPcache')) {
+            if ($modules -notcontains $extension) { throw "Missing extension: $extension" }
+          }
+          composer --version
+          if ($LASTEXITCODE -ne 0) { throw 'Composer failed.' }
+          [ordered]@{
+            php = $php.FullVersion
+            architecture = $php.Architecture
+            threadSafe = $php.ThreadSafe
+            phpManager = $module.Path
+            setupPhpCommit = 'e3f8801565e5acd20a2b482429cd1ff4fd63fc8d'
+            modules = $modules
+          } | ConvertTo-Json -Depth 4 | Tee-Object -FilePath "$env:RUNNER_TEMP\validation.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: setup-php-${{ matrix.php }}-${{ matrix.thread-safety }}
           path: ${{ runner.temp }}/validation.json
