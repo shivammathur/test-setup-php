@@ -14,10 +14,13 @@ Import-Module "$env:GITHUB_WORKSPACE\phpmanager\PhpManager\PhpManager.psm1" -For
 $manifest = Invoke-RestMethod "https://github.com/shivammathur/php-builder-windows/releases/download/php$env:PHP_VERSION/manifest.json"
 $asset = $manifest.stable.php.nts.x86
 $url = "https://github.com/shivammathur/php-builder-windows/releases/download/php$env:PHP_VERSION/$asset"
-$phpVersion = Get-PhpVersionFromUrl -Url $url -ReleaseState Release
 $destination = Join-Path $env:RUNNER_TEMP "PHP $env:PHP_VERSION"
 New-Item -ItemType Directory $destination | Out-Null
-Install-PhpFromUrl -Url $url -Path $destination -PhpVersion $phpVersion -InstallVCRedist $true -Verbose
+& (Get-Module PhpManager) {
+    param($url, $destination)
+    $phpVersion = Get-PhpVersionFromUrl -Url $url -ReleaseState Release
+    Install-PhpFromUrl -Url $url -Path $destination -PhpVersion $phpVersion -InstallVCRedist $true -Verbose
+} $url $destination
 if (!(Test-Path $runtime)) { throw 'VC++ 2012 x86 was not installed.' }
 $installed = Get-Php -Path $destination
 if ($installed.MajorMinorVersion -ne $env:PHP_VERSION -or $installed.Architecture -ne 'x86') {

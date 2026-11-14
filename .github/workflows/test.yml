@@ -64,6 +64,20 @@ jobs:
           extensions: openssl, curl, mbstring, opcache
         env:
           PHPTS: ${{ matrix.thread-safety }}
+      - name: Report underlying installation exception
+        if: failure()
+        shell: pwsh
+        env:
+          EXPECTED_PHP: ${{ matrix.php }}
+          EXPECTED_TS: ${{ matrix.thread-safety }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          try {
+            Install-Php -Version $env:EXPECTED_PHP -Architecture x86 -ThreadSafe ($env:EXPECTED_TS -eq 'ts') -InstallVC -Path 'C:\tools\php' -Force -Verbose
+          } catch {
+            $_ | Format-List * -Force
+            throw
+          }
       - name: Verify PHP, extensions, and PhpManager source
         shell: pwsh
         env:
