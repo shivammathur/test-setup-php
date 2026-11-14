@@ -1,0 +1,74 @@
+name: Validate stable VcRedist pin
+on: push
+permissions:
+  contents: read
+jobs:
+  setup:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.5', '5.6']
+        thread-safety: [nts, ts]
+        include:
+          - php: '7.0'
+            thread-safety: nts
+    name: PHP ${{ matrix.php }} / ${{ matrix.thread-safety }}
+    steps:
+      - name: Verify VC++ 2012 x86 is initially absent
+        if: matrix.php != '7.0'
+        shell: pwsh
+        run: |
+          if (Test-Path "$env:WINDIR\SysWOW64\msvcr110.dll") {
+            throw 'VC++ 2012 x86 is already installed.'
+          }
+      - uses: shivammathur/setup-php@79d58381ae543d1830877a468714f71ac032fc09
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: openssl, curl, mbstring, opcache
+        env:
+          PHPTS: ${{ matrix.thread-safety }}
+      - name: Verify PHP, extensions, and pinned module
+        shell: pwsh
+        env:
+          EXPECTED_PHP: ${{ matrix.php }}
+          EXPECTED_TS: ${{ matrix.thread-safety }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          php -v
+          if ($LASTEXITCODE -ne 0) { throw 'php -v failed.' }
+          $php = Get-Php -Path 'C:\tools\php'
+          if ($php.MajorMinorVersion -ne $env:EXPECTED_PHP) { throw 'Incorrect PHP version.' }
+          if ($php.ThreadSafe -ne ($env:EXPECTED_TS -eq 'ts')) { throw 'Incorrect thread safety.' }
+          $phpManager = Get-Module PhpManager
+          if ($phpManager.Path -ne 'C:\tools\php\PhpManager\PhpManager.psm1') { throw 'Incorrect PhpManager source.' }
+          $vcRedistVersion = $null
+          if ($env:EXPECTED_PHP -ne '7.0') {
+            $vcRedist = Get-Module VcRedist
+            if ($vcRedist.Path -notlike '*VcRedist-4.1.527\VcRedist\VcRedist.psm1') { throw 'Incorrect VcRedist source.' }
+            $manifest = Import-PowerShellDataFile (Join-Path (Split-Path $vcRedist.Path) 'VcRedist.psd1')
+            $vcRedistVersion = $manifest.ModuleVersion
+            if ($vcRedistVersion -ne '4.1.527') { throw 'Incorrect VcRedist version.' }
+            if (!(Test-Path "$env:WINDIR\SysWOW64\msvcr110.dll")) { throw 'VC++ 2012 x86 was not installed.' }
+          }
+          $modules = php -m
+          if ($LASTEXITCODE -ne 0) { throw 'php -m failed.' }
+          $modules | Write-Host
+          foreach ($extension in @('openssl', 'curl', 'mbstring', 'Zend OPcache')) {
+            if ($modules -notcontains $extension) { throw "Missing extension: $extension" }
+          }
+          composer --version
+          if ($LASTEXITCODE -ne 0) { throw 'Composer failed.' }
+          [ordered]@{
+            php = $php.FullVersion
+            architecture = $php.Architecture
+            threadSafe = $php.ThreadSafe
+            phpManager = $phpManager.Path
+            vcRedist = $vcRedistVersion
+            setupPhpCommit = '79d58381ae543d1830877a468714f71ac032fc09'
+            modules = $modules
+          } | ConvertTo-Json -Depth 4 | Tee-Object -FilePath "$env:RUNNER_TEMP\validation.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: php-${{ matrix.php }}-${{ matrix.thread-safety }}
+          path: ${{ runner.temp }}/validation.json
