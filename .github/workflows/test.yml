@@ -1,0 +1,48 @@
+name: PhpManager real VcRedist validation
+
+on: push
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [powershell, pwsh]
+        scenario:
+          - {mode: direct, parent: v3.0.333, child: v3.0.333}
+          - {mode: direct, parent: v4.1.527, child: v4.1.527}
+          - {mode: direct, parent: v5.0.2-beta3, child: v5.0.2-beta3}
+          - {mode: serialized, parent: v3.0.333, child: v3.0.333}
+          - {mode: serialized, parent: v4.1.527, child: v4.1.527}
+          - {mode: serialized, parent: v5.0.2-beta3, child: v5.0.2-beta3}
+          - {mode: serialized, parent: v4.1.527, child: v5.0.2-beta3}
+          - {mode: serialized, parent: v5.0.2-beta3, child: v4.1.527}
+    name: ${{ matrix.scenario.mode }} / ${{ matrix.scenario.parent }} to ${{ matrix.scenario.child }} / ${{ matrix.shell }}
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          repository: shivammathur/powershell-phpmanager
+          ref: a4510ce6ed12713faf6fa47d027bc0c2ab749a50
+          path: phpmanager
+      - name: Validate real installation and metadata binding
+        env:
+          PHPMANAGER_SHA: a4510ce6ed12713faf6fa47d027bc0c2ab749a50
+          PARENT_TAG: ${{ matrix.scenario.parent }}
+          CHILD_TAG: ${{ matrix.scenario.child }}
+          TEST_MODE: ${{ matrix.scenario.mode }}
+        run: ./test.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.scenario.mode }}-${{ matrix.scenario.parent }}-${{ matrix.scenario.child }}-${{ matrix.shell }}
+          path: validation/
+          if-no-files-found: error
