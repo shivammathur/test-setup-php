@@ -1,0 +1,16 @@
+name: PHP release freshness on macOS ARM64 for PHP 5.3–5.5
+on: push
+permissions:
+  contents: read
+jobs:
+  macos:
+    name: macOS ARM64
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-latest, macos-15, macos-26, xcode-27]
+        php: ['5.3', '5.4', '5.5']
+    uses: ./.github/workflows/check-php-release.yml
+    with:
+      runner: ${{ matrix.runner }}
+      php: ${{ matrix.php }}
