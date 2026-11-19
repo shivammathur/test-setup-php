@@ -1,0 +1,61 @@
+name: Windows Builder Xdebug x86 package verification
+on: push
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: PHP ${{ matrix.php-version }} x86 ${{ matrix.ts }}
+    runs-on: ${{ matrix.php-version == '8.6' && 'windows-2025-vs2026' || 'windows-2022' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.5', '8.6']
+        ts: [nts, ts]
+    steps:
+      - name: Build and package Xdebug
+        uses: shivammathur/php-windows-builder/extension@master
+        with:
+          extension-url: https://github.com/xdebug/xdebug
+          extension-ref: 5e19866c1766e38c527f9f94faa170370dc4209f
+          php-version: ${{ matrix.php-version }}
+          arch: x86
+          ts: ${{ matrix.ts }}
+          save-vs-cache: ${{ matrix.ts == 'nts' }}
+          args: --with-xdebug
+          libs: zlib
+          run-tests: 'false'
+          build-directory: C:\build
+      - name: Load the packaged Xdebug DLL
+        shell: pwsh
+        run: |
+          $package = Get-Item artifacts/php_xdebug-*.zip
+          $destination = Join-Path $env:RUNNER_TEMP xdebug-package
+          Expand-Archive -LiteralPath $package.FullName -DestinationPath $destination
+          $dll = Get-Item (Join-Path $destination "$($package.BaseName).dll")
+          $php = Get-Item C:/build/*/php-bin/php.exe
+          & $php.FullName -n -d "zend_extension=$($dll.FullName)" --ri xdebug
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Add-Content -Path $env:GITHUB_ENV -Value "XDEBUG_DLL=$($dll.FullName)"
+      - name: Confirm PHP reports the cast warning independently
+        shell: pwsh
+        run: |
+          $php = Get-Item C:/build/*/php-bin/php.exe
+          $output = & $php.FullName -n -d display_errors=1 -d log_errors=0 -r '$id = (int)730022509303030; var_dump($id);'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $output | Write-Host
+          if (($output -join "`n") -notmatch 'is not representable as an int, cast occurred') {
+            throw 'Expected the warning seen in the Xdebug PHPT run.'
+          }
+      - name: Recheck the debugger timing test
+        if: matrix.php-version == '8.6' && matrix.ts == 'ts'
+        shell: pwsh
+        run: |
+          $php = Get-Item C:/build/*/php-bin/php.exe
+          Set-Location $php.Directory.Parent.FullName
+          $env:TEST_PHP_EXECUTABLE = $php.FullName
+          $env:TEST_PHP_ARGS = "-n -d zend_extension=$env:XDEBUG_DLL"
+          $env:REPORT_EXIT_STATUS = '1'
+          & $php.FullName -n run-xdebug-tests.php -q --offline --show-diff tests/debugger/bug02267-win.phpt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
