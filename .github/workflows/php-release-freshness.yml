@@ -1,0 +1,48 @@
+name: PHP release freshness
+on: push
+permissions:
+  contents: read
+
+jobs:
+  ubuntu:
+    name: Ubuntu
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-slim, ubuntu-latest, ubuntu-22.04, ubuntu-24.04, ubuntu-26.04, ubuntu-22.04-arm, ubuntu-24.04-arm, ubuntu-26.04-arm]
+        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6']
+    uses: ./.github/workflows/check-php-release.yml
+    with:
+      runner: ${{ matrix.runner }}
+      php: ${{ matrix.php }}
+
+  windows:
+    name: Windows
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [windows-latest, windows-2022, windows-2025, windows-2025-vs2026, windows-11-arm, windows-11-vs2026-arm]
+        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6']
+    uses: ./.github/workflows/check-php-release.yml
+    with:
+      runner: ${{ matrix.runner }}
+      php: ${{ matrix.php }}
+
+  macos:
+    name: macOS
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-latest, macos-15, macos-26, xcode-27, macos-15-intel, macos-26-intel]
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6']
+        include:
+          - {runner: macos-15-intel, php: '5.3'}
+          - {runner: macos-15-intel, php: '5.4'}
+          - {runner: macos-15-intel, php: '5.5'}
+          - {runner: macos-26-intel, php: '5.3'}
+          - {runner: macos-26-intel, php: '5.4'}
+          - {runner: macos-26-intel, php: '5.5'}
+    uses: ./.github/workflows/check-php-release.yml
+    with:
+      runner: ${{ matrix.runner }}
+      php: ${{ matrix.php }}

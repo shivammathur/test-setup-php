@@ -1,0 +1,80 @@
+name: Check installed PHP release
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: true
+        type: string
+      php:
+        required: true
+        type: string
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: ${{ inputs.runner }} PHP ${{ inputs.php }}
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 20
+    steps:
+      - name: Set up the updated PHP build
+        uses: shivammathur/setup-php@292f25acb388a711c0c758f382e5c3109a391dd7
+        with:
+          php-version: ${{ inputs.php }}
+          coverage: none
+          tools: none
+        env:
+          update: 'true'
+
+      - name: Verify PHP version or build date
+        shell: bash
+        env:
+          PHP_SERIES: ${{ inputs.php }}
+          MIN_BUILD_DATE: '2026-11-17'
+        run: |
+          command -v php
+          banner=$(php -n -v)
+          printf '%s\n' "$banner"
+          PHP_CLI_BANNER="$banner" php -n <<'PHP'
+          <?php
+          function fail_check($message) {
+              echo '::error::', $message, PHP_EOL;
+              exit(1);
+          }
+
+          $series = getenv('PHP_SERIES');
+          $patches = array(
+              '8.2' => '8.2.36', '8.3' => '8.3.37', '8.4' => '8.4.28',
+              '8.5' => '8.5.13', '8.6' => '8.6.0'
+          );
+          if (isset($patches[$series])) {
+              $expected = $patches[$series];
+              if (PHP_VERSION !== $expected) {
+                  fail_check('Expected PHP ' . $expected . ', found ' . PHP_VERSION);
+              }
+              echo 'Verified PHP ', PHP_VERSION, PHP_EOL;
+              exit(0);
+          }
+
+          if (strpos(PHP_VERSION, $series . '.') !== 0) {
+              fail_check('Expected PHP ' . $series . '.x, found ' . PHP_VERSION);
+          }
+          ob_start();
+          phpinfo(INFO_GENERAL);
+          $info = ob_get_clean();
+          if (!preg_match('/^Build Date[ \t]*=>[ \t]*([^\r\n]+)/mi', $info, $match) &&
+              !preg_match('/\(built:[ \t]*([^)]+)\)/i', getenv('PHP_CLI_BANNER'), $match)) {
+              fail_check('PHP ' . PHP_VERSION . ' did not report a build date');
+          }
+          date_default_timezone_set('UTC');
+          $timestamp = strtotime(trim($match[1]));
+          if ($timestamp === false) {
+              fail_check('Could not parse PHP ' . PHP_VERSION . ' build date ' . trim($match[1]));
+          }
+          $date = gmdate('Y-m-d', $timestamp);
+          $cutoff = getenv('MIN_BUILD_DATE');
+          if ($date < $cutoff || $date > gmdate('Y-m-d')) {
+              fail_check('PHP ' . PHP_VERSION . ' was built ' . $date . ', expected ' . $cutoff . ' or later');
+          }
+          echo 'Verified PHP ', PHP_VERSION, ' built ', $date, ' (', trim($match[1]), ')', PHP_EOL;
+          PHP
