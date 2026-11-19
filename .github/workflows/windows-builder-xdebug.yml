@@ -54,6 +54,7 @@ jobs:
           $package = Get-Item artifacts/php_xdebug-*.zip
           $destination = Join-Path $env:RUNNER_TEMP xdebug-package
           Expand-Archive -LiteralPath $package.FullName -DestinationPath $destination
-          $dll = Get-Item (Join-Path $destination php_xdebug.dll)
-          php -n -d "zend_extension=$($dll.FullName)" --ri xdebug
+          $dll = Get-Item (Join-Path $destination "$($package.BaseName).dll")
+          $php = Get-Item C:/build/*/php-bin/php.exe
+          & $php.FullName -n -d "zend_extension=$($dll.FullName)" --ri xdebug
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
