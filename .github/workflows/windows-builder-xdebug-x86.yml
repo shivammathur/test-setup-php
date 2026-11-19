@@ -57,5 +57,9 @@ jobs:
           $env:TEST_PHP_EXECUTABLE = $php.FullName
           $env:TEST_PHP_ARGS = "-n -d zend_extension=$env:XDEBUG_DLL"
           $env:REPORT_EXIT_STATUS = '1'
-          & $php.FullName -n run-xdebug-tests.php -q --offline --show-diff tests/debugger/bug02267-win.phpt
+          $temp = (New-Item -Path phpt-temp -ItemType Directory).FullName
+          $env:TEMP = $temp
+          $env:TMP = $temp
+          & $php.FullName -n run-xdebug-tests.php -q --offline --show-diff `
+            --temp-source $temp --temp-target $temp tests/debugger/bug02267-win.phpt
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
