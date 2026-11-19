@@ -1,0 +1,59 @@
+name: Windows Builder Xdebug
+on: push
+
+permissions:
+  contents: read
+
+env:
+  XDEBUG_URL: https://github.com/xdebug/xdebug
+  XDEBUG_REF: 5e19866c1766e38c527f9f94faa170370dc4209f
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.versions.outputs.matrix }}
+    steps:
+      - name: Discover Xdebug build matrix
+        id: versions
+        uses: shivammathur/php-windows-builder/extension-matrix@master
+        with:
+          extension-url: ${{ env.XDEBUG_URL }}
+          extension-ref: ${{ env.XDEBUG_REF }}
+      - name: Check discovered PHP versions
+        env:
+          MATRIX: ${{ steps.versions.outputs.matrix }}
+        run: |
+          jq -r '.include[] | [.["php-version"], .arch, .ts, .os] | @tsv' <<< "$MATRIX"
+          jq -e '[.include[] | .["php-version"]] | unique == ["8.2", "8.3", "8.4", "8.5", "8.6"]' <<< "$MATRIX"
+
+  build:
+    name: PHP ${{ matrix.php-version }} ${{ matrix.arch }} ${{ matrix.ts }}
+    needs: matrix
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.matrix) }}
+    steps:
+      - name: Build and test Xdebug
+        uses: shivammathur/php-windows-builder/extension@master
+        with:
+          extension-url: ${{ env.XDEBUG_URL }}
+          extension-ref: ${{ env.XDEBUG_REF }}
+          php-version: ${{ matrix.php-version }}
+          arch: ${{ matrix.arch }}
+          ts: ${{ matrix.ts }}
+          save-vs-cache: ${{ matrix.save-vs-cache }}
+          args: --with-xdebug
+          libs: zlib
+          test-runner: run-xdebug-tests.php
+          build-directory: C:\build
+      - name: Load the packaged Xdebug DLL
+        shell: pwsh
+        run: |
+          $package = Get-Item artifacts/php_xdebug-*.zip
+          $destination = Join-Path $env:RUNNER_TEMP xdebug-package
+          Expand-Archive -LiteralPath $package.FullName -DestinationPath $destination
+          $dll = Get-Item (Join-Path $destination php_xdebug.dll)
+          php -n -d "zend_extension=$($dll.FullName)" --ri xdebug
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
