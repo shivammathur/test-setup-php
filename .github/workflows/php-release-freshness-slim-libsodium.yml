@@ -1,0 +1,16 @@
+name: PHP release freshness on Ubuntu Slim with libsodium23
+on: push
+permissions:
+  contents: read
+jobs:
+  ubuntu-slim:
+    name: Ubuntu Slim with hosted cache and libsodium23
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6']
+    uses: ./.github/workflows/check-php-release.yml
+    with:
+      runner: ubuntu-slim
+      php: ${{ matrix.php }}
+      hosted-cache-diagnostic: true

@@ -1,0 +1,122 @@
+name: Check installed PHP release
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: true
+        type: string
+      php:
+        required: true
+        type: string
+      hosted-cache-diagnostic:
+        type: boolean
+        default: false
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: ${{ inputs.runner }} PHP ${{ inputs.php }}
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 20
+    steps:
+      - name: Inspect the Slim image and select its Ubuntu 24.04 cache
+        if: inputs.hosted-cache-diagnostic
+        shell: bash
+        run: |
+          cat /etc/os-release
+          printf 'RUNNER_ENVIRONMENT=%s ImageOS=%s ImageVersion=%s ACT=%s CONTAINER=%s\n' \
+            "$RUNNER_ENVIRONMENT" "$ImageOS" "$ImageVersion" "${ACT:+set}" "${CONTAINER:+set}"
+          command -v zstd || true
+          root=()
+          if [ "$(id -u)" -ne 0 ]; then root=(sudo); fi
+          "${root[@]}" apt-get update -qq
+          "${root[@]}" apt-get install -y --no-install-recommends libsodium23
+          echo 'ImageOS=ubuntu24' >> "$GITHUB_ENV"
+
+      - name: Set up the updated PHP build
+        uses: shivammathur/setup-php@292f25acb388a711c0c758f382e5c3109a391dd7
+        with:
+          php-version: ${{ inputs.php }}
+          coverage: none
+          tools: none
+        env:
+          update: 'true'
+
+      - name: Verify PHP version or build date
+        shell: bash
+        env:
+          PHP_SERIES: ${{ inputs.php }}
+          MIN_BUILD_DATE: '2026-11-17'
+        run: |
+          command -v php
+          ldd "$(command -v php)"
+          banner=$(php -n -v)
+          printf '%s\n' "$banner"
+          PHP_CLI_BANNER="$banner" php -n <<'PHP'
+          <?php
+          function fail_check($message) {
+              echo '::error::', $message, PHP_EOL;
+              exit(1);
+          }
+
+          $series = getenv('PHP_SERIES');
+          $patches = array(
+              '8.2' => '8.2.36', '8.3' => '8.3.37', '8.4' => '8.4.28',
+              '8.5' => '8.5.13', '8.6' => '8.6.0'
+          );
+          if (isset($patches[$series])) {
+              $expected = $patches[$series];
+              if (PHP_VERSION !== $expected) {
+                  fail_check('Expected PHP ' . $expected . ', found ' . PHP_VERSION);
+              }
+              echo 'Verified PHP ', PHP_VERSION, PHP_EOL;
+              exit(0);
+          }
+
+          if (strpos(PHP_VERSION, $series . '.') !== 0) {
+              fail_check('Expected PHP ' . $series . '.x, found ' . PHP_VERSION);
+          }
+          $cutoff = getenv('MIN_BUILD_DATE');
+          ob_start();
+          phpinfo(INFO_GENERAL);
+          $info = ob_get_clean();
+          if (!preg_match('/^Build Date[ \t]*=>[ \t]*([^\r\n]+)/mi', $info, $match) &&
+              !preg_match('/\(built:[ \t]*([^)]+)\)/i', getenv('PHP_CLI_BANNER'), $match)) {
+              if ($series === '5.6' && PHP_OS === 'Linux') {
+                  // These CLI binaries match both published archives. The php-builder
+                  // archive entries are dated 2026-11-19, before Ubuntu repackaging.
+                  $builderDate = '2026-11-19';
+                  $hashes = array(
+                      '22.04/x86_64' => '17f5de01275ab03cd3349cd781d579918b42e7129c4d2a84c1c93550159a948f',
+                      '22.04/aarch64' => 'd0e14a20291c98727b6a2af5f045b8e37086dfc7a46f0ac4e4e657b010c7d39f',
+                      '24.04/x86_64' => 'f578fc1bcd8bf65bc3c905a6bbf8ee17bc47a5377fce61ba0d2a2b3fe4e394fd',
+                      '24.04/aarch64' => '119061e933ac8d47c1462cbcfd4cfab7a2703eb8c070a1b0f75966790f230940',
+                      '26.04/x86_64' => '662891a9f6cb83175035cbbd4b15dad72b5b50746200a4883376ebb22a0d8815',
+                      '26.04/aarch64' => '2ad7db92f5344fe557325f86f85d74f47108a8a768ba7d52207630577bc70814',
+                  );
+                  $osRelease = file_get_contents('/etc/os-release');
+                  if (!preg_match('/^VERSION_ID="?([0-9.]+)"?$/m', $osRelease, $os)) {
+                      fail_check('Could not determine the Ubuntu version');
+                  }
+                  $platform = $os[1] . '/' . php_uname('m');
+                  $actual = hash_file('sha256', PHP_BINARY);
+                  if ($builderDate < $cutoff || !isset($hashes[$platform]) || $actual !== $hashes[$platform]) {
+                      fail_check('PHP ' . PHP_VERSION . ' does not match the fresh builder binary for ' . $platform . ' (SHA-256 ' . $actual . ')');
+                  }
+                  echo 'Verified PHP ', PHP_VERSION, ' via the SHA-256 of the ', $builderDate, ' builder binary for ', $platform, PHP_EOL;
+                  exit(0);
+              }
+              fail_check('PHP ' . PHP_VERSION . ' did not report a build date');
+          }
+          date_default_timezone_set('UTC');
+          $timestamp = strtotime(trim($match[1]));
+          if ($timestamp === false) {
+              fail_check('Could not parse PHP ' . PHP_VERSION . ' build date ' . trim($match[1]));
+          }
+          $date = gmdate('Y-m-d', $timestamp);
+          if ($date < $cutoff || $date > gmdate('Y-m-d')) {
+              fail_check('PHP ' . PHP_VERSION . ' was built ' . $date . ', expected ' . $cutoff . ' or later');
+          }
+          echo 'Verified PHP ', PHP_VERSION, ' built ', $date, ' (', trim($match[1]), ')', PHP_EOL;
+          PHP
