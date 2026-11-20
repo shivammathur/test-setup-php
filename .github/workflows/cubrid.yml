@@ -1,6 +1,7 @@
 name: 'Cubrid workflow'
 on:
   push:
+  workflow_dispatch:
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
@@ -16,6 +17,10 @@ jobs:
         with:
           php-version: ${{ matrix.php-versions }}
           extensions: cubrid, pdo_cubrid
+        env:
+          # The bundled CCI predates C23 and CMake 4.
+          CUBRID_CONFIGURE_PREFIX_OPTS: CC=gcc-13 CXX=g++-13 CMAKE_POLICY_VERSION_MINIMUM=3.5
+          PDO_CUBRID_CONFIGURE_PREFIX_OPTS: CC=gcc-13 CXX=g++-13 CMAKE_POLICY_VERSION_MINIMUM=3.5
 
       - name: Testing PHP version
         run: php -v

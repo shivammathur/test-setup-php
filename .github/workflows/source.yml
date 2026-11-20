@@ -1,6 +1,7 @@
 name: Source extensions workflow
 on:
   push:
+  workflow_dispatch:
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -21,6 +22,7 @@ jobs:
             redis-5.3.5
         env:
           CSV_CONFIGURE_OPTS: --enable-csv
+          GD_CONFIGURE_PREFIX_OPTS: CFLAGS=-std=gnu17
           GD_CONFIGURE_OPTS: --enable-gd=shared,/usr --with-external-gd --with-jpeg
           GD_LIBS: libgd-dev libjpeg-dev
           GD_PATH: ext/gd
