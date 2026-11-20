@@ -70,7 +70,7 @@ jobs:
 
       - name: Testing Extensions
         run: |
-          php -r 'var_dump(new class(new Phalcon\Di\FactoryDefault) extends Phalcon\Mvc\Model {});'          
+          php -r 'var_dump(new class(new Phalcon\Di\FactoryDefault) extends Phalcon\Mvc\Model {});'
           php -r "echo 'phalcon: ' . phpversion('phalcon');"
           php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
           php -r "if(phpversion('phalcon')[0]!='5') {throw new Exception('Wrong phalcon version Installed');}"
@@ -96,4 +96,4 @@ jobs:
 
       - name: Testing Extensions
         run: |
-          php -r "if(! extension_loaded('zephir_parser')) {throw new Exception('zephir_parser not found');}"          
+          php -r "if(! extension_loaded('zephir_parser')) {throw new Exception('zephir_parser not found');}"

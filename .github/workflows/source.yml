@@ -37,7 +37,7 @@ jobs:
       - name: Test extensions
         run: |
           php -r "echo phpversion('redis');"
-          php -m          
+          php -m
           php -r "if(! extension_loaded('csv')) {throw new Exception('csv not found');}";
           php -r "if(! extension_loaded('gd')) {throw new Exception('gd not found');}";
           php -r "if(! extension_loaded('mongodb')) {throw new Exception('mongodb not found');}";
