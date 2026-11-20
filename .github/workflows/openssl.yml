@@ -1,0 +1,49 @@
+name: OpenSSL Windows Workflow
+on:
+  push:
+jobs:
+  run:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [windows-latest]
+        php: [5.5, 5.6, 7.2, 7.4, 8.1, 8.2, 8.3, 8.4, 8.5]
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@e8d4e43a6ea86e0a118fd08e31bf6518c80cd376
+        with:
+          php-version: ${{ matrix.php }}
+
+      - name: Check PHP
+        run: |
+          php -v
+          php -m
+
+      - name: Check OpenSSL config
+        shell: pwsh
+        run: |
+          php -i | findstr openssl
+          Get-Content $env:OPENSSL_CONF
+
+      - name: Test
+        shell: php {0}
+        run: |
+          <?php
+          error_reporting(E_ALL);
+          $config = array(
+             "digest_alg" => "sha256",
+             "private_key_bits" => 2048,
+             "private_key_type" => OPENSSL_KEYTYPE_RSA,
+          );
+          $res = openssl_pkey_new($config);
+          if ($res === false) {
+            throw new Exception('OpenSSL key generation failed: ' . openssl_error_string());
+          }
+          if (!openssl_pkey_export($res, $privatekey) || empty($privatekey)) {
+            throw new Exception('OpenSSL key export failed: ' . openssl_error_string());
+          }
+          if (openssl_pkey_get_private($privatekey) === false) {
+            throw new Exception('Exported OpenSSL key could not be loaded');
+          }
+          echo "OpenSSL key generation, export and reload passed\n";

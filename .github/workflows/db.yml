@@ -1,0 +1,55 @@
+name: DB ext workflow
+on: [push]
+jobs:
+  run:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+        operating-system: [ubuntu-26.04, ubuntu-24.04, windows-latest, macos-latest]
+    name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
+    steps:
+      - name: Setup cache environment
+        id: extcache
+        uses: shivammathur/cache-extensions@v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: pdo, pdo_mysql, pdo_pgsql, pdo_sqlite, pdo_sqlsrv, pdo_firebird, couchbase, mysql, pgsql, sqlite3, sqlsrv
+          key: cache-v5-2.40.1
+
+      - name: Cache extensions
+        uses: actions/cache@v5.0.3
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@e8d4e43a6ea86e0a118fd08e31bf6518c80cd376
+        #continue-on-error: ${{ matrix.php-versions == '8.6'}}
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: pdo, pdo_mysql, pdo_pgsql, pdo_sqlite, pdo_sqlsrv, pdo_firebird, couchbase, mysql, pgsql, sqlite3, sqlsrv
+
+      - name: Check PHP version
+        run: php -v
+
+      - name: Check ini files
+        run: php --ini
+
+      - name: Check PHP extensions
+        #continue-on-error: ${{ matrix.php-versions == '8.6 }}
+        run: |
+          php -m
+          php -r "if(! extension_loaded('pdo')) {throw new Exception('pdo not found');}";
+          php -r "if(! extension_loaded('pdo_mysql')) {throw new Exception('pdo_mysql not found');}";
+          php -r "if(! extension_loaded('pdo_pgsql')) {throw new Exception('pdo_pgsql not found');}";
+          php -r "if(! extension_loaded('pdo_sqlite')) {throw new Exception('pdo_sqlite not found');}";
+          php -r "if(! extension_loaded('pdo_firebird')) {throw new Exception('pdo_firebird not found');}";
+          php -r "if(phpversion()>=7.0 && ! extension_loaded('pdo_sqlsrv')) {throw new Exception('pdo_sqlsrv not found');}";
+          php -r "if(! extension_loaded('couchbase')) {throw new Exception('couchbase not found');}";
+          php -r "if(! extension_loaded('mysqli')) {throw new Exception('mysqli not found');}";
+          php -r "if(! extension_loaded('pgsql')) {throw new Exception('pgsql not found');}";
+          php -r "if(! extension_loaded('sqlite3')) {throw new Exception('sqlite3 not found');}";
+          php -r "if(phpversion()>=7.0 && ! extension_loaded('sqlsrv')) {throw new Exception('sqlsrv not found');}";
