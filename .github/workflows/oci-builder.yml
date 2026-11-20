@@ -1,0 +1,38 @@
+name: Bundled OCI builder validation
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [powershell, pwsh]
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: 582d45c1ad6f85362278f7612f4cf7a8f1e29018
+          path: builder
+      - name: Run native PowerShell regression tests
+        working-directory: builder
+        run: |
+          Install-Module Pester -RequiredVersion 4.10.1 -Scope CurrentUser -Force -SkipPublisherCheck
+          Import-Module Pester -RequiredVersion 4.10.1
+          $result = Invoke-Pester -Script php/BuildPhp/tests/OciBuild.Tests.ps1,php/BuildPhp/tests/BuildNumbers.Tests.ps1 -OutputFile ../pester.xml -OutputFormat NUnitXml -PassThru
+          if ($result.FailedCount) { throw "$($result.FailedCount) tests failed" }
+      - name: Validate real PHP source configurations with Oracle SDKs
+        run: ./validate-sdk.ps1
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oci-builder-${{ matrix.shell }}
+          path: |
+            pester.xml
+            sdk-validation.json
