@@ -1,0 +1,56 @@
+name: Windows Apache LDAP compatibility and reproduction
+on:
+  push:
+    branches: [test/windows-apache-ldap-20261121]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.targets.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: targets
+        run: echo "matrix=$(jq -c '{include:[.apache[] | {id}]}' manifest.json)" >> "$GITHUB_OUTPUT"
+  test:
+    needs: matrix
+    name: ${{ matrix.id }}
+    runs-on: windows-2022
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.targets) }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install fixture dependencies
+        run: python -m pip install cryptography==50.0.2
+      - name: Install current Microsoft VC runtimes
+        shell: pwsh
+        run: |
+          foreach ($arch in @('x64', 'x86')) {
+            $installer = Join-Path $env:RUNNER_TEMP "vc-redist-$arch.exe"
+            curl.exe -fsSL --retry 3 "https://aka.ms/vc14/vc_redist.$arch.exe" -o $installer
+            if ($LASTEXITCODE -ne 0) { throw 'VC runtime download failed' }
+            $install = Start-Process $installer -ArgumentList '/install', '/quiet', '/norestart' -Wait -PassThru
+            if ($install.ExitCode -notin @(0, 1638, 3010)) { throw "VC runtime install failed: $($install.ExitCode)" }
+          }
+      - name: Test PHP 8.4.27 and 8.4.28 with Apache
+        env:
+          MATRIX_ID: ${{ matrix.id }}
+        run: python scripts/matrix.py --id "$env:MATRIX_ID"
+      - name: Upload runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ldap-${{ matrix.id }}
+          path: |
+            ${{ runner.temp }}/ldap-matrix/**/*.json
+            ${{ runner.temp }}/ldap-matrix/**/*.jsonl
+            ${{ runner.temp }}/ldap-matrix/**/*.log
+            ${{ runner.temp }}/ldap-matrix/**/httpd.conf
+          retention-days: 14
