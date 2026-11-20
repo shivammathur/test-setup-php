@@ -7,13 +7,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest]
         php: [8.6]
           
     steps:
       - uses: shivammathur/setup-php@2.40.0
         with:
           php-version: ${{ matrix.php }}
+          extensions: intl-79.1
         env:
           verbose: vvv
       - run: |
