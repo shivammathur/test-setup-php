@@ -16,7 +16,7 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: intl-79.1
         env:
-          verbose: vvv
+          verbose: v
       - run: |
           php -v
           php -m
