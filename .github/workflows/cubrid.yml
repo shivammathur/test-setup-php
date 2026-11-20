@@ -2,9 +2,6 @@ name: 'Cubrid workflow'
 on:
   push:
   workflow_dispatch:
-env:
-  key: cache-v4-2.40.0
-  extensions: cubrid, pdo_cubrid
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
@@ -15,23 +12,13 @@ jobs:
         php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
     name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
     steps:
-      - name: Resolve extensions
-        id: resolve
-        shell: bash
-        run: |
-          extensions='${{ env.extensions }}'
-          if [[ "${{ matrix.php-versions }}" == "7.3" || "${{ matrix.php-versions }}" == "7.4" ]]; then
-            extensions='cubrid'
-          fi
-          echo "extensions=$extensions" >> "$GITHUB_OUTPUT"
-
       - name: Setup cache environment
         id: extcache
         uses: shivammathur/cache-extensions@v1
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ steps.resolve.outputs.extensions }}
-          key: ${{ env.key }}
+          extensions: cubrid, pdo_cubrid
+          key: cache-v5-2.40.1
 
       - name: Cache extensions
         uses: actions/cache@v5.0.3
@@ -40,15 +27,11 @@ jobs:
           key: ${{ steps.extcache.outputs.key }}
           restore-keys: ${{ steps.extcache.outputs.key }}
 
-      - name: Install PHP
+      - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ steps.resolve.outputs.extensions }}
-        env:
-          # The bundled CCI predates C23 and CMake 4.
-          CUBRID_CONFIGURE_PREFIX_OPTS: CC=gcc-13 CXX=g++-13 SED=sed CMAKE_POLICY_VERSION_MINIMUM=3.5
-          PDO_CUBRID_CONFIGURE_PREFIX_OPTS: CC=gcc-13 CXX=g++-13 SED=sed CMAKE_POLICY_VERSION_MINIMUM=3.5
+          extensions: cubrid, pdo_cubrid
 
       - name: Testing PHP version
         run: php -v

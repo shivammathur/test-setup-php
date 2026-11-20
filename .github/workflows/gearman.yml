@@ -1,8 +1,5 @@
 name: Test gearman
 on: [push]
-env:
-  key: cache-v4-2.40.0
-  extensions: gearman
 jobs:
   run:
     runs-on: ${{ matrix.operating-systems }}
@@ -10,7 +7,7 @@ jobs:
       fail-fast: false
       matrix:
         php-versions: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
-        operating-systems: [ubuntu-24.04]
+        operating-systems: [ubuntu-26.04]
     name: Test PHP ${{ matrix.php-versions }} on ${{ matrix.operating-systems }}
     steps:
       - name: Setup cache environment
@@ -18,8 +15,8 @@ jobs:
         uses: shivammathur/cache-extensions@v1
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-          key: ${{ env.key }}
+          extensions: gearman
+          key: cache-v5-2.40.1
 
       - name: Cache extensions
         uses: actions/cache@v5.0.3
@@ -28,11 +25,11 @@ jobs:
           key: ${{ steps.extcache.outputs.key }}
           restore-keys: ${{ steps.extcache.outputs.key }}
 
-      - name: Install PHP
+      - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
+          extensions: gearman
 
       - name: Check PHP version
         run: php -v

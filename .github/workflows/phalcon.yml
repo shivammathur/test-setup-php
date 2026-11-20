@@ -3,13 +3,10 @@ on: [push]
 jobs:
   phalcon3:
     runs-on: ${{ matrix.operating-system }}
-    env:
-      key: cache-v4-2.40.0
-      extensions: phalcon3
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, windows-latest, macos-latest]
+        operating-system: [ubuntu-26.04, windows-latest, macos-latest]
         php-versions: ['7.0', '7.1', '7.2', '7.3']
     steps:
       - name: Setup cache environment
@@ -17,8 +14,8 @@ jobs:
         uses: shivammathur/cache-extensions@v1
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-          key: ${{ env.key }}
+          extensions: phalcon3
+          key: cache-v5-2.40.1
 
       - name: Cache extensions
         uses: actions/cache@v5.0.3
@@ -31,7 +28,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
+          extensions: phalcon3
 
       - name: Testing PHP version
         run: php -v
@@ -45,13 +42,10 @@ jobs:
 
   phalcon4:
     runs-on: ${{ matrix.operating-system }}
-    env:
-      key: cache-v4-2.40.0
-      extensions: phalcon4
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, windows-latest, macos-latest]
+        operating-system: [ubuntu-26.04, windows-latest, macos-latest]
         php-versions: ['7.2', '7.3', '7.4']
     steps:
       - name: Setup cache environment
@@ -59,8 +53,8 @@ jobs:
         uses: shivammathur/cache-extensions@v1
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-          key: ${{ env.key }}
+          extensions: phalcon4
+          key: cache-v5-2.40.1
 
       - name: Cache extensions
         uses: actions/cache@v5.0.3
@@ -73,7 +67,7 @@ jobs:
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
+          extensions: phalcon4
 
       - name: Testing PHP version
         run: php -v
@@ -89,13 +83,10 @@ jobs:
 
   phalcon5:
     runs-on: ${{ matrix.operating-system }}
-    env:
-      key: cache-v4-2.40.0
-      extensions: phalcon5
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-24.04, windows-latest, macos-latest]
+        operating-system: [ubuntu-26.04, windows-latest, macos-latest]
         php-versions: ['7.4', '8.0', '8.1', '8.2', '8.3']
     steps:
       - name: Setup cache environment
@@ -103,8 +94,8 @@ jobs:
         uses: shivammathur/cache-extensions@v1
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-          key: ${{ env.key }}
+          extensions: phalcon5
+          key: cache-v5-2.40.1
 
       - name: Cache extensions
         uses: actions/cache@v5.0.3
@@ -112,17 +103,57 @@ jobs:
           path: ${{ steps.extcache.outputs.dir }}
           key: ${{ steps.extcache.outputs.key }}
           restore-keys: ${{ steps.extcache.outputs.key }}
+
       - name: Install PHP
         uses: shivammathur/setup-php@develop
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
+          extensions: phalcon5
 
       - name: Testing PHP version
         run: php -v
 
       - name: Testing Extensions
         run: |
+          php -r 'var_dump(new class(new Phalcon\Di\FactoryDefault) extends Phalcon\Mvc\Model {});'
           php -r "echo 'phalcon: ' . phpversion('phalcon');"
           php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
           php -r "if(phpversion('phalcon')[0]!='5') {throw new Exception('Wrong phalcon version Installed');}"
+  zephir_parser:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-26.04, windows-latest, macos-latest]
+        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
+        phpts: [nts, ts]
+    steps:
+      - name: Setup cache environment
+        id: extcache
+        uses: shivammathur/cache-extensions@v1
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: zephir_parser
+          key: cache-v5-2.40.1-${{ matrix.phpts }}
+
+      - name: Cache extensions
+        uses: actions/cache@v5.0.3
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+
+      - name: Install PHP
+        uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: zephir_parser
+        env:
+          phpts: ${{ matrix.phpts }}
+
+      - name: Testing PHP version
+        run: php -v
+
+      - name: Testing Extensions
+        run: |
+          php -r "if(! extension_loaded('zephir_parser')) {throw new Exception('zephir_parser not found');}"

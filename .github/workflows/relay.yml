@@ -1,9 +1,6 @@
-name: Relay Workflow
+name: Relay Windows Workflow
 on:
   push:
-env:
-  key: cache-v4-2.40.0
-  extensions: relay
 jobs:
   run:
     runs-on: ${{ matrix.operating-system }}
@@ -11,18 +8,15 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest, macos-latest]
-        php-versions: [8.0, 8.1, 8.2, 8.3, 8.4]
-        include:
-            - operating-system: ubuntu-latest
-              php-versions: 8.3
+        php: [8.0, 8.1, 8.2, 8.3, 8.4]
     steps:
       - name: Setup cache environment
         id: extcache
         uses: shivammathur/cache-extensions@v1
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
-          key: ${{ env.key }}
+          php-version: ${{ matrix.php }}
+          extensions: relay
+          key: cache-v5-2.40.1
 
       - name: Cache extensions
         uses: actions/cache@v5.0.3
@@ -30,11 +24,12 @@ jobs:
           path: ${{ steps.extcache.outputs.dir }}
           key: ${{ steps.extcache.outputs.key }}
           restore-keys: ${{ steps.extcache.outputs.key }}
+
       - name: Setup PHP
         uses: shivammathur/setup-php@develop
         with:
-          php-version: ${{ matrix.php-versions }}
-          extensions: ${{ env.extensions }}
+          php-version: ${{ matrix.php }}
+          extensions: relay
         env:
           RELAY_KEY: 1234
           RELAY_ENVIRONMENT: development
@@ -44,9 +39,9 @@ jobs:
       - name: Check PHP
         run: |
           php -v
-          php -m     
+          php -m
 
-      - name: Check Relay
+      - name: Check Relay config
         run: |
           php -r "if(! extension_loaded('relay')) {throw new Exception('relay not found');}"
           php --ri relay
