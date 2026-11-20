@@ -36,5 +36,13 @@ jobs:
              "private_key_type" => OPENSSL_KEYTYPE_RSA,
           );
           $res = openssl_pkey_new($config);
-          openssl_pkey_export($res, $privatekey);
-          var_dump($privatekey);
+          if ($res === false) {
+            throw new Exception('OpenSSL key generation failed: ' . openssl_error_string());
+          }
+          if (!openssl_pkey_export($res, $privatekey) || empty($privatekey)) {
+            throw new Exception('OpenSSL key export failed: ' . openssl_error_string());
+          }
+          if (openssl_pkey_get_private($privatekey) === false) {
+            throw new Exception('Exported OpenSSL key could not be loaded');
+          }
+          echo "OpenSSL key generation, export and reload passed\n";
