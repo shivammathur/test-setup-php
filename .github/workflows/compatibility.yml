@@ -1,0 +1,65 @@
+name: Installer compatibility validation
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  oci:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4']
+        phpts: [nts, ts]
+        arch: [x64, x86]
+    steps:
+      - uses: shivammathur/setup-php@fc20f1d518194f8f0ea55830702e444aed84df42
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_oci, oci8
+        env:
+          phpts: ${{ matrix.phpts }}
+          phparch: ${{ matrix.arch }}
+      - name: Verify OCI binaries and PHP ABI
+        shell: pwsh
+        run: |
+          php -v
+          php --ri oci8
+          php --ri pdo_oci
+          php -r "if (!extension_loaded('oci8') || !in_array('oci', PDO::getAvailableDrivers())) { exit(1); }"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $phpDir = Split-Path (Get-Command php).Source
+          Get-Php -Path $phpDir | Format-List *
+          Get-ChildItem "$phpDir\ext\php_*oci*.dll" | ForEach-Object { Get-PhpExtension -Path $_.FullName } | Format-List *
+  cubrid:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
+        php: ['5.3', '5.4', '5.5', '5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+    steps:
+      - uses: shivammathur/setup-php@fc20f1d518194f8f0ea55830702e444aed84df42
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: cubrid, pdo_cubrid
+      - name: Verify CUBRID binaries and dependencies
+        run: |
+          php --ri cubrid
+          php -r "if (!extension_loaded('cubrid') || !function_exists('cubrid_connect')) { exit(1); } if (PHP_VERSION_ID < 70300 && !in_array('cubrid', PDO::getAvailableDrivers())) { exit(2); }"
+          ldd "$(php-config --extension-dir)/cubrid.so"
+  relay:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.0', '8.1', '8.2', '8.3', '8.4']
+    steps:
+      - uses: shivammathur/setup-php@fc20f1d518194f8f0ea55830702e444aed84df42
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: relay
+      - name: Verify Relay binary and dependencies
+        run: |
+          php --ri relay
+          php -r "if (!extension_loaded('relay')) { exit(1); }"
+          otool -L "$(php-config --extension-dir)/relay.so"
