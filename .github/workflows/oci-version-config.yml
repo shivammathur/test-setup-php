@@ -1,0 +1,38 @@
+name: OCI version configuration validation
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [powershell, pwsh]
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: shivammathur/php-windows-builder
+          ref: 6a33f9a00a9b09de78fcde811fe8205b837d8d7f
+          path: builder
+      - name: Validate PHP version selection with both Oracle SDK architectures
+        run: |
+          $builder = Join-Path $PWD 'builder'
+          Import-Module (Join-Path $builder 'php/BuildPhp') -Force
+          $sdkRoot = Join-Path $PWD 'sdk'
+          foreach ($arch in @('x86', 'x64')) {
+              $destination = Join-Path $sdkRoot $arch
+              $null = New-Item -ItemType Directory -Path $destination -Force
+              Push-Location $destination
+              try { Get-OciSdk -Arch $arch } finally { Pop-Location }
+          }
+          ./check-version-config.ps1 -BuilderRoot $builder -SdkRoot $sdkRoot
+      - name: Upload validation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: oci-version-config-${{ matrix.shell }}
+          path: sdk/version-config-validation.json
