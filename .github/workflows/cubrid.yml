@@ -1,0 +1,22 @@
+name: CUBRID PHP 7 API compatibility
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  cubrid:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-26.04]
+        php: ['7.0', '7.1', '7.2']
+    steps:
+      - uses: shivammathur/setup-php@e8d4e43a6ea86e0a118fd08e31bf6518c80cd376
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: cubrid, pdo_cubrid
+      - name: Verify CUBRID binaries and dependencies
+        run: |
+          php --ri cubrid
+          php -r "if (!extension_loaded('cubrid') || !function_exists('cubrid_connect')) { exit(1); } if (PHP_VERSION_ID < 70300 && !in_array('cubrid', PDO::getAvailableDrivers())) { exit(2); }"
+          ldd "$(php-config --extension-dir)/cubrid.so"
