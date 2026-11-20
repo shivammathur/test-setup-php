@@ -1,0 +1,36 @@
+name: Installer regression diagnostics
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  oci:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.2', '8.3']
+    steps:
+      - uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_oci, oci8
+        env:
+          verbose: vvv
+      - name: Inspect Oracle extension loading
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $phpDir = Split-Path (Get-Command php).Source
+          Import-Module PhpManager
+          Get-Php -Path $phpDir | Format-List *
+          Get-ChildItem "$phpDir\ext\*oci*", "$phpDir\oci*", "$phpDir\ora*" | Select-Object Name,Length
+          foreach ($extension in 'pdo_oci', 'oci8') {
+            try {
+              Enable-PhpExtension -Extension $extension -Path $phpDir -ErrorAction Stop
+            } catch {
+              $_ | Format-List * -Force
+              $_.Exception | Format-List * -Force
+            }
+          }
+          php -d display_startup_errors=1 -m
+          php -r "if (!extension_loaded('pdo_oci') || !extension_loaded('oci8')) { exit(1); }"
