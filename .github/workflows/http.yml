@@ -1,0 +1,37 @@
+name: HTTP workflow
+on:
+  push:
+jobs:
+  run:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-latest]
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+    name: PHP ${{ matrix.php }} Test on ${{ matrix.os }}
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@e8d4e43a6ea86e0a118fd08e31bf6518c80cd376
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: http
+
+      - name: Testing PHP version
+        run: php -v
+
+      - name: Testing Extensions
+        if: matrix.os == 'windows-latest'
+        run: |
+          php -m
+          php -r "if(phpversion()>=7.1 && ! extension_loaded('http')) {throw new Exception('http not found');}"
+          php -r "if(phpversion()>=7.1 && ! extension_loaded('raphf')) {throw new Exception('raphf not found');}"
+          php -r "if(phpversion()>=7.1 && phpversion()<=7.4 && ! extension_loaded('propro')) {throw new Exception('propro not found');}"
+
+      - name: Testing Extensions
+        if: matrix.os != 'windows-latest'
+        run: |
+          php -m
+          php -r "if(! extension_loaded('http')) {throw new Exception('http not found');}"
+          php -r "if(! extension_loaded('raphf')) {throw new Exception('raphf not found');}"
+          php -r "if(phpversion()<=7.4 && ! extension_loaded('propro')) {throw new Exception('propro not found');}"

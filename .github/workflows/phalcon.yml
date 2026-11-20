@@ -1,0 +1,99 @@
+name: Phalcon workflow
+on: [push]
+jobs:
+  phalcon3:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-26.04, windows-latest, macos-latest]
+        php-versions: ['7.0', '7.1', '7.2', '7.3']
+    steps:
+      - name: Install PHP
+        uses: shivammathur/setup-php@e8d4e43a6ea86e0a118fd08e31bf6518c80cd376
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: phalcon3
+
+      - name: Testing PHP version
+        run: php -v
+
+      - name: Testing Extensions
+        run: |
+          php -r 'var_dump(new class(new Phalcon\Di\FactoryDefault) extends Phalcon\Mvc\Model {});'
+          php -r "echo 'phalcon: ' . phpversion('phalcon');"
+          php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
+          php -r "if(phpversion('phalcon')[0]!='3') {throw new Exception('Wrong phalcon version Installed');}"
+
+  phalcon4:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-26.04, windows-latest, macos-latest]
+        php-versions: ['7.2', '7.3', '7.4']
+    steps:
+      - name: Install PHP
+        uses: shivammathur/setup-php@e8d4e43a6ea86e0a118fd08e31bf6518c80cd376
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: phalcon4
+
+      - name: Testing PHP version
+        run: php -v
+
+      - name: Testing Extensions
+        run: |
+          php -r 'var_dump(new class(new Phalcon\Di\FactoryDefault) extends Phalcon\Mvc\Model {});'
+          php -r "echo 'psr: ' . phpversion('psr').', ';"
+          php -r "echo 'phalcon: ' . phpversion('phalcon');"
+          php -r "if(! extension_loaded('psr')) {throw new Exception('psr not found');}"
+          php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
+          php -r "if(phpversion('phalcon')[0]!='4') {throw new Exception('Wrong phalcon version Installed');}"
+
+  phalcon5:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-26.04, windows-latest, macos-latest]
+        php-versions: ['7.4', '8.0', '8.1', '8.2', '8.3']
+    steps:
+      - name: Install PHP
+        uses: shivammathur/setup-php@e8d4e43a6ea86e0a118fd08e31bf6518c80cd376
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: phalcon5
+
+      - name: Testing PHP version
+        run: php -v
+
+      - name: Testing Extensions
+        run: |
+          php -r 'var_dump(new class(new Phalcon\Di\FactoryDefault) extends Phalcon\Mvc\Model {});'
+          php -r "echo 'phalcon: ' . phpversion('phalcon');"
+          php -r "if(! extension_loaded('phalcon')) {throw new Exception('phalcon not found');}"
+          php -r "if(phpversion('phalcon')[0]!='5') {throw new Exception('Wrong phalcon version Installed');}"
+  zephir_parser:
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-26.04, windows-latest, macos-latest]
+        php-versions: ['7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3']
+        phpts: [nts, ts]
+    steps:
+      - name: Install PHP
+        uses: shivammathur/setup-php@e8d4e43a6ea86e0a118fd08e31bf6518c80cd376
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: zephir_parser
+        env:
+          phpts: ${{ matrix.phpts }}
+
+      - name: Testing PHP version
+        run: php -v
+
+      - name: Testing Extensions
+        run: |
+          php -r "if(! extension_loaded('zephir_parser')) {throw new Exception('zephir_parser not found');}"
