@@ -1,0 +1,34 @@
+name: OCI archive compatibility
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  oci:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.6', '7.4']
+        phpts: [nts, ts]
+    steps:
+      - uses: shivammathur/setup-php@3d9241958deaf7e50ea74cfaf7922ad926a49d28
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_oci, oci8
+        env:
+          phpts: ${{ matrix.phpts }}
+      - name: Verify OCI binaries and PHP ABI
+        shell: pwsh
+        run: |
+          php -v
+          php --ri oci8
+          php --ri pdo_oci
+          php -r "if (!extension_loaded('oci8') || !in_array('oci', PDO::getAvailableDrivers())) { exit(1); }"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $phpDir = Split-Path (Get-Command php).Source
+          $installed = Get-Php -Path $phpDir
+          $installed | Format-List *
+          if ($installed.ThreadSafe -ne ('${{ matrix.phpts }}' -eq 'ts')) { throw 'Wrong thread safety' }
+          $expectedArch = if ('${{ matrix.php }}' -eq '5.6') { 'x86' } else { 'x64' }
+          if ($installed.Architecture -ne $expectedArch) { throw 'Wrong architecture' }
+          Get-ChildItem "$phpDir\ext\php_*oci*.dll" | ForEach-Object { Get-PhpExtension -Path $_.FullName } | Format-List *
