@@ -135,8 +135,8 @@ jobs:
       - name: Test phpmd on windows
         if: matrix.operating-system == 'windows-latest'
         run: |
-          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
-          phpmd $RUNNER_TOOL_CACHE\test.php text cleancode
+          Set-Content -Path "$env:RUNNER_TOOL_CACHE\test.php" -Value '<?php echo "test"; ?>'
+          phpmd "$env:RUNNER_TOOL_CACHE\test.php" text cleancode
       - name: Test phpmd
         if: matrix.operating-system != 'windows-latest'
         run: |
@@ -196,8 +196,8 @@ jobs:
       - name: Test phpmd on windows
         if: matrix.operating-system == 'windows-latest'
         run: |
-          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
-          phpmd $RUNNER_TOOL_CACHE\test.php text cleancode
+          Set-Content -Path "$env:RUNNER_TOOL_CACHE\test.php" -Value '<?php echo "test"; ?>'
+          phpmd "$env:RUNNER_TOOL_CACHE\test.php" text cleancode
       - name: Test phpmd
         if: matrix.operating-system != 'windows-latest'
         run: |
@@ -247,8 +247,8 @@ jobs:
       - name: Test phpmd on windows
         if: matrix.operating-system == 'windows-latest'
         run: |
-          Set-Content -Path $RUNNER_TOOL_CACHE\test.php -Value '<?php echo "test"; ?>'
-          phpmd $RUNNER_TOOL_CACHE\test.php text cleancode
+          Set-Content -Path "$env:RUNNER_TOOL_CACHE\test.php" -Value '<?php echo "test"; ?>'
+          phpmd "$env:RUNNER_TOOL_CACHE\test.php" text cleancode
       - name: Test phpmd
         if: matrix.operating-system != 'windows-latest'
         run: |
