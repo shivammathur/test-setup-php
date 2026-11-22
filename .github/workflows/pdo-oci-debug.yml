@@ -1,0 +1,55 @@
+name: PDO OCI Windows cleanup debugger
+
+on:
+  push:
+    branches: [fix/pdo-oci-gc-debug-20261122]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trace:
+    name: ${{ matrix.target.php }} ${{ matrix.target.ts }} / ${{ matrix.variant }}
+    runs-on: ${{ matrix.target.os }}
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [baseline, fixed]
+        target:
+          - {php: '8.5', ts: ts, os: windows-2022}
+          - {php: '8.6', ts: ts, os: windows-2025-vs2026}
+          - {php: '8.6', ts: nts, os: windows-2025-vs2026}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: php/php-windows-builder
+          ref: 227d3cb94e4fd9e9ab9459020df2394ee9a00eb4
+          path: builder
+      - name: Build the selected PDO OCI commit
+        uses: php/php-windows-builder/extension@227d3cb94e4fd9e9ab9459020df2394ee9a00eb4
+        with:
+          extension-url: https://github.com/shivammathur/pecl-database-pdo_oci
+          extension-ref: ${{ matrix.variant == 'baseline' && '950e4238e8c9bb0cc88aa4f4bd2d4813e4ef22ce' || '61eecf501b7de335bef4e74219a8c187f8f35728' }}
+          php-version: ${{ matrix.target.php }}
+          arch: x64
+          ts: ${{ matrix.target.ts }}
+          run-tests: 'false'
+          build-directory: build
+      - name: Prepare Oracle and debugger symbols
+        shell: pwsh
+        run: ./debug/prepare.ps1 -PhpSeries '${{ matrix.target.php }}' -ThreadSafety '${{ matrix.target.ts }}'
+      - name: Compare PHPT results and capture debugger traces
+        shell: pwsh
+        run: ./debug/trace.ps1 -Variant '${{ matrix.variant }}'
+      - name: Upload diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: diagnostics-${{ matrix.target.php }}-${{ matrix.target.ts }}-${{ matrix.variant }}
+          path: |
+            evidence/
+          if-no-files-found: error
+          retention-days: 14
