@@ -8,15 +8,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        php: [8.7]
+        php: [8.6]
           
     steps:
       - uses: shivammathur/setup-php@2.40.0
         with:
           php-version: ${{ matrix.php }}
-          extensions: intl-79.1
+          extensions: pdo_oci, oci8
         env:
-          verbose: v
+          verbose: vv
       - run: |
           php -v
           php -m
