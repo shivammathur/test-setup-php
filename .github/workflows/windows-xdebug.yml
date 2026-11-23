@@ -1,0 +1,86 @@
+name: Diagnose Xdebug on Windows PHP 8.6
+on: push
+permissions:
+  contents: read
+
+jobs:
+  xdebug:
+    name: PHP 8.6 x64 ${{ matrix.thread_safety }}
+    runs-on: windows-2022
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        thread_safety: [nts, ts]
+    env:
+      phpts: ${{ matrix.thread_safety }}
+    steps:
+      - name: Check out the setup-php revision from PR 1166
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 713f9319d718034d1772910cbabaf72a253cdf51
+          persist-credentials: false
+
+      - name: Run the original extension request without a cache
+        env:
+          php-version: '8.6'
+          extensions: xml, opcache, xdebug, pcov, gd
+          ini-values: post_max_size=256M, short_open_tag=On, date.timezone=Asia/Kolkata
+        run: node dist/index.js
+
+      - name: Inspect PHP and report the PhpManager exception for missing extensions
+        run: |
+          php -v
+          php -i | Select-String '^(PHP Extension Build|Zend Extension Build|Compiler|Thread Safety) =>'
+          php -r 'exit(PHP_MAJOR_VERSION === 8 && PHP_MINOR_VERSION === 6 && PHP_INT_SIZE === 8 && (bool) PHP_ZTS === (getenv("phpts") === "ts") ? 0 : 1);'
+          if ($LASTEXITCODE -ne 0) { throw 'Unexpected PHP build' }
+          $phpDir = Split-Path (Get-Command php.exe).Source
+          Import-Module "$phpDir\PhpManager\PhpManager.psm1"
+          foreach ($extension in 'xdebug', 'pcov') {
+            $loaded = php -r "echo (int) extension_loaded('$extension');"
+            Write-Host "After setup-php $extension loaded=$loaded"
+            if ($loaded -eq '0') {
+              try {
+                Install-PhpExtension -Extension $extension -Path $phpDir -MinimumStability stable -MaximumStability stable -NoDependencies -ErrorAction Stop
+                Write-Host "PhpManager retry succeeded for $extension"
+              } catch {
+                Write-Host "PhpManager $extension error: $($_.Exception.Message)"
+              }
+            }
+          }
+
+      - name: Install matching DLLs from the project builds
+        run: |
+          $phpDir = Split-Path (Get-Command php.exe).Source
+          Import-Module "$phpDir\PhpManager\PhpManager.psm1"
+          foreach ($extension in 'xdebug', 'pcov') {
+            $asset = "php8.6_$($env:phpts)_x64_$extension.dll"
+            $url = "https://github.com/shivammathur/php-extensions-windows/releases/download/builds/$asset"
+            $path = "$phpDir\ext\php_$extension.dll"
+            Invoke-WebRequest -Uri $url -OutFile $path
+            Write-Host "$asset SHA256 $((Get-FileHash $path).Hash)"
+            Enable-PhpExtension -Extension $extension -Path $phpDir -ErrorAction Stop
+          }
+
+      - name: Verify Zend module loading and collect Xdebug line coverage
+        env:
+          XDEBUG_MODE: coverage
+        run: |
+          php -v
+          php --ri xdebug | Select-String 'Version =>|Coverage =>'
+          php -r 'foreach (["xdebug","pcov"] as $ext) { printf("%s %s\n", $ext, phpversion($ext)); if (!extension_loaded($ext)) exit(1); }'
+          if ($LASTEXITCODE -ne 0) { throw 'Extension did not load' }
+          @'
+          <?php
+          xdebug_start_code_coverage();
+          $line = __LINE__ + 1;
+          $value = strlen((string) PHP_VERSION);
+          $coverage = xdebug_get_code_coverage();
+          xdebug_stop_code_coverage();
+          if (($coverage[__FILE__][$line] ?? 0) !== 1) {
+              throw new RuntimeException("No coverage for the executed line");
+          }
+          echo "Xdebug recorded the executed line ", $line, PHP_EOL;
+          '@ | Set-Content "$env:RUNNER_TEMP\coverage.php"
+          php -d pcov.enabled=0 "$env:RUNNER_TEMP\coverage.php"
