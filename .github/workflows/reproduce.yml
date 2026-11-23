@@ -1,0 +1,56 @@
+name: OPcache file cache lock failure
+on:
+  push:
+    branches: [test/opcache-file-cache-lock-25659]
+permissions:
+  contents: read
+jobs:
+  compare:
+    name: ${{ matrix.system }} / ${{ matrix.revision }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        system: [solaris, linux]
+        revision: [parent, pr]
+    env:
+      REVISION: ${{ matrix.revision }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Fetch pinned PHP source
+        run: |
+          if [[ "$REVISION" == parent ]]; then
+            ref=e596efcdd77788644848ca44133022a434ef519e
+          else
+            ref=fd65a1b4c692bb6b57289de93d34e52c8657ccb0
+          fi
+          echo "$ref" > php-ref.txt
+          curl -fsSL --retry 3 "https://codeload.github.com/php/php-src/tar.gz/$ref" -o php-src.tar.gz
+      - name: Build and exercise the forced fallback on Linux
+        if: matrix.system == 'linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y bison re2c autoconf pkg-config
+          bash build-and-test.sh "$REVISION"
+      - name: Build and exercise the detected fallback on Solaris 11.4
+        if: matrix.system == 'solaris'
+        uses: vmactions/solaris-vm@1c166978f5a2c1f87f1c9d4d8dd85ae3d1eff6f7 # v1
+        with:
+          release: 11.4-gcc
+          disable-cache: true
+          envs: REVISION
+          prepare: |
+            pkg install bison re2c || test "$?" -eq 4
+          run: |
+            cd "$GITHUB_WORKSPACE"
+            /usr/bin/bash build-and-test.sh "$REVISION"
+      - name: Save cache files and observations
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: opcache-${{ matrix.system }}-${{ matrix.revision }}
+          path: evidence/
+          if-no-files-found: error
