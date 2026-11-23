@@ -8,13 +8,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        php: [8.6]
+        php: [8.5]
           
     steps:
       - uses: shivammathur/setup-php@2.40.0
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo_oci, oci8
+          extensions: turbocov-shipmonk-rnd/turbocov@0.1.1
         env:
           verbose: vv
       - run: |
