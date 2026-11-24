@@ -1,0 +1,77 @@
+name: Test repackaged PHP caches
+run-name: Test repackaged PHP ${{ inputs.php-version || '8.7' }} caches
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      php-version:
+        description: PHP series to test
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  test:
+    name: PHP ${{ inputs.php-version || '8.7' }} / ${{ matrix.os }} / ${{ matrix.ts }} / debug=${{ matrix.debug }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, ubuntu-26.04, ubuntu-22.04-arm, ubuntu-24.04-arm, ubuntu-26.04-arm]
+        ts: [nts, zts]
+        debug: [false, true]
+    env:
+      PHP_VERSION: ${{ inputs.php-version || '8.7' }}
+      phpts: ${{ matrix.ts }}
+      debug: ${{ matrix.debug }}
+      update: true
+      use_builds_cache: true
+    steps:
+      - name: Record runner diversions
+        run: |
+          for file in diversions diversions-old; do
+            if [ -e "/var/lib/dpkg/$file" ]; then
+              cp "/var/lib/dpkg/$file" "$RUNNER_TEMP/$file.before"
+            fi
+          done
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          coverage: none
+          tools: none
+      - name: Check archive and runner diversions
+        run: |
+          source /etc/os-release
+          suffix=''
+          [ "$debug" = true ] && suffix=-dbgsym
+          arch_suffix=''
+          [ "$(uname -m)" = aarch64 ] && arch_suffix=_arm64
+          archive="/tmp/php_${PHP_VERSION}-${phpts}${suffix}+ubuntu${VERSION_ID}${arch_suffix}.tar.zst"
+          tar -I zstd -tf "$archive" > "$RUNNER_TEMP/cache-files"
+          if grep -E '^(\./)?var/lib/dpkg/diversions(-old)?$' "$RUNNER_TEMP/cache-files"; then
+            exit 1
+          fi
+          for file in diversions diversions-old; do
+            if [ -e "$RUNNER_TEMP/$file.before" ]; then
+              cmp "$RUNNER_TEMP/$file.before" "/var/lib/dpkg/$file"
+            else
+              test ! -e "/var/lib/dpkg/$file"
+            fi
+          done
+      - name: Check PHP and SAPIs
+        run: |
+          php -v
+          php -m
+          php-config --version
+          phpize --version
+          php-cgi -v
+          php-fpm -v
+          php -r 'exit(PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION === getenv("PHP_VERSION") ? 0 : 1);'
+          php -r 'exit((bool) PHP_ZTS === (getenv("phpts") === "zts") ? 0 : 1);'
+          sudo service "php$PHP_VERSION-fpm" status
+          sudo apt-get check
+      - name: Check PostgreSQL development package upgrade
+        if: matrix.os == 'ubuntu-24.04' && matrix.ts == 'nts' && !matrix.debug
+        run: |
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y --reinstall libpq-dev
