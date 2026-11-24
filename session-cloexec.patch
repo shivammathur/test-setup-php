@@ -1,0 +1,23 @@
+--- a/ext/session/mod_files.c
++++ b/ext/session/mod_files.c
+@@ -182,6 +182,20 @@
+ 		data->fd = VCWD_OPEN_MODE(buf, flags, data->filemode);
+ 
+ 		if (data->fd != -1) {
++#if defined(F_SETFD) && !defined(O_CLOEXEC)
++# ifndef FD_CLOEXEC
++#  define FD_CLOEXEC 1
++# endif
++			/* Set close-on-exec before flock() can block. */
++			do {
++				ret = fcntl(data->fd, F_SETFD, FD_CLOEXEC);
++			} while (ret == -1 && errno == EINTR);
++			if (ret == -1) {
++				php_error_docref(NULL, E_WARNING,
++					"fcntl(%d, F_SETFD, FD_CLOEXEC) failed: %s (%d)",
++					data->fd, strerror(errno), errno);
++			}
++#endif
+ #ifndef PHP_WIN32
+ 			/* check that this session file was created by us or root – we
+ 			   don't want to end up accepting the sessions of another webapp

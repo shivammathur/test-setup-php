@@ -1,0 +1,71 @@
+name: Test session close-on-exec on Solaris 11.4
+on:
+  push:
+    branches: [test/solaris-session-cloexec-native-fallback]
+permissions:
+  contents: read
+jobs:
+  test:
+    name: Solaris 11.4 / ${{ matrix.mode }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [native, fallback]
+    env:
+      MODE: ${{ matrix.mode }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Apply and verify the proposed patch
+        run: |
+          set -euo pipefail
+          ref=877758e9bfb1afb486e8c27948b376bfa91cb94c
+          src=$(mktemp -d)
+          mkdir -p evidence
+          curl -fsSL --retry 3 "https://codeload.github.com/php/php-src/tar.gz/$ref" | tar -xz --strip-components=1 -C "$src"
+          echo '202b55d812bacfe2f4c0d163f1ff559774256e3437d78f35fb44badda4c09e1c  session-cloexec.patch' | sha256sum --check
+          git -C "$src" apply --check --whitespace=error-all "$PWD/session-cloexec.patch"
+          git -C "$src" apply "$PWD/session-cloexec.patch"
+          unit="$src/ext/session/mod_files.c"
+          patched=$(git hash-object "$unit")
+          test "$patched" = e3eb1d1dba3c49681091da0e6581a1580f2965cb
+          if [[ "$MODE" == fallback ]]; then
+            python3 - "$unit" <<'PY'
+          from pathlib import Path
+          import sys
+          path = Path(sys.argv[1])
+          anchor = '#include "php_open_temporary_file.h"'
+          original = path.read_text()
+          assert original.count(anchor) == 1
+          path.write_text(original.replace(anchor, anchor + '\n#undef O_CLOEXEC'))
+          PY
+          fi
+          {
+            echo "PHP $ref"
+            sha256sum session-cloexec.patch
+            echo "Patched source blob $patched"
+            echo "Built source blob $(git hash-object "$unit")"
+            echo "Test mode $MODE"
+          } | tee evidence/sources.txt
+          tar -czf php-src.tar.gz -C "$src" .
+      - name: Build and test session handling
+        uses: vmactions/solaris-vm@1c166978f5a2c1f87f1c9d4d8dd85ae3d1eff6f7 # v1
+        with:
+          release: 11.4-gcc
+          disable-cache: true
+          envs: MODE
+          prepare: |
+            pkg install bison re2c || test "$?" -eq 4
+          run: |
+            cd "$GITHUB_WORKSPACE"
+            /usr/bin/bash test-solaris.sh "$MODE"
+      - name: Save syscall trace and test results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: solaris-${{ matrix.mode }}
+          path: evidence/
+          if-no-files-found: error
