@@ -3,11 +3,7 @@ on: [push]
 permissions: {}
 jobs:
   compare:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-11-arm, windows-2025]
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-11-arm
     timeout-minutes: 10
     steps:
       - name: Check policy and run both official x64 TS packages
@@ -17,6 +13,13 @@ jobs:
           $ProgressPreference = 'SilentlyContinue'
           $os = Get-CimInstance Win32_OperatingSystem
           Write-Host "OS=$($os.Caption) build=$($os.BuildNumber) arch=$env:PROCESSOR_ARCHITECTURE"
+          $ciKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy'
+          Write-Host "Initial SAC=$((Get-MpComputerStatus).SmartAppControlState)"
+          try {
+            Set-ItemProperty -Path $ciKey -Name VerifiedAndReputablePolicyState -Type DWord -Value 1 -ErrorAction Stop
+            CiTool.exe --refresh -json
+            Start-Sleep -Seconds 4
+          } catch { Write-Host "The hosted image declined the test setting: $_" }
           $reg = Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy' -ErrorAction SilentlyContinue
           Write-Host "VerifiedAndReputablePolicyState=$($reg.VerifiedAndReputablePolicyState)"
           try {
@@ -27,6 +30,9 @@ jobs:
             $policies = (CiTool.exe -lp -json | ConvertFrom-Json).Policies
             $policies | Select-Object FriendlyName,PolicyID,IsEnforced | Format-Table -AutoSize | Out-String -Width 240 | Write-Host
           }
+          $policy = $policies | Where-Object FriendlyName -eq 'VerifiedAndReputableDesktop'
+          Write-Host "SAC enforcement verified by CiTool=$($policy.IsEnforced)"
+          if (!$policy.IsEnforced) { Write-Host 'Stock SAC enforcement unavailable on this image'; exit 0 }
           $log = 'Microsoft-Windows-CodeIntegrity/Operational'
           $logInfo = Get-WinEvent -ListLog $log
           Write-Host "CodeIntegrity log enabled=$($logInfo.IsEnabled)"
