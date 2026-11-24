@@ -1,0 +1,41 @@
+name: Solaris session and OPcache lock comparison
+on:
+  push:
+    branches: [test/solaris-session-opcache-25669-25659]
+permissions:
+  contents: read
+jobs:
+  compare:
+    name: Solaris 11.4 / ${{ matrix.variant }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [session-only, combined-before-fix, opcache-fixed, combined-fixed]
+    env:
+      VARIANT: ${{ matrix.variant }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Prepare and verify pinned PHP sources
+        run: bash prepare.sh "$VARIANT"
+      - name: Test on Solaris 11.4
+        uses: vmactions/solaris-vm@1c166978f5a2c1f87f1c9d4d8dd85ae3d1eff6f7 # v1
+        with:
+          release: 11.4-gcc
+          disable-cache: true
+          envs: VARIANT
+          prepare: |
+            pkg install bison re2c || test "$?" -eq 4
+          run: |
+            cd "$GITHUB_WORKSPACE"
+            /usr/bin/bash build-and-test.sh "$VARIANT"
+      - name: Save cache files, provenance and observations
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: solaris-${{ matrix.variant }}
+          path: evidence/
+          if-no-files-found: error
