@@ -1,0 +1,93 @@
+name: PHP Windows builder PR 37
+on:
+  push:
+    branches: [fix/php-windows-builder-pr37-powershell-20261124]
+permissions:
+  contents: read
+jobs:
+  native:
+    name: ${{ matrix.runner }} / ${{ matrix.shell }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [windows-2022, windows-2025-vs2026]
+        shell: [powershell, pwsh]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: php/php-windows-builder
+          ref: 256562b1c2fdd8b596de5c63a9e511bc47e3c6aa
+          path: builder
+      - uses: actions/checkout@v6
+        with:
+          repository: php/php-windows-builder
+          ref: 227d3cb94e4fd9e9ab9459020df2394ee9a00eb4
+          path: base
+      - uses: actions/checkout@v6
+        with:
+          repository: php/php-src
+          ref: 8904d87f04c31b6ada6d8fc38884a2c3b9d45bc1
+          path: php-master
+      - uses: actions/checkout@v6
+        with:
+          repository: php/php-src
+          ref: php-8.2.36
+          path: php-82
+      - name: Compile native process fixtures
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force results, fixtures | Out-Null
+          $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+          & $compiler /nologo /target:exe /r:System.Web.Extensions.dll /out:fixtures\native-fixture.exe tests\NativeFixture.cs
+          if ($LASTEXITCODE) { throw 'Fixture compilation failed' }
+      - name: Generate base SBOM reference with PowerShell 7
+        shell: pwsh
+        run: ./tests/Test-Sbom.ps1 -Reference
+      - name: Test native VS selection and compile test helpers
+        shell: pwsh
+        env:
+          EXPECTED_PS_MAJOR: ${{ matrix.shell == 'powershell' && '5' || '7' }}
+          EXPECTED_VS: ${{ matrix.runner == 'windows-2022' && 'vs17' || 'vs18' }}
+        run: |
+          & '${{ matrix.shell }}' -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File tests/Test-VisualStudio.ps1
+          if ($LASTEXITCODE) { throw 'Native PowerShell test failed' }
+      - name: Test SBOM metadata and reproduce baseline regression
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        env:
+          EXPECTED_PS_MAJOR: ${{ matrix.shell == 'powershell' && '5' || '7' }}
+        run: |
+          & '${{ matrix.shell }}' -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File tests/Test-Sbom.ps1
+          if ($LASTEXITCODE) { throw 'Native PowerShell test failed' }
+      - name: Run existing tests against base and PR
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: |
+          & '${{ matrix.shell }}' -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File tests/Test-Existing.ps1
+          if ($LASTEXITCODE) { throw 'Native PowerShell test failed' }
+      - name: Upload evidence and compiled artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr37-${{ matrix.runner }}-${{ matrix.shell }}
+          path: results
+          if-no-files-found: error
+  compare:
+    name: Compare artifacts across PowerShell versions
+    needs: native
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: pr37-*
+          path: evidence
+      - name: Compare SBOM content and inspect native test results
+        run: python3 tests/compare.py evidence
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pr37-cross-version-comparison
+          path: evidence/comparison.json
