@@ -16,7 +16,7 @@ jobs:
         with:
           coverage: none
           tools: composer
-          php-version: ${{ matrix.os }}
+          php-version: ${{ matrix.php }}
         env:
           verbose: v
       - run: |
