@@ -1,0 +1,78 @@
+name: PHP 25711 on native Windows 11 x64
+on: [push]
+permissions:
+  contents: read
+jobs:
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [enforce, baseline]
+    env:
+      TEST_MODE: ${{ matrix.mode }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Prepare an isolated x64 KVM guest
+        run: |
+          set -euxo pipefail
+          uname -m
+          test "$(uname -m)" = x86_64
+          test -c /dev/kvm
+          df -h / /mnt
+          # These are preinstalled development toolchains on a disposable hosted runner.
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache /usr/local/share/boost
+          mkdir -p "$RUNNER_TEMP/win-disk" "$RUNNER_TEMP/result"
+          chmod 777 "$RUNNER_TEMP/result"
+          docker pull ghcr.io/dockur/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc
+          curl -fLsS --retry 3 --max-time 600 'https://software-static.download.prss.microsoft.com/dbazure/26300.9457.260913-1737.26h2_ge_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso' -o "$RUNNER_TEMP/microsoft.iso"
+          test "$(stat -c %s "$RUNNER_TEMP/microsoft.iso")" = 8225329152
+          sha256sum "$RUNNER_TEMP/microsoft.iso"
+          curl -fLsS --retry 3 https://aka.ms/vs/17/release/vc_redist.x64.exe -o guest/vc_redist.x64.exe
+          printf '%s\n' "$TEST_MODE" > guest/mode.txt
+          gateway=$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}')
+          printf 'http://%s:18511\n' "$gateway" > guest/report-url.txt
+          df -h /
+      - name: Boot Windows and collect code integrity decisions
+        run: |
+          set -euo pipefail
+          gateway=$(docker network inspect bridge --format '{{(index .IPAM.Config 0).Gateway}}')
+          result="$RUNNER_TEMP/result"
+          python3 -u receive.py "$gateway" "$result" &
+          trap 'docker stop -t 5 sac-guest >/dev/null 2>&1 || true' EXIT
+          docker run -d --name sac-guest --device=/dev/kvm --device=/dev/net/tun --cap-add NET_ADMIN \
+            -e RAM_SIZE=6G -e CPU_CORES=3 -e DISK_SIZE=64G -e ALLOCATE=N -e BOOT_MODE=windows_secure \
+            -v "$RUNNER_TEMP/microsoft.iso:/custom.iso:ro" -v "$PWD/guest:/oem:ro" \
+            -v "$RUNNER_TEMP/win-disk:/storage" -v "$result:/shared" \
+            ghcr.io/dockur/windows@sha256:59f8bed19cfd49cf1701debe34f9df6311e61a4e2ae68aa9f41206e2184e31cc
+          for tick in $(seq 1 132); do
+            if [[ -s "$result/done" ]]; then
+              cat "$result/transcript.log"
+              test "$(tr -d '[:space:]' < "$result/done")" = 0
+              exit 0
+            fi
+            if [[ "$(docker inspect -f '{{.State.Running}}' sac-guest)" != true ]]; then
+              docker logs sac-guest
+              exit 1
+            fi
+            if (( tick % 3 == 1 )); then
+              date -u
+              docker logs --tail 8 sac-guest 2>&1
+              docker exec sac-guest sh -c 'cat /run/shm/qemu.status 2>/dev/null || true'
+              ls -l "$result"
+              df -h /
+            fi
+            sleep 20
+          done
+          docker logs --tail 100 sac-guest
+          exit 1
+      - name: Keep the Windows transcript
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-windows-11-${{ matrix.mode }}
+          path: ${{ runner.temp }}/result/transcript.log
+          if-no-files-found: ignore
