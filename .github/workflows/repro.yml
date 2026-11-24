@@ -1,0 +1,68 @@
+name: PHP 25711 release comparison
+on: [push]
+permissions: {}
+jobs:
+  compare:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-11-arm, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - name: Check policy and run both official x64 TS packages
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+          $os = Get-CimInstance Win32_OperatingSystem
+          Write-Host "OS=$($os.Caption) build=$($os.BuildNumber) arch=$env:PROCESSOR_ARCHITECTURE"
+          $reg = Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy' -ErrorAction SilentlyContinue
+          Write-Host "VerifiedAndReputablePolicyState=$($reg.VerifiedAndReputablePolicyState)"
+          try {
+            $mp = Get-MpComputerStatus
+            Write-Host "SmartAppControlState=$($mp.SmartAppControlState) AntivirusEnabled=$($mp.AntivirusEnabled)"
+          } catch { Write-Host "Defender status unavailable: $_" }
+          if (Get-Command CiTool.exe -ErrorAction SilentlyContinue) {
+            $policies = (CiTool.exe -lp -json | ConvertFrom-Json).Policies
+            $policies | Select-Object FriendlyName,PolicyID,IsEnforced | Format-Table -AutoSize | Out-String -Width 240 | Write-Host
+          }
+          $log = 'Microsoft-Windows-CodeIntegrity/Operational'
+          $logInfo = Get-WinEvent -ListLog $log
+          Write-Host "CodeIntegrity log enabled=$($logInfo.IsEnabled)"
+          $base = 'https://downloads.php.net/~windows/releases'
+          $builds = @(
+            @{ Version='8.4.27-1'; Source="$base/archives"; Sha='53db2047139bdfb8e6c7c7d5860a0a6a2a4f1dcac49fcf18ae610a14d8ccdf5b' }
+            @{ Version='8.4.28'; Source=$base; Sha='59ccaa095d0f0c3fbb9f7e2bfd86713ebac032d5783cc22bc8934e2285629999' }
+          )
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          foreach ($b in $builds) {
+            $name = "php-$($b.Version)-Win32-vs17-x64.zip"
+            $zip = Join-Path $env:RUNNER_TEMP $name
+            $dir = Join-Path $env:RUNNER_TEMP "php-$($b.Version)"
+            $url = "$($b.Source)/$name"
+            Invoke-WebRequest $url -UseBasicParsing -OutFile $zip
+            $sha = (Get-FileHash $zip -Algorithm SHA256).Hash
+            if ($sha -ne $b.Sha) { throw "Checksum mismatch for $name" }
+            if (!(Get-Item $zip -Stream Zone.Identifier -ErrorAction SilentlyContinue)) {
+              Set-Content -LiteralPath $zip -Stream Zone.Identifier -Encoding Ascii -Value @('[ZoneTransfer]','ZoneId=3',"HostUrl=$url")
+            }
+            Write-Host "ZIP=$name SHA256=$sha"
+            [IO.Compression.ZipFile]::ExtractToDirectory($zip, $dir)
+            foreach ($file in 'php.exe','php8ts.dll') {
+              $path = Join-Path $dir $file
+              $sig = (Get-AuthenticodeSignature $path).Status
+              $zone = [bool](Get-Item $path -Stream Zone.Identifier -ErrorAction SilentlyContinue)
+              Write-Host "file=$file signature=$sig zone=$zone SHA256=$((Get-FileHash $path).Hash)"
+            }
+            $start = Get-Date
+            try {
+              $p = Start-Process (Join-Path $dir 'php.exe') -ArgumentList '-n','-v' -WorkingDirectory $dir -NoNewWindow -Wait -PassThru
+              Write-Host "version=$($b.Version) exit=$($p.ExitCode)"
+            } catch { Write-Host "version=$($b.Version) launch error: $_" }
+            Start-Sleep -Seconds 2
+            $events = @(Get-WinEvent -FilterHashtable @{LogName=$log; Id=3076,3077; StartTime=$start} -ErrorAction SilentlyContinue | Where-Object { $_.Message -like "*php-$($b.Version)\*" })
+            Write-Host "version=$($b.Version) matching Code Integrity events=$($events.Count)"
+            foreach ($event in $events) { Write-Host $event.ToXml() }
+          }
+          exit 0
