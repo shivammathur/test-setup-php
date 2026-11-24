@@ -19,6 +19,9 @@ jobs:
           $ProgressPreference = 'SilentlyContinue'
           $os = Get-CimInstance Win32_OperatingSystem
           Write-Host "OS=$($os.Caption) build=$($os.BuildNumber) arch=$env:PROCESSOR_ARCHITECTURE"
+          Set-MpPreference -MAPSReporting Advanced -DisableRealtimeMonitoring $false -DisableBehaviorMonitoring $false -DisableIOAVProtection $false -DisableScriptScanning $false -DisableArchiveScanning $false
+          $root = [IO.Path]::GetPathRoot($env:RUNNER_TEMP)
+          if ((Get-MpPreference).ExclusionPath -contains $root) { Remove-MpPreference -ExclusionPath $root }
           $ciKey = 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy'
           Write-Host "Initial SAC=$((Get-MpComputerStatus).SmartAppControlState)"
           if ($env:TEST_MODE -eq 'enforce') {
@@ -46,8 +49,14 @@ jobs:
           Write-Host "MAPSReporting=$($prefs.MAPSReporting) DisableBlockAtFirstSeen=$($prefs.DisableBlockAtFirstSeen)"
           $mpCmd = Get-ChildItem "$env:ProgramData\Microsoft\Windows Defender\Platform\*\MpCmdRun.exe" | Sort-Object FullName -Descending | Select-Object -First 1
           if ($mpCmd) {
-            & $mpCmd.FullName -ValidateMapsConnection
-            Write-Host "Defender cloud connectivity exit=$LASTEXITCODE"
+            foreach ($attempt in 1..3) {
+              & $mpCmd.FullName -ValidateMapsConnection
+              Write-Host "Defender cloud connectivity attempt $attempt exit=$LASTEXITCODE"
+              if ($LASTEXITCODE -eq 0) { break }
+              Start-Sleep -Seconds 5
+            }
+            Write-Host "RealTimeProtectionEnabled=$((Get-MpComputerStatus).RealTimeProtectionEnabled) AMRunningMode=$((Get-MpComputerStatus).AMRunningMode)"
+            Get-Service AppIDSvc,AppID,AppLockerFltr,WinDefend -ErrorAction SilentlyContinue | Select-Object Name,Status | Format-Table | Out-String | Write-Host
           }
           $log = 'Microsoft-Windows-CodeIntegrity/Operational'
           $logInfo = Get-WinEvent -ListLog $log
@@ -94,7 +103,7 @@ jobs:
               Write-Host "version=$($b.Version) exit=$($p.ExitCode)"
             } catch { Write-Host "version=$($b.Version) launch error: $_" }
             Start-Sleep -Seconds 2
-            $events = @(Get-WinEvent -FilterHashtable @{LogName=$log; Id=3076,3077; StartTime=$start} -ErrorAction SilentlyContinue | Where-Object { $_.Message -like "*php-$($b.Version)\*" })
+            $events = @(Get-WinEvent -FilterHashtable @{LogName=$log; Id=3076,3077,3090,3091,3092; StartTime=$start} -ErrorAction SilentlyContinue | Where-Object { $_.Message -like "*php-$($b.Version)\*" })
             Write-Host "version=$($b.Version) matching Code Integrity events=$($events.Count)"
             foreach ($event in $events) { Write-Host $event.ToXml() }
             $start = Get-Date
@@ -102,7 +111,7 @@ jobs:
             & $python -c 'import ctypes, sys; print(ctypes.WinDLL(sys.argv[1]))' $dll
             Write-Host "version=$($b.Version) direct DLL load exit=$LASTEXITCODE"
             Start-Sleep -Seconds 2
-            $events = @(Get-WinEvent -FilterHashtable @{LogName=$log; Id=3076,3077; StartTime=$start} -ErrorAction SilentlyContinue | Where-Object { $_.Message -like "*php-$($b.Version)\*" })
+            $events = @(Get-WinEvent -FilterHashtable @{LogName=$log; Id=3076,3077,3090,3091,3092; StartTime=$start} -ErrorAction SilentlyContinue | Where-Object { $_.Message -like "*php-$($b.Version)\*" })
             Write-Host "version=$($b.Version) direct DLL load matching Code Integrity events=$($events.Count)"
             foreach ($event in $events) { Write-Host $event.ToXml() }
           }
