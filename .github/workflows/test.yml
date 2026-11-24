@@ -7,14 +7,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04]
-        php: [8.5]
+        os: [macos-26]
+        php: [7.4]
           
     steps:
-      - uses: shivammathur/setup-php@2.40.0
+      - uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
-          extensions: turbocov-shipmonk-rnd/turbocov@0.1.1
+          php-version: ${{ matrix.php }}          
         env:
           verbose: vv
       - run: |
