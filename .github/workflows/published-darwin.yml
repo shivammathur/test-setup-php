@@ -1,0 +1,55 @@
+name: Test published macOS PHP through setup-php
+on: push
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: PHP ${{ matrix.php }} / ${{ matrix.os }} / ${{ matrix.build }} / ${{ matrix.ts }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4', '8.0', '8.1']
+        os: [macos-15, macos-15-intel]
+        build: [release, debug]
+        ts: [nts, zts]
+    env:
+      PHP_SERIES: ${{ matrix.php }}
+      EXPECTED_ARCH: ${{ matrix.os == 'macos-15-intel' && 'x86_64' || 'arm64' }}
+      EXPECTED_BUILD: ${{ matrix.build }}
+      phpts: ${{ matrix.ts }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check native architecture and start with the requested PHP inactive
+        shell: bash
+        run: |
+          test "$(uname -m)" = "$EXPECTED_ARCH"
+          if command -v php >/dev/null && [[ "$(php -n -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;')" == "$PHP_SERIES" ]]; then
+            keg="$(php-config --prefix)"
+            test "$(dirname "$(dirname "$keg")")" = "$(brew --cellar)"
+            brew unlink "$(basename "$(dirname "$keg")")"
+          fi
+      - name: Install published PHP with setup-php
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        env:
+          BASH_ENV: ${{ github.workspace }}/observe-archive.sh
+          debug: ${{ matrix.build == 'debug' }}
+          use_builds_cache: 'true'
+          update: 'true'
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+          coverage: none
+      - name: Verify the archive, active PHP and HTTP image redirect
+        run: python3 verify.py
+      - name: Show installer diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          if [[ -f "$RUNNER_TEMP/php-darwin-install.log" ]]; then
+            tail -100 "$RUNNER_TEMP/php-darwin-install.log"
+          fi
