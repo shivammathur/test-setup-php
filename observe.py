@@ -54,6 +54,9 @@ def run_case(revision, build, evidence):
         src.write_text('<?php echo "app ran\\n";')
         session_dir = work / "sessions"
         session_dir.mkdir()
+        # Strict mode accepts a supplied ID only if the session already exists.
+        session_file = session_dir / "sess_lock-check"
+        session_file.touch(mode=0o600)
         php = [str(build / "sapi/cli/php"), "-n", "-d", "opcache.enable_cli=1",
                "-d", "opcache.file_cache_only=1", "-d", "opcache.file_cache=" + str(cache),
                "-d", "opcache.file_update_protection=0", "-d", "opcache.log_verbosity_level=2",
@@ -70,7 +73,7 @@ def run_case(revision, build, evidence):
             data = entries[0].read_bytes() if entries else None
             if entries:
                 shutil.copyfile(entries[0], evidence / (label + ".bin"))
-            assert (session_dir / "sess_lock-check").read_bytes() == b"worked|i:1;"
+            assert session_file.read_bytes() == b"worked|i:1;"
             rows.append(dict(phase=label, cache_files=[str(f.relative_to(cache)) for f in entries],
                              bytes=len(data) if entries else None, header=data[:8].hex() if entries else None,
                              stdout=out.decode().strip(), stderr=err.decode().strip()))
