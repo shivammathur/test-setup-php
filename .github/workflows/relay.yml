@@ -1,0 +1,100 @@
+name: Relay on PHP 8.6 (setup-php PR 1166)
+on:
+  push:
+    branches: [test/relay-pr1166-php86]
+permissions:
+  contents: read
+
+jobs:
+  relay:
+    name: ${{ matrix.ref }} / ${{ matrix.os }} / PHP ${{ matrix.php }} ${{ matrix.ts }} / ${{ matrix.extension }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: [pr]
+        os:
+          - ubuntu-22.04
+          - ubuntu-24.04
+          - ubuntu-26.04
+          - ubuntu-22.04-arm
+          - ubuntu-24.04-arm
+          - ubuntu-26.04-arm
+          - ubuntu-slim
+          - macos-15
+          - macos-26
+          - xcode-27
+          - macos-15-intel
+          - macos-26-intel
+          - windows-2022
+          - windows-2025
+          - windows-2025-vs2026
+          - windows-11-arm
+          - windows-11-vs2026-arm
+        php: ['8.6']
+        ts: [nts]
+        extension: [relay, relay-nightly]
+        include:
+          - {ref: pr, os: ubuntu-24.04, php: '8.6', ts: zts, extension: relay}
+          - {ref: pr, os: ubuntu-24.04, php: '8.6', ts: nts, extension: relay-0.61.1}
+          - {ref: pr, os: ubuntu-24.04, php: '8.6', ts: nts, extension: relay-v0.61.1}
+          - {ref: base, os: ubuntu-24.04, php: '8.6', ts: nts, extension: relay}
+          - {ref: base, os: ubuntu-24.04, php: '8.6', ts: nts, extension: relay-nightly}
+          - {ref: base, os: macos-15, php: '8.6', ts: nts, extension: relay}
+          - {ref: base, os: macos-15, php: '8.6', ts: nts, extension: relay-nightly}
+          - {ref: base, os: macos-15, php: '8.5', ts: nts, extension: relay}
+          - {ref: base, os: ubuntu-24.04, php: '8.5', ts: zts, extension: relay}
+          - {ref: base, os: ubuntu-24.04, php: '8.5', ts: nts, extension: relay-v0.61.1}
+    env:
+      EXPECTED_PHP: ${{ matrix.php }}
+      RELAY_INPUT: ${{ matrix.extension }}
+      phpts: ${{ matrix.ts }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Set up PHP with PR 1166
+        if: matrix.ref == 'pr'
+        uses: tillkruss/setup-php@332756cee07fd22a5adf04960ede0ef4fdc5a9ad
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.extension }}
+          tools: none
+          coverage: none
+      - name: Set up PHP with the PR base
+        if: matrix.ref == 'base'
+        uses: shivammathur/setup-php@e8d43d139fbfbe401c32ef3a3a32e14075f20122
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.extension }}
+          tools: none
+          coverage: none
+      - name: Verify Relay loads in a fresh PHP process
+        id: verify
+        if: ${{ !cancelled() }}
+        run: php check-relay.php
+      - name: Inspect the installed extension
+        if: ${{ !cancelled() && runner.os != 'Windows' }}
+        shell: bash
+        run: |
+          uname -sm
+          php -n -v
+          extension_dir=$(php-config --extension-dir)
+          ls -l "$extension_dir"/relay*.so || exit 0
+          if [[ "$RUNNER_OS" == macOS ]]; then
+            otool -L "$extension_dir/relay.so"
+            codesign --verify --verbose=2 "$extension_dir/relay.so" || true
+          else
+            ldd "$extension_dir/relay.so" || true
+            strings "$extension_dir/relay.so" | grep -E '^API[0-9]+,(NTS|TS)' || true
+          fi
+      - name: Probe a re-signed macOS copy after a failed load
+        if: ${{ failure() && steps.verify.outcome == 'failure' && runner.os == 'macOS' }}
+        shell: bash
+        run: |
+          extension_dir=$(php-config --extension-dir)
+          [[ -f "$extension_dir/relay.so" ]] || exit 0
+          cp "$extension_dir/relay.so" "$RUNNER_TEMP/probe-relay.so"
+          codesign --force --sign - "$RUNNER_TEMP/probe-relay.so"
+          php -n -d "extension_dir=$extension_dir" -d extension=igbinary -d extension=msgpack -d "extension=$RUNNER_TEMP/probe-relay.so" check-relay.php
