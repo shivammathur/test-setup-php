@@ -1,0 +1,63 @@
+name: Relay PR 1166 runtime probes
+on:
+  push:
+    branches: [test/relay-pr1166-runtime-probes]
+permissions:
+  contents: read
+jobs:
+  mac:
+    name: In-place signature check / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix: {os: [macos-15, macos-26, xcode-27]}
+    env:
+      EXPECTED_PHP: '8.6'
+      phpts: nts
+      RELAY_INPUT: relay
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {persist-credentials: false}
+      - uses: tillkruss/setup-php@332756cee07fd22a5adf04960ede0ef4fdc5a9ad
+        with: {php-version: '8.6', extensions: relay, tools: none, coverage: none}
+      - name: Compare normal and explicit loading before and after signing the installed module
+        shell: bash
+        run: |
+          so="$(php-config --extension-dir)/relay.so"
+          test -f "$so"
+          probe() {
+            echo "Probe $1"
+            shift
+            local code=0
+            php "$@" check-relay.php || code=$?
+            echo "Exit $code"
+          }
+          php --ini || true
+          php -r 'echo "Configured extension directory ", ini_get("extension_dir"), PHP_EOL;' || true
+          find /opt/homebrew/etc/php/8.6 -iname '*relay*' -print -exec grep -Ei '^extension *=' {} \; || true
+          codesign --verify --verbose=2 "$so" || true
+          probe normal-before
+          probe explicit-before -n -d "extension=$so"
+          sudo codesign --force --sign - "$so"
+          codesign --verify --verbose=2 "$so"
+          probe normal-after
+          probe explicit-after -n -d "extension=$so"
+          php check-relay.php
+  pin:
+    name: Current release pin / ${{ matrix.extension }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix: {extension: [relay-0.62.0, relay-v0.62.0]}
+    env:
+      EXPECTED_PHP: '8.6'
+      phpts: nts
+      RELAY_INPUT: ${{ matrix.extension }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {persist-credentials: false}
+      - uses: tillkruss/setup-php@332756cee07fd22a5adf04960ede0ef4fdc5a9ad
+        with: {php-version: '8.6', extensions: "${{ matrix.extension }}", tools: none, coverage: none}
+      - run: php check-relay.php
