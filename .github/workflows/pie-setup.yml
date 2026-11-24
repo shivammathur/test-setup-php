@@ -1,0 +1,92 @@
+name: Measure PHP 7.4 setup for PIE on Tahoe
+on: push
+permissions:
+  contents: read
+
+jobs:
+  timing:
+    name: setup-php ${{ matrix.pin }} / ${{ matrix.preparation }}
+    runs-on: macos-26
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        pin: ['2.37.2', '2.40.0']
+        preparation: ['clean', 'after-spc']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Check out PIE's exact source for its SPC build
+        if: matrix.preparation == 'after-spc'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: php/pie
+          ref: e56a269b73d65b02aae32e7c87e73a08bdf015e9
+          path: pie-source
+          persist-credentials: false
+      - name: Run PIE's static PHP build
+        if: matrix.preparation == 'after-spc'
+        working-directory: pie-source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          curl -fsSL --retry 2 -o spc.tgz https://github.com/crazywhalecc/static-php-cli/releases/download/2.8.5/spc-macos-aarch64.tar.gz
+          tar -xzf spc.tgz
+          mv spc spc.exe
+          chmod +x spc.exe
+          ./spc.exe --version
+          ./spc.exe craft resources/spc/craft.yml
+      - name: Record runner and observe Homebrew during setup
+        shell: bash
+        run: |
+          uname -m
+          sw_vers
+          brew --version
+          command -v php || true
+          python3 observe-brew.py </dev/null > "$RUNNER_TEMP/brew-timing.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/brew-observer.pid"
+      - name: Setup PHP using PIE's pin
+        if: matrix.pin == '2.37.2'
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240
+        env:
+          BASH_ENV: ${{ github.workspace }}/observe-installer.sh
+        with:
+          coverage: none
+          tools: composer
+          php-version: '7.4'
+      - name: Setup PHP using published v2
+        if: matrix.pin == '2.40.0'
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        env:
+          BASH_ENV: ${{ github.workspace }}/observe-installer.sh
+        with:
+          coverage: none
+          tools: composer
+          php-version: '7.4'
+      - name: Report installation path and timing
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f "$RUNNER_TEMP/brew-observer.pid" ]]; then
+            kill "$(cat "$RUNNER_TEMP/brew-observer.pid")" 2>/dev/null || true
+            cat "$RUNNER_TEMP/brew-timing.log"
+          fi
+          if [[ -f "$RUNNER_TEMP/php-darwin.log" ]]; then cat "$RUNNER_TEMP/php-darwin.log"; fi
+      - name: Verify PHP, Composer and the installation source
+        shell: bash
+        env:
+          PIN: ${{ matrix.pin }}
+        run: |
+          php -v
+          php -r 'exit(PHP_MAJOR_VERSION === 7 && PHP_MINOR_VERSION === 4 && !PHP_ZTS && !PHP_DEBUG ? 0 : 1);'
+          binary=$(php -r 'echo realpath(PHP_BINARY);')
+          test "$(lipo -archs "$binary")" = arm64
+          test "$(php-config --version)" = "$(php -r 'echo PHP_VERSION;')"
+          composer --version --no-ansi
+          if [[ "$PIN" == 2.40.0 ]]; then
+            grep -F 'Installed PHP 7.4.33 (release, nts, arm64) from php_7.4-nts-release+darwin_arm64.tar.zst' "$RUNNER_TEMP/php-darwin.log"
+            brew --prefix php@7.4
+          else
+            test ! -f "$RUNNER_TEMP/php-darwin.log"
+          fi
