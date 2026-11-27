@@ -1,0 +1,98 @@
+name: Verify the two Sury repositories
+on:
+  push:
+    branches: [test/cache-extensions-sury-only-20261127]
+permissions:
+  contents: read
+jobs:
+  verify:
+    name: Timeout failover / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-22.04-arm, ubuntu-24.04, ubuntu-24.04-arm, ubuntu-26.04, ubuntu-26.04-arm]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Check out the cache action under test
+        uses: actions/checkout@v6
+        with:
+          repository: shivammathur/cache-extensions
+          ref: 9d98442acc86df8878d5e0b3014704cb4b9ef26b
+          path: candidate
+          persist-credentials: false
+      - name: Prepare the first-connection timeout
+        run: |
+          . /etc/os-release
+          echo "SUITE=$VERSION_CODENAME" >> "$GITHUB_ENV"
+          test ! -e /tmp/Packages
+          echo "$GITHUB_WORKSPACE/probe" >> "$GITHUB_PATH"
+          python3 probe/tls-stall.py > "$RUNNER_TEMP/stall.log" 2>&1 &
+          for _ in {1..50}; do
+            [[ -s $RUNNER_TEMP/tls-stall-port ]] && break
+            sleep 0.1
+          done
+          test -s "$RUNNER_TEMP/tls-stall-port"
+      - name: Time out both index requests
+        id: unavailable
+        continue-on-error: true
+        uses: ./candidate
+        env:
+          TRACE_PHASE: unavailable
+        with:
+          php-version: '8.2'
+          extensions: grpc, protobuf
+          key: both-unavailable-${{ github.run_id }}-${{ matrix.os }}
+      - name: Verify both timeouts and no requests to other repositories
+        env:
+          OUTCOME: ${{ steps.unavailable.outcome }}
+        run: |
+          test "$OUTCOME" = failure
+          test ! -e /tmp/Packages.gz
+          test ! -e /tmp/Packages
+          python3 probe/verify.py unavailable
+      - name: Prepare the extension cache with a primary index timeout
+        id: extcache
+        uses: ./candidate
+        env:
+          TRACE_PHASE: index
+        with:
+          php-version: '8.2'
+          extensions: grpc, protobuf
+          key: failover-${{ github.run_id }}-${{ matrix.os }}
+      - name: Verify the package index switched to the mirror
+        run: python3 probe/verify.py index
+      - name: Verify package failover and reuse of the working mirror
+        env:
+          TRACE_PHASE: package
+        run: |
+          . /etc/os-release
+          . candidate/src/scripts/linux.sh
+          download_ppa_package php8.2-protobuf "$RUNNER_TEMP/php8.2-protobuf.deb"
+          download_ppa_package php8.2-grpc "$RUNNER_TEMP/php8.2-grpc.deb"
+          python3 probe/verify.py package
+      - name: Cache extensions
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          key: ${{ steps.extcache.outputs.key }}
+          path: ${{ steps.extcache.outputs.dir }}
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.2'
+          extensions: grpc, protobuf
+      - name: Verify loaded gRPC and protobuf
+        shell: php {0}
+        run: |
+          <?php
+          $channel = new Grpc\Channel('localhost:1', ['credentials' => Grpc\ChannelCredentials::createInsecure()]);
+          $channel->close();
+          $message = new Google\Protobuf\Timestamp();
+          $message->setSeconds(42);
+          $decoded = new Google\Protobuf\Timestamp();
+          $decoded->mergeFromString($message->serializeToString());
+          printf("grpc %s, protobuf %s\n", phpversion('grpc'), phpversion('protobuf'));
+          exit((int) $decoded->getSeconds() === 42 ? 0 : 1);
