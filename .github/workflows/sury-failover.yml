@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: shivammathur/cache-extensions
-          ref: a49ca52f7c461247543684ed3e83ece002605297
+          ref: 8bc7ba95c1d7715e265c458d4a9186d406006558
           path: candidate
           persist-credentials: false
       - name: Prepare the first-connection timeout
