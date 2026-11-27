@@ -1,0 +1,50 @@
+name: Verify PHP 8.5 with unit test environment
+on:
+  push:
+    branches: [test/cache-extensions-sury-php85-20261127]
+permissions:
+  contents: read
+jobs:
+  verify:
+    name: PHP 8.5 / ${{ matrix.cache }} / upstream unit test environment
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        cache: [cached, uncached]
+    env:
+      EXTENSIONS: sodium, sysvshm, gmp, grpc
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Setup cache environment
+        if: matrix.cache == 'cached'
+        id: extcache
+        uses: shivammathur/cache-extensions@695b1b465eba861efe67cbbc31252c27f5ed253d
+        with:
+          php-version: '8.5'
+          extensions: ${{ env.EXTENSIONS }}
+          key: cache-key-1
+      - name: Cache extensions
+        if: matrix.cache == 'cached'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.5'
+          extensions: ${{ env.EXTENSIONS }}
+      - name: Verify gRPC with the unit suite environment
+        env:
+          ZEND_DONT_UNLOAD_MODULES: 1
+        run: |
+          php -v
+          for trial in {1..3}; do
+            echo "gRPC runtime check $trial"
+            php probe/verify.php "$EXTENSIONS"
+          done
