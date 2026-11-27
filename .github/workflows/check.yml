@@ -99,5 +99,5 @@ jobs:
         run: |
           cd "$CACHE_DIR"
           test -s grpc.so && test -s protobuf.so
-          sha256sum grpc.so protobuf.so | tee .timeout-test-sha256
-          echo "$CACHE_KEY" > .timeout-test-key
+          sha256sum grpc.so protobuf.so | sudo tee .timeout-test-sha256
+          echo "$CACHE_KEY" | sudo tee .timeout-test-key
