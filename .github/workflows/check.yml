@@ -1,0 +1,83 @@
+name: Check the unpublished PHP 8.0 Sury cache
+on:
+  push:
+    branches: [test/php80-sury-cache-jammy]
+permissions:
+  contents: read
+jobs:
+  compatibility:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-ubuntu
+          ref: 0171abdcc87ed650bf7287d72f6293739594bf6e
+          path: builder
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: eb7c497e18156a6bbabfef1d3a82760b9eda3962
+          path: v2
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 62d8c661cf9d600500b5543fdffef9f063128a33
+          path: develop
+          persist-credentials: false
+      - name: Build PHP 8.0 NTS release for Jammy amd64
+        run: bash qa/build.sh
+      - name: Inspect the archive, signed index and source configuration
+        run: bash qa/inspect.sh
+      - name: Prepare the v2 Launchpad starting state and local archive
+        run: bash qa/prepare.sh
+      - name: Restore with current setup-php v2
+        id: released
+        uses: ./v2
+        with:
+          php-version: '8.0'
+          extensions: curl, redis
+          tools: none
+        env:
+          update: 'true'
+          use_builds_cache: 'true'
+          fail_fast: 'true'
+      - name: Verify v2 with Launchpad and Sury enabled
+        id: verify_v2
+        continue-on-error: true
+        run: bash qa/verify.sh v2 1
+        env:
+          ACTION_PHP_VERSION: ${{ steps.released.outputs.php-version }}
+      - name: Require a second archive transfer and extension install
+        run: |
+          sudo rm -f /tmp/php_8.0-nts+ubuntu22.04.tar.zst
+          if dpkg-query -W -f='${db:Status-Abbrev}' php8.0-rdkafka 2>/dev/null | grep -q '^ii'; then
+            sudo apt-get purge -y php8.0-rdkafka
+          fi
+      - name: Restore with setup-php develop
+        id: development
+        uses: ./develop
+        with:
+          php-version: '8.0'
+          extensions: curl, redis
+          tools: none
+        env:
+          update: 'true'
+          use_builds_cache: 'true'
+          fail_fast: 'true'
+      - name: Verify develop migrated to one Sury source
+        id: verify_develop
+        run: bash qa/verify.sh develop 2
+        env:
+          ACTION_PHP_VERSION: ${{ steps.development.outputs.php-version }}
+      - name: Require both compatibility checks to pass
+        if: always()
+        env:
+          V2_RESULT: ${{ steps.verify_v2.outcome }}
+          DEVELOP_RESULT: ${{ steps.verify_develop.outcome }}
+        run: test "$V2_RESULT" = success && test "$DEVELOP_RESULT" = success

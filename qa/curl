@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -eu
+args=()
+for arg; do
+  case "$arg" in
+    https://github.com/shivammathur/php-ubuntu/releases/download/builds/php_8.0-nts+ubuntu22.04.tar.zst)
+      echo "$arg" >>/var/tmp/php80-sury-qa/requests
+      arg=http://127.0.0.1:18760/php_8.0-nts+ubuntu22.04.tar.zst ;;
+    https://*/php_8.0-nts+ubuntu22.04.tar.zst) echo "Unexpected public cache fallback" >&2; exit 1 ;;
+  esac
+  args+=("$arg")
+done
+exec /usr/bin/curl "${args[@]}"
