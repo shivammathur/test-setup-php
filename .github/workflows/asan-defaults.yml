@@ -1,0 +1,85 @@
+name: Check PHP 8.0–8.6 ASAN extension defaults
+on:
+  push:
+    branches: [test/asan-extension-defaults-80-86]
+permissions:
+  contents: read
+jobs:
+  test:
+    name: PHP ${{ matrix.php }} ${{ matrix.platform }} ${{ matrix.phpts }}
+    runs-on: ${{ matrix.runner || matrix.platform }}
+    container: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.0', '8.1', '8.2', '8.3']
+        phpts: [nts, zts]
+        platform: [ubuntu-22.04, ubuntu-22.04-arm, ubuntu-24.04, ubuntu-24.04-arm, ubuntu-26.04, ubuntu-26.04-arm, debian12, debian13]
+        include:
+          - platform: debian12
+            runner: ubuntu-24.04
+            image: debian:12
+          - platform: debian13
+            runner: ubuntu-24.04
+            image: debian:13
+    env:
+      EXPECTED_PHP: ${{ matrix.php }}
+      asan: 'true'
+      phpts: ${{ matrix.phpts }}
+      fail-fast: 'true'
+    steps:
+      - name: Prepare Debian
+        if: matrix.image
+        run: apt-get update -qq && apt-get install -y --no-install-recommends ca-certificates curl git sudo
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/php-builder
+          ref: 253eb1d6cfe0cb2d019e16048bf04dc074b03b29
+          sparse-checkout: |
+            config/extensions
+            scripts
+      - uses: shivammathur/setup-php@develop
+        with:
+          php-version: ${{ matrix.php }}
+          tools: none
+      - name: Verify every configured extension is opt-in
+        shell: bash
+        run: |
+          [[ $(php-config --extension-dir) == *-asan ]]
+          php <<'PHP'
+          <?php
+          if ((PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION) !== getenv("EXPECTED_PHP") || (bool) PHP_ZTS !== (getenv("phpts") === "zts")) exit(1);
+          foreach (file("config/extensions/".getenv("EXPECTED_PHP")) as $line) {
+            $name = explode("-", explode(" ", trim($line))[1])[0];
+            if (extension_loaded($name)) throw new Exception("$name enabled by default");
+          }
+          if (!extension_loaded("PDO") || !extension_loaded("mbstring")) exit(1);
+          PHP
+          source scripts/extensions-cache.sh
+          cache_read_config "config/extensions/$EXPECTED_PHP"
+          ext_dir=$(php-config --extension-dir)
+          failed=0
+          for name in "${cache_names[@]}"; do
+            if [[ ! -f "$ext_dir/$name.so" ]]; then
+              ASAN=asan asan_excludes_extension "$name" && continue
+              echo "::error::Missing $name.so"
+              failed=1
+              continue
+            fi
+            ini="/etc/php/$EXPECTED_PHP/mods-available/$name.ini"
+            if [[ ! -f "$ini" ]]; then
+              echo "::error::Missing $ini"
+              failed=1
+              continue
+            fi
+            args=()
+            while read -r dependency; do
+              args+=(-d "extension=$dependency.so")
+            done < <(cache_dependencies "$name")
+            directive=$(grep -E '^(zend_)?extension[[:space:]]*=' "$ini")
+            if ! php "${args[@]}" -d "$directive" --ri "$name" >/dev/null; then
+              echo "::error::Failed to load $name"
+              failed=1
+            fi
+          done
+          exit "$failed"
