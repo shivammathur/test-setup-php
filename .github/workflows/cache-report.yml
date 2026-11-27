@@ -1,0 +1,135 @@
+name: Verify Sury cache report
+on:
+  push:
+    branches:
+      - test/cache-extensions-sury-20261127
+      - test/cache-extensions-sury-20261127-concurrent
+permissions:
+  contents: read
+jobs:
+  cache:
+    name: Cache / ${{ matrix.extensions }} / ${{ matrix.mode }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        extensions: [grpc, 'sodium, sysvshm, gmp, protobuf,grpc']
+        mode: [live, first-timeout]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Observe package requests
+        env:
+          MODE: ${{ matrix.mode }}
+        run: |
+          source /etc/os-release
+          test "$VERSION_ID" = 26.04
+          test ! -e /tmp/Packages
+          echo "$GITHUB_WORKSPACE/probe" >> "$GITHUB_PATH"
+          if [[ $MODE == first-timeout ]]; then
+            python3 probe/tls-stall.py > "$RUNNER_TEMP/tls-stall.log" 2>&1 &
+            for _ in {1..50}; do
+              [[ -s $RUNNER_TEMP/tls-stall-port ]] && break
+              sleep 0.1
+            done
+            test -s "$RUNNER_TEMP/tls-stall-port"
+          fi
+      - name: Setup cache environment
+        id: extcache
+        continue-on-error: true
+        uses: shivammathur/cache-extensions@695b1b465eba861efe67cbbc31252c27f5ed253d # 1.15.11
+        env:
+          CACHE_PROBE_MODE: ${{ matrix.mode }}
+        with:
+          php-version: '8.2'
+          extensions: ${{ matrix.extensions }}
+          key: cache-key-1
+      - name: Cache extensions
+        if: steps.extcache.outcome == 'success'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+      - name: Check cache action outcome and request count
+        env:
+          OUTCOME: ${{ steps.extcache.outcome }}
+          MODE: ${{ matrix.mode }}
+        run: |
+          cat "$RUNNER_TEMP/cache-urls"
+          echo "cache-extensions outcome=$OUTCOME"
+          url=https://packages.sury.org/php/dists/resolute/main/binary-amd64/Packages.gz
+          if [[ $MODE == first-timeout ]]; then
+            test -f "$RUNNER_TEMP/timeout-injected"
+            test "$OUTCOME" = failure
+            test "$(cat "$RUNNER_TEMP/cache-urls")" = "$url"
+          else
+            grep -Fx "$url" "$RUNNER_TEMP/cache-urls"
+            test "$OUTCOME" = success
+          fi
+      - name: Setup PHP
+        if: matrix.mode == 'live'
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: '8.2'
+          extensions: ${{ matrix.extensions }}
+      - name: Verify loaded extensions
+        if: matrix.mode == 'live'
+        env:
+          EXTENSIONS: ${{ matrix.extensions }}
+        run: php probe/verify.php "$EXTENSIONS" require-grpc-1.83
+  uncached:
+    if: github.ref_name == 'test/cache-extensions-sury-20261127'
+    name: Uncached / ${{ matrix.platform }} / PHP ${{ matrix.php }} / ${{ matrix.extensions }}
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-26.04, windows-latest]
+        php: ['8.2', '8.3', '8.4', '8.5']
+        extensions: ['sodium, sysvshm, gmp, grpc']
+        include:
+          - platform: ubuntu-26.04
+            php: '8.2'
+            extensions: 'sodium, sysvshm, gmp, protobuf,grpc'
+          - platform: ubuntu-26.04
+            php: '8.2'
+            extensions: 'sodium, sysvshm, gmp'
+          - platform: ubuntu-26.04
+            php: '8.2'
+            extensions: grpc
+          - platform: windows-latest
+            php: '8.2'
+            extensions: 'sodium, sysvshm, gmp, protobuf,grpc'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ${{ matrix.extensions }}
+      - name: Verify loaded extensions
+        shell: bash
+        env:
+          EXTENSIONS: ${{ matrix.extensions }}
+        run: |
+          php -v
+          if [[ $EXTENSIONS == grpc ]]; then
+            php probe/verify.php "$EXTENSIONS" require-grpc-1.83
+          else
+            php probe/verify.php "$EXTENSIONS"
+          fi
+          if [[ $RUNNER_OS == Linux ]]; then
+            for ext in grpc protobuf; do
+              if [[ $EXTENSIONS == *"$ext"* ]]; then
+                path="$(php -r 'echo ini_get("extension_dir");')/$ext.so"
+                file "$path"
+                dpkg-query -S "$path" || true
+              fi
+            done
+          fi

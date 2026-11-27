@@ -1,0 +1,19 @@
+#!/bin/bash
+# Observe only traffic from the pinned cache action.
+if [[ ${CACHE_PROBE_MODE:-} ]]; then
+  for arg in "$@"; do
+    case "$arg" in
+      http*://*)
+        printf '%s\n' "$arg" >> "$RUNNER_TEMP/cache-urls"
+        if [[ $arg == https://packages.sury.org/php/dists/resolute/main/binary-amd64/Packages.gz &&
+              $CACHE_PROBE_MODE == first-timeout && ! -e $RUNNER_TEMP/timeout-injected ]]; then
+          touch "$RUNNER_TEMP/timeout-injected"
+          # TCP connects on loopback, then TLS stalls. Curl uses the action's own timeout.
+          port=$(cat "$RUNNER_TEMP/tls-stall-port")
+          exec /usr/bin/curl --noproxy '*' --connect-to "packages.sury.org:443:127.0.0.1:$port" --show-error "$@"
+        fi
+        ;;
+    esac
+  done
+fi
+exec /usr/bin/curl "$@"
