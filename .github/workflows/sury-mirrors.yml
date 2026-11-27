@@ -1,0 +1,92 @@
+name: Compare Ubuntu 26.04 Sury mirrors
+on:
+  push:
+    branches: [test/compare-sury-mirrors-20261127]
+permissions:
+  contents: read
+jobs:
+  compare:
+    name: Paired downloads / runner ${{ matrix.lane }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: [1, 2, 3, 4, 5, 6]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Measure the package indexes and verify sample packages
+        run: python3 probe/compare.py "${{ matrix.lane }}"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: measurements-${{ matrix.lane }}
+          path: measurements/
+          if-no-files-found: error
+  action:
+    name: cache-extensions 1.15.11 / ${{ matrix.site }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - site: sury
+            root: https://packages.sury.org/php
+          - site: mirror
+            root: https://ppa.setup-php.com/sury
+    steps:
+      - name: Record the cache action's download URLs
+        run: |
+          mkdir -p "$RUNNER_TEMP/trace-bin"
+          cat > "$RUNNER_TEMP/trace-bin/curl" <<'SCRIPT'
+          #!/bin/bash
+          if [[ -n ${CACHE_TRACE:-} ]]; then
+            for arg in "$@"; do
+              if [[ $arg == https://* ]]; then
+                printf '%s\n' "$arg" >> "$CACHE_TRACE"
+              fi
+            done
+          fi
+          exec /usr/bin/curl "$@"
+          SCRIPT
+          chmod +x "$RUNNER_TEMP/trace-bin/curl"
+          echo "$RUNNER_TEMP/trace-bin" >> "$GITHUB_PATH"
+          test ! -e /tmp/Packages
+      - name: Prepare extension cache
+        id: extcache
+        uses: shivammathur/cache-extensions@695b1b465eba861efe67cbbc31252c27f5ed253d
+        env:
+          preferred_ppa_root: ${{ matrix.root }}
+          CACHE_TRACE: ${{ runner.temp }}/cache-urls
+        with:
+          php-version: '8.2'
+          extensions: sodium, sysvshm, gmp, protobuf,grpc
+          key: sury-host-check
+      - name: Verify the selected host served the index
+        env:
+          ROOT: ${{ matrix.root }}
+        run: |
+          cat "$RUNNER_TEMP/cache-urls"
+          grep -Fx "$ROOT/dists/resolute/main/binary-amd64/Packages.gz" "$RUNNER_TEMP/cache-urls"
+          awk -v root="$ROOT/" 'index($0, root) != 1 {exit 1}' "$RUNNER_TEMP/cache-urls"
+      - name: Restore extension cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+      - name: Setup PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.2'
+          extensions: sodium, sysvshm, gmp, protobuf,grpc
+      - name: Verify extensions
+        run: |
+          php --ri grpc
+          php --ri protobuf
+          # shellcheck disable=SC2016
+          php -r '$v = new Google\Protobuf\Timestamp(); $v->setSeconds(42); $w = new Google\Protobuf\Timestamp(); $w->mergeFromString($v->serializeToString()); exit($w->getSeconds() == 42 ? 0 : 1);'
+          # shellcheck disable=SC2016
+          php -r '$c = new Grpc\Channel("localhost:1", ["credentials" => Grpc\ChannelCredentials::createInsecure()]); $c->close();'
