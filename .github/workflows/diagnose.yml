@@ -1,0 +1,41 @@
+name: Inspect Homebrew cache files
+on: [push]
+permissions:
+  contents: read
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15-intel, macos-26]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - name: Inspect image-provided binaries and links
+        run: |
+          p=$(brew --prefix)
+          echo "HOMEBREW_NO_INSTALL_FROM_API=${HOMEBREW_NO_INSTALL_FROM_API-}"
+          brew tap
+          ls -ld "$p/lib/php" "$p/lib/php/pecl" "$p/lib/php/pecl/20240924" || :
+          ls -l "$p/lib/php/pecl/20240924/"{memcached,igbinary,msgpack}.so || :
+          find "$p/Cellar" -name memcached.so -o -name igbinary.so -o -name msgpack.so | head -60 || :
+      - uses: shivammathur/cache-extensions@c2d4a69703175ce0e3c5103b63225ebfa74d1a6f
+        id: ext
+        with:
+          php-version: '8.4'
+          extensions: memcached
+          key: mac-diagnostics-${{ github.run_id }}
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.4'
+          extensions: memcached
+      - name: Inspect files that actions/cache archives
+        env:
+          EXT_DIR: ${{ steps.ext.outputs.dir }}
+        run: |
+          p=$(brew --prefix)
+          ls -ld "$p/lib/php" "$p/lib/php/pecl" "$EXT_DIR"
+          ls -l "$EXT_DIR/"{memcached,igbinary,msgpack}.so
+          php --ri memcached
+          tar -cf "$RUNNER_TEMP/replay.tar" "$EXT_DIR"
+          tar -tvf "$RUNNER_TEMP/replay.tar" | grep -E 'memcached|pecl/20240924 (->|link to)|igbinary|msgpack' || :
