@@ -1,19 +1,19 @@
-name: Validate Intel extension bottles
+name: Verify Intel Homebrew metadata refresh
 on: [push]
 permissions:
   contents: read
 jobs:
-  bottles:
+  refresh:
     runs-on: macos-15-intel
-    timeout-minutes: 10
+    timeout-minutes: 8
     steps:
+      - uses: shivammathur/cache-extensions@c2d4a69703175ce0e3c5103b63225ebfa74d1a6f
+        env:
+          HOMEBREW_FORCE_API_AUTO_UPDATE: '1'
+        with:
+          php-version: '8.4'
+          extensions: memcached
+          key: intel-refresh-${{ github.run_id }}
       - run: |
-          brew tap shivammathur/extensions
-          brew trust shivammathur/extensions
-          for ext in igbinary msgpack; do
-            formula="shivammathur/extensions/$ext@8.4"
-            brew fetch --force-bottle "$formula"
-            file=$(brew --cache --force-bottle "$formula")
-            test -s "$file"
-            tar -tf "$file" | grep -F "/$ext.so"
-          done
+          brew config
+          for ext in igbinary msgpack; do test -s "$(cat "$RUNNER_TEMP/deps-dir")/$ext.so"; done
