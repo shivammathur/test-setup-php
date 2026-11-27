@@ -1,0 +1,146 @@
+name: Verify squashed Sury migration and key fallback
+
+on:
+  push:
+    branches: [test/sury-refresh-62d8c661]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migration:
+    name: Ubuntu ${{ matrix.ubuntu }} / ${{ matrix.state }} / ${{ matrix.route }}
+    runs-on: ubuntu-${{ matrix.ubuntu }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu: ['22.04', '24.04', '26.04']
+        state: [none, launchpad, launchpad-mirror, sury, sury-mirror]
+        route: [primary, fallback, sks]
+    env:
+      UBUNTU_VERSION: ${{ matrix.ubuntu }}
+      START_STATE: ${{ matrix.state }}
+      ROUTE: ${{ matrix.route }}
+      LC_ALL: C
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: 62d8c661cf9d600500b5543fdffef9f063128a33
+          path: action
+          persist-credentials: false
+      - name: Verify the tested action commit
+        run: |
+          mkdir -p evidence
+          git -C action rev-parse HEAD | tee evidence/action-sha.txt
+          grep -Fxq 62d8c661cf9d600500b5543fdffef9f063128a33 evidence/action-sha.txt
+          test -z "$(git -C action status --porcelain)"
+      - name: Establish and verify the starting state
+        run: bash qa/prepare.sh
+      - name: Run setup-php
+        id: setup
+        uses: ./action
+        with:
+          php-version: '8.2'
+          extensions: redis
+          tools: none
+        env:
+          use_builds_cache: 'false'
+          update: 'true'
+          fail_fast: 'true'
+      - name: Verify key request order, migration, signed indexes and downloaded PHP
+        env:
+          ACTION_PHP_VERSION: ${{ steps.setup.outputs.php-version }}
+        run: |
+          bash qa/verify-keys.sh initial
+          bash qa/verify.sh
+      - name: Repeat setup-php
+        id: repeat
+        uses: ./action
+        with:
+          php-version: '8.2'
+          extensions: redis
+          tools: none
+        env:
+          use_builds_cache: 'false'
+          fail_fast: 'true'
+      - name: Verify repeat setup
+        env:
+          ACTION_PHP_VERSION: ${{ steps.repeat.outputs.php-version }}
+        run: |
+          bash qa/verify-keys.sh repeat
+          bash qa/verify.sh repeat
+      - name: Restore the initial Sury source using the distribution keyring path
+        if: matrix.route == 'primary' && startsWith(matrix.state, 'sury')
+        run: bash qa/installed-key.sh prepare
+      - name: Run setup-php with the preinstalled Sury keyring
+        if: matrix.route == 'primary' && startsWith(matrix.state, 'sury')
+        uses: ./action
+        with:
+          php-version: '8.2'
+          extensions: redis
+          tools: none
+        env:
+          use_builds_cache: 'false'
+          fail_fast: 'true'
+      - name: Verify reuse of the preinstalled keyring
+        if: matrix.route == 'primary' && startsWith(matrix.state, 'sury')
+        run: bash qa/installed-key.sh verify
+      - name: Collect raw key request evidence
+        if: always()
+        run: |
+          if test -e /var/tmp/sury-key-qa/requests.tsv; then
+            cp /var/tmp/sury-key-qa/requests.tsv evidence/requests.tsv
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: evidence-${{ matrix.ubuntu }}-${{ matrix.state }}-${{ matrix.route }}
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 7
+
+  compare:
+    name: Check all 45 key traces and package manifests
+    needs: migration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          pattern: evidence-*
+          path: evidence
+      - run: python3 qa/compare.py
+
+  shared-sources:
+    name: Verify unrelated APT entries survive migration
+    needs: migration
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          pattern: evidence-*
+          path: evidence
+      - name: Check every source file after setup and repeat setup
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(evidence/*/{initial,repeat}-unrelated-targets.txt)
+          test "${#files[@]}" -eq 90
+          failures=0
+          for file in "${files[@]}"; do
+            if ! grep -Fxq 'https://archive.ubuntu.com/ubuntu/' "$file"; then
+              echo "::error::Missing unrelated APT source in $file"
+              failures=$((failures + 1))
+            fi
+          done
+          test "$failures" -eq 0
