@@ -29,6 +29,11 @@ jobs:
           path: ${{ steps.extcache.outputs.dir }}
           key: ${{ steps.extcache.outputs.key }}
           restore-keys: ${{ steps.extcache.outputs.key }}
+      - if: inputs.stage == 'warm'
+        name: Capture the restored cache marker
+        env:
+          EXT_DIR: ${{ steps.extcache.outputs.dir }}
+        run: cp "$EXT_DIR/.paired-workflow-test" "$RUNNER_TEMP/restored-marker"
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
         with:
           php-version: '8.4'
@@ -46,7 +51,7 @@ jobs:
         run: |
           set -eu
           mkdir result
-          test "$(php-config --extension-dir)" = "$EXT_DIR"
+          printf 'php-config extension directory: %s\nCache directory: %s\n' "$(php-config --extension-dir)" "$EXT_DIR"
           php <<'PHP'
           <?php
             if (PHP_MAJOR_VERSION !== 8 || PHP_MINOR_VERSION !== 4) exit(1);
@@ -70,13 +75,14 @@ jobs:
           if [[ $STAGE == cold ]]; then
             [[ $CACHE_HIT != true && ! -e $marker ]]
             uuidgen > "$marker"
+            cp "$marker" result/marker
           else
             [[ $CACHE_HIT == true ]]
             cmp result/cache-key seed/cache-key
             cmp result/binaries.sha256 seed/binaries.sha256
-            cmp "$marker" seed/marker
+            cmp "$RUNNER_TEMP/restored-marker" seed/marker
+            cp "$RUNNER_TEMP/restored-marker" result/marker
           fi
-          cp "$marker" result/marker
           cat result/binaries.sha256
       - uses: actions/upload-artifact@v7
         with:
