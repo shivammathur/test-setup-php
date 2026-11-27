@@ -1,0 +1,76 @@
+name: Verify six cache correctness fixes
+on:
+  push:
+    branches: [test/cache-dependency-fixes-20261127]
+permissions:
+  contents: read
+jobs:
+  regressions:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-26.04, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/cache-extensions
+          ref: c2d4a69703175ce0e3c5103b63225ebfa74d1a6f
+          path: candidate
+      - if: runner.os == 'macOS'
+        name: Provide GNU sed and GNU tar for the Linux and GNU tar fixtures
+        run: |
+          for formula in gnu-sed gnu-tar; do
+            brew list --versions "$formula" >/dev/null || brew install "$formula"
+          done
+      - name: Check ABI, permissions, worker errors, package parsing and archive recovery
+        run: bash checks/regressions.sh "$PWD/candidate"
+      - name: Stall the primary HTTP body and verify fallback
+        run: python3 checks/stall.py "$PWD/candidate"
+  versions:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-22.04-arm, ubuntu-24.04, ubuntu-24.04-arm, ubuntu-26.04, ubuntu-26.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - name: Resolve XML and memcached on PHP 8.2
+        uses: shivammathur/cache-extensions@c2d4a69703175ce0e3c5103b63225ebfa74d1a6f
+        with:
+          php-version: '8.2'
+          key: php82-${{ github.run_id }}
+          extensions: xml,memcached
+      - name: Check the first cache directory
+        run: |
+          dir=$(cat "$RUNNER_TEMP/deps-dir")
+          test "$dir" = "$RUNNER_TOOL_CACHE/deps/$(uname -m)-20220829"
+          echo fixture > "$dir/first-abi"
+          test ! -e /tmp/extcache/xml/xmlrpc
+      - name: Resolve memcached and gRPC on PHP 8.3 on the same runner
+        uses: shivammathur/cache-extensions@c2d4a69703175ce0e3c5103b63225ebfa74d1a6f
+        with:
+          php-version: '8.3'
+          key: php83-${{ github.run_id }}
+          extensions: memcached,grpc
+      - name: Check the second cache directory
+        run: |
+          dir=$(cat "$RUNNER_TEMP/deps-dir")
+          test "$dir" = "$RUNNER_TOOL_CACHE/deps/$(uname -m)-20230831"
+          test ! -e "$dir/first-abi"
+          test -f "$RUNNER_TOOL_CACHE/deps/$(uname -m)-20220829/first-abi"
+      - name: Set up PHP 8.3 and verify both extensions
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: memcached,grpc
+      - name: Run memcached and gRPC
+        shell: php {0}
+        run: |
+          <?php
+          $cache = new Memcached();
+          $channel = new Grpc\Channel('localhost:1', ['credentials' => Grpc\ChannelCredentials::createInsecure()]);
+          $channel->close();
+          printf("PHP %s, memcached %s, grpc %s\n", PHP_VERSION, phpversion('memcached'), phpversion('grpc'));
