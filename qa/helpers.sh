@@ -77,9 +77,11 @@ PKG
   download_ppa_package() { [[ $1 != php8.2-a ]] || return 1; touch "$2"; }
   sudo() {
     case "$1" in
-      dpkg-deb) [[ ${scenario:-} != extract ]] || return 2; echo binary > "$extdir/$dependency_extension.so";;
+      dpkg-deb) echo binary > "$extdir/$dependency_extension.so"; [[ ${scenario:-} != extract ]] || return 2;;
+      rm) command rm "${@:2}";;
       chown) :;;
-      cp) [[ ${scenario:-} != copy ]] || { echo partial > "${!#}"; return 1; }; command cp "${@:2}";;
+      cp) if [[ ${scenario:-} == restore ]]; then echo partial > "$extdir/$dependency_extension.so"; return 1; fi
+          [[ ${scenario:-} != copy ]] || { echo partial > "${!#}"; return 1; }; command cp "${@:2}";;
       *) fail "unexpected sudo: $*";;
     esac
   }
@@ -88,10 +90,21 @@ PKG
   test -s "$deps_cache_directory/b.so"
   for scenario in extract copy; do
     if setup_extensions_helper "$scenario" "$extdir"; then fail "ignored failure in $scenario"; fi
-    test ! -e "$deps_cache_directory/$scenario.so"
+    test ! -e "$deps_cache_directory/$scenario.so" && test ! -e "$extdir/$scenario.so"
+    failed_module=$scenario
+    scenario=retry
+    setup_extensions_helper "$failed_module" "$extdir"
+    cmp "$extdir/$failed_module.so" "$deps_cache_directory/$failed_module.so"
   done
   test -z "$(find "$deps_cache_directory" -name '.download.*' -print)"
-  echo "PASS: parallel failure, successful sibling, extraction and partial-copy cleanup"
+  rm "$extdir/b.so"
+  scenario=restore
+  if setup_extensions_helper b "$extdir"; then fail 'partial warm restore accepted'; fi
+  test ! -e "$extdir/b.so" && test -s "$deps_cache_directory/b.so"
+  scenario=retry
+  setup_extensions_helper b "$extdir"
+  cmp "$extdir/b.so" "$deps_cache_directory/b.so"
+  echo "PASS: parallel failure, successful sibling, extraction and cold/warm partial-copy recovery"
 )
 (
   brew() { :; }

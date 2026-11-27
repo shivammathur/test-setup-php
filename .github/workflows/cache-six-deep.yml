@@ -47,7 +47,7 @@ jobs:
       - name: Run the shipped action with the fault
         id: fault
         continue-on-error: true
-        uses: shivammathur/cache-extensions@f5fef230aabbfaecaf1db8f3246bb41853eb6ce7
+        uses: shivammathur/cache-extensions@c0f94b3fd92868aebd1f2c0ae436f1f0169f8c8d
         env:
           QA_MODE: ${{ matrix.mode }}
         with:
@@ -62,11 +62,19 @@ jobs:
         run: python3 qa/faultcheck.py
       - name: Retry the same dependency cache key without the fault
         if: "!startsWith(matrix.mode, 'header-')"
-        uses: shivammathur/cache-extensions@f5fef230aabbfaecaf1db8f3246bb41853eb6ce7
+        uses: shivammathur/cache-extensions@c0f94b3fd92868aebd1f2c0ae436f1f0169f8c8d
         with:
           php-version: '8.2'
           extensions: memcached
           key: failure-${{ matrix.mode }}-${{ github.run_id }}
+      - name: Check the recovered dependency snapshot before PHP setup
+        if: "!startsWith(matrix.mode, 'header-')"
+        run: |
+          dir=$(cat "$RUNNER_TEMP/deps-dir")
+          for ext in igbinary msgpack; do
+            test -s "$dir/$ext.so"
+            cmp "$dir/$ext.so" "/usr/lib/php/20220829/$ext.so"
+          done
       - if: "!startsWith(matrix.mode, 'header-')"
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
         with:
@@ -91,7 +99,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: shivammathur/cache-extensions
-          ref: f5fef230aabbfaecaf1db8f3246bb41853eb6ce7
+          ref: c0f94b3fd92868aebd1f2c0ae436f1f0169f8c8d
           path: candidate
       - if: runner.os == 'macOS'
         run: |
@@ -108,7 +116,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 12
     steps:
-      - uses: shivammathur/cache-extensions@f5fef230aabbfaecaf1db8f3246bb41853eb6ce7
+      - uses: shivammathur/cache-extensions@c0f94b3fd92868aebd1f2c0ae436f1f0169f8c8d
         with:
           php-version: '8.2'
           key: switch-a-${{ github.run_id }}
@@ -117,7 +125,7 @@ jobs:
           dir=$(cat "$RUNNER_TEMP/deps-dir")
           test "$dir" = "$RUNNER_TOOL_CACHE/deps/$(uname -m)-20220829"
           echo abi82 > "$dir/probe"
-      - uses: shivammathur/cache-extensions@f5fef230aabbfaecaf1db8f3246bb41853eb6ce7
+      - uses: shivammathur/cache-extensions@c0f94b3fd92868aebd1f2c0ae436f1f0169f8c8d
         with:
           php-version: '8.4'
           key: switch-b-${{ github.run_id }}

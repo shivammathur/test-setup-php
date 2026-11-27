@@ -27,6 +27,7 @@ else:
         assert len(rows)==2 and all(r[1:3]==['22','503'] for r in rows) and not Path('/tmp/Packages').exists()
     else:
         assert not (cache/'igbinary.so').exists()
+        assert not Path('/usr/lib/php/20220829/igbinary.so').exists()
         assert (cache/'msgpack.so').is_file()
         target=[r for r in rows if '/pool/' in r[0] and 'igbinary' in r[0]]
         if mode=='download': assert len(target)==2 and all(r[1:3]==['22','503'] for r in target)

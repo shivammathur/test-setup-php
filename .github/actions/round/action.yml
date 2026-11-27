@@ -14,7 +14,7 @@ runs:
     - shell: bash
       run: '"$PY" qa/artifacts.py prepare'
     - id: action
-      uses: shivammathur/cache-extensions@f5fef230aabbfaecaf1db8f3246bb41853eb6ce7
+      uses: shivammathur/cache-extensions@c0f94b3fd92868aebd1f2c0ae436f1f0169f8c8d
       env:
         QA_MODE: ${{ runner.os == 'Linux' && env.FAULT || '' }}
         share-cache-across-jobs: 'true'
