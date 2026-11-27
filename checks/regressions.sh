@@ -3,7 +3,8 @@ set -e -o pipefail
 root=$(cd "$1" && pwd)
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
-source <(sed '/^run=\$1/,$d' "$root/src/scripts/cache.sh")
+sed '/^run=\$1/,$d' "$root/src/scripts/cache.sh" > "$scratch/functions.sh"
+source "$scratch/functions.sh"
 fail() { echo "$*" >&2; exit 1; }
 
 (
