@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -u
+primary=https://packages.sury.org/php/apt.gpg
+mirror=https://ppa.setup-php.com/keys/sury/php.gpg
+observed=
+for arg in "$@"; do
+  case "$arg" in
+    "$primary"|"$mirror"|https://*/pks/lookup*|http://*/pks/lookup*) observed=$arg ;;
+  esac
+done
+if [[ -z "$observed" ]]; then exec /usr/bin/curl "$@"; fi
+
+route=$(cat /var/tmp/sury-key-qa/route)
+options=()
+if [[ "$observed" == "$primary" && "$route" != primary ]]; then
+  # The hosts entry blackholes the primary for both APT and curl.
+  options+=(--noproxy '*')
+elif [[ "$observed" == "$mirror" && "$route" == sks ]]; then
+  # Break only the mirror's key URL. APT still downloads packages from this host.
+  options+=(--noproxy '*' --connect-to ppa.setup-php.com:443:127.0.0.1:1)
+fi
+# setup-php writes the response body to its keyring and requests the HTTP code on stdout.
+code=$(/usr/bin/curl "${options[@]}" "$@")
+rc=$?
+if [[ "$code" =~ ^[0-9]{3}$ ]]; then recorded=$code; else recorded=unexpected-output; fi
+printf '%s\t%s\t%s\n' "$observed" "$rc" "$recorded" >> /var/tmp/sury-key-qa/requests.tsv
+printf '%s' "$code"
+exit "$rc"
