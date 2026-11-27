@@ -1,0 +1,131 @@
+name: Cache dependency validation
+on:
+  push:
+    branches: [test/cache-dependency-validation-20261127]
+permissions:
+  contents: read
+jobs:
+  rounds:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-22.04, php: '8.2'}
+          - {os: ubuntu-22.04-arm, php: '8.4'}
+          - {os: ubuntu-24.04, php: '8.3'}
+          - {os: ubuntu-24.04-arm, php: '8.2'}
+          - {os: ubuntu-26.04, php: '8.5'}
+          - {os: ubuntu-26.04-arm, php: '8.3'}
+          - {os: macos-15-intel, php: '8.4'}
+          - {os: macos-26, php: '8.4'}
+          - {os: windows-latest, php: '8.4'}
+    uses: ./.github/workflows/cache-six-roundtrip.yml
+    with:
+      os: ${{ matrix.os }}
+      php: ${{ matrix.php }}
+  faults:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [header-timeout, header-malformed, header-503, header-404, download, extraction, copy, unavailable]
+    env:
+      MODE: ${{ matrix.mode }}
+      PHPV: '8.2'
+    steps:
+      - uses: actions/checkout@v6
+      - name: Prepare fault injection
+        run: |
+          bash qa/prepare.sh
+          if [[ $MODE != header-* ]]; then
+            STAGE=cold python3 qa/artifacts.py prepare
+          fi
+      - name: Run the shipped action with the fault
+        id: fault
+        continue-on-error: true
+        uses: shivammathur/cache-extensions@c2d4a69703175ce0e3c5103b63225ebfa74d1a6f
+        env:
+          QA_MODE: ${{ matrix.mode }}
+        with:
+          php-version: ${{ startsWith(matrix.mode, 'header-') && '8.7' || '8.2' }}
+          extensions: ${{ startsWith(matrix.mode, 'header-') && ':xdebug' || 'memcached' }}
+          key: failure-${{ matrix.mode }}-${{ github.run_id }}
+      - name: Check action outcome, attempted writes, and partial files
+        env:
+          OUTCOME: ${{ steps.fault.outcome }}
+          EXT_DIR: ${{ steps.fault.outputs.dir }}
+          CACHE_KEY: ${{ steps.fault.outputs.key }}
+        run: python3 qa/faultcheck.py
+      - name: Retry the same dependency cache key without the fault
+        if: "!startsWith(matrix.mode, 'header-')"
+        uses: shivammathur/cache-extensions@c2d4a69703175ce0e3c5103b63225ebfa74d1a6f
+        with:
+          php-version: '8.2'
+          extensions: memcached
+          key: failure-${{ matrix.mode }}-${{ github.run_id }}
+      - if: "!startsWith(matrix.mode, 'header-')"
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.2'
+          extensions: igbinary,msgpack,memcached
+      - if: "!startsWith(matrix.mode, 'header-')"
+        shell: php {0}
+        run: |
+          <?php
+          $c = new Memcached();
+          if (igbinary_unserialize(igbinary_serialize([42])) !== [42] || msgpack_unpack(msgpack_pack([42])) !== [42]) exit(1);
+          echo "PASS recovered runtime\n";
+  regressions:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-26.04, macos-26]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          repository: shivammathur/cache-extensions
+          ref: c2d4a69703175ce0e3c5103b63225ebfa74d1a6f
+          path: candidate
+      - if: runner.os == 'macOS'
+        run: |
+          for formula in gnu-sed gnu-tar; do
+            brew list --versions "$formula" >/dev/null || brew install "$formula"
+          done
+      - run: bash qa/helpers.sh "$PWD/candidate"
+      - run: python3 qa/slow.py "$PWD/candidate"
+  isolation:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-26.04, macos-26]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    steps:
+      - uses: shivammathur/cache-extensions@c2d4a69703175ce0e3c5103b63225ebfa74d1a6f
+        with:
+          php-version: '8.2'
+          key: switch-a-${{ github.run_id }}
+          extensions: memcached
+      - run: |
+          dir=$(cat "$RUNNER_TEMP/deps-dir")
+          test "$dir" = "$RUNNER_TOOL_CACHE/deps/$(uname -m)-20220829"
+          echo abi82 > "$dir/probe"
+      - uses: shivammathur/cache-extensions@c2d4a69703175ce0e3c5103b63225ebfa74d1a6f
+        with:
+          php-version: '8.4'
+          key: switch-b-${{ github.run_id }}
+          extensions: memcached
+      - run: |
+          dir=$(cat "$RUNNER_TEMP/deps-dir")
+          test "$dir" = "$RUNNER_TOOL_CACHE/deps/$(uname -m)-20240924"
+          test ! -e "$dir/probe"
+          test "$(cat "$RUNNER_TOOL_CACHE/deps/$(uname -m)-20220829/probe")" = abi82
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.4'
+          extensions: memcached
+      - run: php --ri memcached

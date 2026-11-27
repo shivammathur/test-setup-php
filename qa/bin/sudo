@@ -1,0 +1,12 @@
+#!/bin/bash
+if [[ ${QA_MODE:-} == header-* && ( $1 == install || $1 == chown || $1 == mkdir ) ]]; then
+  printf '%s\n' "$*" >> "$RUNNER_TEMP/header-filesystem"
+  if [[ $QA_MODE != header-404 ]]; then exit 91; fi
+  if [[ $1 == chown && ! ${!#} =~ /[0-9]{8}$ ]]; then exit 91; fi
+fi
+if [[ ${QA_MODE:-} == copy && $1 == cp && $2 == -p && $3 == */igbinary.so ]]; then
+  printf partial > "${!#}"
+  echo partial-copy >> "$RUNNER_TEMP/copy-fault"
+  exit 1
+fi
+exec /usr/bin/sudo "$@"

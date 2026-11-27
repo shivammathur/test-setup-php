@@ -1,0 +1,60 @@
+name: Validate cache contents and extension runtime
+description: Compare a cold runner to an independent warm runner.
+runs:
+  using: composite
+  steps:
+    - if: runner.os == 'Linux'
+      shell: bash
+      run: bash qa/prepare.sh
+    - if: env.STAGE == 'warm'
+      uses: actions/download-artifact@v8
+      with:
+        name: cold-${{ env.LANE }}
+        path: seed
+    - shell: bash
+      run: '"$PY" qa/artifacts.py prepare'
+    - id: action
+      uses: shivammathur/cache-extensions@c2d4a69703175ce0e3c5103b63225ebfa74d1a6f
+      env:
+        QA_MODE: ${{ runner.os == 'Linux' && env.FAULT || '' }}
+        share-cache-across-jobs: 'true'
+      with:
+        php-version: ${{ env.PHPV }}
+        extensions: ${{ env.EXTS }}
+        key: deep-${{ github.run_id }}-${{ env.LANE }}
+    - name: Inspect dependency cache files and HTTP trace
+      shell: bash
+      env:
+        EXT_DIR: ${{ steps.action.outputs.dir }}
+      run: '"$PY" qa/artifacts.py dependencies'
+    - id: extcache
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      with:
+        key: ${{ steps.action.outputs.key }}
+        path: ${{ steps.action.outputs.dir }}
+    - name: Verify exact cache hit and binary hashes before PHP setup
+      shell: bash
+      env:
+        CACHE_HIT: ${{ steps.extcache.outputs.cache-hit }}
+        CACHE_KEY: ${{ steps.action.outputs.key }}
+        EXT_DIR: ${{ steps.action.outputs.dir }}
+      run: |
+        if [[ $STAGE == warm ]]; then "$PY" qa/artifacts.py restored; else [[ $CACHE_HIT != true ]]; fi
+    - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+      with:
+        php-version: ${{ env.PHPV }}
+        extensions: ${{ env.EXTS }}
+    - name: Exercise the loaded extensions and record their hashes
+      shell: bash
+      env:
+        CACHE_KEY: ${{ steps.action.outputs.key }}
+        EXT_DIR: ${{ steps.action.outputs.dir }}
+        ZEND_DONT_UNLOAD_MODULES: '1'
+      run: |
+        php qa/runtime.php
+        "$PY" qa/artifacts.py finish
+    - uses: actions/upload-artifact@v7
+      with:
+        name: ${{ env.STAGE }}-${{ env.LANE }}
+        path: evidence/
+        if-no-files-found: error

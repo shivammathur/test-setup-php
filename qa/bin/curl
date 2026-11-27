@@ -1,0 +1,43 @@
+#!/bin/bash
+if [[ -z ${QA_MODE:-} ]]; then exec /usr/bin/curl "$@"; fi
+url=${!#}
+case "$url" in
+  https://raw.githubusercontent.com/php/php-src/*/main/php.h)
+    if [[ $QA_MODE == header-* ]]; then
+      action=${QA_MODE#header-}
+      if [[ $url == */master/* ]]; then
+        echo master >> "$RUNNER_TEMP/headers"
+        exec /usr/bin/curl "$@"
+      fi
+      echo "$action" >> "$RUNNER_TEMP/headers"
+      case $action in
+        timeout) exit 28;;
+        malformed) echo invalid > "$RUNNER_TEMP/php.h"; printf 200; exit 0;;
+        404|503) printf '%s' "$action"; exit 0;;
+      esac
+    fi;;
+  https://packages.sury.org/php/*|https://ppa.setup-php.com/sury/*)
+    read -r tls http < "$RUNNER_TEMP/qa-ports"
+    args=("${@:1:$#-1}")
+    override=$url
+    case "$url" in
+      */dists/*/Packages.gz)
+        if [[ $QA_MODE == unavailable ]]; then override="http://127.0.0.1:$http/error"
+        elif [[ $url == https://packages.sury.org/* ]]; then
+          case "$QA_MODE" in
+            connect) args+=(--noproxy '*' --connect-to "packages.sury.org:443:127.0.0.1:$tls");;
+            body) override="http://127.0.0.1:$http/body";;
+          esac
+        fi;;
+      */pool/*igbinary*deb)
+        case "$QA_MODE" in
+          download) override="http://127.0.0.1:$http/error";;
+          extraction) override="http://127.0.0.1:$http/corrupt";;
+        esac;;
+    esac
+    measurement=$(/usr/bin/curl "${args[@]}" --write-out '%{http_code}\t%{time_total}' "$override")
+    rc=$?
+    printf '%s\t%s\t%s\n' "$url" "$rc" "$measurement" >> "$RUNNER_TEMP/${QA_MODE}.tsv"
+    exit "$rc";;
+esac
+exec /usr/bin/curl "$@"

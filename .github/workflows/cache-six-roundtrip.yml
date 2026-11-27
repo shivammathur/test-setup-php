@@ -1,0 +1,44 @@
+name: Cold and warm extension cache
+on:
+  workflow_call:
+    inputs:
+      os:
+        type: string
+        required: true
+      php:
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  cold:
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 17
+    env:
+      PHPV: ${{ inputs.php }}
+      LANE: ${{ inputs.os }}-php${{ inputs.php }}
+      EXTS: ${{ startsWith(inputs.os, 'ubuntu') && 'xml, igbinary, msgpack, memcached, grpc, protobuf' || 'memcached' }}
+      PY: ${{ startsWith(inputs.os, 'windows') && 'python' || 'python3' }}
+      STAGE: cold
+      FAULT: ${{ startsWith(inputs.os, 'ubuntu') && endsWith(inputs.os, '-arm') && 'connect' || 'body' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/round
+  warm:
+    needs: cold
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 17
+    env:
+      PHPV: ${{ inputs.php }}
+      LANE: ${{ inputs.os }}-php${{ inputs.php }}
+      EXTS: ${{ startsWith(inputs.os, 'ubuntu') && 'xml, igbinary, msgpack, memcached, grpc, protobuf' || 'memcached' }}
+      PY: ${{ startsWith(inputs.os, 'windows') && 'python' || 'python3' }}
+      STAGE: warm
+      FAULT: ${{ startsWith(inputs.os, 'ubuntu') && endsWith(inputs.os, '-arm') && 'body' || 'connect' }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/round
