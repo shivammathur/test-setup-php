@@ -1,0 +1,24 @@
+name: macOS extension cache with setup-php
+on: [push]
+permissions:
+  contents: read
+jobs:
+  cold:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15-intel, macos-26]
+    uses: ./.github/workflows/round.yml
+    with:
+      os: ${{ matrix.os }}
+      stage: cold
+  warm:
+    needs: cold
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15-intel, macos-26]
+    uses: ./.github/workflows/round.yml
+    with:
+      os: ${{ matrix.os }}
+      stage: warm

@@ -1,0 +1,85 @@
+name: Check the cache after PHP setup
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      stage:
+        required: true
+        type: string
+jobs:
+  verify:
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 15
+    env:
+      STAGE: ${{ inputs.stage }}
+    steps:
+      - id: extcache
+        uses: shivammathur/cache-extensions@c0f94b3fd92868aebd1f2c0ae436f1f0169f8c8d
+        env:
+          share-cache-across-jobs: 'true'
+        with:
+          php-version: '8.4'
+          extensions: memcached
+          key: paired-${{ github.run_id }}-${{ inputs.os }}
+      - id: cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+          restore-keys: ${{ steps.extcache.outputs.key }}
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.4'
+          extensions: memcached
+      - if: inputs.stage == 'warm'
+        uses: actions/download-artifact@v8
+        with:
+          name: cold-${{ inputs.os }}
+          path: seed
+      - name: Verify cache hit, runtime, and extension bytes
+        env:
+          EXT_DIR: ${{ steps.extcache.outputs.dir }}
+          CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+          CACHE_KEY: ${{ steps.extcache.outputs.key }}
+        run: |
+          set -eu
+          mkdir result
+          test "$(php-config --extension-dir)" = "$EXT_DIR"
+          php <<'PHP'
+          <?php
+            if (PHP_MAJOR_VERSION !== 8 || PHP_MINOR_VERSION !== 4) exit(1);
+            foreach (["memcached", "igbinary", "msgpack"] as $ext) {
+              if (!extension_loaded($ext)) exit(2);
+              printf("%s %s\n", $ext, phpversion($ext));
+            }
+            $value = ["answer" => 42];
+            if (igbinary_unserialize(igbinary_serialize($value)) !== $value ||
+                msgpack_unpack(msgpack_pack($value)) !== $value) exit(3);
+            $client = new Memcached();
+            foreach ([Memcached::SERIALIZER_IGBINARY, Memcached::SERIALIZER_MSGPACK] as $serializer) {
+              if (!$client->setOption(Memcached::OPT_SERIALIZER, $serializer) ||
+                  $client->getOption(Memcached::OPT_SERIALIZER) !== $serializer) exit(4);
+            }
+          PHP
+          (cd "$EXT_DIR" && shasum -a 256 memcached.so igbinary.so msgpack.so) > result/binaries.sha256
+          printf '%s\n' "$CACHE_KEY" > result/cache-key
+          printf '%s\n' "$CACHE_HIT" > result/cache-hit
+          marker="$EXT_DIR/.paired-workflow-test"
+          if [[ $STAGE == cold ]]; then
+            [[ $CACHE_HIT != true && ! -e $marker ]]
+            uuidgen > "$marker"
+          else
+            [[ $CACHE_HIT == true ]]
+            cmp result/cache-key seed/cache-key
+            cmp result/binaries.sha256 seed/binaries.sha256
+            cmp "$marker" seed/marker
+          fi
+          cp "$marker" result/marker
+          cat result/binaries.sha256
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.stage }}-${{ inputs.os }}
+          path: result/
+          if-no-files-found: error
