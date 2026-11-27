@@ -1,0 +1,103 @@
+name: Verify extension caching
+on:
+  workflow_call:
+    inputs:
+      runner:
+        type: string
+        required: true
+      stage:
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  check:
+    name: ${{ inputs.stage }} / ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 10
+    env:
+      EXTENSIONS: sodium, sysvshm, gmp, protobuf,grpc
+      CACHE_BUSTER: timeout-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.runner }}-${{ (inputs.stage == 'cold' || inputs.stage == 'warm') && 'paired' || inputs.stage }}
+      share-cache-across-jobs: 'true'
+      STAGE: ${{ inputs.stage }}
+      MODE: ${{ (inputs.stage == 'cold' || inputs.stage == 'warm') && 'failover' || inputs.stage }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Observe requests and prepare a real connection timeout
+        run: |
+          . /etc/os-release
+          echo "SUITE=$VERSION_CODENAME" >> "$GITHUB_ENV"
+          test ! -e /tmp/Packages
+          echo "$GITHUB_WORKSPACE/probe" >> "$GITHUB_PATH"
+          if [[ $MODE != live ]]; then
+            python3 probe/tls-stall.py > "$RUNNER_TEMP/tls-stall.log" 2>&1 &
+            for _ in {1..50}; do
+              [[ -s $RUNNER_TEMP/tls-stall-port ]] && break
+              sleep 0.1
+            done
+            test -s "$RUNNER_TEMP/tls-stall-port"
+          fi
+      - name: Prepare extension cache from develop
+        id: extcache
+        continue-on-error: ${{ inputs.stage == 'unavailable' }}
+        uses: shivammathur/cache-extensions@develop
+        env:
+          TRACE_PHASE: ${{ env.MODE }}
+        with:
+          php-version: '8.2'
+          extensions: ${{ env.EXTENSIONS }}
+          key: ${{ env.CACHE_BUSTER }}
+      - name: Check request order, curl exit codes, and action outcome
+        env:
+          OUTCOME: ${{ steps.extcache.outcome }}
+        run: |
+          python3 probe/verify-index.py "$MODE"
+          if [[ $MODE == unavailable ]]; then
+            test "$OUTCOME" = failure
+          else
+            test "$OUTCOME" = success
+          fi
+      - name: Cache PHP extensions
+        if: inputs.stage == 'cold' || inputs.stage == 'warm'
+        id: cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ${{ steps.extcache.outputs.dir }}
+          key: ${{ steps.extcache.outputs.key }}
+      - name: Check cache miss or verify the restored binaries before PHP setup
+        if: inputs.stage == 'cold' || inputs.stage == 'warm'
+        env:
+          CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+          CACHE_DIR: ${{ steps.extcache.outputs.dir }}
+          CACHE_KEY: ${{ steps.extcache.outputs.key }}
+        run: |
+          cd "$CACHE_DIR"
+          if [[ $STAGE == cold ]]; then
+            [[ $CACHE_HIT != true ]]
+            test ! -e .timeout-test-key
+          else
+            test "$CACHE_HIT" = true
+            test "$(cat .timeout-test-key)" = "$CACHE_KEY"
+            sha256sum --check .timeout-test-sha256
+          fi
+      - name: Setup PHP
+        if: inputs.stage != 'unavailable'
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.2'
+          extensions: ${{ env.EXTENSIONS }}
+      - name: Exercise gRPC and protobuf
+        if: inputs.stage != 'unavailable'
+        run: php probe/runtime.php
+      - name: Record the binary checksums and exact cache key for the next runner
+        if: inputs.stage == 'cold'
+        env:
+          CACHE_DIR: ${{ steps.extcache.outputs.dir }}
+          CACHE_KEY: ${{ steps.extcache.outputs.key }}
+        run: |
+          cd "$CACHE_DIR"
+          test -s grpc.so && test -s protobuf.so
+          sha256sum grpc.so protobuf.so | tee .timeout-test-sha256
+          echo "$CACHE_KEY" > .timeout-test-key

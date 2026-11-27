@@ -1,0 +1,35 @@
+name: Test cache-extensions develop after a primary timeout
+on:
+  push:
+    branches: [test/cache-extensions-develop-timeout-20261127]
+permissions:
+  contents: read
+jobs:
+  cold:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-22.04-arm, ubuntu-24.04, ubuntu-24.04-arm, ubuntu-26.04, ubuntu-26.04-arm]
+    uses: ./.github/workflows/check.yml
+    with:
+      runner: ${{ matrix.os }}
+      stage: cold
+  warm:
+    needs: cold
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-22.04-arm, ubuntu-24.04, ubuntu-24.04-arm, ubuntu-26.04, ubuntu-26.04-arm]
+    uses: ./.github/workflows/check.yml
+    with:
+      runner: ${{ matrix.os }}
+      stage: warm
+  controls:
+    strategy:
+      fail-fast: false
+      matrix:
+        stage: [live, unavailable]
+    uses: ./.github/workflows/check.yml
+    with:
+      runner: ubuntu-26.04
+      stage: ${{ matrix.stage }}

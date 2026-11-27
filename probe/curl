@@ -1,0 +1,19 @@
+#!/bin/bash
+# Requests outside the test steps use the runner's curl unchanged.
+if [[ -z ${TRACE_PHASE:-} ]]; then
+  exec /usr/bin/curl "$@"
+fi
+url=${!#}
+log="$RUNNER_TEMP/$TRACE_PHASE.tsv"
+extra=()
+if [[ $TRACE_PHASE == unavailable || ( $TRACE_PHASE == failover && ! -s "$log" && $url == https://packages.sury.org/php/* ) ]]; then
+  host=${url#https://}
+  host=${host%%/*}
+  port=$(cat "$RUNNER_TEMP/tls-stall-port")
+  extra=(--noproxy '*' --connect-to "$host:443:127.0.0.1:$port")
+fi
+# The production helper downloads to a file, leaving stdout free for curl timings.
+metrics=$(/usr/bin/curl "${extra[@]}" --show-error --write-out '%{http_code}\t%{time_total}' "$@")
+rc=$?
+printf '%s\t%d\t%s\n' "$url" "$rc" "$metrics" >> "$log"
+exit "$rc"
