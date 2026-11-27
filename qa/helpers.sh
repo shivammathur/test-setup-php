@@ -127,6 +127,32 @@ PKG
     mv "$brew_cellar/good" "$scratch/portable-before-$attempt"
     setup_libraries portable good
     cmp "$scratch/portable-before-$attempt/contents" "$brew_cellar/good/contents"
+    test ! -e "$deps_cache_directory/portable/good.tar"
     echo "PASS: portable restore $attempt on a persistent dependency directory"
   done
+)
+
+(
+  brew() { if [[ $1 == install || $1 == fetch ]]; then return 1; fi; }
+  source "$root/src/scripts/darwin.sh"
+  deps_cache_directory=$scratch/extension-files
+  ext_config_directory=$scratch/config
+  cache_directory=$ext_config_directory
+  extdir=$scratch/install
+  mkdir -p "$deps_cache_directory" "$extdir"
+  sudo() { "$@"; }
+  if setup_extensions memcached "$extdir" homebrew/extensions/igbinary@8.4; then fail 'brew and bottle failure hidden'; fi
+  test ! -e "$ext_config_directory/memcached/igbinary"
+  test -z "$(ls -A "$deps_cache_directory")"
+  brew_prefix=$scratch/prefix
+  mkdir -p "$brew_prefix/opt/igbinary@8.4"
+  brew() { :; }
+  if setup_extensions memcached "$extdir" homebrew/extensions/igbinary@8.4; then fail 'empty keg accepted'; fi
+  test -z "$(ls -A "$deps_cache_directory")"
+  echo valid > "$brew_prefix/opt/igbinary@8.4/igbinary.so"
+  tick=OK
+  setup_extensions memcached "$extdir" homebrew/extensions/igbinary@8.4
+  cmp "$extdir/igbinary.so" "$deps_cache_directory/igbinary.so"
+  test "$(cat "$ext_config_directory/memcached/igbinary")" = igbinary
+  echo "PASS: missing formula and missing binary fail cleanly, successful retry restores real bytes"
 )

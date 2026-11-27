@@ -14,7 +14,7 @@ runs:
     - shell: bash
       run: '"$PY" qa/artifacts.py prepare'
     - id: action
-      uses: shivammathur/cache-extensions@c2d4a69703175ce0e3c5103b63225ebfa74d1a6f
+      uses: shivammathur/cache-extensions@f5fef230aabbfaecaf1db8f3246bb41853eb6ce7
       env:
         QA_MODE: ${{ runner.os == 'Linux' && env.FAULT || '' }}
         share-cache-across-jobs: 'true'
@@ -27,11 +27,17 @@ runs:
       env:
         EXT_DIR: ${{ steps.action.outputs.dir }}
       run: '"$PY" qa/artifacts.py dependencies'
+    - id: pack
+      if: env.PACK == 'true'
+      shell: bash
+      run: echo "dir=$(brew --prefix)/var/php-darwin/extensions" >> "$GITHUB_OUTPUT"
     - id: extcache
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
       with:
         key: ${{ steps.action.outputs.key }}
-        path: ${{ steps.action.outputs.dir }}
+        path: |
+          ${{ steps.action.outputs.dir }}
+          ${{ steps.pack.outputs.dir }}
     - name: Verify exact cache hit and binary hashes before PHP setup
       shell: bash
       env:
@@ -52,6 +58,10 @@ runs:
         ZEND_DONT_UNLOAD_MODULES: '1'
       run: |
         php qa/runtime.php
+        if [[ $RUNNER_OS == macOS ]]; then
+          dir=$(cat "$RUNNER_TEMP/deps-dir")
+          php -n -d "extension=$dir/igbinary.so" -d "extension=$dir/msgpack.so" -r 'exit(igbinary_unserialize(igbinary_serialize([42])) === [42] && msgpack_unpack(msgpack_pack([42])) === [42] ? 0 : 1);'
+        fi
         "$PY" qa/artifacts.py finish
     - uses: actions/upload-artifact@v7
       with:

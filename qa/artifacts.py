@@ -47,7 +47,7 @@ def deps():
         return {}
     cache=Path((temp/'deps-dir').read_text())
     check(cache==scoped(),f'unexpected scoped path {cache}')
-    files={p.relative_to(cache).as_posix():digest(p) for p in cache.rglob('*') if p.is_file() and not p.name.endswith('.tar')}
+    files={p.relative_to(cache).as_posix():digest(p) for p in cache.rglob('*') if p.is_file()}
     for name in ['igbinary.so','msgpack.so']:
         check(name in files,f'missing {name} in {files.keys()}')
     if mac:
@@ -91,10 +91,21 @@ elif command=='dependencies':
 elif command=='restored':
     seed=read_seed()
     check(E['CACHE_HIT']=='true' and E['CACHE_KEY']==seed['key'], 'no exact cache hit')
-    check(ext_hashes()==seed['extensions'],'restored extension files differ before setup-php')
-    print('Restored extension SHA-256:',ext_hashes())
+    module=Path(E['EXT_DIR'])/dll('memcached')
+    if mac and E.get('PACK')!='true' and module.is_symlink() and not module.exists():
+        store=Path(subprocess.check_output(['brew','--prefix'],text=True).strip())/'var/php-darwin/extensions'
+        target=module.readlink()
+        check(target.is_relative_to(store) and target.name=='memcached.so', f'unexpected broken link {module} -> {target}')
+        print(f'::warning::The single directory restored a dangling link before PHP setup: {module} -> {target}')
+        (evidence/'restored.json').write_text(json.dumps({'dangling_before_setup':str(target)}))
+    else:
+        hashes=ext_hashes()
+        check(hashes==seed['extensions'],'restored extension files differ before setup-php')
+        (evidence/'restored.json').write_text(json.dumps({'sha256':hashes}))
+        print('Restored extension SHA-256:', hashes)
 elif command=='finish':
     info=dict(key=E['CACHE_KEY'],os=E['RUNNER_OS'],php=E['PHPV'],stage=stage,
               extensions=ext_hashes(),dependencies=json.loads((evidence/'dependencies.json').read_text()))
+    if stage=='warm': check(info['extensions']==read_seed()['extensions'], 'runtime binary hashes differ from seed')
     (evidence/'snapshot.json').write_text(json.dumps(info,sort_keys=True,indent=2))
     print('Runtime extension SHA-256:', info['extensions'])
