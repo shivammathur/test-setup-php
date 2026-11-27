@@ -1,0 +1,219 @@
+diff --git a/README.md b/README.md
+index 27257abb..99d35f12 100644
+--- a/README.md
++++ b/README.md
+@@ -713,7 +713,7 @@ Set a variable in the setup step's `env` to override its default for the rest of
+ > Update to the latest patch of PHP versions.
+ 
+ - Pre-installed PHP versions are not updated to their latest patch release by default.
+-- If `ppa:ondrej/php` is missing on the Ubuntu GitHub environment, the PHP version is updated to the latest patch release.
++- If the Ubuntu runner image has no PHP package repository, PHP is updated to the latest patch release.
+ - You can specify the `update` environment variable to `true` for updating to the latest release.
+ 
+ ```yaml
+@@ -1136,7 +1136,7 @@ Many users and organizations support setup-php via [GitHub Sponsors](https://git
+ - [Node.js dependencies](https://github.com/shivammathur/setup-php/network/dependencies "Node.js dependencies")
+ - [aaronparker/VcRedist](https://github.com/aaronparker/VcRedist "VcRedist PowerShell package")
+ - [mlocati/powershell-phpmanager](https://github.com/mlocati/powershell-phpmanager "Package to handle PHP on windows")
+-- [ppa:ondrej/php](https://launchpad.net/~ondrej/+archive/ubuntu/php "Packaging active PHP packages")
++- [Sury PHP packages](https://packages.sury.org/php/) and the [setup-php mirror](https://ppa.setup-php.com/sury/)
+ - [shivammathur/cache-extensions](https://github.com/shivammathur/cache-extensions "GitHub action to help with caching PHP extensions")
+ - [shivammathur/composer-cache](https://github.com/shivammathur/composer-cache "Cache composer releases")
+ - [shivammathur/homebrew-extensions](https://github.com/shivammathur/homebrew-extensions "Tap for PHP extensions on MacOS")
+diff --git a/src/configs/sury-mirrors b/src/configs/sury-mirrors
+new file mode 100644
+index 00000000..ad7b989f
+--- /dev/null
++++ b/src/configs/sury-mirrors
+@@ -0,0 +1,2 @@
++https://packages.sury.org/php/	priority:1
++https://ppa.setup-php.com/sury/	priority:2
+diff --git a/src/scripts/linux.sh b/src/scripts/linux.sh
+index 821b748e..aab70aa7 100644
+--- a/src/scripts/linux.sh
++++ b/src/scripts/linux.sh
+@@ -138,7 +138,11 @@ setup_old_versions() {
+ 
+ # Function to setup PHP from the cached builds.
+ setup_cached_versions() {
+-  run_script "php-ubuntu" "$version" "${debug:?}" "${ts:?}"
++  run_script "php-ubuntu" "$version" "${debug:?}" "${ts:?}" || return 1
++  # Older cached packages include a Launchpad source.
++  if [[ "$ID" = "ubuntu" || "$ID_LIKE" =~ ubuntu ]]; then
++    remove_old_php_sources
++  fi
+ }
+ 
+ # Function to get the link path for an alternative.
+@@ -241,7 +245,9 @@ update_php() {
+ # Function to install PHP.
+ add_php() {
+   if [ "${runner:?}" = "self-hosted" ] || [ "${use_builds_cache:-true}" = "false" ]; then
+-    if [[ "$version" =~ ${php_builder_versions:?} || "$ts" = "zts" || -n "${asan:-}" ]]; then
++    # Sury's Ubuntu archive does not publish the PHP CLI debug symbols.
++    if [[ "$version" =~ ${php_builder_versions:?} || "$ts" = "zts" || -n "${asan:-}" ||
++          ( "$debug" = "debug" && "$ID $ID_LIKE" == *ubuntu* ) ]]; then
+         setup_php_builder
+     else
+       add_packaged_php
+@@ -366,4 +372,10 @@ set_apt_install >/dev/null 2>&1
+ . "${scripts:?}"/extensions/add_extensions.sh
+ read_env
+ self_hosted_setup
++if [[ "$ID" = "ubuntu" || "$ID_LIKE" =~ ubuntu ]]; then
++  if ! add_ppa ondrej/php; then
++    add_log "$cross" "Sury" "Could not configure the PHP package repository"
++    exit 1
++  fi
++fi
+ setup_php
+diff --git a/src/scripts/tools/ppa.sh b/src/scripts/tools/ppa.sh
+index 15813ede..a1ed2268 100644
+--- a/src/scripts/tools/ppa.sh
++++ b/src/scripts/tools/ppa.sh
+@@ -40,7 +40,7 @@ update_lists_helper() {
+   list=$1
+   command -v sudo >/dev/null && SUDO=sudo
+   if [[ -n "$list" ]]; then
+-    ${SUDO} apt-get update -o Dir::Etc::sourcelist="$list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
++    ${SUDO} apt-get update -o Dir::Etc::sourcelist="$list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0" -o APT::Update::Error-Mode=any
+   else
+     ${SUDO} apt-get update
+   fi
+@@ -70,7 +70,7 @@ update_lists() {
+     list="$list_file"
+   fi
+   if [ ! -e "$status_file" ]; then
+-    update_lists_helper "$list" >/dev/null 2>&1
++    update_lists_helper "$list" >/dev/null 2>&1 || return 1
+     echo '' | tee "$status_file" >/dev/null 2>&1
+   fi
+ }
+@@ -183,7 +183,11 @@ add_key() {
+     sks_params="op=get&options=mr&exact=on&search=0x$fingerprint"
+     key_urls=("${sks[@]/%/\/pks\/lookup\?"$sks_params"}")
+   fi
+-  key_urls+=("$ppa_sp/keys/$ppa.gpg")
++  if [ "$ppa" = "sury/php" ]; then
++    key_urls+=("${sks[0]}/pks/lookup?op=get&search=0x15058500A0235D97F5D10063B188E2B695BD4743")
++  else
++    key_urls+=("$ppa_sp/keys/$ppa.gpg")
++  fi
+   [ ! -e "$key_source" ] && get -q -n "$key_file" "${key_urls[@]}"
+   if [[ "$(file "$key_file")" =~ .*('Public-Key (old)'|'Secret-Key') ]]; then
+     sudo gpg --batch --yes --dearmor "$key_file" >/dev/null 2>&1 && sudo mv "$key_file".gpg "$key_file"
+@@ -349,20 +353,75 @@ add_sury_list() {
+   add_list "$ppa" "$sury"/"${ppa##*/}"/ "$sury"/"${ppa##*/}"/apt.gpg
+ }
+ 
++# Remove superseded PHP entries while keeping other repositories in the same file.
++remove_old_php_sources() {
++  local file
++  for file in /etc/apt/sources.list "$list_dir"/*.list "$list_dir"/*.sources; do
++    [ -f "$file" ] || continue
++    grep -Eq "$php_repo_pattern" "$file" || continue
++    if [[ "$file" = *.sources ]]; then
++      sudo perl -00 -i -ne '
++        BEGIN { $repo = shift }
++        if (/^URIs:[ \t]*([^\n]*(?:\n[ \t]+[^\n]*)*)/mi) {
++          my ($field, $urls) = ($&, $1);
++          my @keep = grep { !m{^$repo/?$} } split " ", $urls;
++          next unless @keep;
++          s/\Q$field\E/URIs: @keep/ if $urls =~ /$repo/;
++        }
++        print;
++      ' "$php_repo_pattern" "$file" || return 1
++    else
++      sudo sed -i -E "\#^[[:space:]]*deb(-src)?[[:space:]]+(\[[^]]*\][[:space:]]+)?$php_repo_pattern/?[[:space:]]#d" "$file" || return 1
++    fi
++    if [[ "$file" = "$list_dir/"* && ! -s "$file" ]]; then
++      sudo rm -f "$file" || return 1
++    fi
++  done
++}
++
++# Recognize PHP sources in both APT formats, including the previous Ubuntu PPA.
++has_ubuntu_php_repository() {
++  apt-get indextargets --no-release-info --format '$(REPO_URI)' "Release: $VERSION_CODENAME" 'Identifier: Packages' 'Component: main' |
++    grep -Ex "($php_repo_pattern|mirror\+file:$sury_mirrors)/?" >/dev/null
++}
++
++# APT's mirror transport retries both indexes and packages in priority order.
++add_ubuntu_sury_list() (
++  local format source_file staged_dir staged_file key_file="$key_dir/debsuryorg-archive-keyring.gpg"
++  local -a curl_opts=("${curl_opts[@]}" --connect-timeout 5 --max-time 15)
++  format="$(get_sources_format)"
++  source_file="$list_dir/setup-php-ubuntu-sury-$VERSION_CODENAME.$(get_sources_extension "$format")"
++  sudo install -C -m 644 "${src:?}/configs/sury-mirrors" "$sury_mirrors" || return 1
++  [ -s "$key_file" ] || key_file="$key_dir/sury-php-keyring.gpg"
++  [ -s "$key_file" ] || add_key sury/php "$sury/php/" "$VERSION_CODENAME" "$sury/php/apt.gpg" "$key_file"
++  [ -s "$key_file" ] || return 1
++  if ! grep -Fq "mirror+file:$sury_mirrors" "$source_file" 2>/dev/null || ! grep -Fq "$key_file" "$source_file"; then
++    staged_dir="$(mktemp -d)" || return 1
++    trap 'rm -rf "$staged_dir"' EXIT
++    staged_file="$staged_dir/${source_file##*/}"
++    list_dir="$staged_dir" write_list "$format" setup-php/sury "mirror+file:$sury_mirrors" "$VERSION_CODENAME" main "$key_file" || return 1
++    update_lists_helper "$staged_file" >/dev/null || return 1
++    sudo install -m 644 "$staged_file" "$source_file" || return 1
++  else
++    update_lists sury/php "$source_file" || return 1
++  fi
++  remove_old_php_sources
++)
++
+ # Function to add a PPA.
+ add_ppa() {
+   set_base_version
+   ppa=${1:-ondrej/php}
+   if [[ "$ID" = "ubuntu" || "$ID_LIKE" =~ ubuntu ]] && [[ "$ppa" =~ "ondrej/" ]]; then
+-    if [ "$VERSION_ID" = "26.04" ]; then
++    if [ "$ppa" = "ondrej/php" ]; then
++      add_ubuntu_sury_list
++    elif [ "$VERSION_ID" = "26.04" ]; then
+       add_sury_list
+     else
+       if is_ubuntu_ppa_up "$ppa" ; then
+         [ "${runner:?}" = "self-hosted" ] && find "$list_dir" -type f -name 'sp*' -exec grep -qF "${sp/https:\/\/}" {} \; -delete
+         [ "${debug:?}" = "debug" ] && add_list "$ppa" "$lpc_ppa/$ppa/ubuntu" "$lpc_ppa/$ppa/ubuntu" "$VERSION_CODENAME" "main/debug"
+         add_list "$ppa"
+-      elif [ "$ppa" = "ondrej/php" ]; then
+-        add_ppa_sp_mirror "$ppa"
+       else
+         add_log "${cross:?}" "$ppa" "PPA $ppa is not available"
+       fi
+@@ -379,6 +438,10 @@ add_ppa() {
+ 
+ # Function to update a PPA.
+ update_ppa() {
++  if [[ "${1:-ondrej/php}" = "ondrej/php" && -z "$2" && ( "$ID" = "ubuntu" || "$ID_LIKE" =~ ubuntu ) ]]; then
++    add_ppa ondrej/php
++    return
++  fi
+   set_base_version
+   ppa=${1:-ondrej/php}
+   ppa_url=${2:-"$lpc_ppa/$ppa/ubuntu"}
+@@ -414,6 +477,8 @@ lpc_ppa='https://ppa.launchpadcontent.net'
+ key_dir='/usr/share/keyrings'
+ dist_info_dir='/usr/share/distro-info'
+ sury='https://packages.sury.org'
++sury_mirrors='/etc/apt/setup-php-sury-mirrors.txt'
++php_repo_pattern='https?://((ppa\.launchpad(content)?\.net|(ppa\.)?setup-php\.com)/ondrej/php/ubuntu|packages\.sury\.org/php|ppa\.setup-php\.com/sury)'
+ ppa_sp='https://ppa.setup-php.com'
+ sp='https://setup-php.com'
+ sks=(
+diff --git a/src/scripts/unix.sh b/src/scripts/unix.sh
+index 0fe6ac63..efc34562 100644
+--- a/src/scripts/unix.sh
++++ b/src/scripts/unix.sh
+@@ -119,9 +119,9 @@ read_env() {
+     add_log "$cross" "Runner" "Runner set as github in self-hosted environment"
+   fi
+ 
+-  # Set Update to true if the ubuntu github image does not have PHP PPA.
++  # Update PHP when the Ubuntu runner image has no PHP package repository.
+   if [[ "$runner" = "github" && "${ImageOS}" =~ ubuntu.* ]]; then
+-    if ! check_ppa ondrej/php; then
++    if ! has_ubuntu_php_repository; then
+       update=true
+       echo '' | sudo tee /tmp/sp_update >/dev/null 2>&1
+     elif [ -e /tmp/sp_update ]; then
