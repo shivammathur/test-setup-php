@@ -1,0 +1,62 @@
+name: First Launchpad extension on Jammy
+on:
+  push:
+    branches: [test/php80-first-ppa-extension]
+permissions:
+  contents: read
+jobs:
+  extension:
+    name: PHP 8.0 / ${{ matrix.cache }} cache
+    runs-on: ubuntu-22.04
+    timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      matrix:
+        cache: [published, sury]
+    env:
+      CACHE: ${{ matrix.cache }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/setup-php
+          ref: eb7c497e18156a6bbabfef1d3a82760b9eda3962
+          path: v2
+          persist-credentials: false
+      - if: matrix.cache == 'sury'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: shivammathur/php-ubuntu
+          ref: 0171abdcc87ed650bf7287d72f6293739594bf6e
+          path: builder
+          persist-credentials: false
+      - name: Build the branch cache on this runner
+        if: matrix.cache == 'sury'
+        run: bash qa/build.sh
+      - name: Establish the Launchpad source
+        run: bash qa/prepare.sh
+      - name: Restore PHP 8.0 with v2
+        uses: ./v2
+        with:
+          php-version: '8.0'
+          tools: none
+        env:
+          update: 'true'
+          use_builds_cache: 'true'
+          fail_fast: 'true'
+      - name: Capture PHP versions, available origins and the proposed transaction
+        run: bash qa/before.sh
+      - name: Install the first missing extension with v2
+        uses: ./v2
+        with:
+          php-version: '8.0'
+          extensions: rdkafka
+          tools: none
+        env:
+          use_builds_cache: 'true'
+          fail_fast: 'true'
+      - name: Compare packages, binaries and dpkg actions
+        if: success() || failure()
+        run: bash qa/after.sh
